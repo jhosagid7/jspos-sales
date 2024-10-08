@@ -31,7 +31,7 @@ class Sale extends Model
 
     function customer()
     {
-        return $this->belongsTo(Customer::class)->select('id', 'name');
+        return $this->belongsTo(Customer::class)->select('id', 'name', 'address', 'phone', 'email');
     }
 
     function user()

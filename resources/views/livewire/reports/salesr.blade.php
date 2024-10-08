@@ -2,8 +2,8 @@
     <div class="row">
         <div class="col-sm-12 col-md-3 ">
             <div class="card">
-                <div class="card-header bg-dark p-1">
-                    <h5 class="txt-light text-center">Opciones</h5>
+                <div class="p-1 card-header bg-dark">
+                    <h5 class="text-center txt-light">Opciones</h5>
                 </div>
 
                 <div class="card-body">
@@ -11,9 +11,9 @@
                     <select wire:model="user_id" class="form-select form-control-sm">
                         <option value="0">Seleccionar</option>
                         @foreach ($users as $user)
-                        <option value="{{ $user->id }}">
-                            {{ $user->name }}
-                        </option>
+                            <option value="{{ $user->id }}">
+                                {{ $user->name }}
+                            </option>
                         @endforeach
                     </select>
 
@@ -43,8 +43,8 @@
                     </div>
 
                     <div class="mt-3">
-                        <button wire:click.prevent="$set('showReport', true)" class="btn btn-dark" {{ $user_id==null &&
-                            ($dateFrom==null && $dateTo==null) ? 'disabled' : '' }}>
+                        <button wire:click.prevent="$set('showReport', true)" class="btn btn-dark"
+                            {{ $user_id == null && ($dateFrom == null && $dateTo == null) ? 'disabled' : '' }}>
                             Consultar
                         </button>
                     </div>
@@ -68,11 +68,12 @@
                         <div class="col-sm-12 col-md-5"></div>
                         <div class="col-sm-12 col-md-4"></div>
                         <div class="col-sm-12 col-md-3 text-end">
-                            <span class="badge badge-light-success f-18" {{ $totales==0 ? 'hidden' : '' }}>Total Ventas:
-                                ${{ round($totales,2) }}</span>
+                            <span class="badge badge-light-success f-18" {{ $totales == 0 ? 'hidden' : '' }}>Total
+                                Ventas:
+                                ${{ round($totales, 2) }}</span>
                         </div>
                     </div>
-                    <div class="table-responsive mt-3">
+                    <div class="mt-3 table-responsive">
                         <table class="table table-responsive-md table-hover" id="tblSalesRpt">
                             <thead class="thead-primary">
                                 <tr class="text-center">
@@ -89,36 +90,42 @@
                             </thead>
                             <tbody>
                                 @forelse ($sales as $sale)
-                                <tr class="text-center">
-                                    <td>{{$sale->id }}</td>
-                                    <td>{{$sale->customer->name }}</td>
-                                    <td>${{$sale->total }}</td>
-                                    <td>{{$sale->items }}</td>
-                                    <td>{{$sale->status }}</td>
-                                    <td>{{$sale->type }}</td>
-                                    <td>{{$sale->created_at }}</td>
-                                    <td class="text-primary"></td>
+                                    <tr class="text-center">
+                                        <td>{{ $sale->id }}</td>
+                                        <td>{{ $sale->customer->name }}</td>
+                                        <td>${{ $sale->total }}</td>
+                                        <td>{{ $sale->items }}</td>
+                                        <td>{{ $sale->status }}</td>
+                                        <td>{{ $sale->type }}</td>
+                                        <td>{{ $sale->created_at }}</td>
+                                        <td class="text-primary"></td>
 
-                                    <td data-container="body" data-bs-toggle="tooltip" data-bs-placement="top"
-                                        data-bs-html="true" data-bs-title="<b>Ver los detalles de la venta</b>">
+                                        <td data-container="body" data-bs-toggle="tooltip" data-bs-placement="top"
+                                            data-bs-html="true" data-bs-title="<b>Ver los detalles de la venta</b>">
 
-                                        <button wire:click.prevent="getSaleDetail({{ $sale->id }})"
-                                            class="btn btn-outline-dark btn-xs border-0">
-                                            <i class="icofont icofont-list fa-2x"></i>
-                                        </button>
-                                    </td>
+                                            <button wire:click.prevent="getSaleDetail({{ $sale->id }})"
+                                                class="border-0 btn btn-outline-dark btn-xs">
+                                                <i class="icofont icofont-list fa-2x"></i>
+                                            </button>
+                                            <a class="border-0 btn btn-outline-dark btn-xs link-offset-2 link-underline link-underline-opacity-0"
+                                                href="{{ route('pos.sales.generatePdfInvoice', $sale->id) }}"
+                                                target="_blank"><i
+                                                    class="text-danger icofont icofont-file-pdf fa-2x"></i>
+                                            </a>
 
-                                </tr>
+                                        </td>
+
+                                    </tr>
                                 @empty
-                                <tr>
-                                    <td colspan="7" class="text-center">Sin ventas</td>
-                                </tr>
+                                    <tr>
+                                        <td colspan="7" class="text-center">Sin ventas</td>
+                                    </tr>
                                 @endforelse
                             </tbody>
                         </table>
                         <div class="mt-2">
-                            @if(!is_array($sales))
-                            {{$sales->links()}}
+                            @if (!is_array($sales))
+                                {{ $sales->links() }}
                             @endif
                         </div>
                     </div>
@@ -126,7 +133,7 @@
 
 
                 </div>
-                <div class="card-footer d-flex justify-content-between p-1">
+                <div class="p-1 card-footer d-flex justify-content-between">
 
                 </div>
             </div>
@@ -136,30 +143,30 @@
 
 
     <script>
-        document.addEventListener('livewire:init', () => {   
+        document.addEventListener('livewire:init', () => {
             flatpickr("#dateFrom", {
                 dateFormat: "Y/m/d",
                 locale: "es",
-                theme: "confetti",    
+                theme: "confetti",
                 onChange: function(selectedDates, dateStr, instance) {
                     console.log(dateStr);
-                    @this.set('dateFrom',dateStr)
+                    @this.set('dateFrom', dateStr)
                 }
             })
             flatpickr("#dateTo", {
                 dateFormat: "Y/m/d",
                 locale: "es",
-                theme: "confetti",    
-                onChange: function(selectedDates, dateStr, instance) {                    
-                    @this.set('dateTo',dateStr)
+                theme: "confetti",
+                onChange: function(selectedDates, dateStr, instance) {
+                    @this.set('dateTo', dateStr)
                 }
             })
 
-    
-    })
 
-    document.addEventListener('show-detail', event=> {
-        $('#modalSaleDetail').modal('show')
-    })
+        })
+
+        document.addEventListener('show-detail', event => {
+            $('#modalSaleDetail').modal('show')
+        })
     </script>
 </div>

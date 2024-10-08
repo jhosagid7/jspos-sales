@@ -16,8 +16,9 @@
         </form>
         <div class="col-auto p-0 header-logo-wrapper">
             <div class="logo-wrapper">
-                {{--  <a href="index.html"><img class="img-fluid" src="../assets/images/logo/logo.png"
-                        alt=""></a>  --}}
+                <a href="index.html"><img class="img-fluid" width="50" height="50"
+                        src="{{ asset('logo/logo.jpg') }}" alt=""><b class="p-10 text-bold font-info">Toys
+                        Galu</b></a>
             </div>
             <div class="toggle-sidebar"><i class="status_toggle middle sidebar-toggle" data-feather="align-center"></i>
             </div>

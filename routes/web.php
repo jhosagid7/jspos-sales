@@ -93,6 +93,9 @@ Route::middleware('auth')->group(function () {
 
     //settings
     Route::get('settings', Settings::class)->name('settings');
+
+    //generate pdf invoices
+    Route::get('sales/{sale}', [Sales::class, 'generatePdfInvoice'])->name('pos.sales.generatePdfInvoice');
 });
 
 

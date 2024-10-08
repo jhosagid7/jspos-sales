@@ -8,21 +8,22 @@ use App\Models\Sale;
 use App\Models\Product;
 use Livewire\Component;
 use App\Models\Customer;
+use App\Traits\JsonTrait;
 use App\Traits\UtilTrait;
 use App\Models\SaleDetail;
 use App\Traits\PrintTrait;
 use Illuminate\Support\Arr;
 use Livewire\Attributes\On;
 use App\Models\Configuration;
-use App\Traits\JsonTrait;
+use App\Traits\PdfInvoiceTrait;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class Sales extends Component
 {
     use UtilTrait;
     use PrintTrait;
+    use PdfInvoiceTrait;
     use JsonTrait;
 
 
@@ -469,6 +470,13 @@ class Sales extends Component
             $b64 = $this->jsonData($sale->id);
 
             $this->dispatch('print-json', data: $b64);
+
+            // return redirect()->action(
+            //     [Self::class, 'generateInvoice'],
+            //     ['sale' => $sale]
+            // );
+            // return redirect()->name("pos.sales.generateInvoice");
+            // return $this->generateInvoice($sale);
 
 
             //

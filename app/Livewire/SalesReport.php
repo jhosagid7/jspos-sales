@@ -14,6 +14,7 @@ class SalesReport extends Component
 
     public $pagination = 10, $users = [], $user_id, $dateFrom, $dateTo, $showReport = false, $type = 0;
     public $totales = 0, $sale_id, $details = [];
+    public $salesObt;
 
     function mount()
     {
@@ -80,6 +81,7 @@ class SalesReport extends Component
 
     function getSaleDetail(Sale $sale)
     {
+        $this->salesObt = $sale;
         $this->sale_id = $sale->id;
         $this->details = $sale->details;
         $this->dispatch('show-detail');
