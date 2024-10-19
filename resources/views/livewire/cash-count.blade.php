@@ -17,9 +17,9 @@
                                     <select wire:model="user_id" class="form-select form-control-sm">
                                         <option value="0">Todos los usuarios</option>
                                         @foreach ($users as $user)
-                                        <option value="{{ $user->id }}">
-                                            {{ $user->name }}
-                                        </option>
+                                            <option value="{{ $user->id }}">
+                                                {{ $user->name }}
+                                            </option>
                                         @endforeach
                                     </select>
 
@@ -27,16 +27,16 @@
                                     <div class="mt-3">
                                         <span class="f-14"><b>Fecha desde</b></span>
                                         <div class="input-group datepicker">
-                                            <input class="form-control flatpickr-input active" id="dateFrom" type="text"
-                                                autocomplete="off">
+                                            <input class="form-control flatpickr-input active" id="dateFrom"
+                                                type="text" autocomplete="off">
                                         </div>
                                     </div>
 
                                     <div class="mt-2">
                                         <span class="f-14"><b>Hasta</b></span>
                                         <div class="input-group datepicker">
-                                            <input class="form-control flatpickr-input active" id="dateTo" type="text"
-                                                autocomplete="off">
+                                            <input class="form-control flatpickr-input active" id="dateTo"
+                                                type="text" autocomplete="off">
                                         </div>
                                     </div>
 
@@ -78,53 +78,119 @@
                                 </div>
                                 <div class="card-body">
                                     <div class="row" id="cards">
-                                        <div class="col-sm-12 col-md-4">
-                                            <div class="card small-widget">
-                                                <div class="card-body primary">
-                                                    <span class="f-light f-18">
-                                                        <b class="text-danger">Ventas Totales</b>
-                                                    </span>
-                                                    <div class="d-flex align-items-end gap-1 text-info">
-                                                        <h4>${{ round($totalSales,2) }}</h4><span
-                                                            class="font-primary f-12 f-w-500"></span>
+                                        <div class="row">
+                                            <div class="col-sm-12 col-md-4">
+                                                <div class="card small-widget">
+                                                    <div class="card-body primary">
+                                                        <span class="f-light f-18">
+                                                            <b>Total Banco</b>
+                                                        </span>
+                                                        <div class="d-flex align-items-end gap-1 text-info">
+                                                            <h4>${{ round($totalDeposit, 2) }}</h4><span
+                                                                class="font-primary f-12 f-w-500"></span>
+                                                            <h4 class="text-dark">|</h4>
+                                                            <h4 class="text-warning">
+                                                                ${{ round($totalPaymentsDeposit, 2) }}</h4>
+                                                            <span class="font-primary f-12 f-w-500"></span>
+                                                        </div>
+                                                        <div class="bg-gradient">
+                                                            <i class="icofont icofont-coins"
+                                                                style="font-size: 35px!important"></i>
+                                                        </div>
                                                     </div>
-                                                    <div class="bg-gradient">
-                                                        <i class="icofont icofont-cart-alt"
-                                                            style="font-size: 35px!important"></i>
+                                                </div>
+                                            </div>
+                                            <div class="col-sm-12 col-md-4">
+                                                <div class="card small-widget">
+                                                    <div class="card-body primary">
+                                                        <span class="f-light f-18">
+                                                            <b>Total Nequi</b>
+                                                        </span>
+                                                        <div class="d-flex align-items-end gap-1 text-info">
+                                                            <h4>${{ round($totalNequi, 2) }}</h4><span
+                                                                class="font-primary f-12 f-w-500"></span>
+                                                            <h4 class="text-dark">|</h4>
+                                                            <h4 class="text-warning">
+                                                                ${{ round($totalPaymentsNequi, 2) }}</h4>
+                                                        </div>
+                                                        <div class="bg-gradient">
+                                                            <img class="b-r-20" src="../logo/nequi.webp" alt="wallet">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-sm-12 col-md-4">
+                                                <div class="card small-widget">
+                                                    <div class="card-body primary">
+                                                        <span class="f-light f-18">
+                                                            <b>Total Contado</b>
+                                                        </span>
+                                                        <div class="d-flex align-items-end gap-1 text-info">
+                                                            <h4>${{ round($totalCash, 2) }}</h4><span
+                                                                class="font-primary f-12 f-w-500"></span>
+                                                            <h4 class="text-dark">|</h4>
+                                                            <h4 class="text-warning">
+                                                                ${{ round($totalPaymentsCash, 2) }}</h4>
+
+                                                        </div>
+                                                        <div class="bg-gradient">
+                                                            <i class="icofont icofont-bill"
+                                                                style="font-size: 35px!important"></i>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col-sm-12 col-md-4">
-                                            <div class="card small-widget">
-                                                <div class="card-body primary">
-                                                    <span class="f-light f-18">
-                                                        <b>Ventas a Crédito</b>
-                                                    </span>
-                                                    <div class="d-flex align-items-end gap-1 text-info">
-                                                        <h4>${{ round($totalCreditSales,2) }}</h4><span
-                                                            class="font-primary f-12 f-w-500"></span>
-                                                    </div>
-                                                    <div class="bg-gradient">
-                                                        <i class="icofont icofont-credit-card"
-                                                            style="font-size: 35px!important"></i>
+                                        <div class="row">
+                                            <div class="col-sm-12 col-md-4">
+                                                <div class="card small-widget">
+                                                    <div class="card-body primary">
+                                                        <span class="f-light f-18">
+                                                            <b>Ventas a Crédito</b>
+                                                        </span>
+                                                        <div class="d-flex align-items-end gap-1 text-info">
+                                                            <h4>${{ round($totalCreditSales, 2) }}</h4><span
+                                                                class="font-primary f-12 f-w-500"></span>
+                                                        </div>
+                                                        <div class="bg-gradient">
+                                                            <i class="icofont icofont-credit-card"
+                                                                style="font-size: 35px!important"></i>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <div class="col-sm-12 col-md-4">
-                                            <div class="card small-widget">
-                                                <div class="card-body primary">
-                                                    <span class="f-light f-18">
-                                                        <b class="text-warning">Pagos Registrados</b>
-                                                    </span>
-                                                    <div class="d-flex align-items-end gap-1 text-info">
-                                                        <h4>${{ round($totalPayments,2) }}</h4><span
-                                                            class="font-primary f-12 f-w-500"></span>
+                                            <div class="col-sm-12 col-md-4">
+                                                <div class="card small-widget">
+                                                    <div class="card-body primary">
+                                                        <span class="f-light f-18">
+                                                            <b class="text-info">Ventas Totales</b>
+                                                        </span>
+                                                        <div class="d-flex align-items-end gap-1 text-info">
+                                                            <h4>${{ round($totalSales, 2) }}</h4><span
+                                                                class="font-primary f-12 f-w-500"></span>
+                                                        </div>
+                                                        <div class="bg-gradient">
+                                                            <i class="icofont icofont-money"
+                                                                style="font-size: 35px!important"></i>
+                                                        </div>
                                                     </div>
-                                                    <div class="bg-gradient">
-                                                        <i class="icofont icofont-money-bag"
-                                                            style="font-size: 35px!important"></i>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-sm-12 col-md-4">
+                                                <div class="card small-widget">
+                                                    <div class="card-body primary">
+                                                        <span class="f-light f-18">
+                                                            <b class="text-warning">Creditos Pagados</b>
+                                                        </span>
+                                                        <div class="d-flex align-items-end gap-1 text-warning">
+                                                            <h4>${{ round($totalPayments, 2) }}</h4><span
+                                                                class="font-primary f-12 f-w-500"></span>
+                                                        </div>
+                                                        <div class="bg-gradient">
+                                                            <i class="icofont icofont-money-bag"
+                                                                style="font-size: 35px!important"></i>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -133,7 +199,7 @@
                                 </div>
                                 <div class="card-footer">
                                     <button title="Imprimir corte de caja" wire:click.prevent="printCC"
-                                        class="btn btn-outline-dark btn-xs border-0 {{ $totalSales >0 ? '' : 'd-none' }}">
+                                        class="btn btn-outline-dark btn-xs border-0 {{ $totalSales > 0 ? '' : 'd-none' }}">
                                         <i class="icofont icofont-printer fa-2x"></i>
                                     </button>
                                 </div>
@@ -161,11 +227,11 @@
 
 
     <script>
-        document.onkeydown = function(e) {   
+        document.onkeydown = function(e) {
 
             // f3
-            if (e.keyCode == '113') { 
-            e.preventDefault()
+            if (e.keyCode == '113') {
+                e.preventDefault()
                 var input = document.getElementById('inputCustomer');
                 var tomselect = input.tomselect
                 tomselect.clear()
@@ -173,47 +239,43 @@
             }
         }
 
-        document.addEventListener('livewire:init', () => {   
+        document.addEventListener('livewire:init', () => {
             flatpickr("#dateFrom", {
                 dateFormat: "Y/m/d",
                 locale: "es",
-                theme: "confetti",    
+                theme: "confetti",
                 onChange: function(selectedDates, dateStr, instance) {
                     console.log(dateStr);
-                    @this.set('dateFrom',dateStr)
+                    @this.set('dateFrom', dateStr)
                 }
             })
             flatpickr("#dateTo", {
                 dateFormat: "Y/m/d",
                 locale: "es",
-                theme: "confetti",    
-                onChange: function(selectedDates, dateStr, instance) {                    
-                    @this.set('dateTo',dateStr)
+                theme: "confetti",
+                onChange: function(selectedDates, dateStr, instance) {
+                    @this.set('dateTo', dateStr)
                 }
             })
 
-    
 
 
-   
-        
-
-    Livewire.on('show-modal-payment', event=> {
-        $('#modalPartialPay').modal('show')
-    })
-
-    Livewire.on('close-modal', event=> {
-        $('#modalPartialPay').modal('hide')
-    })
-
-    Livewire.on('show-payhistory', event=> {
-        $('#modalPayHistory').modal('show')
-    })
-
-})
 
 
-    
 
+
+            Livewire.on('show-modal-payment', event => {
+                $('#modalPartialPay').modal('show')
+            })
+
+            Livewire.on('close-modal', event => {
+                $('#modalPartialPay').modal('hide')
+            })
+
+            Livewire.on('show-payhistory', event => {
+                $('#modalPayHistory').modal('show')
+            })
+
+        })
     </script>
 </div>

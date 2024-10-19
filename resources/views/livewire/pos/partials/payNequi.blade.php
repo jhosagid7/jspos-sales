@@ -1,8 +1,8 @@
 <div>
-    <div wire:ignore.self class="modal fade" id="modalCash" tabindex="-1" role="dialog">
+    <div wire:ignore.self class="modal fade" id="modalNequi" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
-                <div class="modal-header {{ $payType == 1 ? 'bg-dark' : 'bg-info' }}">
+                <div class="modal-header {{ $payType == 4 ? 'bg-secondary' : 'bg-info' }}">
                     <h5 class="modal-title">{{ $payTypeName }}</h5>
                     <button class="py-0 btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -33,7 +33,7 @@
                         </div>
                     </div>
                     <div class="light-card balance-card align-items-center">
-                        <h6 class="f-w-700 f-18 mb-0 {{ $payType == 1 ? 'txt-dark' : 'txt-info' }}">TOTAL:</h6>
+                        <h6 class="f-w-700 f-18 mb-0 {{ $payType == 4 ? 'txt-dark' : 'txt-info' }}">TOTAL:</h6>
                         <div class="ms-auto text-end">
                             <span class="f-18 f-w-700">
                                 ${{ $totalCart }}
@@ -43,50 +43,15 @@
 
 
 
-                    @if ($payType == 1)
-                        <div class="mt-4">
+                    @if ($payType == 4)
+                        <div class="mt-3">
                             <div class="position-relative">
-                                <select class="form-control crypto-select info" disabled>
-                                    <option>EFECTIVO:</option>
-                                </select>
-                                <input class="form-control" oninput="validarInputNumber(this)"
-                                    wire:model.live.debounce.750ms="cashAmount" wire:keydown.enter.prevent='Store'
-                                    type="number" id="inputCash">
-                            </div>
-                        </div>
-
-                        <div class="mt-4 {{ $cashAmount > 0 && $cashAmount < $totalCart ? 'd:block' : 'd-none' }}">
-                            <label class="form-label" for="phoneNumber">NEQUI</label>
-                            <div class="position-relative">
-
                                 <select class="form-control crypto-select info" disabled>
                                     <option>N°. TELÉFONO:</option>
                                 </select>
                                 <input class="form-control" oninput="validarInputNumber(this)"
                                     wire:model.live.debounce.750ms="phoneNumber" wire:keydown.enter.prevent='Store'
                                     type="number" id="phoneNumber">
-                            </div>
-                        </div>
-
-                        <div class="mt-3 {{ $cashAmount > 0 && $cashAmount < $totalCart ? 'd:block' : 'd-none' }}">
-                            <div class="position-relative">
-                                <select
-                                    class="form-control crypto-select info {{ $phoneNumber > 0 ? 'd:block' : 'd-none' }}"
-                                    disabled>
-                                    <option>VALOR CONSIGNADO:</option>
-                                </select>
-                                <input class="form-control {{ $phoneNumber > 0 ? 'd:block' : 'd-none' }}"
-                                    oninput="validarInputNumber(this)" wire:model.live.debounce.750ms="nequiAmount"
-                                    wire:keydown.enter.prevent='Store' type="number" id="inputNequi">
-                            </div>
-                        </div>
-
-
-
-                        <div
-                            class="light-card balance-card align-items-center {{ $cashAmount || $nequiAmount > 0 ? 'd:block' : 'd-none' }} mt-2">
-                            <h6 class="mb-0 f-w-400 f-16">Cambio:</h6>
-                            <div class="ms-auto text-end"><span class="f-16 txt-warning"> ${{ $change }}</span>
                             </div>
                         </div>
                     @endif
@@ -97,7 +62,8 @@
 
 
                     <button class="btn btn-primary" wire:click.prevent='Store' type="button"
-                        wire:loading.attr="disabled" {{ floatval($totalCart) == 0 ? 'disabled' : '' }}>
+                        wire:loading.attr="disabled" {{ floatval($totalCart) == 0 ? 'disabled' : '' }}
+                        {{ $phoneNumber == null ? 'disabled' : '' }}>
 
                         <span wire:loading.remove wire:target="Store">
                             Registrar

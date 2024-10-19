@@ -92,30 +92,37 @@
                     </div>
 
                     <div class="mt-3 row">
-                        <div class="form-group col-sm-12 ">
-                            <span class="form-label">DIRECCIÓN <span class="txt-danger"></span></span>
-                            <input wire:model="address" class="form-control text-purple" type="text" maxlength="255">
+                        <div class="form-group col-sm-12 col-md-6">
+                            <span class="form-label">CITY <span class="txt-danger"></span></span>
+                            <input wire:model="city" class="form-control text-purple" type="text" maxlength="255">
+                            @error('city')
+                                <span class="text-danger">{{ $message }}</span>
+                            @enderror
+                        </div>
+                        <div class="form-group col-sm-12 col-md-6">
+                            <span>DIRECCIÓN<span class="txt-danger"></span></span>
+                            <textarea wire:model="address" class="form-control text-purple" cols="30" rows="2"></textarea>
+
                             @error('address')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
+
                         </div>
                     </div>
 
 
-                </div>
+                    <div class="p-2 card-footer">
 
-                <div class="p-2 card-footer">
-
-                    <button class="btn btn-info" wire:click.prevent="saveConfig" wire:loading.attr="disabled">
-                        <span wire:loading.remove wire:target="saveConfig">
-                            Guardar
-                        </span>
-                        <span wire:loading wire:target="saveConfig">
-                            Registrando...
-                        </span>
-                    </button>
+                        <button class="btn btn-info" wire:click.prevent="saveConfig" wire:loading.attr="disabled">
+                            <span wire:loading.remove wire:target="saveConfig">
+                                Guardar
+                            </span>
+                            <span wire:loading wire:target="saveConfig">
+                                Registrando...
+                            </span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>

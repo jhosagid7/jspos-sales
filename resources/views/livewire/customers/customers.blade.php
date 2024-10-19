@@ -27,47 +27,53 @@
                                 <tr>
                                     <th width="25%">Cliente</th>
                                     <th width="40%">Dirección</th>
+                                    <th width="20%">Ciudad</th>
                                     <th width="25%">Teléfono</th>
+                                    <th width="25%">CC/Nit</th>
                                     <th width="10%">Tipo</th>
                                     <th class="text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse ($customers as $item)
-                                <tr>
-                                    <td> {{$item->name }}</td>
-                                    <td>{{$item->address }}</td>
-                                    <td>{{$item->phone }}</td>
-                                    <td>{{$item->type }}</td>
-                                    <td class="text-center">
+                                    <tr>
+                                        <td> {{ $item->name }}</td>
+                                        <td>{{ $item->address }}</td>
+                                        <td>{{ $item->city }}</td>
+                                        <td>{{ $item->phone }}</td>
+                                        <td>{{ $item->taxpayerId }}</td>
+                                        <td>{{ $item->type }}</td>
+                                        <td class="text-center">
 
 
-                                        <div class="btn-group btn-group-pill" role="group" aria-label="Basic example">
-                                            <button class="btn btn-light btn-sm" wire:click="Edit({{ $item->id }})"><i
-                                                    class="fa fa-edit fa-2x"></i>
+                                            <div class="btn-group btn-group-pill" role="group"
+                                                aria-label="Basic example">
+                                                <button class="btn btn-light btn-sm"
+                                                    wire:click="Edit({{ $item->id }})"><i
+                                                        class="fa fa-edit fa-2x"></i>
 
-                                            </button>
-                                            {{-- @if(!$item->sales()->exists()) --}}
-                                            <button class="btn btn-light btn-sm"
-                                                onclick="Confirm('customers',{{ $item->id }})">
-                                                <i class="fa fa-trash fa-2x"></i>
-                                            </button>
-                                            {{-- @endif --}}
-                                        </div>
+                                                </button>
+                                                {{-- @if (!$item->sales()->exists()) --}}
+                                                <button class="btn btn-light btn-sm"
+                                                    onclick="Confirm('customers',{{ $item->id }})">
+                                                    <i class="fa fa-trash fa-2x"></i>
+                                                </button>
+                                                {{-- @endif --}}
+                                            </div>
 
-                                    </td>
-                                </tr>
+                                        </td>
+                                    </tr>
                                 @empty
-                                <tr>
-                                    <td colspan="3">Sin clientes</td>
-                                </tr>
+                                    <tr>
+                                        <td colspan="3">Sin clientes</td>
+                                    </tr>
                                 @endforelse
                             </tbody>
                         </table>
                     </div>
                 </div>
                 <div class="card-footer p-1">
-                    {{$customers->links()}}
+                    {{ $customers->links() }}
                 </div>
             </div>
         </div>
@@ -81,26 +87,46 @@
                 <div class="card-body">
 
                     <div class="form-group">
-                        <label>Nombre</label>
+                        <label>Nombre <span class="txt-danger">*</span></label>
                         <input wire:model.defer="customer.name" id='inputFocus' type="text"
                             class="form-control form-control-lg" placeholder="nombre">
-                        @error('customer.name') <span class="text-danger">{{ $message }}</span> @enderror
+                        @error('customer.name')
+                            <span class="text-danger">{{ $message }}</span>
+                        @enderror
+                    </div>
+                    <div class="form-group">
+                        <label>CC/Nit <span class="txt-danger">*</span></label>
+                        <input wire:model.defer="customer.taxpayer_id" type="text"
+                            class="form-control form-control-lg" placeholder="cc/nit">
+                        @error('customer.taxpayer_id')
+                            <span class="text-danger">{{ $message }}</span>
+                        @enderror
                     </div>
                     <div class="form-group">
                         <label class="form-label">Dirección <span class="txt-danger">*</span></label>
                         <input wire:model="customer.address" class="form-control" type="text">
                         @error('customer.address')
-                        <span class="text-danger">{{ $message }}</span>
+                            <span class="text-danger">{{ $message }}</span>
+                        @enderror
+                    </div>
+                    <div class="form-group">
+                        <label>Ciudad <span class="txt-danger">*</span></label>
+                        <input wire:model.defer="customer.city" type="text" class="form-control form-control-lg"
+                            placeholder="ciudad" maxlength="100">
+                        @error('customer.city')
+                            <span class="text-danger">{{ $message }}</span>
                         @enderror
                     </div>
                     <div class="form-group">
                         <label>Teléfono</label>
                         <input wire:model.defer="customer.phone" type="text" class="form-control form-control-lg"
                             placeholder="teléfono" maxlength="15">
-                        @error('customer.phone') <span class="text-danger">{{ $message }}</span> @enderror
+                        @error('customer.phone')
+                            <span class="text-danger">{{ $message }}</span>
+                        @enderror
                     </div>
                     <div class="form-group">
-                        <label>Tipo</label>
+                        <label>Tipo <span class="txt-danger">*</span></label>
                         <select class="form-control" wire:model="customer.type">
                             <option value="0" selected disabled>Seleccionar</option>
                             <option value="Mayoristas">Mayoristas</option>
@@ -109,13 +135,15 @@
                             <option value="Descuento2">Descuento2</option>
                             <option value="Otro">Otro</option>
                         </select>
-                        @error('customer.type') <span class="text-danger">{{ $message }}</span> @enderror
+                        @error('customer.type')
+                            <span class="text-danger">{{ $message }}</span>
+                        @enderror
                     </div>
 
 
                 </div>
                 <div class="card-footer d-flex justify-content-between">
-                    <button class="btn btn-light  hidden {{$editing ? 'd-block' : 'd-none' }}"
+                    <button class="btn btn-light  hidden {{ $editing ? 'd-block' : 'd-none' }}"
                         wire:click="cancelEdit">Cancelar
                     </button>
 
@@ -126,16 +154,14 @@
 
     </div>
     @push('my-scripts')
+        <script>
+            document.addEventListener('livewire:init', () => {
 
-    <script>
-        document.addEventListener('livewire:init', () => {   
-               
-               Livewire.on('init-new', (event) => {
-                  document.getElementById('inputFocus').focus()
+                Livewire.on('init-new', (event) => {
+                    document.getElementById('inputFocus').focus()
                 })
             })
-    </script>
-
+        </script>
     @endpush
 
 </div>

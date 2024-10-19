@@ -14,6 +14,7 @@ class Configuration extends Model
     protected $fillable = [
         'business_name',
         'address',
+        'city',
         'phone',
         'taxpayer_id',
         'vat',

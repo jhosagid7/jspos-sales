@@ -54,9 +54,9 @@ trait PdfInvoiceTrait
 
                 $seller = new Party([
                     'name'          => $config->business_name,
-                    'vat'           => $config->taxpayer_id,
+                    'CC/NIT'           => $config->taxpayer_id,
                     'address'       => $config->address,
-                    'city'           => 'Bogota',
+                    'city'           => $config->city,
                     'phone'         => $sale->customer->phone,
 
                     'custom_fields' => [
@@ -68,12 +68,13 @@ trait PdfInvoiceTrait
 
                 $customer = new Party([
                     'name'          => $sale->customer->name,
-                    'vat'           => $sale->customer->cc_vat,
-                    'address'       => $sale->customer->address,
-                    'city'           => 'Bogota',
-                    'phone'         => $sale->customer->phone,
+
 
                     'custom_fields' => [
+                        'CC/NIT'           => $sale->customer->taxpayer_id,
+                        'address'       => $sale->customer->address,
+                        'city'           => $sale->customer->city,
+                        'phone'         => $sale->customer->phone,
                         'email'         => $sale->customer->email,
                     ],
                 ]);
@@ -84,7 +85,7 @@ trait PdfInvoiceTrait
                 }
 
                 $notes = [
-                    'Esto es una nota',
+                    $sale->notes
                 ];
                 $notes = implode("<br>", $notes);
 
@@ -154,12 +155,13 @@ trait PdfInvoiceTrait
 
                 $customer = new Party([
                     'name'          => $sale->customer->name,
-                    'vat'           => $sale->customer->cc_vat,
-                    'address'       => $sale->customer->address,
-                    'city'           => 'Bogota',
-                    'phone'         => $sale->customer->phone,
+
 
                     'custom_fields' => [
+                        'CC/NIT'           => $sale->customer->taxpayer_id,
+                        'address'       => $sale->customer->address,
+                        'city'           => $sale->customer->city,
+                        'phone'         => $sale->customer->phone,
                         'email'         => $sale->customer->email,
                     ],
                 ]);
@@ -170,7 +172,7 @@ trait PdfInvoiceTrait
                 }
 
                 $notes = [
-                    'Esto es una nota',
+                    $sale->notes,
                 ];
                 $notes = implode("<br>", $notes);
 

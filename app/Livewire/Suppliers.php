@@ -32,7 +32,7 @@ class Suppliers extends Component
         'supplier.name.max' => 'El nombre del proveedor no puede tener más de 255 caracteres.',
         'supplier.name.unique' => 'El nombre del proveedor ya existe',
         'supplier.address.max' => 'La dirección solo puede tener máximo 255 caracteres',
-        'supplier.phone.max' => 'Ingresa el telefono en máximo 15 caracteres',
+        'supplier.phone.max' => 'Ingresa el teléfono en máximo 15 caracteres',
     ];
 
 

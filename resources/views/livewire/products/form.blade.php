@@ -1,18 +1,18 @@
 <div class="card">
     <div class="card-header">
         <div>
-            @if($editing && $form->product_id > 0)
-            <h5>Editar Producto | <small class="text-info">{{$form->name}}</small>
-            </h5>
+            @if ($editing && $form->product_id > 0)
+                <h5>Editar Producto | <small class="text-info">{{ $form->name }}</small>
+                </h5>
             @else
-            <h5>Crear Nuevo Producto</h5>
+                <h5>Crear Nuevo Producto</h5>
             @endif
         </div>
 
     </div>
     <div class="card-body">
 
-        {{-- @if($errors !=null)
+        {{-- @if ($errors != null)
         <div class="alert alert-danger">
             <ul>
                 @foreach ($errors->all() as $error)
@@ -28,7 +28,7 @@
                 {{-- tabs --}}
                 <ul class="sidebar-left-icons nav nav-pills" id="add-product-pills-tab" role="tablist">
                     <li class="nav-item">
-                        <a class="nav-link {{$tab == 1 ? 'active' : '' }}" wire:click.prevent="$set('tab',1)"
+                        <a class="nav-link {{ $tab == 1 ? 'active' : '' }}" wire:click.prevent="$set('tab',1)"
                             id="detail-product-tab" data-bs-toggle="pill" href="#detail-product" role="tab"
                             aria-controls="detail-product" aria-selected="false">
                             <div class="nav-rounded">
@@ -45,7 +45,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{$tab == 2 ? 'active' : '' }}" wire:click.prevent="$set('tab',2)"
+                        <a class="nav-link {{ $tab == 2 ? 'active' : '' }}" wire:click.prevent="$set('tab',2)"
                             id="gallery-product-tab" data-bs-toggle="pill" href="#gallery-product" role="tab"
                             aria-controls="gallery-product" aria-selected="false">
                             <div class="nav-rounded">
@@ -62,7 +62,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{$tab == 3 ? 'active' : '' }}" wire:click.prevent="$set('tab',3)"
+                        <a class="nav-link {{ $tab == 3 ? 'active' : '' }}" wire:click.prevent="$set('tab',3)"
                             id="category-product-tab" data-bs-toggle="pill" href="#category-product" role="tab"
                             aria-controls="category-product" aria-selected="false">
                             <div class="nav-rounded">
@@ -79,9 +79,9 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{$tab == 4 ? 'active' : '' }}" wire:click.prevent="$set('tab',4)"
-                            id="pricings-tab" data-bs-toggle="pill" href="#pricings" role="tab" aria-controls="pricings"
-                            aria-selected="false">
+                        <a class="nav-link {{ $tab == 4 ? 'active' : '' }}" wire:click.prevent="$set('tab',4)"
+                            id="pricings-tab" data-bs-toggle="pill" href="#pricings" role="tab"
+                            aria-controls="pricings" aria-selected="false">
                             <div class="nav-rounded">
                                 <div class="product-icons">
                                     <svg class="stroke-icon">
@@ -100,7 +100,7 @@
             </div>
             <div class="col-xxl-9 col-xl-8 box-col-8 position-relative">
                 <div class="tab-content" id="add-product-pills-tabContent">
-                    <div class="tab-pane fade {{$tab == 1 ? 'active show' : '' }}" id="detail-product" role="tabpanel"
+                    <div class="tab-pane fade {{ $tab == 1 ? 'active show' : '' }}" id="detail-product" role="tabpanel"
                         aria-labelledby="detail-product-tab">
                         <div class="sidebar-body">
                             <form class="row g-2">
@@ -109,7 +109,7 @@
                                     <label class="form-label">Nombre <span class="txt-danger">*</span></label>
                                     <input wire:model="form.name" class="form-control" type="text">
                                     @error('form.name')
-                                    <span class="text-danger">{{ $message }}</span>
+                                        <span class="text-danger">{{ $message }}</span>
                                     @enderror
                                 </div>
                                 {{-- sku --}}
@@ -185,7 +185,8 @@
                                 </div>
                                 {{-- low stock --}}
                                 <div class="col-sm-12 col-md-3">
-                                    <label class="form-label">Stock de Alerta <span class="txt-danger">*</span></label>
+                                    <label class="form-label">Stock de Alerta <span
+                                            class="txt-danger">*</span></label>
                                     <input wire:model="form.low_stock" class="form-control numerico" type="number">
                                 </div>
 
@@ -195,8 +196,8 @@
                             </div>
                         </div>
                     </div>
-                    <div class="tab-pane fade {{$tab == 2 ? 'active show' : '' }}" id="gallery-product" role="tabpanel"
-                        aria-labelledby="gallery-product-tab">
+                    <div class="tab-pane fade {{ $tab == 2 ? 'active show' : '' }}" id="gallery-product"
+                        role="tabpanel" aria-labelledby="gallery-product-tab">
                         <div class="sidebar-body">
                             <div class="product-upload">
                                 <p>Galeria de Imagenes </p>
@@ -218,24 +219,24 @@
                             <div class="mt-2">
                                 <div wire:loading wire:target="form.gallery">Cargando imágenes...</div>
                                 @if (!empty($form->gallery))
-                                <div class="row">
-                                    @foreach ($form->gallery as $photo)
-                                    <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-3">
-                                        <div class="media">
-                                            <img src="{{ $photo->temporaryUrl() }}" class="img-fluid rounded" alt="img"
-                                                width="40%">
-                                        </div>
+                                    <div class="row">
+                                        @foreach ($form->gallery as $photo)
+                                            <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-3">
+                                                <div class="media">
+                                                    <img src="{{ $photo->temporaryUrl() }}"
+                                                        class="img-fluid rounded img-40" alt="img">
+                                                </div>
+                                            </div>
+                                        @endforeach
                                     </div>
-                                    @endforeach
-                                </div>
                                 @endif
                             </div>
 
 
                         </div>
                     </div>
-                    <div class="tab-pane fade {{$tab == 3 ? 'active show' : '' }}" id="category-product" role="tabpanel"
-                        aria-labelledby="category-product-tab">
+                    <div class="tab-pane fade {{ $tab == 3 ? 'active show' : '' }}" id="category-product"
+                        role="tabpanel" aria-labelledby="category-product-tab">
                         <div class="sidebar-body">
                             <form>
                                 <div class="row g-lg-4 g-3">
@@ -252,14 +253,14 @@
                                                             <option value="0" disabled>
                                                                 Seleccionar</option>
                                                             @foreach ($categories as $category)
-                                                            <option value="{{$category->id}}" {{$category->id
-                                                                ==$form->category_id ? 'selected' : '' }}>{{
-                                                                $category->name }}
-                                                            </option>
+                                                                <option value="{{ $category->id }}"
+                                                                    {{ $category->id == $form->category_id ? 'selected' : '' }}>
+                                                                    {{ $category->name }}
+                                                                </option>
                                                             @endforeach
                                                         </select>
                                                         @error('form.category_id')
-                                                        <span class="text-danger">{{ $message }}</span>
+                                                            <span class="text-danger">{{ $message }}</span>
                                                         @enderror
                                                     </div>
                                                 </div>
@@ -287,23 +288,24 @@
                                                         <select wire:model="form.supplier_id" class="form-select"
                                                             id="supplier">
                                                             <option value="0" disabled> Seleccionar</option>
-                                                            @foreach($suppliers as $supplier)
-                                                            <option value="{{$supplier->id}}" {{$supplier->id
-                                                                == $form->supplier_id ? 'selected' : '' }}>
-                                                                {{$supplier->name}}
-                                                            </option>
+                                                            @foreach ($suppliers as $supplier)
+                                                                <option value="{{ $supplier->id }}"
+                                                                    {{ $supplier->id == $form->supplier_id ? 'selected' : '' }}>
+                                                                    {{ $supplier->name }}
+                                                                </option>
                                                             @endforeach
                                                         </select>
                                                         @error('form.supplier_id')
-                                                        <span class="text-danger">{{ $message }}</span>
+                                                            <span class="text-danger">{{ $message }}</span>
                                                         @enderror
                                                     </div>
                                                 </div>
                                             </div>
 
                                             <div class="col-12">
-                                                <div class="category-buton"><a class="btn button-primary" href="#!"
-                                                        wire:click="modal('supplier')"><i class="me-2 fa fa-plus">
+                                                <div class="category-buton"><a class="btn button-primary"
+                                                        href="#!" wire:click="modal('supplier')"><i
+                                                            class="me-2 fa fa-plus">
                                                         </i>Nuevo Proveedor </a>
                                                 </div>
                                             </div>
@@ -315,7 +317,7 @@
                             </form>
                         </div>
                     </div>
-                    <div class="tab-pane fade {{$tab == 4 ? 'active show' : '' }}" id="pricings" role="tabpanel"
+                    <div class="tab-pane fade {{ $tab == 4 ? 'active show' : '' }}" id="pricings" role="tabpanel"
                         aria-labelledby="pricings-tab">
                         <div class="sidebar-body">
                             <form class="price-wrapper">
@@ -341,18 +343,18 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                @foreach($form->values as $item)
-                                                <tr>
-                                                    {{-- <td>{{ $item }}</td> --}}
-                                                    <td>${{ $item['price'] }}</td>
-                                                    <td>
-                                                        <button class="btn btn-light btn-sm"
-                                                            wire:click.prevent="removeTempPrice('{{ $item['id'] }}')">
-                                                            <i class="fa fa-trash fa-2x"></i>
-                                                        </button>
-                                                    </td>
+                                                @foreach ($form->values as $item)
+                                                    <tr wire:key="{{ $item['id'] }}">
+                                                        {{-- <td>{{ $item }}</td> --}}
+                                                        <td>${{ $item['price'] }}</td>
+                                                        <td>
+                                                            <button class="btn btn-light btn-sm"
+                                                                wire:click.prevent="removeTempPrice({{ $item['id'] }})">
+                                                                <i class="fa fa-trash fa-2x"></i>
+                                                            </button>
+                                                        </td>
 
-                                                </tr>
+                                                    </tr>
                                                 @endforeach
                                             </tbody>
                                         </table>
@@ -372,14 +374,14 @@
             Cancelar
         </button>
 
-        @if($editing && $form->product_id == 0)
-        <button wire:click.prevent="Store" class="btn btn-warning">
-            Registrar Producto
-        </button>
+        @if ($editing && $form->product_id == 0)
+            <button wire:click.prevent="Store" class="btn btn-warning">
+                Registrar Producto
+            </button>
         @else
-        <button wire:click.prevent="Update" class="btn btn-dark">
-            Actualizar Producto
-        </button>
+            <button wire:click.prevent="Update" class="btn btn-dark">
+                Actualizar Producto
+            </button>
         @endif
     </div>
 </div>

@@ -1,21 +1,20 @@
 <div>
     @push('my-styles')
-    <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/vendors/quill.snow.css') }}">
-
+        <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/vendors/quill.snow.css') }}">
     @endpush
 
     @include('livewire.products.modal')
 
     <div class="row">
 
-        <div class="col-sm-12 {{!$editing ? 'd-none' : 'd-block' }}">
+        <div class="col-sm-12 {{ !$editing ? 'd-none' : 'd-block' }}">
 
             @include('livewire.products.form')
 
         </div>
 
 
-        <div class="col-sm-12 {{$editing ? 'd-none' : 'd-block' }}">
+        <div class="col-sm-12 {{ $editing ? 'd-none' : 'd-block' }}">
             <div class="card right-sidebar-chat">
 
                 <div class="right-sidebar-title">
@@ -73,64 +72,72 @@
                             </thead>
                             <tbody>
                                 @forelse ($products as $product)
-                                <tr>
-                                    <td>
-                                        <div class="product-box">
-                                            <div class="product-img">
-                                                <img alt="photo" class="img-fluid rounded"
-                                                    src="{{ asset($product->photo) }}"
-                                                    data-src="{{ asset($product->photo) }}">
+                                    <tr>
+                                        <td>
+                                            <div class="product-box">
+                                                <div class="product-img">
+                                                    <img alt="photo" class="img-fluid rounded img-40"
+                                                        src="{{ asset($product->photo) }}"
+                                                        data-src="{{ asset($product->photo) }}">
+                                                </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td class="text-left">
-                                        <div class="txt-primary">
-                                            {{$product->name}}
-                                        </div>
-                                        @if($product->sku)
-                                        <small class="text-info">sku:{{$product->sku}}</small>
-                                        @endif
-                                    </td>
-                                    <td class="text-center">
-                                        @if($product->priceList->count() >0)
-                                        [{{ '$'. implode(', ', $product->priceList->pluck('price')->toArray())}}]
-                                        @else
-                                        ${{$product->price}}
-                                        @endif
-                                    </td>
-                                    <td class="text-center">{{$product->type =='service' ? 'SERVICIO' : 'PRODUCTO'}}
-                                    </td>
-                                    <td class="text-center">{{$product->status =='available' ? 'DISPONIBLE' : 'SIN
-                                        STOCK' }}</td>
-                                    <td class="text-center">
-                                        <div>
-                                            <span
-                                                class="badge {{$product->stock_qty > $product->low_stock ? 'badge-light-success':'badge-light-danger' }} ">Stock:{{$product->stock_qty}}</span>
-                                        </div>
-                                        <small>Mínimo:{{$product->low_stock}}</small>
-                                    </td>
-                                    <td class="text-center">{{$product->category->name}}</td>
-                                    <td class="text-center">{{$product->supplier->name}}</td>
-
-                                    @if(app('fun')->getCurrentRole() != 'TECNICO')
-                                    <td class="text-center">
-                                        <div class="btn-group btn-group-pill" role="group" aria-label="Basic example">
-                                            <button class="btn btn-light btn-sm"
-                                                wire:click="Edit({{ $product->id }})"><i class="fa fa-edit fa-2x"></i>
-
-                                            </button>
-                                            @if((!$product->sales()->exists()) && (!$product->purchases()->exists()))
-                                            <button class="btn btn-light btn-sm" onclick="Confirm({{ $product->id }})">
-                                                <i class="fa fa-trash fa-2x"></i>
-                                            </button>
+                                        </td>
+                                        <td class="text-left">
+                                            <div class="txt-primary">
+                                                {{ $product->name }}
+                                            </div>
+                                            @if ($product->sku)
+                                                <small class="text-info">sku:{{ $product->sku }}</small>
                                             @endif
+                                        </td>
+                                        <td class="text-center">
+                                            @if ($product->priceList->count() > 0)
+                                                [{{ '$' . implode(', ', $product->priceList->pluck('price')->toArray()) }}]
+                                            @else
+                                                ${{ $product->price }}
+                                            @endif
+                                        </td>
+                                        <td class="text-center">
+                                            {{ $product->type == 'service' ? 'SERVICIO' : 'PRODUCTO' }}
+                                        </td>
+                                        <td class="text-center">
+                                            {{ $product->status == 'available'
+                                                ? 'DISPONIBLE'
+                                                : 'SIN
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    STOCK' }}
+                                        </td>
+                                        <td class="text-center">
+                                            <div>
+                                                <span
+                                                    class="badge {{ $product->stock_qty > $product->low_stock ? 'badge-light-success' : 'badge-light-danger' }} ">Stock:{{ $product->stock_qty }}</span>
+                                            </div>
+                                            <small>Mínimo:{{ $product->low_stock }}</small>
+                                        </td>
+                                        <td class="text-center">{{ $product->category->name }}</td>
+                                        <td class="text-center">{{ $product->supplier->name }}</td>
 
-                                        </div>
+                                        @if (app('fun')->getCurrentRole() != 'TECNICO')
+                                            <td class="text-center">
+                                                <div class="btn-group btn-group-pill" role="group"
+                                                    aria-label="Basic example">
+                                                    <button class="btn btn-light btn-sm"
+                                                        wire:click="Edit({{ $product->id }})"><i
+                                                            class="fa fa-edit fa-2x"></i>
 
-                                    </td>
-                                    @endif
+                                                    </button>
+                                                    @if (!$product->sales()->exists() && !$product->purchases()->exists())
+                                                        <button class="btn btn-light btn-sm"
+                                                            onclick="Confirm({{ $product->id }})">
+                                                            <i class="fa fa-trash fa-2x"></i>
+                                                        </button>
+                                                    @endif
 
-                                </tr>
+                                                </div>
+
+                                            </td>
+                                        @endif
+
+                                    </tr>
                                 @empty
 
                                 @endforelse
@@ -139,7 +146,7 @@
                     </div>
                 </div>
                 <div class="card-footer p-1">
-                    {{$products->links()}}
+                    {{ $products->links() }}
                 </div>
             </div>
         </div>
@@ -148,115 +155,119 @@
     </div>
 
     @push('my-scripts')
-
     @endpush
 
     <script>
         let editor4
-        document.addEventListener('livewire:init', () => {   
-               
-        Livewire.on('modalCatalogue', (event) => {
-           $('#modalProduct').modal('show')
-         })
+        document.addEventListener('livewire:init', () => {
 
-        Livewire.on('update-quill-content', (event) => {       
-            
-        var content = editor4.clipboard.convert(event.content)
-        
-        editor4.setContents(content)
-
-         })
-       
-         Livewire.on('close-modal', (event) => {
-            $('#modalProduct').modal('hide')
-           // $('#supplier').val($('#supplier option:last').val());
-
-        setTimeout(() => {
-            
-        }, 500);
-
-         })
-
-
-        //  Livewire.hook('morph.updated', ({ el, component }) => {
-        //     prepareEditor()  
-        //  }) 
-
-       
-
-            prepareEditor()    
-
-    })
-
-    function prepareEditor() {
-            if(document.getElementById('toolbar2') !=null  && !editor4) {
-                console.log('si');
-                editor4 = new Quill("#editor2", {
-                modules: { toolbar: "#toolbar2" },
-                theme: "snow",
-                placeholder: "Ingresa la descripción completa del producto",
+            Livewire.on('modalCatalogue', (event) => {
+                $('#modalProduct').modal('show')
             })
 
-            // escuchat evento 'text-change' del editor
-            editor4.on('selection-change', function(range, oldRange, source) {
-                if (range === null && oldRange !== null) {
-                    // Obtiene el contenido del editor
-                    var content = editor4.root.innerHTML;
+            Livewire.on('update-quill-content', (event) => {
 
-                    // Pasa el contenido a una propiedad de Livewire
-                    Livewire.dispatch('quilContent', { content: content })
-                    console.log('updateContent', content)
-                }
-            });
+                var content = editor4.clipboard.convert(event.content)
+
+                editor4.setContents(content)
+
+            })
+
+            Livewire.on('close-modal', (event) => {
+                $('#modalProduct').modal('hide')
+                // $('#supplier').val($('#supplier option:last').val());
+
+                setTimeout(() => {
+
+                }, 500);
+
+            })
+
+
+            //  Livewire.hook('morph.updated', ({ el, component }) => {
+            //     prepareEditor()
+            //  })
+
+
+
+            prepareEditor()
+
+        })
+
+        function prepareEditor() {
+            if (document.getElementById('toolbar2') != null && !editor4) {
+                console.log('si');
+                editor4 = new Quill("#editor2", {
+                    modules: {
+                        toolbar: "#toolbar2"
+                    },
+                    theme: "snow",
+                    placeholder: "Ingresa la descripción completa del producto",
+                })
+
+                // escuchat evento 'text-change' del editor
+                editor4.on('selection-change', function(range, oldRange, source) {
+                    if (range === null && oldRange !== null) {
+                        // Obtiene el contenido del editor
+                        var content = editor4.root.innerHTML;
+
+                        // Pasa el contenido a una propiedad de Livewire
+                        Livewire.dispatch('quilContent', {
+                            content: content
+                        })
+                        console.log('updateContent', content)
+                    }
+                });
 
 
             }
-    }
+        }
 
 
-    function validateInput(input) {
-    // Expresión regular que coincide con números enteros positivos, 
-    // con hasta dos decimales y un solo punto decimal
-    //var regex = /^\d+(\.\d{1,2})?$/
-    var regex = /^\d{1,11}(\.\d{1,2})?$/;
+        function validateInput(input) {
+            // Expresión regular que coincide con números enteros positivos,
+            // con hasta dos decimales y un solo punto decimal
+            //var regex = /^\d+(\.\d{1,2})?$/
+            var regex = /^\d{1,11}(\.\d{1,2})?$/;
 
-    // Comprueba si la entrada del usuario coincide con la expresión regular
-    if (!regex.test(input.value)) {
-        input.value = ''
-    }
-}
+            // Comprueba si la entrada del usuario coincide con la expresión regular
+            if (!regex.test(input.value)) {
+                input.value = ''
+            }
+        }
 
-// Selecciona todos los elementos input con la clase numerico
-var inputs = document.querySelectorAll('input.numerico')
+        // Selecciona todos los elementos input con la clase numerico
+        var inputs = document.querySelectorAll('input.numerico')
 
-// Aplica la función de validación a cada input
-inputs.forEach(function(input) {
-    input.addEventListener('input', function() {
-        validateInput(input)
-    })
-})
+        // Aplica la función de validación a cada input
+        inputs.forEach(function(input) {
+            input.addEventListener('input', function() {
+                validateInput(input)
+            })
+        })
 
-function Confirm(rowId) {          
+        function Confirm(rowId) {
             swal({
-                    title: '¿CONFIRMAS ELIMINAR EL REGISTRO?',
-                    text: "",
-                    icon: "warning",
-                    buttons: true,         
-                    dangerMode: true,
-                    buttons: {
+                title: '¿CONFIRMAS ELIMINAR EL REGISTRO?',
+                text: "",
+                icon: "warning",
+                buttons: true,
+                dangerMode: true,
+                buttons: {
                     cancel: "Cancelar",
                     catch: {
                         text: "Aceptar"
                     }
-                    },
-                }).then((willDestroy) => {
-                    if (willDestroy) {
-                        Livewire.dispatch('Destroy', {id: rowId })
-                    }
-                });
-        
-             }
-             
+                },
+            }).then((willDestroy) => {
+                if (willDestroy) {
+                    Livewire.dispatch('Destroy', {
+                        id: rowId
+                    })
+                }
+            });
+
+        }
     </script>
 
 </div>

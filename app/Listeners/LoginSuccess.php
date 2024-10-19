@@ -54,7 +54,22 @@ class LoginSuccess
 
         session(['settings' => Configuration::first()]);
 
+        //todo: convertir a un metodo para usarlo en diferentes lugares.
 
+        // buscar las ventas pendientes de credito por mas de 30 dias
+        $this->checkCreditSales();
+        // $sales = Sale::where('type', 'credit')->where('status', 'pending')->orderBy('id', 'asc')
+        //     ->where('created_at', '<', Carbon::now()->subDays(session('settings')->credit_days))
+        //     ->with('customer')
+        //     ->get();
+
+        // if ($sales != null && $sales->count() > 0) {
+        //     session(['noty_sales' => $sales]);
+        // }
+    }
+
+    public function checkCreditSales()
+    {
         $sales = Sale::where('type', 'credit')->where('status', 'pending')->orderBy('id', 'asc')
             ->where('created_at', '<', Carbon::now()->subDays(session('settings')->credit_days))
             ->with('customer')
