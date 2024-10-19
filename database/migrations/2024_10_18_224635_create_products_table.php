@@ -4,12 +4,14 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
+class CreateProductsTable extends Migration
 {
     /**
      * Run the migrations.
+     *
+     * @return void
      */
-    public function up(): void
+    public function up()
     {
         Schema::create('products', function (Blueprint $table) {
             $table->id();
@@ -20,21 +22,26 @@ return new class extends Migration
             $table->enum('status', ['available', 'out_of_stock'])->default('available');
             $table->decimal('cost', 10, 2);
             $table->decimal('price', 10, 2);
-            $table->tinyInteger('manage_stock')->default(1);
+            $table->boolean('manage_stock')->default(1);
             $table->integer('stock_qty');
             $table->integer('low_stock');
-            $table->foreignId('supplier_id')->constrained('suppliers');
-            $table->foreignId('category_id')->constrained('categories');
-            $table->softDeletes();
+            $table->unsignedBigInteger('supplier_id');
+            $table->unsignedBigInteger('category_id');
+            $table->timestamp('deleted_at')->nullable();
             $table->timestamps();
+            
+            $table->foreign('category_id', 'products_category_id_foreign')->references('id')->on('categories');
+            $table->foreign('supplier_id', 'products_supplier_id_foreign')->references('id')->on('suppliers');
         });
     }
 
     /**
      * Reverse the migrations.
+     *
+     * @return void
      */
-    public function down(): void
+    public function down()
     {
         Schema::dropIfExists('products');
     }
-};
+}

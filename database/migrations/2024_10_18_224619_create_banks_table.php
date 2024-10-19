@@ -4,27 +4,31 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
+class CreateBanksTable extends Migration
 {
     /**
      * Run the migrations.
+     *
+     * @return void
      */
-    public function up(): void
+    public function up()
     {
         Schema::create('banks', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->tinyInteger('state')->default(1);
-            $table->tinyInteger('sort')->default(0);
+            $table->boolean('state')->default(1);
+            $table->boolean('sort')->default(0);
             $table->timestamps();
         });
     }
 
     /**
      * Reverse the migrations.
+     *
+     * @return void
      */
-    public function down(): void
+    public function down()
     {
         Schema::dropIfExists('banks');
     }
-};
+}
