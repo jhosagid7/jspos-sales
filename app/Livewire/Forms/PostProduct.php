@@ -11,7 +11,7 @@ use Livewire\Attributes\Validate;
 
 class PostProduct extends Form
 {
-    //product properties   
+    //product properties
 
     //#[Validate('required', message: 'Ingresa el nombre')]
     //#[Validate('max:60', message: 'El nombre debe tener maximo 60 caracteres')]
@@ -39,13 +39,16 @@ class PostProduct extends Form
                 Rule::unique('products', 'sku')->ignore($this->product_id, 'id'),
             ],
             'description' => [
-                'nullable', 'max:500'
+                'nullable',
+                'max:500'
             ],
             'type' => [
-                'required', 'in:service,physical'
+                'required',
+                'in:service,physical'
             ],
             'status' => [
-                'required', 'in:available,out_of_stock'
+                'required',
+                'in:available,out_of_stock'
             ],
             'cost' => "required",
             'price' => "required",

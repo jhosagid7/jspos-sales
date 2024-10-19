@@ -19,7 +19,7 @@ return new class extends Migration
             $table->decimal('change', 10, 2)->default(0);
             $table->integer('items');
             $table->enum('status', ['paid', 'returned', 'pending'])->default('paid');
-            $table->enum('type', ['credit', 'cash', 'deposit'])->default('cash');
+            $table->enum('type', ['credit', 'cash', 'deposit', 'nequi', 'cash/nequi'])->default('cash');
             $table->foreignId('customer_id')->constrained('customers');
             $table->foreignId('user_id')->constrained('users');
             $table->string('notes')->nullable();

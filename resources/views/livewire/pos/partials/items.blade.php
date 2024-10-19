@@ -50,7 +50,7 @@
                         @forelse($cart as $item)
                             <tr>
                                 <td>
-                                    <img class="img-fluid img-40" src="{{ asset($item['image']) }} ">
+                                    <img class="img-fluid img-30" src="{{ asset($item['image']) }} ">
                                 </td>
                                 <td>
                                     <div class="product-name txt-info">{{ strtoupper($item['name']) }}</div>

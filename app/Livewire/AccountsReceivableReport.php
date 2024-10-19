@@ -19,7 +19,30 @@ class AccountsReceivableReport extends Component
 
     public $pagination = 10, $banks = [], $customer, $customer_name, $debt, $dateFrom, $dateTo, $showReport = false, $status = 0;
     public $totales = 0, $sale_id, $details = [], $pays = [];
-    public $amount, $acountNumber, $depositNumber, $bank;
+    public $amount, $acountNumber, $depositNumber, $bank, $phoneNumber;
+    public $payWith = 'ABONO CON EFECTIVO';
+
+    function updatedBank()
+    {
+        if ($this->bank != 0) {
+            $this->reset(['amount', 'phoneNumber']);
+            $this->payWith = 'MONTO CONSIGNADO CON BANCO';
+        } else {
+            $this->reset(['amount', 'phoneNumber', 'acountNumber', 'depositNumber', 'bank']);
+            $this->payWith = 'ABONO CON EFECTIVO';
+        }
+    }
+    function updatedPhoneNumber()
+    {
+
+        if (empty($this->phoneNumber) || strlen($this->phoneNumber) < 1) {
+            $this->reset(['amount', 'phoneNumber', 'acountNumber', 'depositNumber', 'bank']);
+            $this->payWith = 'ABONO CON EFECTIVO';
+        } else {
+            $this->reset(['amount', 'acountNumber', 'depositNumber', 'bank']);
+            $this->payWith = 'MONTO CONSIGNADO CON NEQUI';
+        }
+    }
 
     function mount()
     {
@@ -146,24 +169,29 @@ class AccountsReceivableReport extends Component
                     'user_id' => Auth()->user()->id,
                     'sale_id' => $this->sale_id,
                     'amount' => floatval($amount),
-                    'pay_way' => ($this->bank == 0 ? 'cash' : 'deposit'),
+                    'pay_way' => match (true) {
+                        ($this->bank ?? 0) === 0 && ($this->phoneNumber ?? 0) === 0 => 'cash',
+                        ($this->bank ?? 0) !== 0 => 'deposit',
+                        default => 'nequi',
+                    },
                     'type' => $type,
                     'bank' => ($this->bank == 0 ? '' : Bank::where('id', $this->bank)->first()->name),
                     'account_number' => $this->acountNumber,
-                    'deposit_number' => $this->depositNumber
+                    'deposit_number' => $this->depositNumber,
+                    'phone_number' => $this->phoneNumber
                 ]
             );
 
             // actualizar status venta
             if ($type == 'settled') {
-                Sale::where('id', $this->sale_selected_id)->update([
+                Sale::where('id', $this->sale_id)->update([
                     'status' => 'paid'
                 ]);
             }
 
             $this->printPayment($pay->id);
             $this->dispatch('noty', msg: 'PAGO REGISTRADO CON ÉXITO');
-            $this->reset('amount', 'acountNumber', 'depositNumber', 'debt', 'bank');
+            $this->reset('amount', 'acountNumber', 'depositNumber', 'debt', 'bank', 'phoneNumber');
             $this->dispatch('close-modal');
             //
         } catch (\Exception $th) {

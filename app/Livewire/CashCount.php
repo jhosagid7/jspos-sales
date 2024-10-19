@@ -15,7 +15,8 @@ class CashCount extends Component
     use PrintTrait;
 
     public $users = [], $user, $user_id = 0, $totales = 0, $dateFrom, $dateTo;
-    public $totalSales = 0, $totalCreditSales = 0, $totalPayments = 0;
+    public $totalDeposit = 0, $totalNequi = 0, $totalCash = 0, $totalSales = 0, $totalCreditSales = 0, $totalPayments = 0, $totalPaymentsDeposit = 0, $totalPaymentsCash = 0, $totalPaymentsNequi = 0;
+
 
     function mount()
     {
@@ -62,17 +63,29 @@ class CashCount extends Component
                 ->when($this->user_id != 0, function ($qry) {
                     $qry->where('user_id', $this->user_id);
                 })
-                ->select('total', 'type')
+                ->select('total', 'cash', 'change', 'type')
                 ->get();
 
-            $this->totalSales = $sales->sum('total');
-            $this->totalCreditSales = $sales->where('type', 'credit')->sum('total');
 
-            $this->totalPayments = Payment::whereBetween('created_at', [$dFrom, $dTo])
+            $this->totalSales = $sales->sum('total');
+            $this->totalCash = $sales->sum('cash') - $sales->sum('change');
+            $this->totalNequi = ($sales->where('type', 'cash/nequi')->sum('total') + $sales->where('type', 'nequi')->sum('total')) - ($sales->where('type', 'cash/nequi')->sum('cash') + $sales->where('type', 'cash/nequi')->sum('change'));
+            $this->totalCreditSales = $sales->where('type', 'credit')->sum('total');
+            $this->totalDeposit = $sales->where('type', 'deposit')->sum('total');
+
+            $payments = Payment::whereBetween('created_at', [$dFrom, $dTo])
                 ->when($this->user_id != 0, function ($qry) {
                     $qry->where('user_id', $this->user_id);
                 })
-                ->sum('amount');
+                ->select('pay_way', 'cash', 'change', 'type')
+                ->get();
+
+            $this->totalPaymentsCash = $payments->where('pay_way', 'cash')->sum('amount');
+            $this->totalPaymentsDeposit = $payments->where('pay_way', 'deposit')->sum('amount');
+            $this->totalPaymentsNequi = $payments->where('pay_way', 'nequi')->sum('amount');
+            $this->totalPayments = $payments->sum('amount');
+
+
 
             $this->dispatch('noty', msg: 'Info actualizada');
             //
@@ -95,17 +108,26 @@ class CashCount extends Component
                 ->when($this->user_id != 0, function ($qry) {
                     $qry->where('user_id', $this->user_id);
                 })
-                ->select('total', 'type')
+                ->select('total', 'cash', 'change', 'type')
                 ->get();
 
             $this->totalSales = $sales->sum('total');
+            $this->totalCash = $sales->sum('cash') - $sales->sum('change');
+            $this->totalNequi = ($sales->where('type', 'cash/nequi')->sum('total') + $sales->where('type', 'nequi')->sum('total')) - ($sales->where('type', 'cash/nequi')->sum('cash') + $sales->where('type', 'cash/nequi')->sum('change'));
             $this->totalCreditSales = $sales->where('type', 'credit')->sum('total');
+            $this->totalDeposit = $sales->where('type', 'deposit')->sum('total');
 
-            $this->totalPayments = Payment::whereBetween('created_at', [$dFrom, $dTo])
+            $payments = Payment::whereBetween('created_at', [$dFrom, $dTo])
                 ->when($this->user_id != 0, function ($qry) {
                     $qry->where('user_id', $this->user_id);
                 })
-                ->sum('amount');
+                ->select('pay_way', 'amount')
+                ->get();
+
+            $this->totalPaymentsCash = $payments->where('pay_way', 'cash')->sum('amount');
+            $this->totalPaymentsDeposit = $payments->where('pay_way', 'deposit')->sum('amount');
+            $this->totalPaymentsNequi = $payments->where('pay_way', 'nequi')->sum('amount');
+            $this->totalPayments = $payments->sum('amount');
 
             $this->dispatch('noty', msg: 'Info actualizada');
             //
@@ -117,7 +139,7 @@ class CashCount extends Component
     function printCC()
     {
         $username = $this->user_id == 0 ? 'Todos los usuarios' : User::find($this->user_id)->name;
-        $this->printCashCount($username, $this->dateFrom, $this->dateTo, $this->totalSales, $this->totalPayments, $this->totalCreditSales);
+        $this->printCashCount($username, $this->dateFrom, $this->dateTo, $this->totalSales, $this->totalCash, $this->totalNequi, $this->totalDeposit, $this->totalPayments, $this->totalCreditSales, $this->totalPaymentsCash, $this->totalPaymentsDeposit, $this->totalPaymentsNequi);
 
         $this->dispatch('noty', msg: 'Impresión de corte enviada');
     }

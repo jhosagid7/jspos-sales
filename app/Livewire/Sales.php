@@ -30,19 +30,48 @@ class Sales extends Component
     public Collection $cart;
     public $taxCart = 0, $itemsCart, $subtotalCart = 0, $totalCart = 0, $ivaCart = 0;
 
-    public $config, $customer;
+    public $config, $customer, $iva = 0;
     //register customer
-    public $cname, $caddress, $cemail, $cphone, $ctype = 'Consumidor Final';
+    public $cname, $caddress, $ccity, $cemail, $cphone, $ctaxpayerId, $ctype = 'Consumidor Final';
 
     //pay properties
-    public $banks, $cashAmount, $change, $acountNumber, $depositNumber, $bank, $payType = 1, $payTypeName = 'PAGO EN EFECTIVO';
+    public $banks, $cashAmount, $nequiAmount, $change, $phoneNumber, $acountNumber, $depositNumber, $bank, $payType = 1, $payTypeName = 'PAGO EN EFECTIVO';
 
 
     function updatedCashAmount()
     {
         if (floatval($this->totalCart) > 0) {
-            $this->change = round(floatval($this->cashAmount) - floatval($this->totalCart));
+
+
+            if (round(floatval($this->cashAmount))  >= floatval($this->totalCart)) {
+                $this->nequiAmount = null;
+                $this->phoneNumber = null;
+            }
+
+            $this->change = (round(floatval($this->cashAmount) + floatval($this->nequiAmount)) - floatval($this->totalCart));
         }
+    }
+    function updatedNequiAmount()
+    {
+        if (floatval($this->totalCart) > 0) {
+            $this->change = (round(floatval($this->cashAmount) + floatval($this->nequiAmount)) - floatval($this->totalCart));
+        }
+    }
+    function updatedPhoneNumber()
+    {
+        if (floatval($this->totalCart) > 0 && $this->phoneNumber != '') {
+            $this->change = (round(floatval($this->cashAmount) + floatval($this->nequiAmount)) - floatval($this->totalCart));
+        } else {
+            $this->change = round(floatval($this->cashAmount) - floatval($this->totalCart));
+            $this->nequiAmount = 0;
+        }
+    }
+
+    function clearCashAmount()
+    {
+        $this->nequiAmount = null;
+        $this->phoneNumber = null;
+        $this->change = 0;
     }
 
     public function mount()
@@ -64,12 +93,22 @@ class Sales extends Component
 
     public function render()
     {
+
+        $this->checkCreditSales();
         $this->cart = $this->cart->sortBy('name');
         $this->taxCart = round($this->totalIVA());
         $this->itemsCart = $this->totalItems();
-        $this->subtotalCart = round($this->subtotalCart() / 1.14);
         $this->totalCart = round($this->totalCart());
-        $this->ivaCart = round(($this->totalCart() / 1.14) * 0.14);
+        if ($this->config->vat > 0) {
+            $this->iva = $this->config->vat / 100;
+            $this->subtotalCart = round($this->subtotalCart() / (1 + $this->iva));
+            $this->ivaCart = round(($this->totalCart() / (1 + $this->iva)) * $this->iva);
+        } else {
+            $this->iva = $this->config->vat;
+            $this->subtotalCart = round($this->subtotalCart());
+            $this->ivaCart = round(0);
+        }
+
 
         $this->customer =  session('sale_customer', null);
 
@@ -100,7 +139,7 @@ class Sales extends Component
             return;
         }
 
-        //iva méxico 16%
+        //iva venezuela 16%
         $iva = ($this->config->vat / 100);
         //determinamos el precio de venta(con iva)
         if (count($product->priceList) > 0)
@@ -363,7 +402,8 @@ class Sales extends Component
 
         if ($type == 1) $this->payTypeName = 'PAGO EN EFECTIVO';
         if ($type == 2)   $this->payTypeName = 'PAGO A CRÉDITO';
-        if ($type == 3) $this->payTypeName = 'PAGO CON DEPÓSITO';
+        if ($type == 3) $this->payTypeName = 'PAGO CON BANCO';
+        if ($type == 4) $this->payTypeName = 'PAGO CON NEQUI';
 
         $this->dispatch('initPay', payType: $type);
     }
@@ -385,11 +425,23 @@ class Sales extends Component
         }
 
         if ($type == 1) {
+
             if (!$this->validateCash()) {
                 $this->dispatch('noty', msg: 'EL EFECTIVO ES MENOR AL TOTAL DE LA VENTA');
                 return;
             }
+
+            if ($this->nequiAmount > 1 && empty($this->cashAmount)) {
+                $this->dispatch('noty', msg: 'DEBE INGRESAR UN MONTO EN EFECTIVO');
+                return;
+            }
+
+            if ($this->nequiAmount > 1 && empty($this->phoneNumber) < 0) {
+                $this->dispatch('noty', msg: 'INGRESA EL NÚMERO DE TELÉFONO');
+                return;
+            }
         }
+
         if ($type == 3) {
             if (empty($this->acountNumber)) {
                 $this->dispatch('noty', msg: 'INGRESA EL NÚMERO DE CUENTA');
@@ -397,6 +449,12 @@ class Sales extends Component
             }
             if (empty($this->depositNumber)) {
                 $this->dispatch('noty', msg: 'INGRESA EL NÚMERO DE DEPÓSITO');
+                return;
+            }
+        }
+        if ($type == 4) {
+            if (empty($this->phoneNumber)) {
+                $this->dispatch('noty', msg: 'INGRESA EL NÚMERO DE TELÉFONO');
                 return;
             }
         }
@@ -412,8 +470,18 @@ class Sales extends Component
                 $notes .= ",N.Cta: {$this->acountNumber}";
                 $notes .= ",N.Deposito: {$this->depositNumber}";
             }
+            if ($type == 4) {
+                $notes = ",N.Teléfono: {$this->phoneNumber}";
+            }
 
             if ($type > 1) $this->cashAmount = 0;
+
+            if ($type == 1 && $this->nequiAmount > 1 && $this->phoneNumber > 0) {
+                $notes = "EFECTIVO: {$this->cashAmount}";
+                $notes .= ",N.Teléfono: {$this->phoneNumber}";
+                $notes .= ",Valor Consignado: {$this->nequiAmount}";
+                $type = 5;
+            }
 
             $sale = Sale::create([
                 'total' => $this->totalCart,
@@ -421,10 +489,10 @@ class Sales extends Component
                 'items' => $this->itemsCart,
                 'customer_id' => $this->customer['id'],
                 'user_id' => Auth()->user()->id,
-                'type' => $type == 1 ? 'cash' : ($type == 2 ? 'credit' : 'deposit'),
+                'type' => $type == 1 ? 'cash' : ($type == 2 ? 'credit' : ($type == 3 ? 'deposit' : ($type == 4 ? 'nequi' : 'cash/nequi'))),
                 'status' => ($type == 2 ?  'pending' : 'paid'),
                 'cash' => $this->cashAmount,
-                'change' => $type == 1 ? round(floatval($this->cashAmount) - floatval($this->totalCart())) : 0,
+                'change' => $type == 1 ? round((floatval($this->cashAmount) + floatval($this->nequiAmount)) - floatval($this->totalCart())) : 0,
                 'notes' => $notes
             ]);
 
@@ -458,7 +526,7 @@ class Sales extends Component
             DB::commit();
 
             $this->dispatch('noty', msg: 'VENTA REGISTRADA CON ÉXITO');
-            $this->dispatch('close-modalPay', element: $type == 3 ? 'modalDeposit' : 'modalCash');
+            $this->dispatch('close-modalPay', element: $type == 3 ? 'modalDeposit' : ($type == 4 ? 'modalNequi' : 'modalCash'));
             $this->resetExcept('config', 'banks', 'bank');
             $this->clear();
             session()->forget('sale_customer');
@@ -490,33 +558,50 @@ class Sales extends Component
     {
         $total = floatval($this->totalCart);
         $cash = floatval($this->cashAmount);
-        if ($cash < $total) {
+        $nequi = floatval($this->nequiAmount);
+        if ($cash + $nequi < $total) {
             return false;
         }
 
         return true;
     }
 
+
     function storeCustomer()
     {
-
+        $this->resetValidation();
         if (!$this->validaProp($this->cname)) {
+
             $this->addError('cname', 'INGRESA EL NOMBRE');
+            return;
+        }
+        if (!$this->validaProp($this->ctaxpayerId)) {
+            $this->addError('ctaxpayerId', 'INGRESA EL CC/NIT');
+            return;
+        }
+        if (!$this->validaProp($this->caddress)) {
+            $this->addError('caddress', 'INGRESA LA DIRECCIÓN');
+            return;
+        }
+        if (!$this->validaProp($this->ccity)) {
+            $this->addError('ccity', 'INGRESA LA CIUDA');
             return;
         }
 
         $customer =  Customer::create([
             'name' => $this->cname,
             'address' => $this->caddress,
+            'city' => $this->ccity,
             'email' => $this->cemail,
             'phone' => $this->cphone,
+            'taxpayer_id' => $this->ctaxpayerId,
             'type' => $this->ctype
         ]);
 
         session(['sale_customer' => $customer->toArray()]);
         $this->customer = $customer->toArray();
 
-        $this->reset('cname', 'cphone', 'cemail', 'caddress', 'ctype');
+        $this->reset('cname', 'cphone', 'ctaxpayerId', 'cemail', 'caddress', 'ccity', 'ctype');
         $this->dispatch('close-modal-customer-create');
     }
 

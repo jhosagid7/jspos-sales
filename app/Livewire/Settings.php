@@ -7,7 +7,7 @@ use App\Models\Configuration;
 
 class Settings extends Component
 {
-    public $setting_id = 0, $businessName, $phone, $taxpayerId, $vat, $printerName, $website, $leyend, $creditDays = 15, $address;
+    public $setting_id = 0, $businessName, $phone, $taxpayerId, $vat, $printerName, $website, $leyend, $creditDays = 15, $address, $city;
 
     function mount()
     {
@@ -31,6 +31,7 @@ class Settings extends Component
             $this->setting_id = $config->id;
             $this->businessName = $config->business_name;
             $this->address = $config->address;
+            $this->city = $config->city;
             $this->phone = $config->phone;
             $this->taxpayerId = $config->taxpayer_id;
             $this->vat = $config->vat;
@@ -52,12 +53,15 @@ class Settings extends Component
         if (empty($this->address)) {
             $this->addError('address', 'Ingresa la dirección');
         }
+        if (empty($this->city)) {
+            $this->addError('city', 'Ingresa la ciudad');
+        }
         if (empty($this->taxpayerId)) {
             $this->addError('taxpayerId', 'Ingresa el RFC/RUT');
         }
-        if (empty($this->vat)) {
-            $this->addError('vat', 'Ingresa el IVA');
-        }
+        // if (empty($this->vat)) {
+        //     $this->addError('vat', 'Ingresa el IVA');
+        // }
         if (!is_numeric($this->vat)) {
             $this->addError('vat', 'Ingresa el IVA en números!');
         }
@@ -81,6 +85,7 @@ class Settings extends Component
                 [
                     'business_name' => trim($this->businessName),
                     'address' => trim($this->address),
+                    'city' => trim($this->city),
                     'phone' => trim($this->phone),
                     'taxpayer_id' => trim($this->taxpayerId),
                     'vat' => trim($this->vat),

@@ -15,10 +15,11 @@ class Customers extends Component
     public $customer_id,   $editing, $search, $records, $pagination = 5;
 
 
-    protected $rules =
-    [
-        'customer.name' => "required|max:45|unique:customers,name",
-        'customer.address' => 'nullable|max:255',
+    protected $rules = [
+        'customer.name' => 'required|max:45|unique:customers,name',
+        'customer.taxpayer_id' => 'required|max:45',
+        'customer.address' => 'required|max:255',
+        'customer.city' => 'required|max:100',
         'customer.phone' => 'nullable|max:15',
         'customer.email' => 'nullable|email|max:65',
         'customer.type' => 'required|in:Mayoristas,Consumidor Final,Descuento1,Descuento2,Otro',
@@ -29,8 +30,13 @@ class Customers extends Component
         'customer.name.max' => 'El nombre del cliente no puede tener más de 45 caracteres.',
         'customer.name.unique' => 'El nombre del cliente ya existe',
         'customer.address.max' => 'La dirección solo puede tener máximo 255 caracteres',
-        'customer.phone.max' => 'Ingresa el telefono en máximo 15 caracteres',
+        'customer.address.required' => 'La dirección del cliente es requerido',
+        'customer.city.max' => 'La ciudad solo puede tener máximo 100 caracteres',
+        'customer.city.required' => 'La ciudad del cliente es requerida',
+        'customer.phone.max' => 'Ingresa el teléfono en máximo 15 caracteres',
         'customer.type.in' => 'Elige una opción válida para el tipo de cliente',
+        'customer.taxpayer_id.max' => 'La cc/nit solo puede tener máximo 45 caracteres',
+        'customer.taxpayer_id.required' => 'La cc/nit del cliente es requerido',
     ];
 
 
@@ -66,7 +72,9 @@ class Customers extends Component
 
             $query = Customer::where('name', 'like', "%{$this->search}%")
                 ->orWhere('phone', 'like', "%{$this->search}%")
+                ->orWhere('taxpayer_id', 'like', "%{$this->search}%")
                 ->orWhere('address', 'like', "%{$this->search}%")
+                ->orWhere('city', 'like', "%{$this->search}%")
                 ->orderBy('name', 'asc');
         } else {
             $query =  Customer::orderBy('name', 'asc');

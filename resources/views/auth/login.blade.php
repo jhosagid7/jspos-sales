@@ -1,17 +1,17 @@
 <x-guest-layout>
 
     @if ($errors->any())
-    <div>
-        <div class="font-medium text-red-600">
-            {{ __('Whoops!') }}
-        </div>
+        <div>
+            <div class="font-medium text-red-600">
+                {{ __('Whoops!') }}
+            </div>
 
-        <ul class="mt-3 list-disc list-inside text-sm text-red-600">
-            @foreach ($errors->all() as $error)
-            <li>{{ $error }}</li>
-            @endforeach
-        </ul>
-    </div>
+            <ul class="mt-3 list-disc list-inside text-sm text-red-600">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
     @endif
 
 
@@ -26,8 +26,8 @@
         <!-- Email Address -->
         <div>
             <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required
-                autofocus autocomplete="username" />
+            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')"
+                required autofocus autocomplete="username" />
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
 
@@ -50,7 +50,7 @@
 
         </div>
         <div class="text-center">
-            <a href="https://luisfaxacademy.com" style="font-size: 12px">luisfaxacademy.com</a>
+            <a href="https://github.com/jhosagid7" style="font-size: 12px">jhonnypirela.dev</a>
         </div>
     </form>
 </x-guest-layout>

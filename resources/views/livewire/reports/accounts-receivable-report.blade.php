@@ -12,11 +12,11 @@
                             <div class="card">
                                 <div class="card-body">
 
-                                    @if($customer != null)
-                                    <span> {{ $customer['name'] }} <i
-                                            class="icofont icofont-verification-check"></i></span>
+                                    @if ($customer != null)
+                                        <span> {{ $customer['name'] }} <i
+                                                class="icofont icofont-verification-check"></i></span>
                                     @else
-                                    <span class="f-14"><b>Cliente</b></span>
+                                        <span class="f-14"><b>Cliente</b></span>
                                     @endif
                                     <div class="input-group" wire:ignore>
                                         <input class="form-control" type="text" id="inputCustomer" placeholder="F2">
@@ -29,16 +29,16 @@
                                     <div class="mt-3">
                                         <span class="f-14"><b>Fecha desde</b></span>
                                         <div class="input-group datepicker">
-                                            <input class="form-control flatpickr-input active" id="dateFrom" type="text"
-                                                autocomplete="off">
+                                            <input class="form-control flatpickr-input active" id="dateFrom"
+                                                type="text" autocomplete="off">
                                         </div>
                                     </div>
 
                                     <div class="mt-2">
                                         <span class="f-14"><b>Hasta</b></span>
                                         <div class="input-group datepicker">
-                                            <input class="form-control flatpickr-input active" id="dateTo" type="text"
-                                                autocomplete="off">
+                                            <input class="form-control flatpickr-input active" id="dateTo"
+                                                type="text" autocomplete="off">
                                         </div>
                                     </div>
 
@@ -52,8 +52,8 @@
                                     </div>
 
                                     <div class="mt-5">
-                                        <button wire:click.prevent="$set('showReport', true)" class="btn btn-dark" {{
-                                            $customer==null && ($dateFrom==null && $dateTo==null) ? 'disabled' : '' }}>
+                                        <button wire:click.prevent="$set('showReport', true)" class="btn btn-dark"
+                                            {{ $customer == null && ($dateFrom == null && $dateTo == null) ? 'disabled' : '' }}>
                                             Consultar
                                         </button>
                                     </div>
@@ -62,15 +62,16 @@
 
                         </div>
                         <div class="col-sm-12 col-md-9">
-                            <div class="card {{$totales == 0 && $dateFrom == null ? 'd-none' : '' }}">
+                            <div class="card {{ $totales == 0 && $dateFrom == null ? 'd-none' : '' }}">
                                 <div class="card-header p-3">
                                     <div class="header-top">
-                                        <h5 class="m-0">Resultados<span class="f-14 f-w-500 ms-1 f-light"></span></h5>
+                                        <h5 class="m-0">Resultados<span class="f-14 f-w-500 ms-1 f-light"></span>
+                                        </h5>
                                         <div class="card-header-right-icon">
                                             <span class="badge badge-light-dark  ms-1 f-14 text-white">Total
                                                 por
                                                 Cobrar:
-                                                ${{$totales}}</span>
+                                                ${{ $totales }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -91,49 +92,50 @@
                                             </thead>
                                             <tbody>
                                                 @forelse ($sales as $sale)
-                                                <tr class="text-center">
-                                                    <td>{{$sale->id }}</td>
-                                                    <td>{{$sale->customer->name }}</td>
-                                                    <td style="background-color: rgb(210, 243, 252)">${{$sale->total }}
-                                                    </td>
-                                                    <td>${{$sale->payments->sum('amount')}}</td>
-                                                    <td style="background-color: beige">${{ round($sale->total -
-                                                        $sale->payments->sum('amount'),2)}}
-                                                    </td>
-                                                    <td>
-                                                        <span
-                                                            class="badge f-12 {{$sale->status == 'paid' ? 'badge-light-success' : 'badge-light-danger' }} ">{{$sale->status
-                                                            }}</span>
+                                                    <tr class="text-center">
+                                                        <td>{{ $sale->id }}</td>
+                                                        <td class="text-capitalize">{{ $sale->customer->name }}</td>
+                                                        <td style="background-color: rgb(210, 243, 252)">
+                                                            ${{ $sale->total }}
+                                                        </td>
+                                                        <td>${{ $sale->payments->sum('amount') }}</td>
+                                                        <td style="background-color: beige">
+                                                            ${{ round($sale->total - $sale->payments->sum('amount'), 2) }}
+                                                        </td>
+                                                        <td>
+                                                            <span
+                                                                class="badge f-12 {{ $sale->status == 'paid' ? 'badge-light-success' : 'badge-light-danger' }} ">{{ $sale->status }}</span>
 
-                                                    </td>
-                                                    <td>{{$sale->created_at }}</td>
+                                                        </td>
+                                                        <td>{{ $sale->created_at }}</td>
 
 
-                                                    <td>
-                                                        <button wire:click.prevent="historyPayments({{ $sale->id }})"
-                                                            class="btn btn-outline-dark btn-xs border-0">
-                                                            <i class="icofont icofont-list fa-2x"></i>
-                                                        </button>
-                                                        <button
-                                                            wire:click.prevent="initPayment({{ $sale->id }}, '{{ $sale->customer->name }}')"
-                                                            class="btn btn-outline-dark btn-xs border-0">
-                                                            <i class="icofont icofont-cur-dollar-plus fa-2x"></i>
-                                                        </button>
+                                                        <td>
+                                                            <button
+                                                                wire:click.prevent="historyPayments({{ $sale->id }})"
+                                                                class="btn btn-outline-dark btn-xs border-0">
+                                                                <i class="icofont icofont-list fa-2x"></i>
+                                                            </button>
+                                                            <button
+                                                                wire:click.prevent="initPayment({{ $sale->id }}, '{{ $sale->customer->name }}')"
+                                                                class="btn btn-outline-dark btn-xs border-0">
+                                                                <i class="icofont icofont-cur-dollar-plus fa-2x"></i>
+                                                            </button>
 
-                                                    </td>
+                                                        </td>
 
-                                                </tr>
+                                                    </tr>
                                                 @empty
-                                                <tr>
-                                                    <td colspan="8" class="text-center">Sin ventas</td>
-                                                </tr>
+                                                    <tr>
+                                                        <td colspan="8" class="text-center">Sin ventas</td>
+                                                    </tr>
                                                 @endforelse
 
                                             </tbody>
                                         </table>
                                         <div class="mt-3">
-                                            @if(!is_array($sales))
-                                            {{$sales->links()}}
+                                            @if (!is_array($sales))
+                                                {{ $sales->links() }}
                                             @endif
                                         </div>
                                     </div>
@@ -157,11 +159,11 @@
     </style>
 
     <script>
-        document.onkeydown = function(e) {   
+        document.onkeydown = function(e) {
 
             // f3
-            if (e.keyCode == '113') { 
-            e.preventDefault()
+            if (e.keyCode == '113') {
+                e.preventDefault()
                 var input = document.getElementById('inputCustomer');
                 var tomselect = input.tomselect
                 tomselect.clear()
@@ -169,87 +171,85 @@
             }
         }
 
-        document.addEventListener('livewire:init', () => {   
+        document.addEventListener('livewire:init', () => {
             flatpickr("#dateFrom", {
                 dateFormat: "Y/m/d",
                 locale: "es",
-                theme: "confetti",    
+                theme: "confetti",
                 onChange: function(selectedDates, dateStr, instance) {
                     console.log(dateStr);
-                    @this.set('dateFrom',dateStr)
+                    @this.set('dateFrom', dateStr)
                 }
             })
             flatpickr("#dateTo", {
                 dateFormat: "Y/m/d",
                 locale: "es",
-                theme: "confetti",    
-                onChange: function(selectedDates, dateStr, instance) {                    
-                    @this.set('dateTo',dateStr)
+                theme: "confetti",
+                onChange: function(selectedDates, dateStr, instance) {
+                    @this.set('dateTo', dateStr)
                 }
             })
 
-    
 
 
-   
-        if (document.querySelector('#inputCustomer')) {
-                    new TomSelect('#inputCustomer', {
-                        maxItems: 1,
-                        valueField: 'id',
-                        labelField: 'name',
-                        searchField: ['name', 'address'],
-                        load: function(query, callback) {
-                            var url = "{{ route('data.customers') }}" + '?q=' + encodeURIComponent(
-                                query)
-                            fetch(url)
-                                .then(response => response.json())
-                                .then(json => {                                    
-                                    callback(json);
-                                    //console.log(json);
-                                }).catch(() => {
-                                    callback();
-                                });
-                        },
-                        onChange: function(value) {                                                         
-                            var customer = this.options[value]                          
-                           // console.log( value)
-                            Livewire.dispatch('sale_customer', {customer: customer})
 
-                        },
-                        render: {
-                            option: function(item, escape) {
-                                return `<div class="py-1 d-flex">
+
+            if (document.querySelector('#inputCustomer')) {
+                new TomSelect('#inputCustomer', {
+                    maxItems: 1,
+                    valueField: 'id',
+                    labelField: 'name',
+                    searchField: ['name', 'address'],
+                    load: function(query, callback) {
+                        var url = "{{ route('data.customers') }}" + '?q=' + encodeURIComponent(
+                            query)
+                        fetch(url)
+                            .then(response => response.json())
+                            .then(json => {
+                                callback(json);
+                                //console.log(json);
+                            }).catch(() => {
+                                callback();
+                            });
+                    },
+                    onChange: function(value) {
+                        var customer = this.options[value]
+                        // console.log( value)
+                        Livewire.dispatch('sale_customer', {
+                            customer: customer
+                        })
+
+                    },
+                    render: {
+                        option: function(item, escape) {
+                            return `<div class="py-1 d-flex">
             <div>
                 <div class="mb-0">
                     <span class="h5 text-info">
-                        <b class="text-dark">${ escape(item.id) } 
-                    </span>                    
-                    <span class="text-warning">|${ escape(item.name.toUpperCase()) }</span>                   
+                        <b class="text-dark">${ escape(item.id) }
+                    </span>
+                    <span class="text-warning">|${ escape(item.name.toUpperCase()) }</span>
                 </div>
             </div>
         </div>`;
-                            },
                         },
-                    });
-    }
+                    },
+                });
+            }
 
 
-    Livewire.on('show-modal-payment', event=> {
-        $('#modalPartialPay').modal('show')
-    })
+            Livewire.on('show-modal-payment', event => {
+                $('#modalPartialPay').modal('show')
+            })
 
-    Livewire.on('close-modal', event=> {
-        $('#modalPartialPay').modal('hide')
-    })
+            Livewire.on('close-modal', event => {
+                $('#modalPartialPay').modal('hide')
+            })
 
-    Livewire.on('show-payhistory', event=> {
-        $('#modalPayHistory').modal('show')
-    })
+            Livewire.on('show-payhistory', event => {
+                $('#modalPayHistory').modal('show')
+            })
 
-})
-
-
-    
-
+        })
     </script>
 </div>

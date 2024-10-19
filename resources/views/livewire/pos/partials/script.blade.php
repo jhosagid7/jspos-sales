@@ -71,13 +71,26 @@
     document.addEventListener('livewire:init', function() {
 
         Livewire.on('initPay', event => {
-            $(event.payType == 3 ? '#modalDeposit' : '#modalCash').modal('show')
-            if (event.payType != 3) {
+            $(event.payType == 4 ? '#modalNequi' : event.payType == 3 ? '#modalDeposit' : '#modalCash')
+                .modal('show')
+            // $(event.payType == 3 ? '#modalDeposit' : '#modalCash').modal('show')
+
+
+            if (event.payType == 4) {
                 setTimeout(() => {
-                    document.getElementById('inputCash').value = ''
+                    document.getElementById('phoneNumber').value = ''
+                    document.getElementById('phoneNumber').focus()
+                }, 700)
+            } else if (event.payType != 3 && event.payType != 4) {
+                setTimeout(() => {
+                    @this.clearCashAmount()
+                    document.getElementById('inputCash').value = null
+                    document.getElementById('inputNequi').value = null
+                    document.getElementById('phoneNumber').value = null
                     document.getElementById('inputCash').focus()
                 }, 700)
             }
+
 
         })
 
@@ -108,8 +121,13 @@
         $('#modalCustomerCreate').on('shown.bs.modal', function() {
             setTimeout(() => {
                 document.getElementById('inputcname').value = ''
+                document.getElementById('inputctaxpayerId').value = ''
+                document.getElementById('inputcemail').value = ''
+                document.getElementById('inputcphone').value = ''
+                document.getElementById('inputcaddress').value = ''
+                document.getElementById('inputccity').value = ''
                 document.getElementById('inputcname').focus()
-            }, 700)
+            }, 200)
         })
 
 

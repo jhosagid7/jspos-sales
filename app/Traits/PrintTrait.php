@@ -143,7 +143,24 @@ trait PrintTrait
                     $printer->text("Deuda actual: $" . $payment->sale->debt . "\n\n");
                 }
 
-                $printer->text("Forma de Pago:" . ($payment->pay_way == 'cash' ? 'EFECTIVO' : 'DEPÓSITO')  . "\n");
+                //    $printer->text("Forma de Pago:" . ($payment->pay_way == 'cash' ? 'EFECTIVO' : 'DEPÓSITO')  . "\n");
+
+                $printer->text("Forma de Pago: ");
+                switch ($payment->pay_way) {
+                    case 'cash':
+                        $printer->text("EFECTIVO\n");
+                        break;
+                    case 'deposit':
+                        $printer->text("DEPÓSITO\n");
+                        break;
+                    default:
+                        $printer->text("NEQUI\n");
+                }
+
+                if ($payment->pay_way == 'nequi') {
+                    $printer->text(ucfirst($payment->pay_way) . "\n");
+                    $printer->text("No. Teléfono:" . $payment->account_number . "\n");
+                }
 
                 if ($payment->pay_way == 'deposit') {
                     $printer->text($payment->bank . "\n");
@@ -195,7 +212,7 @@ trait PrintTrait
 
 
 
-    function printCashCount($user_name, $dfrom, $dto, $totales, $payments, $credit)
+    function printCashCount($user_name, $dfrom, $dto, $totales, $cash, $nequi, $deposit, $payments, $credit, $pcash, $pdeposit, $pnequi)
     {
         try {
 
@@ -221,9 +238,15 @@ trait PrintTrait
                 $printer->text("=============================================\n");
 
                 $printer->text("VENTAS TOTALES: " . $totales  . "\n");
+                $printer->text("TOTAL BANCO: " . $deposit  . "\n");
+                $printer->text("TOTAL NEQUI: " . $nequi  . "\n");
+                $printer->text("TOTAL CONTADO: " . $cash  . "\n");
                 $printer->text("VENTAS A CRÉDITO: " . $credit  . "\n");
-                $printer->text("PAGOS REGISTRADOS: " . $payments  . "\n");
-
+                $printer->text("---------" . "\n");
+                $printer->text("CRÉDITOS PAGADOS: " . $payments  . "\n");
+                $printer->text("TOTAL BANCO: " . $pdeposit  . "\n");
+                $printer->text("TOTAL NEQUI: " . $pnequi  . "\n");
+                $printer->text("TOTAL CONTADO: " . $pcash  . "\n");
                 $printer->text("---------" . "\n");
 
 

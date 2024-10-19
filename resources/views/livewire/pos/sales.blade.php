@@ -8,9 +8,9 @@
                 <div class="card-header card-no-border pb-3">
                     <div class="header-top border-bottom pb-3">
                         <h5 class="m-0">Resumen </h5>
-                        <div class="card-header-right-icon create-right-btn"><a
-                                class="btn btn-light-primary f-w-500 f-12" href="javascript:void(0)"
-                                data-bs-toggle="modal" data-bs-target="#modalCustomerCreate">Crear +</a></div>
+                        <div class="card-header-right-icon create-right-btn"><a class="btn btn-light-primary f-w-500 f-12"
+                                href="javascript:void(0)" data-bs-toggle="modal"
+                                data-bs-target="#modalCustomerCreate">Crear +</a></div>
 
                         <!-- Modal-->
                         <div wire:ignore.self class="modal fade" id="modalCustomerCreate" tabindex="-1"
@@ -33,30 +33,57 @@
                                                             placeholder="ingresa el nombre" maxlength="45"
                                                             id="inputcname">
                                                         @error('cname')
-                                                        <span class="text-danger">{{ $message }}</span>
+                                                            <span class="text-danger">{{ $message }}</span>
+                                                        @enderror
+                                                    </div>
+                                                    <div class="col-sm-12">
+                                                        <label class="form-label">CC/Nit <span
+                                                                class="txt-danger">*</span></label>
+                                                        <input wire:model='ctaxpayerId' class="form-control"
+                                                            type="text" placeholder="" maxlength="65"
+                                                            id="inputctaxpayerId">
+                                                        @error('ctaxpayerId')
+                                                            <span class="text-danger">{{ $message }}</span>
                                                         @enderror
                                                     </div>
                                                     <div class="col-sm-12">
                                                         <label class="form-label">Email</label>
                                                         <input wire:model='cemail' class="form-control" type="text"
-                                                            placeholder="" maxlength="65">
+                                                            placeholder="" maxlength="65" id="inputcemail">
 
                                                     </div>
                                                     <div class="col-sm-12">
                                                         <label class="form-label">Teléfono</label>
                                                         <input wire:model='cphone' class="form-control" type="number"
-                                                            placeholder="" maxlength="15">
+                                                            placeholder="" maxlength="15" id="inputcphone">
 
                                                     </div>
                                                     <div class="col-sm-12">
                                                         <div class="">
-                                                            <label class="form-label">Dirección</label>
+                                                            <label class="form-label">Dirección <span
+                                                                    class="txt-danger">*</span></label>
                                                             <input wire:model='caddress' class="form-control"
-                                                                type="text" placeholder="" maxlength="255">
+                                                                type="text" placeholder="" maxlength="255"
+                                                                id="inputcaddress">
+                                                            @error('caddress')
+                                                                <span class="text-danger">{{ $message }}</span>
+                                                            @enderror
                                                         </div>
                                                     </div>
                                                     <div class="col-sm-12">
-                                                        Tipo
+                                                        <div class="">
+                                                            <label class="form-label">Ciudad <span
+                                                                    class="txt-danger">*</span></label>
+                                                            <input wire:model='ccity' class="form-control"
+                                                                type="text" placeholder="" maxlength="255"
+                                                                id="inputccity">
+                                                            @error('ccity')
+                                                                <span class="text-danger">{{ $message }}</span>
+                                                            @enderror
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-12">
+                                                        Tipo <span class="txt-danger">*</span>
                                                         <select wire:model="ctype" class="form-control">
                                                             <option value="Consumidor Final">Consumidor Final</option>
                                                             <option value="Mayoristas">Mayoristas</option>
@@ -81,10 +108,10 @@
                 </div>
                 <div class="card-body pt-0 order-details">
 
-                    @if($customer != null)
-                    <span> {{ $customer['name'] }} <i class="icofont icofont-verification-check"></i></span>
+                    @if ($customer != null)
+                        <span> {{ $customer['name'] }} <i class="icofont icofont-verification-check"></i></span>
                     @else
-                    Cliente
+                        Cliente
                     @endif
 
                     {{-- <div class="faq-form" wire:ignore>
@@ -100,13 +127,13 @@
                     </div>
 
                     <div class="total-item">
-                        <div class="item-number"><span class="text-gray">Artículos</span><span class="f-w-500">{{
-                                $itemsCart }}
+                        <div class="item-number"><span class="text-gray">Artículos</span><span
+                                class="f-w-500">{{ $itemsCart }}
                                 (Items)</span></div>
-                        <div class="item-number"><span class="text-gray">Subtotal</span><span class="f-w-500">${{
-                                $subtotalCart }}</span></div>
+                        <div class="item-number"><span class="text-gray">Subtotal</span><span
+                                class="f-w-500">${{ $subtotalCart }}</span></div>
                         <div class="item-number border-bottom"><span class="text-gray">I.V.A.</span><span
-                                class="f-w-500">${{$ivaCart}}</span></div>
+                                class="f-w-500">${{ $ivaCart }}</span></div>
                         <div class="item-number pt-3 pb-0"><span class="f-w-700">TOTAL</span>
                             <h6 class="txt-primary">${{ $totalCart }}</h6>
                         </div>
@@ -115,18 +142,23 @@
                     <div class="payment-methods">
                         <div wire:click="initPayment(1)">
                             <div class="bg-payment widget-hover"> <img
-                                    src="../assets/images/dashboard-8/payment-option/cash.svg" alt="cash"></div><span
-                                class="f-w-500 text-gray">Efectivo</span>
+                                    src="../assets/images/dashboard-8/payment-option/cash.svg" alt="cash"></div>
+                            <span class="f-w-500 text-gray">Efectivo</span>
                         </div>
                         <div wire:click="initPayment(2)">
                             <div class="bg-payment widget-hover"> <img
-                                    src="../assets/images/dashboard-8/payment-option/card.svg" alt="card"></div><span
-                                class="f-w-500 text-gray">Crédito</span>
+                                    src="../assets/images/dashboard-8/payment-option/card.svg" alt="card"></div>
+                            <span class="f-w-500 text-gray">Crédito</span>
                         </div>
                         <div wire:click="initPayment(3)">
                             <div class="bg-payment widget-hover"> <img
                                     src="../assets/images/dashboard-8/payment-option/wallet.svg" alt="wallet"></div>
-                            <span class="f-w-500 text-gray">Depósito</span>
+                            <span class="f-w-500 text-gray">Banco</span>
+                        </div>
+                        <div wire:click="initPayment(4)">
+                            <div class="bg-payment widget-hover"> <img src="../logo/nequi.webp" alt="wallet">
+                            </div>
+                            <span class="f-w-500 text-gray">Nequi</span>
                         </div>
                     </div>
                     {{-- <div class="place-order">
@@ -139,6 +171,7 @@
     </div>
 
     @include('livewire.pos.partials.payCash')
+    @include('livewire.pos.partials.payNequi')
     @include('livewire.pos.partials.payDeposit')
     @include('livewire.pos.partials.script')
 
