@@ -7,12 +7,16 @@ use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
 class Kernel extends ConsoleKernel
 {
+
+
     /**
      * Define the application's command schedule.
      */
     protected function schedule(Schedule $schedule): void
     {
-        $schedule->command('backup:run')->hourly();
+        $schedule->command('backup:run --only-db')
+            ->timezone('America/Caracas')
+            ->everyTwoHours();
     }
 
     /**
