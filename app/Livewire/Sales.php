@@ -37,6 +37,28 @@ class Sales extends Component
     //pay properties
     public $banks, $cashAmount, $nequiAmount, $change, $phoneNumber, $acountNumber, $depositNumber, $bank, $payType = 1, $payTypeName = 'PAGO EN EFECTIVO';
 
+    public $search3, $products = [];
+
+    function updatedSearch3()
+    {
+        // dd($this->search3);
+        if (Strlen($this->search3) > 1) {
+            $this->products = Product::with('priceList')
+                ->where('sku', $this->search3)
+                ->orWhere('name', 'like', "%{$this->search3}%")
+                ->get();
+            // if (count($this->products)) {
+            //     $this->products = [];
+            //     $this->search3 = '';
+            //     $this->dispatch('noty', msg: 'NO EXISTE EL CÓDIGO ESCANEADO');
+            // }
+        } else {
+            $this->search3 = '';
+            $this->products = [];
+        }
+        // $this->products;
+    }
+
 
     function updatedCashAmount()
     {
@@ -131,9 +153,8 @@ class Sales extends Component
     }
 
 
-    function AddProduct($product, $qty = 1)
+    function AddProduct(Product $product, $qty = 1)
     {
-
         if ($this->inCart($product->id)) {
             $this->updateQty(null, $qty, $product->id);
             return;
@@ -185,6 +206,8 @@ class Sales extends Component
         $this->cart->push($itemCart);
         $this->save();
         $this->dispatch('refresh');
+        $this->search3 = '';
+        $this->products = [];
         $this->dispatch('noty', msg: 'PRODUCTO AGREGADO AL CARRITO');
     }
 

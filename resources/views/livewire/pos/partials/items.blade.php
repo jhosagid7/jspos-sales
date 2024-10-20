@@ -2,12 +2,44 @@
     <div class="card-header">
         <div class="row">
             <div class="col-sm-12 col-md-6">
+                <div x-data @click.away="$wire.dispatch('hideResults')" class="relative">
+                    <div class="faq-form">
+                        <div class="form-control form-control-lg">
+                            <input type="text" wire:model.live.debounce.250ms="search3" class="form-control"
+                                placeholder="Ingresa nombre o codigo del producto" style="text-transform: capitalize"
+                                autocomplete="off" id="inputSearch">
+                            <i class="search-icon" data-feather="search"></i>
+                        </div>
+
+                        @if (!empty($products))
+
+                            <ul class="list-group mt-0 position-absolute w-100 bg-white border-0"
+                                style="z-index: 1000; max-height: 200px; overflow-y: auto;">
+                                @foreach ($products as $product)
+                                    <li class="list-group-item list-group-item-action d-flex justigy-content-between align-items-center p-2"
+                                        wire:click="AddProduct({{ $product }})" style="cursor: pointer">
+                                        <div wire.model="list">
+                                            <h6 class="mb-0 text-primary" <small class="mb-0" style="text-muted">
+                                                {{ Str::limit($product->name, 50) }}
+                                                </small>{{ $product->price }}
+
+                                            </h6>
+                                        </div>
+
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </div>
+                </div>
+            </div>
+            {{-- <div class="col-sm-12 col-md-6">
                 <div class="faq-form">
                     <input wire:keydown.enter='ScanningCode($event.target.value)' class="form-control form-control-lg"
                         type="text" placeholder="Escanea el SKU o Código de Barras [F1]" id="inputSearch">
                     <i class="search-icon" data-feather="search"></i>
                 </div>
-            </div>
+            </div> --}}
             <div class="col-sm-12 col-md-6 d-flex justify-content-end">
                 <div class="btn-group btn-group-pill " role="group" aria-label="Basic example">
 
