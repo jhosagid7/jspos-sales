@@ -47,14 +47,14 @@ class Sales extends Component
                 ->where('sku', $this->search3)
                 ->orWhere('name', 'like', "%{$this->search3}%")
                 ->get();
-            // if (count($this->products)) {
-            //     $this->products = [];
-            //     $this->search3 = '';
-            //     $this->dispatch('noty', msg: 'NO EXISTE EL CÓDIGO ESCANEADO');
-            // }
+            if (count($this->products) == 0) {
+                $this->search3 = '';
+                $this->dispatch('noty', msg: 'NO EXISTE EL CÓDIGO ESCANEADO');
+            }
         } else {
-            $this->search3 = '';
+            // $this->search3 = '';
             $this->products = [];
+            $this->dispatch('noty', msg: 'NO EXISTE EL CÓDIGO ESCANEADO');
         }
         // $this->products;
     }

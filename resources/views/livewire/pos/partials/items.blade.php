@@ -5,7 +5,7 @@
                 <div x-data @click.away="$wire.dispatch('hideResults')" class="relative">
                     <div class="faq-form">
                         <div class="form-control form-control-lg">
-                            <input type="text" wire:model.live.debounce.250ms="search3" class="form-control"
+                            <input type="text" wire:model.live.debounce.650ms="search3" class="form-control"
                                 placeholder="Ingresa nombre o codigo del producto" style="text-transform: capitalize"
                                 autocomplete="off" id="inputSearch">
                             <i class="search-icon" data-feather="search"></i>
