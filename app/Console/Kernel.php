@@ -16,7 +16,9 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('backup:run --only-db')
             ->timezone('America/Caracas')
-            ->everyTwoHours();
+            ->everyTwoHours()
+            ->between('6:00', '17:00')
+            ->runInBackground();
     }
 
     /**
