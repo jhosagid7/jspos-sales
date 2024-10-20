@@ -5,27 +5,27 @@
                 <div x-data @click.away="$wire.dispatch('hideResults')" class="relative">
                     <div class="faq-form">
                         <div class="form-control form-control-lg">
-                            <input type="text" wire:model.live.debounce.650ms="search3" class="form-control"
-                                placeholder="Ingresa nombre o codigo del producto" style="text-transform: capitalize"
-                                autocomplete="off" id="inputSearch">
+                            <input type="text" wire:model.live.debounce.250ms="search3" class="form-control"
+                                placeholder="Ingresa nombre o código del producto" style="text-transform: capitalize"
+                                autocomplete="off" id="inputSearch" wire:keydown="keyDown($event.key)">
+                            <!-- Captura las teclas presionadas -->
                             <i class="search-icon" data-feather="search"></i>
                         </div>
 
                         @if (!empty($products))
-
                             <ul class="list-group mt-0 position-absolute w-100 bg-white border-0"
                                 style="z-index: 1000; max-height: 200px; overflow-y: auto;">
-                                @foreach ($products as $product)
-                                    <li class="list-group-item list-group-item-action d-flex justigy-content-between align-items-center p-2"
-                                        wire:click="AddProduct({{ $product }})" style="cursor: pointer">
-                                        <div wire.model="list">
-                                            <h6 class="mb-0 text-primary" <small class="mb-0" style="text-muted">
-                                                {{ Str::limit($product->name, 50) }}
-                                                </small>{{ $product->price }}
-
+                                @foreach ($products as $index => $product)
+                                    <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-2"
+                                        wire:click="selectProduct({{ $index }})"
+                                        style="cursor: pointer; {{ $selectedIndex === $index ? 'background-color: #e9ecef;' : '' }}">
+                                        <div>
+                                            <h6 class="mb-0 text-primary">
+                                                <small class="mb-0" style="text-muted">
+                                                    {{ Str::limit($product->name, 50) }}
+                                                </small> - {{ $product->price }}
                                             </h6>
                                         </div>
-
                                     </li>
                                 @endforeach
                             </ul>

@@ -37,7 +37,7 @@ class Sales extends Component
     //pay properties
     public $banks, $cashAmount, $nequiAmount, $change, $phoneNumber, $acountNumber, $depositNumber, $bank, $payType = 1, $payTypeName = 'PAGO EN EFECTIVO';
 
-    public $search3, $products = [];
+    public $search3, $products = [], $selectedIndex = -1;
 
     function updatedSearch3()
     {
@@ -57,6 +57,27 @@ class Sales extends Component
             $this->dispatch('noty', msg: 'NO EXISTE EL CÓDIGO ESCANEADO');
         }
         // $this->products;
+    }
+
+    public function selectProduct($index)
+    {
+        if (isset($this->products[$index])) {
+            $this->AddProduct($this->products[$index]); // Llama a tu método para agregar el producto
+            $this->search3 = ''; // Resetear el campo de búsqueda
+            $this->products = []; // Limpiar la lista de productos
+            $this->selectedIndex = -1; // Resetear el índice seleccionado
+        }
+    }
+
+    public function keyDown($key)
+    {
+        if ($key === 'ArrowDown') {
+            $this->selectedIndex = min(count($this->products) - 1, $this->selectedIndex + 1);
+        } elseif ($key === 'ArrowUp') {
+            $this->selectedIndex = max(-1, $this->selectedIndex - 1);
+        } elseif ($key === 'Enter') {
+            $this->selectProduct($this->selectedIndex);
+        }
     }
 
 
