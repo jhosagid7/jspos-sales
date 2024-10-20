@@ -65,7 +65,7 @@ class Product extends Model
         if (count($this->images)) {
             return  "storage/products/" . $this->images->last()->file;
         } else {
-            return 'storage/noimage.jpg';
+            return asset('noimage.jpg');
         }
     }
 

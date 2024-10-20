@@ -18,7 +18,7 @@ class Category extends Model
         return  $this->morphOne(Image::class, 'model'); //->withDefault();
     }
 
-    // accesors        
+    // accesors
     public function getPictureAttribute()
     {
         $img = $this->image; //->file;
@@ -30,7 +30,7 @@ class Category extends Model
                 return 'storage/image-not-found.png';
         }
 
-        return 'storage/noimage.jpg';
+        return asset('noimage.jpg');
     }
 
 
