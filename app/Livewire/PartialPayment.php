@@ -15,7 +15,30 @@ class PartialPayment extends Component
 
     public $sales, $banks, $pays;
     public  $search, $sale_selected_id, $customer_name, $debt;
-    public $amount, $acountNumber, $depositNumber, $bank;
+    public $amount, $acountNumber, $depositNumber, $bank, $phoneNumber;
+    public $payWith = 'ABONO CON EFECTIVO';
+
+    function updatedBank()
+    {
+        if ($this->bank != 0) {
+            $this->reset(['amount', 'phoneNumber']);
+            $this->payWith = 'MONTO CONSIGNADO CON BANCO';
+        } else {
+            $this->reset(['amount', 'phoneNumber', 'acountNumber', 'depositNumber', 'bank']);
+            $this->payWith = 'ABONO CON EFECTIVO';
+        }
+    }
+    function updatedPhoneNumber()
+    {
+
+        if (empty($this->phoneNumber) || strlen($this->phoneNumber) < 1) {
+            $this->reset(['amount', 'phoneNumber', 'acountNumber', 'depositNumber', 'bank']);
+            $this->payWith = 'ABONO CON EFECTIVO';
+        } else {
+            $this->reset(['amount', 'acountNumber', 'depositNumber', 'bank']);
+            $this->payWith = 'MONTO CONSIGNADO CON NEQUI';
+        }
+    }
 
     function mount($key = null)
     {
@@ -147,11 +170,16 @@ Para solucionar este problema, puedes usar el método whereHas para filtrar las 
                     'user_id' => Auth()->user()->id,
                     'sale_id' => $this->sale_selected_id,
                     'amount' => floatval($amount),
-                    'pay_way' => ($this->bank == 0 ? 'cash' : 'deposit'),
+                    'pay_way' => match (true) {
+                        ($this->bank ?? 0) === 0 && ($this->phoneNumber ?? 0) === 0 => 'cash',
+                        ($this->bank ?? 0) !== 0 => 'deposit',
+                        default => 'nequi',
+                    },
                     'type' => $type,
                     'bank' => ($this->bank == 0 ? '' : $this->banks->where('id', $this->bank)->first()->name),
                     'account_number' => $this->acountNumber,
-                    'deposit_number' => $this->depositNumber
+                    'deposit_number' => $this->depositNumber,
+                    'phone_number' => $this->phoneNumber
                 ]
             );
 
@@ -172,7 +200,7 @@ Para solucionar este problema, puedes usar el método whereHas para filtrar las 
         } catch (\Exception $th) {
             DB::rollBack();
 
-            $this->dispatch('noty', msg: "Error al intentar eliminar el producto \n {$th->getMessage()}");
+            $this->dispatch('noty', msg: "Error al intentar registrar el pago parcial: {$th->getMessage()}");
         }
     }
 
