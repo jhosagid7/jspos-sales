@@ -5,7 +5,7 @@
 
 /**
  * A helper file for Laravel, to provide autocomplete information to your IDE
- * Generated for Laravel 10.47.0.
+ * Generated for Laravel 10.48.22.
  *
  * This file should not be included in your code, only analyzed by your IDE!
  *
@@ -3535,8 +3535,8 @@ namespace Illuminate\Support\Facades {
          *
          * @template TCacheValue
          * @param array|string $key
-         * @param \Illuminate\Cache\TCacheValue|\Illuminate\Cache\(\Closure():  TCacheValue)  $default
-         * @return \Illuminate\Cache\(TCacheValue is null ? mixed : TCacheValue)
+         * @param \Illuminate\Cache\TCacheValue|(\Closure(): TCacheValue) $default
+         * @return (TCacheValue is null ? mixed : TCacheValue)
          * @static 
          */        public static function get($key, $default = null)
         {
@@ -3577,8 +3577,8 @@ namespace Illuminate\Support\Facades {
          *
          * @template TCacheValue
          * @param array|string $key
-         * @param \Illuminate\Cache\TCacheValue|\Illuminate\Cache\(\Closure():  TCacheValue)  $default
-         * @return \Illuminate\Cache\(TCacheValue is null ? mixed : TCacheValue)
+         * @param \Illuminate\Cache\TCacheValue|(\Closure(): TCacheValue) $default
+         * @return (TCacheValue is null ? mixed : TCacheValue)
          * @static 
          */        public static function pull($key, $default = null)
         {
@@ -4882,6 +4882,29 @@ namespace Illuminate\Support\Facades {
                         return $instance->macroCall($method, $parameters);
         }
                     /**
+         * Run an insert statement against the database.
+         *
+         * @param string $query
+         * @param array $bindings
+         * @param string|null $sequence
+         * @return bool 
+         * @static 
+         */        public static function insert($query, $bindings = [], $sequence = null)
+        {
+                        /** @var \Illuminate\Database\MySqlConnection $instance */
+                        return $instance->insert($query, $bindings, $sequence);
+        }
+                    /**
+         * Get the connection's last insert ID.
+         *
+         * @return string|int|null 
+         * @static 
+         */        public static function getLastInsertId()
+        {
+                        /** @var \Illuminate\Database\MySqlConnection $instance */
+                        return $instance->getLastInsertId();
+        }
+                    /**
          * Determine if the connected database is a MariaDB database.
          *
          * @return bool 
@@ -5042,18 +5065,6 @@ namespace Illuminate\Support\Facades {
         {            //Method inherited from \Illuminate\Database\Connection         
                         /** @var \Illuminate\Database\MySqlConnection $instance */
                         return $instance->cursor($query, $bindings, $useReadPdo);
-        }
-                    /**
-         * Run an insert statement against the database.
-         *
-         * @param string $query
-         * @param array $bindings
-         * @return bool 
-         * @static 
-         */        public static function insert($query, $bindings = [])
-        {            //Method inherited from \Illuminate\Database\Connection         
-                        /** @var \Illuminate\Database\MySqlConnection $instance */
-                        return $instance->insert($query, $bindings);
         }
                     /**
          * Run an update statement against the database.
@@ -6381,12 +6392,12 @@ namespace Illuminate\Support\Facades {
          *
          * @param string $target
          * @param string $link
-         * @return void 
+         * @return bool|null 
          * @static 
          */        public static function link($target, $link)
         {
                         /** @var \Illuminate\Filesystem\Filesystem $instance */
-                        $instance->link($target, $link);
+                        return $instance->link($target, $link);
         }
                     /**
          * Create a relative symlink to the target file or directory.
@@ -6710,9 +6721,9 @@ namespace Illuminate\Support\Facades {
          *
          * @template TWhenParameter
          * @template TWhenReturnType
-         * @param \Illuminate\Filesystem\(\Closure($this):  TWhenParameter)|TWhenParameter|null  $value
-         * @param \Illuminate\Filesystem\(callable($this,  TWhenParameter): TWhenReturnType)|null  $callback
-         * @param \Illuminate\Filesystem\(callable($this,  TWhenParameter): TWhenReturnType)|null  $default
+         * @param (\Closure($this): TWhenParameter)|\Illuminate\Filesystem\TWhenParameter|null $value
+         * @param (callable($this, TWhenParameter): TWhenReturnType)|null $callback
+         * @param (callable($this, TWhenParameter): TWhenReturnType)|null $default
          * @return $this|\Illuminate\Filesystem\TWhenReturnType 
          * @static 
          */        public static function when($value = null, $callback = null, $default = null)
@@ -6725,9 +6736,9 @@ namespace Illuminate\Support\Facades {
          *
          * @template TUnlessParameter
          * @template TUnlessReturnType
-         * @param \Illuminate\Filesystem\(\Closure($this):  TUnlessParameter)|TUnlessParameter|null  $value
-         * @param \Illuminate\Filesystem\(callable($this,  TUnlessParameter): TUnlessReturnType)|null  $callback
-         * @param \Illuminate\Filesystem\(callable($this,  TUnlessParameter): TUnlessReturnType)|null  $default
+         * @param (\Closure($this): TUnlessParameter)|\Illuminate\Filesystem\TUnlessParameter|null $value
+         * @param (callable($this, TUnlessParameter): TUnlessReturnType)|null $callback
+         * @param (callable($this, TUnlessParameter): TUnlessReturnType)|null $default
          * @return $this|\Illuminate\Filesystem\TUnlessReturnType 
          * @static 
          */        public static function unless($value = null, $callback = null, $default = null)
@@ -8872,6 +8883,17 @@ namespace Illuminate\Support\Facades {
         {
                         /** @var \Illuminate\Support\Testing\Fakes\NotificationFake $instance */
                         return $instance->hasSent($notifiable, $notification);
+        }
+                    /**
+         * Specify if notification should be serialized and restored when being "pushed" to the queue.
+         *
+         * @param bool $serializeAndRestore
+         * @return \Illuminate\Support\Testing\Fakes\NotificationFake 
+         * @static 
+         */        public static function serializeAndRestore($serializeAndRestore = true)
+        {
+                        /** @var \Illuminate\Support\Testing\Fakes\NotificationFake $instance */
+                        return $instance->serializeAndRestore($serializeAndRestore);
         }
                     /**
          * Get the notifications that have been sent.
@@ -15308,9 +15330,9 @@ namespace Illuminate\Support\Facades {
          *
          * @template TWhenParameter
          * @template TWhenReturnType
-         * @param \Illuminate\Filesystem\(\Closure($this):  TWhenParameter)|TWhenParameter|null  $value
-         * @param \Illuminate\Filesystem\(callable($this,  TWhenParameter): TWhenReturnType)|null  $callback
-         * @param \Illuminate\Filesystem\(callable($this,  TWhenParameter): TWhenReturnType)|null  $default
+         * @param (\Closure($this): TWhenParameter)|\Illuminate\Filesystem\TWhenParameter|null $value
+         * @param (callable($this, TWhenParameter): TWhenReturnType)|null $callback
+         * @param (callable($this, TWhenParameter): TWhenReturnType)|null $default
          * @return $this|\Illuminate\Filesystem\TWhenReturnType 
          * @static 
          */        public static function when($value = null, $callback = null, $default = null)
@@ -15323,9 +15345,9 @@ namespace Illuminate\Support\Facades {
          *
          * @template TUnlessParameter
          * @template TUnlessReturnType
-         * @param \Illuminate\Filesystem\(\Closure($this):  TUnlessParameter)|TUnlessParameter|null  $value
-         * @param \Illuminate\Filesystem\(callable($this,  TUnlessParameter): TUnlessReturnType)|null  $callback
-         * @param \Illuminate\Filesystem\(callable($this,  TUnlessParameter): TUnlessReturnType)|null  $default
+         * @param (\Closure($this): TUnlessParameter)|\Illuminate\Filesystem\TUnlessParameter|null $value
+         * @param (callable($this, TUnlessParameter): TUnlessReturnType)|null $callback
+         * @param (callable($this, TUnlessParameter): TUnlessReturnType)|null $default
          * @return $this|\Illuminate\Filesystem\TUnlessReturnType 
          * @static 
          */        public static function unless($value = null, $callback = null, $default = null)
@@ -17039,7 +17061,7 @@ namespace Illuminate\Support\Facades {
                     /**
          * Use the given callback to resolve attributes for script tags.
          *
-         * @param \Illuminate\Foundation\(callable(string,  string, ?array, ?array): array)|array  $attributes
+         * @param (callable(string, string, ?array, ?array): array)|array $attributes
          * @return \Illuminate\Foundation\Vite 
          * @static 
          */        public static function useScriptTagAttributes($attributes)
@@ -17050,7 +17072,7 @@ namespace Illuminate\Support\Facades {
                     /**
          * Use the given callback to resolve attributes for style tags.
          *
-         * @param \Illuminate\Foundation\(callable(string,  string, ?array, ?array): array)|array  $attributes
+         * @param (callable(string, string, ?array, ?array): array)|array $attributes
          * @return \Illuminate\Foundation\Vite 
          * @static 
          */        public static function useStyleTagAttributes($attributes)
@@ -17061,7 +17083,7 @@ namespace Illuminate\Support\Facades {
                     /**
          * Use the given callback to resolve attributes for preload tags.
          *
-         * @param \Illuminate\Foundation\(callable(string,  string, ?array, ?array): (array|false))|array|false  $attributes
+         * @param (callable(string, string, ?array, ?array): (array|false))|array|false $attributes
          * @return \Illuminate\Foundation\Vite 
          * @static 
          */        public static function usePreloadTagAttributes($attributes)
@@ -17195,6 +17217,18 @@ namespace Barryvdh\Debugbar\Facades {
      * @method static void warning(mixed $message)
      * @see \Barryvdh\Debugbar\LaravelDebugbar
      */        class Debugbar {
+                    /**
+         * Returns the HTTP driver
+         * 
+         * If no http driver where defined, a PhpHttpDriver is automatically created
+         *
+         * @return \DebugBar\HttpDriverInterface 
+         * @static 
+         */        public static function getHttpDriver()
+        {
+                        /** @var \Barryvdh\Debugbar\LaravelDebugbar $instance */
+                        return $instance->getHttpDriver();
+        }
                     /**
          * Enable the Debugbar and boot, if not already booted.
          *
@@ -17346,6 +17380,27 @@ namespace Barryvdh\Debugbar\Facades {
         {
                         /** @var \Barryvdh\Debugbar\LaravelDebugbar $instance */
                         return $instance->injectDebugbar($response);
+        }
+                    /**
+         * Checks if there is stacked data in the session
+         *
+         * @return boolean 
+         * @static 
+         */        public static function hasStackedData()
+        {
+                        /** @var \Barryvdh\Debugbar\LaravelDebugbar $instance */
+                        return $instance->hasStackedData();
+        }
+                    /**
+         * Returns the data stacked in the session
+         *
+         * @param boolean $delete Whether to delete the data in the session
+         * @return array 
+         * @static 
+         */        public static function getStackedData($delete = true)
+        {
+                        /** @var \Barryvdh\Debugbar\LaravelDebugbar $instance */
+                        return $instance->getStackedData($delete);
         }
                     /**
          * Disable the Debugbar
@@ -17513,18 +17568,6 @@ namespace Barryvdh\Debugbar\Facades {
                         return $instance->setHttpDriver($driver);
         }
                     /**
-         * Returns the HTTP driver
-         * 
-         * If no http driver where defined, a PhpHttpDriver is automatically created
-         *
-         * @return \DebugBar\HttpDriverInterface 
-         * @static 
-         */        public static function getHttpDriver()
-        {            //Method inherited from \DebugBar\DebugBar         
-                        /** @var \Barryvdh\Debugbar\LaravelDebugbar $instance */
-                        return $instance->getHttpDriver();
-        }
-                    /**
          * Returns collected data
          * 
          * Will collect the data if none have been collected yet
@@ -17569,27 +17612,6 @@ namespace Barryvdh\Debugbar\Facades {
         {            //Method inherited from \DebugBar\DebugBar         
                         /** @var \Barryvdh\Debugbar\LaravelDebugbar $instance */
                         return $instance->stackData();
-        }
-                    /**
-         * Checks if there is stacked data in the session
-         *
-         * @return boolean 
-         * @static 
-         */        public static function hasStackedData()
-        {            //Method inherited from \DebugBar\DebugBar         
-                        /** @var \Barryvdh\Debugbar\LaravelDebugbar $instance */
-                        return $instance->hasStackedData();
-        }
-                    /**
-         * Returns the data stacked in the session
-         *
-         * @param boolean $delete Whether to delete the data in the session
-         * @return array 
-         * @static 
-         */        public static function getStackedData($delete = true)
-        {            //Method inherited from \DebugBar\DebugBar         
-                        /** @var \Barryvdh\Debugbar\LaravelDebugbar $instance */
-                        return $instance->getStackedData($delete);
         }
                     /**
          * Sets the key to use in the $_SESSION array
@@ -17995,7 +18017,7 @@ namespace Barryvdh\DomPDF\Facade {
             }
     }
 
-namespace LaravelDaily\Invoices\Facades {
+namespace Jhosagid\Invoices\Facades {
             /**
      * Class Invoice
      *
@@ -18009,56 +18031,56 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function make($name = '')
         {
-                        return \LaravelDaily\Invoices\Invoice::make($name);
+                        return \Jhosagid\Invoices\Invoice::make($name);
         }
                     /**
          * 
          *
-         * @return \LaravelDaily\Invoices\Classes\Party 
+         * @return \Jhosagid\Invoices\Classes\Party 
          * @static 
          */        public static function makeParty($attributes = [])
         {
-                        return \LaravelDaily\Invoices\Invoice::makeParty($attributes);
+                        return \Jhosagid\Invoices\Invoice::makeParty($attributes);
         }
                     /**
          * 
          *
-         * @return \LaravelDaily\Invoices\Classes\InvoiceItem 
+         * @return \Jhosagid\Invoices\Classes\InvoiceItem 
          * @static 
          */        public static function makeItem($title = '')
         {
-                        return \LaravelDaily\Invoices\Invoice::makeItem($title);
+                        return \Jhosagid\Invoices\Invoice::makeItem($title);
         }
                     /**
          * 
          *
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function addItem($item)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->addItem($item);
         }
                     /**
          * 
          *
          * @param $items
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function addItems($items)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->addItems($items);
         }
                     /**
          * 
          *
          * @throws Exception
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function render()
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->render();
         }
                     /**
@@ -18067,7 +18089,7 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function toHtml()
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->toHtml();
         }
                     /**
@@ -18078,7 +18100,7 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function stream()
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->stream();
         }
                     /**
@@ -18089,84 +18111,84 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function download()
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->download();
         }
                     /**
          * 
          *
          * @param string $code
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function currencyCode($code)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->currencyCode($code);
         }
                     /**
          * 
          *
          * @param string $name
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function currencyFraction($name)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->currencyFraction($name);
         }
                     /**
          * 
          *
          * @param string $symbol
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function currencySymbol($symbol)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->currencySymbol($symbol);
         }
                     /**
          * 
          *
          * @param int $decimals
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function currencyDecimals($decimals)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->currencyDecimals($decimals);
         }
                     /**
          * 
          *
          * @param string $decimal_point
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function currencyDecimalPoint($decimal_point)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->currencyDecimalPoint($decimal_point);
         }
                     /**
          * 
          *
          * @param string $thousands_separator
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function currencyThousandsSeparator($thousands_separator)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->currencyThousandsSeparator($thousands_separator);
         }
                     /**
          * 
          *
          * @param string $format
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function currencyFormat($format)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->currencyFormat($format);
         }
                     /**
@@ -18177,7 +18199,7 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function formatCurrency($amount)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->formatCurrency($amount);
         }
                     /**
@@ -18189,40 +18211,40 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function getAmountInWords($amount, $locale = null)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->getAmountInWords($amount, $locale);
         }
                     /**
          * 
          *
-         * @param \LaravelDaily\Invoices\CarbonInterface $date
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @param \Jhosagid\Invoices\CarbonInterface $date
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function date($date)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->date($date);
         }
                     /**
          * 
          *
          * @param string $format
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function dateFormat($format)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->dateFormat($format);
         }
                     /**
          * 
          *
          * @param int $days
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function payUntilDays($days)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->payUntilDays($days);
         }
                     /**
@@ -18232,7 +18254,7 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function getDate()
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->getDate();
         }
                     /**
@@ -18242,27 +18264,27 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function getPayUntilDate()
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->getPayUntilDate();
         }
                     /**
          * 
          *
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function name($name)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->name($name);
         }
                     /**
          * 
          *
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function status($status)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->status($status);
         }
                     /**
@@ -18271,7 +18293,7 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function notes($notes)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->notes($notes);
         }
                     /**
@@ -18280,101 +18302,101 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function logo($logo)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->logo($logo);
         }
                     /**
          * 
          *
          * @throws Exception
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function totalTaxes($amount, $byPercent = false)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->totalTaxes($amount, $byPercent);
         }
                     /**
          * 
          *
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function shipping($amount)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->shipping($amount);
         }
                     /**
          * 
          *
          * @throws Exception
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function taxRate($amount)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->taxRate($amount);
         }
                     /**
          * 
          *
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function taxableAmount($taxable_amount)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->taxableAmount($taxable_amount);
         }
                     /**
          * 
          *
          * @throws Exception
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function totalDiscount($total_discount, $byPercent = false)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->totalDiscount($total_discount, $byPercent);
         }
                     /**
          * 
          *
          * @throws Exception
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function discountByPercent($discount)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->discountByPercent($discount);
         }
                     /**
          * 
          *
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function totalAmount($total_amount)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->totalAmount($total_amount);
         }
                     /**
          * 
          *
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function seller($seller)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->seller($seller);
         }
                     /**
          * 
          *
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function buyer($buyer)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->buyer($buyer);
         }
                     /**
@@ -18382,11 +18404,11 @@ namespace LaravelDaily\Invoices\Facades {
          *
          * @param mixed
          * @param mixed $value
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function setCustomData($value)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->setCustomData($value);
         }
                     /**
@@ -18395,27 +18417,27 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function getCustomData()
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->getCustomData();
         }
                     /**
          * 
          *
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function template($template = 'default')
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->template($template);
         }
                     /**
          * 
          *
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function filename($filename)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->filename($filename);
         }
                     /**
@@ -18425,7 +18447,7 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function getTotalAmountInWords()
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->getTotalAmountInWords();
         }
                     /**
@@ -18434,7 +18456,7 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function getLogo()
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->getLogo();
         }
                     /**
@@ -18444,7 +18466,7 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function hasTax()
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->hasTax();
         }
                     /**
@@ -18454,7 +18476,7 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function hasDiscount()
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->hasDiscount();
         }
                     /**
@@ -18464,7 +18486,7 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function hasShipping()
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->hasShipping();
         }
                     /**
@@ -18474,7 +18496,7 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function hasTotalAmount()
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->hasTotalAmount();
         }
                     /**
@@ -18484,7 +18506,7 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function hasItemOrInvoiceTax()
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->hasItemOrInvoiceTax();
         }
                     /**
@@ -18494,7 +18516,7 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function hasItemOrInvoiceDiscount()
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->hasItemOrInvoiceDiscount();
         }
                     /**
@@ -18503,7 +18525,7 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function applyColspan()
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->applyColspan();
         }
                     /**
@@ -18512,7 +18534,7 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function calculateDiscount()
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->calculateDiscount();
         }
                     /**
@@ -18521,7 +18543,7 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function calculateTax()
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->calculateTax();
         }
                     /**
@@ -18530,7 +18552,7 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function calculateShipping()
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->calculateShipping();
         }
                     /**
@@ -18540,28 +18562,28 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function validate()
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->validate();
         }
                     /**
          * 
          *
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function calculate()
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->calculate();
         }
                     /**
          * 
          *
          * @param string $disk
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function save($disk = '')
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->save($disk);
         }
                     /**
@@ -18571,57 +18593,57 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function url()
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->url();
         }
                     /**
          * 
          *
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function series($series)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->series($series);
         }
                     /**
          * 
          *
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function sequence($sequence)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->sequence($sequence);
         }
                     /**
          * 
          *
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function delimiter($delimiter)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->delimiter($delimiter);
         }
                     /**
          * 
          *
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function sequencePadding($value)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->sequencePadding($value);
         }
                     /**
          * 
          *
-         * @return \LaravelDaily\Invoices\Invoice 
+         * @return \Jhosagid\Invoices\Invoice 
          * @static 
          */        public static function serialNumberFormat($format)
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->serialNumberFormat($format);
         }
                     /**
@@ -18631,7 +18653,7 @@ namespace LaravelDaily\Invoices\Facades {
          * @static 
          */        public static function getSerialNumber()
         {
-                        /** @var \LaravelDaily\Invoices\Invoice $instance */
+                        /** @var \Jhosagid\Invoices\Invoice $instance */
                         return $instance->getSerialNumber();
         }
             }
@@ -18908,6 +18930,15 @@ namespace Livewire {
          * 
          *
          * @static 
+         */        public static function withoutLazyLoading()
+        {
+                        /** @var \Livewire\LivewireManager $instance */
+                        return $instance->withoutLazyLoading();
+        }
+                    /**
+         * 
+         *
+         * @static 
          */        public static function test($name, $params = [])
         {
                         /** @var \Livewire\LivewireManager $instance */
@@ -19115,10 +19146,10 @@ namespace Spatie\LaravelIgnition\Facades {
          * 
          *
          * @static 
-         */        public static function withStackFrameArguments($withStackFrameArguments = true)
+         */        public static function withStackFrameArguments($withStackFrameArguments = true, $forcePHPIniSetting = false)
         {
                         /** @var \Spatie\FlareClient\Flare $instance */
-                        return $instance->withStackFrameArguments($withStackFrameArguments);
+                        return $instance->withStackFrameArguments($withStackFrameArguments, $forcePHPIniSetting);
         }
                     /**
          * 
@@ -19179,10 +19210,10 @@ namespace Spatie\LaravelIgnition\Facades {
          * 
          *
          * @static 
-         */        public static function registerErrorHandler()
+         */        public static function registerErrorHandler($errorLevels = null)
         {
                         /** @var \Spatie\FlareClient\Flare $instance */
-                        return $instance->registerErrorHandler();
+                        return $instance->registerErrorHandler($errorLevels);
         }
                     /**
          * 
@@ -19250,10 +19281,19 @@ namespace Spatie\LaravelIgnition\Facades {
          * 
          *
          * @static 
-         */        public static function report($throwable, $callback = null, $report = null)
+         */        public static function report($throwable, $callback = null, $report = null, $handled = null)
         {
                         /** @var \Spatie\FlareClient\Flare $instance */
-                        return $instance->report($throwable, $callback, $report);
+                        return $instance->report($throwable, $callback, $report, $handled);
+        }
+                    /**
+         * 
+         *
+         * @static 
+         */        public static function reportHandled($throwable)
+        {
+                        /** @var \Spatie\FlareClient\Flare $instance */
+                        return $instance->reportHandled($throwable);
         }
                     /**
          * 
@@ -19370,6 +19410,42 @@ namespace Spatie\LaravelIgnition\Facades {
         {
                         /** @var \Spatie\FlareClient\Flare $instance */
                         return $instance->group($groupName, $properties);
+        }
+            }
+    }
+
+namespace Spatie\SignalAwareCommand\Facades {
+            /**
+     * 
+     *
+     * @see \Spatie\SignalAwareCommand\Signal
+     */        class Signal {
+                    /**
+         * 
+         *
+         * @static 
+         */        public static function handle($signal, $callable)
+        {
+                        /** @var \Spatie\SignalAwareCommand\Signal $instance */
+                        return $instance->handle($signal, $callable);
+        }
+                    /**
+         * 
+         *
+         * @static 
+         */        public static function executeSignalHandlers($signal, $command)
+        {
+                        /** @var \Spatie\SignalAwareCommand\Signal $instance */
+                        return $instance->executeSignalHandlers($signal, $command);
+        }
+                    /**
+         * 
+         *
+         * @static 
+         */        public static function clearHandlers($signal = null)
+        {
+                        /** @var \Spatie\SignalAwareCommand\Signal $instance */
+                        return $instance->clearHandlers($signal);
         }
             }
     }
@@ -20530,9 +20606,9 @@ namespace  {
              *
              * @template TWhenParameter
              * @template TWhenReturnType
-             * @param \Illuminate\Database\Eloquent\(\Closure($this):  TWhenParameter)|TWhenParameter|null  $value
-             * @param \Illuminate\Database\Eloquent\(callable($this,  TWhenParameter): TWhenReturnType)|null  $callback
-             * @param \Illuminate\Database\Eloquent\(callable($this,  TWhenParameter): TWhenReturnType)|null  $default
+             * @param (\Closure($this): TWhenParameter)|\Illuminate\Database\Eloquent\TWhenParameter|null $value
+             * @param (callable($this, TWhenParameter): TWhenReturnType)|null $callback
+             * @param (callable($this, TWhenParameter): TWhenReturnType)|null $default
              * @return $this|\Illuminate\Database\Eloquent\TWhenReturnType 
              * @static 
              */            public static function when($value = null, $callback = null, $default = null)
@@ -20545,9 +20621,9 @@ namespace  {
              *
              * @template TUnlessParameter
              * @template TUnlessReturnType
-             * @param \Illuminate\Database\Eloquent\(\Closure($this):  TUnlessParameter)|TUnlessParameter|null  $value
-             * @param \Illuminate\Database\Eloquent\(callable($this,  TUnlessParameter): TUnlessReturnType)|null  $callback
-             * @param \Illuminate\Database\Eloquent\(callable($this,  TUnlessParameter): TUnlessReturnType)|null  $default
+             * @param (\Closure($this): TUnlessParameter)|\Illuminate\Database\Eloquent\TUnlessParameter|null $value
+             * @param (callable($this, TUnlessParameter): TUnlessReturnType)|null $callback
+             * @param (callable($this, TUnlessParameter): TUnlessReturnType)|null $default
              * @return $this|\Illuminate\Database\Eloquent\TUnlessReturnType 
              * @static 
              */            public static function unless($value = null, $callback = null, $default = null)
@@ -21146,7 +21222,7 @@ namespace  {
              * Add a join clause to the query.
              *
              * @param \Illuminate\Contracts\Database\Query\Expression|string $table
-             * @param \Closure|string $first
+             * @param \Closure|\Illuminate\Contracts\Database\Query\Expression|string $first
              * @param string|null $operator
              * @param \Illuminate\Contracts\Database\Query\Expression|string|null $second
              * @param string $type
@@ -21162,7 +21238,7 @@ namespace  {
              * Add a "join where" clause to the query.
              *
              * @param \Illuminate\Contracts\Database\Query\Expression|string $table
-             * @param \Closure|string $first
+             * @param \Closure|\Illuminate\Contracts\Database\Query\Expression|string $first
              * @param string $operator
              * @param \Illuminate\Contracts\Database\Query\Expression|string $second
              * @param string $type
@@ -21178,7 +21254,7 @@ namespace  {
              *
              * @param \Closure|\Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder|string $query
              * @param string $as
-             * @param \Closure|string $first
+             * @param \Closure|\Illuminate\Contracts\Database\Query\Expression|string $first
              * @param string|null $operator
              * @param \Illuminate\Contracts\Database\Query\Expression|string|null $second
              * @param string $type
@@ -21220,7 +21296,7 @@ namespace  {
              * Add a left join to the query.
              *
              * @param \Illuminate\Contracts\Database\Query\Expression|string $table
-             * @param \Closure|string $first
+             * @param \Closure|\Illuminate\Contracts\Database\Query\Expression|string $first
              * @param string|null $operator
              * @param \Illuminate\Contracts\Database\Query\Expression|string|null $second
              * @return \Illuminate\Database\Query\Builder 
@@ -21234,7 +21310,7 @@ namespace  {
              * Add a "join where" clause to the query.
              *
              * @param \Illuminate\Contracts\Database\Query\Expression|string $table
-             * @param \Closure|string $first
+             * @param \Closure|\Illuminate\Contracts\Database\Query\Expression|string $first
              * @param string $operator
              * @param \Illuminate\Contracts\Database\Query\Expression|string|null $second
              * @return \Illuminate\Database\Query\Builder 
@@ -21249,7 +21325,7 @@ namespace  {
              *
              * @param \Closure|\Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder|string $query
              * @param string $as
-             * @param \Closure|string $first
+             * @param \Closure|\Illuminate\Contracts\Database\Query\Expression|string $first
              * @param string|null $operator
              * @param \Illuminate\Contracts\Database\Query\Expression|string|null $second
              * @return \Illuminate\Database\Query\Builder 
@@ -21277,7 +21353,7 @@ namespace  {
              * Add a "right join where" clause to the query.
              *
              * @param \Illuminate\Contracts\Database\Query\Expression|string $table
-             * @param \Closure|string $first
+             * @param \Closure|\Illuminate\Contracts\Database\Query\Expression|string $first
              * @param string $operator
              * @param \Illuminate\Contracts\Database\Query\Expression|string $second
              * @return \Illuminate\Database\Query\Builder 
@@ -21292,7 +21368,7 @@ namespace  {
              *
              * @param \Closure|\Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder|string $query
              * @param string $as
-             * @param \Closure|string $first
+             * @param \Closure|\Illuminate\Contracts\Database\Query\Expression|string $first
              * @param string|null $operator
              * @param \Illuminate\Contracts\Database\Query\Expression|string|null $second
              * @return \Illuminate\Database\Query\Builder 
@@ -21306,7 +21382,7 @@ namespace  {
              * Add a "cross join" clause to the query.
              *
              * @param \Illuminate\Contracts\Database\Query\Expression|string $table
-             * @param \Closure|string|null $first
+             * @param \Closure|\Illuminate\Contracts\Database\Query\Expression|string|null $first
              * @param string|null $operator
              * @param \Illuminate\Contracts\Database\Query\Expression|string|null $second
              * @return \Illuminate\Database\Query\Builder 
@@ -21357,7 +21433,7 @@ namespace  {
                             /**
              * Add a "where" clause comparing two columns to the query.
              *
-             * @param string|array $first
+             * @param \Illuminate\Contracts\Database\Query\Expression|string|array $first
              * @param string|null $operator
              * @param string|null $second
              * @param string|null $boolean
@@ -21371,7 +21447,7 @@ namespace  {
                             /**
              * Add an "or where" clause comparing two columns to the query.
              *
-             * @param string|array $first
+             * @param \Illuminate\Contracts\Database\Query\Expression|string|array $first
              * @param string|null $operator
              * @param string|null $second
              * @return \Illuminate\Database\Query\Builder 
@@ -23089,9 +23165,10 @@ namespace  {
             class Debugbar extends \Barryvdh\Debugbar\Facades\Debugbar {}
             class Pdf extends \Barryvdh\DomPDF\Facade\Pdf {}
             class PDF extends \Barryvdh\DomPDF\Facade\Pdf {}
-            class Invoice extends \LaravelDaily\Invoices\Facades\Invoice {}
+            class Invoice extends \Jhosagid\Invoices\Facades\Invoice {}
             class Livewire extends \Livewire\Livewire {}
             class Flare extends \Spatie\LaravelIgnition\Facades\Flare {}
+            class Signal extends \Spatie\SignalAwareCommand\Facades\Signal {}
     }
 
 
