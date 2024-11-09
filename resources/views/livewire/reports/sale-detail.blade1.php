@@ -60,13 +60,11 @@
 
                 <div class="modal-footer">
                     @if (!is_null($sale_id))
-                        @if ($sale->status != 'returned')
-                            <a class="btn btn-sm btn-outline-dark"
-                                href="{{ route('pos.sales.generatePdfInvoice', $sale_id) }}" target="_blank">
-                                Imprimir Factura
-                                <i class="text-danger icofont icofont-file-pdf fa-2x"></i>
-                            </a>
-                        @endif
+                        <a class="btn btn-sm btn-outline-dark"
+                            href="{{ route('pos.sales.generatePdfInvoice', $sale_id) }}" target="_blank">
+                            Imprimir Factura
+                            <i class="text-danger icofont icofont-file-pdf fa-2x"></i>
+                        </a>
                     @endif
                     <button class="btn btn-dark " type="button" data-bs-dismiss="modal">Cerrar</button>
 

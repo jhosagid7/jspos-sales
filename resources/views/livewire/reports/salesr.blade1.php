@@ -95,9 +95,7 @@
                                         <td>{{ $sale->customer->name }}</td>
                                         <td>${{ $sale->total }}</td>
                                         <td>{{ $sale->items }}</td>
-                                        <td><span
-                                                class="badge f-12 {{ $sale->status == 'paid' ? 'badge-light-success' : ($sale->status == 'return' ? 'badge-light-warning' : ($sale->status == 'pending' ? 'badge-light-warning' : 'badge-light-danger')) }} ">{{ $sale->status }}</span>
-                                        </td>
+                                        <td>{{ $sale->status }}</td>
                                         <td>{{ $sale->type }}</td>
                                         <td>{{ $sale->created_at }}</td>
                                         <td class="text-primary"></td>
@@ -105,24 +103,16 @@
                                         <td data-container="body" data-bs-toggle="tooltip" data-bs-placement="top"
                                             data-bs-html="true" data-bs-title="<b>Ver los detalles de la venta</b>">
 
-                                            @if ($sale->status != 'returned')
-                                                <button class="border-0 btn btn-outline-dark btn-xs"
-                                                    onclick="Confirm({{ $sale->id }})">
-                                                    <i class="fa fa-trash fa-2x"></i>
-                                                </button>
-                                            @endif
-
                                             <button wire:click.prevent="getSaleDetail({{ $sale->id }})"
                                                 class="border-0 btn btn-outline-dark btn-xs">
                                                 <i class="icofont icofont-list fa-2x"></i>
                                             </button>
-                                            @if ($sale->status != 'returned')
-                                                <a class="border-0 btn btn-outline-dark btn-xs link-offset-2 link-underline link-underline-opacity-0"
-                                                    href="{{ route('pos.sales.generatePdfInvoice', $sale->id) }}"
-                                                    target="_blank"><i
-                                                        class="text-danger icofont icofont-file-pdf fa-2x"></i>
-                                                </a>
-                                            @endif
+                                            <a class="border-0 btn btn-outline-dark btn-xs link-offset-2 link-underline link-underline-opacity-0"
+                                                href="{{ route('pos.sales.generatePdfInvoice', $sale->id) }}"
+                                                target="_blank"><i
+                                                    class="text-danger icofont icofont-file-pdf fa-2x"></i>
+                                            </a>
+
                                         </td>
 
                                     </tr>
@@ -178,39 +168,5 @@
         document.addEventListener('show-detail', event => {
             $('#modalSaleDetail').modal('show')
         })
-    </script>
-    <script>
-        document.addEventListener('livewire:init', () => {
-
-            Livewire.on('init-new', (event) => {
-                document.getElementById('inputFocus').focus()
-            })
-
-
-
-        })
-
-        function Confirm(rowId) {
-            swal({
-                title: '¿CONFIRMAS ELIMINAR LA VENTA?',
-                text: "",
-                icon: "warning",
-                buttons: true,
-                dangerMode: true,
-                buttons: {
-                    cancel: "Cancelar",
-                    catch: {
-                        text: "Aceptar"
-                    }
-                },
-            }).then((willDestroy) => {
-                if (willDestroy) {
-                    Livewire.dispatch('DestroySale', {
-                        saleId: rowId
-                    })
-                }
-            });
-
-        }
     </script>
 </div>
