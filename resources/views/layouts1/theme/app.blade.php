@@ -8,8 +8,8 @@
     <meta name="Melvin POS sistema de ventas" content="Sistema de ventas">
     <meta name="keywords" content="ventas, compras, inventarios, reportes">
     <meta name="author" content="luisfaxacademy.com">
-    <link rel="icon" href="{{ asset('assets/images/favicon.png') }}" type="image/x-icon">
-    <link rel="shortcut icon" href="{{ asset('assets/images/favicon.png') }}" type="image/x-icon">
+    <link rel="icon" href="{{ asset('assets/images/favivon.ico') }}" type="image/x-icon">
+    <link rel="shortcut icon" href="{{ asset('assets/images/favivon.ico') }}" type="image/x-icon">
     <title>JSPOS v1.7</title>
 
     @include('layouts.theme.styles')

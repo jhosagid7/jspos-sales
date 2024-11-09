@@ -86,6 +86,7 @@ class Products extends Component
         $this->form->description = $product->description;
         $this->form->cost = $product->cost;
         $this->form->price = $product->price;
+        $this->form->manage_stock = $product->manage_stock;
         $this->form->stock_qty = $product->stock_qty;
         $this->form->low_stock = $product->low_stock;
         $this->form->supplier_id = $product->supplier_id;
@@ -153,12 +154,12 @@ class Products extends Component
         // validar que el valor sea un número positivo con un máximo de un decimal
         $validator = validator(
             ['price' => $this->form->value],
-            ['price' => ['required', 'numeric', 'min:0', 'regex:/^\d+(\.\d{1})?$/']]
+            ['price' => ['required', 'numeric', 'min:0', 'regex:/^\d+(\.\d{2})?$/']]
         );
 
         if ($validator->fails()) {
             $this->form->value = '';
-            $this->dispatch('noty', msg: '¡El valor debe ser un número positivo con un máximo de un decimal!');
+            $this->dispatch('noty', msg: '¡El valor debe ser un número positivo con un máximo de dos decimal!');
             return;
         }
 

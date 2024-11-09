@@ -17,7 +17,7 @@ class PostProduct extends Form
     //#[Validate('max:60', message: 'El nombre debe tener maximo 60 caracteres')]
     //#[Validate('unique:products,name', message: 'El nombre ya existe',  onUpdate: false)]
     //#[Validate('unique:productos,name,' . $this->product_id, message: 'El título debe ser único')]
-    public $name, $sku, $description, $type = 'physical', $status = 'available', $cost = 0, $price = 0, $manage_stock, $stock_qty = 0, $low_stock = 0, $category_id = 0, $supplier_id = 0, $product_id = 0, $gallery;
+    public $name, $sku, $description, $type = 'physical', $status = 'available', $cost = 0, $price = 0, $manage_stock = 1, $stock_qty = 0, $low_stock = 0, $category_id = 0, $supplier_id = 0, $product_id = 0, $gallery;
 
     //properties priceList
     public $value;
@@ -29,6 +29,7 @@ class PostProduct extends Form
         $rules = [
             'name' => [
                 'required',
+                'string',
                 'min:3',
                 'max:60',
                 Rule::unique('products', 'name')->ignore($this->product_id, 'id')
@@ -72,6 +73,7 @@ class PostProduct extends Form
     {
         return [
             'name.required' => 'Ingresa el nombre',
+            'name.string' => 'El nombre debe ser una cadena de texto',
             'name.unique' => 'El nombre ya existe',
             'name.min' => 'El nombre deber tener al menos 3 caracteres',
             'name.max' => 'El nombre deber tener máximo 60 caracteres',
@@ -102,6 +104,7 @@ class PostProduct extends Form
             'sku' => $this->sku,
             'cost' => $this->cost,
             'price' => $this->price,
+            'manage_stock' => $this->manage_stock ? $this->manage_stock : 1,
             'stock_qty' => $this->stock_qty,
             'low_stock' => $this->low_stock,
             'supplier_id' => $this->supplier_id,
@@ -170,6 +173,7 @@ class PostProduct extends Form
             'sku' => $this->sku,
             'cost' => $this->cost,
             'price' => $this->price,
+            'manage_stock' => $this->manage_stock,
             'stock_qty' => $this->stock_qty,
             'low_stock' => $this->low_stock,
             'supplier_id' => $this->supplier_id,
