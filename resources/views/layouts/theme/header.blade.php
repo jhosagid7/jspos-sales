@@ -15,8 +15,8 @@
             </div>
         </form>
         <div class="col-auto p-0 header-logo-wrapper">
-        <div class="logo-wrapper d-flex align-items-center">
-                <a href="index.html" class="d-flex align-items-center">
+            <div class="logo-wrapper d-flex align-items-center">
+                <a href="{{ route('sales') }}" class="d-flex align-items-center">
                     <img class="img-fluid" width="50" height="50" src="{{ asset('logo/logo.jpg') }}"
                         alt="">
                     <b

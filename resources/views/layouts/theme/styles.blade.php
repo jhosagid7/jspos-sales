@@ -34,37 +34,17 @@
 
 <link rel="stylesheet" href="{{ asset('assets/css/tom.css') }}">
 
-<link rel="stylesheet" type="text/css" href="{{asset('assets/css/vendors/flatpickr/flatpickr.min.css') }}">
-<link rel="stylesheet" type="text/css" href="{{asset('assets/js/flat-pickr/confetti.css') }}">
+<link rel="stylesheet" type="text/css" href="{{ asset('assets/css/vendors/flatpickr/flatpickr.min.css') }}">
+<link rel="stylesheet" type="text/css" href="{{ asset('assets/js/flat-pickr/confetti.css') }}">
 {{--
 <link rel="stylesheet" type="text/css" href="{{asset('assets/js/flat-pickr/dark.css') }}"> --}}
 
 <style>
-
-.logo-wrapper {
-        display: flex;
-        align-items: center;
-        /* Centra verticalmente */
-    }
-
-    .logo-wrapper img {
-        margin-right: 0px;
-        /* Espacio entre la imagen y el texto */
-    }
-
-    .logo-wrapper b {
-        white-space: nowrap;
-        /* Evita que el texto se divida en varias líneas */
-        overflow: hidden;
-        /* Oculta el texto que se desborda */
-        text-overflow: ellipsis;
-        /* Muestra "..." si el texto es demasiado largo */
-    }
     .customizer-links {
         display: none !important;
     }
 
-    /* 
+    /*
     .ts-control {
         padding: 0px !important;
         border-style: none;
@@ -95,5 +75,25 @@
 
     .text-purple {
         color: purple
+    }
+
+    .logo-wrapper {
+        display: flex;
+        align-items: center;
+        /* Centra verticalmente */
+    }
+
+    .logo-wrapper img {
+        margin-right: 0px;
+        /* Espacio entre la imagen y el texto */
+    }
+
+    .logo-wrapper b {
+        white-space: nowrap;
+        /* Evita que el texto se divida en varias líneas */
+        overflow: hidden;
+        /* Oculta el texto que se desborda */
+        text-overflow: ellipsis;
+        /* Muestra "..." si el texto es demasiado largo */
     }
 </style>
