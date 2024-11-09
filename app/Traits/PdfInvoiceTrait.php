@@ -9,11 +9,11 @@ use App\Models\Configuration;
 use Illuminate\Support\Facades\Log;
 
 
-use LaravelDaily\Invoices\Invoice;
-use LaravelDaily\Invoices\Classes\Buyer;
-use LaravelDaily\Invoices\Classes\Party;
-use LaravelDaily\Invoices\Classes\Seller;
-use LaravelDaily\Invoices\Classes\InvoiceItem;
+use Jhosagid\Invoices\Invoice;
+use Jhosagid\Invoices\Classes\Buyer;
+use Jhosagid\Invoices\Classes\Party;
+use Jhosagid\Invoices\Classes\Seller;
+use Jhosagid\Invoices\Classes\InvoiceItem;
 
 
 trait PdfInvoiceTrait

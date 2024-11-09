@@ -526,7 +526,7 @@ class Sales extends Component
             ]);
 
             // get cart session
-            $cart = session("cart");
+            $cart = collect(session("cart"));
 
             // insert sale detail
             $details = $cart->map(function ($item) use ($sale) {

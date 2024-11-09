@@ -7,10 +7,10 @@
     "require": {
         "php": "^8.1",
         "guzzlehttp/guzzle": "^7.2",
+        "jhosagid/laravel-invoices": "^1.0",
         "laravel/framework": "^10.10",
         "laravel/sanctum": "^3.3",
         "laravel/tinker": "^2.8",
-        "laraveldaily/laravel-invoices": "^4.0",
         "livewire/livewire": "^3.3",
         "mike42/escpos-php": "^4.0",
         "pusher/pusher-php-server": "^7.2",
