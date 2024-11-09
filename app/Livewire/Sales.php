@@ -41,7 +41,6 @@ class Sales extends Component
 
     function updatedSearch3()
     {
-        // dd($this->search3);
         if (Strlen($this->search3) > 1) {
             $this->products = Product::with('priceList')
                 ->where('sku', 'like', "%{$this->search3}%")
