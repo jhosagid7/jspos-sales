@@ -47,7 +47,6 @@ class Sales extends Component
                 ->orWhere('name', 'like', "%{$this->search3}%")
                 ->get();
             if (count($this->products) == 0) {
-                //$this->search3 = '';
                 $this->dispatch('noty', msg: 'NO EXISTE EL CÓDIGO ESCANEADO');
             }
         } else {
@@ -55,7 +54,6 @@ class Sales extends Component
             $this->products = [];
             $this->dispatch('noty', msg: 'NO EXISTE EL CÓDIGO ESCANEADO');
         }
-        // $this->products;
     }
 
     public function selectProduct($index)
@@ -83,7 +81,6 @@ class Sales extends Component
     function updatedCashAmount()
     {
         if (floatval($this->totalCart) > 0) {
-
 
             if (round(floatval($this->cashAmount))  >= floatval($this->totalCart)) {
                 $this->nequiAmount = null;
@@ -119,7 +116,7 @@ class Sales extends Component
     public function mount()
     {
         if (session()->has("cart")) {
-            $this->cart = session("cart");
+            $this->cart = collect(session("cart"));
         } else {
             $this->cart = new Collection;
         }
@@ -135,8 +132,6 @@ class Sales extends Component
 
     public function render()
     {
-
-        $this->checkCreditSales();
         $this->cart = $this->cart->sortByDesc('id');
         $this->taxCart = round($this->totalIVA());
         $this->itemsCart = $this->totalItems();
@@ -150,7 +145,6 @@ class Sales extends Component
             $this->subtotalCart = round($this->subtotalCart());
             $this->ivaCart = round(0);
         }
-
 
         $this->customer =  session('sale_customer', null);
 
@@ -172,33 +166,65 @@ class Sales extends Component
         }
     }
 
-
     function AddProduct(Product $product, $qty = 1)
     {
+        // Obtener la cantidad actual del producto en el carrito
+        $currentQtyInCart = 0;
         if ($this->inCart($product->id)) {
-            $this->updateQty(null, $qty, $product->id);
-            return;
+            // Si el producto ya está en el carrito, obtener la cantidad actual
+            $currentQtyInCart = $this->getQtyInCart($product->id);
         }
 
-        //iva venezuela 16%
-        $iva = ($this->config->vat / 100);
-        //determinamos el precio de venta(con iva)
+        // Calcular la cantidad total que se intentará agregar
+        $totalQtyToAdd = $currentQtyInCart + $qty;
+
+        // Mensaje de depuración
+        \Log::info("Intentando agregar al carrito: {$product->name}, Cantidad solicitada: {$qty}, Stock disponible: {$product->stock_qty}, Cantidad en carrito: {$currentQtyInCart}");
+        if ($product->manage_stock == 1) {
+            // Verificar si la cantidad total a agregar es mayor que el stock disponible
+            if ($totalQtyToAdd > $product->stock_qty) {
+                $this->dispatch('noty', msg: 'No hay suficiente stock para el producto: ' . $product->name);
+                return;
+            }
+        }
+        if ($this->inCart($product->id)) {
+            $this->updateQty(null, $totalQtyToAdd, $product->id);
+            return;
+        }
         if (count($product->priceList) > 0)
             $salePrice = ($product->priceList[0]['price']);
         else
             $salePrice =  $product->price;
 
-        // precio unitario sin iva
-        $precioUnitarioSinIva =  $salePrice / (1 + $iva);
-        // subtotal neto
-        $subtotalNeto =   $precioUnitarioSinIva * intval($qty);
-        //monto iva
-        $montoIva = $subtotalNeto  * $iva;
-        //total con iva
-        $totalConIva =  $subtotalNeto + $montoIva;
+        //determinamos el precio de venta(con iva)
+        if ($this->config->vat > 0) {
+            //iva venezuela 16%
+            $iva = ($this->config->vat / 100);
 
-        $tax = $montoIva;
-        $total = $totalConIva;
+            // precio unitario sin iva
+            $precioUnitarioSinIva =  $salePrice / (1 + $iva);
+            // subtotal neto
+            $subtotalNeto =   $precioUnitarioSinIva * $this->formatAmount($qty);
+            //monto iva
+            $montoIva = $subtotalNeto  * $iva;
+            //total con iva
+            $totalConIva =  $subtotalNeto + $montoIva;
+
+            $tax = $montoIva;
+            $total = $totalConIva;
+        } else {
+            // precio unitario sin iva
+            $precioUnitarioSinIva =  $salePrice;
+            // subtotal neto
+            $subtotalNeto =   $precioUnitarioSinIva * $this->formatAmount($qty);
+            //monto iva
+            $montoIva = 0;
+            //total con iva
+            $totalConIva =  $subtotalNeto + $montoIva;
+
+            $tax = $montoIva;
+            $total = $totalConIva;
+        }
 
         $uid = uniqid() . $product->id;
 
@@ -212,7 +238,7 @@ class Sales extends Component
                 'price2' => $product->price2,
                 'sale_price' => $salePrice,
                 'pricelist' => $product->priceList,
-                'qty' => intval($qty),
+                'qty' => $this->formatAmount($qty),
                 'tax' => $tax,
                 'total' => $total,
                 'stock' => $product->stock_qty,
@@ -231,7 +257,16 @@ class Sales extends Component
         $this->dispatch('noty', msg: 'PRODUCTO AGREGADO AL CARRITO');
     }
 
-
+    // Método para obtener la cantidad de un producto en el carrito
+    function getQtyInCart($productId)
+    {
+        foreach ($this->cart as $item) {
+            if ($item['pid'] == $productId) {
+                return $item['qty'];
+            }
+        }
+        return 0; // Si no se encuentra el producto, retornar 0
+    }
 
     function Calculator($price, $qty)
     {
@@ -256,8 +291,6 @@ class Sales extends Component
         ];
     }
 
-
-
     public function removeItem($id)
     {
         $this->cart = $this->cart->reject(function ($product) use ($id) {
@@ -269,94 +302,61 @@ class Sales extends Component
         $this->dispatch('noty', msg: 'PRODUCTO ELIMINADO');
     }
 
-
     public function updateQty($uid, $cant = 1, $product_id = null)
     {
-        //dd($uid, $cant);
-        if (!is_numeric($cant)) {
+        // Validar que la cantidad sea numérica y mayor que cero
+        if (!is_numeric($cant) || $cant <= 0) {
             $this->dispatch('noty', msg: 'EL VALOR DE LA CANTIDAD ES INCORRECTO');
             return;
         }
 
+        // Obtener el carrito actual
         $mycart = $this->cart;
 
         if ($product_id == null) {
-            $oldItem = $mycart->where('id', $uid)->first();
+            $oldItem = $mycart->firstWhere('id', $uid);
+            $product_id = $oldItem['pid'];
         } else {
-            $oldItem = $mycart->where('pid', $product_id)->first();
+            $oldItem = $mycart->firstWhere('pid', $product_id);
         }
 
+        $product = Product::find($product_id);
 
+        // Verificar si la cantidad total a agregar es mayor que el stock disponible
+
+        if ($product->manage_stock == 1) {
+            $newQty = $cant; // solo se agrega la cantidad que se está agregando
+            if ($product->stock_qty < $newQty) {
+                \Log::info("Intentando agregar al carrito: {$product->name}, Cantidad solicitada: {$newQty}, Stock disponible: {$product->stock_qty}, Cantidad en carrito: {$oldItem['qty']}");
+                $this->dispatch('noty', msg: 'No hay suficiente stock para el producto: ' . $product->name);
+                return;
+            }
+        }
+
+        // Crear un nuevo artículo con la cantidad actualizada
         $newItem = $oldItem;
-        $newItem['qty'] = $product_id == null ? intval($cant) : intval($newItem['qty'] + $cant);
 
+        $newItem['qty'] = $this->formatAmount($cant);
+
+        // Calcular valores
         $values = $this->Calculator($newItem['sale_price'], $newItem['qty']);
-
         $newItem['tax'] = $values['iva'];
+        $newItem['total'] = $this->formatAmount($values['total']);
 
-        $newItem['total'] = round($values['total']);
-
-
-        //delete from cart
+        // Actualizar el carrito
         $this->cart = $this->cart->reject(function ($product) use ($uid, $product_id) {
             return $product['id'] === $uid || $product['pid'] === $product_id;
         });
 
-        $this->save();
+        // Agregar el nuevo artículo al carrito
+        $this->cart->push($newItem);
 
-        //add item to cart
-        $this->cart->push(Arr::add(
-            $newItem,
-            null,
-            null
-        ));
+        // Actualizar la sesión
+        session(['cart' => $this->cart->toArray()]);
 
-        $this->save();
+        // Emitir eventos
         $this->dispatch('refresh');
         $this->dispatch('noty', msg: 'CANTIDAD ACTUALIZADA');
-    }
-
-    function setCustomPrice($uid, $price)
-    {
-        $price = trim(str_replace('$', '', $price));
-
-        if (!is_numeric($price)) {
-            $this->dispatch('noty', msg: 'EL VALOR DEL PRECIO ES INCORRECTO');
-            return;
-        }
-
-        $mycart = $this->cart;
-
-        $oldItem = $mycart->where('id', $uid)->first();
-
-
-        $newItem = $oldItem;
-        $newItem['sale_price'] = $price;
-
-        $values = $this->Calculator($newItem['sale_price'], $newItem['qty']);
-
-        $newItem['tax'] = $values['iva'];
-
-        $newItem['total'] = round($values['total']);
-
-
-        //delete from cart
-        $this->cart = $this->cart->reject(function ($product) use ($uid) {
-            return $product['id'] === $uid || $product['pid'] === $uid;
-        });
-
-        $this->save();
-
-        //add item to cart
-        $this->cart->push(Arr::add(
-            $newItem,
-            null,
-            null
-        ));
-
-        $this->save();
-        $this->dispatch('refresh');
-        $this->dispatch('noty', msg: 'PRECIO ACTUALIZADO');
     }
 
     public function clear()
@@ -382,8 +382,6 @@ class Sales extends Component
         return $iva;
     }
 
-
-
     public function totalCart()
     {
         $amount = $this->cart->sum(function ($product) {
@@ -392,17 +390,10 @@ class Sales extends Component
         return $amount;
     }
 
-
-
     public function totalItems()
     {
         return   $this->cart->count();
-        // $items = $this->cart->sum(function ($product) {
-        //     return $product['qty'];
-        // });
-        // return $items;
     }
-
 
 
     public function subtotalCart()
@@ -413,13 +404,11 @@ class Sales extends Component
         return $subt;
     }
 
-
     public function save()
     {
         session()->put("cart", $this->cart);
         session()->save();
     }
-
 
     public function inCart($product_id)
     {
@@ -433,7 +422,6 @@ class Sales extends Component
     #[On('sale_customer')]
     function setCustomer($customer)
     {
-        //dd($customer);
         session(['sale_customer' => $customer]);
         $this->customer = $customer;
     }
@@ -456,7 +444,6 @@ class Sales extends Component
     {
         $type = $this->payType;
 
-        //dd(session("cart"));
         //type:  1 = efectivo, 2 = crédito, 3 = depósito
         if (floatval($this->totalCart) <= 0) {
             $this->dispatch('noty', msg: 'AGREGA PRODUCTOS AL CARRITO');
@@ -504,7 +491,6 @@ class Sales extends Component
 
         DB::beginTransaction();
         try {
-
             //store sale
             $notes = null;
 
@@ -539,7 +525,6 @@ class Sales extends Component
                 'notes' => $notes
             ]);
 
-
             // get cart session
             $cart = session("cart");
 
@@ -562,9 +547,6 @@ class Sales extends Component
             foreach ($cart as  $item) {
                 Product::find($item['pid'])->decrement('stock_qty', $item['qty']);
             }
-
-
-
 
             DB::commit();
 
@@ -589,8 +571,6 @@ class Sales extends Component
             // return redirect()->name("pos.sales.generateInvoice");
             // return $this->generateInvoice($sale);
 
-
-            //
         } catch (\Exception $th) {
             DB::rollBack();
             $this->dispatch('noty', msg: "Error al intentar guardar la venta \n {$th->getMessage()}");
