@@ -44,15 +44,15 @@ class Sales extends Component
         // dd($this->search3);
         if (Strlen($this->search3) > 1) {
             $this->products = Product::with('priceList')
-                ->where('sku', $this->search3)
+                ->where('sku', 'like', "%{$this->search3}%")
                 ->orWhere('name', 'like', "%{$this->search3}%")
                 ->get();
             if (count($this->products) == 0) {
-                $this->search3 = '';
+                //$this->search3 = '';
                 $this->dispatch('noty', msg: 'NO EXISTE EL CÓDIGO ESCANEADO');
             }
         } else {
-            // $this->search3 = '';
+            $this->search3 = '';
             $this->products = [];
             $this->dispatch('noty', msg: 'NO EXISTE EL CÓDIGO ESCANEADO');
         }
@@ -138,7 +138,7 @@ class Sales extends Component
     {
 
         $this->checkCreditSales();
-        $this->cart = $this->cart->sortBy('name');
+        $this->cart = $this->cart->sortByDesc('id');
         $this->taxCart = round($this->totalIVA());
         $this->itemsCart = $this->totalItems();
         $this->totalCart = round($this->totalCart());
@@ -163,7 +163,7 @@ class Sales extends Component
     function ScanningCode($barcode)
     {
         $product = Product::with('priceList')
-            ->where('sku', $barcode)
+            ->where('sku', "%{$barcode}%")
             ->orWhere('name', 'like', "%{$barcode}%")
             ->first();
         if ($product) {

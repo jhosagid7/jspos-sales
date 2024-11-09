@@ -15,10 +15,13 @@
             </div>
         </form>
         <div class="col-auto p-0 header-logo-wrapper">
-            <div class="logo-wrapper">
-                <a href="index.html"><img class="img-fluid" width="50" height="50"
-                        src="{{ asset('logo/logo.jpg') }}" alt=""><b class="p-10 text-bold font-info">Toys
-                        Galu</b></a>
+        <div class="logo-wrapper d-flex align-items-center">
+                <a href="index.html" class="d-flex align-items-center">
+                    <img class="img-fluid" width="50" height="50" src="{{ asset('logo/logo.jpg') }}"
+                        alt="">
+                    <b
+                        class="p-10 text-bold font-info ml-2">{{ session('settings') ? session('settings')->business_name : 'My company' }}</b>
+                </a>
             </div>
             <div class="toggle-sidebar"><i class="status_toggle middle sidebar-toggle" data-feather="align-center"></i>
             </div>

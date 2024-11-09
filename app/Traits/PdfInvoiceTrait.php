@@ -81,7 +81,7 @@ trait PdfInvoiceTrait
 
                 foreach ($sale->details as $detail) {
 
-                    $items[] = InvoiceItem::make($detail->product->name)->reference($detail->product->sku)->pricePerUnit($detail->sale_price)->quantity($detail->quantity);
+                    $items[] = InvoiceItem::make($detail->product->name)->reference($detail->product->sku ? $detail->product->sku : '')->pricePerUnit($detail->sale_price)->quantity($detail->quantity);
                 }
 
                 $notes = [
@@ -168,7 +168,7 @@ trait PdfInvoiceTrait
 
                 foreach ($sale->details as $detail) {
 
-                    $items[] = InvoiceItem::make($detail->product->name)->reference($detail->product->sku)->pricePerUnit($detail->sale_price)->quantity($detail->quantity);
+                    $items[] = InvoiceItem::make($detail->product->name)->reference($detail->product->sku ? $detail->product->sku : '')->pricePerUnit($detail->sale_price)->quantity($detail->quantity);
                 }
 
                 $notes = [

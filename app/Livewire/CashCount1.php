@@ -77,11 +77,10 @@ class CashCount extends Component
                 ->when($this->user_id != 0, function ($qry) {
                     $qry->where('user_id', $this->user_id);
                 })
-                ->select('pay_way', 'amount', 'type')
+                ->select('pay_way', 'cash', 'change', 'type')
                 ->get();
-            // dd($payments);
 
-            $this->totalPaymentsCash = $payments->where('pay_way', 'amount')->sum('amount');
+            $this->totalPaymentsCash = $payments->where('pay_way', 'cash')->sum('amount');
             $this->totalPaymentsDeposit = $payments->where('pay_way', 'deposit')->sum('amount');
             $this->totalPaymentsNequi = $payments->where('pay_way', 'nequi')->sum('amount');
             $this->totalPayments = $payments->sum('amount');
@@ -109,7 +108,6 @@ class CashCount extends Component
                 ->when($this->user_id != 0, function ($qry) {
                     $qry->where('user_id', $this->user_id);
                 })
-                ->where('status', '<>', 'returned')
                 ->select('total', 'cash', 'change', 'type')
                 ->get();
 

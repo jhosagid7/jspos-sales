@@ -5,12 +5,8 @@ namespace App\Livewire;
 use Carbon\Carbon;
 use App\Models\Sale;
 use App\Models\User;
-use App\Models\Product;
 use Livewire\Component;
-use App\Models\SaleDetail;
-use Livewire\Attributes\On;
 use Livewire\WithPagination;
-use Illuminate\Support\Facades\DB;
 
 class SalesReport extends Component
 {
@@ -70,7 +66,7 @@ class SalesReport extends Component
 
             //$this->showReport = false;
 
-            $this->totales = $sales->where('status', '<>', 'returned')->sum(function ($sale) {
+            $this->totales = $sales->sum(function ($sale) {
                 return $sale->total;
             });
 
@@ -89,32 +85,5 @@ class SalesReport extends Component
         $this->sale_id = $sale->id;
         $this->details = $sale->details;
         $this->dispatch('show-detail');
-    }
-    #[On('DestroySale')]
-    public function DestroySale($saleId)
-    {
-        // dd($saleId);
-        try {
-            DB::beginTransaction();
-
-            $sale = Sale::findOrFail($saleId);
-            $sale->update([
-                'status' => 'returned', // o 'deleted'
-                'delete_at' => Carbon::now(),
-            ]);
-
-            $saleDetails = SaleDetail::where('sale_id', $saleId)->get();
-
-            foreach ($saleDetails as $detail) {
-                Product::find($detail->product_id)->increment('stock_qty', $detail->quantity);
-            }
-
-            DB::commit();
-
-            $this->dispatch('noty', msg: 'Venta eliminada correctamente');
-        } catch (\Exception $th) {
-            DB::rollBack();
-            $this->dispatch('noty', msg: "Error al intentar eliminar la venta \n {$th->getMessage()}");
-        }
     }
 }

@@ -2,8 +2,8 @@
     <div class="row">
         <div class="col-sm-12">
             <div class="card">
-                <div class="p-1 card-header bg-dark">
-                    <h5 class="text-center txt-light">Reporte de Cuentas por Cobrar</h5>
+                <div class="card-header bg-dark p-1">
+                    <h5 class="txt-light text-center">Reporte de Cuentas por Cobrar</h5>
                 </div>
 
                 <div class="card-body">
@@ -63,12 +63,12 @@
                         </div>
                         <div class="col-sm-12 col-md-9">
                             <div class="card {{ $totales == 0 && $dateFrom == null ? 'd-none' : '' }}">
-                                <div class="p-3 card-header">
+                                <div class="card-header p-3">
                                     <div class="header-top">
                                         <h5 class="m-0">Resultados<span class="f-14 f-w-500 ms-1 f-light"></span>
                                         </h5>
                                         <div class="card-header-right-icon">
-                                            <span class="text-white badge badge-light-dark ms-1 f-14">Total
+                                            <span class="badge badge-light-dark  ms-1 f-14 text-white">Total
                                                 por
                                                 Cobrar:
                                                 ${{ $totales }}</span>
@@ -104,7 +104,7 @@
                                                         </td>
                                                         <td>
                                                             <span
-                                                                class="badge f-12 {{ ($sale->status == 'paid' ? 'badge-light-success' : $sale->status == 'return') ? 'badge-light-warning' : 'badge-light-danger' }} ">{{ $sale->status }}</span>
+                                                                class="badge f-12 {{ $sale->status == 'paid' ? 'badge-light-success' : 'badge-light-danger' }} ">{{ $sale->status }}</span>
 
                                                         </td>
                                                         <td>{{ $sale->created_at }}</td>
@@ -113,12 +113,12 @@
                                                         <td>
                                                             <button
                                                                 wire:click.prevent="historyPayments({{ $sale->id }})"
-                                                                class="border-0 btn btn-outline-dark btn-xs">
+                                                                class="btn btn-outline-dark btn-xs border-0">
                                                                 <i class="icofont icofont-list fa-2x"></i>
                                                             </button>
                                                             <button
                                                                 wire:click.prevent="initPayment({{ $sale->id }}, '{{ $sale->customer->name }}')"
-                                                                class="border-0 btn btn-outline-dark btn-xs">
+                                                                class="btn btn-outline-dark btn-xs border-0">
                                                                 <i class="icofont icofont-cur-dollar-plus fa-2x"></i>
                                                             </button>
 

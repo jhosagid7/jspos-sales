@@ -5,7 +5,7 @@
                 <div x-data @click.away="$wire.dispatch('hideResults')" class="relative">
                     <div class="faq-form">
                         <div class="form-control form-control-lg">
-                            <input type="text" wire:model.live.debounce.250ms="search3" class="form-control"
+                            <input type="text" wire:model.live.debounce.650ms="search3" class="form-control"
                                 placeholder="Ingresa nombre o código del producto" style="text-transform: capitalize"
                                 autocomplete="off" id="inputSearch" wire:keydown="keyDown($event.key)">
                             <!-- Captura las teclas presionadas -->
@@ -22,7 +22,7 @@
                                         <div>
                                             <h6 class="mb-0 text-primary">
                                                 <small class="mb-0" style="text-muted">
-                                                    {{ Str::limit($product->name, 50) }}
+                                                {{ $product->sku }} - {{ Str::limit($product->name, 50) }}
                                                 </small> - {{ $product->price }}
                                             </h6>
                                         </div>
