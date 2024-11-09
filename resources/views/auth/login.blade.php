@@ -1,56 +1,123 @@
-<x-guest-layout>
+<!DOCTYPE html>
+<html lang="es">
 
-    @if ($errors->any())
-        <div>
-            <div class="font-medium text-red-600">
-                {{ __('Whoops!') }}
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no">
+    <title>{{ config('app.name', 'JSPOS') }}</title>
+    <link rel="icon" type="image/x-icon" href="assets/login/img/favicon-card.ico" />
+    <!-- BEGIN GLOBAL MANDATORY STYLES -->
+    <link href="https://fonts.googleapis.com/css?family=Quicksand:400,500,600,700&display=swap" rel="stylesheet">
+    <link href="{{ asset('assets/login/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ asset('assets/login/css/plugins.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ asset('assets/login/css/structure.css') }}" rel="stylesheet" type="text/css" class="structure" />
+    <link href="{{ asset('assets/login/css/authentication/form-1.css') }}" rel="stylesheet" type="text/css" />
+    <!-- END GLOBAL MANDATORY STYLES -->
+    <link rel="stylesheet" type="text/css" href="{{ asset('assets/login/css/forms/theme-checkbox-radio.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('assets/login/css/forms/switches.css') }}">
+</head>
+
+<body class="form">
+
+
+    <div class="form-container">
+        <div class="form-form">
+            <div class="form-form-wrap">
+                <div class="form-container">
+                    <div class="form-content">
+
+                        <h1 class="text-center"><span class="brand-name"><b>JSPOS</b></span></h1>
+                        <h1 class="text-center"><span class="brand-name">Sistema de Ventas</span></h1>
+                        <form class="text-left mt-5" action="{{ route('login') }}" method="POST">
+                            @csrf
+                            <div class="form">
+
+                                <div id="username-field" class="field-wrapper input">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" stroke-linejoin="round" class="feather feather-user">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                    <input id="email" name="email" type="email"
+                                        class="form-control @error('email') is-invalid @enderror"
+                                        placeholder="jhosagid@gmail.com" value="{{ old('email') }}" required
+                                        autocomplete="email" autofocus>
+                                    @error('email')
+                                        <span class="invalid-feedback" role="alert">
+                                            <strong>{{ $message }}</strong>
+                                        </span>
+                                    @enderror
+                                </div>
+
+                                <div id="password-field" class="field-wrapper input mb-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" stroke-linejoin="round" class="feather feather-lock">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2">
+                                        </rect>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                    </svg>
+                                    <input id="password" name="password" type="password"
+                                        class="form-control @error('password') is-invalid @enderror"
+                                        placeholder="Password" required autocomplete="current-password">
+                                    @error('password')
+                                        <span class="invalid-feedback" role="alert">
+                                            <strong>{{ $message }}</strong>
+                                        </span>
+                                    @enderror
+                                </div>
+                                <!--
+                                <div class="d-flex align-items-center"> -->
+                                <!--
+                                    <div class="field-wrapper toggle-pass">
+                                        <p class="d-inline-block">Show Password</p>
+                                        <label class="switch s-primary">
+                                            <input type="checkbox" id="toggle-password" class="d-none">
+                                            <span class="slider round"></span>
+                                        </label>
+                                    </div>
+                                -->
+                                <div class="field-wrapper">
+                                    <button type="submit" class="btn btn-dark btn-block"
+                                        value="">Aceptar</button>
+                                </div>
+
+                                <!--  </div> -->
+                                <!--
+                                <div class="field-wrapper text-center keep-logged-in">
+                                    <div class="n-chk new-checkbox checkbox-outline-primary">
+                                        <label class="new-control new-checkbox checkbox-outline-primary">
+                                          <input type="checkbox" class="new-control-input">
+                                          <span class="new-control-indicator"></span>Keep me logged in
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="field-wrapper">
+                                    <a href="auth_pass_recovery.html" class="forgot-pass-link">Forgot Password?</a>
+                                </div>
+                            -->
+                            </div>
+                        </form>
+                        <p class="terms-conditions text-center">© 2021 All Rights Reserved. <a
+                                href="https://github.com/jhosagid7" target="_blank">JHONNY PIRELA</a> <br>versión
+                            2.2.0 </p>
+
+                    </div>
+                </div>
             </div>
-
-            <ul class="mt-3 list-disc list-inside text-sm text-red-600">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
         </div>
-    @endif
-
-
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
-
-    <h4 class="text-center"><b>Ingresar al Sistema</b></h4>
-
-    <form method="POST" action="{{ route('login') }}" class="mt-3">
-        @csrf
-
-        <!-- Email Address -->
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')"
-                required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+        <div class="form-image">
+            <a href="#" target="_blank">
+                <div class="l-image">
+                </div>
+            </a>
         </div>
-
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-
-            <x-text-input id="password" class="block mt-1 w-full" type="password" name="password" required
-                autocomplete="current-password" />
-
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
+    </div>
 
 
+</body>
 
-        <div class="flex items-center justify-end mt-4">
-            <x-primary-button class="ms-3">
-                {{ __('Log in') }}
-            </x-primary-button>
-
-        </div>
-        <div class="text-center">
-            <a href="https://github.com/jhosagid7" style="font-size: 12px">jhonnypirela.dev</a>
-        </div>
-    </form>
-</x-guest-layout>
+</html>
