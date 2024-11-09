@@ -8,8 +8,6 @@ use App\Models\Configuration;
 
 trait UtilTrait
 {
-
-
     public function validaRut($rut)
     {
         if (!preg_match("/^[0-9.]+[-]?+[0-9kK]{1}/", $rut)) {
@@ -40,13 +38,10 @@ trait UtilTrait
             return false;
     }
 
-
-
     function validEmail($str)
     {
         return (!preg_match("/^([a-z0-9\+_\-]+)(\.[a-z0-9\+_\-]+)*@([a-z0-9\-]+\.)+[a-z]{2,6}$/ix", $str)) ? FALSE : TRUE;
     }
-
 
     function validaProp($value)
     {
@@ -77,11 +72,9 @@ trait UtilTrait
         return array('iva' => 0, 'subtotal' => 0);
     }
 
-
     //Cálculo de precio de venta utilizando el método de: "fijación de precios basado en costos y margen de ganancia"
     public function getPrecioVenta($costoOriginal, $cantidadOriginal, $costoAdicional, $cantidadAdicional, $porcentajeGanancia)
     {
-
         // Validar que los valores proporcionados sean numéricos y no negativos
         if (
             !is_numeric($costoOriginal) || !is_numeric($cantidadOriginal) || !is_numeric($costoAdicional) || !is_numeric($cantidadAdicional) || !is_numeric($porcentajeGanancia) ||
@@ -124,6 +117,21 @@ trait UtilTrait
 
         if ($sales != null && $sales->count() > 0) {
             session(['noty_sales' => $sales]);
+        }
+    }
+
+    function formatAmount($amount)
+    {
+        // Convert the value to float to ensure it is a decimal number
+        $amount = floatval($amount);
+
+        // Check if the amount has decimals
+        if (fmod($amount, 1) != 0) {
+            // If it has decimals, return the amount as float
+            return (float)$amount; // Ensure it is returned as float
+        } else {
+            // If it does not have decimals, return the amount as int
+            return (int)$amount; // Ensure it is returned as int
         }
     }
 }
