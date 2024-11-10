@@ -20,10 +20,19 @@
                                         wire:click="selectProduct({{ $index }})"
                                         style="cursor: pointer; {{ $selectedIndex === $index ? 'background-color: #e9ecef;' : '' }}">
                                         <div>
-                                            <h6 class="mb-0 text-primary">
+                                            <h6
+                                                class="mb-0 text-{{ $product->stock_qty <= 0 ? 'danger' : ($product->stock_qty < $product->low_stock ? 'info' : 'primary') }}">
                                                 <small class="mb-0" style="text-muted">
-                                                {{ $product->sku }} - {{ Str::limit($product->name, 50) }}
-                                                </small> - {{ $product->price }}
+                                                    {{ $product->sku }} - {{ Str::limit($product->name, 50) }}
+                                                </small> - {{ $product->price }} / <small>stock:
+                                                    @if ($product->stock_qty <= 0)
+                                                        <span class="text-danger">Agotado</span>
+                                                    @else
+                                                        <span>{{ $product->stock_qty }}</span>
+                                                    @endif
+
+
+                                                </small>
                                             </h6>
                                         </div>
                                     </li>
@@ -48,7 +57,9 @@
                     @endphp
 
                     <livewire:partial-payment :key="$uniqueKey" />
-
+                    <button onclick="processOrder()" type="button" class="btn btn-outline-light-2x txt-dark"><i
+                            class="icon-money"></i>
+                        Ordenes</button>
                     <button @if ($totalCart > 0) onclick="cancelSale()" @endif type="button"
                         class="btn btn-outline-light-2x txt-dark"><i class="icon-trash"></i>
                         Cancelar</button>

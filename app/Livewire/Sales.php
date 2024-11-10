@@ -5,6 +5,7 @@ namespace App\Livewire;
 use Carbon\Carbon;
 use App\Models\Bank;
 use App\Models\Sale;
+use App\Models\Order;
 use App\Models\Product;
 use Livewire\Component;
 use App\Models\Customer;
@@ -12,8 +13,10 @@ use App\Traits\JsonTrait;
 use App\Traits\UtilTrait;
 use App\Models\SaleDetail;
 use App\Traits\PrintTrait;
+use App\Models\OrderDetail;
 use Illuminate\Support\Arr;
 use Livewire\Attributes\On;
+use Livewire\WithPagination;
 use App\Models\Configuration;
 use App\Traits\PdfInvoiceTrait;
 use Illuminate\Support\Collection;
@@ -25,6 +28,7 @@ class Sales extends Component
     use PrintTrait;
     use PdfInvoiceTrait;
     use JsonTrait;
+    use WithPagination;
 
 
     public Collection $cart;
@@ -38,6 +42,12 @@ class Sales extends Component
     public $banks, $cashAmount, $nequiAmount, $change, $phoneNumber, $acountNumber, $depositNumber, $bank, $payType = 1, $payTypeName = 'PAGO EN EFECTIVO';
 
     public $search3, $products = [], $selectedIndex = -1;
+
+    public $order_selected_id, $customer_name, $amount;
+    public $order_id, $ordersObt, $order_note, $details = [];
+    public $pagination = 5, $status;
+
+    public $search = '';
 
     function updatedSearch3()
     {
@@ -121,12 +131,20 @@ class Sales extends Component
             $this->cart = new Collection;
         }
 
+
+
         session(['map' => 'Ventas', 'child' => ' Componente ', 'pos' => 'MÓDULO DE VENTAS']);
 
         $this->config = Configuration::first();
 
         $this->banks = Bank::orderBy('sort')->get();
         $this->bank = $this->banks[0]->id;
+
+        $this->amount = null;
+        $this->search = null;
+        $this->order_selected_id = null;
+        $this->status = 'pending';
+        $this->order_id = null;
     }
 
 
@@ -147,8 +165,117 @@ class Sales extends Component
         }
 
         $this->customer =  session('sale_customer', null);
+        $orders = $this->getOrdersWithDetails();
+        return view(
+            'livewire.pos.sales',
+            compact('orders')
 
-        return view('livewire.pos.sales');
+        );
+    }
+
+    public function loadOrderToCart($orderId)
+    {
+        //limpiamos el carrito
+
+        // $this->order_id = null;
+
+
+        // dd('ver...', $this->order_id);
+
+        $this->resetExcept('config', 'banks', 'bank');
+        $this->clear();
+        session()->forget('sale_customer');
+
+        //Cargar el nombre del cliente
+        $order = Order::find($orderId);
+        // //cargar el objeto costumer
+        $customer = Customer::find($order->customer_id);
+
+
+        $this->setCustomer($customer);
+        $this->order_id = $orderId;
+        // session(['sale_customer' => $order->customer->name]);
+
+        // Obtener los detalles de la orden
+        $orderDetails = OrderDetail::where('order_id', $orderId)->get();
+
+        foreach ($orderDetails as $detail) {
+            // Obtener el producto correspondiente
+            $product = Product::find($detail->product_id);
+
+            // Llamar al método AddProduct con los detalles del producto y la cantidad
+            $this->AddProduct($product, $detail->quantity);
+        }
+
+        $this->dispatch('close-process-order');
+    }
+
+
+    public function getOrdersWithDetails()
+    {
+
+        if (empty(trim($this->search))) {
+            return Order::whereHas('customer')
+                ->where('status', 'pending')
+                ->orderBy('orders.id', 'desc')
+                ->paginate($this->pagination);
+        } else {
+            $search = strtolower(trim($this->search)); // Normalizar a minúsculas y eliminar espacios
+
+            return Order::where(function ($query) use ($search) {
+                // Búsqueda por el nombre del cliente
+                $query->whereHas('customer', function ($subQuery) use ($search) {
+                    $subQuery->whereRaw("LOWER(name) LIKE ?", ["%{$search}%"]);
+                });
+
+                // Búsqueda por el ID de la orden
+                $query->orWhere('id', 'LIKE', "%{$search}%");
+
+                // Búsqueda por el total
+                $query->orWhere('total', 'LIKE', "%{$search}%");
+
+                // Búsqueda por el usuario (suponiendo que tienes una relación 'user' en Order)
+                $query->orWhereHas('user', function ($subQuery) use ($search) {
+                    $subQuery->whereRaw("LOWER(name) LIKE ?", ["%{$search}%"]); // Cambia 'name' por el campo que corresponda en tu modelo User
+                });
+            })
+                ->where('status', $this->status)
+                ->orderBy('id', 'desc')
+                ->paginate($this->pagination);
+        }
+    }
+
+    function getOrderDetail(Order $order)
+    {
+        $this->ordersObt = $order;
+        $this->order_id = $order->id;
+        $this->details = $order->details;
+        // dd($this->details);
+        $this->dispatch('show-detail');
+    }
+
+    function getOrderDetailNote(Order $order)
+    {
+        $this->ordersObt = $order;
+        $this->order_id = $order->id;
+        $this->details = $order->details;
+        $this->order_note = $order->notes; // Populate the sale_note property
+        $this->dispatch('show-detail-note');
+    }
+
+    public function saveOrderNote()
+    {
+        $this->validate([
+            'order_note' => 'nullable|string',
+        ]);
+
+        $this->ordersObt->update([
+            'notes' => $this->order_note,
+        ]);
+
+        $this->dispatch('noty', msg: 'Nota de la orden actualizada correctamente');
+        $this->dispatch('close-detail-note'); // Close the modal
+        return;
     }
 
 
@@ -422,6 +549,7 @@ class Sales extends Component
     #[On('sale_customer')]
     function setCustomer($customer)
     {
+        // dd($customer);
         session(['sale_customer' => $customer]);
         $this->customer = $customer;
     }
@@ -574,6 +702,103 @@ class Sales extends Component
         } catch (\Exception $th) {
             DB::rollBack();
             $this->dispatch('noty', msg: "Error al intentar guardar la venta \n {$th->getMessage()}");
+        }
+    }
+
+    public function storeOrder()
+    {
+
+        // dd(collect(session("cart")));
+        DB::beginTransaction();
+        try {
+            //store sale
+            if (floatval($this->totalCart) <= 0) {
+                $this->dispatch('noty', msg: 'AGREGA PRODUCTOS AL CARRITO');
+                return;
+            }
+            if ($this->customer == null) {
+                // dd('llegue...', $this->order_id);
+                $this->dispatch('noty', msg: 'SELECCIONA EL CLIENTE');
+                return;
+            }
+            // dd($this->order_id);
+            $notes = null;
+
+
+            if ($this->order_id) {
+                // Actualiza la orden existente
+                $order = Order::find($this->order_id);
+
+                if ($order) {
+                    $order->update([
+                        'total' => $this->totalCart,
+                        'discount' => 0,
+                        'items' => $this->itemsCart,
+                        'customer_id' => $this->customer['id'],
+                        'user_id' => Auth()->user()->id,
+                        'status' => 'pending',
+                        'notes' => $notes
+                    ]);
+
+                    // Actualiza los detalles de la orden
+                    $cart = collect(session("cart"));
+                    $details = $cart->map(function ($item) use ($order) {
+                        return [
+                            'product_id' => $item['pid'],
+                            'order_id' => $order->id,
+                            'quantity' => $item['qty'],
+                            'regular_price' => $item['price1'] ?? 0,
+                            'sale_price' => $item['sale_price'],
+                            'created_at' => Carbon::now(),
+                            'discount' => 0
+                        ];
+                    })->toArray();
+
+                    // Elimina los detalles existentes antes de insertar los nuevos
+                    OrderDetail::where('order_id', $order->id)->delete();
+                    OrderDetail::insert($details);
+                }
+            } else {
+                // Crea una nueva orden
+                $order = Order::create([
+                    'total' => $this->totalCart,
+                    'discount' => 0,
+                    'items' => $this->itemsCart,
+                    'customer_id' => $this->customer['id'],
+                    'user_id' => Auth()->user()->id,
+                    'status' => 'pending',
+                    'notes' => $notes
+                ]);
+
+                // Obtiene el carrito de la sesión
+                $cart = collect(session("cart"));
+
+                // Inserta los detalles de la venta
+                $details = $cart->map(function ($item) use ($order) {
+                    return [
+                        'product_id' => $item['pid'],
+                        'order_id' => $order->id,
+                        'quantity' => $item['qty'],
+                        'regular_price' => $item['price1'] ?? 0,
+                        'sale_price' => $item['sale_price'],
+                        'created_at' => Carbon::now(),
+                        'discount' => 0
+                    ];
+                })->toArray();
+
+                OrderDetail::insert($details);
+            }
+
+            DB::commit();
+
+            $this->dispatch('noty', msg: 'ORDEN GUARDADA CON ÉXITO');
+
+            $this->resetExcept('config', 'banks', 'bank');
+            $this->clear();
+            session()->forget('sale_customer');
+        } catch (\Exception $th) {
+            DB::rollBack();
+            $this->dispatch('noty', msg: "Error al intentar guardar la orden \n {$th->getMessage()}");
         }
     }
 

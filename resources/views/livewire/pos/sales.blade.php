@@ -109,7 +109,7 @@
                 <div class="card-body pt-0 order-details">
 
                     @if ($customer != null)
-                        <span> {{ $customer['name'] }} <i class="icofont icofont-verification-check"></i></span>
+                        <span> {{ $customer['name'] ?? '' }} <i class="icofont icofont-verification-check"></i></span>
                     @else
                         Cliente
                     @endif
@@ -137,6 +137,9 @@
                         <div class="item-number pt-3 pb-0"><span class="f-w-700">TOTAL</span>
                             <h6 class="txt-primary">${{ $totalCart }}</h6>
                         </div>
+                    </div>
+                    <div class="card-header-right-icon create-right-btn"><a wire:click.prevent="storeOrder"
+                            class="btn btn-light-primary f-w-500 f-18" href="javascript:void(0)">Guardar orden +</a>
                     </div>
                     <h5 class="m-0 p-t-40">Método de Pago</h5>
                     <div class="payment-methods">
@@ -173,6 +176,8 @@
     @include('livewire.pos.partials.payCash')
     @include('livewire.pos.partials.payNequi')
     @include('livewire.pos.partials.payDeposit')
+    @include('livewire.pos.partials.process-order')
+    @include('livewire.pos.partials.order-detail')
     @include('livewire.pos.partials.script')
 
 </div>
