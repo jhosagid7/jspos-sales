@@ -112,6 +112,10 @@
                                                 </button>
                                             @endif
 
+                                            <button wire:click.prevent="getSaleDetailNote({{ $sale->id }})"
+                                                class="border-0 btn btn-outline-dark btn-xs">
+                                                <i class="icofont icofont-edit-alt fa-2x"></i>
+                                            </button>
                                             <button wire:click.prevent="getSaleDetail({{ $sale->id }})"
                                                 class="border-0 btn btn-outline-dark btn-xs">
                                                 <i class="icofont icofont-list fa-2x"></i>
@@ -149,6 +153,7 @@
             </div>
         </div>
         @include('livewire.reports.sale-detail')
+        @include('livewire.reports.sale-detail-note')
     </div>
 
 
@@ -177,6 +182,12 @@
 
         document.addEventListener('show-detail', event => {
             $('#modalSaleDetail').modal('show')
+        })
+        document.addEventListener('show-detail-note', event => {
+            $('#modalSaleDetailNote').modal('show')
+        })
+        document.addEventListener('close-detail-note', event => {
+            $('#modalSaleDetailNote').modal('hide')
         })
     </script>
     <script>

@@ -19,6 +19,7 @@ class SalesReport extends Component
     public $pagination = 10, $users = [], $user_id, $dateFrom, $dateTo, $showReport = false, $type = 0;
     public $totales = 0, $sale_id, $details = [];
     public $salesObt;
+    public $sale_note;
 
     function mount()
     {
@@ -90,6 +91,32 @@ class SalesReport extends Component
         $this->details = $sale->details;
         $this->dispatch('show-detail');
     }
+
+    function getSaleDetailNote(Sale $sale)
+    {
+        $this->salesObt = $sale;
+        $this->sale_id = $sale->id;
+        $this->details = $sale->details;
+        $this->sale_note = $sale->notes; // Populate the sale_note property
+        $this->dispatch('show-detail-note');
+    }
+
+
+    public function saveSaleNote()
+    {
+        $this->validate([
+            'sale_note' => 'nullable|string',
+        ]);
+
+        $this->salesObt->update([
+            'notes' => $this->sale_note,
+        ]);
+
+        $this->dispatch('noty', msg: 'Nota de venta actualizada correctamente');
+        $this->dispatch('close-detail-note'); // Close the modal
+        return;
+    }
+
     #[On('DestroySale')]
     public function DestroySale($saleId)
     {

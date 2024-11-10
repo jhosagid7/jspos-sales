@@ -178,7 +178,9 @@
             });
         }
 
-
+        Livewire.on('close-process-order', event => {
+            $('#modalProcessOrder').modal('hide')
+        })
 
     }) // livewire init
 
@@ -235,5 +237,9 @@
 
     function initPartialPay() {
         $('#modalPartialPayment').modal('show')
+    }
+
+    function processOrder() {
+        $('#modalProcessOrder').modal('show')
     }
 </script>
