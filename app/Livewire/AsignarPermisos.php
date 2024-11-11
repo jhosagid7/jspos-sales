@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\User;
 use Livewire\Component;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 
@@ -17,7 +18,7 @@ class AsignarPermisos extends Component
     {
         session(['map' => '', 'child' => '', 'pos' => 'Asignación de Roles y Permisos']);
 
-        $this->users = User::orderBy('name')->get();
+        $this->users = User::orderBy('id')->get();
         $this->roles = Role::with('permissions')->orderBy('name')->get();
         if (count($this->roles) > 0) {
             $this->role = Role::find($this->roles[0]->id);
@@ -61,7 +62,7 @@ class AsignarPermisos extends Component
                 $this->dispatch('noty', msg: 'Se asignó el rol ' . $role->name . ' al usuario ' . $user->name);
             }
 
-            //
+            $this->UpdateProfileRoleUser($userId, $this->getRoleName($roleId));
         } catch (\Exception $th) {
             $this->dispatch('noty', msg: "Error al intentar asignar el role: {$th->getMessage()} ");
         }
@@ -114,5 +115,30 @@ class AsignarPermisos extends Component
         } else {
             $this->dispatch('noty', msg: 'No se encuentra en sistema el role seleccionado');
         }
+    }
+
+    public function UpdateProfileRoleUser($userId = null, $role)
+    {
+        try {
+            DB::beginTransaction();
+
+            $order = User::findOrFail($userId);
+            $order->update([
+                'profile' => $role,
+
+            ]);
+
+            DB::commit();
+        } catch (\Exception $th) {
+            DB::rollBack();
+            $this->dispatch('noty', msg: "Error al intentar actualizar el role $role del usuario \n {$th->getMessage()}");
+        }
+    }
+
+
+    public function getRoleName($roleId)
+    {
+        $role = Role::where('id', $roleId)->first();
+        return $role->name;
     }
 }

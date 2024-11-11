@@ -231,9 +231,32 @@
                 Livewire.dispatch('cancelSale')
             }
         });
+
+
     }
 
+    function DestroyOrder(rowId) {
+        swal({
+            title: '¿CONFIRMAS ELIMINAR LA ORDEN?',
+            text: "",
+            icon: "warning",
+            buttons: true,
+            dangerMode: true,
+            buttons: {
+                cancel: "Cancelar",
+                catch: {
+                    text: "Aceptar"
+                }
+            },
+        }).then((willDestroy) => {
+            if (willDestroy) {
+                Livewire.dispatch('DestroyOrder', {
+                    orderId: rowId
+                })
+            }
+        });
 
+    }
 
     function initPartialPay() {
         $('#modalPartialPayment').modal('show')

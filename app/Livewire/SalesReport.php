@@ -17,7 +17,7 @@ class SalesReport extends Component
     use  WithPagination;
 
     public $pagination = 10, $users = [], $user_id, $dateFrom, $dateTo, $showReport = false, $type = 0;
-    public $totales = 0, $sale_id, $details = [];
+    public $totales = 0, $sale_id, $sale_status, $details = [];
     public $salesObt;
     public $sale_note;
 
@@ -86,8 +86,10 @@ class SalesReport extends Component
 
     function getSaleDetail(Sale $sale)
     {
+        // dd($sale->status);
         $this->salesObt = $sale;
         $this->sale_id = $sale->id;
+        $this->sale_status = $sale->status;
         $this->details = $sale->details;
         $this->dispatch('show-detail');
     }
@@ -127,7 +129,7 @@ class SalesReport extends Component
             $sale = Sale::findOrFail($saleId);
             $sale->update([
                 'status' => 'returned', // o 'deleted'
-                'delete_at' => Carbon::now(),
+                'deleted_at' => Carbon::now(),
             ]);
 
             $saleDetails = SaleDetail::where('sale_id', $saleId)->get();
@@ -139,9 +141,11 @@ class SalesReport extends Component
             DB::commit();
 
             $this->dispatch('noty', msg: 'Venta eliminada correctamente');
+            return;
         } catch (\Exception $th) {
             DB::rollBack();
             $this->dispatch('noty', msg: "Error al intentar eliminar la venta \n {$th->getMessage()}");
+            return;
         }
     }
 }

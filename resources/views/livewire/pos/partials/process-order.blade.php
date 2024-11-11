@@ -48,9 +48,9 @@
                                                 <button class="btn btn-primary"
                                                     wire:click.prevent="loadOrderToCart({{ $order->id }})">Agregar al
                                                     carrito</button>
-                                                @if ($order->status != 'returned')
+                                                @if ($order->status != 'deleted')
                                                     <button class="border-0 btn btn-outline-dark btn-xs"
-                                                        onclick="Confirm({{ $order->id }})">
+                                                        onclick="DestroyOrder({{ $order->id }})">
                                                         <i class="icofont icofont-trash fa-2x"></i>
                                                     </button>
                                                 @endif

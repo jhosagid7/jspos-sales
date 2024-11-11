@@ -3,7 +3,7 @@
 namespace App\Traits;
 
 use Carbon\Carbon;
-use App\Models\Sale;
+use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Configuration;
 use Illuminate\Support\Facades\Log;
@@ -16,51 +16,47 @@ use Jhosagid\Invoices\Classes\Seller;
 use Jhosagid\Invoices\Classes\InvoiceItem;
 
 
-trait PdfInvoiceTrait
+trait PdfOrderInvoiceTrait
 {
 
-    public function generatePdfInvoice(Sale $sale)
+    public function generatePdfInvoice(Order $order)
     {
         try {
             // dd($sale);
             $config = Configuration::first();
 
             if ($config) {
-                if ($sale->status == 'paid') {
-                    // dd($sale->status);
-                    return $this->generatePdfInvoicePaid($sale);
+                if ($order->status == 'processed') {
+                    return $this->generatePdfOrderInvoiceProcessed($order);
                 }
-                if ($sale->status == 'pending') {
-                    // dd($sale->status);
-                    return $this->generatePdfInvoicePending($sale);
+                if ($order->status == 'pending') {
+                    return $this->generatePdfOrderInvoicePending($order);
                 }
             } else {
-                Log::info("La tabla configurations está vacía, no es posible imprimir la venta");
+                Log::info("La tabla configurations está vacía, no es posible imprimir la ordern");
             }
         } catch (\Exception $th) {
-            Log::info("Error al intentar imprimir la remisión de venta \n {$th->getMessage()}");
+            Log::info("Error al intentar imprimir la remisión de orden \n {$th->getMessage()}");
         }
     }
 
-    public function generatePdfInvoicePaid($sale)
+    public function generatePdfOrderInvoiceProcessed($order)
     {
         try {
             $config = Configuration::first();
 
             if ($config) {
 
-                // $sale = Sale::with(['customer', 'user', 'details', 'details.product'])->find($sale->id);
-
                 $seller = new Party([
                     'name'          => $config->business_name,
                     'CC/NIT'           => $config->taxpayer_id,
                     'address'       => $config->address,
                     'city'           => $config->city,
-                    'phone'         => $sale->customer->phone,
+                    'phone'         => $config->phone,
 
                     'custom_fields' => [
-                        'email'         => $sale->customer->email,
-                        'vendedor'        => $sale->user->name,
+                        'email'         => $order->customer->email,
+                        'vendedor'        => $order->user->name,
 
                     ],
                 ]);
@@ -70,11 +66,11 @@ trait PdfInvoiceTrait
 
 
                     'custom_fields' => [
-                        'CC/NIT'           => $sale->customer->taxpayer_id,
-                        'address'       => $sale->customer->address,
-                        'city'           => $sale->customer->city,
-                        'phone'         => $sale->customer->phone,
-                        'email'         => $sale->customer->email,
+                        'CC/NIT'           => $order->customer->taxpayer_id,
+                        'address'       => $order->customer->address,
+                        'city'           => $order->customer->city,
+                        'phone'         => $order->customer->phone,
+                        'email'         => $order->customer->email,
                     ],
                 ]);
 
@@ -128,7 +124,7 @@ trait PdfInvoiceTrait
         }
     }
 
-    public function generatePdfInvoicePending($sale)
+    public function generatePdfOrderInvoicePending($order)
     {
 
         try {

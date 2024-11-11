@@ -138,36 +138,51 @@
                             <h6 class="txt-primary">${{ $totalCart }}</h6>
                         </div>
                     </div>
-                    <div class="card-header-right-icon create-right-btn"><a wire:click.prevent="storeOrder"
-                            class="btn btn-light-primary f-w-500 f-18" href="javascript:void(0)">Guardar orden +</a>
-                    </div>
-                    <h5 class="m-0 p-t-40">Método de Pago</h5>
-                    <div class="payment-methods">
-                        <div wire:click="initPayment(1)">
-                            <div class="bg-payment widget-hover"> <img
-                                    src="../assets/images/dashboard-8/payment-option/cash.svg" alt="cash"></div>
-                            <span class="f-w-500 text-gray">Efectivo</span>
+                    @can('guardar ordenes de ventas')
+                        <div class="card-header-right-icon create-right-btn btn-block mt-2 w-100"><button
+                                wire:click.prevent="storeOrder" class="btn btn-light-primary f-w-500 f-18 w-100"><i
+                                    class="icofont icofont-save fa-1x m-2"></i><span>Gurardar</span>
+                                orden</button>
                         </div>
-                        <div wire:click="initPayment(2)">
-                            <div class="bg-payment widget-hover"> <img
-                                    src="../assets/images/dashboard-8/payment-option/card.svg" alt="card"></div>
-                            <span class="f-w-500 text-gray">Crédito</span>
+                    @endcan
+                    @can('metodos de pago')
+                        <h5 class="m-0 p-t-40">Método de Pago</h5>
+                        <div class="payment-methods">
+                            @can('pago con efectivo/nequi')
+                                <div wire:click="initPayment(1)">
+                                    <div class="bg-payment widget-hover"> <img
+                                            src="../assets/images/dashboard-8/payment-option/cash.svg" alt="cash"></div>
+                                    <span class="f-w-500 text-gray">Efectivo</span>
+                                </div>
+                            @endcan
+                            @can('pago con credito')
+                                <div wire:click="initPayment(2)">
+                                    <div class="bg-payment widget-hover"> <img
+                                            src="../assets/images/dashboard-8/payment-option/card.svg" alt="card"></div>
+                                    <span class="f-w-500 text-gray">Crédito</span>
+                                </div>
+                            @endcan
+                            @can('pago con Banco')
+                                <div wire:click="initPayment(3)">
+                                    <div class="bg-payment widget-hover"> <img
+                                            src="../assets/images/dashboard-8/payment-option/wallet.svg" alt="wallet"></div>
+                                    <span class="f-w-500 text-gray">Banco</span>
+                                </div>
+                            @endcan
+                            @can('pago con Nequi')
+                                <div wire:click="initPayment(4)">
+                                    <div class="bg-payment widget-hover"> <img src="../logo/nequi.webp" alt="wallet">
+                                    </div>
+                                    <span class="f-w-500 text-gray">Nequi</span>
+                                </div>
+                            @endcan
                         </div>
-                        <div wire:click="initPayment(3)">
-                            <div class="bg-payment widget-hover"> <img
-                                    src="../assets/images/dashboard-8/payment-option/wallet.svg" alt="wallet"></div>
-                            <span class="f-w-500 text-gray">Banco</span>
-                        </div>
-                        <div wire:click="initPayment(4)">
-                            <div class="bg-payment widget-hover"> <img src="../logo/nequi.webp" alt="wallet">
-                            </div>
-                            <span class="f-w-500 text-gray">Nequi</span>
-                        </div>
-                    </div>
-                    {{-- <div class="place-order">
-                        <button class="btn btn-primary btn-hover-effect w-100 f-w-500" type="button">Place
-                            Order</button>
-                    </div> --}}
+                        {{-- <div class="place-order">
+                            <button class="btn btn-primary btn-hover-effect w-100 f-w-500" type="button"><i
+                                    class="icofont icofont-save fa-1x m-2"></i>Guradar
+                                orden de venta</button>
+                        </div> --}}
+                    @endcan
                 </div>
             </div>
         </div>

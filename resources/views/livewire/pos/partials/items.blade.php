@@ -158,7 +158,9 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center">Agrega productos al carrito</td>
+                                <td colspan="6" class="text-center">Agrega productos al carrito
+                                    {{ Auth::user()->roles[0]->name }}
+                                </td>
                             </tr>
                         @endforelse
 
