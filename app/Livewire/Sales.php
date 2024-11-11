@@ -30,7 +30,6 @@ class Sales extends Component
     use JsonTrait;
     use WithPagination;
 
-
     public Collection $cart;
     public $taxCart = 0, $itemsCart, $subtotalCart = 0, $totalCart = 0, $ivaCart = 0;
 
@@ -87,7 +86,6 @@ class Sales extends Component
         }
     }
 
-
     function updatedCashAmount()
     {
         if (floatval($this->totalCart) > 0) {
@@ -131,9 +129,7 @@ class Sales extends Component
             $this->cart = new Collection;
         }
 
-
-
-        session(['map' => 'Ventas', 'child' => ' Componente ', 'pos' => 'MÓDULO DE VENTAS']);
+        session(['map' => 'Ventas', 'child' => ' Componente ', 'pos' => 'MÓDULO DE dddVENTAS']);
 
         $this->config = Configuration::first();
 
@@ -177,11 +173,6 @@ class Sales extends Component
     {
         //limpiamos el carrito
 
-        // $this->order_id = null;
-
-
-        // dd('ver...', $this->order_id);
-
         $this->resetExcept('config', 'banks', 'bank');
         $this->clear();
         session()->forget('sale_customer');
@@ -210,17 +201,15 @@ class Sales extends Component
         $this->dispatch('close-process-order');
     }
 
-
     public function getOrdersWithDetails()
     {
-
         if (empty(trim($this->search))) {
             return Order::whereHas('customer')
                 ->where('status', 'pending')
                 ->orderBy('orders.id', 'desc')
                 ->paginate($this->pagination);
         } else {
-            $search = strtolower(trim($this->search)); // Normalizar a minúsculas y eliminar espacios
+            $search = strtolower(trim($this->search));
 
             return Order::where(function ($query) use ($search) {
                 // Búsqueda por el nombre del cliente
@@ -277,7 +266,6 @@ class Sales extends Component
         $this->dispatch('close-detail-note'); // Close the modal
         return;
     }
-
 
     // cart methods
     function ScanningCode($barcode)
@@ -522,7 +510,6 @@ class Sales extends Component
         return   $this->cart->count();
     }
 
-
     public function subtotalCart()
     {
         $subt = $this->cart->sum(function ($product) {
@@ -554,7 +541,6 @@ class Sales extends Component
         $this->customer = $customer;
     }
 
-
     function initPayment($type)
     {
         $this->payType = $type;
@@ -567,7 +553,6 @@ class Sales extends Component
         $this->dispatch('initPay', payType: $type);
     }
 
-    //save sale
     function Store()
     {
         $type = $this->payType;
@@ -678,6 +663,8 @@ class Sales extends Component
 
             DB::commit();
 
+            $this->UpdateStatusOrder($this->order_id, 'processed');
+
             $this->dispatch('noty', msg: 'VENTA REGISTRADA CON ÉXITO');
             $this->dispatch('close-modalPay', element: $type == 3 ? 'modalDeposit' : ($type == 4 ? 'modalNequi' : 'modalCash'));
             $this->resetExcept('config', 'banks', 'bank');
@@ -707,8 +694,6 @@ class Sales extends Component
 
     public function storeOrder()
     {
-
-        // dd(collect(session("cart")));
         DB::beginTransaction();
         try {
             //store sale
@@ -717,13 +702,10 @@ class Sales extends Component
                 return;
             }
             if ($this->customer == null) {
-                // dd('llegue...', $this->order_id);
                 $this->dispatch('noty', msg: 'SELECCIONA EL CLIENTE');
                 return;
             }
-            // dd($this->order_id);
             $notes = null;
-
 
             if ($this->order_id) {
                 // Actualiza la orden existente
@@ -814,7 +796,6 @@ class Sales extends Component
         return true;
     }
 
-
     function storeCustomer()
     {
         $this->resetValidation();
@@ -860,6 +841,45 @@ class Sales extends Component
             $this->printSale($sale->id);
         } else {
             $this->dispatch('noty', msg: 'NO HAY VENTAS REGISTRADAS');
+        }
+    }
+
+    #[On('DestroyOrder')]
+    public function DestroyOrder($orderId)
+    {
+        $this->UpdateStatusOrder($orderId, 'deleted');
+    }
+
+    public function UpdateStatusOrder($orderId = null, $status)
+    {
+        try {
+            DB::beginTransaction();
+
+            $order = Order::findOrFail($orderId);
+            if ($status == 'deleted') {
+
+                $order->update([
+                    'status' => $status,
+                    'deleted_at' => Carbon::now(),
+                ]);
+                $msg = 'eliminada';
+            }
+            if ($status == 'processed') {
+
+                $order->update([
+                    'status' => $status,
+                ]);
+                $msg = 'procesada';
+            }
+
+
+            DB::commit();
+
+
+            $this->dispatch('noty', msg: "Orden $msg correctamente");
+        } catch (\Exception $th) {
+            DB::rollBack();
+            $this->dispatch('noty', msg: "Error al intentar $status la orden \n {$th->getMessage()}");
         }
     }
 }

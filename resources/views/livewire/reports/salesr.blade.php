@@ -105,28 +105,32 @@
                                         <td data-container="body" data-bs-toggle="tooltip" data-bs-placement="top"
                                             data-bs-html="true" data-bs-title="<b>Ver los detalles de la venta</b>">
 
-                                            @if ($sale->status != 'returned')
-                                                <button class="border-0 btn btn-outline-dark btn-xs"
-                                                    onclick="Confirm({{ $sale->id }})">
-                                                    <i class="fa fa-trash fa-2x"></i>
-                                                </button>
-                                            @endif
 
-                                            <button wire:click.prevent="getSaleDetailNote({{ $sale->id }})"
+                                            <button {{ $sale->status == 'returned' ? 'disabled' : '' }}
+                                                class="border-0 btn btn-outline-dark btn-xs"
+                                                onclick="Confirm({{ $sale->id }})">
+                                                <i class="icofont icofont-trash fa-2x"></i>
+                                            </button>
+
+                                            <button {{ $sale->status == 'returned' ? 'disabled' : '' }}
+                                                wire:click.prevent="getSaleDetailNote({{ $sale->id }})"
                                                 class="border-0 btn btn-outline-dark btn-xs">
                                                 <i class="icofont icofont-edit-alt fa-2x"></i>
                                             </button>
+
+
+
                                             <button wire:click.prevent="getSaleDetail({{ $sale->id }})"
                                                 class="border-0 btn btn-outline-dark btn-xs">
                                                 <i class="icofont icofont-list fa-2x"></i>
                                             </button>
-                                            @if ($sale->status != 'returned')
-                                                <a class="border-0 btn btn-outline-dark btn-xs link-offset-2 link-underline link-underline-opacity-0"
-                                                    href="{{ route('pos.sales.generatePdfInvoice', $sale->id) }}"
-                                                    target="_blank"><i
-                                                        class="text-danger icofont icofont-file-pdf fa-2x"></i>
-                                                </a>
-                                            @endif
+
+                                            <a class="border-0 btn btn-outline-dark btn-xs link-offset-2 link-underline link-underline-opacity-0 {{ $sale->status == 'returned' ? 'disabled' : '' }}"
+                                                href="{{ route('pos.sales.generatePdfInvoice', $sale->id) }}"
+                                                target="_blank"><i
+                                                    class="text-danger icofont icofont-file-pdf fa-2x"></i>
+                                            </a>
+
                                         </td>
 
                                     </tr>
@@ -155,6 +159,19 @@
         @include('livewire.reports.sale-detail')
         @include('livewire.reports.sale-detail-note')
     </div>
+    @push('my-styles')
+        <style>
+            .swal-text {
+                background-color: #FEFAE3;
+                padding: 17px;
+                border: 1px solid #F0E1A1;
+                display: block;
+                margin: 22px;
+                text-align: center;
+                color: #61534e;
+            }
+        </style>
+    @endpush
 
 
     <script>
@@ -201,27 +218,63 @@
 
         })
 
+
         function Confirm(rowId) {
+            // Genera un número aleatorio de 3 cifras
+            const randomNum = Math.floor(100 + Math.random() * 900); // Genera un número entre 100 y 999
+            const confirmationSum = rowId + randomNum; // Suma el número de factura y el número aleatorio
+
+            // Muestra el número que el operador debe proporcionar
+
             swal({
-                title: '¿CONFIRMAS ELIMINAR LA VENTA?',
-                text: "",
+                title: `Número de Confirmación\n\n`,
+                text: `El número que debes proporcionar al administrador es:\n\n` + `${confirmationSum}\n\n` +
+                    `Por favor, ingresa el código de confirmación para eliminar la venta:`,
+                content: {
+                    element: "input",
+                    attributes: {
+                        placeholder: "Código de confirmación",
+                        type: "text",
+                    },
+                },
                 icon: "warning",
                 buttons: true,
                 dangerMode: true,
                 buttons: {
                     cancel: "Cancelar",
-                    catch: {
-                        text: "Aceptar"
+                    confirm: {
+                        text: "Aceptar",
+                        closeModal: false // No cerrar el modal automáticamente
                     }
                 },
-            }).then((willDestroy) => {
-                if (willDestroy) {
+            }).then((value) => {
+                if (value === null) {
+                    // El usuario canceló
+                    return;
+                }
+
+                // Calcula el código de confirmación
+                const today = new Date();
+                const day = today.getDate();
+                const month = today.getMonth() + 1; // Los meses son 0-indexed
+                const confirmationCode = confirmationSum + day + month + 77;
+
+                // Verifica el código de confirmación
+                if (parseInt(value) === confirmationCode) {
+                    // Si el código es correcto, procede a eliminar la venta
                     Livewire.dispatch('DestroySale', {
                         saleId: rowId
-                    })
+                    });
+                    swal("Venta eliminada exitosamente!", {
+                        icon: "success",
+                    });
+                } else {
+                    // Si el código es incorrecto, muestra un mensaje de error
+                    swal("Código incorrecto. Intenta de nuevo.", {
+                        icon: "error",
+                    });
                 }
             });
-
         }
     </script>
 </div>

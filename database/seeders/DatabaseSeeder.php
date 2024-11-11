@@ -91,28 +91,33 @@ class DatabaseSeeder extends Seeder
             'name' => 'Jhonny Pirela',
             'email' => 'jhosagid7@gmail.com',
             'password' => bcrypt('jhosagid'),
-            'profile' => 'Administrador'
+            'profile' => 'Admin'
         ]);
 
         // test role
-        $adminRole = Role::create(['name' => 'Administrador']);
+        $adminRole = Role::create(['name' => 'Admin']);
 
         // create permissions
         Permission::insert([
             ['name' => 'ventas', 'guard_name' => 'web'],
-            ['name' => 'compras', 'guard_name' => 'web'],
-            ['name' => 'inventarios', 'guard_name' => 'web'],
             ['name' => 'usuarios', 'guard_name' => 'web'],
+            ['name' => 'settings', 'guard_name' => 'web'],
+            ['name' => 'roles', 'guard_name' => 'web'],
+            ['name' => 'reportes', 'guard_name' => 'web'],
+            ['name' => 'proveedores', 'guard_name' => 'web'],
+            ['name' => 'productos', 'guard_name' => 'web'],
+            ['name' => 'personal', 'guard_name' => 'web'],
+            ['name' => 'pago con efectivo/nequi', 'guard_name' => 'web'],
+            ['name' => 'pago con credito', 'guard_name' => 'web'],
+            ['name' => 'pago con Banco', 'guard_name' => 'web'],
+            ['name' => 'metodos de pago', 'guard_name' => 'web'],
+            ['name' => 'inventarios', 'guard_name' => 'web'],
+            ['name' => 'guardar ordenes de ventas', 'guard_name' => 'web'],
+            ['name' => 'compras', 'guard_name' => 'web'],
             ['name' => 'clientes', 'guard_name' => 'web'],
             ['name' => 'categorias', 'guard_name' => 'web'],
-            ['name' => 'productos', 'guard_name' => 'web'],
-            ['name' => 'roles', 'guard_name' => 'web'],
-            ['name' => 'asignacion', 'guard_name' => 'web'],
-            ['name' => 'proveedores', 'guard_name' => 'web'],
-            ['name' => 'reportes', 'guard_name' => 'web'],
             ['name' => 'catalogos', 'guard_name' => 'web'],
-            ['name' => 'personal', 'guard_name' => 'web'],
-            ['name' => 'settings', 'guard_name' => 'web'],
+            ['name' => 'asignacion', 'guard_name' => 'web'],
         ]);
 
         // sync permissions to admin
