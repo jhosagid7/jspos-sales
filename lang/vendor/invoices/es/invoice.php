@@ -41,6 +41,7 @@ return [
     'due'                    => 'Programado',
     'page'                   => 'Pagina',
     'remission'              => 'N° REMISION',
+    'order'                  => 'N° ORDEN',
     'amount_due'              => 'Neto a pagar',
     'city'              => 'Ciudad',
     'seller'              => 'Vendedoras',
