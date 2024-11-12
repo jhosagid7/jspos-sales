@@ -19,10 +19,10 @@ use Jhosagid\Invoices\Classes\InvoiceItem;
 trait PdfOrderInvoiceTrait
 {
 
-    public function generatePdfInvoice(Order $order)
+    public function generatePdfOrderInvoice(Order $order)
     {
         try {
-            // dd($sale);
+            // dd($order);
             $config = Configuration::first();
 
             if ($config) {
@@ -30,6 +30,7 @@ trait PdfOrderInvoiceTrait
                     return $this->generatePdfOrderInvoiceProcessed($order);
                 }
                 if ($order->status == 'pending') {
+                    // dd($order);
                     return $this->generatePdfOrderInvoicePending($order);
                 }
             } else {
@@ -62,7 +63,7 @@ trait PdfOrderInvoiceTrait
                 ]);
 
                 $customer = new Party([
-                    'name'          => $sale->customer->name,
+                    'name'          => $order->customer->name,
 
 
                     'custom_fields' => [
@@ -74,24 +75,24 @@ trait PdfOrderInvoiceTrait
                     ],
                 ]);
 
-                foreach ($sale->details as $detail) {
+                foreach ($order->details as $detail) {
 
                     $items[] = InvoiceItem::make($detail->product->name)->reference($detail->product->sku ? $detail->product->sku : '')->pricePerUnit($detail->sale_price)->quantity($detail->quantity);
                 }
 
                 $notes = [
-                    $sale->notes
+                    $order->notes
                 ];
                 $notes = implode("<br>", $notes);
 
-                $credit_days = $sale->type == 'credit' ? $config->credit_days : 0;
+                $credit_days = $order->type == 'credit' ? $config->credit_days : 0;
 
-                $invoice = Invoice::make($config->business_name)->template('invoice-paid-short')
-                    ->series('remision_numero')
+                $invoice = Invoice::make($config->business_name)->template('invoice-order-processed')
+                    ->series('orden-de-compra-numero')
                     // ability to include translated invoice status
                     // in case it was paid
                     ->status(__('invoices::invoice.paid'))
-                    ->sequence($sale->id)
+                    ->sequence($order->id)
                     ->serialNumberFormat('{SEQUENCE}')
                     ->seller($seller)
                     ->buyer($customer)
@@ -132,53 +133,53 @@ trait PdfOrderInvoiceTrait
 
             if ($config) {
 
-                // $sale = Sale::with(['customer', 'user', 'details', 'details.product'])->find($sale->id);
+                // $order = Sale::with(['customer', 'user', 'details', 'details.product'])->find($sale->id);
 
                 $seller = new Party([
                     'name'          => $config->business_name,
                     'vat'           => $config->taxpayer_id,
                     'address'       => $config->address,
                     'city'           => 'Bogota',
-                    'phone'         => $sale->customer->phone,
+                    'phone'         => $order->customer->phone,
 
                     'custom_fields' => [
-                        'email'         => $sale->customer->email,
-                        'vendedor'        => $sale->user->name,
+                        'email'         => $order->customer->email,
+                        'vendedor'        => $order->user->name,
 
                     ],
                 ]);
 
                 $customer = new Party([
-                    'name'          => $sale->customer->name,
+                    'name'          => $order->customer->name,
 
 
                     'custom_fields' => [
-                        'CC/NIT'           => $sale->customer->taxpayer_id,
-                        'address'       => $sale->customer->address,
-                        'city'           => $sale->customer->city,
-                        'phone'         => $sale->customer->phone,
-                        'email'         => $sale->customer->email,
+                        'CC/NIT'           => $order->customer->taxpayer_id,
+                        'address'       => $order->customer->address,
+                        'city'           => $order->customer->city,
+                        'phone'         => $order->customer->phone,
+                        'email'         => $order->customer->email,
                     ],
                 ]);
 
-                foreach ($sale->details as $detail) {
+                foreach ($order->details as $detail) {
 
                     $items[] = InvoiceItem::make($detail->product->name)->reference($detail->product->sku ? $detail->product->sku : '')->pricePerUnit($detail->sale_price)->quantity($detail->quantity);
                 }
 
                 $notes = [
-                    $sale->notes,
+                    $order->notes,
                 ];
                 $notes = implode("<br>", $notes);
 
-                $credit_days = $sale->type == 'credit' ? $config->credit_days : 0;
+                $credit_days = $order->type == 'credit' ? $config->credit_days : 0;
 
-                $invoice = Invoice::make($config->business_name)->template('invoice-credit-short')
-                    ->series('remision_numero')
+                $invoice = Invoice::make($config->business_name)->template('invoice-order-pending')
+                    ->series('orden-de-compra-numero')
                     // ability to include translated invoice status
                     // in case it was paid
                     ->status(__('invoices::invoice.credit'))
-                    ->sequence($sale->id)
+                    ->sequence($order->id)
                     ->serialNumberFormat('{SEQUENCE}')
                     ->seller($seller)
                     ->buyer($customer)
@@ -204,10 +205,10 @@ trait PdfOrderInvoiceTrait
                 // And return invoice itself to browser or have a different view
                 return $invoice->stream();
             } else {
-                Log::info("La tabla configurations está vacía, no es posible imprimir la venta");
+                Log::info("La tabla configurations está vacía, no es posible imprimir la orden");
             }
         } catch (\Exception $th) {
-            Log::info("Error al intentar imprimir la remisión de venta \n {$th->getMessage()}");
+            Log::info("Error al intentar imprimir la remisión de orden \n {$th->getMessage()}");
         }
     }
 
