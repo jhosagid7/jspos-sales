@@ -21,12 +21,14 @@ use App\Models\Configuration;
 use App\Traits\PdfInvoiceTrait;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use App\Traits\PdfOrderInvoiceTrait;
 
 class Sales extends Component
 {
     use UtilTrait;
     use PrintTrait;
     use PdfInvoiceTrait;
+    use PdfOrderInvoiceTrait;
     use JsonTrait;
     use WithPagination;
 
@@ -663,7 +665,7 @@ class Sales extends Component
 
             DB::commit();
 
-            $this->UpdateStatusOrder($this->order_id, 'processed');
+            $this->order_id ? $this->UpdateStatusOrder($this->order_id, 'processed') : '';
 
             $this->dispatch('noty', msg: 'VENTA REGISTRADA CON ÉXITO');
             $this->dispatch('close-modalPay', element: $type == 3 ? 'modalDeposit' : ($type == 4 ? 'modalNequi' : 'modalCash'));
@@ -718,8 +720,7 @@ class Sales extends Component
                         'items' => $this->itemsCart,
                         'customer_id' => $this->customer['id'],
                         'user_id' => Auth()->user()->id,
-                        'status' => 'pending',
-                        'notes' => $notes
+                        'status' => 'pending'
                     ]);
 
                     // Actualiza los detalles de la orden
@@ -748,8 +749,7 @@ class Sales extends Component
                     'items' => $this->itemsCart,
                     'customer_id' => $this->customer['id'],
                     'user_id' => Auth()->user()->id,
-                    'status' => 'pending',
-                    'notes' => $notes
+                    'status' => 'pending'
                 ]);
 
                 // Obtiene el carrito de la sesión
@@ -847,7 +847,7 @@ class Sales extends Component
     #[On('DestroyOrder')]
     public function DestroyOrder($orderId)
     {
-        $this->UpdateStatusOrder($orderId, 'deleted');
+        $orderId ? $this->UpdateStatusOrder($orderId, 'deleted') : '';
     }
 
     public function UpdateStatusOrder($orderId = null, $status)
