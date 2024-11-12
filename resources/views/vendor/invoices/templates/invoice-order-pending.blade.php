@@ -261,6 +261,9 @@
     .text-green{
         color:#77b632
     }
+    .text-grey-light{
+        color:#848180;
+    }
 
     .text-warning{
         color:#ffbb00
@@ -273,6 +276,9 @@
     }
     .cool-green {
         color:#77b632;
+    }
+    .cool-grey-lihgt {
+        color:#848180;
     }
     .title-data{
         font-size:14px;
@@ -322,7 +328,7 @@
                         </h4>
                     </td>
                     <td class="clearfix pl-0 border-0 invoice-details" width="15%">
-                        <p > <strong class="order-title text-green">{{ $invoice->getSerialNumber() }}</strong>
+                        <p > <strong class="order-title text-grey-light">{{ $invoice->getSerialNumber() }}</strong>
                         <b> <br>{{ __('invoices::invoice.order') }}</b>
                         </p>
 
@@ -387,7 +393,7 @@
 
                             <p class="buyer-name">
                                 @if($invoice->status)
-                                    <strong class="title-data text-green">{{ $invoice->status }}</strong>
+                                    <strong class="title-data text-grey-light">{{ $invoice->status }}</strong>
                                 <br>
                                 @endif
 
@@ -400,7 +406,7 @@
                                 @endif
                                 <br>
                                 @endforeach
-                        {{ __('invoices::invoice.amount_due') }}: <strong class="text-green title-data">{{ $invoice->formatCurrency($invoice->total_amount) }}</strong>
+                        {{ __('invoices::invoice.amount_due') }}: <strong class="text-grey-lihgt title-data">{{ $invoice->formatCurrency($invoice->total_amount) }}</strong>
 
 
 
