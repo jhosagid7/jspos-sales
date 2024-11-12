@@ -91,7 +91,7 @@ trait PdfOrderInvoiceTrait
                     ->series('orden-de-compra-numero')
                     // ability to include translated invoice status
                     // in case it was paid
-                    ->status(__('invoices::invoice.paid'))
+                    ->status(__('invoices::invoice.order_processed'))
                     ->sequence($order->id)
                     ->serialNumberFormat('{SEQUENCE}')
                     ->seller($seller)
@@ -178,7 +178,7 @@ trait PdfOrderInvoiceTrait
                     ->series('orden-de-compra-numero')
                     // ability to include translated invoice status
                     // in case it was paid
-                    ->status(__('invoices::invoice.credit'))
+                    ->status(__('invoices::invoice.order_pending'))
                     ->sequence($order->id)
                     ->serialNumberFormat('{SEQUENCE}')
                     ->seller($seller)
