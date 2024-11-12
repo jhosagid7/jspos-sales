@@ -4,7 +4,7 @@
             <div class="modal-content">
                 <div class="modal-header bg-primary">
                     <h5 class="modal-title">Procesar Ordenes</h5>
-                    <button class="btn-close py-0" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button class="py-0 btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     @if ($order_selected_id == null)
@@ -62,6 +62,11 @@
                                                     class="border-0 btn btn-outline-dark btn-xs">
                                                     <i class="icofont icofont-list fa-2x"></i>
                                                 </button>
+                                                <a class="border-0 btn btn-outline-dark btn-xs link-offset-2 link-underline link-underline-opacity-0 {{ $order->status == 'returned' ? 'disabled' : '' }}"
+                                                    href="{{ route('pos.orders.generatePdfOrderInvoice', $order->id) }}"
+                                                    target="_blank"><i
+                                                        class="text-danger icofont icofont-file-pdf fa-2x"></i>
+                                                </a>
                                             </td>
                                         </tr>
                                     @empty
