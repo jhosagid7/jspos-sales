@@ -44,4 +44,6 @@ return [
     'order'                  => 'Order No.',
     'amount_due:'            => 'Amount Due',
     'city'                   => 'City',
+    'order_processed'        => 'Order processed',
+    'order_pending'          => 'Order pending',
 ];
