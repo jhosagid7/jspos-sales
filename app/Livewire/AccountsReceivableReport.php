@@ -46,13 +46,15 @@ class AccountsReceivableReport extends Component
 
     function mount()
     {
+        session()->forget('account_customer');
         $this->banks = Bank::orderBy('sort')->get();
         session(['map' => "", 'child' => '', 'pos' => 'Reporte de Cuentas por Cobrar']);
     }
 
     public function render()
     {
-        $this->customer =  session('sale_customer', null);
+        // $this->customer =  session('sale_customer', null);
+        $this->customer = session('account_customer', null);
 
         return view('livewire.reports.accounts-receivable-report', [
             'sales' => $this->getReport()
@@ -60,10 +62,10 @@ class AccountsReceivableReport extends Component
     }
 
 
-    #[On('sale_customer')]
+    #[On('account_customer')]
     function setSupplier($customer)
     {
-        session(['sale_customer' => $customer]);
+        session(['account_customer' => $customer]);
         $this->customer = $customer;
     }
 

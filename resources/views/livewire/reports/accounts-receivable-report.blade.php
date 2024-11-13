@@ -215,7 +215,7 @@
                     onChange: function(value) {
                         var customer = this.options[value]
                         // console.log( value)
-                        Livewire.dispatch('sale_customer', {
+                        Livewire.dispatch('account_customer', {
                             customer: customer
                         })
 
