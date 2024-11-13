@@ -50,6 +50,49 @@ class Sales extends Component
 
     public $search = '';
 
+    function setCustomPrice($uid, $price)
+    {
+        $price = trim(str_replace('$', '', $price));
+
+        if (!is_numeric($price)) {
+            $this->dispatch('noty', msg: 'EL VALOR DEL PRECIO ES INCORRECTO');
+            return;
+        }
+
+        $mycart = $this->cart;
+
+        $oldItem = $mycart->where('id', $uid)->first();
+
+
+        $newItem = $oldItem;
+        $newItem['sale_price'] = $price;
+
+        $values = $this->Calculator($newItem['sale_price'], $newItem['qty']);
+
+        $newItem['tax'] = $values['iva'];
+
+        $newItem['total'] = $this->formatAmount($values['total']);
+
+
+        //delete from cart
+        $this->cart = $this->cart->reject(function ($product) use ($uid) {
+            return $product['id'] === $uid || $product['pid'] === $uid;
+        });
+
+        $this->save();
+
+        //add item to cart
+        $this->cart->push(Arr::add(
+            $newItem,
+            null,
+            null
+        ));
+
+        $this->save();
+        $this->dispatch('refresh');
+        $this->dispatch('noty', msg: 'PRECIO ACTUALIZADO');
+    }
+
     function updatedSearch3()
     {
         if (Strlen($this->search3) > 1) {
@@ -57,11 +100,20 @@ class Sales extends Component
                 ->where('sku', 'like', "%{$this->search3}%")
                 ->orWhere('name', 'like', "%{$this->search3}%")
                 ->get();
+
             if (count($this->products) == 0) {
                 $this->dispatch('noty', msg: 'NO EXISTE EL CÓDIGO ESCANEADO');
             }
+
+            if (is_object($this->products) && count($this->products) == 1 && $this->products->first() !== null && ($this->products->first()->sku == $this->search3)) {
+                $this->AddProduct($this->products->first());
+                $this->search3 = '';
+                $this->products = null; // or $this->products = new \Illuminate\Support\Collection();
+                $this->dispatch('refresh');
+            }
         } else {
             $this->search3 = '';
+            $this->dispatch('refresh');
             $this->products = [];
             $this->dispatch('noty', msg: 'NO EXISTE EL CÓDIGO ESCANEADO');
         }
@@ -270,18 +322,24 @@ class Sales extends Component
     }
 
     // cart methods
-    function ScanningCode($barcode)
-    {
-        $product = Product::with('priceList')
-            ->where('sku', "%{$barcode}%")
-            ->orWhere('name', 'like', "%{$barcode}%")
-            ->first();
-        if ($product) {
-            $this->AddProduct($product);
-        } else {
-            $this->dispatch('noty', msg: 'NO EXISTE EL CÓDIGO ESCANEADO');
-        }
-    }
+    // #[On('ScanningCode')]
+    // function ScanningCode($barcode)
+    // {
+    //     dd($barcode);
+    //     $product = Product::with('priceList')
+    //         ->where('sku', "%{$barcode}%")
+    //         ->orWhere('name', 'like', "%{$barcode}%")
+    //         ->first();
+    //     if ($product) {
+
+
+    //         $this->AddProduct($product);
+    //     } else {
+
+
+    //         $this->dispatch('noty', msg: 'NO EXISTE EL CÓDIGO ESCANEADO');
+    //     }
+    // }
 
     function AddProduct(Product $product, $qty = 1)
     {
@@ -694,6 +752,7 @@ class Sales extends Component
         }
     }
 
+    #[On('storeOrder')]
     public function storeOrder()
     {
         DB::beginTransaction();
@@ -833,7 +892,7 @@ class Sales extends Component
         $this->reset('cname', 'cphone', 'ctaxpayerId', 'cemail', 'caddress', 'ccity', 'ctype');
         $this->dispatch('close-modal-customer-create');
     }
-
+    #[On('printLast')]
     function printLast()
     {
         $sale = Sale::latest()->first();
@@ -881,5 +940,10 @@ class Sales extends Component
             DB::rollBack();
             $this->dispatch('noty', msg: "Error al intentar $status la orden \n {$th->getMessage()}");
         }
+    }
+    #[On('ver')]
+    public function ver()
+    {
+        dd('ver');
     }
 }
