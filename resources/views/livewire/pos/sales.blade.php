@@ -5,8 +5,8 @@
         </div>
         <div class="col-sm-12 col-md-3">
             <div class="card customer-sticky">
-                <div class="card-header card-no-border pb-3">
-                    <div class="header-top border-bottom pb-3">
+                <div class="pb-3 card-header card-no-border">
+                    <div class="pb-3 header-top border-bottom">
                         <h5 class="m-0">Resumen </h5>
                         <div class="card-header-right-icon create-right-btn"><a class="btn btn-light-primary f-w-500 f-12"
                                 href="javascript:void(0)" data-bs-toggle="modal"
@@ -22,7 +22,7 @@
                                         <button class="btn-close" type="button" data-bs-dismiss="modal"
                                             aria-label="Close"></button>
                                     </div>
-                                    <div class="modal-body p-0">
+                                    <div class="p-0 modal-body">
                                         <div class="text-start dark-sign-up">
                                             <div class="modal-body">
                                                 <form class="row g-3 needs-validation" novalidate="">
@@ -106,7 +106,7 @@
 
                     </div>
                 </div>
-                <div class="card-body pt-0 order-details">
+                <div class="pt-0 card-body order-details">
 
                     @if ($customer != null)
                         <span> {{ $customer['name'] ?? '' }} <i class="icofont icofont-verification-check"></i></span>
@@ -120,7 +120,7 @@
                     </div> --}}
 
                     <div class="input-group" wire:ignore>
-                        <input class="form-control" type="text" id="inputCustomer" placeholder="Alt+Z">
+                        <input class="form-control" type="text" id="inputCustomer" placeholder="Shift + C">
                         <span class="input-group-text list-light">
                             <i class="search-icon" data-feather="user"></i>
                         </span>
@@ -134,15 +134,24 @@
                                 class="f-w-500">${{ $subtotalCart }}</span></div>
                         <div class="item-number border-bottom"><span class="text-gray">I.V.A.</span><span
                                 class="f-w-500">${{ $ivaCart }}</span></div>
-                        <div class="item-number pt-3 pb-0"><span class="f-w-700">TOTAL</span>
+                        <div class="pt-3 pb-0 item-number"><span class="f-w-700">TOTAL</span>
                             <h6 class="txt-primary">${{ $totalCart }}</h6>
                         </div>
                     </div>
                     @can('guardar ordenes de ventas')
-                        <div class="card-header-right-icon create-right-btn btn-block mt-2 w-100"><button
+                        {{-- <div class="mt-2 card-header-right-icon create-right-btn btn-block w-100"><button
                                 wire:click.prevent="storeOrder" class="btn btn-light-primary f-w-500 f-18 w-100"><i
-                                    class="icofont icofont-save fa-1x m-2"></i><span>Gurardar</span>
-                                orden</button>
+                                    class="m-2 icofont icofont-save fa-1x"></i><span>Gurardar </span>
+                                orden <small class="f-0 small sm">Shift + G</small></button>
+                        </div> --}}
+
+                        <div class="mt-2 card-header-right-icon create-right-btn btn-block w-100">
+                            <button wire:click.prevent="storeOrder" class="btn btn-light-primary f-w-500 f-18 w-100">
+                                <i class="m-2 icofont icofont-save fa-1x"></i>
+                                <span>Gurardar orden</span>
+
+                                <small class="f-0 small sm text-muted font-weight-bold">Shift + G</small>
+                            </button>
                         </div>
                     @endcan
                     @can('metodos de pago')
@@ -179,7 +188,7 @@
                         </div>
                         {{-- <div class="place-order">
                             <button class="btn btn-primary btn-hover-effect w-100 f-w-500" type="button"><i
-                                    class="icofont icofont-save fa-1x m-2"></i>Guradar
+                                    class="m-2 icofont icofont-save fa-1x"></i>Guradar
                                 orden de venta</button>
                         </div> --}}
                     @endcan
@@ -187,6 +196,8 @@
             </div>
         </div>
     </div>
+    <script src="{{ asset('assets/js/keypress.js') }}"></script>
+
 
     @include('livewire.pos.partials.payCash')
     @include('livewire.pos.partials.payNequi')
@@ -194,5 +205,6 @@
     @include('livewire.pos.partials.process-order')
     @include('livewire.pos.partials.order-detail')
     @include('livewire.pos.partials.script')
+    @include('livewire.pos.partials.shortcuts')
 
 </div>

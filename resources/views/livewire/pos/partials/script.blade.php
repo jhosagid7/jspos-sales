@@ -3,52 +3,52 @@
     var inputTom
     document.onkeydown = function(e) {
 
-        // f1 focus search
-        if (e.keyCode == '112') {
-            e.preventDefault()
-            document.getElementById('inputSearch').value = ''
-            document.getElementById('inputSearch').focus()
-        }
+        // // f1 focus search
+        // if (e.keyCode == '112') {
+        //     e.preventDefault()
+        //     document.getElementById('inputSearch').value = ''
+        //     document.getElementById('inputSearch').focus()
+        // }
 
         //f6 => precio iva
-        if (e.keyCode == '117') {
-            e.preventDefault()
-            document.getElementById('inputPrecioIva').value = ''
-            document.getElementById('inputPrecioIva').focus()
-        }
+        // if (e.keyCode == '117') {
+        //     e.preventDefault()
+        //     document.getElementById('inputPrecioIva').value = ''
+        //     document.getElementById('inputPrecioIva').focus()
+        // }
 
-        //f2 => clientes
-        if (e.keyCode == '113') {
-            e.preventDefault()
-            $('#modalTempClient').modal('show')
-        }
+        // //f2 => clientes
+        // if (e.keyCode == '113') {
+        //     e.preventDefault()
+        //     $('#modalTempClient').modal('show')
+        // }
 
-        // f3 => giro empresa
-        if (e.keyCode == '114') {
-            e.preventDefault()
-            $('#modalTempGiro').modal('show')
-        }
+        // // f3 => giro empresa
+        // if (e.keyCode == '114') {
+        //     e.preventDefault()
+        //     $('#modalTempGiro').modal('show')
+        // }
 
-        // F9 registrar venta (efectivo y tarjetas)
-        if (e.keyCode == '120') {
-            e.preventDefault()
-            $('#btnFormasPago').trigger('click')
-            //cardVisible('cardSave','cardTotales')
-        }
-        // F10
+        // // F9 registrar venta (efectivo y tarjetas)
+        // if (e.keyCode == '120') {
+        //     e.preventDefault()
+        //     $('#btnFormasPago').trigger('click')
+        //     //cardVisible('cardSave','cardTotales')
+        // }
+        // // F10
 
-        if (e.keyCode == '121') {
-            e.preventDefault()
-            $('#btnSaveSale').trigger('click')
-        }
+        // if (e.keyCode == '121') {
+        //     e.preventDefault()
+        //     $('#btnSaveSale').trigger('click')
+        // }
 
-        //alt +z
-        if (e.altKey && e.key === 'z') {
-            inputTom = document.getElementById('inputCustomer');
-            tomselect = input.tomselect
-            tomselect.clear()
-            tomselect.focus()
-        }
+        // //alt +z
+        // if (e.altKey && e.key === 'z') {
+        //     inputTom = document.getElementById('inputCustomer');
+        //     tomselect = input.tomselect
+        //     tomselect.clear()
+        //     tomselect.focus()
+        // }
 
 
     }
@@ -113,6 +113,7 @@
             document.getElementById('inputSearch').value = ''
             document.getElementById('inputSearch').focus()
         })
+
 
         Livewire.on('clear-input-price', event => {
 
@@ -264,5 +265,17 @@
 
     function processOrder() {
         $('#modalProcessOrder').modal('show')
+    }
+
+    function closePartialPayment() {
+        $('#modalPartialPayment').modal('hide')
+    }
+
+    function showCustomerCreate() {
+        $('#modalCustomerCreate').modal('show')
+    }
+
+    function closeCustomerCreate() {
+        $('#modalCustomerCreate').modal('hide')
     }
 </script>
