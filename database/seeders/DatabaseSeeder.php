@@ -77,7 +77,7 @@ class DatabaseSeeder extends Seeder
                 'address' => 'VENEZUELA',
                 'phone' => '5555555',
                 'taxpayer_id' => 'RUT123456',
-                'vat' => 16,
+                'vat' => 0,
                 'printer_name' => '80mm',
                 'leyend' => 'Gracias por su compra!',
                 'website' => 'https://jhonnypirela.dev',
@@ -87,6 +87,9 @@ class DatabaseSeeder extends Seeder
 
 
         // test user
+        // $this->call(CreatePermissionsSeeder::class);
+
+        //php artisan db:seed --class=CreatePermissionsSeeder
         $adminUser = User::create([
             'name' => 'Jhonny Pirela',
             'email' => 'jhosagid7@gmail.com',
@@ -99,25 +102,31 @@ class DatabaseSeeder extends Seeder
 
         // create permissions
         Permission::insert([
-            ['name' => 'ventas', 'guard_name' => 'web'],
-            ['name' => 'usuarios', 'guard_name' => 'web'],
-            ['name' => 'settings', 'guard_name' => 'web'],
-            ['name' => 'roles', 'guard_name' => 'web'],
-            ['name' => 'reportes', 'guard_name' => 'web'],
-            ['name' => 'proveedores', 'guard_name' => 'web'],
-            ['name' => 'productos', 'guard_name' => 'web'],
-            ['name' => 'personal', 'guard_name' => 'web'],
-            ['name' => 'pago con efectivo/nequi', 'guard_name' => 'web'],
-            ['name' => 'pago con credito', 'guard_name' => 'web'],
-            ['name' => 'pago con Banco', 'guard_name' => 'web'],
-            ['name' => 'metodos de pago', 'guard_name' => 'web'],
-            ['name' => 'inventarios', 'guard_name' => 'web'],
-            ['name' => 'guardar ordenes de ventas', 'guard_name' => 'web'],
-            ['name' => 'compras', 'guard_name' => 'web'],
-            ['name' => 'clientes', 'guard_name' => 'web'],
-            ['name' => 'categorias', 'guard_name' => 'web'],
-            ['name' => 'catalogos', 'guard_name' => 'web'],
             ['name' => 'asignacion', 'guard_name' => 'web'],
+            ['name' => 'catalogos', 'guard_name' => 'web'],
+            ['name' => 'categorias', 'guard_name' => 'web'],
+            ['name' => 'clientes', 'guard_name' => 'web'],
+            ['name' => 'compras', 'guard_name' => 'web'],
+            ['name' => 'corte-de-caja', 'guard_name' => 'web'],
+            ['name' => 'guardar ordenes de ventas', 'guard_name' => 'web'],
+            ['name' => 'inventarios', 'guard_name' => 'web'],
+            ['name' => 'metodos de pago', 'guard_name' => 'web'],
+            ['name' => 'pago con Banco', 'guard_name' => 'web'],
+            ['name' => 'pago con credito', 'guard_name' => 'web'],
+            ['name' => 'pago con efectivo/nequi', 'guard_name' => 'web'],
+            ['name' => 'pago con Nequi', 'guard_name' => 'web'],
+            ['name' => 'personal', 'guard_name' => 'web'],
+            ['name' => 'productos', 'guard_name' => 'web'],
+            ['name' => 'proveedores', 'guard_name' => 'web'],
+            ['name' => 'reporte-compras', 'guard_name' => 'web'],
+            ['name' => 'reporte-cuentas-cobrar', 'guard_name' => 'web'],
+            ['name' => 'reporte-cuentas-pagar', 'guard_name' => 'web'],
+            ['name' => 'reporte-ventas', 'guard_name' => 'web'],
+            ['name' => 'reportes', 'guard_name' => 'web'],
+            ['name' => 'roles', 'guard_name' => 'web'],
+            ['name' => 'settings', 'guard_name' => 'web'],
+            ['name' => 'usuarios', 'guard_name' => 'web'],
+            ['name' => 'ventas', 'guard_name' => 'web'],
         ]);
 
         // sync permissions to admin

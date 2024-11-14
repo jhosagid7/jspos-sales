@@ -18,7 +18,8 @@ class DataController extends Controller
         $clients = Customer::where('name', 'like', "%{$valueToSearch}%")
             ->orWhere('address', 'like', "%{$valueToSearch}%")
             ->orWhere('email', 'like', "%{$valueToSearch}%")
-            ->take(10)->get();
+            ->orWhere('taxtayer_id', 'like', "%{$valueToSearch}%")
+            ->get();
 
         return response()->json($clients);
     }
@@ -30,7 +31,7 @@ class DataController extends Controller
         $suppliers = Supplier::where('name', 'like', "%{$valueToSearch}%")
             ->orWhere('address', 'like', "%{$valueToSearch}%")
             ->orWhere('phone', 'like', "%{$valueToSearch}%")
-            ->take(10)->get();
+            ->get();
 
         return response()->json($suppliers);
     }
@@ -42,7 +43,7 @@ class DataController extends Controller
         $suppliers = Product::where('name', 'like', "%{$valueToSearch}%")
             ->orWhere('sku', 'like', "%{$valueToSearch}%")
             ->orderBy('name')
-            ->take(10)->get();
+            ->get();
 
         return response()->json($suppliers);
     }
