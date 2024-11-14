@@ -68,7 +68,8 @@
                                             </h6>
 
                                             <h6 class="font-dark">
-                                                Cliente: <span class="font-info">{{ $npurchase->supplier->name }}</span>
+                                                Proveedor: <span
+                                                    class="font-info">{{ $npurchase->supplier->name }}</span>
                                             </h6>
                                             <h6 class="font-dark">
                                                 Días transcurridos: <span
