@@ -81,7 +81,9 @@ class DatabaseSeeder extends Seeder
                 'printer_name' => '80mm',
                 'leyend' => 'Gracias por su compra!',
                 'website' => 'https://jhonnypirela.dev',
-                'credit_days' => 15
+                'credit_days' => 0,
+                'credit_purchase_days' => 0,
+                'confirmation_code' => 7,
             ]
         );
 

@@ -4,6 +4,7 @@ namespace App\Traits;
 
 use Carbon\Carbon;
 use App\Models\Sale;
+use App\Models\Purchase;
 use App\Models\Configuration;
 
 trait UtilTrait
@@ -117,6 +118,17 @@ trait UtilTrait
 
         if ($sales != null && $sales->count() > 0) {
             session(['noty_sales' => $sales]);
+        }
+    }
+    public function checkCreditPurchases()
+    {
+        $purchases = Purchase::where('type', 'credit')->where('status', 'pending')->orderBy('id', 'asc')
+            ->where('created_at', '<', Carbon::now()->subDays(session('settings')->credit_purchase_days))
+            ->with('supplier')
+            ->get();
+
+        if ($purchases != null && $purchases->count() > 0) {
+            session(['noty_purchases' => $purchases]);
         }
     }
 

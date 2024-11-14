@@ -21,6 +21,8 @@ class Configuration extends Model
         'printer_name',
         'leyend',
         'website',
-        'credit_days'
+        'credit_days',
+        'credit_purchase_days',
+        'confirmation_code'
     ];
 }
