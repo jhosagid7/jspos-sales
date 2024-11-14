@@ -7,7 +7,7 @@ use App\Models\Configuration;
 
 class Settings extends Component
 {
-    public $setting_id = 0, $businessName, $phone, $taxpayerId, $vat, $printerName, $website, $leyend, $creditDays = 15, $address, $city;
+    public $setting_id = 0, $businessName, $phone, $taxpayerId, $vat, $printerName, $website, $leyend, $creditDays = 15, $address, $city, $creditPurchaseDays, $confirmationCode;
 
     function mount()
     {
@@ -39,6 +39,8 @@ class Settings extends Component
             $this->leyend = $config->leyend;
             $this->website = $config->website;
             $this->creditDays = $config->credit_days;
+            $this->creditPurchaseDays = $config->credit_purchase_days;
+            $this->confirmationCode = $config->confirmation_code;
         }
     }
 
@@ -92,7 +94,9 @@ class Settings extends Component
                     'printer_name' => trim($this->printerName),
                     'leyend' => trim($this->leyend),
                     'website' => trim($this->website),
-                    'credit_days' => intval($this->creditDays)
+                    'credit_days' => intval($this->creditDays),
+                    'credit_purchase_days' => intval($this->creditPurchaseDays),
+                    'confirmation_code' => intval($this->confirmationCode)
                 ]
             );
 

@@ -15,4 +15,9 @@ class Payment extends Model
     {
         return $this->belongsTo(Sale::class);
     }
+
+    function payments()
+    {
+        return $this->hasMany(Payment::class)->orderBy('id', 'desc');
+    }
 }

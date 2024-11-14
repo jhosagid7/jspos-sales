@@ -6,23 +6,24 @@ use App\Livewire\Users;
 
 
 use App\Livewire\Tester;
+use App\Livewire\Welcome;
 use App\Events\PrintEvent;
 use App\Livewire\Products;
+use App\Livewire\Settings;
+use App\Livewire\CashCount;
 use App\Livewire\Customers;
 use App\Livewire\Inventory;
 use App\Livewire\Purchases;
 use App\Livewire\Suppliers;
 use App\Livewire\Categories;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\DataController;
-use App\Http\Controllers\ProfileController;
-use App\Livewire\AccountsReceivableReport;
-use App\Livewire\AsignarPermisos;
-use App\Livewire\CashCount;
-use App\Livewire\PurchasesReport;
 use App\Livewire\SalesReport;
-use App\Livewire\Settings;
-use App\Livewire\Welcome;
+use App\Livewire\AsignarPermisos;
+use App\Livewire\PurchasesReport;
+use Illuminate\Support\Facades\Route;
+use App\Livewire\AccountsPayableReport;
+use App\Http\Controllers\DataController;
+use App\Livewire\AccountsReceivableReport;
+use App\Http\Controllers\ProfileController;
 use Symfony\Component\HttpKernel\DataCollector\DataCollector;
 
 /*
@@ -86,6 +87,7 @@ Route::middleware('auth')->group(function () {
         Route::get('sales', SalesReport::class)->name('reports.sales')->middleware('can:reportes');
         Route::get('purchases', PurchasesReport::class)->name('reports.purchases')->middleware('can:reportes');
         Route::get('accounts-receivable', AccountsReceivableReport::class)->name('reports.accounts.receivable')->middleware('can:reportes');
+        Route::get('accounts-payables', AccountsPayableReport::class)->name('reports.accounts.payables')->middleware('can:reportes');
     });
 
     //corte de caja

@@ -46,7 +46,41 @@
         </div>
         <div class="p-0 nav-right col-xxl-7 col-xl-6 col-md-7 col-8 pull-right right-header ms-auto">
             <ul class="nav-menus">
+                @if (session()->has('noty_purchases'))
+                    <li class="onhover-dropdown">
+                        <div class="notification-box">
+                            <svg>
+                                <use href="../assets/svg/icon-sprite.svg#rate"></use>
+                            </svg><span
+                                class="badge rounded-pill badge-secondary">{{ session('noty_purchases')->count() }}
+                            </span>
+                        </div>
+                        <div class="onhover-show-div notification-dropdown">
 
+                            <h6 class="mb-0 f-18 dropdown-title">Compras Vencidas </h6>
+                            <ul>
+                                @foreach (session('noty_purchases') as $npurchase)
+                                    <li class="border-4 b-l-primary"
+                                        onclick="window.location='{{ route('reports.accounts.payables') }}';">
+                                        <div class="text-start">
+                                            <h6 class="font-dark">
+                                                Folio Compra: <span class="font-success">{{ $npurchase->id }}</span>
+                                            </h6>
+
+                                            <h6 class="font-dark">
+                                                Cliente: <span class="font-info">{{ $npurchase->supplier->name }}</span>
+                                            </h6>
+                                            <h6 class="font-dark">
+                                                Días transcurridos: <span
+                                                    class="font-danger">{{ app('fun')->overdue($npurchase->created_at, now()) }}</span>
+                                            </h6>
+                                        </div>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </li>
+                @endif
 
 
                 @if (session()->has('noty_sales'))

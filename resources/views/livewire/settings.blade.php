@@ -109,6 +109,25 @@
 
                         </div>
                     </div>
+                    <div class="mt-3 row">
+                        <div class="form-group col-sm-12 col-md-6">
+                            <span class="form-label">COMPRAS CRÉDITO (DÍAS)* <span class="txt-danger"></span></span>
+                            <input wire:model="creditPurchaseDays" class="form-control text-purple" type="text"
+                                maxlength="255">
+                            @error('city')
+                                <span class="text-danger">{{ $message }}</span>
+                            @enderror
+                        </div>
+                        <div class="form-group col-sm-12 col-md-6">
+                            <span>CODIGO DE CONFIRMACION<span class="txt-danger"></span></span>
+                            <textarea wire:model="confirmationCode" class="form-control text-purple" cols="30" rows="2"></textarea>
+
+                            @error('address')
+                                <span class="text-danger">{{ $message }}</span>
+                            @enderror
+
+                        </div>
+                    </div>
 
 
                     <div class="p-2 card-footer">

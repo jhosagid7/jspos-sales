@@ -36,4 +36,27 @@ class Purchase extends Model
     {
         return $this->belongsTo(User::class)->select('id', 'name');
     }
+
+    function payables()
+    {
+        return $this->hasMany(Payable::class)->orderBy('id', 'desc');
+    }
+
+    //scopes
+    // public function scopeWithDebt($query)
+    // {
+    //     return $query->addSelect([
+    //         'debt' => DB::raw('total - total_payments')
+    //     ])->withSum('payments', 'amount');
+    // }
+
+    //accessors
+    public function getDebtAttribute()
+    {
+        $totalPays = $this->payables->sum('amount');
+
+        $debt = $this->total - $totalPays;
+
+        return $debt;
+    }
 }

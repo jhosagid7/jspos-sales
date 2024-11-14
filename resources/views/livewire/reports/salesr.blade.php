@@ -112,7 +112,8 @@
                                                 <i class="icofont icofont-trash fa-2x"></i>
                                             </button>
 
-                                            <button {{ $sale->status == 'returned' ? 'disabled' : '' }}
+                                            <button
+                                                {{ $sale->status == 'returned' || $sale->status == 'paid' ? 'disabled' : '' }}
                                                 wire:click.prevent="getSaleDetailNote({{ $sale->id }})"
                                                 class="border-0 btn btn-outline-dark btn-xs">
                                                 <i class="icofont icofont-edit-alt fa-2x"></i>
@@ -223,6 +224,7 @@
             // Genera un número aleatorio de 3 cifras
             const randomNum = Math.floor(100 + Math.random() * 900); // Genera un número entre 100 y 999
             const confirmationSum = rowId + randomNum; // Suma el número de factura y el número aleatorio
+            const confirCode = {{ session('settings.confirmation_code') }}
 
             // Muestra el número que el operador debe proporcionar
 
@@ -257,7 +259,7 @@
                 const today = new Date();
                 const day = today.getDate();
                 const month = today.getMonth() + 1; // Los meses son 0-indexed
-                const confirmationCode = confirmationSum + day + month + 77;
+                const confirmationCode = confirmationSum + day + month + confirCode;
 
                 // Verifica el código de confirmación
                 if (parseInt(value) === confirmationCode) {

@@ -118,6 +118,10 @@
                                     <li><a href="{{ route('reports.accounts.receivable') }}"><span>Cuentas por
                                                 Cobrar</span></a></li>
                                 @endcan
+                                @can('reporte-cuentas-pagar')
+                                    <li><a href="{{ route('reports.accounts.payables') }}"><span>Cuentas por
+                                                Pagar</span></a></li>
+                                @endcan
                                 @can('corte-de-caja')
                                     <li><a href="{{ route('cash.count') }}"><span>Corte de Caja</span></a></li>
                                 @endcan

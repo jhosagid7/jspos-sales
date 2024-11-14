@@ -47,6 +47,7 @@ class Sales extends Component
     public $order_selected_id, $customer_name, $amount;
     public $order_id, $ordersObt, $order_note, $details = [];
     public $pagination = 5, $status;
+    public $confirmation_code = null;
 
     public $search = '';
 

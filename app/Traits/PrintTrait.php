@@ -4,6 +4,7 @@ namespace App\Traits;
 
 use Carbon\Carbon;
 use App\Models\Sale;
+use App\Models\Payable;
 use App\Models\Payment;
 use Mike42\Escpos\Printer;
 use App\Models\Configuration;
@@ -172,6 +173,88 @@ trait PrintTrait
 
                 $printer->text("=============================================" . "\n");
                 $printer->text("Atiende:" . $payment->sale->user->name . "\n");
+
+
+                $printer->feed(3);
+                $printer->cut();
+                $printer->close();
+            } else {
+                Log::info("La tabla configurations está vacía, no es posible imprimir el comprobante de pago");
+            }
+            //
+        } catch (\Exception $th) {
+            Log::info("Error al intentar imprimir el comprobante de pago \n {$th->getMessage()}");
+        }
+    }
+
+    // recibo de pago / abono
+    public  function printPayable($payId)
+    {
+        try {
+            $config = Configuration::first();
+
+            if ($config) {
+                $connector = new WindowsPrintConnector($config->printer_name);
+                $printer = new Printer($connector);
+                $printer->setJustification(Printer::JUSTIFY_CENTER);
+                $printer->setTextSize(2, 2);
+
+                $printer->text(strtoupper($config->business_name) . "\n");
+
+                $printer->setTextSize(1, 1);
+                $printer->text("$config->address \n");
+                $printer->text("NIT: $config->taxpayer_id \n");
+                $printer->text("TEL: $config->phone \n\n");
+
+                $printer->setJustification(Printer::JUSTIFY_CENTER);
+                $printer->text("==  Comprobante de Pago ==" . "\n\n");
+
+                $printer->setJustification(Printer::JUSTIFY_LEFT);
+
+                $payable = Payable::with('purchase')->where('id', $payId)->first();
+
+                $printer->text("Folio:" . $payable->id . "\n");
+                $printer->text("Fecha:" . Carbon::parse($payable->created_at)->format('d-m-Y H:i') . "\n");
+                $printer->text("Proveedor:" . $payable->purchase->supplier->name . "\n");
+                $printer->text("=============================================" . "\n");
+                $printer->text("Compra: $" . $payable->purchase->total . "\n");
+                $printer->text("Abono: $" . $payable->amount . "\n");
+
+                if ($payable->purchase->debt <= 0) {
+                    $printer->text("CRÉDITO LIQUIDADO \n");
+                } else {
+                    $printer->text("Deuda actual: $" . $payable->purchase->debt . "\n\n");
+                }
+
+                //    $printer->text("Forma de Pago:" . ($payment->pay_way == 'cash' ? 'EFECTIVO' : 'DEPÓSITO')  . "\n");
+
+                $printer->text("Forma de Pago: ");
+                switch ($payable->pay_way) {
+                    case 'cash':
+                        $printer->text("EFECTIVO\n");
+                        break;
+                    case 'deposit':
+                        $printer->text("DEPÓSITO\n");
+                        break;
+                    default:
+                        $printer->text("NEQUI\n");
+                }
+
+                if ($payable->pay_way == 'nequi') {
+                    $printer->text(ucfirst($payable->pay_way) . "\n");
+                    $printer->text("No. Teléfono:" . $payable->account_number . "\n");
+                }
+
+                if ($payable->pay_way == 'deposit') {
+                    $printer->text($payable->bank . "\n");
+                    $printer->text("No. Cuenta:" . $payable->account_number . "\n");
+                    $printer->text("No. Depósito:" . $payable->deposit_number . "\n");
+                }
+
+
+
+                $printer->text("=============================================" . "\n");
+                $printer->text("Atiende:" . $payable->purchase->user->name . "\n");
 
 
                 $printer->feed(3);

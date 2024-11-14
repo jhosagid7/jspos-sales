@@ -5,6 +5,7 @@ namespace App\Listeners;
 use Carbon\Carbon;
 use App\Models\Sale;
 use App\Models\Configuration;
+use App\Models\Purchase;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
@@ -44,11 +45,13 @@ class LoginSuccess
                 'address' => 'VENEZUELA',
                 'phone' => '5555555',
                 'taxpayer_id' => 'RUT123456',
-                'vat' => 16,
+                'vat' => 0,
                 'printer_name' => '80mm',
                 'leyend' => 'Gracias por su compra!',
                 'website' => 'jhonnypirela.dev',
-                'credit_days' => 15
+                'credit_days' => 15,
+                'credit_purchase_days' => 0,
+                'confirmation_code' => 7,
             ]);
         }
 
@@ -58,6 +61,7 @@ class LoginSuccess
 
         // buscar las ventas pendientes de credito por mas de 30 dias
         $this->checkCreditSales();
+        $this->checkCreditPurchases();
         // $sales = Sale::where('type', 'credit')->where('status', 'pending')->orderBy('id', 'asc')
         //     ->where('created_at', '<', Carbon::now()->subDays(session('settings')->credit_days))
         //     ->with('customer')
@@ -77,6 +81,17 @@ class LoginSuccess
 
         if ($sales != null && $sales->count() > 0) {
             session(['noty_sales' => $sales]);
+        }
+    }
+    public function checkCreditPurchases()
+    {
+        $purchases = Purchase::where('type', 'credit')->where('status', 'pending')->orderBy('id', 'asc')
+            ->where('created_at', '<', Carbon::now()->subDays(session('settings')->credit_purchase_days))
+            ->with('supplier')
+            ->get();
+
+        if ($purchases != null && $purchases->count() > 0) {
+            session(['noty_purchases' => $purchases]);
         }
     }
 }
