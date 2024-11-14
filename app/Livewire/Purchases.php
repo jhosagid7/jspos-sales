@@ -6,10 +6,11 @@ use Carbon\Carbon;
 use App\Models\Product;
 use Livewire\Component;
 use App\Models\Purchase;
+use App\Traits\UtilTrait;
 use Illuminate\Support\Arr;
 use Livewire\Attributes\On;
+use App\Models\Configuration;
 use App\Models\PurchaseDetail;
-use App\Traits\UtilTrait;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -21,6 +22,7 @@ class Purchases extends Component
     public $taxCart = 0, $itemsCart, $subtotalCart = 0, $totalCart = 0, $ivaCart = 0, $status = 'paid', $purchaseType = 'cash', $notes;
     public $supplier, $flete;
     public $search, $productSelected;
+    public $iva = 0, $config;
 
     public function mount()
     {
@@ -29,6 +31,8 @@ class Purchases extends Component
         } else {
             $this->cart = new Collection;
         }
+        $this->config = Configuration::first();
+        // dd($this->config);
 
         session(['map' => 'Compras', 'child' => ' Componente ', 'pos' => 'MÓDULO DE COMPRAS']);
     }
@@ -37,15 +41,24 @@ class Purchases extends Component
     public function render()
     {
 
-        $this->supplier =  session('purchase_supplier', null);
+        $this->config = Configuration::first();
         $this->flete =  session('flete', 0);
 
         $this->cart = $this->cart->sortBy('name');
         $this->taxCart = round($this->totalIVA(), 2);
         $this->itemsCart = $this->totalItems();
         $this->totalCart = round($this->totalCart() + floatval($this->flete), 2);
-        $this->subtotalCart = round($this->totalCart / 1.14, 2);
-        $this->ivaCart = round(($this->totalCart / 1.14) * 0.14, 2);
+
+        if ($this->config->vat > 0) {
+            $this->iva = $this->config->vat / 100;
+            $this->subtotalCart = round($this->subtotalCart() / (1 + $this->iva));
+            $this->ivaCart = round(($this->totalCart() / (1 + $this->iva)) * $this->iva);
+        } else {
+            $this->iva = $this->config->vat;
+            $this->subtotalCart = round($this->subtotalCart());
+            $this->ivaCart = round(0);
+        }
+        $this->supplier =  session('purchase_supplier', null);
 
         return view('livewire.purchases.purchases', [
             'searchResults' => $this->searchProduct()
@@ -90,9 +103,9 @@ class Purchases extends Component
     }
 
     //-------------------------------------------------------------------------//
-    //                  metodos locales del carrito 
+    //                  metodos locales del carrito
     //-------------------------------------------------------------------------//
-    /* puedes colocar toda la lógica siguiente en un trait 
+    /* puedes colocar toda la lógica siguiente en un trait
     o en un helper para hacerlo reutilizable en cualquier parte del proyecto */
     function AddProduct($product, $qty = 1)
     {
@@ -106,7 +119,37 @@ class Purchases extends Component
         $cost = 0;
         $total = 0;
 
+        if ($this->config->vat > 0) {
+            //iva venezuela 16%
+            $iva = ($this->config->vat / 100);
+
+            // precio unitario sin iva
+            $precioUnitarioSinIva =  $cost / (1 + $iva);
+            // subtotal neto
+            $subtotalNeto =   $precioUnitarioSinIva * $this->formatAmount($qty);
+            //monto iva
+            $montoIva = $subtotalNeto  * $iva;
+            //total con iva
+            $totalConIva =  $subtotalNeto + $montoIva;
+
+            $tax = $montoIva;
+            $total = $totalConIva;
+        } else {
+            // precio unitario sin iva
+            $precioUnitarioSinIva =  $cost;
+            // subtotal neto
+            $subtotalNeto =   $precioUnitarioSinIva * $this->formatAmount($qty);
+            //monto iva
+            $montoIva = 0;
+            //total con iva
+            $totalConIva =  $subtotalNeto + $montoIva;
+
+            $tax = $montoIva;
+            $total = $totalConIva;
+        }
+
         $uid = uniqid() . $product->id;
+        // dd('addProduct');
 
         $coll = collect(
             [
@@ -116,7 +159,7 @@ class Purchases extends Component
                 'cost' => $cost,
                 'qty' => floatval($qty),
                 'total' => $total,
-                'tax' => ($total / 1.14) * 0.14,
+                'tax' => $tax,
                 'flete' => array('flete_producto' =>  0, 'total_flete' => 0, 'valor_flete' => 0, 'nuevo_total' => 0),
 
 
@@ -153,14 +196,14 @@ class Purchases extends Component
 
         //$newItem['flete'] = $this->getItemFlete($newItem['total'], $newItem['qty'], $cost);
 
-        //delete from cart       
+        //delete from cart
         $this->cart = $this->cart->reject(function ($product) use ($uid) {
             return $product['id'] === $uid;
         });
 
         $this->save();
 
-        //add item to cart           
+        //add item to cart
         $this->cart->push(Arr::add(
             $newItem,
             null,
@@ -191,14 +234,14 @@ class Purchases extends Component
 
         $newItem['total'] = round($newItem['qty'] * $newItem['cost'], 2);
 
-        //delete from cart       
+        //delete from cart
         $this->cart = $this->cart->reject(function ($product) use ($uid) {
             return $product['id'] === $uid;
         });
 
         $this->save();
 
-        //add item to cart           
+        //add item to cart
         $this->cart->push(Arr::add(
             $newItem,
             null,
@@ -228,14 +271,14 @@ class Purchases extends Component
 
             $newItem['total'] = round($newItem['qty'] * $newItem['cost'], 2);
 
-            //delete from cart       
+            //delete from cart
             $this->cart = $this->cart->reject(function ($product) use ($uid) {
                 return $product['id'] === $uid;
             });
 
             $this->save();
 
-            //add item to cart           
+            //add item to cart
             $this->cart->push(Arr::add($newItem,  null,  null));
         } else {
             $this->cart = $this->cart->reject(function ($product) use ($uid) {
@@ -373,7 +416,7 @@ class Purchases extends Component
             return Product::where('name', 'like', "%{$this->search}%")
                 ->orWhere('sku', 'like', "%{$this->search}%")
                 ->orderBy('name')
-                ->take(6)->get();
+                ->take(1)->get();
         } else {
             return [];
         }
