@@ -20,7 +20,7 @@
                     <img class="img-fluid" width="50" height="50" src="{{ asset('logo/logo.jpg') }}"
                         alt="">
                     <b
-                        class="p-10 text-bold font-info ml-2">{{ session('settings') ? session('settings')->business_name : 'My company' }}</b>
+                        class="p-10 ml-2 text-bold font-info">{{ session('settings') ? session('settings')->business_name : 'My company' }}</b>
                 </a>
             </div>
             <div class="toggle-sidebar"><i class="status_toggle middle sidebar-toggle" data-feather="align-center"></i>
@@ -55,7 +55,8 @@
                                 class="badge rounded-pill badge-secondary">{{ session('noty_purchases')->count() }}
                             </span>
                         </div>
-                        <div class="onhover-show-div notification-dropdown">
+                        <div class="onhover-show-div notification-dropdown"
+                            style="max-height: 300px; overflow-y: auto;">
 
                             <h6 class="mb-0 f-18 dropdown-title">Compras Vencidas </h6>
                             <ul>
@@ -92,7 +93,8 @@
                             </svg><span class="badge rounded-pill badge-secondary">{{ session('noty_sales')->count() }}
                             </span>
                         </div>
-                        <div class="onhover-show-div notification-dropdown">
+                        <div class="onhover-show-div notification-dropdown"
+                            style="max-height: 300px; overflow-y: auto;">
 
                             <h6 class="mb-0 f-18 dropdown-title">Créditos Vencidos </h6>
                             <ul>

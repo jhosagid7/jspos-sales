@@ -18,7 +18,6 @@ class DataController extends Controller
         $clients = Customer::where('name', 'like', "%{$valueToSearch}%")
             ->orWhere('address', 'like', "%{$valueToSearch}%")
             ->orWhere('email', 'like', "%{$valueToSearch}%")
-            ->orWhere('taxtayer_id', 'like', "%{$valueToSearch}%")
             ->get();
 
         return response()->json($clients);
