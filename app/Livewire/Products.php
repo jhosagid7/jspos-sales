@@ -208,6 +208,7 @@ class Products extends Component
 
     function Update()
     {
+        dd($this->form);
         try {
             $this->resetErrorBag();
 

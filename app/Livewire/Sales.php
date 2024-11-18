@@ -453,7 +453,7 @@ class Sales extends Component
         // precio unitario sin iva
         $precioUnitarioSinIva =  $salePrice / (1 + $iva);
         // subtotal neto
-        $subtotalNeto =   $precioUnitarioSinIva * intval($qty);
+        $subtotalNeto =   $precioUnitarioSinIva * round(floatval($qty));
         //monto iva
         $montoIva = $subtotalNeto  * $iva;
         //total con iva
@@ -846,9 +846,9 @@ class Sales extends Component
 
     function validateCash()
     {
-        $total = floatval($this->totalCart);
-        $cash = floatval($this->cashAmount);
-        $nequi = floatval($this->nequiAmount);
+        $total = round(floatval($this->totalCart));
+        $cash = round(floatval($this->cashAmount));
+        $nequi = round(floatval($this->nequiAmount));
         if ($cash + $nequi < $total) {
             return false;
         }
