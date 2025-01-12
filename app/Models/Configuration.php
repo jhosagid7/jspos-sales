@@ -18,6 +18,7 @@ class Configuration extends Model
         'phone',
         'taxpayer_id',
         'vat',
+        'decimals',
         'printer_name',
         'leyend',
         'website',

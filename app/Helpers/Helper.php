@@ -3,6 +3,7 @@
 namespace App\Helpers;
 
 use Carbon\Carbon;
+use InvalidArgumentException;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 
@@ -71,5 +72,16 @@ class Helper
         } catch (\Throwable $th) {
             return '-0';
         }
+    }
+
+    function formatAmount(float $amount = 0.0): float|int
+    {
+        // Validación básica para asegurar que el valor sea numérico
+        if (!is_numeric($amount)) {
+            throw new InvalidArgumentException("El valor proporcionado no es numérico.");
+        }
+
+        // Verificar si tiene decimales y devolver el tipo correspondiente
+        return fmod($amount, 1) ? (float)$amount : (int)$amount;
     }
 }

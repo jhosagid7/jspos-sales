@@ -22,6 +22,8 @@ use App\Traits\PdfInvoiceTrait;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use App\Traits\PdfOrderInvoiceTrait;
+use App\Traits\SaleTrait;
+use App\Services\ConfigurationService;
 
 class Sales extends Component
 {
@@ -31,6 +33,7 @@ class Sales extends Component
     use PdfOrderInvoiceTrait;
     use JsonTrait;
     use WithPagination;
+    use SaleTrait;
 
     public Collection $cart;
     public $taxCart = 0, $itemsCart, $subtotalCart = 0, $totalCart = 0, $ivaCart = 0;
@@ -51,6 +54,7 @@ class Sales extends Component
 
     public $search = '';
 
+
     function setCustomPrice($uid, $price)
     {
         $price = trim(str_replace('$', '', $price));
@@ -64,16 +68,14 @@ class Sales extends Component
 
         $oldItem = $mycart->where('id', $uid)->first();
 
-
         $newItem = $oldItem;
         $newItem['sale_price'] = $price;
 
         $values = $this->Calculator($newItem['sale_price'], $newItem['qty']);
 
-        $newItem['tax'] = $values['iva'];
-
-        $newItem['total'] = $this->formatAmount($values['total']);
-
+        $decimals = ConfigurationService::getDecimalPlaces();
+        $newItem['tax'] = round($values['iva'], $decimals);
+        $newItem['total'] = $this->formatAmount(round($values['total'], $decimals));
 
         //delete from cart
         $this->cart = $this->cart->reject(function ($product) use ($uid) {
@@ -144,27 +146,34 @@ class Sales extends Component
     function updatedCashAmount()
     {
         if (floatval($this->totalCart) > 0) {
+            $decimals = ConfigurationService::getDecimalPlaces();
 
-            if (round(floatval($this->cashAmount))  >= floatval($this->totalCart)) {
+            if (round(floatval($this->cashAmount), $decimals) >= floatval($this->totalCart)) {
                 $this->nequiAmount = null;
                 $this->phoneNumber = null;
             }
 
-            $this->change = (round(floatval($this->cashAmount) + floatval($this->nequiAmount)) - floatval($this->totalCart));
+            $this->change = round(floatval($this->cashAmount) + floatval($this->nequiAmount) - floatval($this->totalCart), $decimals);
         }
     }
+
+
     function updatedNequiAmount()
     {
         if (floatval($this->totalCart) > 0) {
-            $this->change = (round(floatval($this->cashAmount) + floatval($this->nequiAmount)) - floatval($this->totalCart));
+            $decimals = ConfigurationService::getDecimalPlaces();
+            $this->change = round(floatval($this->cashAmount) + floatval($this->nequiAmount) - floatval($this->totalCart), $decimals);
         }
     }
+
     function updatedPhoneNumber()
     {
         if (floatval($this->totalCart) > 0 && $this->phoneNumber != '') {
-            $this->change = (round(floatval($this->cashAmount) + floatval($this->nequiAmount)) - floatval($this->totalCart));
+            $decimals = ConfigurationService::getDecimalPlaces();
+            $this->change = round(floatval($this->cashAmount) + floatval($this->nequiAmount) - floatval($this->totalCart), $decimals);
         } else {
-            $this->change = round(floatval($this->cashAmount) - floatval($this->totalCart));
+            $decimals = ConfigurationService::getDecimalPlaces();
+            $this->change = round(floatval($this->cashAmount) - floatval($this->totalCart), $decimals);
             $this->nequiAmount = 0;
         }
     }
@@ -184,7 +193,7 @@ class Sales extends Component
             $this->cart = new Collection;
         }
 
-        session(['map' => 'Ventas', 'child' => ' Componente ', 'pos' => 'MÓDULO DE dddVENTAS']);
+        session(['map' => 'Ventas', 'child' => ' Componente ', 'pos' => 'MÓDULO DE VENTAS']);
 
         $this->config = Configuration::first();
 
@@ -198,29 +207,29 @@ class Sales extends Component
         $this->order_id = null;
     }
 
-
     public function render()
     {
+        $decimals = ConfigurationService::getDecimalPlaces();
+
         $this->cart = $this->cart->sortByDesc('id');
-        $this->taxCart = round($this->totalIVA());
+        $this->taxCart = round($this->totalIVA(), $decimals);
         $this->itemsCart = $this->totalItems();
-        $this->totalCart = round($this->totalCart());
+        $this->totalCart = round($this->totalCart(), $decimals);
         if ($this->config->vat > 0) {
             $this->iva = $this->config->vat / 100;
-            $this->subtotalCart = round($this->subtotalCart() / (1 + $this->iva));
-            $this->ivaCart = round(($this->totalCart() / (1 + $this->iva)) * $this->iva);
+            $this->subtotalCart = round($this->subtotalCart() / (1 + $this->iva), $decimals);
+            $this->ivaCart = round(($this->totalCart() / (1 + $this->iva)) * $this->iva, $decimals);
         } else {
             $this->iva = $this->config->vat;
-            $this->subtotalCart = round($this->subtotalCart());
-            $this->ivaCart = round(0);
+            $this->subtotalCart = round($this->subtotalCart(), $decimals);
+            $this->ivaCart = round(0, $decimals);
         }
 
-        $this->customer =  session('sale_customer', null);
+        $this->customer = session('sale_customer', null);
         $orders = $this->getOrdersWithDetails();
         return view(
             'livewire.pos.sales',
             compact('orders')
-
         );
     }
 
@@ -322,26 +331,6 @@ class Sales extends Component
         return;
     }
 
-    // cart methods
-    // #[On('ScanningCode')]
-    // function ScanningCode($barcode)
-    // {
-    //     dd($barcode);
-    //     $product = Product::with('priceList')
-    //         ->where('sku', "%{$barcode}%")
-    //         ->orWhere('name', 'like', "%{$barcode}%")
-    //         ->first();
-    //     if ($product) {
-
-
-    //         $this->AddProduct($product);
-    //     } else {
-
-
-    //         $this->dispatch('noty', msg: 'NO EXISTE EL CÓDIGO ESCANEADO');
-    //     }
-    // }
-
     function AddProduct(Product $product, $qty = 1)
     {
         // Obtener la cantidad actual del producto en el carrito
@@ -372,34 +361,37 @@ class Sales extends Component
         else
             $salePrice =  $product->price;
 
-        //determinamos el precio de venta(con iva)
-        if ($this->config->vat > 0) {
-            //iva venezuela 16%
-            $iva = ($this->config->vat / 100);
+        // Obtener el número de decimales configurados
+        $decimals = ConfigurationService::getDecimalPlaces();
 
-            // precio unitario sin iva
+        // Obtener el IVA desde la configuración
+        $iva = ConfigurationService::getVat() / 100;
+
+        // Determinamos el precio de venta (con IVA)
+        if ($iva > 0) {
+            // Precio unitario sin IVA
             $precioUnitarioSinIva =  $salePrice / (1 + $iva);
-            // subtotal neto
+            // Subtotal neto
             $subtotalNeto =   $precioUnitarioSinIva * $this->formatAmount($qty);
-            //monto iva
+            // Monto IVA
             $montoIva = $subtotalNeto  * $iva;
-            //total con iva
+            // Total con IVA
             $totalConIva =  $subtotalNeto + $montoIva;
 
-            $tax = $montoIva;
-            $total = $totalConIva;
+            $tax = round($montoIva, $decimals);
+            $total = round($totalConIva, $decimals);
         } else {
-            // precio unitario sin iva
+            // Precio unitario sin IVA
             $precioUnitarioSinIva =  $salePrice;
-            // subtotal neto
+            // Subtotal neto
             $subtotalNeto =   $precioUnitarioSinIva * $this->formatAmount($qty);
-            //monto iva
+            // Monto IVA
             $montoIva = 0;
-            //total con iva
+            // Total con IVA
             $totalConIva =  $subtotalNeto + $montoIva;
 
-            $tax = $montoIva;
-            $total = $totalConIva;
+            $tax = round($montoIva, $decimals);
+            $total = round($totalConIva, $decimals);
         }
 
         $uid = uniqid() . $product->id;
@@ -446,24 +438,28 @@ class Sales extends Component
 
     function Calculator($price, $qty)
     {
-        //iva méxico 16%
-        $iva = ($this->config->vat / 100); // 0.16;
-        //determinamos el precio de venta(con iva)
+        // Obtener el número de decimales configurados
+        $decimals = ConfigurationService::getDecimalPlaces();
+
+        // Obtener el IVA desde la configuración
+        $iva = ConfigurationService::getVat() / 100;
+
+        // Determinamos el precio de venta (con IVA)
         $salePrice = $price;
-        // precio unitario sin iva
+        // Precio unitario sin IVA
         $precioUnitarioSinIva =  $salePrice / (1 + $iva);
-        // subtotal neto
-        $subtotalNeto =   $precioUnitarioSinIva * round(floatval($qty));
-        //monto iva
+        // Subtotal neto
+        $subtotalNeto =   $precioUnitarioSinIva * round(floatval($qty), $decimals);
+        // Monto IVA
         $montoIva = $subtotalNeto  * $iva;
-        //total con iva
+        // Total con IVA
         $totalConIva =  $subtotalNeto + $montoIva;
 
         return [
-            'sale_price' => $salePrice,
-            'neto' => $subtotalNeto,
-            'iva' => $montoIva,
-            'total' => $totalConIva
+            'sale_price' => round($salePrice, $decimals),
+            'neto' => round($subtotalNeto, $decimals),
+            'iva' => round($montoIva, $decimals),
+            'total' => round($totalConIva, $decimals)
         ];
     }
 
@@ -499,7 +495,6 @@ class Sales extends Component
         $product = Product::find($product_id);
 
         // Verificar si la cantidad total a agregar es mayor que el stock disponible
-
         if ($product->manage_stock == 1) {
             $newQty = $cant; // solo se agrega la cantidad que se está agregando
             if ($product->stock_qty < $newQty) {
@@ -516,8 +511,9 @@ class Sales extends Component
 
         // Calcular valores
         $values = $this->Calculator($newItem['sale_price'], $newItem['qty']);
-        $newItem['tax'] = $values['iva'];
-        $newItem['total'] = $this->formatAmount($values['total']);
+        $decimals = ConfigurationService::getDecimalPlaces();
+        $newItem['tax'] = round($values['iva'], $decimals);
+        $newItem['total'] = $this->formatAmount(round($values['total'], $decimals));
 
         // Actualizar el carrito
         $this->cart = $this->cart->reject(function ($product) use ($uid, $product_id) {
@@ -552,18 +548,20 @@ class Sales extends Component
 
     public function totalIVA()
     {
+        $decimals = ConfigurationService::getDecimalPlaces();
         $iva = $this->cart->sum(function ($product) {
             return $product['tax'];
         });
-        return $iva;
+        return round($iva, $decimals);
     }
 
     public function totalCart()
     {
+        $decimals = ConfigurationService::getDecimalPlaces();
         $amount = $this->cart->sum(function ($product) {
             return $product['total'];
         });
-        return $amount;
+        return round($amount, $decimals);
     }
 
     public function totalItems()
@@ -573,10 +571,11 @@ class Sales extends Component
 
     public function subtotalCart()
     {
+        $decimals = ConfigurationService::getDecimalPlaces();
         $subt = $this->cart->sum(function ($product) {
             return $product['qty'] * $product['sale_price'];
         });
-        return $subt;
+        return round($subt, $decimals);
     }
 
     public function save()
@@ -669,7 +668,10 @@ class Sales extends Component
             $notes = null;
 
             if ($type == 3) {
-                $notes = $this->banks->where('id', $this->bank)->first()->name;
+                $notes = $this->banks->where(
+                    'id',
+                    $this->bank
+                )->first()->name;
                 $notes .= ",N.Cta: {$this->acountNumber}";
                 $notes .= ",N.Deposito: {$this->depositNumber}";
             }
@@ -686,16 +688,18 @@ class Sales extends Component
                 $type = 5;
             }
 
+            $decimals = ConfigurationService::getDecimalPlaces();
+
             $sale = Sale::create([
-                'total' => $this->totalCart,
+                'total' => round($this->totalCart, $decimals),
                 'discount' => 0,
                 'items' => $this->itemsCart,
                 'customer_id' => $this->customer['id'],
                 'user_id' => Auth()->user()->id,
                 'type' => $type == 1 ? 'cash' : ($type == 2 ? 'credit' : ($type == 3 ? 'deposit' : ($type == 4 ? 'nequi' : 'cash/nequi'))),
                 'status' => ($type == 2 ?  'pending' : 'paid'),
-                'cash' => $this->cashAmount,
-                'change' => $type == 1 ? round((floatval($this->cashAmount) + floatval($this->nequiAmount)) - floatval($this->totalCart())) : 0,
+                'cash' => round($this->cashAmount, $decimals),
+                'change' => $type == 1 ? round((floatval($this->cashAmount) + floatval($this->nequiAmount)) - floatval($this->totalCart), $decimals) : 0,
                 'notes' => $notes
             ]);
 
@@ -703,13 +707,16 @@ class Sales extends Component
             $cart = collect(session("cart"));
 
             // insert sale detail
-            $details = $cart->map(function ($item) use ($sale) {
+            $details = $cart->map(function ($item) use ($sale, $decimals) {
                 return [
                     'product_id' => $item['pid'],
                     'sale_id' => $sale->id,
-                    'quantity' => $item['qty'],
-                    'regular_price' => $item['price2'] ?? 0,
-                    'sale_price' => $item['sale_price'],
+                    'quantity' => round($item['qty'], $decimals),
+                    'regular_price' => round(
+                        $item['price2'] ?? 0,
+                        $decimals
+                    ),
+                    'sale_price' => round($item['sale_price'], $decimals),
                     'created_at' => Carbon::now(),
                     'discount' => 0
                 ];
@@ -738,15 +745,10 @@ class Sales extends Component
             // base64 / printerapp
             $b64 = $this->jsonData($sale->id);
 
-            $this->dispatch('print-json', data: $b64);
-
-            // return redirect()->action(
-            //     [Self::class, 'generateInvoice'],
-            //     ['sale' => $sale]
-            // );
-            // return redirect()->name("pos.sales.generateInvoice");
-            // return $this->generateInvoice($sale);
-
+            $this->dispatch(
+                'print-json',
+                data: $b64
+            );
         } catch (\Exception $th) {
             DB::rollBack();
             $this->dispatch('noty', msg: "Error al intentar guardar la venta \n {$th->getMessage()}");
@@ -769,13 +771,15 @@ class Sales extends Component
             }
             $notes = null;
 
+            $decimals = ConfigurationService::getDecimalPlaces();
+
             if ($this->order_id) {
                 // Actualiza la orden existente
                 $order = Order::find($this->order_id);
 
                 if ($order) {
                     $order->update([
-                        'total' => $this->totalCart,
+                        'total' => round($this->totalCart, $decimals),
                         'discount' => 0,
                         'items' => $this->itemsCart,
                         'customer_id' => $this->customer['id'],
@@ -785,13 +789,13 @@ class Sales extends Component
 
                     // Actualiza los detalles de la orden
                     $cart = collect(session("cart"));
-                    $details = $cart->map(function ($item) use ($order) {
+                    $details = $cart->map(function ($item) use ($order, $decimals) {
                         return [
                             'product_id' => $item['pid'],
                             'order_id' => $order->id,
-                            'quantity' => $item['qty'],
-                            'regular_price' => $item['price1'] ?? 0,
-                            'sale_price' => $item['sale_price'],
+                            'quantity' => round($item['qty'], $decimals),
+                            'regular_price' => round($item['price1'] ?? 0, $decimals),
+                            'sale_price' => round($item['sale_price'], $decimals),
                             'created_at' => Carbon::now(),
                             'discount' => 0
                         ];
@@ -804,7 +808,7 @@ class Sales extends Component
             } else {
                 // Crea una nueva orden
                 $order = Order::create([
-                    'total' => $this->totalCart,
+                    'total' => round($this->totalCart, $decimals),
                     'discount' => 0,
                     'items' => $this->itemsCart,
                     'customer_id' => $this->customer['id'],
@@ -816,13 +820,13 @@ class Sales extends Component
                 $cart = collect(session("cart"));
 
                 // Inserta los detalles de la venta
-                $details = $cart->map(function ($item) use ($order) {
+                $details = $cart->map(function ($item) use ($order, $decimals) {
                     return [
                         'product_id' => $item['pid'],
                         'order_id' => $order->id,
-                        'quantity' => $item['qty'],
-                        'regular_price' => $item['price1'] ?? 0,
-                        'sale_price' => $item['sale_price'],
+                        'quantity' => round($item['qty'], $decimals),
+                        'regular_price' => round($item['price1'] ?? 0, $decimals),
+                        'sale_price' => round($item['sale_price'], $decimals),
                         'created_at' => Carbon::now(),
                         'discount' => 0
                     ];
@@ -846,9 +850,13 @@ class Sales extends Component
 
     function validateCash()
     {
-        $total = round(floatval($this->totalCart));
-        $cash = round(floatval($this->cashAmount));
-        $nequi = round(floatval($this->nequiAmount));
+        $decimals = ConfigurationService::getDecimalPlaces();
+        $total = round(floatval($this->totalCart), $decimals);
+        $cash = round(floatval($this->cashAmount), $decimals);
+        $nequi = round(
+            floatval($this->nequiAmount),
+            $decimals
+        );
         if ($cash + $nequi < $total) {
             return false;
         }
@@ -941,10 +949,5 @@ class Sales extends Component
             DB::rollBack();
             $this->dispatch('noty', msg: "Error al intentar $status la orden \n {$th->getMessage()}");
         }
-    }
-    #[On('ver')]
-    public function ver()
-    {
-        dd('ver');
     }
 }

@@ -21,6 +21,7 @@ class CreateConfigurationsTable extends Migration
             $table->string('phone', 20)->nullable();
             $table->string('taxpayer_id', 35)->nullable();
             $table->integer('vat')->default(0);
+            $table->integer('decimals')->default(2);
             $table->string('printer_name', 55)->nullable();
             $table->string('leyend', 99)->nullable();
             $table->string('website', 99)->nullable();

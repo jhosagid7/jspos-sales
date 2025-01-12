@@ -40,10 +40,18 @@
                             @enderror
                         </div>
 
-                        <div class="form-group col-sm-12 col-md-6">
+                        <div class="form-group col-sm-12 col-md-3">
                             <span>IVA / VAT <span class="txt-danger">*</span></span>
                             <input wire:model="vat" type="text" class="form-control text-purple " placeholder="">
                             @error('vat')
+                                <span class="text-danger">{{ $message }}</span>
+                            @enderror
+                        </div>
+                        <div class="form-group col-sm-12 col-md-3">
+                            <span>n° de Decimales <span class="txt-danger">*</span></span>
+                            <input wire:model="decimals" type="text" class="form-control text-purple "
+                                placeholder="">
+                            @error('decimals')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
                         </div>
