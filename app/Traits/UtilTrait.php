@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use App\Models\Sale;
 use App\Models\Purchase;
 use App\Models\Configuration;
+use App\Helpers\DecimalHelper;
 
 trait UtilTrait
 {
@@ -134,8 +135,8 @@ trait UtilTrait
 
     function formatAmount($amount)
     {
-        // Convert the value to float to ensure it is a decimal number
-        $amount = floatval($amount);
+        // Convert the value to a string to ensure it is handled as a decimal number
+        $amount = DecimalHelper::round($amount);
 
         // Check if the amount has decimals
         if (fmod($amount, 1) != 0) {

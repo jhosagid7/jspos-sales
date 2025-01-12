@@ -7,14 +7,11 @@ use App\Models\Configuration;
 
 class Settings extends Component
 {
-    public $setting_id = 0, $businessName, $phone, $taxpayerId, $vat, $printerName, $website, $leyend, $creditDays = 15, $address, $city, $creditPurchaseDays, $confirmationCode;
+    public $setting_id = 0, $businessName, $phone, $taxpayerId, $vat, $printerName, $website, $leyend, $creditDays = 15, $address, $city, $creditPurchaseDays, $confirmationCode, $decimals;
 
     function mount()
     {
         session(['map' => 'Configuraciones', 'child' => ' Sistema ', 'pos' => 'Settings']);
-
-
-
 
         $this->loadConfig();
     }
@@ -35,6 +32,7 @@ class Settings extends Component
             $this->phone = $config->phone;
             $this->taxpayerId = $config->taxpayer_id;
             $this->vat = $config->vat;
+            $this->decimals = $config->decimals;
             $this->printerName = $config->printer_name;
             $this->leyend = $config->leyend;
             $this->website = $config->website;
@@ -61,11 +59,11 @@ class Settings extends Component
         if (empty($this->taxpayerId)) {
             $this->addError('taxpayerId', 'Ingresa el RFC/RUT');
         }
-        // if (empty($this->vat)) {
-        //     $this->addError('vat', 'Ingresa el IVA');
-        // }
         if (!is_numeric($this->vat)) {
             $this->addError('vat', 'Ingresa el IVA en números!');
+        }
+        if (!is_numeric($this->decimals)) {
+            $this->addError('decimals', 'Ingresa el Decimales en números!');
         }
         if (empty($this->printerName)) {
             $this->addError('printerName', 'Ingresa la impresora');
@@ -91,6 +89,7 @@ class Settings extends Component
                     'phone' => trim($this->phone),
                     'taxpayer_id' => trim($this->taxpayerId),
                     'vat' => trim($this->vat),
+                    'decimals' => trim($this->decimals),
                     'printer_name' => trim($this->printerName),
                     'leyend' => trim($this->leyend),
                     'website' => trim($this->website),
