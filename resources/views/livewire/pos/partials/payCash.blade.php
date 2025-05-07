@@ -8,121 +8,123 @@
                 </div>
                 <div class="modal-body">
 
+                    <!-- Resumen del carrito -->
                     <div class="mb-1 light-card balance-card align-items-center">
                         <h6 class="mb-0 f-w-400 f-18">Artículos:</h6>
                         <div class="ms-auto text-end">
-                            <span class="f-18 f-w-700">
-                                {{ $itemsCart }}
-                            </span>
+                            <span class="f-18 f-w-700">{{ $itemsCart }}</span>
                         </div>
                     </div>
                     <div class="mb-1 light-card balance-card align-items-center">
                         <h6 class="mb-0 f-w-400 f-18">Subtotal:</h6>
                         <div class="ms-auto text-end">
-                            <span class="f-18 f-w-700">
-                                ${{ $subtotalCart }}
-                            </span>
+                            <span class="f-18 f-w-700">${{ $subtotalCart }}</span>
                         </div>
                     </div>
                     <div class="light-card balance-card align-items-center border-bottom">
                         <h6 class="mb-0 f-w-400 f-18">I.V.A.:</h6>
                         <div class="ms-auto text-end">
-                            <span class="f-18 f-w-700">
-                                ${{ $ivaCart }}
-                            </span>
+                            <span class="f-18 f-w-700">${{ $ivaCart }}</span>
                         </div>
                     </div>
                     <div class="light-card balance-card align-items-center">
                         <h6 class="f-w-700 f-18 mb-0 {{ $payType == 1 ? 'txt-dark' : 'txt-info' }}">TOTAL:</h6>
                         <div class="ms-auto text-end">
-                            <span class="f-18 f-w-700">
-                                ${{ $totalCart }}
-                            </span>
+                            <span class="f-18 f-w-700">${{ $totalCart }}</span>
                         </div>
                     </div>
 
-
-
                     @if ($payType == 1)
+                        <!-- Campo para ingresar el monto y selección de moneda -->
+                        <div class="mt-4 row">
+                            <!-- Campo para ingresar el monto -->
+                            <div class="col-md-6">
+                                <input class="form-control" oninput="validarInputNumber(this)"
+                                    wire:model.live.debounce.750ms="paymentAmount"
+                                    wire:keydown.enter.prevent='addPayment' type="number" placeholder="Monto"
+                                    id="inputCash">
+                            </div>
+
+                            <!-- Selección de moneda cargada dinámicamente -->
+                            <div class="col-md-6">
+                                <select class="form-control" wire:model.live="paymentCurrency">
+                                    @foreach ($currencies->sortByDesc('is_primary') as $currency)
+                                        <option value="{{ $currency->code }}">{{ $currency->label }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Botón para agregar el pago -->
+                        <div class="mt-3">
+                            <button class="btn btn-primary" wire:click="addPayment" type="button">
+                                Agregar Pago
+                            </button>
+                        </div>
+
+                        <!-- Tabla para mostrar los pagos realizados -->
+                        @if (count($payments) > 0)
+                            <div class="mt-4">
+                                <h6 class="mb-2 f-w-400 f-16">Pagos Realizados:</h6>
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Moneda</th>
+                                            <th>Monto</th>
+                                            <th>Conversión
+                                                ({{ $currencies->firstWhere('is_primary', 1)->label ?? 'Moneda Principal' }})
+                                            </th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($payments as $index => $payment)
+                                            <tr>
+                                                <td>{{ $payment['currency'] }}</td>
+                                                <td>${{ number_format($payment['amount'], 2) }}</td>
+                                                <td>${{ number_format($payment['amount_in_primary_currency'], 2) }}
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-danger btn-sm"
+                                                        wire:click="removePayment({{ $index }})">
+                                                        Eliminar
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+
+                        <!-- Mostrar monto restante -->
                         <div class="mt-4">
-                            <div class="position-relative">
-                                <select class="form-control crypto-select info" disabled>
-                                    <option>EFECTIVO:</option>
-                                </select>
-                                <input class="form-control" oninput="validarInputNumber(this)"
-                                    wire:model.live.debounce.750ms="cashAmount" wire:keydown.enter.prevent='Store'
-                                    type="number" id="inputCash">
+                            <h6 class="mb-0 f-w-400 f-16">Monto Restante:</h6>
+                            <div class="ms-auto text-end">
+                                <span class="f-16 txt-info">${{ $remainingAmount }}</span>
                             </div>
                         </div>
 
-                        <div class="mt-4 {{ $cashAmount > 0 && $cashAmount < $totalCart ? 'd:block' : 'd-none' }}">
-                            <label class="form-label" for="phoneNumber">NEQUI</label>
-                            <div class="position-relative">
-
-                                <select class="form-control crypto-select info" disabled>
-                                    <option>N°. TELÉFONO:</option>
-                                </select>
-                                <input class="form-control" oninput="validarInputNumber(this)"
-                                    wire:model.live.debounce.750ms="phoneNumber" wire:keydown.enter.prevent='Store'
-                                    type="number" id="phoneNumber">
+                        <!-- Mostrar cambio si aplica -->
+                        @if ($change > 0)
+                            <div class="mt-4">
+                                <h6 class="mb-0 f-w-400 f-16">Cambio:</h6>
+                                <div class="ms-auto text-end">
+                                    <span class="f-16 txt-warning">${{ $change }}</span>
+                                </div>
                             </div>
-                        </div>
-
-                        <div class="mt-3 {{ $cashAmount > 0 && $cashAmount < $totalCart ? 'd:block' : 'd-none' }}">
-                            <div class="position-relative">
-                                <select
-                                    class="form-control crypto-select info {{ $phoneNumber > 0 ? 'd:block' : 'd-none' }}"
-                                    disabled>
-                                    <option>VALOR CONSIGNADO:</option>
-                                </select>
-                                <input class="form-control {{ $phoneNumber > 0 ? 'd:block' : 'd-none' }}"
-                                    oninput="validarInputNumber(this)" wire:model.live.debounce.750ms="nequiAmount"
-                                    wire:keydown.enter.prevent='Store' type="number" id="inputNequi">
-                            </div>
-                        </div>
-
-
-
-                        <div
-                            class="light-card balance-card align-items-center {{ $cashAmount || $nequiAmount > 0 ? 'd:block' : 'd-none' }} mt-2">
-                            <h6 class="mb-0 f-w-400 f-16">Cambio:</h6>
-                            <div class="ms-auto text-end"><span class="f-16 txt-warning"> ${{ $change }}</span>
-                            </div>
-                        </div>
+                        @endif
                     @endif
-
                 </div>
+
+                <!-- Footer del modal -->
                 <div class="modal-footer">
-                    <button class="btn btn-secondary " type="button" data-bs-dismiss="modal">Cerrar</button>
-
-
+                    <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cerrar</button>
                     <button class="btn btn-primary" wire:click.prevent='Store' type="button"
                         wire:loading.attr="disabled" {{ floatval($totalCart) == 0 ? 'disabled' : '' }}>
-
-                        <span wire:loading.remove wire:target="Store">
-                            Registrar
-                        </span>
-                        <span wire:loading wire:target="Store">
-                            Registrando...
-                        </span>
+                        <span wire:loading.remove wire:target="Store">Registrar</span>
+                        <span wire:loading wire:target="Store">Registrando...</span>
                     </button>
-
-
-
-
-                    {{-- @if ($payType == 2)
-                    <button class="btn btn-primary" wire:click.prevent='Store' type="button"
-                        wire:loading.attr="disabled" {{ floatval($totalCart)==0 ? 'disabled' : '' }}>
-
-                        <span wire:loading.remove wire:target="Store">
-                            Registrar
-                        </span>
-                        <span wire:loading wire:target="Store">
-                            Registrando...
-                        </span>
-                    </button>
-                    @endif --}}
-
                 </div>
             </div>
         </div>
