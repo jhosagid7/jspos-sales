@@ -2,6 +2,8 @@
 
 namespace App\Livewire;
 
+use Illuminate\Support\Facades\Log;
+
 use Carbon\Carbon;
 use App\Models\Bank;
 use App\Models\Sale;
@@ -43,7 +45,7 @@ class Sales extends Component
     public $cname, $caddress, $ccity, $cemail, $cphone, $ctaxpayerId, $ctype = 'Consumidor Final';
 
     //pay properties
-    public $banks, $cashAmount, $nequiAmount, $change, $phoneNumber, $acountNumber, $depositNumber, $bank, $payType = 1, $payTypeName = 'PAGO EN EFECTIVO';
+    public $banks, $cashAmount, $nequiAmount, $phoneNumber, $acountNumber, $depositNumber, $bank, $payType = 1, $payTypeName = 'PAGO EN EFECTIVO';
 
     public $search3, $products = [], $selectedIndex = -1;
 
@@ -53,6 +55,40 @@ class Sales extends Component
     public $confirmation_code = null;
 
     public $search = '';
+
+    public $payments = []; // Lista de pagos realizados
+    public $paymentAmount; // Monto del pago actual
+    public $paymentCurrency = 'COP'; // Moneda del pago actual
+    public $remainingAmount; // Monto restante por pagar
+    public $change; // Cambio en diferentes monedas
+    public $currencies = []; // Lista de monedas disponibles
+    public $USDAmount;
+    public $COPAmount;
+    public $VESAmount;
+    public $EURAmount;
+    public $OTHERAmount;
+    public $totalInPrimaryCurrency = 0; // Suma total en la moneda principal
+
+
+    public function calculateRemainingAndChange()
+    {
+        // Calcular el total pagado en la moneda principal
+        $totalPaid = array_sum(array_column($this->payments, 'amount_in_primary_currency'));
+
+        // Calcular el monto restante (no puede ser negativo)
+        $this->remainingAmount = max(0, $this->totalCart - $totalPaid);
+
+        // Calcular el cambio (no puede ser negativo)
+        $this->change = max(0, $totalPaid - $this->totalCart);
+
+        // Registrar los valores en los logs
+        Log::info('Cálculo de montos:', [
+            'totalCart' => $this->totalCart,
+            'totalPaid' => $totalPaid,
+            'remainingAmount' => $this->remainingAmount,
+            'change' => $this->change,
+        ]);
+    }
 
 
     function setCustomPrice($uid, $price)
@@ -151,6 +187,25 @@ class Sales extends Component
             if (round(floatval($this->cashAmount), $decimals) >= floatval($this->totalCart)) {
                 $this->nequiAmount = null;
                 $this->phoneNumber = null;
+                $this->USDAmount = null;
+                $this->COPAmount = null;
+                $this->COPAmount = null;
+                $this->EURAmount = null;
+                $this->VESAmount = null;
+                $this->OTHERAmount = null;
+            }
+
+            $this->change = round(floatval($this->cashAmount) + floatval($this->nequiAmount) - floatval($this->totalCart), $decimals);
+        }
+    }
+    function updatedUSDAmount()
+    {
+        if (floatval($this->totalCart) > 0) {
+            $decimals = ConfigurationService::getDecimalPlaces();
+
+            if (round(floatval($this->cashAmount), $decimals) >= floatval($this->totalCart)) {
+                $this->nequiAmount = null;
+                $this->phoneNumber = null;
             }
 
             $this->change = round(floatval($this->cashAmount) + floatval($this->nequiAmount) - floatval($this->totalCart), $decimals);
@@ -183,6 +238,11 @@ class Sales extends Component
         $this->nequiAmount = null;
         $this->phoneNumber = null;
         $this->change = 0;
+        $this->USDAmount = null;
+        $this->COPAmount = null;
+        $this->VESAmount = null;
+        $this->EURAmount = null;
+        $this->OTHERAmount = null;
     }
 
     public function mount()
@@ -205,6 +265,12 @@ class Sales extends Component
         $this->order_selected_id = null;
         $this->status = 'pending';
         $this->order_id = null;
+
+        $this->loadCurrencies(); // Cargar monedas disponibles
+        $this->remainingAmount = $this->totalCart; // Inicializar el monto restante
+
+        $this->payments = [];
+        $this->calculateTotalInPrimaryCurrency();
     }
 
     public function render()
@@ -231,6 +297,170 @@ class Sales extends Component
             'livewire.pos.sales',
             compact('orders')
         );
+
+        $this->loadCurrencies();
+    }
+
+    public function loadCurrencies()
+    { {
+            $this->currencies = DB::table('currencies')
+                ->orderBy('is_primary', 'desc') // Los registros con is_primary = 1 aparecerán primero
+                ->get();
+        }
+    }
+
+    // public function addPayment()
+    // {
+    //     $currency = collect($this->currencies)->firstWhere('code', $this->paymentCurrency);
+
+    //     if (!$currency) {
+    //         $this->dispatch('noty', msg: 'La moneda seleccionada no está configurada.');
+    //         return;
+    //     }
+
+    //     $amountInPrimaryCurrency = $this->paymentAmount / $currency->exchange_rate;
+
+    //     $this->payments[] = [
+    //         'amount' => $this->paymentAmount,
+    //         'currency' => $this->paymentCurrency,
+    //         'exchange_rate' => $currency->exchange_rate,
+    //         'amount_in_primary_currency' => $amountInPrimaryCurrency,
+    //     ];
+
+    //     $this->remainingAmount -= $amountInPrimaryCurrency;
+    //     $this->paymentAmount = null; // Limpiar el monto ingresado
+    // }
+
+    // public function addPayment()
+    // {
+    //     Log::info('Antes de agregar pago:', $this->payments);
+
+    //     $currency = collect($this->currencies)->firstWhere('code', $this->paymentCurrency);
+
+    //     if (!$currency) {
+    //         $this->dispatch('noty', msg: 'La moneda seleccionada no está configurada.');
+    //         return;
+    //     }
+
+    //     $amountInPrimaryCurrency = $this->paymentAmount / $currency->exchange_rate;
+
+    //     $this->payments[] = [
+    //         'amount' => $this->paymentAmount,
+    //         'currency' => $this->paymentCurrency,
+    //         'exchange_rate' => $currency->exchange_rate,
+    //         'amount_in_primary_currency' => $amountInPrimaryCurrency,
+    //     ];
+
+    //     Log::info('Después de agregar pago:', $this->payments);
+
+    //     $this->remainingAmount -= $amountInPrimaryCurrency;
+    //     $this->paymentAmount = null; // Limpiar el monto ingresado
+    // }
+
+    // public function addPayment()
+    // {
+    //     $currency = collect($this->currencies)->firstWhere('code', $this->paymentCurrency);
+
+    //     if (!$currency) {
+    //         $this->dispatch('noty', msg: 'La moneda seleccionada no está configurada.');
+    //         return;
+    //     }
+
+    //     $amountInPrimaryCurrency = $this->paymentAmount / $currency->exchange_rate;
+
+    //     $this->payments[] = [
+    //         'amount' => $this->paymentAmount,
+    //         'currency' => $this->paymentCurrency,
+    //         'exchange_rate' => $currency->exchange_rate,
+    //         'amount_in_primary_currency' => $amountInPrimaryCurrency,
+    //     ];
+
+    //     $this->paymentAmount = null; // Limpiar el monto ingresado
+    //     $this->calculateRemainingAndChange(); // Actualizar el monto restante y el cambio
+    // }
+
+
+    public function addPayment()
+    {
+        // Buscar la moneda seleccionada en la lista de monedas disponibles
+        $currency = collect($this->currencies)->firstWhere('code', $this->paymentCurrency);
+
+        if (!$currency) {
+            // Mostrar un mensaje si la moneda seleccionada no está configurada
+            $this->dispatch('noty', msg: 'La moneda seleccionada no está configurada.');
+            return;
+        }
+
+        // Verificar que la tasa de cambio sea válida
+        if (!isset($currency->exchange_rate) || $currency->exchange_rate <= 0) {
+            $this->dispatch('noty', msg: 'La tasa de cambio para la moneda seleccionada no es válida.');
+            return;
+        }
+
+        // Convertir el monto ingresado a la moneda principal
+        $amountInPrimaryCurrency = $this->paymentAmount * $currency->exchange_rate;
+
+        // Registrar en los logs para depuración
+        Log::info('Conversión de moneda:', [
+            'paymentAmount' => $this->paymentAmount,
+            'exchange_rate' => $currency->exchange_rate,
+            'amountInPrimaryCurrency' => $amountInPrimaryCurrency,
+        ]);
+
+        // Agregar el pago al array de pagos
+        $this->payments[] = [
+            'amount' => $this->paymentAmount, // Monto ingresado
+            'currency' => $this->paymentCurrency, // Moneda seleccionada
+            'exchange_rate' => $currency->exchange_rate, // Tasa de cambio
+            'amount_in_primary_currency' => $amountInPrimaryCurrency, // Monto convertido a la moneda principal
+        ];
+
+        // Limpiar el monto ingresado
+        $this->paymentAmount = null;
+
+        // Actualizar el monto restante y el cambio
+        $this->calculateRemainingAndChange();
+    }
+
+
+
+    public function removePayment($index)
+    {
+        if (isset($this->payments[$index])) {
+            unset($this->payments[$index]); // Eliminar el pago del array
+            $this->payments = array_values($this->payments); // Reindexar el array
+            $this->calculateRemainingAndChange(); // Actualizar el monto restante y el cambio
+        }
+    }
+
+    public function calculateTotalInPrimaryCurrency()
+    {
+        $this->totalInPrimaryCurrency = 0;
+
+        foreach ($this->payments as $currencyCode => $amount) {
+            $currency = collect($this->currencies)->firstWhere('code', $currencyCode);
+
+            if ($currency && $amount > 0) {
+                // Convertir el monto a la moneda principal
+                $this->totalInPrimaryCurrency += $amount / $currency->exchange_rate;
+            }
+        }
+    }
+    public function updatedPayments()
+    {
+        $this->calculateTotalInPrimaryCurrency();
+    }
+
+    public function calculateChange()
+    {
+        $totalPaidInPrimaryCurrency = array_sum(array_column($this->payments, 'amount_in_primary_currency'));
+        $changeInPrimaryCurrency = $totalPaidInPrimaryCurrency - $this->totalCart;
+
+        $this->change = 0;
+
+        foreach ($this->currencies as $currency) {
+            $this->change[$currency->code] = $changeInPrimaryCurrency * $currency->exchange_rate;
+        }
     }
 
     public function loadOrderToCart($orderId)
@@ -615,6 +845,16 @@ class Sales extends Component
 
     function Store()
     {
+        // $dynamicProperties = [];
+        // foreach (get_object_vars($this) as $key => $value) {
+        //     if (str_ends_with($key, 'Amount')) { // Filtrar propiedades que terminan en "Amount"
+        //         $dynamicProperties[$key] = $value;
+        //     }
+        // }
+
+        // dd($dynamicProperties); // Muestra solo las propiedades dinámicas
+        // dd($this->all());
+        dd(get_object_vars($this));
         $type = $this->payType;
 
         //type:  1 = efectivo, 2 = crédito, 3 = depósito
