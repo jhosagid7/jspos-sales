@@ -8,6 +8,12 @@
                 </div>
                 <div class="modal-body">
 
+                    <!-- Obtener el símbolo de la moneda principal -->
+                    @php
+                        $primaryCurrency = collect($currencies)->firstWhere('is_primary', 1);
+                        $symbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
+                    @endphp
+
                     <!-- Resumen del carrito -->
                     <div class="mb-1 light-card balance-card align-items-center">
                         <h6 class="mb-0 f-w-400 f-18">Artículos:</h6>
@@ -18,19 +24,19 @@
                     <div class="mb-1 light-card balance-card align-items-center">
                         <h6 class="mb-0 f-w-400 f-18">Subtotal:</h6>
                         <div class="ms-auto text-end">
-                            <span class="f-18 f-w-700">${{ $subtotalCart }}</span>
+                            <span class="f-18 f-w-700">{{ $symbol }}{{ number_format($subtotalCart, 2) }}</span>
                         </div>
                     </div>
                     <div class="light-card balance-card align-items-center border-bottom">
                         <h6 class="mb-0 f-w-400 f-18">I.V.A.:</h6>
                         <div class="ms-auto text-end">
-                            <span class="f-18 f-w-700">${{ $ivaCart }}</span>
+                            <span class="f-18 f-w-700">{{ $symbol }}{{ number_format($ivaCart, 2) }}</span>
                         </div>
                     </div>
                     <div class="light-card balance-card align-items-center">
                         <h6 class="f-w-700 f-18 mb-0 {{ $payType == 1 ? 'txt-dark' : 'txt-info' }}">TOTAL:</h6>
                         <div class="ms-auto text-end">
-                            <span class="f-18 f-w-700">${{ $totalCart }}</span>
+                            <span class="f-18 f-w-700">{{ $symbol }}{{ number_format($totalCart, 2) }}</span>
                         </div>
                     </div>
 
@@ -48,8 +54,11 @@
                             <!-- Selección de moneda cargada dinámicamente -->
                             <div class="col-md-6">
                                 <select class="form-control" wire:model.live="paymentCurrency">
-                                    @foreach ($currencies->sortByDesc('is_primary') as $currency)
-                                        <option value="{{ $currency->code }}">{{ $currency->label }}</option>
+                                    @foreach ($currencies as $currency)
+                                        <option value="{{ $currency->code }}"
+                                            @if ($currency->is_primary) selected @endif>
+                                            {{ $currency->label }}
+                                        </option>
                                     @endforeach
                                 </select>
                             </div>
@@ -71,9 +80,7 @@
                                         <tr>
                                             <th>Moneda</th>
                                             <th>Monto</th>
-                                            <th>Conversión
-                                                ({{ $currencies->firstWhere('is_primary', 1)->label ?? 'Moneda Principal' }})
-                                            </th>
+                                            <th>Conversión ({{ $primaryCurrency->label ?? 'Moneda Principal' }})</th>
                                             <th>Acciones</th>
                                         </tr>
                                     </thead>
@@ -81,8 +88,9 @@
                                         @foreach ($payments as $index => $payment)
                                             <tr>
                                                 <td>{{ $payment['currency'] }}</td>
-                                                <td>${{ number_format($payment['amount'], 2) }}</td>
-                                                <td>${{ number_format($payment['amount_in_primary_currency'], 2) }}
+                                                <td>{{ $payment['symbol'] }}{{ number_format($payment['amount'], 2) }}
+                                                </td>
+                                                <td>{{ $symbol }}{{ number_format($payment['amount_in_primary_currency'], 2) }}
                                                 </td>
                                                 <td>
                                                     <button class="btn btn-danger btn-sm"
@@ -101,7 +109,8 @@
                         <div class="mt-4">
                             <h6 class="mb-0 f-w-400 f-16">Monto Restante:</h6>
                             <div class="ms-auto text-end">
-                                <span class="f-16 txt-info">${{ $remainingAmount }}</span>
+                                <span
+                                    class="f-16 txt-info">{{ $symbol }}{{ number_format($remainingAmount, 2) }}</span>
                             </div>
                         </div>
 
@@ -110,7 +119,8 @@
                             <div class="mt-4">
                                 <h6 class="mb-0 f-w-400 f-16">Cambio:</h6>
                                 <div class="ms-auto text-end">
-                                    <span class="f-16 txt-warning">${{ $change }}</span>
+                                    <span
+                                        class="f-16 txt-warning">{{ $symbol }}{{ number_format($change, 2) }}</span>
                                 </div>
                             </div>
                         @endif

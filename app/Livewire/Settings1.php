@@ -4,26 +4,16 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use App\Models\Configuration;
-use Illuminate\Support\Facades\DB;
 
 class Settings extends Component
 {
     public $setting_id = 0, $businessName, $phone, $taxpayerId, $vat, $printerName, $website, $leyend, $creditDays = 15, $address, $city, $creditPurchaseDays, $confirmationCode, $decimals;
-
-    public $primaryCurrency; // Moneda principal
-    public $availableCurrencies = ['USD', 'COP', 'VES']; // Lista de monedas disponibles
-    public $currencies = []; // Lista de monedas configuradas
-    public $newCurrencyCode;
-    public $newCurrencyLabel;
-    public $newCurrencySymbol;
-    public $newExchangeRate;
 
     function mount()
     {
         session(['map' => 'Configuraciones', 'child' => ' Sistema ', 'pos' => 'Settings']);
 
         $this->loadConfig();
-        $this->loadCurrencies();
     }
 
     public function render()
@@ -115,82 +105,6 @@ class Settings extends Component
 
         } catch (\Throwable $th) {
             $this->dispatch('noty', msg: "Error al intentar actualizar la configuración general: " . $th->getMessage());
-        }
-    }
-
-    public function loadCurrencies()
-    {
-        $this->currencies = DB::table('currencies')->get();
-        $this->primaryCurrency = DB::table('currencies')->where('is_primary', true)->value('code');
-    }
-
-    public function addCurrency()
-    {
-        $this->validate([
-            'newCurrencyCode' => 'required|string|max:3',
-            'newCurrencyLabel' => 'required|string|max:10',
-            'newCurrencySymbol' => 'required|string|max:3',
-            'newExchangeRate' => 'required|numeric|min:0.000001',
-        ]);
-
-        DB::table('currencies')->insert([
-            'code' => strtoupper($this->newCurrencyCode),
-            'label' => strtoupper($this->newCurrencyLabel),
-            'symbol' => strtoupper($this->newCurrencySymbol),
-            'name' => $this->newCurrencyCode,
-            'exchange_rate' => $this->newExchangeRate,
-            'is_primary' => false,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        $this->loadCurrencies();
-        $this->dispatch('noty', msg: 'Moneda agregada con éxito.');
-    }
-
-    public function setPrimaryCurrency()
-    {
-        if (!$this->primaryCurrency) {
-            $this->dispatch('noty', msg: 'Selecciona una moneda principal.');
-            return;
-        }
-
-        // Actualizar todas las monedas a no principal
-        DB::table('currencies')->update(['is_primary' => false]);
-
-        // Establecer la moneda seleccionada como principal
-        DB::table('currencies')->where('code', $this->primaryCurrency)->update(['is_primary' => true]);
-
-        $this->dispatch('noty', msg: 'Moneda principal actualizada con éxito.');
-        $this->loadCurrencies(); // Recargar las monedas
-    }
-
-    public function deleteCurrency($currencyId)
-    {
-        try {
-            // Verificar si la moneda existe
-            $currency = DB::table('currencies')->where('id', $currencyId)->first();
-
-            if (!$currency) {
-                $this->dispatch('noty', msg: 'La moneda no existe.');
-                return;
-            }
-
-            // No permitir eliminar la moneda principal
-            if ($currency->is_primary) {
-                $this->dispatch('noty', msg: 'No puedes eliminar la moneda principal.');
-                return;
-            }
-
-            // Eliminar la moneda
-            DB::table('currencies')->where('id', $currencyId)->delete();
-
-            // Recargar las monedas
-            $this->loadCurrencies();
-
-            $this->dispatch('noty', msg: 'Moneda eliminada con éxito.');
-        } catch (\Throwable $th) {
-            $this->dispatch('noty', msg: 'Error al intentar eliminar la moneda: ' . $th->getMessage());
         }
     }
 }
