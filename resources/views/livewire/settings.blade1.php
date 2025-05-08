@@ -135,62 +135,6 @@
                             @enderror
 
                         </div>
-                        <div class="form-group col-sm-12 col-md-6">
-                            <label for="primaryCurrency">MONEDA PRINIPAL</label>
-                            <select wire:model="primaryCurrency" class="form-control text-purple">
-                                <option value="">Seleccione una moneda</option>
-                                @foreach ($currencies as $currency)
-                                    <option value="{{ $currency->code }}"
-                                        {{ $currency->code == $primaryCurrency ? 'selected' : '' }}>
-                                        {{ $currency->code }} ({{ $currency->label }})
-                                    </option>
-                                @endforeach
-                            </select>
-                            <div class="mt-3 form-group col-sm-12 col-md-6">
-                                <button wire:click="setPrimaryCurrency" class="btn btn-primary ">Guardar Moneda
-                                    Principal</button>
-                            </div>
-                        </div>
-
-
-                        <div class="form-group col-sm-12 col-md-6 text-purple">
-                            <h5>Agregar Moneda Secundaria</h5>
-                            <input wire:model="newCurrencyCode" type="text" class="form-control text-purple"
-                                placeholder="Código (ISO 4217)">
-                            <input wire:model="newCurrencyLabel" type="text" class="form-control text-purple"
-                                placeholder="Label">
-                            <input wire:model="newCurrencySymbol" type="text" class="form-control text-purple"
-                                placeholder="Simbolo">
-                            <input wire:model="newExchangeRate" type="number" step="0.000001"
-                                class="mt-2 form-control" placeholder="Tasa de Cambio">
-                            <button wire:click="addCurrency" class="mt-2 btn btn-primary">Agregar</button>
-                        </div>
-
-                        <table class="table mt-4">
-                            <thead>
-                                <tr>
-                                    <th>Código</th>
-                                    <th>Label</th>
-                                    <th>Simbolo</th>
-                                    <th>Tasa de Cambio</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($currencies as $currency)
-                                    <tr>
-                                        <td>{{ $currency->code }}</td>
-                                        <td>{{ $currency->label }}</td>
-                                        <td>{{ $currency->symbol }}</td>
-                                        <td>{{ $currency->exchange_rate }}</td>
-                                        <td>
-                                            <button wire:click="deleteCurrency('{{ $currency->id }}')"
-                                                class="btn btn-danger btn-sm">Eliminar</button>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
                     </div>
 
 

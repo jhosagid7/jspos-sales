@@ -17,6 +17,7 @@ class Sale extends Model
         'items',
         'status',
         'customer_id',
+
         'user_id',
         'type',
         'cash',
