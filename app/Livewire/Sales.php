@@ -2,16 +2,17 @@
 
 namespace App\Livewire;
 
-use Illuminate\Support\Facades\Log;
-
 use Carbon\Carbon;
+
 use App\Models\Bank;
 use App\Models\Sale;
 use App\Models\Order;
 use App\Models\Product;
 use Livewire\Component;
+use App\Models\Currency;
 use App\Models\Customer;
 use App\Traits\JsonTrait;
+use App\Traits\SaleTrait;
 use App\Traits\UtilTrait;
 use App\Models\SaleDetail;
 use App\Traits\PrintTrait;
@@ -23,8 +24,8 @@ use App\Models\Configuration;
 use App\Traits\PdfInvoiceTrait;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Traits\PdfOrderInvoiceTrait;
-use App\Traits\SaleTrait;
 use App\Services\ConfigurationService;
 
 class Sales extends Component
@@ -63,6 +64,8 @@ class Sales extends Component
     public $change; // Cambio en diferentes monedas
 
     public $totalInPrimaryCurrency = 0; // Suma total en la moneda principal
+    public $nequiPhoneNumber;
+    public $pagoMovilBank, $pagoMovilPhoneNumber, $pagoMovilReference, $pagoMovilAmount;
 
     // /**
     //  * @var Collection
@@ -70,7 +73,7 @@ class Sales extends Component
     // public $currencies = []; // Declarar explícitamente como una colección
 
     /**
-     * @var \Illuminate\Support\Collection<int, \stdClass>
+     * @var \Illuminate\Support\Collection<int, \App\Models\Currency>
      */
     public $currencies;
 
@@ -94,19 +97,73 @@ class Sales extends Component
     //     ]);
     // }
 
+    public function addCashPayment()
+    {
+        $currency = collect($this->currencies)->firstWhere('code', $this->paymentCurrency);
+
+        if (!$currency) {
+            $this->dispatch('noty', msg: 'La moneda seleccionada no está configurada.');
+            return;
+        }
+
+        $amountInPrimaryCurrency = $this->paymentAmount / $currency->exchange_rate;
+
+        $this->payments[] = [
+            'method' => 'cash',
+            'amount' => $this->paymentAmount,
+            'currency' => $this->paymentCurrency,
+            'symbol' => $currency->symbol,
+            'exchange_rate' => $currency->exchange_rate,
+            'amount_in_primary_currency' => $amountInPrimaryCurrency,
+            'details' => null,
+        ];
+
+        $this->calculateRemainingAndChange();
+        session(['payments' => $this->payments]);
+    }
+
+    public function addNequiPayment()
+    {
+        $this->payments[] = [
+            'method' => 'nequi',
+            'amount' => $this->nequiAmount,
+            'currency' => 'COP',
+            'symbol' => '$',
+            'exchange_rate' => null,
+            'amount_in_primary_currency' => null,
+            'details' => "Teléfono: {$this->nequiPhoneNumber}",
+        ];
+
+        $this->calculateRemainingAndChange();
+        session(['payments' => $this->payments]);
+        $this->dispatch('close-modalPay', ['element' => 'modalNequiPartial']);
+    }
+
+    public function addPagoMovilPayment()
+    {
+        $this->payments[] = [
+            'method' => 'pago_movil',
+            'amount' => $this->pagoMovilAmount,
+            'currency' => 'VES',
+            'symbol' => 'Bs.',
+            'exchange_rate' => null,
+            'amount_in_primary_currency' => null,
+            'details' => "Banco: {$this->pagoMovilBank}, Teléfono: {$this->pagoMovilPhoneNumber}, Ref: {$this->pagoMovilReference}",
+        ];
+
+        $this->calculateRemainingAndChange();
+        session(['payments' => $this->payments]);
+        $this->dispatch('close-modal', 'modalPagoMovil');
+    }
+
 
     public function calculateRemainingAndChange()
     {
-        // Calcular el total pagado en la moneda principal
         $totalPaid = array_sum(array_column($this->payments, 'amount_in_primary_currency'));
 
-        // Calcular el monto restante (no puede ser negativo)
         $this->remainingAmount = max(0, $this->totalCart - $totalPaid);
-
-        // Calcular el cambio (no puede ser negativo)
         $this->change = max(0, $totalPaid - $this->totalCart);
 
-        // Registrar los valores en los logs
         Log::info('Cálculo de montos:', [
             'totalCart' => $this->totalCart,
             'totalPaid' => $totalPaid,
@@ -317,13 +374,8 @@ class Sales extends Component
 
     public function loadCurrencies()
     {
-        // Convertir los resultados en una colección de Laravel
-        $this->currencies = collect(DB::table('currencies')
-            ->orderBy('is_primary', 'desc') // Los registros con is_primary = 1 aparecerán primero
-            ->get());
-
-        // Establecer la moneda principal como la seleccionada por defecto
-        $primaryCurrency = $this->currencies->firstWhere('is_primary', 1);
+        $this->currencies = Currency::orderBy('is_primary', 'desc')->get();
+        $primaryCurrency = $this->currencies->firstWhere('is_primary', true);
         $this->paymentCurrency = $primaryCurrency ? $primaryCurrency->code : null;
     }
 
@@ -542,11 +594,13 @@ class Sales extends Component
         } else {
             // Si no existe, agregar un nuevo registro
             $this->payments[] = [
+                'method' => 'cash', // Tipo de pago
                 'amount' => $this->paymentAmount, // Monto ingresado
                 'currency' => $this->paymentCurrency, // Moneda seleccionada
                 'symbol' => $currency->symbol, // Símbolo de la moneda
                 'exchange_rate' => $currency->exchange_rate, // Tasa de cambio
                 'amount_in_primary_currency' => $amountInPrimaryCurrency, // Monto convertido a la moneda principal
+                'details' => null, // No hay detalles adicionales para efectivo
             ];
         }
 
@@ -566,27 +620,38 @@ class Sales extends Component
         $this->paymentAmount = null;
     }
 
+    // public function removePayment($index)
+    // {
+    //     if (isset($this->payments[$index])) {
+    //         // Eliminar el pago del array
+    //         unset($this->payments[$index]);
+
+    //         // Reindexar el array para evitar problemas con índices desordenados
+    //         $this->payments = array_values($this->payments);
+
+    //         // Actualizar la variable de sesión
+    //         session(['payments' => $this->payments]);
+
+    //         // Actualizar el monto restante y el cambio
+    //         $this->calculateRemainingAndChange();
+
+    //         // Guardar el monto restante en la sesión
+    //         session(['remainingAmount' => $this->remainingAmount]);
+
+    //         // Registrar en los logs para depuración
+    //         Log::info('Pago eliminado. Pagos actuales:', $this->payments);
+    //         Log::info('Monto restante actualizado:', ['remainingAmount' => $this->remainingAmount]);
+    //     }
+    // }
+
     public function removePayment($index)
     {
         if (isset($this->payments[$index])) {
-            // Eliminar el pago del array
             unset($this->payments[$index]);
-
-            // Reindexar el array para evitar problemas con índices desordenados
             $this->payments = array_values($this->payments);
 
-            // Actualizar la variable de sesión
             session(['payments' => $this->payments]);
-
-            // Actualizar el monto restante y el cambio
             $this->calculateRemainingAndChange();
-
-            // Guardar el monto restante en la sesión
-            session(['remainingAmount' => $this->remainingAmount]);
-
-            // Registrar en los logs para depuración
-            Log::info('Pago eliminado. Pagos actuales:', $this->payments);
-            Log::info('Monto restante actualizado:', ['remainingAmount' => $this->remainingAmount]);
         }
     }
 
@@ -602,6 +667,16 @@ class Sales extends Component
                 $this->totalInPrimaryCurrency += $amount / $currency->exchange_rate;
             }
         }
+    }
+
+    public function openNequiModal()
+    {
+        $this->dispatch('initPay', ['payType' => 4]); // Emite el evento para abrir el modal de Nequi
+    }
+
+    public function openNequiPartialModal()
+    {
+        $this->dispatch('initPay', ['payType' => 'nequi_partial']); // Emite el evento para abrir el modal de abonos parciales con Nequi
     }
     public function updatedPayments()
     {
