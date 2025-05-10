@@ -117,7 +117,7 @@ class Sales extends Component
             'amount_in_primary_currency' => $amountInPrimaryCurrency,
             'details' => null,
         ];
-
+        Log::info('Pagos actuales:', $this->payments); // Depuración
         $this->calculateRemainingAndChange();
         session(['payments' => $this->payments]);
     }
@@ -170,6 +170,7 @@ class Sales extends Component
             'remainingAmount' => $this->remainingAmount,
             'change' => $this->change,
         ]);
+        $this->calculateTotalInPrimaryCurrency();
     }
 
     function setCustomPrice($uid, $price)
@@ -332,12 +333,14 @@ class Sales extends Component
         // Cargar el monto restante desde la sesión si existe
         $this->remainingAmount = session()->has('remainingAmount') ? session('remainingAmount') : $this->totalCart;
 
+        // Cargar el cambio desde la sesión si existe
+        $this->change = session()->has('change') ? session('change') : 0;
+
         $this->calculateTotalInPrimaryCurrency();
 
 
 
-        // Cargar las monedas desde la base de datos
-        $this->loadCurrencies();
+
 
         // Establecer la moneda principal como la seleccionada por defecto
         $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
@@ -368,13 +371,12 @@ class Sales extends Component
             'livewire.pos.sales',
             compact('orders')
         );
-
-        $this->loadCurrencies();
     }
 
     public function loadCurrencies()
     {
         $this->currencies = Currency::orderBy('is_primary', 'desc')->get();
+        Log::info('Monedas cargadas:', $this->currencies->toArray()); // Depuración
         $primaryCurrency = $this->currencies->firstWhere('is_primary', true);
         $this->paymentCurrency = $primaryCurrency ? $primaryCurrency->code : null;
     }
@@ -655,16 +657,23 @@ class Sales extends Component
         }
     }
 
+
     public function calculateTotalInPrimaryCurrency()
     {
         $this->totalInPrimaryCurrency = 0;
 
-        foreach ($this->payments as $currencyCode => $amount) {
-            $currency = collect($this->currencies)->firstWhere('code', $currencyCode);
+        foreach ($this->payments as $payment) {
+            // Buscar la moneda del pago
+            $currency = collect($this->currencies)->firstWhere('code', $payment['currency']);
 
-            if ($currency && $amount > 0) {
-                // Convertir el monto a la moneda principal
-                $this->totalInPrimaryCurrency += $amount / $currency->exchange_rate;
+            if ($currency && isset($payment['amount'])) {
+                // Si el monto en la moneda principal ya está definido, úsalo
+                if (isset($payment['amount_in_primary_currency']) && $payment['amount_in_primary_currency'] > 0) {
+                    $this->totalInPrimaryCurrency += $payment['amount_in_primary_currency'];
+                } else {
+                    // Si no está definido, calcula la conversión
+                    $this->totalInPrimaryCurrency += $payment['amount'] / $currency->exchange_rate;
+                }
             }
         }
     }
@@ -1095,15 +1104,9 @@ class Sales extends Component
 
     function Store()
     {
-        // $dynamicProperties = [];
-        // foreach (get_object_vars($this) as $key => $value) {
-        //     if (str_ends_with($key, 'Amount')) { // Filtrar propiedades que terminan en "Amount"
-        //         $dynamicProperties[$key] = $value;
-        //     }
-        // }
+        // dd($this);
 
-        // dd($dynamicProperties); // Muestra solo las propiedades dinámicas
-        // dd($this->all());
+        dd($this->totalInPrimaryCurrency);
         // dd(get_object_vars($this));
         $type = $this->payType;
 
@@ -1253,6 +1256,7 @@ class Sales extends Component
     {
         DB::beginTransaction();
         try {
+            Log::info('Antes de guardar la orden:', $this->currencies->toArray());
             //store sale
             if (floatval($this->totalCart) <= 0) {
                 $this->dispatch('noty', msg: 'AGREGA PRODUCTOS AL CARRITO');
@@ -1335,6 +1339,9 @@ class Sales extends Component
             $this->resetExcept('config', 'banks', 'bank');
             $this->clear();
             session()->forget('sale_customer');
+            $this->loadCurrencies();
+
+            Log::info('Después de guardar la orden:', $this->currencies->toArray());
         } catch (\Exception $th) {
             DB::rollBack();
             $this->dispatch('noty', msg: "Error al intentar guardar la orden \n {$th->getMessage()}");

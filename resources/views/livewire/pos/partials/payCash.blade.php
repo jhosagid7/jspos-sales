@@ -54,12 +54,16 @@
                             <!-- Selección de moneda cargada dinámicamente -->
                             <div class="col-md-6">
                                 <select class="form-control" wire:model.live="paymentCurrency">
-                                    @foreach ($currencies as $currency)
-                                        <option value="{{ $currency->code }}"
-                                            @if ($currency->is_primary) selected @endif>
-                                            {{ $currency->label }}
-                                        </option>
-                                    @endforeach
+                                    @if (!empty($currencies) && $currencies->count() > 0)
+                                        @foreach ($currencies as $currency)
+                                            <option value="{{ $currency->code }}"
+                                                @if ($currency->is_primary) selected @endif>
+                                                {{ $currency->label }}
+                                            </option>
+                                        @endforeach
+                                    @else
+                                        <option disabled>No hay monedas disponibles</option>
+                                    @endif
                                 </select>
                             </div>
                         </div>
@@ -105,8 +109,15 @@
                             </div>
                         @endif
 
-                        <!-- Mostrar monto restante -->
-                        <div class="mt-4">
+                        <!-- Mostrar monto total en Moneda Principal -->
+                        <div class="mt-4 d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 f-w-400 f-16">Total en Moneda Principal:</h6>
+                            <div class="ms-auto text-end">
+                                <span
+                                    class="f-20 txt-primary">{{ $symbol }}{{ number_format($totalInPrimaryCurrency, 2) }}</span>
+                            </div>
+                        </div>
+                        <div class="mt-4 d-flex justify-content-between align-items-center">
                             <h6 class="mb-0 f-w-400 f-16">Monto Restante:</h6>
                             <div class="ms-auto text-end">
                                 <span
@@ -116,7 +127,7 @@
 
                         <!-- Mostrar cambio si aplica -->
                         @if ($change > 0)
-                            <div class="mt-4">
+                            <div class="mt-4 d-flex justify-content-between align-items-center">
                                 <h6 class="mb-0 f-w-400 f-16">Cambio:</h6>
                                 <div class="ms-auto text-end">
                                     <span
