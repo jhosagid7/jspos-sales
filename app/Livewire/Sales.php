@@ -77,25 +77,7 @@ class Sales extends Component
      */
     public $currencies;
 
-    // public function calculateRemainingAndChange()
-    // {
-    //     // Calcular el total pagado en la moneda principal
-    //     $totalPaid = array_sum(array_column($this->payments, 'amount_in_primary_currency'));
 
-    //     // Calcular el monto restante (no puede ser negativo)
-    //     $this->remainingAmount = max(0, $this->totalCart - $totalPaid);
-
-    //     // Calcular el cambio (no puede ser negativo)
-    //     $this->change = max(0, $totalPaid - $this->totalCart);
-
-    //     // Registrar los valores en los logs
-    //     Log::info('Cálculo de montos:', [
-    //         'totalCart' => $this->totalCart,
-    //         'totalPaid' => $totalPaid,
-    //         'remainingAmount' => $this->remainingAmount,
-    //         'change' => $this->change,
-    //     ]);
-    // }
 
     public function addCashPayment()
     {
@@ -365,6 +347,7 @@ class Sales extends Component
             $this->ivaCart = round(0, $decimals);
         }
 
+
         $this->customer = session('sale_customer', null);
         $orders = $this->getOrdersWithDetails();
         return view(
@@ -381,184 +364,7 @@ class Sales extends Component
         $this->paymentCurrency = $primaryCurrency ? $primaryCurrency->code : null;
     }
 
-    // public function addPayment()
-    // {
-    //     $currency = collect($this->currencies)->firstWhere('code', $this->paymentCurrency);
 
-    //     if (!$currency) {
-    //         $this->dispatch('noty', msg: 'La moneda seleccionada no está configurada.');
-    //         return;
-    //     }
-
-    //     $amountInPrimaryCurrency = $this->paymentAmount / $currency->exchange_rate;
-
-    //     $this->payments[] = [
-    //         'amount' => $this->paymentAmount,
-    //         'currency' => $this->paymentCurrency,
-    //         'exchange_rate' => $currency->exchange_rate,
-    //         'amount_in_primary_currency' => $amountInPrimaryCurrency,
-    //     ];
-
-    //     $this->remainingAmount -= $amountInPrimaryCurrency;
-    //     $this->paymentAmount = null; // Limpiar el monto ingresado
-    // }
-
-    // public function addPayment()
-    // {
-    //     Log::info('Antes de agregar pago:', $this->payments);
-
-    //     $currency = collect($this->currencies)->firstWhere('code', $this->paymentCurrency);
-
-    //     if (!$currency) {
-    //         $this->dispatch('noty', msg: 'La moneda seleccionada no está configurada.');
-    //         return;
-    //     }
-
-    //     $amountInPrimaryCurrency = $this->paymentAmount / $currency->exchange_rate;
-
-    //     $this->payments[] = [
-    //         'amount' => $this->paymentAmount,
-    //         'currency' => $this->paymentCurrency,
-    //         'exchange_rate' => $currency->exchange_rate,
-    //         'amount_in_primary_currency' => $amountInPrimaryCurrency,
-    //     ];
-
-    //     Log::info('Después de agregar pago:', $this->payments);
-
-    //     $this->remainingAmount -= $amountInPrimaryCurrency;
-    //     $this->paymentAmount = null; // Limpiar el monto ingresado
-    // }
-
-    // public function addPayment()
-    // {
-    //     $currency = collect($this->currencies)->firstWhere('code', $this->paymentCurrency);
-
-    //     if (!$currency) {
-    //         $this->dispatch('noty', msg: 'La moneda seleccionada no está configurada.');
-    //         return;
-    //     }
-
-    //     $amountInPrimaryCurrency = $this->paymentAmount / $currency->exchange_rate;
-
-    //     $this->payments[] = [
-    //         'amount' => $this->paymentAmount,
-    //         'currency' => $this->paymentCurrency,
-    //         'exchange_rate' => $currency->exchange_rate,
-    //         'amount_in_primary_currency' => $amountInPrimaryCurrency,
-    //     ];
-
-    //     $this->paymentAmount = null; // Limpiar el monto ingresado
-    //     $this->calculateRemainingAndChange(); // Actualizar el monto restante y el cambio
-    // }
-
-
-    // public function addPayment()
-    // {
-    //     // Buscar la moneda seleccionada en la lista de monedas disponibles
-    //     $currency = collect($this->currencies)->firstWhere('code', $this->paymentCurrency);
-
-    //     if (!$currency) {
-    //         // Mostrar un mensaje si la moneda seleccionada no está configurada
-    //         $this->dispatch('noty', msg: 'La moneda seleccionada no está configurada.');
-    //         return;
-    //     }
-
-    //     // Verificar que la tasa de cambio sea válida
-    //     if (!isset($currency->exchange_rate) || $currency->exchange_rate <= 0) {
-    //         $this->dispatch('noty', msg: 'La tasa de cambio para la moneda seleccionada no es válida.');
-    //         return;
-    //     }
-
-    //     // Calcular el monto convertido a la moneda principal
-    //     $amountInPrimaryCurrency = $this->paymentAmount;
-
-    //     // Si la moneda seleccionada no es la principal, convertir el monto
-    //     $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
-    //     if ($currency->code !== $primaryCurrency->code) {
-    //         $amountInPrimaryCurrency = $this->paymentAmount / $currency->exchange_rate;
-    //     }
-
-    //     // Registrar en los logs para depuración
-    //     Log::info('Conversión de moneda:', [
-    //         'paymentAmount' => $this->paymentAmount,
-    //         'currency' => $currency->code,
-    //         'exchange_rate' => $currency->exchange_rate,
-    //         'amountInPrimaryCurrency' => $amountInPrimaryCurrency,
-    //     ]);
-
-    //     // Agregar el pago al array de pagos
-    //     $this->payments[] = [
-    //         'amount' => $this->paymentAmount, // Monto ingresado
-    //         'currency' => $this->paymentCurrency, // Moneda seleccionada
-    //         'exchange_rate' => $currency->exchange_rate, // Tasa de cambio
-    //         'amount_in_primary_currency' => $amountInPrimaryCurrency, // Monto convertido a la moneda principal
-    //     ];
-
-    //     // Registrar en los logs para depuración
-    //     Log::info('Pagos realizados:', $this->payments);
-
-    //     // Limpiar el monto ingresado
-    //     $this->paymentAmount = null;
-
-    //     // Actualizar el monto restante y el cambio
-    //     $this->calculateRemainingAndChange();
-    // }
-
-    //
-    // public function addPayment()
-    // {
-    //     // Buscar la moneda seleccionada en la lista de monedas disponibles
-    //     $currency = collect($this->currencies)->firstWhere('code', $this->paymentCurrency);
-
-    //     if (!$currency) {
-    //         // Mostrar un mensaje si la moneda seleccionada no está configurada
-    //         $this->dispatch('noty', msg: 'La moneda seleccionada no está configurada.');
-    //         return;
-    //     }
-
-    //     // Verificar que la tasa de cambio sea válida
-    //     if (!isset($currency->exchange_rate) || $currency->exchange_rate <= 0) {
-    //         $this->dispatch('noty', msg: 'La tasa de cambio para la moneda seleccionada no es válida.');
-    //         return;
-    //     }
-
-    //     // Calcular el monto convertido a la moneda principal
-    //     $amountInPrimaryCurrency = $this->paymentAmount;
-
-    //     // Si la moneda seleccionada no es la principal, convertir el monto
-    //     $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
-    //     if ($currency->code !== $primaryCurrency->code) {
-    //         $amountInPrimaryCurrency = $this->paymentAmount / $currency->exchange_rate;
-    //     }
-
-    //     // Verificar si ya existe un abono en la misma moneda
-    //     $existingPaymentIndex = collect($this->payments)->search(function ($payment) {
-    //         return $payment['currency'] === $this->paymentCurrency;
-    //     });
-
-    //     if ($existingPaymentIndex !== false) {
-    //         // Si ya existe un abono en la misma moneda, sumar el monto
-    //         $this->payments[$existingPaymentIndex]['amount'] += $this->paymentAmount;
-    //         $this->payments[$existingPaymentIndex]['amount_in_primary_currency'] += $amountInPrimaryCurrency;
-    //     } else {
-    //         // Si no existe, agregar un nuevo registro
-    //         $this->payments[] = [
-    //             'amount' => $this->paymentAmount, // Monto ingresado
-    //             'currency' => $this->paymentCurrency, // Moneda seleccionada
-    //             'exchange_rate' => $currency->exchange_rate, // Tasa de cambio
-    //             'amount_in_primary_currency' => $amountInPrimaryCurrency, // Monto convertido a la moneda principal
-    //         ];
-    //     }
-
-    //     // Registrar en los logs para depuración
-    //     Log::info('Pagos realizados:', $this->payments);
-
-    //     // Limpiar el monto ingresado
-    //     $this->paymentAmount = null;
-
-    //     // Actualizar el monto restante y el cambio
-    //     $this->calculateRemainingAndChange();
-    // }
 
     public function addPayment()
     {
@@ -1106,7 +912,7 @@ class Sales extends Component
     {
         // dd($this);
 
-        dd($this->totalInPrimaryCurrency);
+        // dd($this->totalInPrimaryCurrency);
         // dd(get_object_vars($this));
         $type = $this->payType;
 
