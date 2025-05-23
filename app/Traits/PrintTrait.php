@@ -4,6 +4,7 @@ namespace App\Traits;
 
 use Carbon\Carbon;
 use App\Models\Sale;
+use App\Models\Order;
 use App\Models\Payable;
 use App\Models\Payment;
 use Mike42\Escpos\Printer;
@@ -343,6 +344,97 @@ trait PrintTrait
             //
         } catch (\Exception $th) {
             Log::info("Error al intentar imprimir el corte de caja \n {$th->getMessage()} ");
+        }
+    }
+
+    function printOrder($orderId)
+    {
+
+        try {
+
+            $config = Configuration::first();
+
+            if ($config) {
+
+                $order = Order::with(['customer', 'user', 'details', 'details.product'])->find($orderId);
+                // return $order;
+
+                $connector = new WindowsPrintConnector($config->printer_name);
+                $printer = new Printer($connector);
+
+                $printer->setJustification(Printer::JUSTIFY_CENTER);
+                $printer->setTextSize(2, 2);
+
+                $printer->text(strtoupper($config->business_name) . "\n");
+                $printer->setTextSize(1, 1);
+                $printer->text("$config->address \n");
+                $printer->text("NIT: $config->taxpayer_id \n");
+                $printer->text("TEL: $config->phone \n\n");
+
+                $printer->setJustification(Printer::JUSTIFY_LEFT);
+                //$printer->text("=============================================\n");
+                $printer->text("Folio: " . $order->id . "\n");
+                $printer->text("Fecha: " . Carbon::parse($order->created_at)->format('d/m/Y h:m:s') . "\n");
+                $printer->text("Cajero: " . $order->user->name . " \n");
+                //$printer->text("=============================================\n");
+
+
+
+                $maskHead = "%-30s %-5s %-8s";
+                $maskRow = $maskHead; //"%-.31s %-4s %-5s";
+
+                $headersName = sprintf($maskHead, 'DESCRIPCION', 'CANT', 'PRECIO');
+                $printer->text("=============================================\n");
+                $printer->text($headersName . "\n");
+                $printer->text("=============================================\n");
+
+                foreach ($order->details as $item) {
+
+                    $descripcion_1 = $this->cortar($item->product->name, 30);
+                    $row_1 = sprintf($maskRow, $descripcion_1[0], $item->quantity, '$' . number_format($item->sale_price, 2));
+                    $printer->text($row_1 . "\n");
+
+                    if (isset($descripcion_1[1])) {
+                        $row_2 = sprintf($maskRow, $descripcion_1[1], '', '', '');
+                        $printer->text($row_2 . "\n");
+                    }
+                }
+
+                $printer->text("=============================================" . "\n");
+
+                $printer->text("CLIENTE: " . $order->customer->name  . "\n\n");
+
+
+                $printer->setJustification(Printer::JUSTIFY_CENTER);
+                $printer->text("NO. DE ARTICULOS $order->items" . "\n");
+
+                $printer->setJustification(Printer::JUSTIFY_LEFT);
+
+                $desglose = $this->desgloseMonto($order->total);
+                $printer->text("SUBTOTAL....... $" . number_format($desglose['subtotal'], 2) . "\n");
+                $printer->text("IVA............ $" . number_format($desglose['iva'], 2) . "\n");
+                $printer->text("TOTAL.......... $" . number_format($order->total, 2) . "\n");
+
+                if ($order->type == 'cash') {
+                    $printer->text("EFECTIVO....... $" . number_format($order->cash, 2) . "\n");
+                    if (floatval($order->change) > 0)  $printer->text("\nCAMBIO......... $" . number_format($order->change, 2) . "\n");
+                } else {
+                    $printer->text($order->type == 'credit' ? "FORMA DE PAGO: CRÉDITO" :  "FORMA DE PAGO:  DEPÓSITO" .  "\n");
+                }
+
+                $printer->feed(3);
+                $printer->setJustification(Printer::JUSTIFY_CENTER);
+                $printer->text("$config->leyend\n");
+                $printer->text("$config->website\n");
+                $printer->feed(3);
+                $printer->cut();
+                $printer->close();
+            } else {
+                Log::info("La tabla configurations está vacía, no es posible imprimir la venta");
+            }
+            //
+        } catch (\Exception $th) {
+            Log::info("Error al intentar imprimir el comprobante de venta \n {$th->getMessage()}");
         }
     }
 }
