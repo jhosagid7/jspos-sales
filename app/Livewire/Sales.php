@@ -842,6 +842,15 @@ class Sales extends Component
             $this->resetExcept('config', 'banks', 'bank');
             $this->clear();
             session()->forget('sale_customer');
+            // Obtener el último registro insertado
+            $order = Order::latest('id')->first();
+
+            // return $order;
+            $this->dispatch('noty', msg: 'ORDEN  imprimientod ' . $order->id . ' CON ÉXITO ');
+
+
+            // mike42
+            $this->printOrder($order->id);
         } catch (\Exception $th) {
             DB::rollBack();
             $this->dispatch('noty', msg: "Error al intentar guardar la orden \n {$th->getMessage()}");
