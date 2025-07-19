@@ -910,7 +910,7 @@ class Sales extends Component
 
     function Store()
     {
-        // dd($this);
+        dd($this);
 
         // dd($this->totalInPrimaryCurrency);
         // dd(get_object_vars($this));
