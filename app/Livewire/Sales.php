@@ -15,6 +15,8 @@ use App\Traits\JsonTrait;
 use App\Traits\SaleTrait;
 use App\Traits\UtilTrait;
 use App\Models\SaleDetail;
+use App\Models\SaleChangeDetail;
+use App\Models\SalePaymentDetail;
 use App\Traits\PrintTrait;
 use App\Models\OrderDetail;
 use Illuminate\Support\Arr;
@@ -76,6 +78,11 @@ class Sales extends Component
      * @var \Illuminate\Support\Collection<int, \App\Models\Currency>
      */
     public $currencies;
+
+    // Propiedades para distribución de vueltos en múltiples monedas
+    public $changeDistribution = []; // Array de vueltos por moneda seleccionados manualmente
+    public $selectedChangeCurrency; // Moneda seleccionada para dar vuelto
+    public $selectedChangeAmount; // Monto a dar en esa moneda
 
 
 
@@ -510,6 +517,70 @@ class Sales extends Component
         }
     }
 
+    public function addChangeInCurrency()
+    {
+        if (!$this->selectedChangeCurrency || !$this->selectedChangeAmount) {
+            $this->dispatch('noty', msg: 'Selecciona una moneda y monto para el vuelto');
+            return;
+        }
+
+        $currency = collect($this->currencies)->firstWhere('code', $this->selectedChangeCurrency);
+        
+        if (!$currency) {
+            $this->dispatch('noty', msg: 'Moneda no válida');
+            return;
+        }
+
+        // Convertir el monto a moneda principal
+        $amountInPrimaryCurrency = $this->selectedChangeAmount / $currency->exchange_rate;
+        
+        // Calcular cuánto vuelto ya se ha asignado
+        $totalAssignedChange = array_sum(array_column($this->changeDistribution, 'amount_in_primary_currency'));
+        
+        // Calcular el vuelto total disponible
+        $totalPaidInPrimaryCurrency = array_sum(array_column($this->payments, 'amount_in_primary_currency'));
+        $totalChangeAvailable = $totalPaidInPrimaryCurrency - $this->totalCart;
+        
+        // Validar que no se exceda el vuelto disponible
+        if (($totalAssignedChange + $amountInPrimaryCurrency) > $totalChangeAvailable) {
+            $this->dispatch('noty', msg: 'El vuelto asignado excede el vuelto disponible');
+            return;
+        }
+
+        // Agregar el vuelto a la distribución
+        $this->changeDistribution[] = [
+            'currency' => $this->selectedChangeCurrency,
+            'symbol' => $currency->symbol,
+            'amount' => $this->selectedChangeAmount,
+            'exchange_rate' => $currency->exchange_rate,
+            'amount_in_primary_currency' => $amountInPrimaryCurrency,
+        ];
+
+        // Limpiar campos
+        $this->selectedChangeCurrency = null;
+        $this->selectedChangeAmount = null;
+        
+        $this->dispatch('noty', msg: 'Vuelto agregado correctamente');
+    }
+
+    public function removeChangeDistribution($index)
+    {
+        if (isset($this->changeDistribution[$index])) {
+            unset($this->changeDistribution[$index]);
+            $this->changeDistribution = array_values($this->changeDistribution); // Reindexar
+            $this->dispatch('noty', msg: 'Vuelto eliminado');
+        }
+    }
+
+    public function getRemainingChangeToAssign()
+    {
+        $totalPaidInPrimaryCurrency = array_sum(array_column($this->payments, 'amount_in_primary_currency'));
+        $totalChangeAvailable = $totalPaidInPrimaryCurrency - $this->totalCart;
+        $totalAssignedChange = array_sum(array_column($this->changeDistribution, 'amount_in_primary_currency'));
+        
+        return max(0, $totalChangeAvailable - $totalAssignedChange);
+    }
+
     public function loadOrderToCart($orderId)
     {
         //limpiamos el carrito
@@ -910,7 +981,7 @@ class Sales extends Component
 
     function Store()
     {
-        dd($this);
+        // dd($this);
 
         // dd($this->totalInPrimaryCurrency);
         // dd(get_object_vars($this));
@@ -929,17 +1000,7 @@ class Sales extends Component
         if ($type == 1) {
 
             if (!$this->validateCash()) {
-                $this->dispatch('noty', msg: 'EL EFECTIVO ES MENOR AL TOTAL DE LA VENTA');
-                return;
-            }
-
-            if ($this->nequiAmount > 1 && empty($this->cashAmount)) {
-                $this->dispatch('noty', msg: 'DEBE INGRESAR UN MONTO EN EFECTIVO');
-                return;
-            }
-
-            if ($this->nequiAmount > 1 && empty($this->phoneNumber) < 0) {
-                $this->dispatch('noty', msg: 'INGRESA EL NÚMERO DE TELÉFONO');
+                $this->dispatch('noty', msg: 'EL MONTO PAGADO ES MENOR AL TOTAL DE LA VENTA');
                 return;
             }
         }
@@ -978,6 +1039,10 @@ class Sales extends Component
                 $notes = ",N.Teléfono: {$this->phoneNumber}";
             }
 
+            // Calcular el total pagado y el cambio usando el nuevo sistema de pagos múltiples
+            $totalPaidInPrimaryCurrency = $type == 1 ? round($this->totalInPrimaryCurrency, ConfigurationService::getDecimalPlaces()) : 0;
+            $changeAmount = $type == 1 ? round($this->change, ConfigurationService::getDecimalPlaces()) : 0;
+
             if ($type > 1) $this->cashAmount = 0;
 
             if ($type == 1 && $this->nequiAmount > 1 && $this->phoneNumber > 0) {
@@ -997,8 +1062,8 @@ class Sales extends Component
                 'user_id' => Auth()->user()->id,
                 'type' => $type == 1 ? 'cash' : ($type == 2 ? 'credit' : ($type == 3 ? 'deposit' : ($type == 4 ? 'nequi' : 'cash/nequi'))),
                 'status' => ($type == 2 ?  'pending' : 'paid'),
-                'cash' => round($this->cashAmount, $decimals),
-                'change' => $type == 1 ? round((floatval($this->cashAmount) + floatval($this->nequiAmount)) - floatval($this->totalCart), $decimals) : 0,
+                'cash' => $totalPaidInPrimaryCurrency,
+                'change' => $changeAmount,
                 'notes' => $notes
             ]);
 
@@ -1028,7 +1093,83 @@ class Sales extends Component
                 Product::find($item['pid'])->decrement('stock_qty', $item['qty']);
             }
 
-            DB::commit();
+            // Guardar detalles de vueltos en múltiples monedas
+            if (!empty($this->changeDistribution)) {
+                foreach ($this->changeDistribution as $changeDetail) {
+                    SaleChangeDetail::create([
+                        'sale_id' => $sale->id,
+                        'currency_code' => $changeDetail['currency'],
+                        'amount' => $changeDetail['amount'],
+                        'exchange_rate' => $changeDetail['exchange_rate'],
+                        'amount_in_primary_currency' => $changeDetail['amount_in_primary_currency'],
+                    ]);
+                }
+            }
+
+            // Guardar detalles de pagos en múltiples monedas
+        if ($type == 1) {
+            if (!empty($this->payments)) {
+                foreach ($this->payments as $payment) {
+                    SalePaymentDetail::create([
+                        'sale_id' => $sale->id,
+                        'currency_code' => $payment['currency'],
+                        'amount' => $payment['amount'],
+                        'exchange_rate' => $payment['exchange_rate'] ?? 1,
+                        'amount_in_primary_currency' => $payment['amount_in_primary_currency'],
+                    ]);
+                }
+            } else {
+                // Si no hay pagos detallados, es un pago simple en efectivo
+                // Asumimos moneda principal si no se especifica otra (aunque debería venir del input si hubiera selector)
+                // Para este caso simple, usamos la moneda principal configurada
+                $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
+                $currencyCode = $primaryCurrency ? $primaryCurrency->code : 'COP';
+                
+                SalePaymentDetail::create([
+                    'sale_id' => $sale->id,
+                    'currency_code' => $currencyCode,
+                    'amount' => $this->cashAmount, // El monto ingresado en el input simple
+                    'exchange_rate' => 1,
+                    'amount_in_primary_currency' => $this->cashAmount,
+                ]);
+            }
+        } elseif ($type == 3) { // Depósito Bancario
+            $bank = $this->banks->where('id', $this->bank)->first();
+            $currencyCode = $bank->currency_code ?? 'USD'; // Default to USD if not set
+            // Buscar la tasa de cambio de la moneda del banco
+            $currency = collect($this->currencies)->firstWhere('code', $currencyCode);
+            $exchangeRate = $currency ? $currency->exchange_rate : 1;
+            
+            // Si la moneda del banco no es la principal, convertir el monto
+            // Asumimos que totalCart está en moneda principal
+            $amount = $this->totalCart * $exchangeRate;
+
+            SalePaymentDetail::create([
+                'sale_id' => $sale->id,
+                'currency_code' => $currencyCode,
+                'bank_name' => $bank ? $bank->name : null, // Guardar nombre del banco
+                'amount' => $amount, // Monto en la moneda del banco
+                'exchange_rate' => $exchangeRate,
+                'amount_in_primary_currency' => $this->totalCart,
+            ]);
+        } elseif ($type == 4) { // Nequi
+            // Nequi siempre es en Pesos (COP)
+            $currencyCode = 'COP';
+            $currency = collect($this->currencies)->firstWhere('code', $currencyCode);
+            $exchangeRate = $currency ? $currency->exchange_rate : 1;
+            
+            $amount = $this->totalCart * $exchangeRate;
+
+            SalePaymentDetail::create([
+                'sale_id' => $sale->id,
+                'currency_code' => $currencyCode,
+                'amount' => $amount,
+                'exchange_rate' => $exchangeRate,
+                'amount_in_primary_currency' => $this->totalCart,
+            ]);
+        }          
+
+        DB::commit();
 
             // Limpiar la variable de sesión
             session()->forget('payments');
@@ -1158,12 +1299,11 @@ class Sales extends Component
     {
         $decimals = ConfigurationService::getDecimalPlaces();
         $total = round(floatval($this->totalCart), $decimals);
-        $cash = round(floatval($this->cashAmount), $decimals);
-        $nequi = round(
-            floatval($this->nequiAmount),
-            $decimals
-        );
-        if ($cash + $nequi < $total) {
+        
+        // Validar usando el nuevo sistema de pagos múltiples
+        $totalPaid = round(floatval($this->totalInPrimaryCurrency), $decimals);
+        
+        if ($totalPaid < $total) {
             return false;
         }
 

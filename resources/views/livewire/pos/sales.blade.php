@@ -126,16 +126,37 @@
                         </span>
                     </div>
 
+                    @php
+                        $primaryCurrency = collect($currencies)->firstWhere('is_primary', 1);
+                        $symbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
+                    @endphp
+
                     <div class="total-item">
                         <div class="item-number"><span class="text-gray">Artículos</span><span
                                 class="f-w-500">{{ $itemsCart }}
                                 (Items)</span></div>
                         <div class="item-number"><span class="text-gray">Subtotal</span><span
-                                class="f-w-500">${{ $subtotalCart }}</span></div>
+                                class="f-w-500">{{ $symbol }}{{ $subtotalCart }}</span></div>
                         <div class="item-number border-bottom"><span class="text-gray">I.V.A.</span><span
-                                class="f-w-500">${{ $ivaCart }}</span></div>
+                                class="f-w-500">{{ $symbol }}{{ $ivaCart }}</span></div>
                         <div class="pt-3 pb-0 item-number"><span class="f-w-700">TOTAL</span>
-                            <h6 class="txt-primary">${{ $totalCart }}</h6>
+                            <h6 class="txt-primary">{{ $symbol }}{{ $totalCart }}</h6>
+                            
+                            {{-- Multi-currency display --}}
+                            @if($currencies && $currencies->count() > 1)
+                                <div class="mt-2" style="font-size: 0.75rem; color: #6c757d;">
+                                    @foreach($currencies as $currency)
+                                        @if(!$currency->is_primary)
+                                            @php
+                                                $convertedAmount = $totalCart * $currency->exchange_rate;
+                                            @endphp
+                                            <div class="text-muted">
+                                                {{ $currency->symbol }}{{ number_format($convertedAmount, 2) }} {{ $currency->code }}
+                                            </div>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            @endif
                         </div>
                     </div>
                     @can('guardar ordenes de ventas')

@@ -9,7 +9,7 @@ class Payable extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'purchase_id', 'amount', 'pay_way', 'type', 'bank', 'account_number', 'deposit_number', 'phone_number'];
+    protected $fillable = ['user_id', 'purchase_id', 'amount', 'currency_code', 'exchange_rate', 'pay_way', 'type', 'bank', 'account_number', 'deposit_number', 'phone_number'];
 
     function purchase()
     {
