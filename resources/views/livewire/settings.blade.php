@@ -207,5 +207,51 @@
                     </div>
                 </div>
             </div>
+        <div class="col-md-6">
+            <div class="card card-absolute">
+                <div class="card-header bg-primary">
+                    <h5 class="txt-light">Configuración de Bancos</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>Nombre del Banco</label>
+                        <input wire:model="newBankName" type="text" class="form-control text-purple" placeholder="Nombre">
+                        @error('newBankName') <span class="text-danger">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="mt-2 form-group">
+                        <label>Moneda del Banco</label>
+                        <select wire:model="newBankCurrency" class="form-control text-purple">
+                            <option value="">Seleccione una moneda</option>
+                            @foreach ($currencies as $currency)
+                                <option value="{{ $currency->code }}">{{ $currency->code }} - {{ $currency->label }}</option>
+                            @endforeach
+                        </select>
+                        @error('newBankCurrency') <span class="text-danger">{{ $message }}</span> @enderror
+                    </div>
+                    <button wire:click="addBank" class="mt-2 btn btn-primary">Agregar Banco</button>
+
+                    <table class="table mt-4">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Moneda</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($banks as $bank)
+                                <tr>
+                                    <td>{{ $bank->name }}</td>
+                                    <td>{{ $bank->currency_code }}</td>
+                                    <td>
+                                        <button wire:click="deleteBank({{ $bank->id }})" class="btn btn-danger btn-sm">Eliminar</button>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
+</div>

@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Bank;
+use App\Models\Currency;
 use App\Models\Payment;
 use App\Models\Sale;
 use App\Traits\PrintTrait;
@@ -14,36 +15,18 @@ class PartialPayment extends Component
     use PrintTrait;
 
     public $sales, $banks, $pays;
+    public $currencies, $paymentCurrency;
     public  $search, $sale_selected_id, $customer_name, $debt;
     public $amount, $acountNumber, $depositNumber, $bank, $phoneNumber;
-    public $payWith = 'ABONO CON EFECTIVO';
-
-    function updatedBank()
-    {
-        if ($this->bank != 0) {
-            $this->reset(['amount', 'phoneNumber']);
-            $this->payWith = 'MONTO CONSIGNADO CON BANCO';
-        } else {
-            $this->reset(['amount', 'phoneNumber', 'acountNumber', 'depositNumber', 'bank']);
-            $this->payWith = 'ABONO CON EFECTIVO';
-        }
-    }
-    function updatedPhoneNumber()
-    {
-
-        if (empty($this->phoneNumber) || strlen($this->phoneNumber) < 1) {
-            $this->reset(['amount', 'phoneNumber', 'acountNumber', 'depositNumber', 'bank']);
-            $this->payWith = 'ABONO CON EFECTIVO';
-        } else {
-            $this->reset(['amount', 'acountNumber', 'depositNumber', 'bank']);
-            $this->payWith = 'MONTO CONSIGNADO CON NEQUI';
-        }
-    }
+    public $paymentMethod = 'cash'; // cash, nequi, deposit
 
     function mount($key = null)
     {
         $this->banks = Bank::orderBy('sort')->get();
+        $this->currencies = Currency::orderBy('is_primary', 'desc')->orderBy('id', 'asc')->get();
+        $this->paymentCurrency = $this->currencies->firstWhere('is_primary', 1)->code ?? 'COP';
         $this->bank = 0;
+        $this->paymentMethod = 'cash';
 
         $this->sales = [];
         $this->pays = [];
@@ -129,7 +112,10 @@ Para solucionar este problema, puedes usar el método whereHas para filtrar las 
     {
         $this->resetValidation();
 
-        if ($this->bank != 0) {
+        if ($this->paymentMethod == 'deposit') {
+            if ($this->bank == 0) {
+                $this->addError('bank', 'SELECCIONA EL BANCO');
+            }
             if (empty($this->acountNumber)) {
                 $this->addError('nacount', 'INGRESA EL NÚMERO DE CUENTA');
             }
@@ -137,6 +123,13 @@ Para solucionar este problema, puedes usar el método whereHas para filtrar las 
                 $this->addError('ndeposit',  'INGRESA EL NÚMERO DE DEPÓSITO');
             }
         }
+        
+        if ($this->paymentMethod == 'nequi') {
+             if (empty($this->phoneNumber)) {
+                $this->addError('phoneNumber', 'INGRESA EL NÚMERO DE TELÉFONO');
+            }
+        }
+
         if (empty($this->amount) || strlen($this->amount) < 1) {
             $this->addError('amount', 'INGRESA EL MONTO');
         }
@@ -164,19 +157,55 @@ Para solucionar este problema, puedes usar el método whereHas para filtrar las 
         DB::beginTransaction();
 
         try {
+            // Determine currency and exchange rate based on payment method
+            $currencyCode = 'COP';
+            $exchangeRate = 1;
+
+            if ($this->paymentMethod == 'cash') {
+                $currencyCode = $this->paymentCurrency;
+                $selectedCurrency = $this->currencies->firstWhere('code', $currencyCode);
+                $exchangeRate = $selectedCurrency ? $selectedCurrency->exchange_rate : 1;
+            } elseif ($this->paymentMethod == 'deposit') {
+                $bank = $this->banks->find($this->bank);
+                $currencyCode = $bank ? $bank->currency_code : 'COP';
+                // Find exchange rate for bank's currency
+                $selectedCurrency = $this->currencies->firstWhere('code', $currencyCode);
+                $exchangeRate = $selectedCurrency ? $selectedCurrency->exchange_rate : 1;
+            } elseif ($this->paymentMethod == 'nequi') {
+                $currencyCode = 'COP';
+                $exchangeRate = 1;
+            }
+
+            // Calculate amount in primary currency if needed
+            $amountInPrimary = $amount;
+            // If currency is not primary, convert to primary to check against debt
+            $currencyObj = $this->currencies->firstWhere('code', $currencyCode);
+            if ($currencyObj && $currencyObj->is_primary != 1) {
+                 $amountInPrimary = $amount / $exchangeRate;
+            }
+
+            // Re-validate against debt with converted amount
+             if ($amountInPrimary > floatval($this->debt)) {
+                $amountInPrimary = $this->debt;
+                // Recalculate original amount if capped
+                $amount = $amountInPrimary * $exchangeRate; 
+            }
+            
+            if ($amountInPrimary >= floatval($this->debt)) {
+                $type = 'settled';
+            }
+
             //crear pago
             $pay =  Payment::create(
                 [
                     'user_id' => Auth()->user()->id,
                     'sale_id' => $this->sale_selected_id,
                     'amount' => floatval($amount),
-                    'pay_way' => match (true) {
-                        ($this->bank ?? 0) === 0 && ($this->phoneNumber ?? 0) === 0 => 'cash',
-                        ($this->bank ?? 0) !== 0 => 'deposit',
-                        default => 'nequi',
-                    },
+                    'currency' => $currencyCode,
+                    'exchange_rate' => $exchangeRate,
+                    'pay_way' => $this->paymentMethod,
                     'type' => $type,
-                    'bank' => ($this->bank == 0 ? '' : $this->banks->where('id', $this->bank)->first()->name),
+                    'bank' => ($this->paymentMethod == 'deposit' && $this->bank != 0 ? $this->banks->where('id', $this->bank)->first()->name : ''),
                     'account_number' => $this->acountNumber,
                     'deposit_number' => $this->depositNumber,
                     'phone_number' => $this->phoneNumber

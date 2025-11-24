@@ -24,6 +24,7 @@ class Settings extends Component
 
         $this->loadConfig();
         $this->loadCurrencies();
+        $this->loadBanks();
     }
 
     public function render()
@@ -191,6 +192,45 @@ class Settings extends Component
             $this->dispatch('noty', msg: 'Moneda eliminada con éxito.');
         } catch (\Throwable $th) {
             $this->dispatch('noty', msg: 'Error al intentar eliminar la moneda: ' . $th->getMessage());
+        }
+    }
+    public $banks = [];
+    public $newBankName;
+    public $newBankCurrency;
+
+    public function loadBanks()
+    {
+        $this->banks = \App\Models\Bank::orderBy('sort')->get();
+    }
+
+    public function addBank()
+    {
+        $this->validate([
+            'newBankName' => 'required|string|max:255',
+            'newBankCurrency' => 'required|string|max:3',
+        ]);
+
+        \App\Models\Bank::create([
+            'name' => strtoupper($this->newBankName),
+            'currency_code' => $this->newBankCurrency,
+            'sort' => \App\Models\Bank::count() + 1,
+            'state' => 1
+        ]);
+
+        $this->newBankName = '';
+        $this->newBankCurrency = '';
+        $this->loadBanks();
+        $this->dispatch('noty', msg: 'Banco agregado con éxito.');
+    }
+
+    public function deleteBank($bankId)
+    {
+        try {
+            \App\Models\Bank::destroy($bankId);
+            $this->loadBanks();
+            $this->dispatch('noty', msg: 'Banco eliminado con éxito.');
+        } catch (\Throwable $th) {
+            $this->dispatch('noty', msg: 'Error al eliminar banco: ' . $th->getMessage());
         }
     }
 }

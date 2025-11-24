@@ -125,13 +125,90 @@
                             </div>
                         </div>
 
-                        <!-- Mostrar cambio si aplica -->
-                        @if ($change > 0)
-                            <div class="mt-4 d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0 f-w-400 f-16">Cambio:</h6>
-                                <div class="ms-auto text-end">
-                                    <span
-                                        class="f-16 txt-warning">{{ $symbol }}{{ number_format($change, 2) }}</span>
+                        <!-- Mostrar cambio disponible y distribución en múltiples monedas -->
+                        @if ($change > 0 || count($changeDistribution) > 0)
+                            <div class="mt-4">
+                                <h6 class="mb-2 f-w-400 f-16">Vuelto Disponible:</h6>
+                                <div class="light-card balance-card align-items-center">
+                                    <span class="f-16 txt-warning">{{ $symbol }}{{ number_format($change, 2) }}</span>
+                                </div>
+
+                                <!-- Sección para distribuir el vuelto en múltiples monedas -->
+                                <div class="mt-3">
+                                    <h6 class="mb-2 f-w-400 f-14">Distribuir Vuelto:</h6>
+                                    
+                                    <div class="row">
+                                        <!-- Selector de moneda -->
+                                        <div class="col-md-5">
+                                            <select class="form-control form-control-sm" wire:model.live="selectedChangeCurrency">
+                                                @foreach ($currencies as $currency)
+                                                    <option value="{{ $currency->code }}">
+                                                        {{ $currency->label }} ({{ $currency->symbol }})
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        
+                                        <!-- Monto del vuelto -->
+                                        <div class="col-md-4">
+                                            <input type="number" class="form-control form-control-sm" 
+                                                   wire:model.live="selectedChangeAmount" 
+                                                   placeholder="Monto"
+                                                   step="0.01">
+                                        </div>
+                                        
+                                        <!-- Botón agregar -->
+                                        <div class="col-md-3">
+                                            <button class="btn btn-success btn-sm w-100" 
+                                                    wire:click="addChangeInCurrency">
+                                                <i class="fa fa-plus"></i> Agregar
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Tabla de vueltos distribuidos -->
+                                    @if (count($changeDistribution) > 0)
+                                        <div class="mt-3">
+                                            <table class="table table-sm table-bordered">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Moneda</th>
+                                                        <th>Monto</th>
+                                                        <th>Equiv. {{ $primaryCurrency->label ?? 'Principal' }}</th>
+                                                        <th>Acción</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach ($changeDistribution as $index => $changeItem)
+                                                        <tr>
+                                                            <td>{{ $changeItem['currency'] }}</td>
+                                                            <td>{{ $changeItem['symbol'] }}{{ number_format($changeItem['amount'], 2) }}</td>
+                                                            <td>{{ $symbol }}{{ number_format($changeItem['amount_in_primary_currency'], 2) }}</td>
+                                                            <td>
+                                                                <button class="btn btn-danger btn-sm" 
+                                                                        wire:click="removeChangeDistribution({{ $index }})">
+                                                                    <i class="fa fa-trash"></i>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    @endif
+
+                                    <!-- Vuelto restante por asignar -->
+                                    @php
+                                        $remainingChange = $this->getRemainingChangeToAssign();
+                                    @endphp
+                                    @if ($remainingChange > 0)
+                                        <div class="mt-2 alert alert-warning py-2">
+                                            <small>
+                                                <i class="fa fa-exclamation-triangle"></i>
+                                                Vuelto pendiente de asignar: {{ $symbol }}{{ number_format($remainingChange, 2) }}
+                                            </small>
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                         @endif

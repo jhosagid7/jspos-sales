@@ -115,3 +115,7 @@ Route::middleware('auth')->group(function () {
 // Route::get('tester', Tester::class);
 
 require __DIR__ . '/auth.php';
+
+
+
+

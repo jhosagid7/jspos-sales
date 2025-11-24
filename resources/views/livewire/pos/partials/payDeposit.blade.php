@@ -45,7 +45,7 @@
 
 
                     <div class="input-group mt-4">
-                        <select class="form-select" id="selBank">
+                        <select class="form-select" id="selBank" wire:model="bank">
                             @forelse($banks as $bank)
                             <option value="{{$bank->id}}">{{$bank->name}}</option>
                             @empty

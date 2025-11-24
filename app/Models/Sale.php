@@ -45,6 +45,16 @@ class Sale extends Model
         return $this->hasMany(Payment::class)->orderBy('id', 'desc');
     }
 
+    function changeDetails()
+    {
+        return $this->hasMany(SaleChangeDetail::class);
+    }
+
+    function paymentDetails()
+    {
+        return $this->hasMany(SalePaymentDetail::class);
+    }
+
     //scopes
     // public function scopeWithDebt($query)
     // {

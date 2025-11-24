@@ -295,7 +295,7 @@ trait PrintTrait
 
 
 
-    function printCashCount($user_name, $dfrom, $dto, $totales, $cash, $nequi, $deposit, $payments, $credit, $pcash, $pdeposit, $pnequi)
+    function printCashCount($user_name, $dfrom, $dto, $totales, $salesTotal, $cash, $nequi, $deposit, $payments, $credit, $pcash, $pdeposit, $pnequi, $salesByCurrency = [], $paymentsByCurrency = [])
     {
         try {
 
@@ -310,27 +310,114 @@ trait PrintTrait
 
                 $printer->text(strtoupper($config->business_name) . "\n");
                 $printer->setTextSize(1, 1);
-                $printer->text("Corte de Caja $config->taxpayer_id \n\n");
+                $printer->text("Corte de Caja \n");
+                //$printer->text("NIT: $config->taxpayer_id \n\n");
 
 
                 $printer->setJustification(Printer::JUSTIFY_LEFT);
 
                 $printer->text("=============================================\n");
-                $printer->text("Fechas: desde" . $dfrom . ' hasta ' . $dto . "\n");
+                $printer->text("Desde: " . Carbon::parse($dfrom)->format('d/m/Y') . "\n");
+                $printer->text("Hasta: " . Carbon::parse($dto)->format('d/m/Y') . "\n");
                 $printer->text("Usuario: " . $user_name . " \n");
                 $printer->text("=============================================\n");
 
-                $printer->text("VENTAS TOTALES: " . $totales  . "\n");
-                $printer->text("TOTAL BANCO: " . $deposit  . "\n");
-                $printer->text("TOTAL NEQUI: " . $nequi  . "\n");
-                $printer->text("TOTAL CONTADO: " . $cash  . "\n");
-                $printer->text("VENTAS A CRÉDITO: " . $credit  . "\n");
+                $printer->text("RESUMEN GENERAL\n");
+                $printer->text("VENTAS TOTALES: $" . number_format($salesTotal, 2) . "\n");
+                $printer->text("  Contado: $" . number_format($cash, 2) . "\n");
+                $printer->text("  Nequi: $" . number_format($nequi, 2) . "\n");
+                $printer->text("  Banco: $" . number_format($deposit, 2) . "\n");
+                $printer->text("  Crédito: $" . number_format($credit, 2) . "\n");
                 $printer->text("---------" . "\n");
-                $printer->text("CRÉDITOS PAGADOS: " . $payments  . "\n");
-                $printer->text("TOTAL BANCO: " . $pdeposit  . "\n");
-                $printer->text("TOTAL NEQUI: " . $pnequi  . "\n");
-                $printer->text("TOTAL CONTADO: " . $pcash  . "\n");
-                $printer->text("---------" . "\n");
+                $printer->text("ABONOS RECIBIDOS: $" . number_format($payments, 2) . "\n");
+                $printer->text("  Contado: $" . number_format($pcash, 2) . "\n");
+                $printer->text("  Nequi: $" . number_format($pnequi, 2) . "\n");
+                $printer->text("  Banco: $" . number_format($pdeposit, 2) . "\n");
+                $printer->text("=============================================\n");
+
+                // DETAILED SALES BREAKDOWN
+                if (!empty($salesByCurrency)) {
+                    $printer->setJustification(Printer::JUSTIFY_CENTER);
+                    $printer->text("DETALLE VENTAS POR MONEDA\n");
+                    $printer->setJustification(Printer::JUSTIFY_LEFT);
+                    $printer->text("---------------------------------------------\n");
+
+                    // Helper to get currency label
+                    $getCurrencyLabel = function($code) {
+                        $c = \App\Models\Currency::where('code', $code)->first();
+                        return $c ? $c->label . " (" . $code . ")" : $code;
+                    };
+
+                    // Cash Sales
+                    if (!empty($salesByCurrency['cash'])) {
+                        $printer->text("EFECTIVO:\n");
+                        foreach ($salesByCurrency['cash'] as $currency => $amount) {
+                            $printer->text("  " . $getCurrencyLabel($currency) . ": " . number_format($amount, 2) . "\n");
+                        }
+                    }
+
+                    // Nequi Sales
+                    if (!empty($salesByCurrency['nequi'])) {
+                        $printer->text("NEQUI:\n");
+                        foreach ($salesByCurrency['nequi'] as $currency => $amount) {
+                            $printer->text("  " . $getCurrencyLabel($currency) . ": " . number_format($amount, 2) . "\n");
+                        }
+                    }
+
+                    // Deposit Sales
+                    if (!empty($salesByCurrency['deposit'])) {
+                        $printer->text("BANCO:\n");
+                        foreach ($salesByCurrency['deposit'] as $bankName => $currencies) {
+                            $printer->text("  " . $bankName . ":\n");
+                            foreach ($currencies as $currency => $amount) {
+                                $printer->text("    " . $getCurrencyLabel($currency) . ": " . number_format($amount, 2) . "\n");
+                            }
+                        }
+                    }
+                    $printer->text("=============================================\n");
+                }
+
+                // DETAILED PAYMENTS BREAKDOWN
+                if (!empty($paymentsByCurrency)) {
+                    $printer->setJustification(Printer::JUSTIFY_CENTER);
+                    $printer->text("DETALLE ABONOS POR MONEDA\n");
+                    $printer->setJustification(Printer::JUSTIFY_LEFT);
+                    $printer->text("---------------------------------------------\n");
+
+                     // Helper to get currency label (redefined or reused if scope allows, but safe to redefine)
+                     $getCurrencyLabel = function($code) {
+                        $c = \App\Models\Currency::where('code', $code)->first();
+                        return $c ? $c->label . " (" . $code . ")" : $code;
+                    };
+
+                    // Cash Payments
+                    if (!empty($paymentsByCurrency['cash'])) {
+                        $printer->text("EFECTIVO:\n");
+                        foreach ($paymentsByCurrency['cash'] as $currency => $amount) {
+                            $printer->text("  " . $getCurrencyLabel($currency) . ": " . number_format($amount, 2) . "\n");
+                        }
+                    }
+
+                    // Nequi Payments
+                    if (!empty($paymentsByCurrency['nequi'])) {
+                        $printer->text("NEQUI:\n");
+                        foreach ($paymentsByCurrency['nequi'] as $currency => $amount) {
+                            $printer->text("  " . $getCurrencyLabel($currency) . ": " . number_format($amount, 2) . "\n");
+                        }
+                    }
+
+                    // Deposit Payments
+                    if (!empty($paymentsByCurrency['deposit'])) {
+                        $printer->text("BANCO:\n");
+                        foreach ($paymentsByCurrency['deposit'] as $bankName => $currencies) {
+                            $printer->text("  " . $bankName . ":\n");
+                            foreach ($currencies as $currency => $amount) {
+                                $printer->text("    " . $getCurrencyLabel($currency) . ": " . number_format($amount, 2) . "\n");
+                            }
+                        }
+                    }
+                     $printer->text("=============================================\n");
+                }
 
 
                 $printer->feed(3);
