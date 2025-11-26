@@ -126,7 +126,7 @@
                         </div>
 
                         <!-- Mostrar cambio disponible y distribución en múltiples monedas -->
-                        @if ($change > 0 || count($changeDistribution) > 0)
+                        @if (count($payments) > 0 && ($change > 0 || count($changeDistribution) > 0))
                             <div class="mt-4">
                                 <h6 class="mb-2 f-w-400 f-16">Vuelto Disponible:</h6>
                                 <div class="light-card balance-card align-items-center">

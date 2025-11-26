@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\DB;
 class Settings extends Component
 {
     public $setting_id = 0, $businessName, $phone, $taxpayerId, $vat, $printerName, $website, $leyend, $creditDays = 15, $address, $city, $creditPurchaseDays, $confirmationCode, $decimals;
+    
+    public $tab = 1; // Control de pestañas
 
     public $primaryCurrency; // Moneda principal
     public $availableCurrencies = ['USD', 'COP', 'VES']; // Lista de monedas disponibles
