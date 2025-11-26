@@ -29,6 +29,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Traits\PdfOrderInvoiceTrait;
 use App\Services\ConfigurationService;
+use App\Services\CashRegisterService; // Importar servicio
+use Illuminate\Support\Facades\Auth; // Importar Auth
 
 class Sales extends Component
 {
@@ -62,8 +64,8 @@ class Sales extends Component
     public $payments = []; // Lista de pagos realizados
     public $paymentAmount; // Monto del pago actual
     public $paymentCurrency = 'COP'; // Moneda del pago actual
-    public $remainingAmount; // Monto restante por pagar
-    public $change; // Cambio en diferentes monedas
+    public $remainingAmount = 0; // Monto restante por pagar
+    public $change = 0; // Cambio en diferentes monedas
 
     public $totalInPrimaryCurrency = 0; // Suma total en la moneda principal
     public $nequiPhoneNumber;
@@ -83,6 +85,7 @@ class Sales extends Component
     public $changeDistribution = []; // Array de vueltos por moneda seleccionados manualmente
     public $selectedChangeCurrency; // Moneda seleccionada para dar vuelto
     public $selectedChangeAmount; // Monto a dar en esa moneda
+    public $totalCartAtPayment; // Total del carrito en el momento del pago (para evitar que cambie durante re-renders)
 
 
 
@@ -109,6 +112,10 @@ class Sales extends Component
         Log::info('Pagos actuales:', $this->payments); // Depuración
         $this->calculateRemainingAndChange();
         session(['payments' => $this->payments]);
+        
+        // Guardar el monto restante y el cambio en la sesión
+        session(['remainingAmount' => $this->remainingAmount]);
+        session(['change' => $this->change]);
     }
 
     public function addNequiPayment()
@@ -125,6 +132,11 @@ class Sales extends Component
 
         $this->calculateRemainingAndChange();
         session(['payments' => $this->payments]);
+        
+        // Guardar el monto restante y el cambio en la sesión
+        session(['remainingAmount' => $this->remainingAmount]);
+        session(['change' => $this->change]);
+        
         $this->dispatch('close-modalPay', ['element' => 'modalNequiPartial']);
     }
 
@@ -142,6 +154,11 @@ class Sales extends Component
 
         $this->calculateRemainingAndChange();
         session(['payments' => $this->payments]);
+        
+        // Guardar el monto restante y el cambio en la sesión
+        session(['remainingAmount' => $this->remainingAmount]);
+        session(['change' => $this->change]);
+        
         $this->dispatch('close-modal', 'modalPagoMovil');
     }
 
@@ -149,12 +166,17 @@ class Sales extends Component
     public function calculateRemainingAndChange()
     {
         $totalPaid = array_sum(array_column($this->payments, 'amount_in_primary_currency'));
+        
+        // Usar totalCartAtPayment si existe, sino usar totalCart actual
+        $cartTotal = $this->totalCartAtPayment ?? $this->totalCart;
 
-        $this->remainingAmount = max(0, $this->totalCart - $totalPaid);
-        $this->change = max(0, $totalPaid - $this->totalCart);
+        $this->remainingAmount = max(0, $cartTotal - $totalPaid);
+        $this->change = max(0, $totalPaid - $cartTotal);
 
         Log::info('Cálculo de montos:', [
             'totalCart' => $this->totalCart,
+            'totalCartAtPayment' => $this->totalCartAtPayment,
+            'cartTotal_used' => $cartTotal,
             'totalPaid' => $totalPaid,
             'remainingAmount' => $this->remainingAmount,
             'change' => $this->change,
@@ -319,6 +341,9 @@ class Sales extends Component
         // Cargar los pagos desde la sesión si existen
         $this->payments = session()->has('payments') ? session('payments') : [];
 
+        // Cargar changeDistribution desde la sesión si existe
+        $this->changeDistribution = session()->has('changeDistribution') ? session('changeDistribution') : [];
+
         // Cargar el monto restante desde la sesión si existe
         $this->remainingAmount = session()->has('remainingAmount') ? session('remainingAmount') : $this->totalCart;
 
@@ -335,9 +360,62 @@ class Sales extends Component
         $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
         $this->paymentCurrency = $primaryCurrency ? $primaryCurrency->code : null;
     }
+    
+    public function hydrate()
+    {
+        // Este método se ejecuta en cada request de Livewire (después de mount)
+        // Restaurar el change desde la sesión si existe
+        if (session()->has('change')) {
+            $this->change = session('change');
+            Log::info('HYDRATE - Change restaurado desde sesión:', ['change' => $this->change]);
+            // Verificar inmediatamente que el valor se mantuvo
+            Log::info('HYDRATE - Verificación inmediata:', ['change_verificado' => $this->change]);
+        } else {
+            Log::info('HYDRATE - No hay change en sesión');
+        }
+        
+        // Restaurar changeDistribution desde la sesión si existe
+        if (session()->has('changeDistribution')) {
+            $this->changeDistribution = session('changeDistribution');
+        }
+        
+        // Restaurar payments desde la sesión si existe
+        if (session()->has('payments')) {
+            $this->payments = session('payments');
+        }
+        
+        // Restaurar remainingAmount desde la sesión si existe
+        if (session()->has('remainingAmount')) {
+            $this->remainingAmount = session('remainingAmount');
+        }
+        
+        // Restaurar totalCartAtPayment desde la sesión si existe
+        if (session()->has('totalCartAtPayment')) {
+            $this->totalCartAtPayment = session('totalCartAtPayment');
+        }
+        
+        Log::info('HYDRATE - Final:', [
+            'change' => $this->change,
+            'payments_count' => count($this->payments),
+            'totalCartAtPayment' => $this->totalCartAtPayment
+        ]);
+    }
 
     public function render()
     {
+        // FAILSAFE: Si change es 0 pero hay un valor en sesión, restaurarlo
+        // Esto soluciona un problema del ciclo de vida de Livewire donde el valor se pierde entre hydrate() y render()
+        if ($this->change == 0 && session()->has('change') && session('change') > 0) {
+            $this->change = session('change');
+            Log::info('RENDER - FAILSAFE activado, change restaurado:', ['change' => $this->change]);
+        }
+        
+        Log::info('RENDER - Inicio:', [
+            'change' => $this->change,
+            'changeDistribution_count' => count($this->changeDistribution),
+            'payments_count' => count($this->payments)
+        ]);
+        
         $decimals = ConfigurationService::getDecimalPlaces();
 
         $this->cart = $this->cart->sortByDesc('id');
@@ -375,6 +453,12 @@ class Sales extends Component
 
     public function addPayment()
     {
+        // Guardar el total del carrito en el primer pago
+        if (empty($this->payments)) {
+            $this->totalCartAtPayment = $this->totalCart;
+            session(['totalCartAtPayment' => $this->totalCartAtPayment]);
+        }
+        
         // Buscar la moneda seleccionada en la lista de monedas disponibles
         $currency = collect($this->currencies)->firstWhere('code', $this->paymentCurrency);
 
@@ -425,8 +509,9 @@ class Sales extends Component
         // Actualizar el monto restante y el cambio
         $this->calculateRemainingAndChange();
 
-        // Guardar el monto restante en la sesión
+        // Guardar el monto restante y el cambio en la sesión
         session(['remainingAmount' => $this->remainingAmount]);
+        session(['change' => $this->change]);
 
         // Registrar en los logs para depuración
         Log::info('Pagos realizados:', $this->payments);
@@ -467,6 +552,10 @@ class Sales extends Component
 
             session(['payments' => $this->payments]);
             $this->calculateRemainingAndChange();
+            
+            // Guardar el monto restante y el cambio en la sesión
+            session(['remainingAmount' => $this->remainingAmount]);
+            session(['change' => $this->change]);
         }
     }
 
@@ -500,6 +589,20 @@ class Sales extends Component
     {
         $this->dispatch('initPay', ['payType' => 'nequi_partial']); // Emite el evento para abrir el modal de abonos parciales con Nequi
     }
+    
+    public function updatedPaymentAmount()
+    {
+        // Cuando cambia el monto del pago, NO recalcular el change
+        // El change solo debe recalcularse cuando se agrega o elimina un pago
+        // Esto evita que el change se resetee mientras el usuario escribe
+    }
+    
+    public function updatedPaymentCurrency()
+    {
+        // Cuando cambia la moneda del pago, NO recalcular el change
+        // El change solo debe recalcularse cuando se agrega o elimina un pago
+    }
+    
     public function updatedPayments()
     {
         $this->calculateTotalInPrimaryCurrency();
@@ -517,8 +620,28 @@ class Sales extends Component
         }
     }
 
-    public function addChangeInCurrency()
+    public function addChangeInCurrency(CashRegisterService $cashRegisterService)
     {
+        if ($this->selectedChangeAmount > 0 && $this->selectedChangeCurrency) {
+            $currency = collect($this->currencies)->firstWhere('code', $this->selectedChangeCurrency);
+            $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
+
+            // Validar disponibilidad en caja
+            $register = $cashRegisterService->getActiveCashRegister(Auth::id());
+            $validation = $cashRegisterService->validateChangeAvailability(
+                $register->id, 
+                $this->selectedChangeCurrency, 
+                $this->selectedChangeAmount
+            );
+
+            if (!$validation['valid']) {
+                $this->dispatch('noty', msg: "Saldo insuficiente en {$currency->symbol}. Disponible: " . number_format($validation['current_balance'], 2));
+                return;
+            }
+
+            // Calcular el monto equivalente en la moneda principal
+            $amountInPrimaryCurrency = 0;
+        }
         if (!$this->selectedChangeCurrency || !$this->selectedChangeAmount) {
             $this->dispatch('noty', msg: 'Selecciona una moneda y monto para el vuelto');
             return;
@@ -531,8 +654,18 @@ class Sales extends Component
             return;
         }
 
-        // Convertir el monto a moneda principal
-        $amountInPrimaryCurrency = $this->selectedChangeAmount / $currency->exchange_rate;
+        // CORRECCIÓN: Convertir correctamente a moneda principal
+        // Si la moneda seleccionada es la principal, el monto ya está en moneda principal
+        $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
+        
+        if ($currency->is_primary) {
+            // Si es la moneda principal, no hay conversión necesaria
+            $amountInPrimaryCurrency = $this->selectedChangeAmount;
+        } else {
+            // Si es una moneda secundaria, convertir vía USD
+            $amountInUSD = $this->selectedChangeAmount / $currency->exchange_rate;
+            $amountInPrimaryCurrency = $amountInUSD * $primaryCurrency->exchange_rate;
+        }
         
         // Calcular cuánto vuelto ya se ha asignado
         $totalAssignedChange = array_sum(array_column($this->changeDistribution, 'amount_in_primary_currency'));
@@ -556,6 +689,9 @@ class Sales extends Component
             'amount_in_primary_currency' => $amountInPrimaryCurrency,
         ];
 
+        // Guardar en sesión para persistencia
+        session(['changeDistribution' => $this->changeDistribution]);
+
         // Limpiar campos
         $this->selectedChangeCurrency = null;
         $this->selectedChangeAmount = null;
@@ -568,6 +704,10 @@ class Sales extends Component
         if (isset($this->changeDistribution[$index])) {
             unset($this->changeDistribution[$index]);
             $this->changeDistribution = array_values($this->changeDistribution); // Reindexar
+            
+            // Actualizar sesión
+            session(['changeDistribution' => $this->changeDistribution]);
+            
             $this->dispatch('noty', msg: 'Vuelto eliminado');
         }
     }
@@ -575,7 +715,11 @@ class Sales extends Component
     public function getRemainingChangeToAssign()
     {
         $totalPaidInPrimaryCurrency = array_sum(array_column($this->payments, 'amount_in_primary_currency'));
-        $totalChangeAvailable = $totalPaidInPrimaryCurrency - $this->totalCart;
+        
+        // Usar totalCartAtPayment si existe, sino usar totalCart actual
+        $cartTotal = $this->totalCartAtPayment ?? $this->totalCart;
+        
+        $totalChangeAvailable = $totalPaidInPrimaryCurrency - $cartTotal;
         $totalAssignedChange = array_sum(array_column($this->changeDistribution, 'amount_in_primary_currency'));
         
         return max(0, $totalChangeAvailable - $totalAssignedChange);
@@ -879,6 +1023,8 @@ class Sales extends Component
         $this->dispatch('noty', msg: 'CANTIDAD ACTUALIZADA');
     }
 
+
+
     public function clear()
     {
         $this->cart = new Collection;
@@ -893,23 +1039,25 @@ class Sales extends Component
         $this->clear();
         session()->forget('sale_customer');
 
-        // Si ya no hay pagos, eliminar la variable de sesión
-        if (empty($this->payments)) {
-            session()->forget('payments');
-            Log::info('Variable de sesión "payments" eliminada.');
-        }
+        // Limpiar TODAS las sesiones de pago (sin condiciones)
+        session()->forget('payments');
+        session()->forget('changeDistribution');
+        session()->forget('remainingAmount');
+        session()->forget('change');
+        session()->forget('totalCartAtPayment');
+        
+        // Resetear propiedades
+        $this->payments = [];
+        $this->changeDistribution = [];
+        $this->remainingAmount = 0;
+        $this->change = 0;
+        $this->totalCartAtPayment = null;
 
         $this->dispatch('noty', msg: 'Venta cancelada y datos limpiados.');
-        // Actualizar el monto restante y el cambio
-        $this->calculateRemainingAndChange();
-
-        // Guardar el monto restante en la sesión
-        session(['remainingAmount' => $this->remainingAmount]);
+        
         $this->loadCurrencies();
 
-        // Registrar en los logs para depuración
-
-        Log::info('Monto restante actualizado:', ['remainingAmount' => $this->remainingAmount]);
+        Log::info('Venta cancelada - Todas las sesiones limpiadas');
     }
 
     public function totalIVA()
@@ -979,7 +1127,7 @@ class Sales extends Component
         $this->dispatch('initPay', payType: $type);
     }
 
-    function Store()
+    function Store(CashRegisterService $cashRegisterService)
     {
         // dd($this);
 
@@ -1169,7 +1317,70 @@ class Sales extends Component
             ]);
         }          
 
-        DB::commit();
+            // Registrar movimientos de caja
+            $register = $cashRegisterService->getActiveCashRegister(Auth::id());
+            if ($register) {
+                // Registrar pagos
+                if ($type == 1) { // Solo si es pago en efectivo (o mixto con efectivo)
+                    if (!empty($this->payments)) {
+                        foreach ($this->payments as $payment) {
+                            $cashRegisterService->recordSaleMovement(
+                                $register->id,
+                                $sale->id,
+                                'sale_payment',
+                                $payment['currency'],
+                                $payment['amount'],
+                                "Venta #{$sale->id}"
+                            );
+                        }
+                    } else {
+                        // Caso simple: pago efectivo sin desglose múltiple
+                        $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
+                        $currencyCode = $primaryCurrency ? $primaryCurrency->code : 'COP';
+                        
+                        $cashRegisterService->recordSaleMovement(
+                            $register->id,
+                            $sale->id,
+                            'sale_payment',
+                            $currencyCode,
+                            $this->cashAmount,
+                            "Venta #{$sale->id}"
+                        );
+                    }
+                }
+
+                // Registrar vueltos
+                if ($this->change > 0) {
+                    if (!empty($this->changeDistribution)) {
+                        foreach ($this->changeDistribution as $changeItem) {
+                            $cashRegisterService->recordSaleMovement(
+                                $register->id,
+                                $sale->id,
+                                'sale_change',
+                                $changeItem['currency'],
+                                -$changeItem['amount'], // Negativo porque sale de caja
+                                "Vuelto Venta #{$sale->id}"
+                            );
+                        }
+                    } else {
+                        // Si hay cambio pero no distribución, registrar en moneda principal (o la del pago)
+                        // Por defecto moneda principal
+                        $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
+                        $currencyCode = $primaryCurrency ? $primaryCurrency->code : 'COP';
+                        
+                        $cashRegisterService->recordSaleMovement(
+                            $register->id,
+                            $sale->id,
+                            'sale_change',
+                            $currencyCode,
+                            -$this->change,
+                            "Vuelto Venta #{$sale->id}"
+                        );
+                    }
+                }
+            }
+
+            DB::commit();
 
             // Limpiar la variable de sesión
             session()->forget('payments');
@@ -1181,6 +1392,13 @@ class Sales extends Component
             $this->resetExcept('config', 'banks', 'bank');
             $this->clear();
             session()->forget('sale_customer');
+            
+            // Limpiar sesiones de pagos y vueltos después de venta exitosa
+            session()->forget('payments');
+            session()->forget('changeDistribution');
+            session()->forget('remainingAmount');
+            session()->forget('change');
+            session()->forget('totalCartAtPayment');
 
             // mike42
             $this->printSale($sale->id);

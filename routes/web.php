@@ -63,7 +63,7 @@ Route::middleware('auth')->group(function () {
     Route::get('products', Products::class)->name('products')->middleware('can:productos');
     Route::get('suppliers', Suppliers::class)->name('suppliers')->middleware('can:proveedores');
     Route::get('customers', Customers::class)->name('customers')->middleware('can:clientes');
-    Route::get('sales', Sales::class)->name('sales')->middleware('can:ventas');
+    Route::get('sales', Sales::class)->name('sales')->middleware(['can:sales.create', \App\Http\Middleware\EnsureCashRegisterIsOpen::class]);
 
     Route::get('purchases', Purchases::class)->name('purchases')->middleware('can:compras');
     Route::get('inventories', Inventory::class)->name('inventories')->middleware('can:inventarios');
@@ -99,7 +99,12 @@ Route::middleware('auth')->group(function () {
     //generate pdf invoices
     Route::get('sales/{sale}', [Sales::class, 'generatePdfInvoice'])->name('pos.sales.generatePdfInvoice');
     //generate pdf orders invoices
+    //generate pdf orders invoices
     Route::get('orders/{order}', [Sales::class, 'generatePdfOrderInvoice'])->name('pos.orders.generatePdfOrderInvoice');
+
+    // Cash Register Routes
+    Route::get('cash-register/open', \App\Livewire\CashRegisterOpen::class)->name('cash-register.open')->middleware('can:cash_register.open');
+    Route::get('cash-register/close', \App\Livewire\CashRegister::class)->name('cash-register.close');
 });
 
 

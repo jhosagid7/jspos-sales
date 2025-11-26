@@ -34,6 +34,16 @@
                         </li>
                     @endcan
 
+    @can('ventas')
+        <li class="sidebar-list"><i class="fa fa-thumb-tack"></i><a
+                class="sidebar-link sidebar-title link-nav" href="{{ route('cash-register.close') }}">
+                <i class="fa fa-cash-register" style="font-size: 24px"></i>
+                <svg class="fill-icon">
+                    <use href="../assets/svg/icon-sprite.svg#fill-contact"> </use>
+                </svg><span>CERRAR CAJA</span></a>
+        </li>
+    @endcan
+
                     @can('compras')
                         <li class="sidebar-list"><i class="fa fa-thumb-tack"></i><a
                                 class="sidebar-link sidebar-title link-nav" href="{{ route('purchases') }}">
