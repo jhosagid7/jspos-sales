@@ -5,7 +5,7 @@
                 <div x-data @click.away="$wire.dispatch('hideResults')" class="relative">
                     <div class="faq-form">
                         <div class="form-control form-control-lg">
-                            <input type="text" wire:model.live.debounce.700ms="search3" class="form-control"
+                            <input type="text" wire:model.live.debounce.300ms="search3" class="form-control"
                                 placeholder="[ F1 ] Ingresa nombre o código del producto"
                                 style="text-transform: capitalize" autocomplete="off" id="inputSearch"
                                 wire:keydown="keyDown($event.key)">
@@ -14,9 +14,17 @@
                         </div>
 
                         @if (!empty($products))
+                            @php
+                                $primaryCurrency = $currencies->firstWhere('is_primary', true);
+                                $primaryRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
+                                $primarySymbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
+                            @endphp
                             <ul class="mt-0 bg-white border-0 list-group position-absolute w-100"
                                 style="z-index: 1000; max-height: 200px; overflow-y: auto;">
                                 @foreach ($products as $index => $product)
+                                    @php
+                                        $priceInPrimary = $product->price * $primaryRate;
+                                    @endphp
                                     <li class="p-2 list-group-item list-group-item-action d-flex justify-content-between align-items-center"
                                         wire:click="selectProduct({{ $index }})"
                                         style="cursor: pointer; {{ $selectedIndex === $index ? 'background-color: #e9ecef;' : '' }}">
@@ -25,7 +33,7 @@
                                                 class="mb-0 text-{{ $product->stock_qty <= 0 ? 'danger' : ($product->stock_qty < $product->low_stock ? 'info' : 'primary') }}">
                                                 <small class="mb-0" style="text-muted">
                                                     {{ $product->sku }} - {{ Str::limit($product->name, 50) }}
-                                                </small> - {{ $product->price }} / <small>stock:
+                                                </small> - {{ $primarySymbol }}{{ number_format($priceInPrimary, 2) }} / <small>stock:
                                                     @if ($product->stock_qty <= 0)
                                                         <span class="text-danger">Agotado</span>
                                                     @else
@@ -92,6 +100,11 @@
                     </thead>
                     <tbody>
                         @forelse($cart as $item)
+                            @php
+                                $primaryCurrency = $currencies->firstWhere('is_primary', true);
+                                $primaryRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
+                                $primarySymbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
+                            @endphp
                             <tr wire:key="cart-item-{{ $item['id'] }}">
                                 <td>
                                     <img class="img-fluid img-30" src="{{ asset($item['image']) }} ">
@@ -114,16 +127,19 @@
                                                     <i class="fa fa-info"></i>
                                                 </button>
                                                 
-                                                <ul class="dropdown-menu dropdown-menu-end" style="min-width: 250px; z-index: 9999;">
+                                                <ul class="dropdown-menu dropdown-menu-end" style="min-width: 250px; max-height: 400px; overflow-y: auto; z-index: 9999;">
                                                     <li>
                                                         <a class="dropdown-item" href="javascript:void(0)">
                                                             <div class="d-flex flex-column">
-                                                                <span class="fw-bold fs-6">${{ $item['sale_price'] }}</span>
+                                                                <span class="fw-bold fs-6">{{ $primarySymbol }}{{ $item['sale_price'] }}</span>
                                                                 @if(isset($currencies) && $currencies->count() > 1)
                                                                     <div class="text-muted" style="font-size: 0.75rem;">
                                                                         @foreach($currencies as $currency)
                                                                             @if(!$currency->is_primary)
-                                                                                <div>{{ $currency->symbol }}{{ number_format($item['sale_price'] * $currency->exchange_rate, 2) }} {{ $currency->code }}</div>
+                                                                                @php
+                                                                                    $convertedPrice = ($item['sale_price'] / $primaryRate) * $currency->exchange_rate;
+                                                                                @endphp
+                                                                                <div>{{ $currency->symbol }}{{ number_format($convertedPrice, 2) }} {{ $currency->code }}</div>
                                                                             @endif
                                                                         @endforeach
                                                                     </div>
@@ -147,18 +163,26 @@
                                                     <i class="fa fa-list"></i>
                                                 </button>
                                                 
-                                                <ul class="dropdown-menu dropdown-menu-end" style="min-width: 250px; z-index: 9999;">
+                                                <ul class="dropdown-menu dropdown-menu-end" style="min-width: 250px; max-height: 400px; overflow-y: auto; z-index: 9999;">
+                                                    @php
+                                                        $primaryCurrency = $currencies->firstWhere('is_primary', true);
+                                                        $primaryRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
+                                                        $primarySymbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
+                                                    @endphp
                                                     @foreach ($item['pricelist'] as $price)
                                                         <li>
                                                             <a class="dropdown-item" href="javascript:void(0)" 
                                                                wire:click.prevent="setCustomPrice('{{ $item['id'] }}', '{{ $price['price'] }}')">
                                                                 <div class="d-flex flex-column">
-                                                                    <span class="fw-bold fs-6">${{ $price['price'] }}</span>
+                                                                    <span class="fw-bold fs-6">{{ $primarySymbol }}{{ $price['price'] }}</span>
                                                                     @if(isset($currencies) && $currencies->count() > 1)
                                                                         <div class="text-muted" style="font-size: 0.75rem;">
                                                                             @foreach($currencies as $currency)
                                                                                 @if(!$currency->is_primary)
-                                                                                    <div>{{ $currency->symbol }}{{ number_format($price['price'] * $currency->exchange_rate, 2) }} {{ $currency->code }}</div>
+                                                                                    @php
+                                                                                        $convertedPrice = ($price['price'] / $primaryRate) * $currency->exchange_rate;
+                                                                                    @endphp
+                                                                                    <div>{{ $currency->symbol }}{{ number_format($convertedPrice, 2) }} {{ $currency->code }}</div>
                                                                                 @endif
                                                                             @endforeach
                                                                         </div>
@@ -199,7 +223,7 @@
 
 
                                 </td>
-                                <td>${{ $item['total'] }}</td>
+                                <td>{{ $primarySymbol }}{{ $item['total'] }}</td>
                                 <td>
 
                                     <button wire:click.prevent="removeItem({{ $item['pid'] }})"

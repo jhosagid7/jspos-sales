@@ -31,6 +31,7 @@ use App\Traits\PdfOrderInvoiceTrait;
 use App\Services\ConfigurationService;
 use App\Services\CashRegisterService; // Importar servicio
 use Illuminate\Support\Facades\Auth; // Importar Auth
+use App\Helpers\CurrencyHelper; // Importar Helper
 
 class Sales extends Component
 {
@@ -46,6 +47,7 @@ class Sales extends Component
     public $taxCart = 0, $itemsCart, $subtotalCart = 0, $totalCart = 0, $ivaCart = 0;
 
     public $config, $customer, $iva = 0;
+    public $sellerConfig = null; // Store active seller config
     //register customer
     public $cname, $caddress, $ccity, $cemail, $cphone, $ctaxpayerId, $ctype = 'Consumidor Final';
 
@@ -68,7 +70,16 @@ class Sales extends Component
     public $change = 0; // Cambio en diferentes monedas
 
     public $totalInPrimaryCurrency = 0; // Suma total en la moneda principal
-    public $nequiPhoneNumber;
+    
+    // Propiedades para Modal Unificado
+    public $selectedPaymentMethod = 'cash'; // 'cash', 'bank', 'nequi'
+    
+    // Datos Banco
+    public $bankId;
+    public $bankAccountNumber;
+    public $bankDepositNumber;
+    public $bankAmount;
+    
     public $pagoMovilBank, $pagoMovilPhoneNumber, $pagoMovilReference, $pagoMovilAmount;
 
     // /**
@@ -89,8 +100,13 @@ class Sales extends Component
 
 
 
-    public function addCashPayment()
+    public function addPayment()
     {
+        $this->validate([
+            'paymentAmount' => 'required|numeric|min:0.01',
+            'paymentCurrency' => 'required',
+        ]);
+
         $currency = collect($this->currencies)->firstWhere('code', $this->paymentCurrency);
 
         if (!$currency) {
@@ -98,7 +114,10 @@ class Sales extends Component
             return;
         }
 
-        $amountInPrimaryCurrency = $this->paymentAmount / $currency->exchange_rate;
+        // Convertir a USD (base) y luego a moneda principal
+        $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
+        $amountInUSD = $this->paymentAmount / $currency->exchange_rate;
+        $amountInPrimaryCurrency = $amountInUSD * $primaryCurrency->exchange_rate;
 
         $this->payments[] = [
             'method' => 'cash',
@@ -109,36 +128,66 @@ class Sales extends Component
             'amount_in_primary_currency' => $amountInPrimaryCurrency,
             'details' => null,
         ];
-        Log::info('Pagos actuales:', $this->payments); // Depuración
+        
         $this->calculateRemainingAndChange();
         session(['payments' => $this->payments]);
-        
-        // Guardar el monto restante y el cambio en la sesión
         session(['remainingAmount' => $this->remainingAmount]);
         session(['change' => $this->change]);
+        
+        $this->reset(['paymentAmount']);
     }
 
-    public function addNequiPayment()
+    public function addBankPayment()
     {
+        $this->validate([
+            'bankId' => 'required',
+            'bankAccountNumber' => 'required',
+            'bankDepositNumber' => 'required',
+            'bankAmount' => 'required|numeric|min:0.01',
+        ]);
+
+        $bank = Bank::find($this->bankId);
+        if (!$bank) {
+            $this->dispatch('noty', msg: 'Banco no encontrado.');
+            return;
+        }
+
+        $currency = collect($this->currencies)->firstWhere('code', $bank->currency_code);
+
+        if (!$currency) {
+            $this->dispatch('noty', msg: 'La moneda del banco no está configurada.');
+            return;
+        }
+
+        // Convertir a USD (base) y luego a moneda principal
+        $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
+        $amountInUSD = $this->bankAmount / $currency->exchange_rate;
+        $amountInPrimaryCurrency = $amountInUSD * $primaryCurrency->exchange_rate;
+
         $this->payments[] = [
-            'method' => 'nequi',
-            'amount' => $this->nequiAmount,
-            'currency' => 'COP',
-            'symbol' => '$',
-            'exchange_rate' => null,
-            'amount_in_primary_currency' => null,
-            'details' => "Teléfono: {$this->nequiPhoneNumber}",
+            'method' => 'bank',
+            'bank_id' => $bank->id,
+            'bank_name' => $bank->name,
+            'account_number' => $this->bankAccountNumber,
+            'deposit_number' => $this->bankDepositNumber,
+            'amount' => $this->bankAmount,
+            'currency' => $currency->code,
+            'symbol' => $currency->symbol,
+            'exchange_rate' => $currency->exchange_rate,
+            'amount_in_primary_currency' => $amountInPrimaryCurrency,
+            'details' => "Banco: {$bank->name}, Cta: {$this->bankAccountNumber}, Ref: {$this->bankDepositNumber}",
         ];
 
         $this->calculateRemainingAndChange();
         session(['payments' => $this->payments]);
-        
-        // Guardar el monto restante y el cambio en la sesión
         session(['remainingAmount' => $this->remainingAmount]);
         session(['change' => $this->change]);
         
-        $this->dispatch('close-modalPay', ['element' => 'modalNequiPartial']);
+        $this->reset(['bankId', 'bankAccountNumber', 'bankDepositNumber', 'bankAmount']);
     }
+
+
+
 
     public function addPagoMovilPayment()
     {
@@ -227,27 +276,46 @@ class Sales extends Component
 
     function updatedSearch3()
     {
-        if (Strlen($this->search3) > 1) {
-            $this->products = Product::with('priceList')
-                ->where('sku', 'like', "%{$this->search3}%")
-                ->orWhere('name', 'like', "%{$this->search3}%")
-                ->get();
+        $search = trim($this->search3);
+        
+        if (strlen($search) > 1) {
+            $query = Product::with('priceList');
+            
+            // Tokenize search terms for multi-word search
+            $tokens = explode(' ', $search);
+            
+            foreach ($tokens as $token) {
+                if (!empty($token)) {
+                    $query->where(function($q) use ($token) {
+                        $q->where('name', 'like', "%{$token}%")
+                          ->orWhere('sku', 'like', "%{$token}%");
+                    });
+                }
+            }
+            
+            // Limit results for performance
+            $this->products = $query->take(20)->get();
 
-            if (count($this->products) == 0) {
-                $this->dispatch('noty', msg: 'NO EXISTE EL CÓDIGO ESCANEADO');
+            if ($this->products->count() == 0) {
+                $this->dispatch('noty', msg: 'NO EXISTE EL CÓDIGO ESCANEADO PERO PREGUNTELE');
             }
 
-            if (is_object($this->products) && count($this->products) == 1 && $this->products->first() !== null && ($this->products->first()->sku == $this->search3)) {
+            // Auto-add if exact SKU match and it's the only one (or prioritized)
+            if ($this->products->count() == 1 && $this->products->first()->sku == $search) {
                 $this->AddProduct($this->products->first());
                 $this->search3 = '';
-                $this->products = null; // or $this->products = new \Illuminate\Support\Collection();
+                $this->products = null;
                 $this->dispatch('refresh');
             }
         } else {
             $this->search3 = '';
             $this->dispatch('refresh');
             $this->products = [];
-            $this->dispatch('noty', msg: 'NO EXISTE EL CÓDIGO ESCANEADO');
+            // Only notify if user explicitly cleared or typed 1 char, maybe too noisy? 
+            // Keeping original behavior but checking if empty
+            if(strlen($search) > 0) {
+                 $this->dispatch('noty', msg: 'INGRESE MÁS CARACTERES');
+            }
         }
     }
 
@@ -363,6 +431,9 @@ class Sales extends Component
     
     public function hydrate()
     {
+        // Recargar currencies en cada request (Livewire puede perder colecciones de Eloquent)
+        $this->loadCurrencies();
+        
         // Este método se ejecuta en cada request de Livewire (después de mount)
         // Restaurar el change desde la sesión si existe
         if (session()->has('change')) {
@@ -410,6 +481,10 @@ class Sales extends Component
             Log::info('RENDER - FAILSAFE activado, change restaurado:', ['change' => $this->change]);
         }
         
+        if (!$this->currencies || $this->currencies->isEmpty()) {
+            $this->loadCurrencies();
+        }
+
         Log::info('RENDER - Inicio:', [
             'change' => $this->change,
             'changeDistribution_count' => count($this->changeDistribution),
@@ -445,80 +520,17 @@ class Sales extends Component
     {
         $this->currencies = Currency::orderBy('is_primary', 'desc')->get();
         Log::info('Monedas cargadas:', $this->currencies->toArray()); // Depuración
-        $primaryCurrency = $this->currencies->firstWhere('is_primary', true);
-        $this->paymentCurrency = $primaryCurrency ? $primaryCurrency->code : null;
-    }
-
-
-
-    public function addPayment()
-    {
-        // Guardar el total del carrito en el primer pago
-        if (empty($this->payments)) {
-            $this->totalCartAtPayment = $this->totalCart;
-            session(['totalCartAtPayment' => $this->totalCartAtPayment]);
-        }
         
-        // Buscar la moneda seleccionada en la lista de monedas disponibles
-        $currency = collect($this->currencies)->firstWhere('code', $this->paymentCurrency);
-
-        if (!$currency) {
-            // Mostrar un mensaje si la moneda seleccionada no está configurada
-            $this->dispatch('noty', msg: 'La moneda seleccionada no está configurada.');
-            return;
+        // Solo establecer la moneda principal si paymentCurrency aún no está definido
+        if (empty($this->paymentCurrency)) {
+            $primaryCurrency = $this->currencies->firstWhere('is_primary', true);
+            $this->paymentCurrency = $primaryCurrency ? $primaryCurrency->code : null;
         }
-
-        // Verificar que la tasa de cambio sea válida
-        if (!isset($currency->exchange_rate) || $currency->exchange_rate <= 0) {
-            $this->dispatch('noty', msg: 'La tasa de cambio para la moneda seleccionada no es válida.');
-            return;
-        }
-
-        // Calcular el monto en dólares (moneda base)
-        $amountInUSD = $this->paymentAmount / $currency->exchange_rate;
-
-        // Calcular el monto en la moneda principal
-        $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
-        $amountInPrimaryCurrency = $amountInUSD * $primaryCurrency->exchange_rate;
-
-        // Verificar si ya existe un abono en la misma moneda
-        $existingPaymentIndex = collect($this->payments)->search(function ($payment) {
-            return $payment['currency'] === $this->paymentCurrency;
-        });
-
-        if ($existingPaymentIndex !== false) {
-            // Si ya existe un abono en la misma moneda, sumar el monto
-            $this->payments[$existingPaymentIndex]['amount'] += $this->paymentAmount;
-            $this->payments[$existingPaymentIndex]['amount_in_primary_currency'] += $amountInPrimaryCurrency;
-        } else {
-            // Si no existe, agregar un nuevo registro
-            $this->payments[] = [
-                'method' => 'cash', // Tipo de pago
-                'amount' => $this->paymentAmount, // Monto ingresado
-                'currency' => $this->paymentCurrency, // Moneda seleccionada
-                'symbol' => $currency->symbol, // Símbolo de la moneda
-                'exchange_rate' => $currency->exchange_rate, // Tasa de cambio
-                'amount_in_primary_currency' => $amountInPrimaryCurrency, // Monto convertido a la moneda principal
-                'details' => null, // No hay detalles adicionales para efectivo
-            ];
-        }
-
-        // Guardar los pagos en la sesión
-        session(['payments' => $this->payments]);
-
-        // Actualizar el monto restante y el cambio
-        $this->calculateRemainingAndChange();
-
-        // Guardar el monto restante y el cambio en la sesión
-        session(['remainingAmount' => $this->remainingAmount]);
-        session(['change' => $this->change]);
-
-        // Registrar en los logs para depuración
-        Log::info('Pagos realizados:', $this->payments);
-
-        // Limpiar el monto ingresado
-        $this->paymentAmount = null;
     }
+
+
+
+
 
     // public function removePayment($index)
     // {
@@ -580,15 +592,7 @@ class Sales extends Component
         }
     }
 
-    public function openNequiModal()
-    {
-        $this->dispatch('initPay', ['payType' => 4]); // Emite el evento para abrir el modal de Nequi
-    }
 
-    public function openNequiPartialModal()
-    {
-        $this->dispatch('initPay', ['payType' => 'nequi_partial']); // Emite el evento para abrir el modal de abonos parciales con Nequi
-    }
     
     public function updatedPaymentAmount()
     {
@@ -729,7 +733,7 @@ class Sales extends Component
     {
         //limpiamos el carrito
 
-        $this->resetExcept('config', 'banks', 'bank');
+        $this->resetExcept('config', 'banks', 'bank', 'currencies');
         $this->clear();
         session()->forget('sale_customer');
 
@@ -753,6 +757,9 @@ class Sales extends Component
             // Llamar al método AddProduct con los detalles del producto y la cantidad
             $this->AddProduct($product, $detail->quantity);
         }
+
+        // Recalcular precios con la configuración del vendedor (si aplica)
+        $this->recalculateCartWithSellerConfig();
 
         $this->dispatch('close-process-order');
     }
@@ -845,77 +852,106 @@ class Sales extends Component
             }
         }
         if ($this->inCart($product->id)) {
-            $this->updateQty(null, $totalQtyToAdd, $product->id);
-            return;
-        }
-        if (count($product->priceList) > 0)
-            $salePrice = ($product->priceList[0]['price']);
-        else
-            $salePrice =  $product->price;
-
-        // Obtener el número de decimales configurados
-        $decimals = ConfigurationService::getDecimalPlaces();
-
-        // Obtener el IVA desde la configuración
-        $iva = ConfigurationService::getVat() / 100;
-
-        // Determinamos el precio de venta (con IVA)
-        if ($iva > 0) {
-            // Precio unitario sin IVA
-            $precioUnitarioSinIva =  $salePrice / (1 + $iva);
-            // Subtotal neto
-            $subtotalNeto =   $precioUnitarioSinIva * $this->formatAmount($qty);
-            // Monto IVA
-            $montoIva = $subtotalNeto  * $iva;
-            // Total con IVA
-            $totalConIva =  $subtotalNeto + $montoIva;
-
-            $tax = round($montoIva, $decimals);
-            $total = round($totalConIva, $decimals);
-        } else {
-            // Precio unitario sin IVA
-            $precioUnitarioSinIva =  $salePrice;
-            // Subtotal neto
-            $subtotalNeto =   $precioUnitarioSinIva * $this->formatAmount($qty);
-            // Monto IVA
-            $montoIva = 0;
-            // Total con IVA
-            $totalConIva =  $subtotalNeto + $montoIva;
-
-            $tax = round($montoIva, $decimals);
-            $total = round($totalConIva, $decimals);
-        }
-
-        $uid = uniqid() . $product->id;
-
-        $coll = collect(
-            [
-                'id' => $uid,
-                'pid' => $product->id,
-                'name' => $product->name,
-                'sku' => $product->sku,
-                'price1' => $product->price,
-                'price2' => $product->price2,
-                'sale_price' => $salePrice,
-                'pricelist' => $product->priceList,
-                'qty' => $this->formatAmount($qty),
-                'tax' => $tax,
-                'total' => $total,
-                'stock' => $product->stock_qty,
-                'type' => $product->type,
-                'image' => $product->photo,
-                'platform_id' => $product->platform_id
-            ]
-        );
-
-        $itemCart = Arr::add($coll, null, null);
-        $this->cart->push($itemCart);
-        $this->save();
-        $this->dispatch('refresh');
-        $this->search3 = '';
-        $this->products = [];
-        $this->dispatch('noty', msg: 'PRODUCTO AGREGADO AL CARRITO');
+        $this->updateQty(null, $totalQtyToAdd, $product->id);
+        return;
     }
+
+    // Obtener moneda principal y tasa
+    $primaryCurrency = CurrencyHelper::getPrimaryCurrency();
+    $exchangeRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
+
+// DEBUG: Log currency information
+\Log::info("=== CURRENCY CONVERSION DEBUG ===");
+\Log::info("Product: {$product->name}");
+\Log::info("Product Price (USD): {$product->price}");
+\Log::info("Primary Currency: " . ($primaryCurrency ? $primaryCurrency->code : 'NULL'));
+\Log::info("Exchange Rate: {$exchangeRate}");
+
+    // Convertir precio base a moneda principal
+    $basePriceInPrimary = $product->price * $exchangeRate;
+
+\Log::info("Base Price in Primary Currency: {$basePriceInPrimary}");
+\Log::info("=================================");
+    
+    // Convertir lista de precios a moneda principal
+    $priceListInPrimary = [];
+    if (count($product->priceList) > 0) {
+        foreach ($product->priceList as $p) {
+            $priceListInPrimary[] = [
+                'id' => $p['id'],
+                'price' => $p['price'] * $exchangeRate, // Convertir a moneda principal
+                'name' => $p['name'] ?? ''
+            ];
+        }
+    }
+
+    // SIEMPRE usar el precio base del producto como precio de venta predeterminado
+    // La lista de precios solo se usa cuando el usuario selecciona manualmente un precio diferente
+    $salePrice = $basePriceInPrimary;
+
+    // Obtener el número de decimales configurados
+    $decimals = ConfigurationService::getDecimalPlaces();
+
+    // Obtener el IVA desde la configuración
+    $iva = ConfigurationService::getVat() / 100;
+
+    // Determinamos el precio de venta (con IVA)
+    if ($iva > 0) {
+        // Precio unitario sin IVA
+        $precioUnitarioSinIva =  $salePrice / (1 + $iva);
+        // Subtotal neto
+        $subtotalNeto =   $precioUnitarioSinIva * $this->formatAmount($qty);
+        // Monto IVA
+        $montoIva = $subtotalNeto  * $iva;
+        // Total con IVA
+        $totalConIva =  $subtotalNeto + $montoIva;
+
+        $tax = round($montoIva, $decimals);
+        $total = round($totalConIva, $decimals);
+    } else {
+        // Precio unitario sin IVA
+        $precioUnitarioSinIva =  $salePrice;
+        // Subtotal neto
+        $subtotalNeto =   $precioUnitarioSinIva * $this->formatAmount($qty);
+        // Monto IVA
+        $montoIva = 0;
+        // Total con IVA
+        $totalConIva =  $subtotalNeto + $montoIva;
+
+        $tax = round($montoIva, $decimals);
+        $total = round($totalConIva, $decimals);
+    }
+
+    $uid = uniqid() . $product->id;
+
+    $coll = collect(
+        [
+            'id' => $uid,
+            'pid' => $product->id,
+            'name' => $product->name,
+            'sku' => $product->sku,
+            'price1' => $basePriceInPrimary, // Guardar en moneda principal
+            'price2' => $product->price2 * $exchangeRate, // Guardar en moneda principal
+            'sale_price' => $salePrice,
+            'pricelist' => $priceListInPrimary, // Guardar lista convertida
+            'qty' => $this->formatAmount($qty),
+            'tax' => $tax,
+            'total' => $total,
+            'stock' => $product->stock_qty,
+            'type' => $product->type,
+            'image' => $product->photo,
+            'platform_id' => $product->platform_id
+        ]
+    );
+
+    $itemCart = Arr::add($coll, null, null);
+    $this->cart->push($itemCart);
+    $this->save();
+    $this->dispatch('refresh');
+    $this->search3 = '';
+    $this->products = [];
+    $this->dispatch('noty', msg: 'PRODUCTO AGREGADO AL CARRITO');
+}
 
     // Método para obtener la cantidad de un producto en el carrito
     function getQtyInCart($productId)
@@ -1110,19 +1146,82 @@ class Sales extends Component
     #[On('sale_customer')]
     function setCustomer($customer)
     {
+        // Ensure customer is array
+        if (is_object($customer)) {
+            $customer = $customer->toArray();
+        }
+
         // dd($customer);
         session(['sale_customer' => $customer]);
         $this->customer = $customer;
+
+        // Check for Foreign Seller Config
+        $this->sellerConfig = null;
+        if(isset($customer['seller_id']) && $customer['seller_id']) {
+            $seller = \App\Models\User::find($customer['seller_id']);
+            if($seller) {
+                $this->sellerConfig = $seller->latestSellerConfig;
+            }
+        }
+        
+        $this->recalculateCartWithSellerConfig();
+    }
+
+    public function recalculateCartWithSellerConfig()
+    {
+        $newCart = new Collection();
+        $cart = $this->cart;
+
+        // Get primary currency exchange rate
+        $primaryCurrency = CurrencyHelper::getPrimaryCurrency();
+        $exchangeRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
+
+        foreach ($cart as $item) {
+            $product = Product::find($item['pid']);
+            if(!$product) continue;
+
+            // Base price in primary currency
+            $basePrice = $product->price * $exchangeRate;
+            
+            // Apply logic if config exists
+            if ($this->sellerConfig) {
+                $comm = ($basePrice * $this->sellerConfig->commission_percent) / 100;
+                $freight = ($basePrice * $this->sellerConfig->freight_percent) / 100;
+                $diff = ($basePrice * $this->sellerConfig->exchange_diff_percent) / 100;
+                
+                $finalPrice = $basePrice + $comm + $freight + $diff;
+            } else {
+                $finalPrice = $basePrice;
+            }
+
+            // Recalculate item totals
+            $item['sale_price'] = $finalPrice;
+            $values = $this->Calculator($item['sale_price'], $item['qty']);
+            $decimals = ConfigurationService::getDecimalPlaces();
+            $item['tax'] = round($values['iva'], $decimals);
+            $item['total'] = $this->formatAmount(round($values['total'], $decimals));
+
+            $newCart->push($item);
+        }
+
+        $this->cart = $newCart;
+        $this->save(); // Save cart to session
     }
 
     function initPayment($type)
     {
+        // Redirigir Banco (3) y Nequi (4) al modal unificado (1)
+        if ($type == 3) {
+            $this->selectedPaymentMethod = 'bank';
+            $type = 1; 
+        } else {
+            $this->selectedPaymentMethod = 'cash';
+        }
+
         $this->payType = $type;
 
-        if ($type == 1) $this->payTypeName = 'PAGO EN EFECTIVO';
-        if ($type == 2)   $this->payTypeName = 'PAGO A CRÉDITO';
-        if ($type == 3) $this->payTypeName = 'PAGO CON BANCO';
-        if ($type == 4) $this->payTypeName = 'PAGO CON NEQUI';
+        if ($type == 1) $this->payTypeName = 'PAGO / ABONOS';
+        if ($type == 2) $this->payTypeName = 'PAGO A CRÉDITO';
 
         $this->dispatch('initPay', payType: $type);
     }
@@ -1172,54 +1271,109 @@ class Sales extends Component
 
         DB::beginTransaction();
         try {
-            //store sale
-            $notes = null;
+            // Determinar tipo de venta y notas
+            $saleType = 'cash';
+            $status = 'paid';
+            $notes = '';
 
-            if ($type == 3) {
-                $notes = $this->banks->where(
-                    'id',
-                    $this->bank
-                )->first()->name;
-                $notes .= ",N.Cta: {$this->acountNumber}";
-                $notes .= ",N.Deposito: {$this->depositNumber}";
+            if ($type == 2) {
+                $saleType = 'credit';
+                $status = 'pending';
+            } elseif (!empty($this->payments)) {
+                 $methods = collect($this->payments)->pluck('method')->unique();
+                if ($methods->count() > 1) {
+                    $saleType = 'mixed';
+                } elseif ($methods->isNotEmpty()) {
+                    $saleType = $methods->first();
+                }
+                
+                // Construir notas
+                foreach ($this->payments as $payment) {
+                    if ($payment['method'] == 'bank') {
+                        $notes .= "Banco: {$payment['bank_name']}, Ref: {$payment['deposit_number']} | ";
+                    }
+                }
+                $notes = rtrim($notes, " | ");
+            } 
+            // Fallback para lógica antigua si no hay payments y no es crédito
+            elseif ($type == 3) {
             }
-            if ($type == 4) {
-                $notes = ",N.Teléfono: {$this->phoneNumber}";
-            }
 
-            // Calcular el total pagado y el cambio usando el nuevo sistema de pagos múltiples
-            $totalPaidInPrimaryCurrency = $type == 1 ? round($this->totalInPrimaryCurrency, ConfigurationService::getDecimalPlaces()) : 0;
-            $changeAmount = $type == 1 ? round($this->change, ConfigurationService::getDecimalPlaces()) : 0;
+            // Calcular el total pagado y el cambio
+            $totalPaidInPrimaryCurrency = ($type == 1 || !empty($this->payments)) ? round($this->totalInPrimaryCurrency, ConfigurationService::getDecimalPlaces()) : 0;
+            $changeAmount = ($type == 1 || !empty($this->payments)) ? round($this->change, ConfigurationService::getDecimalPlaces()) : 0;
 
-            if ($type > 1) $this->cashAmount = 0;
-
-            if ($type == 1 && $this->nequiAmount > 1 && $this->phoneNumber > 0) {
-                $notes = "EFECTIVO: {$this->cashAmount}";
-                $notes .= ",N.Teléfono: {$this->phoneNumber}";
-                $notes .= ",Valor Consignado: {$this->nequiAmount}";
-                $type = 5;
-            }
+            if ($type > 1 && empty($this->payments)) $this->cashAmount = 0;
 
             $decimals = ConfigurationService::getDecimalPlaces();
+            
+            // Obtener moneda principal para snapshot
+            $primaryCurrency = Currency::where('is_primary', true)->first();
+            
+            // Calcular total en USD (moneda base) para créditos
+            $totalUSD = $this->totalCart / $primaryCurrency->exchange_rate;
+
+            // Generate Invoice Number
+            $config = Configuration::lockForUpdate()->first();
+            $config->invoice_sequence += 1;
+            $config->save();
+            $invoiceNumber = 'F' . str_pad($config->invoice_sequence, 8, '0', STR_PAD_LEFT);
+
+            // Get Order Number if exists
+            $orderNumber = null;
+            if ($this->order_id) {
+                $order = Order::find($this->order_id);
+                if ($order) {
+                    $orderNumber = $order->order_number;
+                }
+            }
+            
+            // Determine Batch and Sequence
+            $batchName = null;
+            $batchSequence = null;
+
+            if ($this->sellerConfig) {
+                $batchName = $this->sellerConfig->current_batch;
+                $lastSequence = Sale::where('user_id', Auth()->user()->id)
+                    ->where('batch_name', $batchName)
+                    ->max('batch_sequence');
+                $batchSequence = $lastSequence ? $lastSequence + 1 : 1;
+            }
 
             $sale = Sale::create([
+                'seller_config_id' => $this->sellerConfig ? $this->sellerConfig->id : null,
+                'applied_commission_percent' => $this->sellerConfig ? $this->sellerConfig->commission_percent : null,
+                'applied_freight_percent' => $this->sellerConfig ? $this->sellerConfig->freight_percent : null,
+                'applied_exchange_diff_percent' => $this->sellerConfig ? $this->sellerConfig->exchange_diff_percent : null,
+                'is_foreign_sale' => $this->sellerConfig ? true : false,
                 'total' => round($this->totalCart, $decimals),
+                'total_usd' => round($totalUSD, $decimals),
                 'discount' => 0,
                 'items' => $this->itemsCart,
                 'customer_id' => $this->customer['id'],
                 'user_id' => Auth()->user()->id,
-                'type' => $type == 1 ? 'cash' : ($type == 2 ? 'credit' : ($type == 3 ? 'deposit' : ($type == 4 ? 'nequi' : 'cash/nequi'))),
-                'status' => ($type == 2 ?  'pending' : 'paid'),
+                'type' => $saleType,
+                'status' => $status,
                 'cash' => $totalPaidInPrimaryCurrency,
                 'change' => $changeAmount,
-                'notes' => $notes
+                'notes' => $notes,
+                'primary_currency_code' => $primaryCurrency->code,
+                'primary_exchange_rate' => $primaryCurrency->exchange_rate,
+                'invoice_number' => $invoiceNumber,
+                'order_number' => $orderNumber,
+                'batch_name' => $batchName,
+                'batch_sequence' => $batchSequence
             ]);
 
             // get cart session
             $cart = collect(session("cart"));
 
             // insert sale detail
-            $details = $cart->map(function ($item) use ($sale, $decimals) {
+            $details = $cart->map(function ($item) use ($sale, $decimals, $primaryCurrency) {
+                // El precio del producto está en USD (base)
+                $product = Product::find($item['pid']);
+                $priceUSD = $product ? $product->price : 0;
+                
                 return [
                     'product_id' => $item['pid'],
                     'sale_id' => $sale->id,
@@ -1229,6 +1383,8 @@ class Sales extends Component
                         $decimals
                     ),
                     'sale_price' => round($item['sale_price'], $decimals),
+                    'price_usd' => $priceUSD,
+                    'exchange_rate' => $primaryCurrency->exchange_rate,
                     'created_at' => Carbon::now(),
                     'discount' => 0
                 ];
@@ -1255,67 +1411,51 @@ class Sales extends Component
             }
 
             // Guardar detalles de pagos en múltiples monedas
-        if ($type == 1) {
             if (!empty($this->payments)) {
                 foreach ($this->payments as $payment) {
                     SalePaymentDetail::create([
                         'sale_id' => $sale->id,
+                        'payment_method' => $payment['method'],
                         'currency_code' => $payment['currency'],
                         'amount' => $payment['amount'],
                         'exchange_rate' => $payment['exchange_rate'] ?? 1,
                         'amount_in_primary_currency' => $payment['amount_in_primary_currency'],
+                        'bank_name' => $payment['bank_name'] ?? null,
+                        'account_number' => $payment['account_number'] ?? null,
+                        'reference_number' => $payment['deposit_number'] ?? null,
+                        'phone_number' => $payment['phone_number'] ?? null,
                     ]);
                 }
-            } else {
-                // Si no hay pagos detallados, es un pago simple en efectivo
-                // Asumimos moneda principal si no se especifica otra (aunque debería venir del input si hubiera selector)
-                // Para este caso simple, usamos la moneda principal configurada
+            } elseif ($type == 1) {
+                // Caso simple: pago efectivo sin desglose múltiple (legacy fallback)
                 $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
                 $currencyCode = $primaryCurrency ? $primaryCurrency->code : 'COP';
                 
                 SalePaymentDetail::create([
                     'sale_id' => $sale->id,
+                    'payment_method' => 'cash',
                     'currency_code' => $currencyCode,
-                    'amount' => $this->cashAmount, // El monto ingresado en el input simple
+                    'amount' => $this->cashAmount,
                     'exchange_rate' => 1,
                     'amount_in_primary_currency' => $this->cashAmount,
                 ]);
-            }
-        } elseif ($type == 3) { // Depósito Bancario
-            $bank = $this->banks->where('id', $this->bank)->first();
-            $currencyCode = $bank->currency_code ?? 'USD'; // Default to USD if not set
-            // Buscar la tasa de cambio de la moneda del banco
-            $currency = collect($this->currencies)->firstWhere('code', $currencyCode);
-            $exchangeRate = $currency ? $currency->exchange_rate : 1;
-            
-            // Si la moneda del banco no es la principal, convertir el monto
-            // Asumimos que totalCart está en moneda principal
-            $amount = $this->totalCart * $exchangeRate;
+            } elseif ($type == 3) { // Depósito Bancario (Legacy)
+                $bank = $this->banks->where('id', $this->bank)->first();
+                $currencyCode = $bank->currency_code ?? 'USD';
+                $currency = collect($this->currencies)->firstWhere('code', $currencyCode);
+                $exchangeRate = $currency ? $currency->exchange_rate : 1;
+                $amount = $this->totalCart * $exchangeRate;
 
-            SalePaymentDetail::create([
-                'sale_id' => $sale->id,
-                'currency_code' => $currencyCode,
-                'bank_name' => $bank ? $bank->name : null, // Guardar nombre del banco
-                'amount' => $amount, // Monto en la moneda del banco
-                'exchange_rate' => $exchangeRate,
-                'amount_in_primary_currency' => $this->totalCart,
-            ]);
-        } elseif ($type == 4) { // Nequi
-            // Nequi siempre es en Pesos (COP)
-            $currencyCode = 'COP';
-            $currency = collect($this->currencies)->firstWhere('code', $currencyCode);
-            $exchangeRate = $currency ? $currency->exchange_rate : 1;
-            
-            $amount = $this->totalCart * $exchangeRate;
-
-            SalePaymentDetail::create([
-                'sale_id' => $sale->id,
-                'currency_code' => $currencyCode,
-                'amount' => $amount,
-                'exchange_rate' => $exchangeRate,
-                'amount_in_primary_currency' => $this->totalCart,
-            ]);
-        }          
+                SalePaymentDetail::create([
+                    'sale_id' => $sale->id,
+                    'payment_method' => 'bank',
+                    'currency_code' => $currencyCode,
+                    'bank_name' => $bank ? $bank->name : null,
+                    'amount' => $amount,
+                    'exchange_rate' => $exchangeRate,
+                    'amount_in_primary_currency' => $this->totalCart,
+                ]);
+            }          
 
             // Registrar movimientos de caja
             $register = $cashRegisterService->getActiveCashRegister(Auth::id());
@@ -1381,6 +1521,12 @@ class Sales extends Component
             }
 
             DB::commit();
+
+            // Calculate Commission if paid immediately (Cash/Instant)
+            // Only if commission is applied (> 0)
+            if ($sale->status == 'paid' && $sale->applied_commission_percent > 0) {
+                \App\Services\CommissionService::calculateCommission($sale);
+            }
 
             // Limpiar la variable de sesión
             session()->forget('payments');
@@ -1468,8 +1614,15 @@ class Sales extends Component
                     OrderDetail::insert($details);
                 }
             } else {
+                // Generate Order Number
+                $config = Configuration::lockForUpdate()->first();
+                $config->order_sequence += 1;
+                $config->save();
+                $orderNumber = 'P' . str_pad($config->order_sequence, 8, '0', STR_PAD_LEFT);
+
                 // Crea una nueva orden
                 $order = Order::create([
+                    'order_number' => $orderNumber,
                     'total' => round($this->totalCart, $decimals),
                     'discount' => 0,
                     'items' => $this->itemsCart,
@@ -1501,7 +1654,19 @@ class Sales extends Component
 
             $this->dispatch('noty', msg: 'ORDEN GUARDADA CON ÉXITO');
 
-            $this->resetExcept('config', 'banks', 'bank');
+            // Calculate Commission if paid immediately (Cash/Instant)
+            // We need to reload the sale to get relations if needed, but for calculation we just need the model
+            // However, the sale object created in storeOrder might not have the foreign flag set if it was set via sellerConfig relation
+            // Let's ensure we pass the correct sale object
+            if ($order->status == 'paid') {
+                 // Convert Order to Sale model logic is handled elsewhere? 
+                 // Wait, Sales.php creates ORDERS or SALES? 
+                 // Looking at storeOrder, it creates Order or updates Order.
+                 // But initPayment creates Sale. 
+                 // Let's check initPayment instead.
+            }
+
+            $this->resetExcept('config', 'banks', 'bank', 'currencies');
             $this->clear();
             session()->forget('sale_customer');
             $this->loadCurrencies();
@@ -1614,4 +1779,75 @@ class Sales extends Component
             $this->dispatch('noty', msg: "Error al intentar $status la orden \n {$th->getMessage()}");
         }
     }
+
+    #[On('cancelSaleById')]
+    public function cancelSaleById($saleId, CashRegisterService $cashRegisterService)
+    {
+        try {
+            DB::beginTransaction();
+
+            $sale = Sale::with(['details', 'paymentDetails', 'changeDetails'])->findOrFail($saleId);
+
+            // Validar que la venta no esté ya cancelada
+            if ($sale->status === 'cancelled') {
+                $this->dispatch('noty', msg: 'Esta venta ya está cancelada');
+                return;
+            }
+
+            // Validar que la venta no sea muy antigua (opcional, puedes ajustar o quitar esta validación)
+            // if ($sale->created_at->diffInDays(now()) > 30) {
+            //     $this->dispatch('noty', msg: 'No se pueden cancelar ventas con más de 30 días');
+            //     return;
+            // }
+
+            // Actualizar estado de la venta
+            $sale->update([
+                'status' => 'cancelled'
+            ]);
+
+            // Restaurar stock de productos
+            foreach ($sale->details as $detail) {
+                $product = Product::find($detail->product_id);
+                if ($product && $product->manage_stock == 1) {
+                    $product->increment('stock_qty', $detail->quantity);
+                }
+            }
+
+            // Revertir movimientos de caja si existe un registro activo
+            $register = $cashRegisterService->getActiveCashRegister(Auth::id());
+            if ($register) {
+                // Revertir pagos (quitar dinero de caja)
+                foreach ($sale->paymentDetails as $payment) {
+                    $cashRegisterService->recordSaleMovement(
+                        $register->id,
+                        $sale->id,
+                        'sale_cancellation',
+                        $payment->currency_code,
+                        -$payment->amount, // Negativo para restar
+                        "Anulación Venta #{$sale->id}"
+                    );
+                }
+
+                // Revertir vueltos (devolver dinero a caja)
+                foreach ($sale->changeDetails as $change) {
+                    $cashRegisterService->recordSaleMovement(
+                        $register->id,
+                        $sale->id,
+                        'sale_cancellation',
+                        $change->currency_code,
+                        $change->amount, // Positivo para sumar
+                        "Reversión Vuelto Venta #{$sale->id}"
+                    );
+                }
+            }
+
+            DB::commit();
+
+            $this->dispatch('noty', msg: "Venta #{$sale->invoice_number} anulada correctamente");
+        } catch (\Exception $th) {
+            DB::rollBack();
+            $this->dispatch('noty', msg: "Error al anular la venta: {$th->getMessage()}");
+        }
+    }
+
 }
