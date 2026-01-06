@@ -8,6 +8,7 @@ use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Livewire\Attributes\On;
 
 
 class Users extends Component
@@ -15,8 +16,9 @@ class Users extends Component
     use WithPagination;
 
     public User $user;
-    public $user_id, $editing, $search, $records, $pagination = 5, $pwd,  $temppwd;
+    public $user_id, $editing, $search, $pagination = 5, $pwd,  $temppwd;
     public  $role, $roleSelectedId,  $permissionId, $roles = [];
+    public $commission_percent = 0, $freight_percent = 0, $exchange_diff_percent = 0, $current_batch = '1';
 
     protected $rules =
     [
@@ -25,6 +27,10 @@ class Users extends Component
         'user.password' => 'nullable',
         'user.status' => 'required|in:Active,Locked',
         'user.profile' => 'required', // agregar esta regla
+        'user.commission_percentage' => 'nullable|numeric|min:0|max:100',
+        'commission_percent' => 'nullable|numeric|min:0|max:100',
+        'freight_percent' => 'nullable|numeric|min:0|max:100',
+        'exchange_diff_percent' => 'nullable|numeric|min:0|max:1000',
     ];
 
     protected $messages = [
@@ -38,6 +44,9 @@ class Users extends Component
         'user.status.in' => 'Elige un estatus',
         'user.name.string' => 'Solo caracteres alfabeticos',
         'user.profile' => 'Selecciona un perfil', // agregar esta regla
+        'user.commission_percentage.numeric' => 'El porcentaje debe ser numérico',
+        'user.commission_percentage.min' => 'El porcentaje no puede ser negativo',
+        'user.commission_percentage.max' => 'El porcentaje no puede ser mayor a 100',
     ];
 
 
@@ -46,6 +55,11 @@ class Users extends Component
         $this->user = new User();
         $this->user->status = 'Active';
         $this->user->profile = 0;
+        $this->user->commission_percentage = 0;
+        $this->commission_percent = 0;
+        $this->freight_percent = 0;
+        $this->exchange_diff_percent = 0;
+        $this->current_batch = '1';
         $this->editing = false;
 
         session(['map' => 'Usuarios', 'child' => ' Componente ']);
@@ -57,80 +71,77 @@ class Users extends Component
         }
     }
 
-
     public function render()
     {
-        $this->roles = Role::with('permissions')->orderBy('name')->get();
-        if (count($this->roles) > 0) {
-            $this->role = Role::find($this->roles[0]->id);
-            $this->roleSelectedId = $this->role->id;
-        }
+        $users = $this->loadUsers();
         return view('livewire.users.users', [
-            'roles' => $this->roles,
-            'users' => $this->loadUsers(),
-            'permisos' => Permission::when($this->search != null, function ($query) {
-                $query->where('name', 'like', "%{$this->search}%");
-            })->orderBy('name')->get(),
+            'users' => $users
         ]);
     }
 
-
     public function loadUsers()
     {
-        if (!empty($this->search)) {
-
-            $this->resetPage();
-
-            $query = User::with('sales', 'roles')->where('name', 'like', "%{$this->search}%")
-                ->orWhere('email', 'like', "%{$this->search}%")
-                ->orderBy('name', 'asc');
-        } else {
-            $query =  User::with('sales', 'roles')->orderBy('id', 'asc');
-        }
-
-        $this->records = $query->count();
-
-        return $query->paginate($this->pagination);
+        if (strlen($this->search) > 0)
+            return User::where('name', 'like', "%{$this->search}%")->paginate($this->pagination);
+        else
+            return User::orderBy('name', 'asc')->paginate($this->pagination);
     }
-
 
     public function Add()
     {
         $this->resetValidation();
         $this->resetExcept('user');
         $this->user = new User();
+        $this->user->commission_percentage = 0;
+        $this->commission_percent = 0;
+        $this->freight_percent = 0;
+        $this->exchange_diff_percent = 0;
         $this->editing = false;
         $this->dispatch('init-new');
     }
 
     public function Edit(User $user)
     {
-        $this->resetValidation();
         $this->user = $user;
         $this->editing = true;
+        $this->pwd = '';
         $this->temppwd = $user->password;
-        $this->pwd = null;
+        $this->roleSelectedId = $this->getRoleId($user->profile);
+        $this->role = Role::find($this->roleSelectedId);
+        
+        $latestConfig = $user->latestSellerConfig;
+        if($latestConfig) {
+            $this->commission_percent = $latestConfig->commission_percent;
+            $this->freight_percent = $latestConfig->freight_percent;
+            $this->exchange_diff_percent = $latestConfig->exchange_diff_percent;
+            $this->current_batch = $latestConfig->current_batch;
+        } else {
+            $this->commission_percent = 0;
+            $this->freight_percent = 0;
+            $this->exchange_diff_percent = 0;
+            $this->current_batch = '1';
+        }
+
+        $this->dispatch('init-new');
     }
 
     public function cancelEdit()
     {
         $this->resetValidation();
+        $this->resetExcept('user');
         $this->user = new User();
+        $this->user->commission_percentage = 0;
+        $this->commission_percent = 0;
+        $this->freight_percent = 0;
+        $this->exchange_diff_percent = 0;
         $this->editing = false;
-        $this->search = null;
-        $this->dispatch('init-new');
     }
-
-
 
     public function Store()
     {
         $this->rules['user.name'] = $this->user->id > 0 ? "required|max:85|unique:users,name,{$this->user->id}" : 'required|max:85|unique:users,name';
 
-
-
         $this->validate($this->rules, $this->messages);
-
 
         if ($this->user->id == null) {
             if (empty($this->pwd)) {
@@ -149,6 +160,16 @@ class Users extends Component
         // save model
         $this->user->save();
 
+        if($this->user->profile == 'Vendedor') {
+            \App\Models\SellerConfig::create([
+                'user_id' => $this->user->id,
+                'commission_percent' => $this->commission_percent ?? 0,
+                'freight_percent' => $this->freight_percent ?? 0,
+                'exchange_diff_percent' => $this->exchange_diff_percent ?? 0,
+                'current_batch' => $this->current_batch ?? '1'
+            ]);
+        }
+
 
         $this->dispatch('noty', msg: $this->user->id != null ? 'USUARIO ACTUALIZADO CORRECTAMENTE' : 'USUARIO REGISTRADO CON ÉXITO');
         // dd($this->user->profile);
@@ -158,6 +179,10 @@ class Users extends Component
         $this->user = new User();
         $this->user->status = 'Active';
         $this->user->profile = 0;
+        $this->user->commission_percentage = 0;
+        $this->commission_percent = 0;
+        $this->freight_percent = 0;
+        $this->exchange_diff_percent = 0;
     }
 
     public function getRoleId($role)
@@ -169,8 +194,10 @@ class Users extends Component
 
         return 0;
     }
-    public function Destroy(User $user)
+    #[On('destroyUser')]
+    public function Destroy($id)
     {
+        $user = User::find($id);
         if ($user->sales->count() > 0) {
             $this->dispatch('noty', msg: 'EL USUARIO TIENE VENTAS RELACIONADAS, NO ES POSIBLE ELIMINARLO');
             return;
@@ -237,5 +264,23 @@ class Users extends Component
             DB::rollBack();
             $this->dispatch('noty', msg: "Error al intentar actualizar el role $role del usuario \n {$th->getMessage()}");
         }
+    }
+    public $history = [];
+    public $viewingUserId;
+
+    public function viewHistory($userId)
+    {
+        $this->viewingUserId = $userId;
+        $this->history = \App\Models\SellerConfig::where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        $this->dispatch('show-history-modal');
+    }
+
+    public function closeHistory()
+    {
+        $this->history = [];
+        $this->dispatch('close-history-modal');
     }
 }

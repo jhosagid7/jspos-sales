@@ -47,7 +47,7 @@
                                                         wire:click="Edit({{ $objUser->id }})"><i
                                                             class="fa fa-edit fa-2x"></i></button>
                                                     <button class="btn btn-light btn-sm"
-                                                        onclick="Confirm('customers',{{ $objUser->id }})"
+                                                        onclick="confirmDestroy({{ $objUser->id }})"
                                                         {{ $objUser->sales->count() == 0 ? '' : 'disabled' }}><i
                                                             class="fa fa-trash fa-2x"></i></button>
                                                 </div>
@@ -57,9 +57,12 @@
                                                         wire:click="Edit({{ $objUser->id }})"><i
                                                             class="fa fa-edit fa-2x"></i></button>
                                                     <button class="btn btn-light btn-sm"
-                                                        onclick="Confirm('customers',{{ $objUser->id }})"
+                                                        onclick="confirmDestroy({{ $objUser->id }})"
                                                         {{ $objUser->sales->count() == 0 ? '' : 'disabled' }}><i
                                                             class="fa fa-trash fa-2x"></i></button>
+                                                    <button class="btn btn-light btn-sm"
+                                                        wire:click="viewHistory({{ $objUser->id }})" title="Historial de Cambios"><i
+                                                            class="fa fa-clock-o fa-2x"></i></button>
                                                 </div>
                                             @endif
                                         </td>
@@ -148,6 +151,34 @@
                         @enderror
                     </div>
 
+                    @if($user->profile == 'Vendedor')
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <h6 class="text-info">Configuración Vendedor Foráneo</h6>
+                        </div>
+                        <div class="col-sm-4 form-group mt-3">
+                            <span class="form-label">Comisión (%)</span>
+                            <input wire:model="commission_percent" class="form-control" type="number" step="0.01" min="0" max="100">
+                            @error('commission_percent') <span class="text-danger">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-sm-4 form-group mt-3">
+                            <span class="form-label">Flete (%)</span>
+                            <input wire:model="freight_percent" class="form-control" type="number" step="0.01" min="0" max="100">
+                            @error('freight_percent') <span class="text-danger">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-sm-4 form-group mt-3">
+                            <span class="form-label">Dif. Cambiario (%)</span>
+                            <input wire:model="exchange_diff_percent" class="form-control" type="number" step="0.01" min="0" max="1000">
+                            @error('exchange_diff_percent') <span class="text-danger">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-sm-12 form-group mt-3">
+                            <span class="form-label">Lote Actual</span>
+                            <input wire:model="current_batch" class="form-control" type="text" placeholder="Ej: 1">
+                            <small class="text-muted">Identificador del lote actual de ventas</small>
+                        </div>
+                    </div>
+                    @endif
+
 
 
                 </div>
@@ -162,15 +193,86 @@
         </div>
 
     </div>
+    <!-- Modal History -->
+    <div class="modal fade" id="modalHistory" tabindex="-1" role="dialog" aria-labelledby="modalHistoryLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-primary">
+                    <h5 class="modal-title" id="modalHistoryLabel">Historial de Configuraciones</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" wire:click="closeHistory"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Comisión %</th>
+                                    <th>Flete %</th>
+                                    <th>Diferencial %</th>
+                                </tr>
+                            </thead>
+                            <tbody wire:key="history-table-{{ $viewingUserId }}">
+                                @forelse($history as $record)
+                                    <tr>
+                                        <td>{{ $record->created_at->format('d/m/Y H:i') }}</td>
+                                        <td>{{ number_format($record->commission_percent, 2) }}%</td>
+                                        <td>{{ number_format($record->freight_percent, 2) }}%</td>
+                                        <td>{{ number_format($record->exchange_diff_percent, 2) }}%</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="4" class="text-center">No hay historial disponible</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" wire:click="closeHistory">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @push('my-scripts')
         <script>
-            document.addEventListener('livewire:init', () => {
-
-                Livewire.on('init-new', (event) => {
-                    document.getElementById('inputFocus').focus()
-                })
+        document.addEventListener('livewire:init', () => {
+            Livewire.on('init-new', (event) => {
+                $('#inputFocus').focus()
             })
-        </script>
+            Livewire.on('show-history-modal', (event) => {
+                $('#modalHistory').modal('show')
+            })
+            Livewire.on('close-history-modal', (event) => {
+                $('#modalHistory').modal('hide')
+            })
+        })
+
+        function confirmDestroy(id) {
+            swal({
+                title: '¿CONFIRMAS ELIMINAR EL REGISTRO?',
+                text: "",
+                icon: "warning",
+                buttons: true,
+                dangerMode: true,
+                buttons: {
+                    cancel: "Cancelar",
+                    catch: {
+                        text: "Aceptar"
+                    }
+                },
+            }).then((willDelete) => {
+                if (willDelete) {
+                    Livewire.dispatch('destroyUser', {
+                        id: id
+                    })
+                }
+            });
+        }
+    </script>
     @endpush
 
 </div>
+```

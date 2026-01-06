@@ -68,140 +68,255 @@
 
                         </div>
                         <div class="col-sm-12 col-md-9">
-                            <div class="card ">
-                                <div class="card-header p-3">
-                                    <div class="header-top">
-                                        <h5 class="m-0">Información de las ventas<span
-                                                class="f-14 f-w-500 ms-1 f-light"></span></h5>
+                            @php
+                                $primaryCurrency = collect($currencies)->firstWhere('is_primary', 1);
+                                $symbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
+                            @endphp
 
-                                    </div>
+                            {{-- VENTAS DEL DÍA SECTION --}}
+                            <div class="card border-info border-2 mb-3">
+                                <div class="card-header bg-info p-2">
+                                    <h5 class="m-0 text-white">
+                                        <i class="icofont icofont-money"></i> VENTAS DEL DÍA
+                                    </h5>
                                 </div>
                                 <div class="card-body">
-                                    <div class="row" id="cards">
-                                        <div class="row">
-                                            <div class="col-sm-12 col-md-4">
-                                                <div class="card small-widget">
-                                                    <div class="card-body primary">
-                                                        <span class="f-light f-18">
-                                                            <b>Total Banco</b>
-                                                        </span>
-                                                        <div class="d-flex align-items-end gap-1 text-info">
-                                                            <h4>${{ round($totalDeposit, 2) }}</h4><span
-                                                                class="font-primary f-12 f-w-500"></span>
-                                                            <h4 class="text-dark">|</h4>
-                                                            <h4 class="text-warning">
-                                                                ${{ round($totalPaymentsDeposit, 2) }}</h4>
-                                                            <span class="font-primary f-12 f-w-500"></span>
-                                                        </div>
-                                                        <div class="bg-gradient">
-                                                            <i class="icofont icofont-coins"
-                                                                style="font-size: 35px!important"></i>
-                                                        </div>
-                                                    </div>
+                                    <div class="row">
+                                        {{-- Efectivo --}}
+                                        <div class="col-md-4 mb-3">
+                                            <div class="card h-100 border-primary">
+                                                <div class="card-header bg-light-primary p-2">
+                                                    <h6 class="mb-0 text-primary">
+                                                        <i class="icofont icofont-bill"></i> Efectivo
+                                                    </h6>
                                                 </div>
-                                            </div>
-                                            <div class="col-sm-12 col-md-4">
-                                                <div class="card small-widget">
-                                                    <div class="card-body primary">
-                                                        <span class="f-light f-18">
-                                                            <b>Total Nequi</b>
-                                                        </span>
-                                                        <div class="d-flex align-items-end gap-1 text-info">
-                                                            <h4>${{ round($totalNequi, 2) }}</h4><span
-                                                                class="font-primary f-12 f-w-500"></span>
-                                                            <h4 class="text-dark">|</h4>
-                                                            <h4 class="text-warning">
-                                                                ${{ round($totalPaymentsNequi, 2) }}</h4>
-                                                        </div>
-                                                        <div class="bg-gradient">
-                                                            <img class="b-r-20" src="../logo/nequi.webp" alt="wallet">
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="col-sm-12 col-md-4">
-                                                <div class="card small-widget">
-                                                    <div class="card-body primary">
-                                                        <span class="f-light f-18">
-                                                            <b>Total Contado</b>
-                                                        </span>
-                                                        <div class="d-flex align-items-end gap-1 text-info">
-                                                            <h4>${{ round($totalCash, 2) }}</h4><span
-                                                                class="font-primary f-12 f-w-500"></span>
-                                                            <h4 class="text-dark">|</h4>
-                                                            <h4 class="text-warning">
-                                                                ${{ round($totalPaymentsCash, 2) }}</h4>
-
-                                                        </div>
-                                                        <div class="bg-gradient">
-                                                            <i class="icofont icofont-bill"
-                                                                style="font-size: 35px!important"></i>
-                                                        </div>
-                                                    </div>
+                                                <div class="card-body p-2">
+                                                    @if (!empty($salesByCurrency['cash']))
+                                                        <table class="table table-sm table-borderless mb-0">
+                                                            @foreach ($salesByCurrency['cash'] as $currencyCode => $amount)
+                                                                @php
+                                                                    $curr = collect($currencies)->firstWhere('code', $currencyCode);
+                                                                    $currSymbol = $curr ? $curr->symbol : $currencyCode;
+                                                                    $label = $curr ? $curr->label . ' (' . $currencyCode . ')' : $currencyCode;
+                                                                @endphp
+                                                                <tr>
+                                                                    <td class="text-muted">{{ $label }}:</td>
+                                                                    <td class="text-end fw-bold">{{ $currSymbol }}{{ number_format($amount, 2) }}</td>
+                                                                </tr>
+                                                            @endforeach
+                                                        </table>
+                                                    @else
+                                                        <p class="text-muted mb-0 text-center">Sin movimientos</p>
+                                                    @endif
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="row">
-                                            <div class="col-sm-12 col-md-4">
-                                                <div class="card small-widget">
-                                                    <div class="card-body primary">
-                                                        <span class="f-light f-18">
-                                                            <b>Ventas a Crédito</b>
-                                                        </span>
-                                                        <div class="d-flex align-items-end gap-1 text-info">
-                                                            <h4>${{ round($totalCreditSales, 2) }}</h4><span
-                                                                class="font-primary f-12 f-w-500"></span>
-                                                        </div>
-                                                        <div class="bg-gradient">
-                                                            <i class="icofont icofont-credit-card"
-                                                                style="font-size: 35px!important"></i>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="col-sm-12 col-md-4">
-                                                <div class="card small-widget">
-                                                    <div class="card-body primary">
-                                                        <span class="f-light f-18">
-                                                            <b class="text-info">Ventas Totales</b>
-                                                        </span>
-                                                        <div class="d-flex align-items-end gap-1 text-info">
-                                                            <h4>${{ round($totalSales, 2) }}</h4><span
-                                                                class="font-primary f-12 f-w-500"></span>
-                                                        </div>
-                                                        <div class="bg-gradient">
-                                                            <i class="icofont icofont-money"
-                                                                style="font-size: 35px!important"></i>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
 
-                                            <div class="col-sm-12 col-md-4">
-                                                <div class="card small-widget">
-                                                    <div class="card-body primary">
-                                                        <span class="f-light f-18">
-                                                            <b class="text-warning">Creditos Pagados</b>
-                                                        </span>
-                                                        <div class="d-flex align-items-end gap-1 text-warning">
-                                                            <h4>${{ round($totalPayments, 2) }}</h4><span
-                                                                class="font-primary f-12 f-w-500"></span>
-                                                        </div>
-                                                        <div class="bg-gradient">
-                                                            <i class="icofont icofont-money-bag"
-                                                                style="font-size: 35px!important"></i>
-                                                        </div>
-                                                    </div>
+
+
+                                        {{-- Banco --}}
+                                        <div class="col-md-4 mb-3">
+                                            <div class="card h-100 border-primary">
+                                                <div class="card-header bg-light-primary p-2">
+                                                    <h6 class="mb-0 text-primary">
+                                                        <i class="icofont icofont-bank-alt"></i> Banco
+                                                    </h6>
+                                                </div>
+                                                <div class="card-body p-2">
+                                                    @if (!empty($salesByCurrency['deposit']))
+                                                        @foreach ($salesByCurrency['deposit'] as $key => $value)
+                                                            @if(is_array($value))
+                                                                {{-- Breakdown by Bank Name --}}
+                                                                <div class="mb-2 border-bottom pb-1">
+                                                                    <small class="fw-bold text-dark">{{ $key }}</small>
+                                                                    <table class="table table-sm table-borderless mb-0">
+                                                                        @foreach ($value as $currencyCode => $amount)
+                                                                            @php
+                                                                                $curr = collect($currencies)->firstWhere('code', $currencyCode);
+                                                                                $currSymbol = $curr ? $curr->symbol : $currencyCode;
+                                                                                $label = $curr ? $curr->label . ' (' . $currencyCode . ')' : $currencyCode;
+                                                                            @endphp
+                                                                            <tr>
+                                                                                <td class="text-muted ps-2">{{ $label }}:</td>
+                                                                                <td class="text-end fw-bold">{{ $currSymbol }}{{ number_format($amount, 2) }}</td>
+                                                                            </tr>
+                                                                        @endforeach
+                                                                    </table>
+                                                                </div>
+                                                            @else
+                                                                {{-- Fallback for old data without bank name --}}
+                                                                @php
+                                                                    $currencyCode = $key;
+                                                                    $amount = $value;
+                                                                    $curr = collect($currencies)->firstWhere('code', $currencyCode);
+                                                                    $currSymbol = $curr ? $curr->symbol : $currencyCode;
+                                                                    $label = $curr ? $curr->label . ' (' . $currencyCode . ')' : $currencyCode;
+                                                                @endphp
+                                                                <table class="table table-sm table-borderless mb-0">
+                                                                    <tr>
+                                                                        <td class="text-muted">{{ $label }}:</td>
+                                                                        <td class="text-end fw-bold">{{ $currSymbol }}{{ number_format($amount, 2) }}</td>
+                                                                    </tr>
+                                                                </table>
+                                                            @endif
+                                                        @endforeach
+                                                    @else
+                                                        <p class="text-muted mb-0 text-center">Sin movimientos</p>
+                                                    @endif
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
+
+                                    {{-- Sales Totals --}}
+                                    <div class="row mt-2">
+                                        <div class="col-md-6">
+                                            <div class="alert alert-info mb-0 py-2">
+                                                <strong>Total Ventas:</strong>
+                                                <span class="float-end">{{ $symbol }}{{ number_format($totalSales, 2) }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="alert alert-secondary mb-0 py-2">
+                                                <strong>Ventas a Crédito:</strong>
+                                                <span class="float-end">{{ $symbol }}{{ number_format($totalCreditSales, 2) }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="card-footer">
-                                    <button title="Imprimir corte de caja" wire:click.prevent="printCC"
-                                        class="btn btn-outline-dark btn-xs border-0 {{ $totalSales > 0 ? '' : 'd-none' }}">
-                                        <i class="icofont icofont-printer fa-2x"></i>
-                                    </button>
+                            </div>
+
+                            {{-- PAGOS DE CRÉDITOS SECTION --}}
+                            <div class="card border-warning border-2 mb-3">
+                                <div class="card-header bg-warning p-2">
+                                    <h5 class="m-0 text-dark">
+                                        <i class="icofont icofont-money-bag"></i> PAGOS DE CRÉDITOS RECIBIDOS
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        {{-- Efectivo --}}
+                                        <div class="col-md-4 mb-3">
+                                            <div class="card h-100 border-warning">
+                                                <div class="card-header bg-light-warning p-2">
+                                                    <h6 class="mb-0 text-warning">
+                                                        <i class="icofont icofont-bill"></i> Efectivo
+                                                    </h6>
+                                                </div>
+                                                <div class="card-body p-2">
+                                                    @if (!empty($paymentsByCurrency['cash']))
+                                                        @foreach ($paymentsByCurrency['cash'] as $currency => $amount)
+                                                            @php
+                                                                $currObj = collect($currencies)->firstWhere('code', $currency);
+                                                                $label = $currObj ? $currObj->label . ' (' . $currency . ')' : $currency;
+                                                            @endphp
+                                                            <div class="row">
+                                                                <div class="col-6">
+                                                                    <span class="f-12">{{ $label }}</span>
+                                                                </div>
+                                                                <div class="col-6 text-end">
+                                                                    <span class="f-12">${{ number_format($amount, 2) }}</span>
+                                                                </div>
+                                                            </div>
+                                                        @endforeach
+                                                    @else
+                                                        <p class="text-muted mb-0 text-center">Sin movimientos</p>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {{-- Banco --}}
+                                        <div class="col-md-4 mb-3">
+                                            <div class="card h-100 border-warning">
+                                                <div class="card-header bg-light-warning p-2">
+                                                    <h6 class="mb-0 text-warning">
+                                                        <i class="icofont icofont-bank-alt"></i> Banco
+                                                    </h6>
+                                                </div>
+                                                <div class="card-body p-2">
+                                                    @if (isset($paymentsByCurrency['deposit']) && count($paymentsByCurrency['deposit']) > 0)
+                                                        @foreach ($paymentsByCurrency['deposit'] as $bankName => $currenciesInBank)
+                                                            <div class="mb-1 ms-2">
+                                                                <span class="f-w-600 f-12">{{ $bankName }}</span>
+                                                                @foreach ($currenciesInBank as $currency => $amount)
+                                                                    @php
+                                                                        $currObj = collect($currencies)->firstWhere('code', $currency);
+                                                                        $label = $currObj ? $currObj->label . ' (' . $currency . ')' : $currency;
+                                                                    @endphp
+                                                                    <div class="row ms-2">
+                                                                        <div class="col-6">
+                                                                            <span class="f-12">{{ $label }}</span>
+                                                                        </div>
+                                                                        <div class="col-6 text-end">
+                                                                            <span
+                                                                                class="f-12">${{ number_format($amount, 2) }}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                @endforeach
+                                                            </div>
+                                                        @endforeach
+                                                    @else
+                                                        <p class="text-muted mb-0 text-center">Sin movimientos</p>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+
+                                    {{-- Payment Total --}}
+                                    <div class="row mt-2">
+                                        <div class="col-12">
+                                            <div class="alert alert-warning mb-0 py-2">
+                                                <strong>Total Pagos Recibidos:</strong>
+                                                <span class="float-end">{{ $symbol }}{{ number_format($totalPayments, 2) }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                            {{-- RESUMEN GENERAL --}}
+                            <div class="card border-success border-2 mb-3">
+                                <div class="card-header bg-success p-2">
+                                    <h5 class="m-0 text-white">
+                                        <i class="icofont icofont-calculator-alt-2"></i> RESUMEN TOTAL
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="text-center p-3 bg-light rounded">
+                                                <h6 class="text-muted mb-2">Total en Efectivo</h6>
+                                                <h4 class="text-success mb-0">{{ $symbol }}{{ number_format($totalCash + $totalPaymentsCash, 2) }}</h4>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h6 class="text-muted mb-2">Total en Banco</h6>
+                                <h4 class="text-success mb-0">{{ $symbol }}{{ number_format($totalDeposit + $totalPaymentsDeposit, 2) }}</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="alert alert-success mb-0 py-3">
+                                <h5 class="mb-0">
+                                    <strong>TOTAL GENERAL:</strong>
+                                    <span class="float-end">{{ $symbol }}{{ number_format($totalSales + $totalPayments, 2) }}</span>
+                                </h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-center">
+                    <button title="Imprimir corte de caja" wire:click.prevent="printCC"
+                        class="btn btn-outline-dark btn-lg {{ $totalSales > 0 ? '' : 'd-none' }}">
+                        <i class="icofont icofont-printer"></i> Imprimir Corte
+                    </button>
+                </div>                    </div>
                                 </div>
                             </div>
                         </div>
@@ -211,20 +326,10 @@
                 </div>
             </div>
 
+
+
         </div>
     </div>
-    <style>
-        #cards .card {
-            margin-bottom: 30px;
-            border: solid !important;
-            border: 1px !important;
-            transition: all 0.3s ease;
-            letter-spacing: 0.5px;
-            border-radius: 15px;
-            box-shadow: 0px 9px 20px rgba(46, 35, 94, 0.07);
-        }
-    </style>
-
 
     <script>
         document.onkeydown = function(e) {

@@ -17,11 +17,11 @@
                             type="text" placeholder="Focus [ F1 ]" id="roleName">
                         <span wire:click="{{$roleId == null ? 'createRole' : 'updateRole' }}" class="input-group-text"
                             style="cursor: pointer" {{$roleName===null ? 'disabled' : '' }}>
-                            <i class="icofont icofont-save"></i>
+                            <i class="fas fa-save"></i>
                         </span>
                         <span wire:click="cancelRoleEdit" class="input-group-text" style="cursor: pointer"
                             {{$roleId==null ? 'hidden' : '' }}>
-                            <i class="icofont icofont-close"></i>
+                            <i class="fas fa-times"></i>
                         </span>
                     </div>
 
@@ -41,13 +41,13 @@
                                     <td class="text-end">
                                         <div class="btn-group btn-group-pill" role="group" aria-label="Basic example">
                                             <button class="btn btn-light btn-sm" wire:click="Edit({{ $rol->id }})"><i
-                                                    class="icofont icofont-ui-edit fa-2x"></i>
+                                                    class="fas fa-edit"></i>
 
                                             </button>
 
                                             <button class="btn btn-light btn-sm"
                                                 onclick="confirmDestroy(1,{{ $rol->id }})">
-                                                <i class="fa fa-trash fa-2x"></i>
+                                                <i class="fas fa-trash"></i>
                                             </button>
 
                                         </div>
@@ -94,11 +94,11 @@
                                 <span wire:click="{{$permissionId ==null ? 'createPermission' : 'updatePermission' }}"
                                     class="input-group-text" style="cursor: pointer" {{$permissionName==null
                                     ? 'disabled' : '' }}>
-                                    <i class="icofont icofont-save"></i>
+                                    <i class="fas fa-save"></i>
                                 </span>
                                 <span wire:click="cancelPermissionEdit" class="input-group-text" style="cursor: pointer"
                                     {{$permissionId==null ? 'hidden' : '' }}>
-                                    <i class="icofont icofont-close"></i>
+                                    <i class="fas fa-times"></i>
                                 </span>
                             </div>
                         </div>
@@ -132,13 +132,13 @@
                                         <div class="btn-group btn-group-pill" role="group" aria-label="Basic example">
                                             <button class="btn btn-light btn-sm"
                                                 wire:click="EditPermission({{ $permiso->id }})"><i
-                                                    class="icofont icofont-ui-edit fa-2x"></i>
+                                                    class="fas fa-edit"></i>
 
                                             </button>
 
                                             <button class="btn btn-light btn-sm"
                                                 onclick="confirmDestroy(2,{{ $permiso->id }})">
-                                                <i class="fa fa-trash fa-2x"></i>
+                                                <i class="fas fa-trash"></i>
                                             </button>
 
                                         </div>

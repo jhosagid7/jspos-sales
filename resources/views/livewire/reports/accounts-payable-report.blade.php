@@ -14,7 +14,7 @@
 
                                     @if ($supplier != null)
                                         <span> {{ $supplier['name'] }} <i
-                                                class="icofont icofont-verification-check"></i></span>
+                                                class="fas fa-check"></i></span>
                                     @else
                                         <span class="f-14"><b>Proveedor</b></span>
                                     @endif
@@ -104,7 +104,7 @@
                                                         </td>
                                                         <td>
                                                             <span
-                                                                class="badge f-12 {{ ($purchase->status == 'paid' ? 'badge-light-success' : $purchase->status == 'return') ? 'badge-light-warning' : 'badge-light-danger' }} ">{{ $purchase->status }}</span>
+                                                                class="badge f-12 {{ ($purchase->status == 'paid' ? 'badge-success' : $purchase->status == 'return') ? 'badge-warning' : 'badge-danger' }} ">{{ $purchase->status }}</span>
 
                                                         </td>
                                                         <td>{{ $purchase->created_at }}</td>
@@ -114,12 +114,12 @@
                                                             <button
                                                                 wire:click.prevent="historyPayables({{ $purchase->id }})"
                                                                 class="border-0 btn btn-outline-dark btn-xs">
-                                                                <i class="icofont icofont-list fa-2x"></i>
+                                                                <i class="fas fa-list"></i>
                                                             </button>
                                                             <button
                                                                 wire:click.prevent="initPayable({{ $purchase->id }}, '{{ $purchase->supplier->name }}')"
                                                                 class="border-0 btn btn-outline-dark btn-xs">
-                                                                <i class="icofont icofont-cur-dollar-plus fa-2x"></i>
+                                                                <i class="fas fa-hand-holding-usd"></i>
                                                             </button>
 
                                                         </td>

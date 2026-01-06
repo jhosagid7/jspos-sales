@@ -21,50 +21,31 @@
 {{-- class="dark-only" --}}
 
 <body>
-    <!-- loader starts-->
-    <div class="loader-wrapper">
-        <div class="loader-index"> <span></span></div>
-        <svg>
-            <defs></defs>
-            <filter id="goo">
-                <fegaussianblur in="SourceGraphic" stddeviation="11" result="blur"></fegaussianblur>
-                <fecolormatrix in="blur" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9" result="goo">
-                </fecolormatrix>
-            </filter>
-        </svg>
-    </div>
-    <!-- loader ends-->
-    <!-- tap on top starts-->
-    <div class="tap-top"><i data-feather="chevrons-up"></i></div>
-    <!-- tap on tap ends-->
-    <!-- page-wrapper Start-->
-    <div class="page-wrapper horizontal-wrapper" id="pageWrapper">
-        <!-- Page Header Start-->
+    <div class="wrapper">
+        <!-- Navbar -->
         @include('layouts.theme.header')
-        <!-- Page Header Ends                              -->
-        <!-- Page Body Start-->
-        <div class="page-body-wrapper horizontal-menu">
-            <!-- Page Sidebar Start-->
-            @include('layouts.theme.sidebar')
-            <!-- Page Sidebar Ends-->
-            <div class="page-body">
+        <!-- /.navbar -->
 
-                @include('layouts.theme.breadcrumb')
+        <!-- Main Sidebar Container -->
+        @include('layouts.theme.sidebar')
 
-                <!-- Container-fluid starts-->
+        <!-- Content Wrapper. Contains page content -->
+        <div class="content-wrapper">
+            <!-- Content Header (Page header) -->
+            @include('layouts.theme.breadcrumb')
+            
+            <!-- Main content -->
+            <section class="content">
                 <div class="container-fluid">
                     {{ $slot }}
-                    {{-- <div class="row starter-main">
-
-                    </div> --}}
-                    <!-- Container-fluid Ends-->
                 </div>
-
-                <!-- footer start-->
-                @include('layouts.theme.footer')
-
-            </div>
+            </section>
+            <!-- /.content -->
         </div>
+        <!-- /.content-wrapper -->
+
+        <!-- Footer -->
+        @include('layouts.theme.footer')
     </div>
 
     <!-- scripts -->

@@ -5,7 +5,7 @@
                 <div x-data @click.away="$wire.dispatch('hideResults')" class="relative">
                     <div class="faq-form">
                         <div class="form-control form-control-lg">
-                            <input type="text" wire:model.live.debounce.700ms="search3" class="form-control"
+                            <input type="text" wire:model.live.debounce.300ms="search3" class="form-control"
                                 placeholder="[ F1 ] Ingresa nombre o código del producto"
                                 style="text-transform: capitalize" autocomplete="off" id="inputSearch"
                                 wire:keydown="keyDown($event.key)">
@@ -14,9 +14,17 @@
                         </div>
 
                         @if (!empty($products))
+                            @php
+                                $primaryCurrency = $currencies->firstWhere('is_primary', true);
+                                $primaryRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
+                                $primarySymbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
+                            @endphp
                             <ul class="mt-0 bg-white border-0 list-group position-absolute w-100"
                                 style="z-index: 1000; max-height: 200px; overflow-y: auto;">
                                 @foreach ($products as $index => $product)
+                                    @php
+                                        $priceInPrimary = $product->price * $primaryRate;
+                                    @endphp
                                     <li class="p-2 list-group-item list-group-item-action d-flex justify-content-between align-items-center"
                                         wire:click="selectProduct({{ $index }})"
                                         style="cursor: pointer; {{ $selectedIndex === $index ? 'background-color: #e9ecef;' : '' }}">
@@ -25,7 +33,7 @@
                                                 class="mb-0 text-{{ $product->stock_qty <= 0 ? 'danger' : ($product->stock_qty < $product->low_stock ? 'info' : 'primary') }}">
                                                 <small class="mb-0" style="text-muted">
                                                     {{ $product->sku }} - {{ Str::limit($product->name, 50) }}
-                                                </small> - {{ $product->price }} / <small>stock:
+                                                </small> - {{ $primarySymbol }}{{ number_format($priceInPrimary, 2) }} / <small>stock:
                                                     @if ($product->stock_qty <= 0)
                                                         <span class="text-danger">Agotado</span>
                                                     @else
@@ -79,81 +87,143 @@
         {{-- @json($cart) --}}
         <div class="row">
             <div class="order-history table-responsive wishlist">
-                <table class="table table-bordered">
+                <table class="table table-bordered table-sm table-striped align-middle">
                     <thead>
                         <tr>
-                            <th class="p-2" width="100"></th>
-                            <th class="p-2">Descripción</th>
-                            <th class="p-2" width="200">Precio Vta</th>
-                            <th class="p-2" width="300">Cantidad</th>
-                            <th class="p-2">Importe</th>
-                            <th class="p-2">Acciones</th>
+                            <th class="p-1" width="100">Código</th>
+                            <th class="p-1">Descripción</th>
+                            <th class="p-1" width="130">Precio Vta</th>
+                            <th class="p-1" width="140">Cantidad</th>
+                            <th class="p-1" width="100">Importe</th>
+                            <th class="p-1" width="60">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($cart as $item)
-                            <tr>
+                            @php
+                                $primaryCurrency = $currencies->firstWhere('is_primary', true);
+                                $primaryRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
+                                $primarySymbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
+                            @endphp
+                            <tr wire:key="cart-item-{{ $item['id'] }}">
                                 <td>
-                                    <img class="img-fluid img-30" src="{{ asset($item['image']) }} ">
+                                    <span class="badge badge-light text-dark">{{ $item['sku'] }}</span>
                                 </td>
                                 <td>
-                                    <div class="product-name txt-info">{{ strtoupper($item['name']) }}</div>
-                                    <small
-                                        class="{{ $item['sku'] == null ? 'd-none' : '' }}">sku:{{ $item['sku'] }}</small>
+                                    <div class="product-name txt-info font-weight-bold" style="font-size: 0.9rem;">{{ strtoupper($item['name']) }}</div>
                                 </td>
                                 <td>
                                     @if (count($item['pricelist']) == 0)
-                                        <input
-                                            wire:keydown.enter.prevent="setCustomPrice('{{ $item['id'] }}', $event.target.value )"
-                                            type="text" oninput="justNumber(this)" class="text-center form-control"
-                                            value="{{ $item['sale_price'] }}">
+                                        <div class="mb-0">
+                                            <div class="input-group input-group-sm">
+                                                <input class="form-control form-control-sm"
+                                                    wire:keydown.enter.prevent="setCustomPrice('{{ $item['id'] }}', $event.target.value )"
+                                                    type="text" oninput="justNumber(this)" 
+                                                    value="{{ $item['sale_price'] }}">
+                                                
+                                                <div class="input-group-append">
+                                                    <button class="btn btn-warning btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                        <i class="fa fa-info"></i>
+                                                    </button>
+                                                    <div class="dropdown-menu dropdown-menu-right" style="min-width: 250px; z-index: 10000;">
+                                                        <a class="dropdown-item" href="javascript:void(0)">
+                                                            <div class="d-flex flex-column">
+                                                                <span class="font-weight-bold">{{ $primarySymbol }}{{ $item['sale_price'] }}</span>
+                                                                @if(isset($currencies) && $currencies->count() > 1)
+                                                                    <div class="text-muted small">
+                                                                        @foreach($currencies as $currency)
+                                                                            @if(!$currency->is_primary)
+                                                                                @php
+                                                                                    $convertedPrice = ($item['sale_price'] / $primaryRate) * $currency->exchange_rate;
+                                                                                @endphp
+                                                                                <div>{{ $currency->symbol }}{{ number_format($convertedPrice, 2) }} {{ $currency->code }}</div>
+                                                                            @endif
+                                                                        @endforeach
+                                                                    </div>
+                                                                @endif
+                                                            </div>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     @else
-                                        <div class="mb-3">
-                                            <div class="position-relative">
-                                                <input class="form-control" id="inputPrice{{ $item['id'] }}"
+                                        <div class="mb-0">
+                                            <div class="input-group input-group-sm">
+                                                <input class="form-control form-control-sm" id="inputPrice{{ $item['id'] }}"
                                                     wire:keydown.enter.prevent="setCustomPrice('{{ $item['id'] }}', $event.target.value )"
                                                     oninput="justNumber(this)" type="text"
-                                                    placeholder="{{ $item['sale_price'] }}">
-                                                <select class="form-select crypto-select warning"
-                                                    wire:change="setCustomPrice('{{ $item['id'] }}', $event.target.value )">
-                                                    @foreach ($item['pricelist'] as $price)
-                                                        <option>${{ $price['price'] }}</option>
-                                                    @endforeach
-                                                </select>
+                                                    placeholder="{{ $item['sale_price'] }}"
+                                                    value="{{ $item['sale_price'] }}">
+                                                
+                                                <div class="input-group-append">
+                                                    <button class="btn btn-warning btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                        <i class="fa fa-list"></i>
+                                                    </button>
+                                                    <div class="dropdown-menu dropdown-menu-right" style="min-width: 250px; max-height: 300px; overflow-y: auto; z-index: 10000;">
+                                                        @php
+                                                            $primaryCurrency = $currencies->firstWhere('is_primary', true);
+                                                            $primaryRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
+                                                            $primarySymbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
+                                                        @endphp
+                                                        @foreach ($item['pricelist'] as $price)
+                                                            <a class="dropdown-item" href="javascript:void(0)" 
+                                                               wire:click.prevent="setCustomPrice('{{ $item['id'] }}', '{{ $price['price'] }}')">
+                                                                <div class="d-flex flex-column">
+                                                                    <span class="font-weight-bold">{{ $primarySymbol }}{{ $price['price'] }}</span>
+                                                                    @if(isset($currencies) && $currencies->count() > 1)
+                                                                        <div class="text-muted small">
+                                                                            @foreach($currencies as $currency)
+                                                                                @if(!$currency->is_primary)
+                                                                                    @php
+                                                                                        $convertedPrice = ($price['price'] / $primaryRate) * $currency->exchange_rate;
+                                                                                    @endphp
+                                                                                    <div>{{ $currency->symbol }}{{ number_format($convertedPrice, 2) }} {{ $currency->code }}</div>
+                                                                                @endif
+                                                                            @endforeach
+                                                                        </div>
+                                                                    @endif
+                                                                </div>
+                                                            </a>
+                                                            @if(!$loop->last)
+                                                                <div class="dropdown-divider"></div>
+                                                            @endif
+                                                        @endforeach
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     @endif
                                 </td>
                                 <td>
-                                    <div class="right-details">
-                                        <div class="touchspin-wrapper">
-
-                                            <button
-                                                onclick="updateQty({{ $item['pid'] }},'{{ $item['id'] }}','decrement')"
-                                                class="decrement-touchspin btn-touchspin"><i
-                                                    class="fa fa-minus text-gray"></i>
+                                    <div class="input-group input-group-sm" style="width: 120px;">
+                                        <div class="input-group-prepend">
+                                            <button class="btn btn-dark btn-sm" type="button"
+                                                onclick="updateQty({{ $item['pid'] }},'{{ $item['id'] }}','decrement')">
+                                                <i class="fas fa-minus"></i>
                                             </button>
-                                            <input
-                                                wire:keydown.enter.prevent="updateQty('{{ $item['id'] }}', $event.target.value )"
-                                                class=" input-touchspin" type="number" value="{{ $item['qty'] }}"
-                                                id="p{{ $item['pid'] }}">
-
-                                            <button
-                                                onclick="updateQty({{ $item['pid'] }},'{{ $item['id'] }}', 'increment')"
-                                                class="increment-touchspin btn-touchspin"><i
-                                                    class="fa fa-plus text-gray"></i>
+                                        </div>
+                                        <input type="number" 
+                                            wire:keydown.enter.prevent="updateQty('{{ $item['id'] }}', $event.target.value )"
+                                            class="form-control form-control-sm text-center" 
+                                            value="{{ $item['qty'] }}"
+                                            id="p{{ $item['pid'] }}">
+                                        <div class="input-group-append">
+                                            <button class="btn btn-dark btn-sm" type="button"
+                                                onclick="updateQty({{ $item['pid'] }},'{{ $item['id'] }}','increment')">
+                                                <i class="fas fa-plus"></i>
                                             </button>
                                         </div>
                                     </div>
 
 
                                 </td>
-                                <td>${{ $item['total'] }}</td>
+                                <td>{{ $primarySymbol }}{{ $item['total'] }}</td>
                                 <td>
 
                                     <button wire:click.prevent="removeItem({{ $item['pid'] }})"
-                                        class="btn btn-light btn-sm">
-                                        <i class="fa fa-trash fa-2x"></i>
+                                        class="btn btn-danger btn-sm" title="Eliminar">
+                                        <i class="fas fa-trash"></i>
                                     </button>
                                 </td>
                             </tr>

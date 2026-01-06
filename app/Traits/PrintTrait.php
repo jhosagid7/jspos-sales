@@ -48,6 +48,16 @@ trait PrintTrait
 
 
 
+                $currencySymbol = '$';
+                if ($sale->primary_currency_code) {
+                    $currencySymbol = \App\Helpers\CurrencyHelper::getSymbol($sale->primary_currency_code);
+                } else {
+                    $primary = \App\Helpers\CurrencyHelper::getPrimaryCurrency();
+                    if ($primary) {
+                        $currencySymbol = $primary->symbol;
+                    }
+                }
+
                 $maskHead = "%-30s %-5s %-8s";
                 $maskRow = $maskHead; //"%-.31s %-4s %-5s";
 
@@ -59,7 +69,7 @@ trait PrintTrait
                 foreach ($sale->details as $item) {
 
                     $descripcion_1 = $this->cortar($item->product->name, 30);
-                    $row_1 = sprintf($maskRow, $descripcion_1[0], $item->quantity, '$' . number_format($item->sale_price, 2));
+                    $row_1 = sprintf($maskRow, $descripcion_1[0], $item->quantity, $currencySymbol . number_format($item->sale_price, 2));
                     $printer->text($row_1 . "\n");
 
                     if (isset($descripcion_1[1])) {
@@ -79,13 +89,13 @@ trait PrintTrait
                 $printer->setJustification(Printer::JUSTIFY_LEFT);
 
                 $desglose = $this->desgloseMonto($sale->total);
-                $printer->text("SUBTOTAL....... $" . number_format($desglose['subtotal'], 2) . "\n");
-                $printer->text("IVA............ $" . number_format($desglose['iva'], 2) . "\n");
-                $printer->text("TOTAL.......... $" . number_format($sale->total, 2) . "\n");
+                $printer->text("SUBTOTAL....... " . $currencySymbol . number_format($desglose['subtotal'], 2) . "\n");
+                $printer->text("IVA............ " . $currencySymbol . number_format($desglose['iva'], 2) . "\n");
+                $printer->text("TOTAL.......... " . $currencySymbol . number_format($sale->total, 2) . "\n");
 
                 if ($sale->type == 'cash') {
-                    $printer->text("EFECTIVO....... $" . number_format($sale->cash, 2) . "\n");
-                    if (floatval($sale->change) > 0)  $printer->text("\nCAMBIO......... $" . number_format($sale->change, 2) . "\n");
+                    $printer->text("EFECTIVO....... " . $currencySymbol . number_format($sale->cash, 2) . "\n");
+                    if (floatval($sale->change) > 0)  $printer->text("\nCAMBIO......... " . $currencySymbol . number_format($sale->change, 2) . "\n");
                 } else {
                     $printer->text($sale->type == 'credit' ? "FORMA DE PAGO: CRÉDITO" :  "FORMA DE PAGO:  DEPÓSITO" .  "\n");
                 }
@@ -132,17 +142,27 @@ trait PrintTrait
 
                 $payment = Payment::with('sale')->where('id', $payId)->first();
 
+                $currencySymbol = '$';
+                if ($payment->sale->primary_currency_code) {
+                    $currencySymbol = \App\Helpers\CurrencyHelper::getSymbol($payment->sale->primary_currency_code);
+                } else {
+                    $primary = \App\Helpers\CurrencyHelper::getPrimaryCurrency();
+                    if ($primary) {
+                        $currencySymbol = $primary->symbol;
+                    }
+                }
+
                 $printer->text("Folio:" . $payment->id . "\n");
                 $printer->text("Fecha:" . Carbon::parse($payment->created_at)->format('d-m-Y H:i') . "\n");
                 $printer->text("Cliente:" . $payment->sale->customer->name . "\n");
                 $printer->text("=============================================" . "\n");
-                $printer->text("Compra: $" . $payment->sale->total . "\n");
-                $printer->text("Abono: $" . $payment->amount . "\n");
+                $printer->text("Compra: " . $currencySymbol . $payment->sale->total . "\n");
+                $printer->text("Abono: " . $currencySymbol . $payment->amount . "\n");
 
                 if ($payment->sale->debt <= 0) {
                     $printer->text("CRÉDITO LIQUIDADO \n");
                 } else {
-                    $printer->text("Deuda actual: $" . $payment->sale->debt . "\n\n");
+                    $printer->text("Deuda actual: " . $currencySymbol . $payment->sale->debt . "\n\n");
                 }
 
                 //    $printer->text("Forma de Pago:" . ($payment->pay_way == 'cash' ? 'EFECTIVO' : 'DEPÓSITO')  . "\n");
@@ -156,13 +176,10 @@ trait PrintTrait
                         $printer->text("DEPÓSITO\n");
                         break;
                     default:
-                        $printer->text("NEQUI\n");
+                        $printer->text("EFECTIVO\n");
                 }
 
-                if ($payment->pay_way == 'nequi') {
-                    $printer->text(ucfirst($payment->pay_way) . "\n");
-                    $printer->text("No. Teléfono:" . $payment->account_number . "\n");
-                }
+
 
                 if ($payment->pay_way == 'deposit') {
                     $printer->text($payment->bank . "\n");
@@ -214,17 +231,27 @@ trait PrintTrait
 
                 $payable = Payable::with('purchase')->where('id', $payId)->first();
 
+                $currencySymbol = '$';
+                if ($payable->purchase->primary_currency_code) {
+                    $currencySymbol = \App\Helpers\CurrencyHelper::getSymbol($payable->purchase->primary_currency_code);
+                } else {
+                    $primary = \App\Helpers\CurrencyHelper::getPrimaryCurrency();
+                    if ($primary) {
+                        $currencySymbol = $primary->symbol;
+                    }
+                }
+
                 $printer->text("Folio:" . $payable->id . "\n");
                 $printer->text("Fecha:" . Carbon::parse($payable->created_at)->format('d-m-Y H:i') . "\n");
                 $printer->text("Proveedor:" . $payable->purchase->supplier->name . "\n");
                 $printer->text("=============================================" . "\n");
-                $printer->text("Compra: $" . $payable->purchase->total . "\n");
-                $printer->text("Abono: $" . $payable->amount . "\n");
+                $printer->text("Compra: " . $currencySymbol . $payable->purchase->total . "\n");
+                $printer->text("Abono: " . $currencySymbol . $payable->amount . "\n");
 
                 if ($payable->purchase->debt <= 0) {
                     $printer->text("CRÉDITO LIQUIDADO \n");
                 } else {
-                    $printer->text("Deuda actual: $" . $payable->purchase->debt . "\n\n");
+                    $printer->text("Deuda actual: " . $currencySymbol . $payable->purchase->debt . "\n\n");
                 }
 
                 //    $printer->text("Forma de Pago:" . ($payment->pay_way == 'cash' ? 'EFECTIVO' : 'DEPÓSITO')  . "\n");
@@ -238,13 +265,10 @@ trait PrintTrait
                         $printer->text("DEPÓSITO\n");
                         break;
                     default:
-                        $printer->text("NEQUI\n");
+                        $printer->text("EFECTIVO\n");
                 }
 
-                if ($payable->pay_way == 'nequi') {
-                    $printer->text(ucfirst($payable->pay_way) . "\n");
-                    $printer->text("No. Teléfono:" . $payable->account_number . "\n");
-                }
+
 
                 if ($payable->pay_way == 'deposit') {
                     $printer->text($payable->bank . "\n");
@@ -296,7 +320,7 @@ trait PrintTrait
 
 
 
-    function printCashCount($user_name, $dfrom, $dto, $totales, $cash, $nequi, $deposit, $payments, $credit, $pcash, $pdeposit, $pnequi)
+    function printCashCount($user_name, $dfrom, $dto, $totales, $salesTotal, $cash, $nequi, $deposit, $payments, $credit, $pcash, $pdeposit, $pnequi, $salesByCurrency = [], $paymentsByCurrency = [])
     {
         try {
 
@@ -311,27 +335,105 @@ trait PrintTrait
 
                 $printer->text(strtoupper($config->business_name) . "\n");
                 $printer->setTextSize(1, 1);
-                $printer->text("Corte de Caja $config->taxpayer_id \n\n");
+                $printer->text("Corte de Caja \n");
+                //$printer->text("NIT: $config->taxpayer_id \n\n");
 
 
                 $printer->setJustification(Printer::JUSTIFY_LEFT);
 
                 $printer->text("=============================================\n");
-                $printer->text("Fechas: desde" . $dfrom . ' hasta ' . $dto . "\n");
+                $printer->text("Desde: " . Carbon::parse($dfrom)->format('d/m/Y') . "\n");
+                $printer->text("Hasta: " . Carbon::parse($dto)->format('d/m/Y') . "\n");
                 $printer->text("Usuario: " . $user_name . " \n");
                 $printer->text("=============================================\n");
 
-                $printer->text("VENTAS TOTALES: " . $totales  . "\n");
-                $printer->text("TOTAL BANCO: " . $deposit  . "\n");
-                $printer->text("TOTAL NEQUI: " . $nequi  . "\n");
-                $printer->text("TOTAL CONTADO: " . $cash  . "\n");
-                $printer->text("VENTAS A CRÉDITO: " . $credit  . "\n");
+                $primary = \App\Helpers\CurrencyHelper::getPrimaryCurrency();
+                $currencySymbol = $primary ? $primary->symbol : '$';
+
+                $printer->text("RESUMEN GENERAL\n");
+                $printer->text("VENTAS TOTALES: " . $currencySymbol . number_format($salesTotal, 2) . "\n");
+                $printer->text("  Contado: " . $currencySymbol . number_format($cash, 2) . "\n");
+
+                $printer->text("  Banco: " . $currencySymbol . number_format($deposit, 2) . "\n");
+                $printer->text("  Crédito: " . $currencySymbol . number_format($credit, 2) . "\n");
                 $printer->text("---------" . "\n");
-                $printer->text("CRÉDITOS PAGADOS: " . $payments  . "\n");
-                $printer->text("TOTAL BANCO: " . $pdeposit  . "\n");
-                $printer->text("TOTAL NEQUI: " . $pnequi  . "\n");
-                $printer->text("TOTAL CONTADO: " . $pcash  . "\n");
-                $printer->text("---------" . "\n");
+                $printer->text("ABONOS RECIBIDOS: " . $currencySymbol . number_format($payments, 2) . "\n");
+                $printer->text("  Contado: " . $currencySymbol . number_format($pcash, 2) . "\n");
+
+                $printer->text("  Banco: " . $currencySymbol . number_format($pdeposit, 2) . "\n");
+                $printer->text("=============================================\n");
+
+                // DETAILED SALES BREAKDOWN
+                if (!empty($salesByCurrency)) {
+                    $printer->setJustification(Printer::JUSTIFY_CENTER);
+                    $printer->text("DETALLE VENTAS POR MONEDA\n");
+                    $printer->setJustification(Printer::JUSTIFY_LEFT);
+                    $printer->text("---------------------------------------------\n");
+
+                    // Helper to get currency label
+                    $getCurrencyLabel = function($code) {
+                        $c = \App\Models\Currency::where('code', $code)->first();
+                        return $c ? $c->label . " (" . $code . ")" : $code;
+                    };
+
+                    // Cash Sales
+                    if (!empty($salesByCurrency['cash'])) {
+                        $printer->text("EFECTIVO:\n");
+                        foreach ($salesByCurrency['cash'] as $currency => $amount) {
+                            $printer->text("  " . $getCurrencyLabel($currency) . ": " . number_format($amount, 2) . "\n");
+                        }
+                    }
+
+
+
+                    // Deposit Sales
+                    if (!empty($salesByCurrency['deposit'])) {
+                        $printer->text("BANCO:\n");
+                        foreach ($salesByCurrency['deposit'] as $bankName => $currencies) {
+                            $printer->text("  " . $bankName . ":\n");
+                            foreach ($currencies as $currency => $amount) {
+                                $printer->text("    " . $getCurrencyLabel($currency) . ": " . number_format($amount, 2) . "\n");
+                            }
+                        }
+                    }
+                    $printer->text("=============================================\n");
+                }
+
+                // DETAILED PAYMENTS BREAKDOWN
+                if (!empty($paymentsByCurrency)) {
+                    $printer->setJustification(Printer::JUSTIFY_CENTER);
+                    $printer->text("DETALLE ABONOS POR MONEDA\n");
+                    $printer->setJustification(Printer::JUSTIFY_LEFT);
+                    $printer->text("---------------------------------------------\n");
+
+                     // Helper to get currency label (redefined or reused if scope allows, but safe to redefine)
+                     $getCurrencyLabel = function($code) {
+                        $c = \App\Models\Currency::where('code', $code)->first();
+                        return $c ? $c->label . " (" . $code . ")" : $code;
+                    };
+
+                    // Cash Payments
+                    if (!empty($paymentsByCurrency['cash'])) {
+                        $printer->text("EFECTIVO:\n");
+                        foreach ($paymentsByCurrency['cash'] as $currency => $amount) {
+                            $printer->text("  " . $getCurrencyLabel($currency) . ": " . number_format($amount, 2) . "\n");
+                        }
+                    }
+
+
+
+                    // Deposit Payments
+                    if (!empty($paymentsByCurrency['deposit'])) {
+                        $printer->text("BANCO:\n");
+                        foreach ($paymentsByCurrency['deposit'] as $bankName => $currencies) {
+                            $printer->text("  " . $bankName . ":\n");
+                            foreach ($currencies as $currency => $amount) {
+                                $printer->text("    " . $getCurrencyLabel($currency) . ": " . number_format($amount, 2) . "\n");
+                            }
+                        }
+                    }
+                     $printer->text("=============================================\n");
+                }
 
 
                 $printer->feed(3);
@@ -347,6 +449,7 @@ trait PrintTrait
         }
     }
 
+<<<<<<< HEAD
     function printOrder($orderId)
     {
 
@@ -359,11 +462,21 @@ trait PrintTrait
                 $order = Order::with(['customer', 'user', 'details', 'details.product'])->find($orderId);
                 // return $order;
 
+=======
+    function printPaymentHistory($saleId)
+    {
+        try {
+            $config = Configuration::first();
+            if ($config) {
+                $sale = Sale::with(['customer', 'payments', 'user'])->find($saleId);
+                
+>>>>>>> feature/redesign-adminlte
                 $connector = new WindowsPrintConnector($config->printer_name);
                 $printer = new Printer($connector);
 
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
                 $printer->setTextSize(2, 2);
+<<<<<<< HEAD
 
                 $printer->text(strtoupper($config->business_name) . "\n");
                 $printer->setTextSize(1, 1);
@@ -437,4 +550,89 @@ trait PrintTrait
             Log::info("Error al intentar imprimir el comprobante de venta \n {$th->getMessage()}");
         }
     }
+
+    function printPaymentHistory($saleId)
+    {
+        try {
+            $config = Configuration::first();
+            if ($config) {
+                $sale = Sale::with(['customer', 'payments', 'user'])->find($saleId);
+                
+                $connector = new WindowsPrintConnector($config->printer_name);
+                $printer = new Printer($connector);
+
+                $printer->setJustification(Printer::JUSTIFY_CENTER);
+                $printer->setTextSize(2, 2);
+
+                $printer->text(strtoupper($config->business_name) . "\n");
+                $printer->setTextSize(1, 1);
+                $printer->text("Historial de Pagos\n\n");
+
+                $printer->setJustification(Printer::JUSTIFY_LEFT);
+                $printer->text("=============================================\n");
+                $printer->text("Folio Venta: " . $sale->id . "\n");
+                $printer->text("Fecha Emisión: " . Carbon::parse($sale->created_at)->format('d/m/Y H:i') . "\n");
+                $printer->text("Cliente: " . $sale->customer->name . "\n");
+                $printer->text("=============================================\n");
+
+                $mask = "%-10.10s %-10.10s %-10.10s";
+                $printer->text(sprintf($mask, "FECHA", "MONTO", "METODO") . "\n");
+                $printer->text("---------------------------------------------\n");
+
+                $totalPaidUSD = 0;
+                $primaryCurrency = \App\Models\Currency::where('is_primary', 1)->first();
+                $primaryCode = $primaryCurrency ? $primaryCurrency->code : 'USD';
+
+                foreach ($sale->payments as $payment) {
+                    $date = Carbon::parse($payment->created_at)->format('d/m/y');
+                    $amount = number_format($payment->amount, 2);
+                    $method = $payment->pay_way == 'cash' ? 'Efectivo' : ($payment->pay_way == 'deposit' ? 'Banco' : $payment->pay_way);
+                    
+                    // Add currency code to amount
+                    $amountStr = $amount . " " . $payment->currency;
+
+                    $printer->text("$date  $method\n");
+                    $printer->setJustification(Printer::JUSTIFY_RIGHT);
+                    $printer->text("$amountStr\n");
+                    $printer->setJustification(Printer::JUSTIFY_LEFT);
+
+                    // Calculate USD total
+                    $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
+                    $amountUSD = $payment->amount / $rate;
+                    $totalPaidUSD += $amountUSD;
+                }
+
+                $printer->text("=============================================\n");
+                
+                // Totals
+                $totalSaleUSD = $sale->total; 
+                if ($sale->total_usd > 0) {
+                    $totalSaleUSD = $sale->total_usd;
+                } else {
+                     $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                     $totalSaleUSD = $sale->total / $rate;
+                }
+
+                $balanceUSD = $totalSaleUSD - $totalPaidUSD;
+                if($balanceUSD < 0) $balanceUSD = 0;
+                
+                // Convert to System Currency (Primary)
+                $primaryRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
+                $totalPaidSystem = $totalPaidUSD * $primaryRate;
+                $balanceSystem = $balanceUSD * $primaryRate;
+
+                $printer->setJustification(Printer::JUSTIFY_RIGHT);
+                $printer->text("Total Pagado (USD): $" . number_format($totalPaidUSD, 2) . "\n");
+                $printer->text("Total Pagado ($primaryCode): $" . number_format($totalPaidSystem, 2) . "\n");
+                $printer->text("Saldo Pendiente ($primaryCode): $" . number_format($balanceSystem, 2) . "\n");
+
+                $printer->feed(3);
+                $printer->cut();
+                $printer->close();
+            }
+        } catch (\Exception $th) {
+            Log::error("Error printing payment history: " . $th->getMessage());
+        }
+    }
 }
+```

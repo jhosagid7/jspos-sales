@@ -9,5 +9,5 @@ class Bank extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'state', 'sort'];
+    protected $fillable = ['name', 'state', 'sort', 'currency_code'];
 }

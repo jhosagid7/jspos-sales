@@ -4,7 +4,7 @@
             <div class="modal-content ">
                 <div class="modal-header bg-primary">
                     <h5 class="modal-title">Abono a Cuenta</h5>
-                    <button class="btn-close py-0" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button class="btn-close py-0" type="button" wire:click="cancelPay" data-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
 
@@ -41,22 +41,22 @@
                                                 <small><i class="icon-calendar"></i>
                                                     {{ app('fun')->dateFormat($sale->created_at) }}</small>
                                             </td>
-                                            <td>${{ $sale->total }}</td>
-                                            <td>${{ $sale->payments_sum_amount }}</td>
-                                            <td>${{ round($sale->total - $sale->payments_sum_amount) }}</td>
+                                            <td>${{ number_format($sale->total_display, 2) }}</td>
+                                            <td>${{ number_format($sale->total_paid_display, 2) }}</td>
+                                            <td>${{ number_format($sale->debt_display, 2) }}</td>
                                             <td>
 
 
-                                                @if ($sale->payments_sum_amount > 0)
-                                                    <button class="btn btn-light "
-                                                        wire:click="historyPayments({{ $sale->id }})">
-                                                        <i class="icon-receipt" style="font-size: 18px"></i>
+                                                @if ($sale->total_paid_display > 0)
+                                                    <button class="btn btn-default btn-sm"
+                                                        wire:click="historyPayments({{ $sale->id }})" title="Ver Historial">
+                                                        <i class="fas fa-receipt text-primary"></i>
                                                     </button>
                                                 @endif
 
-                                                <button class="btn btn-light "
-                                                    wire:click="initPay({{ $sale->id }},'{{ $sale->customer->name }}',{{ round($sale->total - $sale->payments_sum_amount) }})">
-                                                    <i class="fa fa-money fa-lg"></i>
+                                                <button class="btn btn-default btn-sm"
+                                                    wire:click="initPay({{ $sale->id }},'{{ $sale->customer->name }}',{{ $sale->debt_display }})" title="Abonar">
+                                                    <i class="fas fa-money-bill-wave text-success"></i>
                                                 </button>
 
 
@@ -105,84 +105,88 @@
                                         </div>
                                     </div>
                                     <div class="row">
-                                        <div class="col-sm-12 col-md-6 mt-3">
-                                            <div class="mt-3">
-                                                <label for="phoneNumber">
-                                                    <h6 class="f-w-600 f-12 mb-0 txt-primary">ABONO CON NEQUI:</h6>
+                                    <div class="row mb-3">
+                                        <div class="col-12">
+                                            <h6 class="f-w-600 f-12 mb-2 txt-primary">MÉTODO DE PAGO:</h6>
+                                            <div class="btn-group w-100" role="group">
+                                                <button type="button" class="btn {{ $paymentMethod == 'cash' ? 'btn-primary' : 'btn-outline-primary' }}" wire:click="$set('paymentMethod', 'cash')">
+                                                    <i class="icofont icofont-money"></i> Efectivo
+                                                </button>
+
+                                                <button type="button" class="btn {{ $paymentMethod == 'deposit' ? 'btn-primary' : 'btn-outline-primary' }}" wire:click="$set('paymentMethod', 'deposit')">
+                                                    <i class="icofont icofont-bank-alt"></i> Banco
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        {{-- CASH PAYMENT --}}
+                                        @if($paymentMethod == 'cash')
+                                            <div class="col-sm-12 col-md-6">
+                                                <label>
+                                                    <h6 class="f-w-600 f-12 mb-0 txt-primary">MONEDA:</h6>
                                                 </label>
-                                                <div class="position-relative">
-                                                    <select class="form-control crypto-select info" disabled>
-                                                        <option>N°. TELÉFONO:</option>
-                                                    </select>
-                                                    <input class="form-control" oninput="validarInputNumber(this)"
-                                                        wire:model.live.debounce.750ms="phoneNumber"
-                                                        wire:keydown.enter.prevent='Store' type="number"
-                                                        id="phoneNumber">
-                                                </div>
-                                                @error('phoneNumber')
+                                                <select class="form-select" wire:model.live="paymentCurrency">
+                                                    @foreach($currencies as $currency)
+                                                        <option value="{{ $currency->code }}">{{ $currency->code }} - {{ $currency->symbol }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        @endif
+
+
+
+                                        {{-- DEPOSIT PAYMENT --}}
+                                        @if($paymentMethod == 'deposit')
+                                            <div class="col-sm-12 col-md-6">
+                                                <label for="banco">
+                                                    <h6 class="f-w-600 f-12 mb-0 txt-primary">BANCO:</h6>
+                                                </label>
+                                                <select class="form-select" wire:model="bank">
+                                                    <option value="0">Seleccionar Banco</option>
+                                                    @forelse($banks as $bank)
+                                                        <option value="{{ $bank->id }}">{{ $bank->name }}</option>
+                                                    @empty
+                                                        <option value="-1" disabled>No hay bancos registrados</option>
+                                                    @endforelse
+                                                </select>
+                                                @error('bank')
                                                     <span class="txt-danger">{{ $message }}</span>
                                                 @enderror
                                             </div>
-                                        </div>
-                                        <div class="col-sm-12 col-md-6 mt-3">
-                                            <div class="mt-3">
-                                                <label for="banco">
-                                                    <h6 class="f-w-600 f-12 mb-0 txt-primary">ABONO CON BANCO:</h6>
-                                                </label>
-                                                <div class="input-group mt-0">
-                                                    <select class="form-select" wire:model="bank">
-                                                        <option value="0">Seleccionar</option>
-                                                        @forelse($banks as $bank)
-                                                            <option value="{{ $bank->id }}">{{ $bank->name }}
-                                                            </option>
-                                                        @empty
-                                                            <option value="-1" disabled>No hay bancos registrados
-                                                            </option>
-                                                        @endforelse
-                                                    </select>
-                                                </div>
-                                            </div>
 
-                                            <div class="row mt-2">
-                                                <div class="col-sm-12 col-md-6">
-                                                    <div class="position-relative">
-                                                        <select class="form-control crypto-select info" disabled>
-                                                            <option>N°. CUENTA:</option>
-                                                        </select>
-                                                        <input class="form-control" oninput="validarInputNumber(this)"
-                                                            wire:model.live="acountNumber" type="text">
-                                                    </div>
-                                                    @error('nacount')
-                                                        <span class="txt-danger">{{ $message }}</span>
-                                                    @enderror
-                                                </div>
-                                                <div class="col-sm-12 col-md-6">
-                                                    <div class="position-relative">
-                                                        <select class="form-control crypto-select info" disabled>
-                                                            <option>N°. DEPÓSITO:</option>
-                                                        </select>
-                                                        <input class="form-control" oninput="validarInputNumber(this)"
-                                                            wire:model.live="depositNumber" type="text">
-                                                    </div>
-                                                    @error('ndeposit')
-                                                        <span class="txt-danger">{{ $message }}</span>
-                                                    @enderror
-                                                </div>
+                                            <div class="col-sm-12 col-md-6 mt-3">
+                                                <label><h6 class="f-w-600 f-12 mb-0 txt-primary">N°. CUENTA:</h6></label>
+                                                <input class="form-control" wire:model.live="acountNumber" type="text" placeholder="Número de cuenta">
+                                                @error('nacount')
+                                                    <span class="txt-danger">{{ $message }}</span>
+                                                @enderror
                                             </div>
-                                        </div>
-
+                                            <div class="col-sm-12 col-md-6 mt-3">
+                                                <label><h6 class="f-w-600 f-12 mb-0 txt-primary">N°. DEPÓSITO:</h6></label>
+                                                <input class="form-control" wire:model.live="depositNumber" type="text" placeholder="Número de comprobante">
+                                                @error('ndeposit')
+                                                    <span class="txt-danger">{{ $message }}</span>
+                                                @enderror
+                                            </div>
+                                        @endif
                                     </div>
+
                                     <div class="row mt-3">
                                         <div class="col-sm-12 col-md-6">
-                                            <label for="banco">
-                                                <h6 class="f-w-600 f-12 mb-0 txt-primary">{{ $payWith }}:</h6>
+                                            <label for="amount">
+                                                <h6 class="f-w-600 f-12 mb-0 txt-primary">MONTO A ABONAR:</h6>
                                             </label>
-                                            <div class="position-relative">
-                                                <select class="form-control crypto-select info" disabled>
-                                                    <option>INGRESA MONTO:</option>
-                                                </select>
-                                                <input class="form-control" oninput="validarInputNumber(this)"
-                                                    wire:model="amount" type="text" id="partialPayInput">
+                                            <div class="input-group">
+                                                <span class="input-group-text">
+                                                    @php
+                                                        $curr = $currencies->firstWhere('code', $paymentCurrency);
+                                                        echo $curr ? $curr->symbol : '$';
+                                                    @endphp
+                                                </span>
+                                                <input class="form-control form-control-lg" oninput="validarInputNumber(this)"
+                                                    wire:model="amount" type="text" id="partialPayInput" placeholder="0.00">
                                             </div>
                                             @error('amount')
                                                 <span class="txt-danger">{{ $message }}</span>
@@ -216,7 +220,7 @@
 
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary " type="button" data-bs-dismiss="modal">Cerrar</button>
+                    <button class="btn btn-secondary " type="button" wire:click="cancelPay" data-dismiss="modal">Cerrar</button>
                 </div>
             </div>
         </div>

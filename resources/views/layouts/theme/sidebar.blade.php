@@ -1,161 +1,232 @@
-<div class="sidebar-wrapper" sidebar-layout="stroke-svg">
-    <div>
-        <div class="logo-wrapper"><a href="index.html"><img class="img-fluid for-light" src="../assets/images/logo/logo.png"
-                    alt=""><img class="img-fluid for-dark" src="../assets/images/logo/logo_dark.png"
-                    alt=""></a>
-            <div class="back-btn"><i class="fa fa-angle-left"></i></div>
-            <div class="toggle-sidebar"><i class="status_toggle middle sidebar-toggle" data-feather="grid">
-                </i></div>
-        </div>
-        <div class="logo-icon-wrapper"><a href="index.html"><img class="img-fluid"
-                    src="../assets/images/logo/logo-icon.png" alt=""></a>
-        </div>
-        <nav class="sidebar-main">
-            <div class="left-arrow" id="left-arrow"><i data-feather="arrow-left"></i></div>
-            <div id="sidebar-menu">
-                <ul class="sidebar-links" id="simple-bar">
-                    <li class="back-btn">
-                        <div class="mobile-back text-end"><span>Back</span><i class="fa fa-angle-right ps-2"
-                                aria-hidden="true"></i></div>
-                    </li>
-                    <li class="pin-title sidebar-main-title">
-                        <div>
-                            <h6>Pinned</h6>
-                        </div>
-                    </li>
+<aside class="main-sidebar sidebar-dark-primary elevation-4">
+    <!-- Brand Logo -->
+    <a href="{{ route('sales') }}" class="brand-link">
+        <img src="{{ asset('assets/images/logo/logo-icon.png') }}" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
+        <span class="brand-text font-weight-light">JSPOS v1.7</span>
+    </a>
 
-                    @can('ventas')
-                        <li class="sidebar-list"><i class="fa fa-thumb-tack"></i><a
-                                class="sidebar-link sidebar-title link-nav" href="{{ route('sales') }}">
-                                <i class="icon-shopping-cart-full" style="font-size: 24px"></i>
-                                <svg class="fill-icon">
-                                    <use href="../assets/svg/icon-sprite.svg#fill-contact"> </use>
-                                </svg><span>VENTAS</span></a>
-                        </li>
-                    @endcan
-
-                    @can('compras')
-                        <li class="sidebar-list"><i class="fa fa-thumb-tack"></i><a
-                                class="sidebar-link sidebar-title link-nav" href="{{ route('purchases') }}">
-                                <i class="icon-truck" style="font-size: 24px"></i>
-                                <svg class="fill-icon">
-                                    <use href="../assets/svg/icon-sprite.svg#fill-contact"> </use>
-                                </svg><span>COMPRAS</span></a>
-                        </li>
-                    @endcan
-
-                    @can('personal')
-                        <li class="sidebar-list"><i class="fa fa-thumb-tack"></i><a class="sidebar-link sidebar-title"
-                                href="#">
-                                <i class="icon-user" style="font-size: 24px"></i>
-                                <svg class="fill-icon">
-                                    <use href="../assets/svg/icon-sprite.svg#fill-starter-kit"></use>
-                                </svg><span>PERSONAL</span></a>
-                            <ul class="sidebar-submenu">
-
-                                @can('usuarios')
-                                    <li><a href="{{ route('users') }}"><span>Usuarios</span></a></li>
-                                @endcan
-                                @can('roles')
-                                    <li><a href="{{ route('roles') }}"><span>Roles y Permisos</span></a></li>
-                                @endcan
-                                @can('asignacion')
-                                    <li><a href="{{ route('asignar') }}"><span>Asignación</span></a></li>
-                                @endcan
-
-                            </ul>
-                        </li>
-                    @endcan
-
-
-                    @can('catalogos')
-                        <li class="sidebar-list"><i class="fa fa-thumb-tack"></i><a class="sidebar-link sidebar-title"
-                                href="#">
-                                <i class="icon-folder" style="font-size: 24px"></i>
-                                <svg class="fill-icon">
-                                    <use href="../assets/svg/icon-sprite.svg#fill-starter-kit"></use>
-                                </svg><span>CATALOGOS</span></a>
-                            <ul class="sidebar-submenu">
-
-                                @can('clientes')
-                                    <li><a href="{{ route('customers') }}"><span>Clientes </span></a></li>
-                                @endcan
-
-
-                                @can('categorias')
-                                    <li><a href="{{ route('categories') }}"><span>Categorías </span></a></li>
-                                @endcan
-
-                                @can('proveedores')
-                                    <li><a href="{{ route('suppliers') }}"><span>Proveedores </span></a></li>
-                                @endcan
-
-                                @can('productos')
-                                    <li><a href="{{ route('products') }}"><span>Productos </span></a></li>
-                                @endcan
-
-                            </ul>
-                        </li>
-                    @endcan
-
-
-                    @can('reportes')
-                        <li class="sidebar-list"><i class="fa fa-thumb-tack"></i><a class="sidebar-link sidebar-title"
-                                href="#">
-                                <i class="icon-clipboard" style="font-size:24px"></i>
-                                <svg class="fill-icon">
-                                    <use href="../assets/svg/icon-sprite.svg#fill-starter-kit"></use>
-
-                                </svg><span>REPORTES</span></a>
-                            <ul class="sidebar-submenu">
-                                @can('reporte-ventas')
-                                    <li><a href="{{ route('reports.sales') }}"><span>Ventas</span></a></li>
-                                @endcan
-                                @can('reporte-compras')
-                                    <li><a href="{{ route('reports.purchases') }}"><span>Compras</span></a></li>
-                                @endcan
-                                @can('reporte-cuentas-cobrar')
-                                    <li><a href="{{ route('reports.accounts.receivable') }}"><span>Cuentas por
-                                                Cobrar</span></a></li>
-                                @endcan
-                                @can('reporte-cuentas-pagar')
-                                    <li><a href="{{ route('reports.accounts.payables') }}"><span>Cuentas por
-                                                Pagar</span></a></li>
-                                @endcan
-                                @can('corte-de-caja')
-                                    <li><a href="{{ route('cash.count') }}"><span>Corte de Caja</span></a></li>
-                                @endcan
-
-                            </ul>
-                        </li>
-                    @endcan
-
-                    @can('inventarios')
-                        <li class="sidebar-list"><i class="fa fa-thumb-tack"></i><a class="sidebar-link sidebar-title"
-                                href="{{ route('inventories') }}">
-                                <i class="icon-package " style="font-size:24px"></i>
-                                <svg class="fill-icon">
-                                    <use href="../assets/svg/icon-sprite.svg#fill-starter-kit"></use>
-                                </svg><span>INVENTARIOS</span></a>
-                        </li>
-                    @endcan
-
-                    @can('settings')
-                        <li class="sidebar-list"><i class="fa fa-thumb-tack"></i><a class="sidebar-link sidebar-title"
-                                href="#">
-                                <i class="icon-desktop" style="font-size:24px"></i>
-                                <span>SISTEMA</span></a>
-                            <ul class="sidebar-submenu">
-                                <li><a href="{{ route('settings') }}"><span>Settings <i
-                                                class="icon-receipt"></i></span></a>
-                                </li>
-                        </li>
-                    @endcan
-
-
-                </ul>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <!-- Sidebar user panel (optional) -->
+        <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+            <div class="image">
+                <img src="{{ asset('assets/images/dashboard/profile.png') }}" class="img-circle elevation-2" alt="User Image">
             </div>
-            <div class="right-arrow" id="right-arrow"><i data-feather="arrow-right"></i></div>
+            <div class="info">
+                <a href="#" class="d-block">{{ Auth()->user()->name ?? 'Guest' }}</a>
+            </div>
+        </div>
+
+        <!-- Sidebar Menu -->
+        <nav class="mt-2">
+            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                
+                @can('ventas')
+                <li class="nav-item">
+                    <a href="{{ route('sales') }}" class="nav-link {{ Request::is('sales') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-shopping-cart"></i>
+                        <p>VENTAS</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('cash-register.close') }}" class="nav-link {{ Request::is('cash-register/close') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-cash-register"></i>
+                        <p>CERRAR CAJA</p>
+                    </a>
+                </li>
+                @endcan
+
+                @can('compras')
+                <li class="nav-item">
+                    <a href="{{ route('purchases') }}" class="nav-link {{ Request::is('purchases') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-truck"></i>
+                        <p>COMPRAS</p>
+                    </a>
+                </li>
+                @endcan
+
+                @can('personal')
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-users"></i>
+                        <p>
+                            PERSONAL
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        @can('usuarios')
+                        <li class="nav-item">
+                            <a href="{{ route('users') }}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Usuarios</p>
+                            </a>
+                        </li>
+                        @endcan
+                        @can('roles')
+                        <li class="nav-item">
+                            <a href="{{ route('roles') }}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Roles y Permisos</p>
+                            </a>
+                        </li>
+                        @endcan
+                        @can('asignacion')
+                        <li class="nav-item">
+                            <a href="{{ route('asignar') }}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Asignación</p>
+                            </a>
+                        </li>
+                        @endcan
+                    </ul>
+                </li>
+                @endcan
+
+                @can('catalogos')
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-folder"></i>
+                        <p>
+                            CATALOGOS
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        @can('clientes')
+                        <li class="nav-item">
+                            <a href="{{ route('customers') }}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Clientes</p>
+                            </a>
+                        </li>
+                        @endcan
+                        @can('categorias')
+                        <li class="nav-item">
+                            <a href="{{ route('categories') }}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Categorías</p>
+                            </a>
+                        </li>
+                        @endcan
+                        @can('proveedores')
+                        <li class="nav-item">
+                            <a href="{{ route('suppliers') }}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Proveedores</p>
+                            </a>
+                        </li>
+                        @endcan
+                        @can('productos')
+                        <li class="nav-item">
+                            <a href="{{ route('products') }}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Productos</p>
+                            </a>
+                        </li>
+                        @endcan
+                    </ul>
+                </li>
+                @endcan
+
+                @can('reportes')
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-chart-bar"></i>
+                        <p>
+                            REPORTES
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        @can('reporte-ventas')
+                        <li class="nav-item">
+                            <a href="{{ route('reports.sales') }}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Ventas</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('reports.daily.sales') }}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Ventas Diarias</p>
+                            </a>
+                        </li>
+                        @endcan
+                        @can('reporte-compras')
+                        <li class="nav-item">
+                            <a href="{{ route('reports.purchases') }}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Compras</p>
+                            </a>
+                        </li>
+                        @endcan
+                        @can('reporte-cuentas-cobrar')
+                        <li class="nav-item">
+                            <a href="{{ route('reports.accounts.receivable') }}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Cuentas por Cobrar</p>
+                            </a>
+                        </li>
+                        @endcan
+                        @can('reporte-cuentas-pagar')
+                        <li class="nav-item">
+                            <a href="{{ route('reports.accounts.payables') }}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Cuentas por Pagar</p>
+                            </a>
+                        </li>
+                        @endcan
+                        @can('reporte-cuentas-cobrar')
+                        <li class="nav-item">
+                            <a href="{{ route('reports.payment.relationship') }}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Relación de Pagos</p>
+                            </a>
+                        </li>
+                        @endcan
+                        @can('corte-de-caja')
+                        <li class="nav-item">
+                            <a href="{{ route('cash.count') }}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Corte de Caja</p>
+                            </a>
+                        </li>
+                        @endcan
+                    </ul>
+                </li>
+                @endcan
+
+                @can('gestionar_comisiones')
+                <li class="nav-item">
+                    <a href="{{ route('commissions') }}" class="nav-link {{ Request::is('commissions') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-hand-holding-usd"></i>
+                        <p>COMISIONES</p>
+                    </a>
+                </li>
+                @endcan
+
+                @can('inventarios')
+                <li class="nav-item">
+                    <a href="{{ route('inventories') }}" class="nav-link {{ Request::is('inventories') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-boxes"></i>
+                        <p>INVENTARIOS</p>
+                    </a>
+                </li>
+                @endcan
+
+                @can('settings')
+                <li class="nav-item">
+                    <a href="{{ route('settings') }}" class="nav-link {{ Request::is('settings') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-cogs"></i>
+                        <p>SISTEMA</p>
+                    </a>
+                </li>
+                @endcan
+
+            </ul>
         </nav>
+        <!-- /.sidebar-menu -->
     </div>
-</div>
+    <!-- /.sidebar -->
+</aside>
