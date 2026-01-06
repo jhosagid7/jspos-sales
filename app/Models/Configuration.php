@@ -24,6 +24,8 @@ class Configuration extends Model
         'website',
         'credit_days',
         'credit_purchase_days',
-        'confirmation_code'
+        'confirmation_code',
+        'invoice_sequence',
+        'order_sequence'
     ];
 }

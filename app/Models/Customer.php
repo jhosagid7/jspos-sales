@@ -17,11 +17,17 @@ class Customer extends Model
         'email',
         'phone',
         'taxpayer_id',
-        'type'
+        'type',
+        'seller_id'
     ];
 
     function sales()
     {
         return $this->hasMany(Sale::class);
+    }
+
+    function seller()
+    {
+        return $this->belongsTo(User::class, 'seller_id');
     }
 }

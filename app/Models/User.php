@@ -23,7 +23,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'profile'
+        'profile',
+        'commission_percentage'
     ];
 
     /**
@@ -55,5 +56,15 @@ class User extends Authenticatable
     function purchases()
     {
         return $this->hasMany(Purchase::class);
+    }
+
+    public function sellerConfigs()
+    {
+        return $this->hasMany(SellerConfig::class);
+    }
+
+    public function latestSellerConfig()
+    {
+        return $this->hasOne(SellerConfig::class)->latestOfMany();
     }
 }

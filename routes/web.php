@@ -63,7 +63,7 @@ Route::middleware('auth')->group(function () {
     Route::get('products', Products::class)->name('products')->middleware('can:productos');
     Route::get('suppliers', Suppliers::class)->name('suppliers')->middleware('can:proveedores');
     Route::get('customers', Customers::class)->name('customers')->middleware('can:clientes');
-    Route::get('sales', Sales::class)->name('sales')->middleware('can:ventas');
+    Route::get('sales', Sales::class)->name('sales')->middleware(['can:sales.create', \App\Http\Middleware\EnsureCashRegisterIsOpen::class]);
 
     Route::get('purchases', Purchases::class)->name('purchases')->middleware('can:compras');
     Route::get('inventories', Inventory::class)->name('inventories')->middleware('can:inventarios');
@@ -73,6 +73,7 @@ Route::middleware('auth')->group(function () {
     Route::get('users', Users::class)->name('users')->middleware('can:usuarios');
     Route::get('roles', Roles::class)->name('roles')->middleware('can:roles');
     Route::get('asignar', AsignarPermisos::class)->name('asignar')->middleware('can:asignacion');
+    Route::get('commissions', \App\Livewire\Commissions::class)->name('commissions');
 
 
 
@@ -88,6 +89,9 @@ Route::middleware('auth')->group(function () {
         Route::get('purchases', PurchasesReport::class)->name('reports.purchases')->middleware('can:reportes');
         Route::get('accounts-receivable', AccountsReceivableReport::class)->name('reports.accounts.receivable')->middleware('can:reportes');
         Route::get('accounts-payables', AccountsPayableReport::class)->name('reports.accounts.payables')->middleware('can:reportes');
+        Route::get('payment-relationship', \App\Livewire\Reports\PaymentRelationshipReport::class)->name('reports.payment.relationship')->middleware('can:reportes');
+        Route::get('daily-sales', \App\Livewire\Reports\DailySalesReport::class)->name('reports.daily.sales')->middleware('can:reportes');
+        Route::get('commissions', \App\Livewire\CommissionReport::class)->name('reports.commissions')->middleware('can:reportes');
     });
 
     //corte de caja
@@ -99,7 +103,12 @@ Route::middleware('auth')->group(function () {
     //generate pdf invoices
     Route::get('sales/{sale}', [Sales::class, 'generatePdfInvoice'])->name('pos.sales.generatePdfInvoice');
     //generate pdf orders invoices
+    //generate pdf orders invoices
     Route::get('orders/{order}', [Sales::class, 'generatePdfOrderInvoice'])->name('pos.orders.generatePdfOrderInvoice');
+
+    // Cash Register Routes
+    Route::get('cash-register/open', \App\Livewire\CashRegisterOpen::class)->name('cash-register.open')->middleware('can:cash_register.open');
+    Route::get('cash-register/close', \App\Livewire\CashRegister::class)->name('cash-register.close');
 });
 
 
@@ -115,3 +124,7 @@ Route::middleware('auth')->group(function () {
 // Route::get('tester', Tester::class);
 
 require __DIR__ . '/auth.php';
+
+
+
+

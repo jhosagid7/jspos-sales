@@ -4,193 +4,189 @@
             @include('livewire.pos.partials.items')
         </div>
         <div class="col-sm-12 col-md-3">
-            <div class="card customer-sticky">
-                <div class="pb-3 card-header card-no-border">
-                    <div class="pb-3 header-top border-bottom">
-                        <h5 class="m-0">Resumen </h5>
-                        <div class="card-header-right-icon create-right-btn"><a class="btn btn-light-primary f-w-500 f-12"
-                                href="javascript:void(0)" data-bs-toggle="modal"
-                                data-bs-target="#modalCustomerCreate">Crear +</a></div>
-
-                        <!-- Modal-->
-                        <div wire:ignore.self class="modal fade" id="modalCustomerCreate" tabindex="-1"
-                            aria-labelledby="modalCustomerCreate" aria-hidden="true">
-                            <div class="modal-dialog">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="modalCustomerCreate">Registrar Cliente</h5>
-                                        <button class="btn-close" type="button" data-bs-dismiss="modal"
-                                            aria-label="Close"></button>
-                                    </div>
-                                    <div class="p-0 modal-body">
-                                        <div class="text-start dark-sign-up">
-                                            <div class="modal-body">
-                                                <form class="row g-3 needs-validation" novalidate="">
-                                                    <div class="col-sm-12">
-                                                        <label class="form-label">Nombre
-                                                            <span class="txt-danger">*</span></label>
-                                                        <input wire:model='cname' class="form-control" type="text"
-                                                            placeholder="ingresa el nombre" maxlength="45"
-                                                            id="inputcname">
-                                                        @error('cname')
-                                                            <span class="text-danger">{{ $message }}</span>
-                                                        @enderror
-                                                    </div>
-                                                    <div class="col-sm-12">
-                                                        <label class="form-label">CC/Nit <span
-                                                                class="txt-danger">*</span></label>
-                                                        <input wire:model='ctaxpayerId' class="form-control"
-                                                            type="text" placeholder="" maxlength="65"
-                                                            id="inputctaxpayerId">
-                                                        @error('ctaxpayerId')
-                                                            <span class="text-danger">{{ $message }}</span>
-                                                        @enderror
-                                                    </div>
-                                                    <div class="col-sm-12">
-                                                        <label class="form-label">Email</label>
-                                                        <input wire:model='cemail' class="form-control" type="text"
-                                                            placeholder="" maxlength="65" id="inputcemail">
-
-                                                    </div>
-                                                    <div class="col-sm-12">
-                                                        <label class="form-label">Teléfono</label>
-                                                        <input wire:model='cphone' class="form-control" type="number"
-                                                            placeholder="" maxlength="15" id="inputcphone">
-
-                                                    </div>
-                                                    <div class="col-sm-12">
-                                                        <div class="">
-                                                            <label class="form-label">Dirección <span
-                                                                    class="txt-danger">*</span></label>
-                                                            <input wire:model='caddress' class="form-control"
-                                                                type="text" placeholder="" maxlength="255"
-                                                                id="inputcaddress">
-                                                            @error('caddress')
-                                                                <span class="text-danger">{{ $message }}</span>
-                                                            @enderror
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-sm-12">
-                                                        <div class="">
-                                                            <label class="form-label">Ciudad <span
-                                                                    class="txt-danger">*</span></label>
-                                                            <input wire:model='ccity' class="form-control"
-                                                                type="text" placeholder="" maxlength="255"
-                                                                id="inputccity">
-                                                            @error('ccity')
-                                                                <span class="text-danger">{{ $message }}</span>
-                                                            @enderror
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-sm-12">
-                                                        Tipo <span class="txt-danger">*</span>
-                                                        <select wire:model="ctype" class="form-control">
-                                                            <option value="Consumidor Final">Consumidor Final</option>
-                                                            <option value="Mayoristas">Mayoristas</option>
-                                                            <option value="Descuento1">Descuento1</option>
-                                                            <option value="Descuento2">Descuento2</option>
-                                                            <option value="Otro">Otro</option>
-                                                        </select>
-                                                    </div>
-                                                    <div class="col-md-12 d-flex justify-content-end">
-                                                        <button wire:click.prevent='storeCustomer'
-                                                            class="btn btn-primary" type="submit">Registrar</button>
-                                                    </div>
-                                                </form>
-                                            </div>
+            <div class="card card-primary card-outline customer-sticky">
+                <div class="card-header">
+                    <h3 class="card-title">Resumen</h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-tool" data-toggle="modal" data-target="#modalCustomerCreate">
+                            <i class="fas fa-plus"></i> Crear Cliente
+                        </button>
+                    </div>
+                    
+                    <!-- Modal-->
+                    <div wire:ignore.self class="modal fade" id="modalCustomerCreate" tabindex="-1"
+                        aria-labelledby="modalCustomerCreate" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header bg-primary">
+                                    <h5 class="modal-title" id="modalCustomerCreate">Registrar Cliente</h5>
+                                    <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <form class="row g-3 needs-validation" novalidate="">
+                                        <div class="col-sm-12 form-group">
+                                            <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                                            <input wire:model='cname' class="form-control" type="text" placeholder="Ingresa el nombre" maxlength="45" id="inputcname">
+                                            @error('cname') <span class="text-danger">{{ $message }}</span> @enderror
                                         </div>
-                                    </div>
+                                        <div class="col-sm-12 form-group">
+                                            <label class="form-label">CC/Nit <span class="text-danger">*</span></label>
+                                            <input wire:model='ctaxpayerId' class="form-control" type="text" maxlength="65" id="inputctaxpayerId">
+                                            @error('ctaxpayerId') <span class="text-danger">{{ $message }}</span> @enderror
+                                        </div>
+                                        <div class="col-sm-12 form-group">
+                                            <label class="form-label">Email</label>
+                                            <input wire:model='cemail' class="form-control" type="text" maxlength="65" id="inputcemail">
+                                        </div>
+                                        <div class="col-sm-12 form-group">
+                                            <label class="form-label">Teléfono</label>
+                                            <input wire:model='cphone' class="form-control" type="number" maxlength="15" id="inputcphone">
+                                        </div>
+                                        <div class="col-sm-12 form-group">
+                                            <label class="form-label">Dirección <span class="text-danger">*</span></label>
+                                            <input wire:model='caddress' class="form-control" type="text" maxlength="255" id="inputcaddress">
+                                            @error('caddress') <span class="text-danger">{{ $message }}</span> @enderror
+                                        </div>
+                                        <div class="col-sm-12 form-group">
+                                            <label class="form-label">Ciudad <span class="text-danger">*</span></label>
+                                            <input wire:model='ccity' class="form-control" type="text" maxlength="255" id="inputccity">
+                                            @error('ccity') <span class="text-danger">{{ $message }}</span> @enderror
+                                        </div>
+                                        <div class="col-sm-12 form-group">
+                                            <label>Tipo <span class="text-danger">*</span></label>
+                                            <select wire:model="ctype" class="form-control">
+                                                <option value="Consumidor Final">Consumidor Final</option>
+                                                <option value="Mayoristas">Mayoristas</option>
+                                                <option value="Descuento1">Descuento1</option>
+                                                <option value="Descuento2">Descuento2</option>
+                                                <option value="Otro">Otro</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-12 d-flex justify-content-end">
+                                            <button wire:click.prevent='storeCustomer' class="btn btn-primary" type="submit">Registrar</button>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
                         </div>
-
                     </div>
                 </div>
-                <div class="pt-0 card-body order-details">
 
-                    @if ($customer != null)
-                        <span> {{ $customer['name'] ?? '' }} <i class="icofont icofont-verification-check"></i></span>
-                    @else
-                        Cliente
+                <div class="card-body p-3">
+                    <div class="form-group">
+                        <label>
+                            @if ($customer != null)
+                                {{ $customer['name'] ?? '' }} <i class="fas fa-check-circle text-success"></i>
+                            @else
+                                Cliente
+                            @endif
+                        </label>
+                        
+                        @if($sellerConfig)
+                            <div class="alert alert-info p-2" style="font-size: 0.85rem;">
+                                <i class="fas fa-info-circle"></i> Precios Foráneos
+                                <br>
+                                <small>
+                                    (Com: {{ $sellerConfig->commission_percent }}% | Flete: {{ $sellerConfig->freight_percent }}% | Dif: {{ $sellerConfig->exchange_diff_percent }}%)
+                                </small>
+                            </div>
+                        @endif
+
+                        <div class="input-group" wire:ignore>
+                            <input class="form-control" type="text" id="inputCustomer" placeholder="Buscar Cliente (Shift + C)">
+                            <div class="input-group-append">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    @php
+                        $primaryCurrency = collect($currencies)->firstWhere('is_primary', 1);
+                        $symbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
+                    @endphp
+
+                    <div class="table-responsive">
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <td class="text-muted">Artículos:</td>
+                                <td class="text-right font-weight-bold">{{ $itemsCart }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Subtotal:</td>
+                                <td class="text-right font-weight-bold">{{ $symbol }}{{ $subtotalCart }}</td>
+                            </tr>
+                            <tr class="border-bottom">
+                                <td class="text-muted">I.V.A.:</td>
+                                <td class="text-right font-weight-bold">{{ $symbol }}{{ $ivaCart }}</td>
+                            </tr>
+                            <tr>
+                                <td class="h5 font-weight-bold">TOTAL:</td>
+                                <td class="h5 font-weight-bold text-primary text-right">{{ $symbol }}{{ $totalCart }}</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    {{-- Multi-currency display --}}
+                    @if($currencies && $currencies->count() > 1)
+                        @php
+                            $primaryCurrency = $currencies->firstWhere('is_primary', true);
+                            $primaryRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
+                        @endphp
+                        <div class="mt-2 p-2 bg-light rounded">
+                            @foreach($currencies as $currency)
+                                @if(!$currency->is_primary)
+                                    @php
+                                        // Convertir: Primaria -> USD -> Moneda Objetivo
+                                        $amountInUSD = $totalCart / $primaryRate;
+                                        $convertedAmount = $amountInUSD * $currency->exchange_rate;
+                                    @endphp
+                                    <div class="d-flex justify-content-between text-muted small">
+                                        <span>{{ $currency->code }}:</span>
+                                        <span>{{ $currency->symbol }}{{ number_format($convertedAmount, 2) }}</span>
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
                     @endif
 
-                    {{-- <div class="faq-form" wire:ignore>
-                        <input class="form-control" type="text" placeholder="Nombre del Cliente" id="inputCustomer2">
-                        <i class="search-icon" data-feather="user"></i>
-                    </div> --}}
-
-                    <div class="input-group" wire:ignore>
-                        <input class="form-control" type="text" id="inputCustomer" placeholder="Shift + C">
-                        <span class="input-group-text list-light">
-                            <i class="search-icon" data-feather="user"></i>
-                        </span>
-                    </div>
-
-                    <div class="total-item">
-                        <div class="item-number"><span class="text-gray">Artículos</span><span
-                                class="f-w-500">{{ $itemsCart }}
-                                (Items)</span></div>
-                        <div class="item-number"><span class="text-gray">Subtotal</span><span
-                                class="f-w-500">${{ $subtotalCart }}</span></div>
-                        <div class="item-number border-bottom"><span class="text-gray">I.V.A.</span><span
-                                class="f-w-500">${{ $ivaCart }}</span></div>
-                        <div class="pt-3 pb-0 item-number"><span class="f-w-700">TOTAL</span>
-                            <h6 class="txt-primary">${{ $totalCart }}</h6>
-                        </div>
-                    </div>
                     @can('guardar ordenes de ventas')
-                        {{-- <div class="mt-2 card-header-right-icon create-right-btn btn-block w-100"><button
-                                wire:click.prevent="storeOrder" class="btn btn-light-primary f-w-500 f-18 w-100"><i
-                                    class="m-2 icofont icofont-save fa-1x"></i><span>Gurardar </span>
-                                orden <small class="f-0 small sm">Shift + G</small></button>
-                        </div> --}}
-
-                        <div class="mt-2 card-header-right-icon create-right-btn btn-block w-100">
-                            <button wire:click.prevent="storeOrder" class="btn btn-light-primary f-w-500 f-18 w-100">
-                                <i class="m-2 icofont icofont-save fa-1x"></i>
-                                <span>Gurardar orden</span>
-
-                                <small class="f-0 small sm text-muted font-weight-bold">Shift + G</small>
-                            </button>
-                        </div>
+                        <button wire:click.prevent="storeOrder" class="btn btn-outline-primary btn-block mt-3">
+                            <i class="fas fa-save mr-2"></i> Guardar Orden
+                            <small class="d-block text-muted" style="font-size: 0.7rem;">Shift + G</small>
+                        </button>
                     @endcan
+
                     @can('metodos de pago')
-                        <h5 class="m-0 p-t-40">Método de Pago</h5>
-                        <div class="payment-methods">
+                        <hr>
+                        <h6 class="text-center font-weight-bold mb-3">Método de Pago</h6>
+                        <div class="row">
                             @can('pago con efectivo/nequi')
-                                <div wire:click="initPayment(1)">
-                                    <div class="bg-payment widget-hover"> <img
-                                            src="../assets/images/dashboard-8/payment-option/cash.svg" alt="cash"></div>
-                                    <span class="f-w-500 text-gray">Efectivo</span>
+                                <div class="col-4 text-center mb-2" wire:click="initPayment(1)" style="cursor: pointer;">
+                                    <div class="btn btn-outline-success btn-block p-2">
+                                        <i class="fas fa-money-bill-wave fa-2x mb-1"></i>
+                                        <div style="font-size: 0.7rem;">Efectivo</div>
+                                    </div>
                                 </div>
                             @endcan
                             @can('pago con credito')
-                                <div wire:click="initPayment(2)">
-                                    <div class="bg-payment widget-hover"> <img
-                                            src="../assets/images/dashboard-8/payment-option/card.svg" alt="card"></div>
-                                    <span class="f-w-500 text-gray">Crédito</span>
+                                <div class="col-4 text-center mb-2" wire:click="initPayment(2)" style="cursor: pointer;">
+                                    <div class="btn btn-outline-info btn-block p-2">
+                                        <i class="fas fa-credit-card fa-2x mb-1"></i>
+                                        <div style="font-size: 0.7rem;">Crédito</div>
+                                    </div>
                                 </div>
                             @endcan
                             @can('pago con Banco')
-                                <div wire:click="initPayment(3)">
-                                    <div class="bg-payment widget-hover"> <img
-                                            src="../assets/images/dashboard-8/payment-option/wallet.svg" alt="wallet"></div>
-                                    <span class="f-w-500 text-gray">Banco</span>
-                                </div>
-                            @endcan
-                            @can('pago con Nequi')
-                                <div wire:click="initPayment(4)">
-                                    <div class="bg-payment widget-hover"> <img src="../logo/nequi.webp" alt="wallet">
+                                <div class="col-4 text-center mb-2" wire:click="initPayment(3)" style="cursor: pointer;">
+                                    <div class="btn btn-outline-secondary btn-block p-2">
+                                        <i class="fas fa-university fa-2x mb-1"></i>
+                                        <div style="font-size: 0.7rem;">Banco</div>
                                     </div>
-                                    <span class="f-w-500 text-gray">Nequi</span>
                                 </div>
                             @endcan
                         </div>
-                        {{-- <div class="place-order">
-                            <button class="btn btn-primary btn-hover-effect w-100 f-w-500" type="button"><i
-                                    class="m-2 icofont icofont-save fa-1x"></i>Guradar
-                                orden de venta</button>
-                        </div> --}}
                     @endcan
                 </div>
             </div>
@@ -200,7 +196,7 @@
 
 
     @include('livewire.pos.partials.payCash')
-    @include('livewire.pos.partials.payNequi')
+
     @include('livewire.pos.partials.payDeposit')
     @include('livewire.pos.partials.process-order')
     @include('livewire.pos.partials.order-detail')

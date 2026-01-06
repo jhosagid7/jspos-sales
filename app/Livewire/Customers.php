@@ -12,8 +12,9 @@ class Customers extends Component
     use WithPagination;
 
     public Customer $customer;
-    public $customer_id,   $editing, $search, $records, $pagination = 5;
-
+    public $sellers = [];
+    public $search;
+    public $editing;
 
     protected $rules = [
         'customer.name' => 'required|max:45|unique:customers,name',
@@ -23,6 +24,7 @@ class Customers extends Component
         'customer.phone' => 'nullable|max:15',
         'customer.email' => 'nullable|email|max:65',
         'customer.type' => 'required|in:Mayoristas,Consumidor Final,Descuento1,Descuento2,Otro',
+        'customer.seller_id' => 'nullable',
     ];
 
     protected $messages = [
@@ -44,6 +46,7 @@ class Customers extends Component
     {
         $this->customer = new Customer();
         $this->customer->type = 0;
+        $this->customer->seller_id = 0;
         $this->editing = false;
 
         session(['map' => 'Clientes', 'child' => ' Componente ']);
@@ -53,44 +56,34 @@ class Customers extends Component
 
     public function render()
     {
+        $this->sellers = \App\Models\User::role('Vendedor')->get();
+        
         return view('livewire.customers.customers', [
             'customers' => $this->loadCustomers()
         ]);
     }
 
-    public function searching($searchText)
-    {
-        $this->search = trim($searchText);
-    }
-
-
     public function loadCustomers()
     {
-        if (!empty($this->search)) {
-
-            $this->resetPage();
-
-            $query = Customer::where('name', 'like', "%{$this->search}%")
-                ->orWhere('phone', 'like', "%{$this->search}%")
+        if (strlen($this->search) > 0) {
+            return Customer::where('name', 'like', "%{$this->search}%")
                 ->orWhere('taxpayer_id', 'like', "%{$this->search}%")
-                ->orWhere('address', 'like', "%{$this->search}%")
-                ->orWhere('city', 'like', "%{$this->search}%")
-                ->orderBy('name', 'asc');
+                ->orWhere('phone', 'like', "%{$this->search}%")
+                ->orderBy('name', 'asc')
+                ->paginate(10);
         } else {
-            $query =  Customer::orderBy('name', 'asc');
+            return Customer::orderBy('name', 'asc')->paginate(10);
         }
-
-        $this->records = $query->count();
-
-        return $query->paginate($this->pagination);
     }
 
+    // ... (searching and loadCustomers methods remain unchanged)
 
     public function Add()
     {
         $this->resetValidation();
         $this->resetExcept('customer');
         $this->customer = new Customer();
+        $this->customer->seller_id = 0;
         $this->dispatch('init-new');
     }
 
@@ -114,12 +107,17 @@ class Customers extends Component
 
     public function Store()
     {
-
-
         $this->rules['customer.name'] = $this->customer->id > 0 ? "required|max:45|unique:customers,name,{$this->customer->id}" : 'required|max:45|unique:customers,name';
 
         $this->validate($this->rules, $this->messages);
 
+        // Assign default seller if not selected
+        if (!$this->customer->seller_id || $this->customer->seller_id == 0) {
+            $defaultSeller = \App\Models\User::where('name', 'OFICINA')->first();
+            if ($defaultSeller) {
+                $this->customer->seller_id = $defaultSeller->id;
+            }
+        }
 
         // save model
         $this->customer->save();
@@ -130,6 +128,7 @@ class Customers extends Component
         $this->resetExcept('customer');
         $this->customer = new Customer();
         $this->customer->type = 0;
+        $this->customer->seller_id = 0;
     }
 
 

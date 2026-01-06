@@ -7,15 +7,43 @@
                 </div>
 
                 <div class="card-body">
-                    <span class="f-14"><b>Usuario</b></span>
-                    <select wire:model="user_id" class="form-select form-control-sm">
-                        <option value="0">Seleccionar</option>
-                        @foreach ($users as $user)
-                            <option value="{{ $user->id }}">
-                                {{ $user->name }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <div class="mt-3">
+                        @if ($customer != null)
+                            <span> {{ $customer['name'] }} <i class="icofont icofont-verification-check"></i></span>
+                        @else
+                            <span class="f-14"><b>Cliente</b></span>
+                        @endif
+                        <div class="input-group" wire:ignore>
+                            <input class="form-control" type="text" id="inputCustomer" placeholder="F2">
+                            <span class="input-group-text list-light">
+                                <i class="search-icon" data-feather="user"></i>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <span class="f-14"><b>Usuario</b></span>
+                        <select wire:model="user_id" class="form-select form-control-sm">
+                            <option value="0">Seleccionar</option>
+                            @foreach ($users as $user)
+                                <option value="{{ $user->id }}">
+                                    {{ $user->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="mt-3">
+                        <span class="f-14"><b>Vendedor</b></span>
+                        <select wire:model="seller_id" class="form-select form-control-sm">
+                            <option value="0">Seleccionar</option>
+                            @foreach ($sellers as $seller)
+                                <option value="{{ $seller->id }}">
+                                    {{ $seller->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
 
 
                     <div class="mt-5">
@@ -43,8 +71,7 @@
                     </div>
 
                     <div class="mt-3">
-                        <button wire:click.prevent="$set('showReport', true)" class="btn btn-dark"
-                            {{ $user_id == null && ($dateFrom == null && $dateTo == null) ? 'disabled' : '' }}>
+                        <button wire:click.prevent="$set('showReport', true)" class="btn btn-dark">
                             Consultar
                         </button>
                     </div>
@@ -79,7 +106,11 @@
                                 <tr class="text-center">
                                     <th>Folio</th>
                                     <th>Cliente</th>
-                                    <th>Total</th>
+                                    <th>Total Neto (USD)</th>
+                                    @foreach($currencies as $currency)
+                                        <th>Pagado {{ $currency->code }}</th>
+                                    @endforeach
+                                    <th>Crédito (USD)</th>
                                     <th>Articulos</th>
                                     <th>Estatus</th>
                                     <th>Tipo</th>
@@ -90,13 +121,81 @@
                             </thead>
                             <tbody>
                                 @forelse ($sales as $sale)
+                                    @php
+                                        // Calcular montos pagados por moneda
+                                        $paidPerCurrency = [];
+                                        $totalPaidUSD = 0;
+                                        
+                                        foreach($currencies as $currency) {
+                                            $paidPerCurrency[$currency->code] = 0;
+                                        }
+
+                                        // Sumar pagos
+                                        foreach($sale->paymentDetails as $payment) {
+                                            // Asignar a la moneda correspondiente
+                                            if(isset($paidPerCurrency[$payment->currency_code])) {
+                                                $paidPerCurrency[$payment->currency_code] += $payment->amount;
+                                            }
+                                            
+                                            // Calcular equivalente en USD para el total pagado
+                                            // Si la moneda del pago es la principal, usar primary_exchange_rate
+                                            // Si no, usar exchange_rate del pago (asumiendo que exchange_rate es valor vs USD)
+                                            // O mejor: convertir todo a USD.
+                                            // Si el pago tiene exchange_rate, amount / exchange_rate = USD
+                                            // Si el pago es en USD, exchange_rate es 1.
+                                            
+                                            $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
+                                            $totalPaidUSD += ($payment->amount / $rate);
+                                        }
+                                        
+                                        // Si es venta de contado sin pagos registrados (legacy o simple cash), 
+                                        // asumir que se pagó todo en la moneda principal o según 'cash' field?
+                                        // El modelo Sale tiene 'cash' que es el monto pagado.
+                                        // Si no hay pagos en la tabla payments, usar $sale->cash y $sale->primary_currency_code
+                                        
+                                        if($sale->paymentDetails->count() == 0 && $sale->type == 'cash') {
+                                            $code = $sale->primary_currency_code ?? 'VED'; // Fallback
+                                            if(isset($paidPerCurrency[$code])) {
+                                                $paidPerCurrency[$code] += $sale->cash;
+                                            }
+                                            // Convertir cash a USD usando primary_exchange_rate
+                                            $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                                            $totalPaidUSD += ($sale->cash / $rate);
+                                        }
+
+                                        // Calcular Crédito Restante en USD
+                                        // Si está pagada, es 0. Si no, Total USD - Total Pagado USD
+                                        $creditUSD = 0;
+                                        if($sale->status != 'paid' && $sale->status != 'returned') {
+                                            $creditUSD = max(0, $sale->total_usd - $totalPaidUSD);
+                                        }
+                                    @endphp
                                     <tr class="text-center">
-                                        <td>{{ $sale->id }}</td>
+                                        <td>{{ $sale->invoice_number ?? $sale->id }}</td>
                                         <td>{{ $sale->customer->name }}</td>
-                                        <td>${{ $sale->total }}</td>
+                                        <td>${{ number_format($sale->total_usd, 2) }}</td>
+                                        
+                                        @foreach($currencies as $currency)
+                                            <td>
+                                                @if($paidPerCurrency[$currency->code] > 0)
+                                                    {{ number_format($paidPerCurrency[$currency->code], 2) }}
+                                                @else
+                                                    -
+                                                @endif
+                                            </td>
+                                        @endforeach
+                                        
+                                        <td>
+                                            @if($creditUSD > 0.01)
+                                                <span class="text-danger">${{ number_format($creditUSD, 2) }}</span>
+                                            @else
+                                                -
+                                            @endif
+                                        </td>
+                                        
                                         <td>{{ $sale->items }}</td>
                                         <td><span
-                                                class="badge f-12 {{ $sale->status == 'paid' ? 'badge-light-success' : ($sale->status == 'return' ? 'badge-light-warning' : ($sale->status == 'pending' ? 'badge-light-warning' : 'badge-light-danger')) }} ">{{ $sale->status }}</span>
+                                                class="badge f-12 {{ $sale->status == 'paid' ? 'badge-success' : ($sale->status == 'return' ? 'badge-warning' : ($sale->status == 'pending' ? 'badge-warning' : 'badge-danger')) }} ">{{ $sale->status }}</span>
                                         </td>
                                         <td>{{ $sale->type }}</td>
                                         <td>{{ $sale->created_at }}</td>
@@ -108,28 +207,28 @@
 
                                             <button {{ $sale->status == 'returned' ? 'disabled' : '' }}
                                                 class="border-0 btn btn-outline-dark btn-xs"
-                                                onclick="Confirm({{ $sale->id }})">
-                                                <i class="icofont icofont-trash fa-2x"></i>
+                                                onclick="Confirm({{ $sale->id }})" title="Eliminar">
+                                                <i class="fas fa-trash"></i>
                                             </button>
 
                                             <button
                                                 {{ $sale->status == 'returned' || $sale->status == 'paid' ? 'disabled' : '' }}
                                                 wire:click.prevent="getSaleDetailNote({{ $sale->id }})"
-                                                class="border-0 btn btn-outline-dark btn-xs">
-                                                <i class="icofont icofont-edit-alt fa-2x"></i>
+                                                class="border-0 btn btn-outline-dark btn-xs" title="Editar Nota">
+                                                <i class="fas fa-edit"></i>
                                             </button>
 
 
 
                                             <button wire:click.prevent="getSaleDetail({{ $sale->id }})"
-                                                class="border-0 btn btn-outline-dark btn-xs">
-                                                <i class="icofont icofont-list fa-2x"></i>
+                                                class="border-0 btn btn-outline-dark btn-xs" title="Ver Detalles">
+                                                <i class="fas fa-list"></i>
                                             </button>
 
                                             <a class="border-0 btn btn-outline-dark btn-xs link-offset-2 link-underline link-underline-opacity-0 {{ $sale->status == 'returned' ? 'disabled' : '' }}"
                                                 href="{{ route('pos.sales.generatePdfInvoice', $sale->id) }}"
-                                                target="_blank"><i
-                                                    class="text-danger icofont icofont-file-pdf fa-2x"></i>
+                                                target="_blank" title="PDF"><i
+                                                    class="text-danger fas fa-file-pdf"></i>
                                             </a>
 
                                         </td>
@@ -160,20 +259,21 @@
         @include('livewire.reports.sale-detail')
         @include('livewire.reports.sale-detail-note')
     </div>
-    @push('my-styles')
-        <style>
-            .swal-text {
-                background-color: #FEFAE3;
-                padding: 17px;
-                border: 1px solid #F0E1A1;
-                display: block;
-                margin: 22px;
-                text-align: center;
-                color: #61534e;
-            }
-        </style>
-    @endpush
-
+    
+    <style>
+        .swal-text {
+            background-color: #FEFAE3;
+            padding: 17px;
+            border: 1px solid #F0E1A1;
+            display: block;
+            margin: 22px;
+            text-align: center;
+            color: #61534e;
+        }
+        .rest {
+            display: block !important;
+        }
+    </style>
 
     <script>
         document.addEventListener('livewire:init', () => {
@@ -195,6 +295,46 @@
                 }
             })
 
+            if (document.querySelector('#inputCustomer')) {
+                new TomSelect('#inputCustomer', {
+                    maxItems: 1,
+                    valueField: 'id',
+                    labelField: 'name',
+                    searchField: ['name', 'address'],
+                    load: function(query, callback) {
+                        var url = "{{ route('data.customers') }}" + '?q=' + encodeURIComponent(
+                            query)
+                        fetch(url)
+                            .then(response => response.json())
+                            .then(json => {
+                                callback(json);
+                            }).catch(() => {
+                                callback();
+                            });
+                    },
+                    onChange: function(value) {
+                        var customer = this.options[value]
+                        Livewire.dispatch('sale_customer', {
+                            customer: customer
+                        })
+
+                    },
+                    render: {
+                        option: function(item, escape) {
+                            return `<div class="py-1 d-flex">
+            <div>
+                <div class="mb-0">
+                    <span class="h5 text-info">
+                        <b class="text-dark">${ escape(item.id) }
+                    </span>
+                    <span class="text-warning">|${ escape(item.name.toUpperCase()) }</span>
+                </div>
+            </div>
+        </div>`;
+                        },
+                    },
+                });
+            }
 
         })
 
@@ -278,5 +418,37 @@
                 }
             });
         }
+    </script>
+
+    <script>
+        document.addEventListener('livewire:init', () => {
+            Livewire.on('update-header', (data) => {
+                // Actualizar elementos del breadcrumb
+                // data.map -> .rfx (Total Costo)
+                // data.child -> .active (Total Venta)
+                // data.rest -> .rest (Ganancia)
+                
+                const rfx = document.querySelector('.breadcrumb-item.rfx');
+                // El elemento active puede ser ambiguo, mejor buscar por posición o contexto
+                // En breadcrumb.blade.php: icon, rfx, active, rest
+                const breadcrumbItems = document.querySelectorAll('.breadcrumb .breadcrumb-item');
+                
+                if (breadcrumbItems.length >= 4) {
+                    // index 1: rfx
+                    // index 2: active
+                    // index 3: rest
+                    if (data.map) breadcrumbItems[1].innerText = data.map;
+                    if (data.child) breadcrumbItems[2].innerText = data.child;
+                    if (data.rest) breadcrumbItems[3].innerText = data.rest;
+                } else {
+                    // Fallback a selectores de clase si la estructura cambia
+                    const active = document.querySelector('.breadcrumb-item.active');
+                    const rest = document.querySelector('.breadcrumb-item.rest');
+                    if (rfx && data.map) rfx.innerText = data.map;
+                    if (active && data.child) active.innerText = data.child;
+                    if (rest && data.rest) rest.innerText = data.rest;
+                }
+            })
+        })
     </script>
 </div>
