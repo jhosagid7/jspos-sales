@@ -30,6 +30,7 @@
                                     <th width="20%">Ciudad</th>
                                     <th width="25%">Teléfono</th>
                                     <th width="25%">CC/Nit</th>
+                                    <th width="15%">Vendedor</th>
                                     <th width="10%">Tipo</th>
                                     <th class="text-center">Actions</th>
                                 </tr>
@@ -42,6 +43,7 @@
                                         <td>{{ $item->city }}</td>
                                         <td>{{ $item->phone }}</td>
                                         <td>{{ $item->taxpayerId }}</td>
+                                        <td>{{ $item->seller ? $item->seller->name : 'N/A' }}</td>
                                         <td>{{ $item->type }}</td>
                                         <td class="text-center">
 
@@ -136,6 +138,19 @@
                             <option value="Otro">Otro</option>
                         </select>
                         @error('customer.type')
+                            <span class="text-danger">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <div class="form-group">
+                        <label>Vendedor</label>
+                        <select class="form-control" wire:model="customer.seller_id">
+                            <option value="0">Seleccionar</option>
+                            @foreach($sellers as $seller)
+                                <option value="{{ $seller->id }}">{{ $seller->name }}</option>
+                            @endforeach
+                        </select>
+                        @error('customer.seller_id')
                             <span class="text-danger">{{ $message }}</span>
                         @enderror
                     </div>

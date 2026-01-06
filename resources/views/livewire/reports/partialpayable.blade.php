@@ -42,9 +42,7 @@
                                                 <button type="button" class="btn {{ $paymentMethod == 'cash' ? 'btn-primary' : 'btn-outline-primary' }}" wire:click="$set('paymentMethod', 'cash')">
                                                     <i class="icofont icofont-money"></i> Efectivo
                                                 </button>
-                                                <button type="button" class="btn {{ $paymentMethod == 'nequi' ? 'btn-primary' : 'btn-outline-primary' }}" wire:click="$set('paymentMethod', 'nequi')">
-                                                    <i class="icofont icofont-smart-phone"></i> Nequi
-                                                </button>
+
                                                 <button type="button" class="btn {{ $paymentMethod == 'deposit' ? 'btn-primary' : 'btn-outline-primary' }}" wire:click="$set('paymentMethod', 'deposit')">
                                                     <i class="icofont icofont-bank-alt"></i> Banco
                                                 </button>
@@ -68,23 +66,7 @@
                                         @endif
 
                                         {{-- NEQUI PAYMENT --}}
-                                        @if($paymentMethod == 'nequi')
-                                            <div class="col-sm-12 col-md-6">
-                                                <label for="phoneNumber">
-                                                    <h6 class="f-w-600 f-12 mb-0 txt-primary">N°. TELÉFONO:</h6>
-                                                </label>
-                                                <div class="input-group">
-                                                    <span class="input-group-text"><i class="icofont icofont-ui-touch-phone"></i></span>
-                                                    <input class="form-control" oninput="validarInputNumber(this)"
-                                                        wire:model.live.debounce.750ms="phoneNumber"
-                                                        type="number"
-                                                        id="phoneNumber" placeholder="Número de celular">
-                                                </div>
-                                                @error('phoneNumber')
-                                                    <span class="txt-danger">{{ $message }}</span>
-                                                @enderror
-                                            </div>
-                                        @endif
+
 
                                         {{-- DEPOSIT PAYMENT --}}
                                         @if($paymentMethod == 'deposit')

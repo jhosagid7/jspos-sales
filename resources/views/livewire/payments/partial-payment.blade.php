@@ -4,7 +4,7 @@
             <div class="modal-content ">
                 <div class="modal-header bg-primary">
                     <h5 class="modal-title">Abono a Cuenta</h5>
-                    <button class="btn-close py-0" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button class="btn-close py-0" type="button" wire:click="cancelPay" data-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
 
@@ -41,22 +41,22 @@
                                                 <small><i class="icon-calendar"></i>
                                                     {{ app('fun')->dateFormat($sale->created_at) }}</small>
                                             </td>
-                                            <td>${{ $sale->total }}</td>
-                                            <td>${{ $sale->payments_sum_amount }}</td>
-                                            <td>${{ round($sale->total - $sale->payments_sum_amount) }}</td>
+                                            <td>${{ number_format($sale->total_display, 2) }}</td>
+                                            <td>${{ number_format($sale->total_paid_display, 2) }}</td>
+                                            <td>${{ number_format($sale->debt_display, 2) }}</td>
                                             <td>
 
 
-                                                @if ($sale->payments_sum_amount > 0)
-                                                    <button class="btn btn-light "
-                                                        wire:click="historyPayments({{ $sale->id }})">
-                                                        <i class="icon-receipt" style="font-size: 18px"></i>
+                                                @if ($sale->total_paid_display > 0)
+                                                    <button class="btn btn-default btn-sm"
+                                                        wire:click="historyPayments({{ $sale->id }})" title="Ver Historial">
+                                                        <i class="fas fa-receipt text-primary"></i>
                                                     </button>
                                                 @endif
 
-                                                <button class="btn btn-light "
-                                                    wire:click="initPay({{ $sale->id }},'{{ $sale->customer->name }}',{{ round($sale->total - $sale->payments_sum_amount) }})">
-                                                    <i class="fa fa-money fa-lg"></i>
+                                                <button class="btn btn-default btn-sm"
+                                                    wire:click="initPay({{ $sale->id }},'{{ $sale->customer->name }}',{{ $sale->debt_display }})" title="Abonar">
+                                                    <i class="fas fa-money-bill-wave text-success"></i>
                                                 </button>
 
 
@@ -112,9 +112,7 @@
                                                 <button type="button" class="btn {{ $paymentMethod == 'cash' ? 'btn-primary' : 'btn-outline-primary' }}" wire:click="$set('paymentMethod', 'cash')">
                                                     <i class="icofont icofont-money"></i> Efectivo
                                                 </button>
-                                                <button type="button" class="btn {{ $paymentMethod == 'nequi' ? 'btn-primary' : 'btn-outline-primary' }}" wire:click="$set('paymentMethod', 'nequi')">
-                                                    <i class="icofont icofont-smart-phone"></i> Nequi
-                                                </button>
+
                                                 <button type="button" class="btn {{ $paymentMethod == 'deposit' ? 'btn-primary' : 'btn-outline-primary' }}" wire:click="$set('paymentMethod', 'deposit')">
                                                     <i class="icofont icofont-bank-alt"></i> Banco
                                                 </button>
@@ -137,24 +135,7 @@
                                             </div>
                                         @endif
 
-                                        {{-- NEQUI PAYMENT --}}
-                                        @if($paymentMethod == 'nequi')
-                                            <div class="col-sm-12 col-md-6">
-                                                <label for="phoneNumber">
-                                                    <h6 class="f-w-600 f-12 mb-0 txt-primary">N°. TELÉFONO:</h6>
-                                                </label>
-                                                <div class="input-group">
-                                                    <span class="input-group-text"><i class="icofont icofont-ui-touch-phone"></i></span>
-                                                    <input class="form-control" oninput="validarInputNumber(this)"
-                                                        wire:model.live.debounce.750ms="phoneNumber"
-                                                        type="number"
-                                                        id="phoneNumber" placeholder="Número de celular">
-                                                </div>
-                                                @error('phoneNumber')
-                                                    <span class="txt-danger">{{ $message }}</span>
-                                                @enderror
-                                            </div>
-                                        @endif
+
 
                                         {{-- DEPOSIT PAYMENT --}}
                                         @if($paymentMethod == 'deposit')
@@ -239,7 +220,7 @@
 
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary " type="button" data-bs-dismiss="modal">Cerrar</button>
+                    <button class="btn btn-secondary " type="button" wire:click="cancelPay" data-dismiss="modal">Cerrar</button>
                 </div>
             </div>
         </div>

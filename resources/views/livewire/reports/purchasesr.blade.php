@@ -8,7 +8,7 @@
 
                 <div class="card-body">
                     @if($supplier_id != null)
-                    <span> {{ $supplier_id['name'] }} <i class="icofont icofont-verification-check"></i></span>
+                    <span> {{ $supplier_id['name'] }} <i class="fas fa-check"></i></span>
                     @else
                     <span class="f-14"><b>Elige Proveedor</b></span>
                     @endif
@@ -70,7 +70,7 @@
                         <div class="col-sm-12 col-md-5"></div>
                         <div class="col-sm-12 col-md-4"></div>
                         <div class="col-sm-12 col-md-3 text-end">
-                            <span class="badge badge-light-success f-18" {{ $totales==0 ? 'hidden' : '' }}>Total
+                            <span class="badge badge-success f-18" {{ $totales==0 ? 'hidden' : '' }}>Total
                                 Compras:
                                 ${{ round($totales,2) }}</span>
                         </div>
@@ -97,7 +97,7 @@
                                     <td>{{$purchase->supplier->name }}</td>
                                     <td>${{$purchase->total }}</td>
                                     <td>{{$purchase->items }}</td>
-                                    <td>{{$purchase->status }}</td>
+                                    <td><span class="badge f-12 {{ $purchase->status == 'paid' ? 'badge-success' : ($purchase->status == 'return' ? 'badge-warning' : ($purchase->status == 'pending' ? 'badge-warning' : 'badge-danger')) }} ">{{$purchase->status }}</span></td>
                                     <td>{{$purchase->type }}</td>
                                     <td>{{$purchase->created_at }}</td>
                                     <td class="text-primary"></td>
@@ -107,7 +107,7 @@
 
                                         <button wire:click.prevent="getPurchaseDetail({{ $purchase->id }})"
                                             class="btn btn-outline-dark btn-xs border-0">
-                                            <i class="icofont icofont-list fa-2x"></i>
+                                            <i class="fas fa-list"></i>
                                         </button>
                                     </td>
 

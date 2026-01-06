@@ -1,0 +1,47 @@
+/* ========================================
+   Custom Responsive CSS for Sales View
+   SIMPLIFIED VERSION - Only essential fixes
+   ======================================== */
+
+/* ========================================
+   Fix for Dropdown Menus in Cart Table
+   ======================================== */
+
+/* Ensure table allows dropdowns to overflow */
+.order-history.table-responsive.wishlist {
+    overflow: visible !important;
+}
+
+/* Fix dropdown positioning and z-index specifically for cart table */
+.order-history .dropdown-menu {
+    position: absolute !important;
+    z-index: 1050 !important;
+    max-height: 300px !important;
+    overflow-y: auto !important;
+    min-width: 250px !important;
+}
+
+/* Custom scrollbar for cart dropdowns */
+.order-history .dropdown-menu::-webkit-scrollbar {
+    width: 6px;
+}
+
+.order-history .dropdown-menu::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.order-history .dropdown-menu::-webkit-scrollbar-thumb {
+    background: #c2c8da;
+    border-radius: 10px;
+}
+
+.order-history .dropdown-menu::-webkit-scrollbar-thumb:hover {
+    background: #a8afc4;
+}
+
+/* Ensure dropdown items are visible */
+.order-history .dropdown-menu .dropdown-item {
+    white-space: normal !important;
+    padding: 10px 15px !important;
+}

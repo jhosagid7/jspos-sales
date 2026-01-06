@@ -105,25 +105,7 @@
                                         </div>
                                     </div>
                                     <div class="row">
-                                        <div class="col-sm-12 col-md-6 mt-3">
-                                            <div class="mt-3">
-                                                <label for="phoneNumber">
-                                                    <h6 class="f-w-600 f-12 mb-0 txt-primary">ABONO CON NEQUI:</h6>
-                                                </label>
-                                                <div class="position-relative">
-                                                    <select class="form-control crypto-select info" disabled>
-                                                        <option>N°. TELÉFONO:</option>
-                                                    </select>
-                                                    <input class="form-control" oninput="validarInputNumber(this)"
-                                                        wire:model.live.debounce.750ms="phoneNumber"
-                                                        wire:keydown.enter.prevent='Store' type="number"
-                                                        id="phoneNumber">
-                                                </div>
-                                                @error('phoneNumber')
-                                                    <span class="txt-danger">{{ $message }}</span>
-                                                @enderror
-                                            </div>
-                                        </div>
+
                                         <div class="col-sm-12 col-md-6 mt-3">
                                             <div class="mt-3">
                                                 <label for="banco">

@@ -14,7 +14,7 @@
 
                                     @if ($customer != null)
                                         <span> {{ $customer['name'] }} <i
-                                                class="icofont icofont-verification-check"></i></span>
+                                                class="fas fa-check"></i></span>
                                     @else
                                         <span class="f-14"><b>Cliente</b></span>
                                     @endif
@@ -51,10 +51,48 @@
                                         </select>
                                     </div>
 
+                                    <div class="mt-3">
+                                        <span class="f-14"><b>Usuario</b></span>
+                                        <select wire:model="user_id" class="form-select form-control-sm">
+                                            <option value="0">Seleccionar</option>
+                                            @foreach ($users as $user)
+                                                <option value="{{ $user->id }}">
+                                                    {{ $user->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <span class="f-14"><b>Agrupar por</b></span>
+                                        <select wire:model='groupBy' class="form-select">
+                                            <option value="none">Ninguno</option>
+                                            <option value="customer_id">Cliente</option>
+                                            <option value="date">Fecha</option>
+                                            <option value="seller_id">Vendedor</option>
+                                            <option value="user_id">Usuario</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <span class="f-14"><b>Vendedor</b></span>
+                                        <select wire:model="seller_id" class="form-select form-control-sm">
+                                            <option value="0">Seleccionar</option>
+                                            @foreach ($sellers as $seller)
+                                                <option value="{{ $seller->id }}">
+                                                    {{ $seller->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
                                     <div class="mt-5">
-                                        <button wire:click.prevent="$set('showReport', true)" class="btn btn-dark"
-                                            {{ $customer == null && ($dateFrom == null && $dateTo == null) ? 'disabled' : '' }}>
+                                        <button wire:click.prevent="$set('showReport', true)" class="btn btn-dark">
                                             Consultar
+                                        </button>
+                                        <button wire:click.prevent="generatePdf" class="btn btn-danger ms-2"
+                                            title="Generar Reporte PDF">
+                                            <i class="fas fa-file-pdf"></i> PDF
                                         </button>
                                     </div>
                                 </div>
@@ -92,19 +130,31 @@
                                             </thead>
                                             <tbody>
                                                 @forelse ($sales as $sale)
+                                                    @php
+                                                        $totalPaidUSD = $sale->payments->sum(function($payment) {
+                                                            $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
+                                                            return $payment->amount / $rate;
+                                                        });
+                                                        $initialPaidUSD = $sale->paymentDetails->sum(function($detail) {
+                                                            $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
+                                                            return $detail->amount / $rate;
+                                                        });
+                                                        $totalAbonadoUSD = $totalPaidUSD + $initialPaidUSD;
+                                                        $saldoUSD = max(0, $sale->total_usd - $totalAbonadoUSD);
+                                                    @endphp
                                                     <tr class="text-center">
                                                         <td>{{ $sale->id }}</td>
                                                         <td class="text-capitalize">{{ $sale->customer->name }}</td>
                                                         <td style="background-color: rgb(210, 243, 252)">
-                                                            ${{ $sale->total }}
+                                                            ${{ number_format($sale->total_usd, 2) }}
                                                         </td>
-                                                        <td>${{ $sale->payments->sum('amount') }}</td>
+                                                        <td>${{ number_format($totalAbonadoUSD, 2) }}</td>
                                                         <td style="background-color: beige">
-                                                            ${{ round($sale->total - $sale->payments->sum('amount'), 2) }}
+                                                            ${{ number_format($saldoUSD, 2) }}
                                                         </td>
                                                         <td>
                                                             <span
-                                                                class="badge f-12 {{ ($sale->status == 'paid' ? 'badge-light-success' : $sale->status == 'return') ? 'badge-light-warning' : 'badge-light-danger' }} ">{{ $sale->status }}</span>
+                                                                class="badge f-12 {{ ($sale->status == 'paid' ? 'badge-success' : $sale->status == 'return') ? 'badge-warning' : 'badge-danger' }} ">{{ $sale->status }}</span>
 
                                                         </td>
                                                         <td>{{ $sale->created_at }}</td>
@@ -114,12 +164,12 @@
                                                             <button
                                                                 wire:click.prevent="historyPayments({{ $sale->id }})"
                                                                 class="border-0 btn btn-outline-dark btn-xs">
-                                                                <i class="icofont icofont-list fa-2x"></i>
+                                                                <i class="fas fa-list"></i>
                                                             </button>
                                                             <button
                                                                 wire:click.prevent="initPayment({{ $sale->id }}, '{{ $sale->customer->name }}')"
                                                                 class="border-0 btn btn-outline-dark btn-xs">
-                                                                <i class="icofont icofont-cur-dollar-plus fa-2x"></i>
+                                                                <i class="fas fa-hand-holding-usd"></i>
                                                             </button>
 
                                                         </td>

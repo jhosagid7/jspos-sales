@@ -90,6 +90,20 @@ trait PdfInvoiceTrait
 
                 $credit_days = $sale->type == 'credit' ? $config->credit_days : 0;
 
+                $currencySymbol = '$';
+                $currencyCode = 'USD';
+                
+                if ($sale->primary_currency_code) {
+                    $currencySymbol = \App\Helpers\CurrencyHelper::getSymbol($sale->primary_currency_code);
+                    $currencyCode = $sale->primary_currency_code;
+                } else {
+                    $primary = \App\Helpers\CurrencyHelper::getPrimaryCurrency();
+                    if ($primary) {
+                        $currencySymbol = $primary->symbol;
+                        $currencyCode = $primary->code;
+                    }
+                }
+
                 $invoice = Invoice::make($config->business_name)->template('invoice-paid-short')
                     ->series('remision_numero')
                     // ability to include translated invoice status
@@ -102,8 +116,8 @@ trait PdfInvoiceTrait
                     // ->date(now()->subWeeks(3))
                     ->dateFormat('d-M-Y')
                     ->payUntilDays($credit_days)
-                    ->currencySymbol('$')
-                    ->currencyCode('Peso(s)')
+                    ->currencySymbol($currencySymbol)
+                    ->currencyCode($currencyCode)
                     ->currencyDecimals(0)
                     ->currencyFormat('{SYMBOL}{VALUE}')
                     ->currencyThousandsSeparator('.')
@@ -177,6 +191,20 @@ trait PdfInvoiceTrait
 
                 $credit_days = $sale->type == 'credit' ? $config->credit_days : 0;
 
+                $currencySymbol = '$';
+                $currencyCode = 'USD';
+                
+                if ($sale->primary_currency_code) {
+                    $currencySymbol = \App\Helpers\CurrencyHelper::getSymbol($sale->primary_currency_code);
+                    $currencyCode = $sale->primary_currency_code;
+                } else {
+                    $primary = \App\Helpers\CurrencyHelper::getPrimaryCurrency();
+                    if ($primary) {
+                        $currencySymbol = $primary->symbol;
+                        $currencyCode = $primary->code;
+                    }
+                }
+
                 $invoice = Invoice::make($config->business_name)->template('invoice-credit-short')
                     ->series('remision_numero')
                     // ability to include translated invoice status
@@ -189,8 +217,8 @@ trait PdfInvoiceTrait
                     // ->date(now()->subWeeks(3))
                     ->dateFormat('d-M-Y')
                     ->payUntilDays($credit_days)
-                    ->currencySymbol('$')
-                    ->currencyCode('Peso(s)')
+                    ->currencySymbol($currencySymbol)
+                    ->currencyCode($currencyCode)
                     ->currencyDecimals(0)
                     ->currencyFormat('{SYMBOL}{VALUE}')
                     ->currencyThousandsSeparator('.')

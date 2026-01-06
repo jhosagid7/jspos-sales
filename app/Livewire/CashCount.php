@@ -75,27 +75,99 @@ class CashCount extends Component
                 ->when($this->user_id != 0, function ($qry) {
                     $qry->where('user_id', $this->user_id);
                 })
-                ->select('id', 'total', 'cash', 'change', 'type')
+                ->select('id', 'total', 'cash', 'change', 'type', 'primary_exchange_rate')
                 ->get();
 
-            $this->totalSales = $sales->sum('total');
-            $this->totalCash = $sales->sum('cash') - $sales->sum('change');
-            $this->totalNequi = ($sales->where('type', 'cash/nequi')->sum('total') + $sales->where('type', 'nequi')->sum('total')) - ($sales->where('type', 'cash/nequi')->sum('cash') + $sales->where('type', 'cash/nequi')->sum('change'));
-            $this->totalCreditSales = $sales->where('type', 'credit')->sum('total');
-            $this->totalDeposit = $sales->where('type', 'deposit')->sum('total');
+            // Get primary currency
+            $primaryCurrency = $this->currencies->firstWhere('is_primary', 1);
+            $primaryRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
+
+            // Convert all totals to primary currency
+            $this->totalSales = $sales->sum(function($sale) use ($primaryRate) {
+                $saleRate = $sale->primary_exchange_rate ?? $primaryRate;
+                // Convert to USD first, then to primary currency
+                $totalUSD = $sale->total / $saleRate;
+                return $totalUSD * $primaryRate;
+            });
+
+            // --- NEW CALCULATION LOGIC USING SalePaymentDetail ---
+            
+            // 1. Get all payment details for these sales
+            $saleIds = $sales->pluck('id');
+            $paymentDetails = SalePaymentDetail::whereIn('sale_id', $saleIds)->get();
+            
+            // 2. Calculate totals from details (New Sales)
+            $totalCashDetails = $paymentDetails->where('payment_method', 'cash')->sum('amount_in_primary_currency');
+            $totalDepositDetails = $paymentDetails->where('payment_method', 'bank')->sum('amount_in_primary_currency');
+            
+            // 3. Calculate totals from legacy sales (Sales without details)
+            $salesWithDetailsIds = $paymentDetails->pluck('sale_id')->unique();
+            $legacySales = $sales->whereNotIn('id', $salesWithDetailsIds);
+            
+            $totalCashLegacy = $legacySales->sum(function($sale) use ($primaryRate) {
+                // Only count if type implies cash
+                if (in_array($sale->type, ['cash', 'cash/nequi', 'mixed'])) {
+                    $saleRate = $sale->primary_exchange_rate ?? $primaryRate;
+                    $netCash = $sale->cash - $sale->change;
+                    $netCashUSD = $netCash / $saleRate;
+                    return $netCashUSD * $primaryRate;
+                }
+                return 0;
+            });
+
+            $totalDepositLegacy = $legacySales->where('type', 'deposit')->sum(function($sale) use ($primaryRate) {
+                $saleRate = $sale->primary_exchange_rate ?? $primaryRate;
+                $totalUSD = $sale->total / $saleRate;
+                return $totalUSD * $primaryRate;
+            });
+
+            // 4. Sum both
+            $this->totalCash = $totalCashDetails + $totalCashLegacy;
+            $this->totalDeposit = $totalDepositDetails + $totalDepositLegacy;
+            $this->totalNequi = 0; // Nequi removed
+            
+            $this->totalCreditSales = $sales->where('type', 'credit')->sum(function($sale) use ($primaryRate) {
+                $saleRate = $sale->primary_exchange_rate ?? $primaryRate;
+                $totalUSD = $sale->total / $saleRate;
+                return $totalUSD * $primaryRate;
+            });
 
             $payments = Payment::whereBetween('created_at', [$dFrom, $dTo])
                 ->when($this->user_id != 0, function ($qry) {
                     $qry->where('user_id', $this->user_id);
                 })
-                ->select('id', 'pay_way', 'amount', 'type', 'bank', 'currency')
+                ->select('id', 'pay_way', 'amount', 'type', 'bank', 'currency', 'exchange_rate', 'primary_exchange_rate')
                 ->get();
             // dd($payments);
 
-            $this->totalPaymentsCash = $payments->where('pay_way', 'amount')->sum('amount');
-            $this->totalPaymentsDeposit = $payments->where('pay_way', 'deposit')->sum('amount');
-            $this->totalPaymentsNequi = $payments->where('pay_way', 'nequi')->sum('amount');
-            $this->totalPayments = $payments->sum('amount');
+            // Convert payment totals to primary currency
+            $this->totalPaymentsCash = $payments->where('pay_way', 'cash')->sum(function($payment) use ($primaryRate) {
+                $paymentRate = $payment->exchange_rate ?? 1;
+                $paymentPrimaryRate = $payment->primary_exchange_rate ?? $primaryRate;
+                $amountUSD = $payment->amount / $paymentRate;
+                return $amountUSD * $paymentPrimaryRate;
+            });
+
+            $this->totalPaymentsDeposit = $payments->where('pay_way', 'deposit')->sum(function($payment) use ($primaryRate) {
+                $paymentRate = $payment->exchange_rate ?? 1;
+                $paymentPrimaryRate = $payment->primary_exchange_rate ?? $primaryRate;
+                $amountUSD = $payment->amount / $paymentRate;
+                return $amountUSD * $paymentPrimaryRate;
+            });
+
+            $this->totalPaymentsNequi = $payments->where('pay_way', 'nequi')->sum(function($payment) use ($primaryRate) {
+                $paymentRate = $payment->exchange_rate ?? 1;
+                $paymentPrimaryRate = $payment->primary_exchange_rate ?? $primaryRate;
+                $amountUSD = $payment->amount / $paymentRate;
+                return $amountUSD * $paymentPrimaryRate;
+            });
+
+            $this->totalPayments = $payments->sum(function($payment) use ($primaryRate) {
+                $paymentRate = $payment->exchange_rate ?? 1;
+                $paymentPrimaryRate = $payment->primary_exchange_rate ?? $primaryRate;
+                $amountUSD = $payment->amount / $paymentRate;
+                return $amountUSD * $paymentPrimaryRate;
+            });
 
             // Aggregate by currency
             $this->salesByCurrency = $this->aggregateSalesByCurrency($sales);
@@ -123,26 +195,98 @@ class CashCount extends Component
                     $qry->where('user_id', $this->user_id);
                 })
                 ->where('status', '<>', 'returned')
-                ->select('id', 'total', 'cash', 'change', 'type')
+                ->select('id', 'total', 'cash', 'change', 'type', 'primary_exchange_rate')
                 ->get();
 
-            $this->totalSales = $sales->sum('total');
-            $this->totalCash = $sales->sum('cash') - $sales->sum('change');
-            $this->totalNequi = ($sales->where('type', 'cash/nequi')->sum('total') + $sales->where('type', 'nequi')->sum('total')) - ($sales->where('type', 'cash/nequi')->sum('cash') + $sales->where('type', 'cash/nequi')->sum('change'));
-            $this->totalCreditSales = $sales->where('type', 'credit')->sum('total');
-            $this->totalDeposit = $sales->where('type', 'deposit')->sum('total');
+            // Get primary currency
+            $primaryCurrency = $this->currencies->firstWhere('is_primary', 1);
+            $primaryRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
+
+            // Convert all totals to primary currency
+            $this->totalSales = $sales->sum(function($sale) use ($primaryRate) {
+                $saleRate = $sale->primary_exchange_rate ?? $primaryRate;
+                // Convert to USD first, then to primary currency
+                $totalUSD = $sale->total / $saleRate;
+                return $totalUSD * $primaryRate;
+            });
+
+            // --- NEW CALCULATION LOGIC USING SalePaymentDetail ---
+            
+            // 1. Get all payment details for these sales
+            $saleIds = $sales->pluck('id');
+            $paymentDetails = SalePaymentDetail::whereIn('sale_id', $saleIds)->get();
+            
+            // 2. Calculate totals from details (New Sales)
+            $totalCashDetails = $paymentDetails->where('payment_method', 'cash')->sum('amount_in_primary_currency');
+            $totalDepositDetails = $paymentDetails->where('payment_method', 'bank')->sum('amount_in_primary_currency');
+            
+            // 3. Calculate totals from legacy sales (Sales without details)
+            $salesWithDetailsIds = $paymentDetails->pluck('sale_id')->unique();
+            $legacySales = $sales->whereNotIn('id', $salesWithDetailsIds);
+            
+            $totalCashLegacy = $legacySales->sum(function($sale) use ($primaryRate) {
+                // Only count if type implies cash
+                if (in_array($sale->type, ['cash', 'cash/nequi', 'mixed'])) {
+                    $saleRate = $sale->primary_exchange_rate ?? $primaryRate;
+                    $netCash = $sale->cash - $sale->change;
+                    $netCashUSD = $netCash / $saleRate;
+                    return $netCashUSD * $primaryRate;
+                }
+                return 0;
+            });
+
+            $totalDepositLegacy = $legacySales->where('type', 'deposit')->sum(function($sale) use ($primaryRate) {
+                $saleRate = $sale->primary_exchange_rate ?? $primaryRate;
+                $totalUSD = $sale->total / $saleRate;
+                return $totalUSD * $primaryRate;
+            });
+
+            // 4. Sum both
+            $this->totalCash = $totalCashDetails + $totalCashLegacy;
+            $this->totalDeposit = $totalDepositDetails + $totalDepositLegacy;
+            $this->totalNequi = 0; // Nequi removed
+            
+            $this->totalCreditSales = $sales->where('type', 'credit')->sum(function($sale) use ($primaryRate) {
+                $saleRate = $sale->primary_exchange_rate ?? $primaryRate;
+                $totalUSD = $sale->total / $saleRate;
+                return $totalUSD * $primaryRate;
+            });
 
             $payments = Payment::whereBetween('created_at', [$dFrom, $dTo])
                 ->when($this->user_id != 0, function ($qry) {
                     $qry->where('user_id', $this->user_id);
                 })
-                ->select('id', 'pay_way', 'amount', 'bank', 'currency')
+                ->select('id', 'pay_way', 'amount', 'bank', 'currency', 'exchange_rate', 'primary_exchange_rate')
                 ->get();
 
-            $this->totalPaymentsCash = $payments->where('pay_way', 'cash')->sum('amount');
-            $this->totalPaymentsDeposit = $payments->where('pay_way', 'deposit')->sum('amount');
-            $this->totalPaymentsNequi = $payments->where('pay_way', 'nequi')->sum('amount');
-            $this->totalPayments = $payments->sum('amount');
+            // Convert payment totals to primary currency
+            $this->totalPaymentsCash = $payments->where('pay_way', 'cash')->sum(function($payment) use ($primaryRate) {
+                $paymentRate = $payment->exchange_rate ?? 1;
+                $paymentPrimaryRate = $payment->primary_exchange_rate ?? $primaryRate;
+                $amountUSD = $payment->amount / $paymentRate;
+                return $amountUSD * $paymentPrimaryRate;
+            });
+
+            $this->totalPaymentsDeposit = $payments->where('pay_way', 'deposit')->sum(function($payment) use ($primaryRate) {
+                $paymentRate = $payment->exchange_rate ?? 1;
+                $paymentPrimaryRate = $payment->primary_exchange_rate ?? $primaryRate;
+                $amountUSD = $payment->amount / $paymentRate;
+                return $amountUSD * $paymentPrimaryRate;
+            });
+
+            $this->totalPaymentsNequi = $payments->where('pay_way', 'nequi')->sum(function($payment) use ($primaryRate) {
+                $paymentRate = $payment->exchange_rate ?? 1;
+                $paymentPrimaryRate = $payment->primary_exchange_rate ?? $primaryRate;
+                $amountUSD = $payment->amount / $paymentRate;
+                return $amountUSD * $paymentPrimaryRate;
+            });
+
+            $this->totalPayments = $payments->sum(function($payment) use ($primaryRate) {
+                $paymentRate = $payment->exchange_rate ?? 1;
+                $paymentPrimaryRate = $payment->primary_exchange_rate ?? $primaryRate;
+                $amountUSD = $payment->amount / $paymentRate;
+                return $amountUSD * $paymentPrimaryRate;
+            });
 
             // Aggregate by currency
             $this->salesByCurrency = $this->aggregateSalesByCurrency($sales);
@@ -209,24 +353,21 @@ class CashCount extends Component
         foreach ($sales as $sale) {
             $paymentType = $sale->type;
             
-            // Map payment types to our categories
-            $category = match($paymentType) {
-                'cash', 'cash/nequi' => 'cash',
-                'nequi' => 'nequi',
-                'deposit' => 'deposit',
-                default => null
-            };
-
-            if ($category === null || $paymentType === 'credit') {
-                continue; // Skip credit sales
-            }
-
             // Check if we have payment details for this sale
             if (isset($paymentsBySale[$sale->id])) {
-                // Use actual payment details
+                // Use actual payment details - categorize by payment_method
                 foreach ($paymentsBySale[$sale->id] as $paymentDetail) {
                     $currency = $paymentDetail->currency_code;
                     $bankName = $paymentDetail->bank_name;
+                    $paymentMethod = $paymentDetail->payment_method ?? 'cash'; // Default to cash if not set
+                    
+                    // Determine category based on payment_method
+                    $category = match($paymentMethod) {
+                        'cash' => 'cash',
+                        'nequi' => 'nequi',
+                        'bank' => 'deposit',
+                        default => 'cash'
+                    };
                     
                     if ($category == 'deposit' && $bankName) {
                         // Group by Bank Name -> Currency
@@ -248,6 +389,18 @@ class CashCount extends Component
             } else {
                 Log::warning("No payment details for sale ID: {$sale->id}");
                 // Fallback: use cash - change in primary currency (for old sales without payment details)
+                // Map payment types to our categories (for legacy sales)
+                $category = match($paymentType) {
+                    'cash', 'cash/nequi', 'mixed' => 'cash',
+                    'nequi' => 'nequi',
+                    'deposit', 'bank' => 'deposit',
+                    default => null
+                };
+
+                if ($category === null || $paymentType === 'credit') {
+                    continue; // Skip credit sales
+                }
+                
                 $netAmount = $sale->cash - $sale->change;
                 
                 if ($netAmount > 0) {

@@ -33,7 +33,7 @@
 
                                     @forelse ($orders as $order)
                                         <tr class="text-center">
-                                            <td>{{ $order->id }}</td>
+                                            <td>{{ $order->order_number ?? $order->id }}</td>
                                             <td>{{ $order->customer->name }}</td>
                                             <td>${{ $order->total }}</td>
                                             <td>{{ $order->items }}</td>

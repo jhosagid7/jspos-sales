@@ -248,7 +248,7 @@
                                     <div class="col-12">
                                         <h6 class="mb-3 mt-3">Monedas Configuradas</h6>
                                         <div class="table-responsive">
-                                            <table class="table table-bordered">
+                                                    <table class="table table-bordered">
                                                 <thead class="bg-light">
                                                     <tr>
                                                         <th>Código</th>
@@ -265,7 +265,19 @@
                                                             <td>{{ $currency->code }}</td>
                                                             <td>{{ $currency->label }}</td>
                                                             <td>{{ $currency->symbol }}</td>
-                                                            <td>{{ $currency->exchange_rate }}</td>
+                                                            <td>
+                                                                <div class="input-group input-group-sm">
+                                                                    <input type="number" step="0.000001" 
+                                                                        class="form-control" 
+                                                                        wire:model="editableRates.{{ $currency->id }}"
+                                                                        {{ $currency->is_primary ? 'disabled' : '' }}>
+                                                                    @if(!$currency->is_primary)
+                                                                        <button class="btn btn-primary" wire:click="updateCurrencyRate({{ $currency->id }})">
+                                                                            <i class="fa fa-save"></i>
+                                                                        </button>
+                                                                    @endif
+                                                                </div>
+                                                            </td>
                                                             <td>
                                                                 @if($currency->is_primary)
                                                                     <span class="badge bg-success">Principal</span>

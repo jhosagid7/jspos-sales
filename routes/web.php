@@ -73,6 +73,7 @@ Route::middleware('auth')->group(function () {
     Route::get('users', Users::class)->name('users')->middleware('can:usuarios');
     Route::get('roles', Roles::class)->name('roles')->middleware('can:roles');
     Route::get('asignar', AsignarPermisos::class)->name('asignar')->middleware('can:asignacion');
+    Route::get('commissions', \App\Livewire\Commissions::class)->name('commissions');
 
 
 
@@ -88,6 +89,9 @@ Route::middleware('auth')->group(function () {
         Route::get('purchases', PurchasesReport::class)->name('reports.purchases')->middleware('can:reportes');
         Route::get('accounts-receivable', AccountsReceivableReport::class)->name('reports.accounts.receivable')->middleware('can:reportes');
         Route::get('accounts-payables', AccountsPayableReport::class)->name('reports.accounts.payables')->middleware('can:reportes');
+        Route::get('payment-relationship', \App\Livewire\Reports\PaymentRelationshipReport::class)->name('reports.payment.relationship')->middleware('can:reportes');
+        Route::get('daily-sales', \App\Livewire\Reports\DailySalesReport::class)->name('reports.daily.sales')->middleware('can:reportes');
+        Route::get('commissions', \App\Livewire\CommissionReport::class)->name('reports.commissions')->middleware('can:reportes');
     });
 
     //corte de caja

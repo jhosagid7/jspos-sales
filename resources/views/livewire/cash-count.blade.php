@@ -112,35 +112,7 @@
                                             </div>
                                         </div>
 
-                                        {{-- Nequi --}}
-                                        <div class="col-md-4 mb-3">
-                                            <div class="card h-100 border-primary">
-                                                <div class="card-header bg-light-primary p-2">
-                                                    <h6 class="mb-0 text-primary">
-                                                        <i class="icofont icofont-smart-phone"></i> Nequi
-                                                    </h6>
-                                                </div>
-                                                <div class="card-body p-2">
-                                                    @if (!empty($salesByCurrency['nequi']))
-                                                        <table class="table table-sm table-borderless mb-0">
-                                                            @foreach ($salesByCurrency['nequi'] as $currencyCode => $amount)
-                                                                @php
-                                                                    $curr = collect($currencies)->firstWhere('code', $currencyCode);
-                                                                    $currSymbol = $curr ? $curr->symbol : $currencyCode;
-                                                                    $label = $curr ? $curr->label . ' (' . $currencyCode . ')' : $currencyCode;
-                                                                @endphp
-                                                                <tr>
-                                                                    <td class="text-muted">{{ $label }}:</td>
-                                                                    <td class="text-end fw-bold">{{ $currSymbol }}{{ number_format($amount, 2) }}</td>
-                                                                </tr>
-                                                            @endforeach
-                                                        </table>
-                                                    @else
-                                                        <p class="text-muted mb-0 text-center">Sin movimientos</p>
-                                                    @endif
-                                                </div>
-                                            </div>
-                                        </div>
+
 
                                         {{-- Banco --}}
                                         <div class="col-md-4 mb-3">
@@ -254,37 +226,6 @@
                                             </div>
                                         </div>
 
-                                        {{-- Nequi --}}
-                                        <div class="col-md-4 mb-3">
-                                            <div class="card h-100 border-warning">
-                                                <div class="card-header bg-light-warning p-2">
-                                                    <h6 class="mb-0 text-warning">
-                                                        <i class="icofont icofont-smart-phone"></i> Nequi
-                                                    </h6>
-                                                </div>
-                                                <div class="card-body p-2">
-                                                    @if (isset($paymentsByCurrency['nequi']) && count($paymentsByCurrency['nequi']) > 0)
-                                                        @foreach ($paymentsByCurrency['nequi'] as $currency => $amount)
-                                                            @php
-                                                                $currObj = collect($currencies)->firstWhere('code', $currency);
-                                                                $label = $currObj ? $currObj->label . ' (' . $currency . ')' : $currency;
-                                                            @endphp
-                                                            <div class="row">
-                                                                <div class="col-6">
-                                                                    <span class="f-12">{{ $label }}</span>
-                                                                </div>
-                                                                <div class="col-6 text-end">
-                                                                    <span class="f-12">${{ number_format($amount, 2) }}</span>
-                                                                </div>
-                                                            </div>
-                                                        @endforeach
-                                                    @else
-                                                        <p class="text-muted mb-0 text-center">Sin movimientos</p>
-                                                    @endif
-                                                </div>
-                                            </div>
-                                        </div>
-
                                         {{-- Banco --}}
                                         <div class="col-md-4 mb-3">
                                             <div class="card h-100 border-warning">
@@ -334,10 +275,10 @@
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
+                            </div>
                             {{-- RESUMEN GENERAL --}}
-                            <div class="card border-success border-2">
+                            <div class="card border-success border-2 mb-3">
                                 <div class="card-header bg-success p-2">
                                     <h5 class="m-0 text-white">
                                         <i class="icofont icofont-calculator-alt-2"></i> RESUMEN TOTAL
@@ -345,41 +286,37 @@
                                 </div>
                                 <div class="card-body">
                                     <div class="row">
-                                        <div class="col-md-4">
+                                        <div class="col-md-6">
                                             <div class="text-center p-3 bg-light rounded">
                                                 <h6 class="text-muted mb-2">Total en Efectivo</h6>
                                                 <h4 class="text-success mb-0">{{ $symbol }}{{ number_format($totalCash + $totalPaymentsCash, 2) }}</h4>
                                             </div>
                                         </div>
-                                        <div class="col-md-4">
-                                            <div class="text-center p-3 bg-light rounded">
-                                                <h6 class="text-muted mb-2">Total en Nequi</h6>
-                                                <h4 class="text-success mb-0">{{ $symbol }}{{ number_format($totalNequi + $totalPaymentsNequi, 2) }}</h4>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="text-center p-3 bg-light rounded">
-                                                <h6 class="text-muted mb-2">Total en Banco</h6>
-                                                <h4 class="text-success mb-0">{{ $symbol }}{{ number_format($totalDeposit + $totalPaymentsDeposit, 2) }}</h4>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="row mt-3">
-                                        <div class="col-12">
-                                            <div class="alert alert-success mb-0 py-3">
-                                                <h5 class="mb-0">
-                                                    <strong>TOTAL GENERAL:</strong>
-                                                    <span class="float-end">{{ $symbol }}{{ number_format($totalSales + $totalPayments, 2) }}</span>
-                                                </h5>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card-footer">
-                                    <button title="Imprimir corte de caja" wire:click.prevent="printCC"
-                                        class="btn btn-outline-dark btn-xs border-0 {{ $totalSales > 0 ? '' : 'd-none' }}">
-                                        <i class="icofont icofont-printer fa-2x"></i>
-                                    </button>
+                                        <div class="col-md-6">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h6 class="text-muted mb-2">Total en Banco</h6>
+                                <h4 class="text-success mb-0">{{ $symbol }}{{ number_format($totalDeposit + $totalPaymentsDeposit, 2) }}</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="alert alert-success mb-0 py-3">
+                                <h5 class="mb-0">
+                                    <strong>TOTAL GENERAL:</strong>
+                                    <span class="float-end">{{ $symbol }}{{ number_format($totalSales + $totalPayments, 2) }}</span>
+                                </h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-center">
+                    <button title="Imprimir corte de caja" wire:click.prevent="printCC"
+                        class="btn btn-outline-dark btn-lg {{ $totalSales > 0 ? '' : 'd-none' }}">
+                        <i class="icofont icofont-printer"></i> Imprimir Corte
+                    </button>
+                </div>                    </div>
                                 </div>
                             </div>
                         </div>
@@ -388,6 +325,8 @@
 
                 </div>
             </div>
+
+
 
         </div>
     </div>
