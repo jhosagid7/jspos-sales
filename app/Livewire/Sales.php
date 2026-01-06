@@ -396,7 +396,11 @@ class Sales extends Component
         $this->config = Configuration::first();
 
         $this->banks = Bank::orderBy('sort')->get();
-        $this->bank = $this->banks[0]->id;
+        if ($this->banks->isNotEmpty()) {
+            $this->bank = $this->banks[0]->id;
+        } else {
+            $this->bank = null; 
+        }
 
         $this->amount = null;
         $this->search = null;
@@ -497,12 +501,12 @@ class Sales extends Component
         $this->taxCart = round($this->totalIVA(), $decimals);
         $this->itemsCart = $this->totalItems();
         $this->totalCart = round($this->totalCart(), $decimals);
-        if ($this->config->vat > 0) {
+        if ($this->config && $this->config->vat > 0) {
             $this->iva = $this->config->vat / 100;
             $this->subtotalCart = round($this->subtotalCart() / (1 + $this->iva), $decimals);
             $this->ivaCart = round(($this->totalCart() / (1 + $this->iva)) * $this->iva, $decimals);
         } else {
-            $this->iva = $this->config->vat;
+            $this->iva = $this->config ? $this->config->vat : 0;
             $this->subtotalCart = round($this->subtotalCart(), $decimals);
             $this->ivaCart = round(0, $decimals);
         }
@@ -887,7 +891,17 @@ class Sales extends Component
 
     // SIEMPRE usar el precio base del producto como precio de venta predeterminado
     // La lista de precios solo se usa cuando el usuario selecciona manualmente un precio diferente
-    $salePrice = $basePriceInPrimary;
+    
+    // Aplicar markup si existe configuración de vendedor
+    if ($this->sellerConfig) {
+        $comm = ($basePriceInPrimary * $this->sellerConfig->commission_percent) / 100;
+        $freight = ($basePriceInPrimary * $this->sellerConfig->freight_percent) / 100;
+        $diff = ($basePriceInPrimary * $this->sellerConfig->exchange_diff_percent) / 100;
+        
+        $salePrice = $basePriceInPrimary + $comm + $freight + $diff;
+    } else {
+        $salePrice = $basePriceInPrimary;
+    }
 
     // Obtener el número de decimales configurados
     $decimals = ConfigurationService::getDecimalPlaces();
@@ -1523,8 +1537,7 @@ class Sales extends Component
             DB::commit();
 
             // Calculate Commission if paid immediately (Cash/Instant)
-            // Only if commission is applied (> 0)
-            if ($sale->status == 'paid' && $sale->applied_commission_percent > 0) {
+            if ($sale->status == 'paid') {
                 \App\Services\CommissionService::calculateCommission($sale);
             }
 

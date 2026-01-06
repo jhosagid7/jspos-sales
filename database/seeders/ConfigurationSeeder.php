@@ -24,6 +24,10 @@ class ConfigurationSeeder extends Seeder
             'credit_days' => 30,
             'credit_purchase_days' => 30,
             'confirmation_code' => 7,
+            'global_commission_1_threshold' => 15,
+            'global_commission_1_percentage' => 8.00,
+            'global_commission_2_threshold' => 30,
+            'global_commission_2_percentage' => 4.00,
         ]);
     }
 }

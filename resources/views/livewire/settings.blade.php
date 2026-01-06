@@ -7,98 +7,63 @@
             <div class="row g-xl-5 g-3">
                 {{-- Sidebar de Pestañas --}}
                 <div class="col-xxl-3 col-xl-4 box-col-4e sidebar-left-wrapper">
-                    <ul class="sidebar-left-icons nav nav-pills" id="settings-pills-tab" role="tablist">
+                    <ul class="nav flex-column nav-pills me-3" id="settings-pills-tab" role="tablist">
                         {{-- Tab 1: Configuración General --}}
-                        <li class="nav-item">
-                            <a class="nav-link {{ $tab == 1 ? 'active' : '' }}" wire:click.prevent="$set('tab',1)"
-                                id="general-settings-tab" data-bs-toggle="pill" href="#general-settings" role="tab"
-                                aria-controls="general-settings" aria-selected="{{ $tab == 1 ? 'true' : 'false' }}">
-                                <div class="nav-rounded">
-                                    <div class="product-icons">
-                                        <svg class="stroke-icon">
-                                            <use href="../assets/svg/icon-sprite.svg#product-detail"></use>
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div class="product-tab-content">
-                                    <h6>Configuración General</h6>
-                                    <p>Empresa y contacto</p>
+                        <li class="nav-item mb-2">
+                            <a class="nav-link {{ $tab == 1 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                               wire:click.prevent="$set('tab',1)" href="#">
+                                <i class="fa fa-cogs fa-2x"></i>
+                                <div>
+                                    <h6 class="mb-0">General</h6>
+                                    <small class="{{ $tab == 1 ? 'text-white' : 'text-muted' }}">Empresa y contacto</small>
                                 </div>
                             </a>
                         </li>
 
                         {{-- Tab 2: Configuración de Ventas --}}
-                        <li class="nav-item">
-                            <a class="nav-link {{ $tab == 2 ? 'active' : '' }}" wire:click.prevent="$set('tab',2)"
-                                id="sales-settings-tab" data-bs-toggle="pill" href="#sales-settings" role="tab"
-                                aria-controls="sales-settings" aria-selected="{{ $tab == 2 ? 'true' : 'false' }}">
-                                <div class="nav-rounded">
-                                    <div class="product-icons">
-                                        <svg class="stroke-icon">
-                                            <use href="../assets/svg/icon-sprite.svg#product-category"></use>
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div class="product-tab-content">
-                                    <h6>Configuración de Ventas</h6>
-                                    <p>Créditos y confirmación</p>
+                        <li class="nav-item mb-2">
+                            <a class="nav-link {{ $tab == 2 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                               wire:click.prevent="$set('tab',2)" href="#">
+                                <i class="fa fa-shopping-cart fa-2x"></i>
+                                <div>
+                                    <h6 class="mb-0">Ventas</h6>
+                                    <small class="{{ $tab == 2 ? 'text-white' : 'text-muted' }}">Créditos y confirmación</small>
                                 </div>
                             </a>
                         </li>
 
                         {{-- Tab 3: Configuración de Monedas --}}
-                        <li class="nav-item">
-                            <a class="nav-link {{ $tab == 3 ? 'active' : '' }}" wire:click.prevent="$set('tab',3)"
-                                id="currencies-settings-tab" data-bs-toggle="pill" href="#currencies-settings" role="tab"
-                                aria-controls="currencies-settings" aria-selected="{{ $tab == 3 ? 'true' : 'false' }}">
-                                <div class="nav-rounded">
-                                    <div class="product-icons">
-                                        <svg class="stroke-icon">
-                                            <use href="../assets/svg/icon-sprite.svg#pricing"></use>
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div class="product-tab-content">
-                                    <h6>Configuración de Monedas</h6>
-                                    <p>Monedas y tasas</p>
+                        <li class="nav-item mb-2">
+                            <a class="nav-link {{ $tab == 3 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                               wire:click.prevent="$set('tab',3)" href="#">
+                                <i class="fa fa-coins fa-2x"></i>
+                                <div>
+                                    <h6 class="mb-0">Monedas</h6>
+                                    <small class="{{ $tab == 3 ? 'text-white' : 'text-muted' }}">Monedas y tasas</small>
                                 </div>
                             </a>
                         </li>
 
                         {{-- Tab 4: Configuración de Bancos --}}
-                        <li class="nav-item">
-                            <a class="nav-link {{ $tab == 4 ? 'active' : '' }}" wire:click.prevent="$set('tab',4)"
-                                id="banks-settings-tab" data-bs-toggle="pill" href="#banks-settings" role="tab"
-                                aria-controls="banks-settings" aria-selected="{{ $tab == 4 ? 'true' : 'false' }}">
-                                <div class="nav-rounded">
-                                    <div class="product-icons">
-                                        <svg class="stroke-icon">
-                                            <use href="../assets/svg/icon-sprite.svg#stroke-ecommerce"></use>
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div class="product-tab-content">
-                                    <h6>Configuración de Bancos</h6>
-                                    <p>Bancos y monedas</p>
+                        <li class="nav-item mb-2">
+                            <a class="nav-link {{ $tab == 4 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                               wire:click.prevent="$set('tab',4)" href="#">
+                                <i class="fa fa-university fa-2x"></i>
+                                <div>
+                                    <h6 class="mb-0">Bancos</h6>
+                                    <small class="{{ $tab == 4 ? 'text-white' : 'text-muted' }}">Bancos y monedas</small>
                                 </div>
                             </a>
                         </li>
 
                         {{-- Tab 5: Configuración de Comisiones --}}
-                        <li class="nav-item">
-                            <a class="nav-link {{ $tab == 5 ? 'active' : '' }}" wire:click.prevent="$set('tab',5)"
-                                id="commissions-settings-tab" data-bs-toggle="pill" href="#commissions-settings" role="tab"
-                                aria-controls="commissions-settings" aria-selected="{{ $tab == 5 ? 'true' : 'false' }}">
-                                <div class="nav-rounded">
-                                    <div class="product-icons">
-                                        <svg class="stroke-icon">
-                                            <use href="../assets/svg/icon-sprite.svg#stroke-charts"></use>
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div class="product-tab-content">
-                                    <h6>Configuración de Comisiones</h6>
-                                    <p>Reglas globales</p>
+                        <li class="nav-item mb-2">
+                            <a class="nav-link {{ $tab == 5 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                               wire:click.prevent="$set('tab',5)" href="#">
+                                <i class="fa fa-chart-line fa-2x"></i>
+                                <div>
+                                    <h6 class="mb-0">Comisiones</h6>
+                                    <small class="{{ $tab == 5 ? 'text-white' : 'text-muted' }}">Reglas globales</small>
                                 </div>
                             </a>
                         </li>

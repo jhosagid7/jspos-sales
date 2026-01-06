@@ -31,6 +31,7 @@ class DatabaseSeeder extends Seeder
             BankSeeder::class,
             ProductSeeder::class,
             ConfigurationSeeder::class,
+            SaleSeeder::class,
         ]);
     }
 }

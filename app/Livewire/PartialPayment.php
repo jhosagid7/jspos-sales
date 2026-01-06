@@ -17,7 +17,7 @@ class PartialPayment extends Component
     public $sales, $banks, $pays;
     public $currencies, $paymentCurrency;
     public  $search, $sale_selected_id, $customer_name, $debt, $debt_usd;
-    public $amount, $acountNumber, $depositNumber, $bank, $phoneNumber;
+    public $amount, $acountNumber, $depositNumber, $bank, $phoneNumber, $paymentDate;
     public $paymentMethod = 'cash'; // cash, nequi, deposit
 
     function mount($key = null)
@@ -34,6 +34,7 @@ class PartialPayment extends Component
         $this->search = null;
         $this->sale_selected_id = null;
         $this->customer_name = null;
+        $this->paymentDate = \Carbon\Carbon::now()->format('Y-m-d');
     }
 
 
@@ -124,6 +125,7 @@ class PartialPayment extends Component
         $this->customer_name = $customer;
         $this->debt = round($debtInPrimary, 2);
         $this->debt_usd = round($debtUSD, 2); // Guardar también en USD para validaciones
+        $this->paymentDate = \Carbon\Carbon::now()->format('Y-m-d');
         $this->dispatch('focus-partialPayInput');
     }
 
@@ -236,7 +238,8 @@ class PartialPayment extends Component
                     'bank' => ($this->paymentMethod == 'deposit' && $this->bank != 0 ? $this->banks->where('id', $this->bank)->first()->name : ''),
                     'account_number' => $this->acountNumber,
                     'deposit_number' => $this->depositNumber,
-                    'phone_number' => $this->phoneNumber
+                    'phone_number' => $this->phoneNumber,
+                    'payment_date' => $this->paymentDate ? \Carbon\Carbon::parse($this->paymentDate) : \Carbon\Carbon::now()
                 ]
             );
 
@@ -252,7 +255,7 @@ class PartialPayment extends Component
             // Calculate Commission if sale is settled
             if ($type == 'settled') {
                 $sale = Sale::find($this->sale_selected_id);
-                if ($sale && $sale->applied_commission_percent > 0) {
+                if ($sale) {
                     \App\Services\CommissionService::calculateCommission($sale);
                 }
             }

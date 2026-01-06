@@ -34,19 +34,19 @@
         </li>
 
         <!-- Notifications Dropdown Menu -->
-        @if (session()->has('noty_purchases') || session()->has('noty_sales'))
+        @if ($noty_purchases->count() > 0 || $noty_sales->count() > 0)
         <li class="nav-item dropdown">
             <a class="nav-link" data-toggle="dropdown" href="#">
                 <i class="far fa-bell"></i>
                 <span class="badge badge-warning navbar-badge">
-                    {{ (session('noty_purchases') ? session('noty_purchases')->count() : 0) + (session('noty_sales') ? session('noty_sales')->count() : 0) }}
+                    {{ $noty_purchases->count() + $noty_sales->count() }}
                 </span>
             </a>
             <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
                 <span class="dropdown-item dropdown-header">Notificaciones</span>
                 <div class="dropdown-divider"></div>
-                @if (session()->has('noty_purchases'))
-                    @foreach (session('noty_purchases') as $npurchase)
+                @if ($noty_purchases->count() > 0)
+                    @foreach ($noty_purchases as $npurchase)
                         <a href="{{ route('reports.accounts.payables') }}" class="dropdown-item">
                             <i class="fas fa-envelope mr-2"></i> Compra #{{ $npurchase->id }}
                             <span class="float-right text-muted text-sm">{{ app('fun')->overdue($npurchase->created_at, now()) }} días</span>
@@ -54,8 +54,8 @@
                         <div class="dropdown-divider"></div>
                     @endforeach
                 @endif
-                @if (session()->has('noty_sales'))
-                    @foreach (session('noty_sales') as $nsale)
+                @if ($noty_sales->count() > 0)
+                    @foreach ($noty_sales as $nsale)
                         <a href="{{ route('reports.accounts.receivable') }}" class="dropdown-item">
                             <i class="fas fa-file mr-2"></i> Venta #{{ $nsale->id }}
                             <span class="float-right text-muted text-sm">{{ app('fun')->overdue($nsale->created_at, now()) }} días</span>

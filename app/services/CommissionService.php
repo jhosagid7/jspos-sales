@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 
 class CommissionService
 {
-    public function calculateCommission(Sale $sale)
+    public static function calculateCommission(Sale $sale)
     {
         $customer = $sale->customer;
         $seller = $sale->user; // Assuming the sale has a user relation pointing to the seller
@@ -51,6 +51,10 @@ class CommissionService
         // Apply Logic
         // If payment is within the first threshold (e.g., <= 15 days)
         if ($daysElapsed <= $threshold1) {
+            $commissionAmount = ($sale->total * $percentage1) / 100;
+            $sale->final_commission_amount = $commissionAmount;
+            $sale->commission_status = 'pending_payment';
+            $sale->save();
             return $percentage1;
         }
         
@@ -59,9 +63,17 @@ class CommissionService
         // Let's assume if threshold2 is set, we check it. If not set, but percentage2 is set, we apply percentage2 for anything after threshold1.
         if (!is_null($threshold2)) {
             if ($daysElapsed <= $threshold2) {
+                $commissionAmount = ($sale->total * $percentage2) / 100;
+                $sale->final_commission_amount = $commissionAmount;
+                $sale->commission_status = 'pending_payment';
+                $sale->save();
                 return $percentage2;
             }
         } elseif (!is_null($percentage2)) {
+             $commissionAmount = ($sale->total * $percentage2) / 100;
+             $sale->final_commission_amount = $commissionAmount;
+             $sale->commission_status = 'pending_payment';
+             $sale->save();
              return $percentage2;
         }
 
@@ -69,6 +81,16 @@ class CommissionService
         // Based on user request: "despues de los 22 o el mes solo el 4%" -> implies percentage2 applies for late payments.
         // So if we passed threshold1, we generally apply percentage2.
         
-        return $percentage2 ?? 0;
+        $finalPercentage = $percentage2 ?? 0;
+
+        // Calculate Amount
+        $commissionAmount = ($sale->total * $finalPercentage) / 100;
+
+        // Save to Sale
+        $sale->final_commission_amount = $commissionAmount;
+        $sale->commission_status = 'pending_payment'; // Ready to be paid
+        $sale->save();
+
+        return $finalPercentage;
     }
 }

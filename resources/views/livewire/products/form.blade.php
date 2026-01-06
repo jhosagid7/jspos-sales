@@ -26,76 +26,47 @@
         <div class="row g-xl-5 g-3">
             <div class="col-xxl-3 col-xl-4 box-col-4e sidebar-left-wrapper">
                 {{-- tabs --}}
-                <ul class="sidebar-left-icons nav nav-pills" id="add-product-pills-tab" role="tablist">
-                    <li class="nav-item">
-                        <a class="nav-link {{ $tab == 1 ? 'active' : '' }}" wire:click.prevent="$set('tab',1)"
-                            id="detail-product-tab" data-bs-toggle="pill" href="#detail-product" role="tab"
-                            aria-controls="detail-product" aria-selected="false">
-                            <div class="nav-rounded">
-                                <div class="product-icons">
-                                    <svg class="stroke-icon">
-                                        <use href="../assets/svg/icon-sprite.svg#product-detail"></use>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="product-tab-content">
-                                <h6>Producto Generales</h6>
-                                <p>Agregar detalles</p>
+                <ul class="nav flex-column nav-pills me-3" id="add-product-pills-tab" role="tablist">
+                    <li class="nav-item mb-2">
+                        <a class="nav-link {{ $tab == 1 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                           wire:click.prevent="$set('tab',1)" href="#">
+                            <i class="fa fa-info-circle fa-2x"></i>
+                            <div>
+                                <h6 class="mb-0">Generales</h6>
+                                <small class="{{ $tab == 1 ? 'text-white' : 'text-muted' }}">Información básica</small>
                             </div>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ $tab == 2 ? 'active' : '' }}" wire:click.prevent="$set('tab',2)"
-                            id="gallery-product-tab" data-bs-toggle="pill" href="#gallery-product" role="tab"
-                            aria-controls="gallery-product" aria-selected="false">
-                            <div class="nav-rounded">
-                                <div class="product-icons">
-                                    <svg class="stroke-icon">
-                                        <use href="../assets/svg/icon-sprite.svg#product-gallery"></use>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="product-tab-content">
-                                <h6>Producto Galeria</h6>
-                                <p>Imagenes asociadas</p>
+                    <li class="nav-item mb-2">
+                        <a class="nav-link {{ $tab == 2 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                           wire:click.prevent="$set('tab',2)" href="#">
+                            <i class="fa fa-images fa-2x"></i>
+                            <div>
+                                <h6 class="mb-0">Galería</h6>
+                                <small class="{{ $tab == 2 ? 'text-white' : 'text-muted' }}">Imágenes del producto</small>
                             </div>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ $tab == 3 ? 'active' : '' }}" wire:click.prevent="$set('tab',3)"
-                            id="category-product-tab" data-bs-toggle="pill" href="#category-product" role="tab"
-                            aria-controls="category-product" aria-selected="false">
-                            <div class="nav-rounded">
-                                <div class="product-icons">
-                                    <svg class="stroke-icon">
-                                        <use href="../assets/svg/icon-sprite.svg#product-category"></use>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="product-tab-content">
-                                <h6>Producto Categorías</h6>
-                                <p>Categoría y Proveedor</p>
+                    <li class="nav-item mb-2">
+                        <a class="nav-link {{ $tab == 3 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                           wire:click.prevent="$set('tab',3)" href="#">
+                            <i class="fa fa-tags fa-2x"></i>
+                            <div>
+                                <h6 class="mb-0">Categorización</h6>
+                                <small class="{{ $tab == 3 ? 'text-white' : 'text-muted' }}">Categoría y Proveedor</small>
                             </div>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ $tab == 4 ? 'active' : '' }}" wire:click.prevent="$set('tab',4)"
-                            id="pricings-tab" data-bs-toggle="pill" href="#pricings" role="tab"
-                            aria-controls="pricings" aria-selected="false">
-                            <div class="nav-rounded">
-                                <div class="product-icons">
-                                    <svg class="stroke-icon">
-                                        <use href="../assets/svg/icon-sprite.svg#pricing"> </use>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="product-tab-content">
-                                <h6>Producto Precios</h6>
-                                <p>Lista de precios</p>
+                    <li class="nav-item mb-2">
+                        <a class="nav-link {{ $tab == 4 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                           wire:click.prevent="$set('tab',4)" href="#">
+                            <i class="fa fa-list-ol fa-2x"></i>
+                            <div>
+                                <h6 class="mb-0">Precios</h6>
+                                <small class="{{ $tab == 4 ? 'text-white' : 'text-muted' }}">Lista de precios</small>
                             </div>
                         </a>
                     </li>
-
                 </ul>
             </div>
             <div class="col-xxl-9 col-xl-8 box-col-8 position-relative">
@@ -107,7 +78,10 @@
                                 {{-- name --}}
                                 <div class="col-sm-12 col-md-8">
                                     <label class="form-label">Nombre <span class="txt-danger">*</span></label>
-                                    <input wire:model="form.name" class="form-control" type="text">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa fa-box"></i></span>
+                                        <input wire:model="form.name" class="form-control" type="text" placeholder="Ej: Coca Cola 2L">
+                                    </div>
                                     @error('form.name')
                                         <span class="text-danger">{{ $message }}</span>
                                     @enderror
@@ -115,7 +89,10 @@
                                 {{-- sku --}}
                                 <div class="col-sm-12 col-md-4">
                                     <label class="form-label">Sku</label>
-                                    <input wire:model="form.sku" class="form-control" type="text">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa fa-barcode"></i></span>
+                                        <input wire:model="form.sku" class="form-control" type="text" placeholder="Código de barras">
+                                    </div>
                                 </div>
                                 {{-- description --}}
                                 <div class="col-sm-12 mb-3">
@@ -141,53 +118,74 @@
                                 {{-- type --}}
                                 <div class="col-sm-12 col-md-3">
                                     <label class="form-label">Tipo <span class="txt-danger">*</span></label>
-                                    <select wire:model="form.type" class="form-select" required="">
-                                        <option value="service">Servicio</option>
-                                        <option value="physical">Producto Físico</option>
-                                    </select>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa fa-shapes"></i></span>
+                                        <select wire:model="form.type" class="form-select" required="">
+                                            <option value="service">Servicio</option>
+                                            <option value="physical">Producto Físico</option>
+                                        </select>
+                                    </div>
                                     {{-- @error('type') <span class="text-danger">{{ $message }}</span>
                                     @enderror --}}
                                 </div>
                                 {{-- status --}}
                                 <div class="col-sm-12 col-md-3">
                                     <label class="form-label">Estatus <span class="txt-danger">*</span></label>
-                                    <select wire:model="form.status" class="form-select" required="">
-                                        <option value="available" selected>Disponible</option>
-                                        <option value="out_of_stock">Sin Stock</option>
-                                    </select>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa fa-check-circle"></i></span>
+                                        <select wire:model="form.status" class="form-select" required="">
+                                            <option value="available" selected>Disponible</option>
+                                            <option value="out_of_stock">Sin Stock</option>
+                                        </select>
+                                    </div>
                                     {{-- @error('status') <span class="text-danger">{{ $message }}</span>
                                     @enderror --}}
                                 </div>
                                 {{-- cost --}}
                                 <div class="col-sm-12 col-md-3">
                                     <label class="form-label">Costo de Compra</label>
-                                    <input wire:model="form.cost" class="form-control numerico" type="number">
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input wire:model="form.cost" class="form-control numerico" type="number" placeholder="0.00">
+                                    </div>
                                 </div>
                                 {{-- price --}}
                                 <div class="col-sm-12 col-md-3">
                                     <label class="form-label">Precio de Venta</label>
-                                    <input wire:model="form.price" class="form-control numerico" type="number">
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input wire:model="form.price" class="form-control numerico" type="number" placeholder="0.00">
+                                    </div>
                                 </div>
 
                                 {{-- manage stock --}}
                                 <div class="col-sm-12 col-md-3">
                                     <label class="form-label">Administrar Stock <span
                                             class="txt-danger">*</span></label>
-                                    <select wire:model="form.manage_stock" class="form-select">
-                                        <option value="1" selected>Si, Controlar Stock</option>
-                                        <option value="0">Vender sin Límites</option>
-                                    </select>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa fa-clipboard-check"></i></span>
+                                        <select wire:model="form.manage_stock" class="form-select">
+                                            <option value="1" selected>Si, Controlar Stock</option>
+                                            <option value="0">Vender sin Límites</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 {{-- stock qty --}}
                                 <div class="col-sm-12 col-md-3">
                                     <label class="form-label">Stock Actual <span class="txt-danger">*</span></label>
-                                    <input wire:model="form.stock_qty" class="form-control numerico" type="number">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa fa-cubes"></i></span>
+                                        <input wire:model="form.stock_qty" class="form-control numerico" type="number" placeholder="0">
+                                    </div>
                                 </div>
                                 {{-- low stock --}}
                                 <div class="col-sm-12 col-md-3">
                                     <label class="form-label">Stock de Alerta <span
                                             class="txt-danger">*</span></label>
-                                    <input wire:model="form.low_stock" class="form-control numerico" type="number">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa fa-exclamation-triangle"></i></span>
+                                        <input wire:model="form.low_stock" class="form-control numerico" type="number" placeholder="5">
+                                    </div>
                                 </div>
 
                             </form>
@@ -249,16 +247,19 @@
                                                                 class="txt-danger">*</span></label>
                                                     </div>
                                                     <div class="col-12">
-                                                        <select wire:model="form.category_id" class="form-select">
-                                                            <option value="0" disabled>
-                                                                Seleccionar</option>
-                                                            @foreach ($categories as $category)
-                                                                <option value="{{ $category->id }}"
-                                                                    {{ $category->id == $form->category_id ? 'selected' : '' }}>
-                                                                    {{ $category->name }}
-                                                                </option>
-                                                            @endforeach
-                                                        </select>
+                                                        <div class="input-group">
+                                                            <span class="input-group-text"><i class="fa fa-tags"></i></span>
+                                                            <select wire:model="form.category_id" class="form-select">
+                                                                <option value="0" disabled>
+                                                                    Seleccionar</option>
+                                                                @foreach ($categories as $category)
+                                                                    <option value="{{ $category->id }}"
+                                                                        {{ $category->id == $form->category_id ? 'selected' : '' }}>
+                                                                        {{ $category->name }}
+                                                                    </option>
+                                                                @endforeach
+                                                            </select>
+                                                        </div>
                                                         @error('form.category_id')
                                                             <span class="text-danger">{{ $message }}</span>
                                                         @enderror
@@ -285,16 +286,19 @@
                                                                 class="txt-danger">*</span></label>
                                                     </div>
                                                     <div class="col-12">
-                                                        <select wire:model="form.supplier_id" class="form-select"
-                                                            id="supplier">
-                                                            <option value="0" disabled> Seleccionar</option>
-                                                            @foreach ($suppliers as $supplier)
-                                                                <option value="{{ $supplier->id }}"
-                                                                    {{ $supplier->id == $form->supplier_id ? 'selected' : '' }}>
-                                                                    {{ $supplier->name }}
-                                                                </option>
-                                                            @endforeach
-                                                        </select>
+                                                        <div class="input-group">
+                                                            <span class="input-group-text"><i class="fa fa-truck"></i></span>
+                                                            <select wire:model="form.supplier_id" class="form-select"
+                                                                id="supplier">
+                                                                <option value="0" disabled> Seleccionar</option>
+                                                                @foreach ($suppliers as $supplier)
+                                                                    <option value="{{ $supplier->id }}"
+                                                                        {{ $supplier->id == $form->supplier_id ? 'selected' : '' }}>
+                                                                        {{ $supplier->name }}
+                                                                    </option>
+                                                                @endforeach
+                                                            </select>
+                                                        </div>
                                                         @error('form.supplier_id')
                                                             <span class="text-danger">{{ $message }}</span>
                                                         @enderror
@@ -325,7 +329,10 @@
                                     <div class="col-sm-3">
                                         <label class="form-label" for="initialCost">Precio de Venta <span
                                                 class="txt-danger">*</span></label>
-                                        <input wire:model="form.value" class="form-control numerico" type="number">
+                                        <div class="input-group">
+                                            <span class="input-group-text">$</span>
+                                            <input wire:model="form.value" class="form-control numerico" type="number" placeholder="0.00">
+                                        </div>
                                     </div>
                                     <div class="col-sm-12 col-md-2">
                                         <button wire:click.prevent="storeTempPrice"
@@ -375,8 +382,8 @@
         </button>
 
         @if ($editing && $form->product_id == 0)
-            <button wire:click.prevent="Store" class="btn btn-warning">
-                Registrar Producto
+            <button wire:click.prevent="Store" class="btn btn-primary">
+                <i class="fa fa-save"></i> Registrar Producto
             </button>
         @else
             <button wire:click.prevent="Update" class="btn btn-dark">

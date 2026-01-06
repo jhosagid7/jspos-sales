@@ -41,8 +41,14 @@ class Commissions extends Component
         $this->currencies = \App\Models\Currency::orderBy('name')->get();
         
         $primary = \App\Models\Currency::where('is_primary', true)->first();
-        $this->selectedCurrencyCode = $primary->code;
-        $this->selectedCurrencySymbol = $primary->symbol;
+        
+        if ($primary) {
+            $this->selectedCurrencyCode = $primary->code;
+            $this->selectedCurrencySymbol = $primary->symbol;
+        } else {
+            $this->selectedCurrencyCode = 'USD';
+            $this->selectedCurrencySymbol = '$';
+        }
     }
 
     public function render()
