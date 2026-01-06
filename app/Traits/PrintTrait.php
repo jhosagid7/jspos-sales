@@ -385,53 +385,16 @@ trait PrintTrait
                     }
 
 
-
-                    // Deposit Sales
-                    if (!empty($salesByCurrency['deposit'])) {
-                        $printer->text("BANCO:\n");
-                        foreach ($salesByCurrency['deposit'] as $bankName => $currencies) {
-                            $printer->text("  " . $bankName . ":\n");
-                            foreach ($currencies as $currency => $amount) {
-                                $printer->text("    " . $getCurrencyLabel($currency) . ": " . number_format($amount, 2) . "\n");
-                            }
+                // Deposit Payments
+                if (!empty($paymentsByCurrency['deposit'])) {
+                    $printer->text("BANCO:\n");
+                    foreach ($paymentsByCurrency['deposit'] as $bankName => $currencies) {
+                        $printer->text("  " . $bankName . ":\n");
+                        foreach ($currencies as $currency => $amount) {
+                            $printer->text("    " . $getCurrencyLabel($currency) . ": " . number_format($amount, 2) . "\n");
                         }
                     }
-                    $printer->text("=============================================\n");
                 }
-
-                // DETAILED PAYMENTS BREAKDOWN
-                if (!empty($paymentsByCurrency)) {
-                    $printer->setJustification(Printer::JUSTIFY_CENTER);
-                    $printer->text("DETALLE ABONOS POR MONEDA\n");
-                    $printer->setJustification(Printer::JUSTIFY_LEFT);
-                    $printer->text("---------------------------------------------\n");
-
-                     // Helper to get currency label (redefined or reused if scope allows, but safe to redefine)
-                     $getCurrencyLabel = function($code) {
-                        $c = \App\Models\Currency::where('code', $code)->first();
-                        return $c ? $c->label . " (" . $code . ")" : $code;
-                    };
-
-                    // Cash Payments
-                    if (!empty($paymentsByCurrency['cash'])) {
-                        $printer->text("EFECTIVO:\n");
-                        foreach ($paymentsByCurrency['cash'] as $currency => $amount) {
-                            $printer->text("  " . $getCurrencyLabel($currency) . ": " . number_format($amount, 2) . "\n");
-                        }
-                    }
-
-
-
-                    // Deposit Payments
-                    if (!empty($paymentsByCurrency['deposit'])) {
-                        $printer->text("BANCO:\n");
-                        foreach ($paymentsByCurrency['deposit'] as $bankName => $currencies) {
-                            $printer->text("  " . $bankName . ":\n");
-                            foreach ($currencies as $currency => $amount) {
-                                $printer->text("    " . $getCurrencyLabel($currency) . ": " . number_format($amount, 2) . "\n");
-                            }
-                        }
-                    }
                      $printer->text("=============================================\n");
                 }
 
@@ -449,34 +412,19 @@ trait PrintTrait
         }
     }
 
-<<<<<<< HEAD
     function printOrder($orderId)
     {
-
         try {
-
             $config = Configuration::first();
 
             if ($config) {
-
                 $order = Order::with(['customer', 'user', 'details', 'details.product'])->find($orderId);
-                // return $order;
 
-=======
-    function printPaymentHistory($saleId)
-    {
-        try {
-            $config = Configuration::first();
-            if ($config) {
-                $sale = Sale::with(['customer', 'payments', 'user'])->find($saleId);
-                
->>>>>>> feature/redesign-adminlte
                 $connector = new WindowsPrintConnector($config->printer_name);
                 $printer = new Printer($connector);
 
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
                 $printer->setTextSize(2, 2);
-<<<<<<< HEAD
 
                 $printer->text(strtoupper($config->business_name) . "\n");
                 $printer->setTextSize(1, 1);
@@ -491,8 +439,6 @@ trait PrintTrait
                 $printer->text("Cajero: " . $order->user->name . " \n");
                 //$printer->text("=============================================\n");
 
-
-
                 $maskHead = "%-30s %-5s %-8s";
                 $maskRow = $maskHead; //"%-.31s %-4s %-5s";
 
@@ -502,7 +448,6 @@ trait PrintTrait
                 $printer->text("=============================================\n");
 
                 foreach ($order->details as $item) {
-
                     $descripcion_1 = $this->cortar($item->product->name, 30);
                     $row_1 = sprintf($maskRow, $descripcion_1[0], $item->quantity, '$' . number_format($item->sale_price, 2));
                     $printer->text($row_1 . "\n");
@@ -516,7 +461,6 @@ trait PrintTrait
                 $printer->text("=============================================" . "\n");
 
                 $printer->text("CLIENTE: " . $order->customer->name  . "\n\n");
-
 
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
                 $printer->text("NO. DE ARTICULOS $order->items" . "\n");
@@ -635,4 +579,4 @@ trait PrintTrait
         }
     }
 }
-```
+
