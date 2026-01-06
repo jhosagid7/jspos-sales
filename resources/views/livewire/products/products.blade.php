@@ -33,7 +33,9 @@
                                 </div>
                             </div>
 
-                            <div class="contact-edit chat-alert" wire:click='addNew'><i class="icon-plus"></i></div>
+                            <button class="btn btn-primary" wire:click='addNew'>
+                                <i class="fa fa-plus"></i> Nuevo
+                            </button>
 
                             {{-- <button class="btn btn-info" type="button" data-bs-toggle="modal"
                                 data-bs-target="#modalProduct">Tooltips and popovers</button> --}}

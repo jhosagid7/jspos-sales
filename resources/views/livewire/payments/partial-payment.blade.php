@@ -104,6 +104,14 @@
                                             </div>
                                         </div>
                                     </div>
+                                        <div class="col-sm-12 col-md-6">
+                                            <div class="form-group">
+                                                <label>Fecha de Pago</label>
+                                                <input type="date" wire:model="paymentDate" class="form-control">
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div class="row mb-3 mt-3">
                                         <div class="col-12">
                                             <h6 class="f-w-600 f-12 mb-2 txt-primary">MÉTODO DE PAGO:</h6>

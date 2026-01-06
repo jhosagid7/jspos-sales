@@ -16,7 +16,7 @@ return new class extends Migration
         });
 
         Schema::table('sales', function (Blueprint $table) {
-            $table->string('batch_name')->nullable()->after('commission_payment_notes');
+            $table->string('batch_name')->nullable()->after('updated_at');
             $table->integer('batch_sequence')->nullable()->after('batch_name');
         });
     }

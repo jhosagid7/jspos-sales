@@ -119,7 +119,7 @@
                     <div class="form-group mt-3">
                         <span>Perfil <span class="txt-danger">*</span></span>
                         @if (Auth::user()->roles[0]->name == 'Admin')
-                            <select wire:model="user.profile" class="form-select form-control-sm">
+                            <select wire:model.live="user.profile" class="form-select form-control-sm">
                                 <option value="0">Seleccionar </option>
                                 @foreach ($roles as $rol)
                                     <option value="{{ $rol->name }}"
@@ -132,7 +132,7 @@
                             @if ($user->hasRole('Admin'))
                                 <span class="mr-6">No se puede editar</span>
                             @else
-                                <select wire:model="user.profile" class="form-select form-control-sm">
+                                <select wire:model.live="user.profile" class="form-select form-control-sm">
                                     <option value="0">Seleccionar</option>
                                     @foreach ($roles as $rol)
                                         @if ($rol->name != 'Admin')
