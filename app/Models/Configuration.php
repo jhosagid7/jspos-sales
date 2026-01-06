@@ -26,6 +26,10 @@ class Configuration extends Model
         'credit_purchase_days',
         'confirmation_code',
         'invoice_sequence',
-        'order_sequence'
+        'order_sequence',
+        'global_commission_1_threshold',
+        'global_commission_1_percentage',
+        'global_commission_2_threshold',
+        'global_commission_2_percentage'
     ];
 }

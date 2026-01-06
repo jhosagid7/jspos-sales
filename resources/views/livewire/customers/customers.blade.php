@@ -155,6 +155,35 @@
                         @enderror
                     </div>
 
+                    <div class="form-group mt-3">
+                        <h6 class="text-info">Sobrescribir Comisiones (Opcional)</h6>
+                        <small class="text-muted">Dejar en blanco para usar la configuración del vendedor o global.</small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-sm-6 form-group mt-2">
+                            <span class="form-label">Nivel 1: Días (<=)</span>
+                            <input wire:model="customerCommission1Threshold" class="form-control" type="number" placeholder="Heredado">
+                            @error('customerCommission1Threshold') <span class="text-danger">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-sm-6 form-group mt-2">
+                            <span class="form-label">Nivel 1: Porcentaje (%)</span>
+                            <input wire:model="customerCommission1Percentage" class="form-control" type="number" step="0.01" placeholder="Heredado">
+                            @error('customerCommission1Percentage') <span class="text-danger">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="col-sm-6 form-group mt-2">
+                            <span class="form-label">Nivel 2: Días (<=)</span>
+                            <input wire:model="customerCommission2Threshold" class="form-control" type="number" placeholder="Heredado">
+                            @error('customerCommission2Threshold') <span class="text-danger">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-sm-6 form-group mt-2">
+                            <span class="form-label">Nivel 2: Porcentaje (%)</span>
+                            <input wire:model="customerCommission2Percentage" class="form-control" type="number" step="0.01" placeholder="Heredado">
+                            @error('customerCommission2Percentage') <span class="text-danger">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
 
                 </div>
                 <div class="card-footer d-flex justify-content-between">

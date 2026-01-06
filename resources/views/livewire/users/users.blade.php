@@ -176,6 +176,33 @@
                             <input wire:model="current_batch" class="form-control" type="text" placeholder="Ej: 1">
                             <small class="text-muted">Identificador del lote actual de ventas</small>
                         </div>
+
+                        <div class="col-sm-12 mt-3">
+                            <h6 class="text-info">Sobrescribir Comisiones (Opcional)</h6>
+                            <small class="text-muted">Dejar en blanco para usar la configuración global.</small>
+                        </div>
+                        
+                        <div class="col-sm-6 form-group mt-2">
+                            <span class="form-label">Nivel 1: Días (<=)</span>
+                            <input wire:model="sellerCommission1Threshold" class="form-control" type="number" placeholder="Global">
+                            @error('sellerCommission1Threshold') <span class="text-danger">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-sm-6 form-group mt-2">
+                            <span class="form-label">Nivel 1: Porcentaje (%)</span>
+                            <input wire:model="sellerCommission1Percentage" class="form-control" type="number" step="0.01" placeholder="Global">
+                            @error('sellerCommission1Percentage') <span class="text-danger">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="col-sm-6 form-group mt-2">
+                            <span class="form-label">Nivel 2: Días (<=)</span>
+                            <input wire:model="sellerCommission2Threshold" class="form-control" type="number" placeholder="Global">
+                            @error('sellerCommission2Threshold') <span class="text-danger">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-sm-6 form-group mt-2">
+                            <span class="form-label">Nivel 2: Porcentaje (%)</span>
+                            <input wire:model="sellerCommission2Percentage" class="form-control" type="number" step="0.01" placeholder="Global">
+                            @error('sellerCommission2Percentage') <span class="text-danger">{{ $message }}</span> @enderror
+                        </div>
                     </div>
                     @endif
 

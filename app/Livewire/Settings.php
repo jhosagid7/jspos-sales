@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 class Settings extends Component
 {
     public $setting_id = 0, $businessName, $phone, $taxpayerId, $vat, $printerName, $website, $leyend, $creditDays = 15, $address, $city, $creditPurchaseDays, $confirmationCode, $decimals;
+    public $globalCommission1Threshold, $globalCommission1Percentage, $globalCommission2Threshold, $globalCommission2Percentage;
     
     public $tab = 1; // Control de pestañas
 
@@ -53,6 +54,10 @@ class Settings extends Component
             $this->creditDays = $config->credit_days;
             $this->creditPurchaseDays = $config->credit_purchase_days;
             $this->confirmationCode = $config->confirmation_code;
+            $this->globalCommission1Threshold = $config->global_commission_1_threshold;
+            $this->globalCommission1Percentage = $config->global_commission_1_percentage;
+            $this->globalCommission2Threshold = $config->global_commission_2_threshold;
+            $this->globalCommission2Percentage = $config->global_commission_2_percentage;
         }
     }
 
@@ -88,6 +93,20 @@ class Settings extends Component
         if (!is_numeric($this->creditDays)) {
             $this->addError('creditDays', 'Ingresa los días con números');
         }
+
+        // Validate Commissions
+        if (!empty($this->globalCommission1Threshold) && !is_numeric($this->globalCommission1Threshold)) {
+            $this->addError('globalCommission1Threshold', 'Debe ser numérico');
+        }
+        if (!empty($this->globalCommission1Percentage) && !is_numeric($this->globalCommission1Percentage)) {
+            $this->addError('globalCommission1Percentage', 'Debe ser numérico');
+        }
+        if (!empty($this->globalCommission2Threshold) && !is_numeric($this->globalCommission2Threshold)) {
+            $this->addError('globalCommission2Threshold', 'Debe ser numérico');
+        }
+        if (!empty($this->globalCommission2Percentage) && !is_numeric($this->globalCommission2Percentage)) {
+            $this->addError('globalCommission2Percentage', 'Debe ser numérico');
+        }
         if (count($this->getErrorBag()) > 0) {
             return;
         }
@@ -109,7 +128,11 @@ class Settings extends Component
                     'website' => trim($this->website),
                     'credit_days' => intval($this->creditDays),
                     'credit_purchase_days' => intval($this->creditPurchaseDays),
-                    'confirmation_code' => intval($this->confirmationCode)
+                    'confirmation_code' => intval($this->confirmationCode),
+                    'global_commission_1_threshold' => $this->globalCommission1Threshold,
+                    'global_commission_1_percentage' => $this->globalCommission1Percentage,
+                    'global_commission_2_threshold' => $this->globalCommission2Threshold,
+                    'global_commission_2_percentage' => $this->globalCommission2Percentage
                 ]
             );
 

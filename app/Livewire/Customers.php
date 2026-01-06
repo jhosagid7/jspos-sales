@@ -15,6 +15,7 @@ class Customers extends Component
     public $sellers = [];
     public $search;
     public $editing;
+    public $customerCommission1Threshold, $customerCommission1Percentage, $customerCommission2Threshold, $customerCommission2Percentage;
 
     protected $rules = [
         'customer.name' => 'required|max:45|unique:customers,name',
@@ -25,6 +26,10 @@ class Customers extends Component
         'customer.email' => 'nullable|email|max:65',
         'customer.type' => 'required|in:Mayoristas,Consumidor Final,Descuento1,Descuento2,Otro',
         'customer.seller_id' => 'nullable',
+        'customerCommission1Threshold' => 'nullable|numeric',
+        'customerCommission1Percentage' => 'nullable|numeric',
+        'customerCommission2Threshold' => 'nullable|numeric',
+        'customerCommission2Percentage' => 'nullable|numeric',
     ];
 
     protected $messages = [
@@ -47,6 +52,7 @@ class Customers extends Component
         $this->customer = new Customer();
         $this->customer->type = 0;
         $this->customer->seller_id = 0;
+        $this->resetCommissionFields();
         $this->editing = false;
 
         session(['map' => 'Clientes', 'child' => ' Componente ']);
@@ -84,6 +90,7 @@ class Customers extends Component
         $this->resetExcept('customer');
         $this->customer = new Customer();
         $this->customer->seller_id = 0;
+        $this->resetCommissionFields();
         $this->dispatch('init-new');
     }
 
@@ -91,6 +98,12 @@ class Customers extends Component
     {
         $this->resetValidation();
         $this->customer = $customer;
+        
+        $this->customerCommission1Threshold = $customer->customer_commission_1_threshold;
+        $this->customerCommission1Percentage = $customer->customer_commission_1_percentage;
+        $this->customerCommission2Threshold = $customer->customer_commission_2_threshold;
+        $this->customerCommission2Percentage = $customer->customer_commission_2_percentage;
+
         $this->editing = true;
     }
 
@@ -100,6 +113,7 @@ class Customers extends Component
         $this->customer = new Customer();
         $this->editing = false;
         $this->search = null;
+        $this->resetCommissionFields();
         $this->dispatch('init-new');
     }
 
@@ -119,6 +133,11 @@ class Customers extends Component
             }
         }
 
+        $this->customer->customer_commission_1_threshold = $this->customerCommission1Threshold;
+        $this->customer->customer_commission_1_percentage = $this->customerCommission1Percentage;
+        $this->customer->customer_commission_2_threshold = $this->customerCommission2Threshold;
+        $this->customer->customer_commission_2_percentage = $this->customerCommission2Percentage;
+
         // save model
         $this->customer->save();
 
@@ -128,7 +147,17 @@ class Customers extends Component
         $this->resetExcept('customer');
         $this->customer = new Customer();
         $this->customer->type = 0;
+        $this->customer->type = 0;
         $this->customer->seller_id = 0;
+        $this->resetCommissionFields();
+    }
+
+    public function resetCommissionFields()
+    {
+        $this->customerCommission1Threshold = null;
+        $this->customerCommission1Percentage = null;
+        $this->customerCommission2Threshold = null;
+        $this->customerCommission2Percentage = null;
     }
 
 
