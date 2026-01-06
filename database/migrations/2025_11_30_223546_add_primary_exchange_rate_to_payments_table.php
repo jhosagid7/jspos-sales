@@ -12,8 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('payments', function (Blueprint $table) {
-            $table->string('currency', 3)->after('amount')->nullable(); // Código de la moneda (ISO 4217)
-            $table->decimal('exchange_rate', 15, 6)->after('currency')->nullable(); // Tasa de cambio
+            $table->decimal('primary_exchange_rate', 20, 6)->default(1)->after('exchange_rate');
         });
     }
 
@@ -23,8 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('payments', function (Blueprint $table) {
-            $table->dropColumn('currency');
-            $table->dropColumn('exchange_rate');
+            $table->dropColumn('primary_exchange_rate');
         });
     }
 };

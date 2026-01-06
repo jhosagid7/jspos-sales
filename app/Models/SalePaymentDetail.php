@@ -11,8 +11,12 @@ class SalePaymentDetail extends Model
 
     protected $fillable = [
         'sale_id',
+        'payment_method',
         'currency_code',
         'bank_name',
+        'account_number',
+        'reference_number',
+        'phone_number',
         'amount',
         'exchange_rate',
         'amount_in_primary_currency'

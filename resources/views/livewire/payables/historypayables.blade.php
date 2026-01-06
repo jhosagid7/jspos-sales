@@ -16,7 +16,7 @@
                                         <th class='p-2'>Monto</th>
                                         <th class='p-2'>Tipo</th>
                                         <th class='p-2'>F.Pago</th>
-                                        <th class='p-2'>Banco/Nequi</th>
+                                        <th class='p-2'>Banco</th>
                                         <th class='p-2'>Fecha</th>
                                         <th class='p-2'></th>
                                     </tr>
@@ -30,7 +30,7 @@
                                             </td>
                                             <td>{{ $pay->type == 'pay' ? 'Abono' : 'Liquidación' }}</td>
                                             <td>
-                                                {{ $pay->pay_way == 'cash' ? 'Efectivo' : ($pay->pay_way == 'deposit' ? 'Depósito' : 'Nequi') }}
+                                                {{ $pay->pay_way == 'cash' ? 'Efectivo' : 'Depósito' }}
                                             </td>
                                             <td>
                                                 @if ($pay->pay_way == 'deposit')
@@ -40,12 +40,7 @@
                                                             ND:{{ $pay->deposit_number }}</small>
                                                     </div>
                                                 @endif
-                                                @if ($pay->pay_way == 'nequi')
-                                                    <div class="text-capitalize">{{ $pay->pay_way }}</div>
-                                                    <div>
-                                                        <small>N. Teléfono: {{ $pay->phone_number }}</small>
-                                                    </div>
-                                                @endif
+
                                             </td>
 
                                             <td> {{ app('fun')->dateFormat($pay->created_at) }}</td>

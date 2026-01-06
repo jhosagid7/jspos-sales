@@ -85,6 +85,7 @@ class CashRegisterService
                     'currency_code' => $currencyCode,
                     'amount' => $amount,
                     'amount_in_primary_currency' => $amountInPrimary,
+                    'exchange_rate' => $currency->exchange_rate, // Snapshot de tasa
                     'balance_after' => $amount,
                     'description' => 'Fondo inicial de caja'
                 ]);
@@ -149,6 +150,7 @@ class CashRegisterService
             'currency_code' => $currencyCode,
             'amount' => $amount, // Positivo para pagos, negativo para vueltos
             'amount_in_primary_currency' => $amountInPrimary,
+            'exchange_rate' => $currency->exchange_rate, // Snapshot de tasa
             'balance_after' => $currentBalance + $amount,
             'description' => $description
         ]);
@@ -217,6 +219,7 @@ class CashRegisterService
                 'currency_code' => $primaryCurrency->code,
                 'amount' => 0,
                 'amount_in_primary_currency' => 0,
+                'exchange_rate' => $primaryCurrency->exchange_rate, // Snapshot de tasa
                 'balance_after' => 0, // Referencial
                 'description' => 'Cierre de caja'
             ]);

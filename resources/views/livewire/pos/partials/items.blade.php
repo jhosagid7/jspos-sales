@@ -87,15 +87,15 @@
         {{-- @json($cart) --}}
         <div class="row">
             <div class="order-history table-responsive wishlist">
-                <table class="table table-bordered">
+                <table class="table table-bordered table-sm table-striped align-middle">
                     <thead>
                         <tr>
-                            <th class="p-2" width="100"></th>
-                            <th class="p-2">Descripción</th>
-                            <th class="p-2" width="200">Precio Vta</th>
-                            <th class="p-2" width="300">Cantidad</th>
-                            <th class="p-2">Importe</th>
-                            <th class="p-2">Acciones</th>
+                            <th class="p-1" width="100">Código</th>
+                            <th class="p-1">Descripción</th>
+                            <th class="p-1" width="130">Precio Vta</th>
+                            <th class="p-1" width="140">Cantidad</th>
+                            <th class="p-1" width="100">Importe</th>
+                            <th class="p-1" width="60">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -107,33 +107,30 @@
                             @endphp
                             <tr wire:key="cart-item-{{ $item['id'] }}">
                                 <td>
-                                    <img class="img-fluid img-30" src="{{ asset($item['image']) }} ">
+                                    <span class="badge badge-light text-dark">{{ $item['sku'] }}</span>
                                 </td>
                                 <td>
-                                    <div class="product-name txt-info">{{ strtoupper($item['name']) }}</div>
-                                    <small
-                                        class="{{ $item['sku'] == null ? 'd-none' : '' }}">sku:{{ $item['sku'] }}</small>
+                                    <div class="product-name txt-info font-weight-bold" style="font-size: 0.9rem;">{{ strtoupper($item['name']) }}</div>
                                 </td>
                                 <td>
                                     @if (count($item['pricelist']) == 0)
-                                        <div class="mb-3">
-                                            <div class="input-group">
-                                                <input class="form-control"
+                                        <div class="mb-0">
+                                            <div class="input-group input-group-sm">
+                                                <input class="form-control form-control-sm"
                                                     wire:keydown.enter.prevent="setCustomPrice('{{ $item['id'] }}', $event.target.value )"
                                                     type="text" oninput="justNumber(this)" 
                                                     value="{{ $item['sale_price'] }}">
                                                 
-                                                <button class="btn btn-warning dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-boundary="viewport">
-                                                    <i class="fa fa-info"></i>
-                                                </button>
-                                                
-                                                <ul class="dropdown-menu dropdown-menu-end" style="min-width: 250px; max-height: 400px; overflow-y: auto; z-index: 9999;">
-                                                    <li>
+                                                <div class="input-group-append">
+                                                    <button class="btn btn-warning btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                        <i class="fa fa-info"></i>
+                                                    </button>
+                                                    <div class="dropdown-menu dropdown-menu-right" style="min-width: 250px; z-index: 10000;">
                                                         <a class="dropdown-item" href="javascript:void(0)">
                                                             <div class="d-flex flex-column">
-                                                                <span class="fw-bold fs-6">{{ $primarySymbol }}{{ $item['sale_price'] }}</span>
+                                                                <span class="font-weight-bold">{{ $primarySymbol }}{{ $item['sale_price'] }}</span>
                                                                 @if(isset($currencies) && $currencies->count() > 1)
-                                                                    <div class="text-muted" style="font-size: 0.75rem;">
+                                                                    <div class="text-muted small">
                                                                         @foreach($currencies as $currency)
                                                                             @if(!$currency->is_primary)
                                                                                 @php
@@ -146,37 +143,36 @@
                                                                 @endif
                                                             </div>
                                                         </a>
-                                                    </li>
-                                                </ul>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     @else
-                                        <div class="mb-3">
-                                            <div class="input-group">
-                                                <input class="form-control" id="inputPrice{{ $item['id'] }}"
+                                        <div class="mb-0">
+                                            <div class="input-group input-group-sm">
+                                                <input class="form-control form-control-sm" id="inputPrice{{ $item['id'] }}"
                                                     wire:keydown.enter.prevent="setCustomPrice('{{ $item['id'] }}', $event.target.value )"
                                                     oninput="justNumber(this)" type="text"
                                                     placeholder="{{ $item['sale_price'] }}"
                                                     value="{{ $item['sale_price'] }}">
                                                 
-                                                <button class="btn btn-warning dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-boundary="viewport">
-                                                    <i class="fa fa-list"></i>
-                                                </button>
-                                                
-                                                <ul class="dropdown-menu dropdown-menu-end" style="min-width: 250px; max-height: 400px; overflow-y: auto; z-index: 9999;">
-                                                    @php
-                                                        $primaryCurrency = $currencies->firstWhere('is_primary', true);
-                                                        $primaryRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
-                                                        $primarySymbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
-                                                    @endphp
-                                                    @foreach ($item['pricelist'] as $price)
-                                                        <li>
+                                                <div class="input-group-append">
+                                                    <button class="btn btn-warning btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                        <i class="fa fa-list"></i>
+                                                    </button>
+                                                    <div class="dropdown-menu dropdown-menu-right" style="min-width: 250px; max-height: 300px; overflow-y: auto; z-index: 10000;">
+                                                        @php
+                                                            $primaryCurrency = $currencies->firstWhere('is_primary', true);
+                                                            $primaryRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
+                                                            $primarySymbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
+                                                        @endphp
+                                                        @foreach ($item['pricelist'] as $price)
                                                             <a class="dropdown-item" href="javascript:void(0)" 
                                                                wire:click.prevent="setCustomPrice('{{ $item['id'] }}', '{{ $price['price'] }}')">
                                                                 <div class="d-flex flex-column">
-                                                                    <span class="fw-bold fs-6">{{ $primarySymbol }}{{ $price['price'] }}</span>
+                                                                    <span class="font-weight-bold">{{ $primarySymbol }}{{ $price['price'] }}</span>
                                                                     @if(isset($currencies) && $currencies->count() > 1)
-                                                                        <div class="text-muted" style="font-size: 0.75rem;">
+                                                                        <div class="text-muted small">
                                                                             @foreach($currencies as $currency)
                                                                                 @if(!$currency->is_primary)
                                                                                     @php
@@ -189,34 +185,33 @@
                                                                     @endif
                                                                 </div>
                                                             </a>
-                                                        </li>
-                                                        @if(!$loop->last)
-                                                            <li><hr class="dropdown-divider"></li>
-                                                        @endif
-                                                    @endforeach
-                                                </ul>
+                                                            @if(!$loop->last)
+                                                                <div class="dropdown-divider"></div>
+                                                            @endif
+                                                        @endforeach
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     @endif
                                 </td>
                                 <td>
-                                    <div class="right-details">
-                                        <div class="touchspin-wrapper">
-
-                                            <button
-                                                onclick="updateQty({{ $item['pid'] }},'{{ $item['id'] }}','decrement')"
-                                                class="decrement-touchspin btn-touchspin"><i
-                                                    class="fa fa-minus text-gray"></i>
+                                    <div class="input-group input-group-sm" style="width: 120px;">
+                                        <div class="input-group-prepend">
+                                            <button class="btn btn-dark btn-sm" type="button"
+                                                onclick="updateQty({{ $item['pid'] }},'{{ $item['id'] }}','decrement')">
+                                                <i class="fas fa-minus"></i>
                                             </button>
-                                            <input
-                                                wire:keydown.enter.prevent="updateQty('{{ $item['id'] }}', $event.target.value )"
-                                                class=" input-touchspin" type="number" value="{{ $item['qty'] }}"
-                                                id="p{{ $item['pid'] }}">
-
-                                            <button
-                                                onclick="updateQty({{ $item['pid'] }},'{{ $item['id'] }}', 'increment')"
-                                                class="increment-touchspin btn-touchspin"><i
-                                                    class="fa fa-plus text-gray"></i>
+                                        </div>
+                                        <input type="number" 
+                                            wire:keydown.enter.prevent="updateQty('{{ $item['id'] }}', $event.target.value )"
+                                            class="form-control form-control-sm text-center" 
+                                            value="{{ $item['qty'] }}"
+                                            id="p{{ $item['pid'] }}">
+                                        <div class="input-group-append">
+                                            <button class="btn btn-dark btn-sm" type="button"
+                                                onclick="updateQty({{ $item['pid'] }},'{{ $item['id'] }}','increment')">
+                                                <i class="fas fa-plus"></i>
                                             </button>
                                         </div>
                                     </div>
@@ -227,8 +222,8 @@
                                 <td>
 
                                     <button wire:click.prevent="removeItem({{ $item['pid'] }})"
-                                        class="btn btn-light btn-sm">
-                                        <i class="fa fa-trash fa-2x"></i>
+                                        class="btn btn-danger btn-sm" title="Eliminar">
+                                        <i class="fas fa-trash"></i>
                                     </button>
                                 </td>
                             </tr>

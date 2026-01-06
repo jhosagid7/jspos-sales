@@ -157,28 +157,7 @@
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        {{-- Nequi --}}
-                                                        <div class="col-md-4 mb-3">
-                                                            <div class="card h-100 border-primary">
-                                                                <div class="card-header bg-light-primary p-2">
-                                                                    <h6 class="mb-0 text-primary"><i class="fas fa-mobile-alt"></i> Nequi</h6>
-                                                                </div>
-                                                                <div class="card-body p-2">
-                                                                    @if (!empty($salesByCurrency['nequi']))
-                                                                        <table class="table table-sm table-borderless mb-0">
-                                                                            @foreach ($salesByCurrency['nequi'] as $currencyCode => $amount)
-                                                                                <tr>
-                                                                                    <td class="text-muted">{{ $currencyCode }}:</td>
-                                                                                    <td class="text-end fw-bold">{{ number_format($amount, 2) }}</td>
-                                                                                </tr>
-                                                                            @endforeach
-                                                                        </table>
-                                                                    @else
-                                                                        <p class="text-muted mb-0 text-center">Sin movimientos</p>
-                                                                    @endif
-                                                                </div>
-                                                            </div>
-                                                        </div>
+
                                                         {{-- Banco --}}
                                                         <div class="col-md-4 mb-3">
                                                             <div class="card h-100 border-primary">
@@ -215,18 +194,22 @@
                                                     <div class="card bg-light">
                                                         <div class="card-body text-dark">
                                                             <h5 class="card-title">Resumen General</h5>
+                                                            @php
+                                                                $primaryCurrency = \App\Models\Currency::where('is_primary', true)->first();
+                                                                $primarySymbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
+                                                            @endphp
                                                             <div class="d-flex justify-content-between mb-2">
                                                                 <span>Total Esperado:</span>
-                                                                <span class="fw-bold">{{ number_format($totalExpected, 2) }}</span>
+                                                                <span class="fw-bold">{{ $primarySymbol }}{{ number_format($totalExpected, 2) }}</span>
                                                             </div>
                                                             <div class="d-flex justify-content-between mb-2">
                                                                 <span>Total Contado:</span>
-                                                                <span class="fw-bold">{{ number_format($totalCounted, 2) }}</span>
+                                                                <span class="fw-bold">{{ $primarySymbol }}{{ number_format($totalCounted, 2) }}</span>
                                                             </div>
                                                             <hr>
                                                             <div class="d-flex justify-content-between">
                                                                 <span class="h5">Diferencia Total:</span>
-                                                                <span class="h3 fw-bold {{ $totalDifference < 0 ? 'text-danger' : ($totalDifference > 0 ? 'text-primary' : 'text-success') }}">{{ number_format($totalDifference, 2) }}</span>
+                                                                <span class="h3 fw-bold {{ $totalDifference < 0 ? 'text-danger' : ($totalDifference > 0 ? 'text-primary' : 'text-success') }}">{{ $primarySymbol }}{{ number_format($totalDifference, 2) }}</span>
                                                             </div>
                                                         </div>
                                                     </div>

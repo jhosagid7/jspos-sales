@@ -16,6 +16,7 @@ class Currency extends Model
      */
     protected $fillable = [
         'code',          // Código de la moneda (ISO 4217)
+        'name',          // Nombre de la moneda
         'label',         // Nombre de la moneda
         'symbol',        // Símbolo de la moneda
         'exchange_rate', // Tasa de cambio respecto a la moneda principal

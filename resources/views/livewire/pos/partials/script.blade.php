@@ -71,21 +71,15 @@
     document.addEventListener('livewire:init', function() {
 
         Livewire.on('initPay', event => {
-            $(event.payType == 4 ? '#modalNequi' : event.payType == 3 ? '#modalDeposit' : '#modalCash')
+            $(event.payType == 3 ? '#modalDeposit' : '#modalCash')
                 .modal('show')
             // $(event.payType == 3 ? '#modalDeposit' : '#modalCash').modal('show')
 
 
-            if (event.payType == 4) {
-                setTimeout(() => {
-                    document.getElementById('phoneNumber').value = ''
-                    document.getElementById('phoneNumber').focus()
-                }, 700)
-            } else if (event.payType != 3 && event.payType != 4) {
+            if (event.payType != 3) {
                 setTimeout(() => {
                     @this.clearCashAmount()
                     document.getElementById('inputCash').value = null
-                    document.getElementById('inputNequi').value = null
                     document.getElementById('phoneNumber').value = null
                     document.getElementById('inputCash').focus()
                 }, 700)
@@ -192,12 +186,13 @@
 
 
     function validarInputNumber(input) {
-        // expresión regular para validar el formato del número
-        var regex = /^\d+(\.\d{1,2})?$/;
+        // Expresión regular para validar el formato del número (permite decimales intermedios)
+        var regex = /^\d*\.?\d{0,2}$/;
 
         // Validar si el valor del input coincide con la expresión regular
         if (!regex.test(input.value)) {
-            input.value = ''
+            // Si el valor no coincide, deshabilitar la entrada del último caracter ingresado
+            input.value = input.value.slice(0, -1);
         }
     }
 

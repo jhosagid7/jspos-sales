@@ -20,48 +20,71 @@ class SalesReport extends Component
     public $totales = 0, $sale_id, $sale_status, $details = [];
     public $salesObt;
     public $sale_note;
+    public $currencies = [];
+    public $sellers = [], $seller_id;
+    public $customer; // New property for customer filter
 
     function mount()
     {
-        session(['map' => "", 'child' => '', 'pos' => 'Reporte de Ventas']);
+        session()->forget('sale_customer'); // Clear session
+        session(['map' => "", 'child' => '', 'rest' => '', 'pos' => 'Reporte de Ventas']);
 
         $this->users = User::orderBy('name')->get();
+        $this->sellers = User::role('Vendedor')->orderBy('name')->get();
+        $this->currencies = \App\Models\Currency::orderBy('id')->get();
     }
 
     public function render()
     {
+        $this->customer = session('sale_customer', null); // Get customer from session
+
         return view('livewire.reports.salesr', [
             'sales' => $this->getReport()
         ]);
+    }
+
+    #[On('sale_customer')] // Listener for customer selection
+    function setCustomer($customer)
+    {
+        session(['sale_customer' => $customer]);
+        $this->customer = $customer;
     }
 
     function getReport()
     {
         if (!$this->showReport) return [];
 
-        if ($this->user_id == null && $this->dateFrom == null && $this->dateTo == null) {
-            $this->dispatch('noty', msg: 'SELECCIONA EL USUARIO Y/O LAS FECHAS PARA CONSULTAR LAS VENTAS');
-            return;
-        }
-        if ($this->dateFrom != null && $this->dateTo == null) {
-            $this->dispatch('noty', msg: 'SELECCIONA LA FECHA DESDE Y HASTA');
-            return;
-        }
-        if ($this->dateFrom == null && $this->dateTo != null) {
-            $this->dispatch('noty', msg: 'SELECCIONA LA FECHA DESDE Y HASTA');
-            return;
-        }
-
-        //$this->resetPage();
+        // Allow empty filters (return all)
+        // if ($this->user_id == null && $this->dateFrom == null && $this->dateTo == null && $this->seller_id == null && $this->customer == null) {
+        //     $this->dispatch('noty', msg: 'SELECCIONA LOS FILTROS PARA CONSULTAR LAS VENTAS');
+        //     return;
+        // }
+        
+        // ... (date validation logic remains similar, maybe adjust if needed)
 
         try {
-            $dFrom = Carbon::parse($this->dateFrom)->startOfDay();
-            $dTo = Carbon::parse($this->dateTo)->endOfDay();
+            $dFrom = null;
+            $dTo = null;
+            
+            if($this->dateFrom && $this->dateTo) {
+                $dFrom = Carbon::parse($this->dateFrom)->startOfDay();
+                $dTo = Carbon::parse($this->dateTo)->endOfDay();
+            }
 
-            $sales = Sale::with(['customer', 'details', 'user'])
-                ->whereBetween('created_at', [$dFrom, $dTo])
+            $sales = Sale::with(['customer', 'details', 'user', 'paymentDetails', 'changeDetails'])
+                ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
+                    $q->whereBetween('created_at', [$dFrom, $dTo]);
+                })
                 ->when($this->user_id != null, function ($query) {
                     $query->where('user_id', $this->user_id);
+                })
+                ->when($this->seller_id != null, function ($query) {
+                    $query->whereHas('customer', function($q) {
+                        $q->where('seller_id', $this->seller_id);
+                    });
+                })
+                ->when($this->customer != null, function ($query) {
+                     $query->where('customer_id', $this->customer['id']);
                 })
                 ->when($this->type != 0, function ($qry) {
                     $qry->where('type', $this->type);
@@ -69,12 +92,63 @@ class SalesReport extends Component
                 ->orderBy('id', 'desc')
                 ->paginate($this->pagination);
 
-            //$this->showReport = false;
+            // Calcular totales globales (sin paginación)
+            $salesQuery = Sale::when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
+                    $q->whereBetween('created_at', [$dFrom, $dTo]);
+                })
+                ->when($this->user_id != null, function ($query) {
+                    $query->where('user_id', $this->user_id);
+                })
+                ->when($this->seller_id != null, function ($query) {
+                    $query->whereHas('customer', function($q) {
+                        $q->where('seller_id', $this->seller_id);
+                    });
+                })
+                ->when($this->customer != null, function ($query) {
+                     $query->where('customer_id', $this->customer['id']);
+                })
+                ->when($this->type != 0, function ($qry) {
+                    $qry->where('type', $this->type);
+                })
+                ->where('status', '<>', 'returned');
 
-            $this->totales = $sales->where('status', '<>', 'returned')->sum(function ($sale) {
-                return $sale->total;
-            });
+            $totalSale = $salesQuery->sum('total');
 
+            // Calcular costo total
+            $totalCostQuery = DB::table('sale_details')
+                ->join('sales', 'sale_details.sale_id', '=', 'sales.id')
+                ->join('products', 'sale_details.product_id', '=', 'products.id')
+                ->join('customers', 'sales.customer_id', '=', 'customers.id') 
+                ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
+                    $q->whereBetween('sales.created_at', [$dFrom, $dTo]);
+                })
+                ->when($this->user_id != null, function ($query) {
+                    $query->where('sales.user_id', $this->user_id);
+                })
+                ->when($this->seller_id != null, function ($query) {
+                    $query->where('customers.seller_id', $this->seller_id);
+                })
+                ->when($this->customer != null, function ($query) {
+                     $query->where('sales.customer_id', $this->customer['id']);
+                })
+                ->when($this->type != 0, function ($qry) {
+                    $qry->where('sales.type', $this->type);
+                })
+                ->where('sales.status', '<>', 'returned');
+                
+            $totalCost = $totalCostQuery->sum(DB::raw('sale_details.quantity * products.cost'));
+
+            $profit = $totalSale - $totalCost;
+            $this->totales = $totalSale;
+
+            // Actualizar header
+            $map = "TOTAL COSTO $" . number_format($totalCost, 2);
+            $child = "TOTAL VENTA $" . number_format($totalSale, 2);
+            $rest = " GANANCIA:" . number_format($profit, 2);
+
+            session(['map' => $map, 'child' => $child, 'rest' => $rest, 'pos' => 'Reporte de Ventas']);
+            
+            $this->dispatch('update-header', map: $map, child: $child, rest: $rest);
             $this->dispatch('noty', msg: 'INFO ACTUALIZADA');
             return $sales;
             //

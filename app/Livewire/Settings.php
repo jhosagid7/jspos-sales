@@ -15,6 +15,7 @@ class Settings extends Component
     public $primaryCurrency; // Moneda principal
     public $availableCurrencies = ['USD', 'COP', 'VES']; // Lista de monedas disponibles
     public $currencies = []; // Lista de monedas configuradas
+    public $editableRates = []; // Tasas editables
     public $newCurrencyCode;
     public $newCurrencyLabel;
     public $newCurrencySymbol;
@@ -125,6 +126,34 @@ class Settings extends Component
     {
         $this->currencies = DB::table('currencies')->get();
         $this->primaryCurrency = DB::table('currencies')->where('is_primary', true)->value('code');
+        
+        // Cargar tasas editables
+        foreach($this->currencies as $currency) {
+            $this->editableRates[$currency->id] = $currency->exchange_rate;
+        }
+    }
+    
+    public function updateCurrencyRate($id)
+    {
+        try {
+            $rate = $this->editableRates[$id] ?? null;
+            
+            if (!is_numeric($rate) || $rate <= 0) {
+                $this->dispatch('noty', msg: 'La tasa de cambio debe ser un número mayor a 0.');
+                return;
+            }
+            
+            DB::table('currencies')->where('id', $id)->update([
+                'exchange_rate' => $rate,
+                'updated_at' => now()
+            ]);
+            
+            $this->loadCurrencies();
+            $this->dispatch('noty', msg: 'Tasa de cambio actualizada correctamente.');
+            
+        } catch (\Throwable $th) {
+            $this->dispatch('noty', msg: 'Error al actualizar la tasa: ' . $th->getMessage());
+        }
     }
 
     public function addCurrency()
