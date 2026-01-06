@@ -19,6 +19,7 @@ class Users extends Component
     public $user_id, $editing, $search, $pagination = 5, $pwd,  $temppwd;
     public  $role, $roleSelectedId,  $permissionId, $roles = [];
     public $commission_percent = 0, $freight_percent = 0, $exchange_diff_percent = 0, $current_batch = '1';
+    public $sellerCommission1Threshold, $sellerCommission1Percentage, $sellerCommission2Threshold, $sellerCommission2Percentage;
 
     protected $rules =
     [
@@ -31,6 +32,10 @@ class Users extends Component
         'commission_percent' => 'nullable|numeric|min:0|max:100',
         'freight_percent' => 'nullable|numeric|min:0|max:100',
         'exchange_diff_percent' => 'nullable|numeric|min:0|max:1000',
+        'sellerCommission1Threshold' => 'nullable|numeric',
+        'sellerCommission1Percentage' => 'nullable|numeric',
+        'sellerCommission2Threshold' => 'nullable|numeric',
+        'sellerCommission2Percentage' => 'nullable|numeric',
     ];
 
     protected $messages = [
@@ -59,7 +64,9 @@ class Users extends Component
         $this->commission_percent = 0;
         $this->freight_percent = 0;
         $this->exchange_diff_percent = 0;
+        $this->exchange_diff_percent = 0;
         $this->current_batch = '1';
+        $this->resetCommissionFields();
         $this->editing = false;
 
         session(['map' => 'Usuarios', 'child' => ' Componente ']);
@@ -96,6 +103,7 @@ class Users extends Component
         $this->commission_percent = 0;
         $this->freight_percent = 0;
         $this->exchange_diff_percent = 0;
+        $this->resetCommissionFields();
         $this->editing = false;
         $this->dispatch('init-new');
     }
@@ -109,6 +117,11 @@ class Users extends Component
         $this->roleSelectedId = $this->getRoleId($user->profile);
         $this->role = Role::find($this->roleSelectedId);
         
+        $this->sellerCommission1Threshold = $user->seller_commission_1_threshold;
+        $this->sellerCommission1Percentage = $user->seller_commission_1_percentage;
+        $this->sellerCommission2Threshold = $user->seller_commission_2_threshold;
+        $this->sellerCommission2Percentage = $user->seller_commission_2_percentage;
+
         $latestConfig = $user->latestSellerConfig;
         if($latestConfig) {
             $this->commission_percent = $latestConfig->commission_percent;
@@ -134,6 +147,7 @@ class Users extends Component
         $this->commission_percent = 0;
         $this->freight_percent = 0;
         $this->exchange_diff_percent = 0;
+        $this->resetCommissionFields();
         $this->editing = false;
     }
 
@@ -156,6 +170,11 @@ class Users extends Component
             else
                 $this->user->password = $this->temppwd;
         }
+        
+        $this->user->seller_commission_1_threshold = $this->sellerCommission1Threshold;
+        $this->user->seller_commission_1_percentage = $this->sellerCommission1Percentage;
+        $this->user->seller_commission_2_threshold = $this->sellerCommission2Threshold;
+        $this->user->seller_commission_2_percentage = $this->sellerCommission2Percentage;
 
         // save model
         $this->user->save();
@@ -182,7 +201,17 @@ class Users extends Component
         $this->user->commission_percentage = 0;
         $this->commission_percent = 0;
         $this->freight_percent = 0;
+        $this->freight_percent = 0;
         $this->exchange_diff_percent = 0;
+        $this->resetCommissionFields();
+    }
+
+    public function resetCommissionFields()
+    {
+        $this->sellerCommission1Threshold = null;
+        $this->sellerCommission1Percentage = null;
+        $this->sellerCommission2Threshold = null;
+        $this->sellerCommission2Percentage = null;
     }
 
     public function getRoleId($role)

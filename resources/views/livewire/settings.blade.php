@@ -83,6 +83,25 @@
                                 </div>
                             </a>
                         </li>
+
+                        {{-- Tab 5: Configuración de Comisiones --}}
+                        <li class="nav-item">
+                            <a class="nav-link {{ $tab == 5 ? 'active' : '' }}" wire:click.prevent="$set('tab',5)"
+                                id="commissions-settings-tab" data-bs-toggle="pill" href="#commissions-settings" role="tab"
+                                aria-controls="commissions-settings" aria-selected="{{ $tab == 5 ? 'true' : 'false' }}">
+                                <div class="nav-rounded">
+                                    <div class="product-icons">
+                                        <svg class="stroke-icon">
+                                            <use href="../assets/svg/icon-sprite.svg#stroke-charts"></use>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="product-tab-content">
+                                    <h6>Configuración de Comisiones</h6>
+                                    <p>Reglas globales</p>
+                                </div>
+                            </a>
+                        </li>
                     </ul>
                 </div>
 
@@ -357,6 +376,53 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        {{-- TAB 5: CONFIGURACIÓN DE COMISIONES --}}
+                        <div class="tab-pane fade {{ $tab == 5 ? 'active show' : '' }}" id="commissions-settings" role="tabpanel"
+                            aria-labelledby="commissions-settings-tab">
+                            <div class="sidebar-body">
+                                <form class="row g-3">
+                                    <div class="col-12">
+                                        <div class="alert alert-light-primary" role="alert">
+                                            <i class="fas fa-info-circle"></i> Estas reglas se aplicarán si el Vendedor o el Cliente no tienen una configuración específica.
+                                        </div>
+                                    </div>
+                                    
+                                    <h6 class="mb-2">Nivel 1 (Pronto Pago)</h6>
+                                    <div class="col-sm-12 col-md-6">
+                                        <label class="form-label">Días Límite (<=)</label>
+                                        <input wire:model="globalCommission1Threshold" type="number" class="form-control" placeholder="Ej: 15">
+                                        @error('globalCommission1Threshold') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+                                    <div class="col-sm-12 col-md-6">
+                                        <label class="form-label">Porcentaje (%)</label>
+                                        <input wire:model="globalCommission1Percentage" type="number" step="0.01" class="form-control" placeholder="Ej: 8">
+                                        @error('globalCommission1Percentage') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <div class="col-12"><hr></div>
+
+                                    <h6 class="mb-2">Nivel 2 (Pago Tardío)</h6>
+                                    <div class="col-sm-12 col-md-6">
+                                        <label class="form-label">Días Límite (<=)</label>
+                                        <input wire:model="globalCommission2Threshold" type="number" class="form-control" placeholder="Ej: 30">
+                                        @error('globalCommission2Threshold') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+                                    <div class="col-sm-12 col-md-6">
+                                        <label class="form-label">Porcentaje (%)</label>
+                                        <input wire:model="globalCommission2Percentage" type="number" step="0.01" class="form-control" placeholder="Ej: 4">
+                                        @error('globalCommission2Percentage') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <div class="col-12">
+                                        <button class="btn btn-primary" wire:click.prevent="saveConfig" wire:loading.attr="disabled">
+                                            <span wire:loading.remove wire:target="saveConfig">Guardar Configuración</span>
+                                            <span wire:loading wire:target="saveConfig">Guardando...</span>
+                                        </button>
+                                    </div>
+                                </form>
                             </div>
                         </div>
 

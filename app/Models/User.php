@@ -24,7 +24,11 @@ class User extends Authenticatable
         'email',
         'password',
         'profile',
-        'commission_percentage'
+        'commission_percentage',
+        'seller_commission_1_threshold',
+        'seller_commission_1_percentage',
+        'seller_commission_2_threshold',
+        'seller_commission_2_percentage'
     ];
 
     /**

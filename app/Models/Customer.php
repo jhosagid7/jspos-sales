@@ -18,7 +18,11 @@ class Customer extends Model
         'phone',
         'taxpayer_id',
         'type',
-        'seller_id'
+        'seller_id',
+        'customer_commission_1_threshold',
+        'customer_commission_1_percentage',
+        'customer_commission_2_threshold',
+        'customer_commission_2_percentage'
     ];
 
     function sales()
