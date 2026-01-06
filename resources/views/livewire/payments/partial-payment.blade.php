@@ -104,8 +104,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="row">
-                                    <div class="row mb-3">
+                                    <div class="row mb-3 mt-3">
                                         <div class="col-12">
                                             <h6 class="f-w-600 f-12 mb-2 txt-primary">MÉTODO DE PAGO:</h6>
                                             <div class="btn-group w-100" role="group">
