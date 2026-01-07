@@ -113,7 +113,7 @@
                                     <div class="product-name txt-info font-weight-bold" style="font-size: 0.9rem;">{{ strtoupper($item['name']) }}</div>
                                 </td>
                                 <td>
-                                    @if (count($item['pricelist']) == 0)
+                                    @if (count($item['pricelist']) <= 1)
                                         <div class="mb-0">
                                             <div class="input-group input-group-sm">
                                                 <input class="form-control form-control-sm"

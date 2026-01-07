@@ -36,6 +36,15 @@ class AccountsReceivableReport extends Component
         $this->sellers = \App\Models\User::role('Vendedor')->orderBy('name')->get();
         $this->users = \App\Models\User::orderBy('name')->get(); // Load users
         session(['map' => "", 'child' => '', 'pos' => 'Reporte de Cuentas por Cobrar']);
+
+        if (request()->has('c')) {
+            $customer = \App\Models\Customer::find(request()->c);
+            if ($customer) {
+                session(['account_customer' => $customer]);
+                $this->customer = $customer;
+                $this->showReport = true;
+            }
+        }
     }
 
     public function render()

@@ -34,6 +34,15 @@ class AccountsPayableReport extends Component
         $this->paymentCurrency = $this->currencies->firstWhere('is_primary', 1)->code ?? 'COP';
         $this->paymentMethod = 'cash';
         session(['map' => "", 'child' => '', 'pos' => 'Reporte de Cuentas por Pagar']);
+
+        if (request()->has('s')) {
+            $supplier = \App\Models\Supplier::find(request()->s);
+            if ($supplier) {
+                session(['account_supplier' => $supplier]);
+                $this->supplier = $supplier;
+                $this->showReport = true;
+            }
+        }
     }
 
     public function render()
@@ -75,19 +84,23 @@ class AccountsPayableReport extends Component
         try {
 
 
-            $dFrom = Carbon::parse($this->dateFrom)->startOfDay();
-            $dTo = Carbon::parse($this->dateTo)->endOfDay();
 
-            $purchases = Purchase::with(['supplier', 'payables'])->whereBetween('created_at', [$dFrom, $dTo])
+            $query = Purchase::with(['supplier', 'payables'])
                 ->where('type', 'credit')
                 ->when($this->supplier != null, function ($query) {
                     $query->where('supplier_id', $this->supplier['id']);
                 })
                 ->when($this->status != 0, function ($query) {
                     $query->where('status', $this->status);
-                })
-                ->orderBy('id', 'desc')
-                ->paginate($this->pagination);
+                });
+
+            if ($this->dateFrom != null && $this->dateTo != null) {
+                $dFrom = Carbon::parse($this->dateFrom)->startOfDay();
+                $dTo = Carbon::parse($this->dateTo)->endOfDay();
+                $query->whereBetween('created_at', [$dFrom, $dTo]);
+            }
+
+            $purchases = $query->orderBy('id', 'desc')->paginate($this->pagination);
 
 
             $this->totales = $purchases->sum(function ($purchase) {

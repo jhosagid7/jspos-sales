@@ -34,35 +34,60 @@
         </li>
 
         <!-- Notifications Dropdown Menu -->
-        @if ($noty_purchases->count() > 0 || $noty_sales->count() > 0)
+        <!-- Purchases Notifications -->
+        @if ($noty_purchases->count() > 0)
+        <li class="nav-item dropdown">
+            <a class="nav-link" data-toggle="dropdown" href="#">
+                <i class="fas fa-shopping-cart"></i>
+                <span class="badge badge-danger navbar-badge">{{ $noty_purchases->count() }}</span>
+            </a>
+            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+                <span class="dropdown-item dropdown-header">{{ $noty_purchases->count() }} Cuentas por Pagar</span>
+                <div class="dropdown-divider"></div>
+                @foreach ($noty_purchases as $npurchase)
+                    <a href="{{ route('reports.accounts.payables', ['s' => $npurchase->supplier_id]) }}" class="dropdown-item">
+                        <div class="media">
+                            <div class="media-body">
+                                <h3 class="dropdown-item-title font-weight-bold">
+                                    {{ $npurchase->supplier->name }}
+                                    <span class="float-right text-sm text-danger"><i class="fas fa-clock"></i> {{ app('fun')->overdue($npurchase->created_at, now()) }}d</span>
+                                </h3>
+                                <p class="text-sm">Compra #{{ $npurchase->id }}</p>
+                                <p class="text-sm text-muted"><i class="fas fa-money-bill-wave mr-1"></i> Deuda: ${{ number_format($npurchase->debt, 2) }}</p>
+                            </div>
+                        </div>
+                    </a>
+                    <div class="dropdown-divider"></div>
+                @endforeach
+            </div>
+        </li>
+        @endif
+
+        <!-- Sales Notifications -->
+        @if ($noty_sales->count() > 0)
         <li class="nav-item dropdown">
             <a class="nav-link" data-toggle="dropdown" href="#">
                 <i class="far fa-bell"></i>
-                <span class="badge badge-warning navbar-badge">
-                    {{ $noty_purchases->count() + $noty_sales->count() }}
-                </span>
+                <span class="badge badge-warning navbar-badge">{{ $noty_sales->count() }}</span>
             </a>
             <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
-                <span class="dropdown-item dropdown-header">Notificaciones</span>
+                <span class="dropdown-item dropdown-header">{{ $noty_sales->count() }} Cuentas por Cobrar</span>
                 <div class="dropdown-divider"></div>
-                @if ($noty_purchases->count() > 0)
-                    @foreach ($noty_purchases as $npurchase)
-                        <a href="{{ route('reports.accounts.payables') }}" class="dropdown-item">
-                            <i class="fas fa-envelope mr-2"></i> Compra #{{ $npurchase->id }}
-                            <span class="float-right text-muted text-sm">{{ app('fun')->overdue($npurchase->created_at, now()) }} días</span>
-                        </a>
-                        <div class="dropdown-divider"></div>
-                    @endforeach
-                @endif
-                @if ($noty_sales->count() > 0)
-                    @foreach ($noty_sales as $nsale)
-                        <a href="{{ route('reports.accounts.receivable') }}" class="dropdown-item">
-                            <i class="fas fa-file mr-2"></i> Venta #{{ $nsale->id }}
-                            <span class="float-right text-muted text-sm">{{ app('fun')->overdue($nsale->created_at, now()) }} días</span>
-                        </a>
-                        <div class="dropdown-divider"></div>
-                    @endforeach
-                @endif
+                @foreach ($noty_sales as $nsale)
+                    <a href="{{ route('reports.accounts.receivable', ['c' => $nsale->customer_id]) }}" class="dropdown-item">
+                        <div class="media">
+                            <div class="media-body">
+                                <h3 class="dropdown-item-title font-weight-bold">
+                                    {{ $nsale->customer->name }}
+                                    <span class="float-right text-sm text-danger"><i class="fas fa-clock"></i> {{ app('fun')->overdue($nsale->created_at, now()) }}d</span>
+                                </h3>
+                                <p class="text-sm">Venta #{{ $nsale->id }}</p>
+                                <p class="text-sm text-muted"><i class="fas fa-hand-holding-usd mr-1"></i> Deuda: ${{ number_format($nsale->debt, 2) }}</p>
+                            </div>
+                        </div>
+                    </a>
+                    <div class="dropdown-divider"></div>
+                @endforeach
             </div>
         </li>
         @endif
