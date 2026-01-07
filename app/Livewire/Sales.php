@@ -879,6 +879,14 @@ class Sales extends Component
     
     // Convertir lista de precios a moneda principal
     $priceListInPrimary = [];
+
+    // Agregar precio principal a la lista
+    $priceListInPrimary[] = [
+        'id' => 'main',
+        'price' => $basePriceInPrimary,
+        'name' => 'Precio Principal'
+    ];
+
     if (count($product->priceList) > 0) {
         foreach ($product->priceList as $p) {
             $priceListInPrimary[] = [
