@@ -1396,7 +1396,8 @@ class Sales extends Component
                 'invoice_number' => $invoiceNumber,
                 'order_number' => $orderNumber,
                 'batch_name' => $batchName,
-                'batch_sequence' => $batchSequence
+                'batch_sequence' => $batchSequence,
+                'credit_days' => $this->calculateCreditDays()
             ]);
 
             // get cart session
@@ -1943,4 +1944,26 @@ class Sales extends Component
         }
     }
 
+    function calculateCreditDays()
+    {
+        // 1. Customer Level
+        $customer = \App\Models\Customer::find($this->customer['id']);
+        if ($customer && $customer->customer_commission_1_threshold > 0) {
+            return $customer->customer_commission_1_threshold;
+        }
+
+        // 2. Seller Level
+        $seller = \App\Models\User::find(Auth()->user()->id);
+        if ($seller && $seller->seller_commission_1_threshold > 0) {
+            return $seller->seller_commission_1_threshold;
+        }
+
+        // 3. Global Level
+        $config = Configuration::first();
+        if ($config && $config->global_commission_1_threshold > 0) {
+            return $config->global_commission_1_threshold;
+        }
+
+        return 0; // Default if no rule matches
+    }
 }

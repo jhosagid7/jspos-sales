@@ -140,7 +140,7 @@ trait PrintTrait
 
                 $printer->setJustification(Printer::JUSTIFY_LEFT);
 
-                $payment = Payment::with('sale')->where('id', $payId)->first();
+                $payment = Payment::with(['sale', 'zelleRecord'])->where('id', $payId)->first();
 
                 $currencySymbol = '$';
                 if ($payment->sale->primary_currency_code) {
@@ -175,6 +175,9 @@ trait PrintTrait
                     case 'deposit':
                         $printer->text("DEPÓSITO\n");
                         break;
+                    case 'zelle':
+                        $printer->text("ZELLE\n");
+                        break;
                     default:
                         $printer->text("EFECTIVO\n");
                 }
@@ -185,6 +188,12 @@ trait PrintTrait
                     $printer->text($payment->bank . "\n");
                     $printer->text("No. Cuenta:" . $payment->account_number . "\n");
                     $printer->text("No. Depósito:" . $payment->deposit_number . "\n");
+                } elseif ($payment->pay_way == 'zelle' && $payment->zelleRecord) {
+                    $printer->text("Emisor: " . $payment->zelleRecord->sender_name . "\n");
+                    $printer->text("Fecha: " . \Carbon\Carbon::parse($payment->zelleRecord->zelle_date)->format('d/m/Y') . "\n");
+                    if ($payment->zelleRecord->reference) {
+                        $printer->text("Ref: " . $payment->zelleRecord->reference . "\n");
+                    }
                 }
 
 
@@ -569,6 +578,13 @@ trait PrintTrait
                 $printer->text("Total Pagado (USD): $" . number_format($totalPaidUSD, 2) . "\n");
                 $printer->text("Total Pagado ($primaryCode): $" . number_format($totalPaidSystem, 2) . "\n");
                 $printer->text("Saldo Pendiente ($primaryCode): $" . number_format($balanceSystem, 2) . "\n");
+
+                if ($sale->days_overdue > 0) {
+                    $printer->text("\n");
+                    $printer->setJustification(Printer::JUSTIFY_CENTER);
+                    $printer->text("*** CUENTA VENCIDA ***\n");
+                    $printer->text("Días de atraso: " . $sale->days_overdue . "\n");
+                }
 
                 $printer->feed(3);
                 $printer->cut();

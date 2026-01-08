@@ -127,65 +127,48 @@ class PaymentComponent extends Component
 
     public function checkZelleStatus()
     {
-        $this->zelleStatusMessage = '';
-        $this->zelleStatusType = '';
-        $this->zelleRemainingBalance = null;
+        if ($this->zelleSender && $this->zelleDate && $this->zelleAmount) {
+            
+            // 1. Check for Session Duplicates (Already in list)
+            $isDuplicateInSession = collect($this->payments)->contains(function ($payment) {
+                return $payment['method'] === 'zelle' &&
+                       $payment['zelle_sender'] === $this->zelleSender &&
+                       $payment['zelle_date'] === $this->zelleDate &&
+                       floatval($payment['zelle_amount']) === floatval($this->zelleAmount);
+            });
 
-        Log::info("Checking Zelle Status: Sender={$this->zelleSender}, Date={$this->zelleDate}, Amount={$this->zelleAmount}");
+            if ($isDuplicateInSession) {
+                $this->zelleStatusMessage = "Este Zelle ya está en la lista de pagos. Si desea cambiar el monto, elimine el anterior y agréguelo nuevamente.";
+                $this->zelleStatusType = 'warning'; // Orange: Session Duplicate
+                $this->zelleRemainingBalance = null;
+                return;
+            }
 
-        if (!empty($this->zelleSender) && !empty($this->zelleDate) && !empty($this->zelleAmount)) {
-            $dbMessage = '';
-            $dbType = '';
-            $localUsed = 0;
-            $baseBalance = (float)$this->zelleAmount; // Default to full amount if new
-
-            // 1. Check Database
-            $record = ZelleRecord::where('sender_name', 'like', trim($this->zelleSender))
+            // 2. Check Database
+            $zelleRecord = ZelleRecord::where('sender_name', $this->zelleSender)
                 ->where('zelle_date', $this->zelleDate)
                 ->where('amount', $this->zelleAmount)
                 ->first();
 
-            if ($record) {
-                Log::info("Zelle Record Found: ID={$record->id}, Balance={$record->remaining_balance}");
-                $baseBalance = (float)$record->remaining_balance;
-                
-                if ($baseBalance <= 0) {
-                    $dbMessage = "Este Zelle ya fue utilizado completamente en BD.";
-                    $dbType = 'danger';
+            if ($zelleRecord) {
+                if ($zelleRecord->remaining_balance <= 0.01) {
+                    $this->zelleStatusMessage = "Este Zelle ya fue utilizado completamente.";
+                    $this->zelleStatusType = 'danger'; // Red: DB Exhausted
+                    $this->zelleRemainingBalance = 0;
                 } else {
-                    $dbMessage = "Registrado en BD.";
-                    $dbType = 'info';
+                    $this->zelleStatusMessage = "Zelle encontrado. Saldo restante: $" . number_format($zelleRecord->remaining_balance, 2);
+                    $this->zelleStatusType = 'success'; // Green: Available Balance
+                    $this->zelleRemainingBalance = $zelleRecord->remaining_balance;
                 }
             } else {
-                Log::info("No Zelle Record Found for: " . trim($this->zelleSender));
-                $dbMessage = "Nuevo (No en BD).";
-                $dbType = 'success';
+                $this->zelleStatusMessage = "Nuevo Zelle (No registrado en BD).";
+                $this->zelleStatusType = 'success'; // Green: New
+                $this->zelleRemainingBalance = $this->zelleAmount;
             }
-
-            // 2. Check Local Payments (In Memory)
-            foreach ($this->payments as $payment) {
-                if (isset($payment['zelle_sender']) && 
-                    strcasecmp($payment['zelle_sender'], $this->zelleSender) === 0 &&
-                    $payment['zelle_date'] == $this->zelleDate &&
-                    $payment['zelle_amount'] == $this->zelleAmount) {
-                    
-                    $localUsed += $payment['amount']; // Sum amount used in this session
-                }
-            }
-
-            // 3. Calculate Actual Remaining
-            $this->zelleRemainingBalance = $baseBalance - $localUsed;
-
-            if ($this->zelleRemainingBalance < 0) {
-                 $this->zelleStatusMessage = "Error: El uso local excede el monto del Zelle.";
-                 $this->zelleStatusType = 'danger';
-            } elseif ($localUsed > 0) {
-                 $this->zelleStatusMessage = "Zelle reutilizado (Lista actual). Usado: $" . number_format($localUsed, 2) . ". Restante: $" . number_format($this->zelleRemainingBalance, 2) . ". ($dbMessage)";
-                 $this->zelleStatusType = $this->zelleRemainingBalance > 0 ? 'warning' : 'danger';
-            } else {
-                 $this->zelleStatusMessage = $dbMessage . " Disponible: $" . number_format($this->zelleRemainingBalance, 2);
-                 $this->zelleStatusType = $dbType;
-            }
+        } else {
+            $this->zelleStatusMessage = '';
+            $this->zelleStatusType = '';
+            $this->zelleRemainingBalance = null;
         }
     }
 
@@ -201,19 +184,19 @@ class PaymentComponent extends Component
                     'zelleSender' => 'required',
                     'zelleDate' => 'required|date',
                     'zelleAmount' => 'required|numeric|min:0.01',
+                    'zelleImage' => 'required|image|max:2048', // Required image
                 ]);
                 
                 // Check for duplicate Zelle
                 $this->checkZelleStatus();
                 
-                // Block only if danger (Overused or Invalid)
-                if ($this->zelleStatusType === 'danger') {
+                // Block if danger (Overused) OR warning (Session Duplicate)
+                if ($this->zelleStatusType === 'danger' || $this->zelleStatusType === 'warning') {
                      $this->dispatch('noty', msg: $this->zelleStatusMessage);
                      return;
                 }
                 
-                // Validate Amount vs Remaining Balance
-                // Note: zelleRemainingBalance now accounts for local usage
+                // Validate Amount vs Remaining Balance (Only for DB records)
                 if ($this->zelleRemainingBalance !== null && $this->amount > $this->zelleRemainingBalance) {
                     $this->dispatch('noty', msg: "El monto a usar ($" . number_format($this->amount, 2) . ") excede el saldo restante del Zelle ($" . number_format($this->zelleRemainingBalance, 2) . ")");
                     return;

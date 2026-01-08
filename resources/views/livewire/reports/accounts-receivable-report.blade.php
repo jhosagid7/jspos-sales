@@ -123,6 +123,7 @@
                                                     <th>Total</th>
                                                     <th>Abonado</th>
                                                     <th>Saldo</th>
+                                                    <th>Días Vencidos</th>
                                                     <th>Estatus</th>
                                                     <th>Fecha</th>
                                                     <th></th>
@@ -158,6 +159,22 @@
                                                             ${{ number_format($saldoUSD, 2) }}
                                                         </td>
                                                         <td>
+                                                        <td>
+                                                            @if($sale->status == 'paid')
+                                                                @if($sale->days_overdue > 0)
+                                                                    <span class="badge badge-danger">Pagado con Mora (+{{ intval($sale->days_overdue) }} días)</span>
+                                                                @else
+                                                                    <span class="badge badge-success">Pagado a Tiempo</span>
+                                                                @endif
+                                                            @elseif($sale->days_overdue < 0)
+                                                                <span class="badge badge-success">Faltan {{ abs(intval($sale->days_overdue)) }} días</span>
+                                                            @elseif($sale->days_overdue == 0)
+                                                                <span class="badge badge-warning text-white">Vence Hoy</span>
+                                                            @else
+                                                                <span class="badge badge-danger">Vencido {{ intval($sale->days_overdue) }} días</span>
+                                                            @endif
+                                                        </td>
+                                                        <td>
                                                             <span
                                                                 class="badge f-12 {{ ($sale->status == 'paid' ? 'badge-success' : $sale->status == 'return') ? 'badge-warning' : 'badge-danger' }} ">{{ $sale->status }}</span>
 
@@ -168,14 +185,16 @@
                                                         <td>
                                                             <button
                                                                 wire:click.prevent="historyPayments({{ $sale->id }})"
-                                                                class="border-0 btn btn-outline-dark btn-xs">
-                                                                <i class="fas fa-list"></i>
+                                                                class="btn btn-info btn-sm" title="Ver Historial">
+                                                                <i class="fas fa-list"></i> Historial
                                                             </button>
-                                                            <button
-                                                                wire:click.prevent="initPayment({{ $sale->id }}, '{{ $sale->customer->name }}')"
-                                                                class="border-0 btn btn-outline-dark btn-xs">
-                                                                <i class="fas fa-hand-holding-usd"></i>
-                                                            </button>
+                                                            @if($sale->status != 'paid' && $saldoUSD > 0.01)
+                                                                <button
+                                                                    wire:click.prevent="initPayment({{ $sale->id }}, '{{ $sale->customer->name }}')"
+                                                                    class="btn btn-success btn-sm" title="Pagar">
+                                                                    <i class="fas fa-hand-holding-usd"></i> Pagar
+                                                                </button>
+                                                            @endif
 
                                                         </td>
 
