@@ -44,7 +44,7 @@
 
                                     <div class="mt-3">
                                         <span class="f-14"><b>Estatus</b></span>
-                                        <select wire:model.live='status' class="form-select">
+                                        <select wire:model.live='status' class="form-control">
                                             <option value="0">Todos</option>
                                             <option value="pending">Pendiente</option>
                                             <option value="paid">Pagado</option>

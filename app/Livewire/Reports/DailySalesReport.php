@@ -17,16 +17,22 @@ class DailySalesReport extends Component
 {
     use WithPagination;
 
-    public $pagination = 10, $users = [], $user_id, $dateFrom, $dateTo, $showReport = false, $type = 0;
-    public $totales = 0;
+    public $pagination = 10, $users = [], $user_id, $dateFrom, $dateTo, $type = 0;
     public $currencies = [];
     public $sellers = [], $seller_id;
     public $customer;
 
+    public $showReport = false;
+    public $totales = 0;
+    public $searchFolio = '';
+    public $reportFormat = 'detailed'; // detailed, summarized
+    public $includeDetails = false;
+    public $groupBy = 'none';
+
     function mount()
     {
         session()->forget('daily_sale_customer');
-        session(['map' => "", 'child' => '', 'rest' => '', 'pos' => 'Reporte de Ventas Diarias']);
+        session(['map' => "TOTAL COSTO $0.00", 'child' => 'TOTAL VENTA $0.00', 'rest' => 'GANANCIA: $0.00 / MARGEN: 0.00%', 'pos' => 'Reporte de Ventas Diarias']);
 
         $this->users = User::orderBy('name')->get();
         $this->sellers = User::role('Vendedor')->orderBy('name')->get();
@@ -36,9 +42,10 @@ class DailySalesReport extends Component
     public function render()
     {
         $this->customer = session('daily_sale_customer', null);
+        $sales = $this->getReport();
 
         return view('livewire.reports.daily-sales-report', [
-            'sales' => $this->getReport()
+            'sales' => $sales ?? []
         ]);
     }
 
@@ -63,7 +70,11 @@ class DailySalesReport extends Component
             }
 
             $sales = Sale::with(['customer', 'details', 'user', 'paymentDetails', 'changeDetails'])
-                ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
+                ->when($this->searchFolio, function($q) {
+                    $q->where('id', 'like', "%{$this->searchFolio}%")
+                      ->orWhere('invoice_number', 'like', "%{$this->searchFolio}%");
+                })
+                ->when($dFrom && $dTo && !$this->searchFolio, function($q) use ($dFrom, $dTo) {
                     $q->whereBetween('created_at', [$dFrom, $dTo]);
                 })
                 ->when($this->user_id != null, function ($query) {
@@ -83,12 +94,12 @@ class DailySalesReport extends Component
                 ->orderBy('id', 'desc')
                 ->paginate($this->pagination);
 
-            // Calculate totals (similar logic to SalesReport if needed, or just for display)
-            // For now, we'll keep it simple or copy the total calculation if requested.
-            // The user asked for the PDF structure to match the table.
-            
-            // Re-using total calculation logic for the header summary
-             $salesQuery = Sale::when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
+            // Calculate totals
+             $salesQuery = Sale::when($this->searchFolio, function($q) {
+                    $q->where('id', 'like', "%{$this->searchFolio}%")
+                      ->orWhere('invoice_number', 'like', "%{$this->searchFolio}%");
+                })
+                ->when($dFrom && $dTo && !$this->searchFolio, function($q) use ($dFrom, $dTo) {
                     $q->whereBetween('created_at', [$dFrom, $dTo]);
                 })
                 ->when($this->user_id != null, function ($query) {
@@ -107,7 +118,47 @@ class DailySalesReport extends Component
                 })
                 ->where('status', '<>', 'returned');
 
-            $this->totales = $salesQuery->sum('total');
+            $totalSale = $salesQuery->sum('total');
+            $this->totales = $totalSale;
+
+            // Calculate Total Cost
+            $totalCostQuery = DB::table('sale_details')
+                ->join('sales', 'sale_details.sale_id', '=', 'sales.id')
+                ->join('products', 'sale_details.product_id', '=', 'products.id')
+                ->join('customers', 'sales.customer_id', '=', 'customers.id') 
+                ->when($this->searchFolio, function($q) {
+                    $q->where('sales.id', 'like', "%{$this->searchFolio}%")
+                      ->orWhere('sales.invoice_number', 'like', "%{$this->searchFolio}%");
+                })
+                ->when($dFrom && $dTo && !$this->searchFolio, function($q) use ($dFrom, $dTo) {
+                    $q->whereBetween('sales.created_at', [$dFrom, $dTo]);
+                })
+                ->when($this->user_id != null, function ($query) {
+                    $query->where('sales.user_id', $this->user_id);
+                })
+                ->when($this->seller_id != null, function ($query) {
+                    $query->where('customers.seller_id', $this->seller_id);
+                })
+                ->when($this->customer != null, function ($query) {
+                     $query->where('sales.customer_id', $this->customer['id']);
+                })
+                ->when($this->type != 0, function ($qry) {
+                    $qry->where('sales.type', $this->type);
+                })
+                ->where('sales.status', '<>', 'returned');
+                
+            $totalCost = $totalCostQuery->sum(DB::raw('sale_details.quantity * products.cost'));
+
+            $profit = $totalSale - $totalCost;
+            $margin = $totalSale > 0 ? ($profit / $totalSale) * 100 : 0;
+
+            // Update Header
+            $map = "TOTAL COSTO $" . number_format($totalCost, 2);
+            $child = "TOTAL VENTA $" . number_format($totalSale, 2);
+            $rest = " GANANCIA: $" . number_format($profit, 2) . " / MARGEN: " . number_format($margin, 2) . "%";
+
+            session(['map' => $map, 'child' => $child, 'rest' => $rest, 'pos' => 'Reporte de Ventas Diarias']);
+            $this->dispatch('update-header', map: $map, child: $child, rest: $rest);
 
             return $sales;
 
@@ -117,7 +168,7 @@ class DailySalesReport extends Component
         }
     }
 
-    public $groupBy = 'none'; // Default group by
+
 
     public function generatePdf()
     {
@@ -130,7 +181,11 @@ class DailySalesReport extends Component
         }
 
         $sales = Sale::with(['customer', 'details', 'user', 'paymentDetails', 'changeDetails'])
-            ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
+            ->when($this->searchFolio, function($q) {
+                $q->where('id', 'like', "%{$this->searchFolio}%")
+                  ->orWhere('invoice_number', 'like', "%{$this->searchFolio}%");
+            })
+            ->when($dFrom && $dTo && !$this->searchFolio, function($q) use ($dFrom, $dTo) {
                 $q->whereBetween('created_at', [$dFrom, $dTo]);
             })
             ->when($this->user_id != null, function ($query) {
@@ -147,6 +202,7 @@ class DailySalesReport extends Component
             ->when($this->type != 0, function ($qry) {
                 $qry->where('type', $this->type);
             })
+            ->where('status', '<>', 'returned')
             ->orderBy('id', 'desc')
             ->get();
 
@@ -198,19 +254,43 @@ class DailySalesReport extends Component
         }
 
         // Calculate Grand Totals for Columns
-        foreach ($sales as $sale) {
-            $totalNeto += $sale->total_usd;
-            
-            $paidPerCurrency = [];
-             foreach($this->currencies as $currency) {
-                $paidPerCurrency[$currency->code] = 0;
-            }
+        $totalNeto = 0;
+        $totalCredit = 0;
+        $totalPaidPerCurrency = [];
+        $totalPaidPerBank = [];
+        
+        $banks = \App\Models\Bank::orderBy('name')->get();
 
+        foreach($this->currencies as $currency) {
+            $totalPaidPerCurrency[$currency->code] = 0;
+        }
+        foreach($banks as $bank) {
+            $totalPaidPerBank[$bank->id] = 0;
+        }
+
+        $totalPaidPerCurrencySummarized = [];
+        foreach($this->currencies as $currency) {
+            $totalPaidPerCurrencySummarized[$currency->code] = 0;
+        }
+
+        foreach ($sales as $sale) {
+            $totalNeto += $sale->total;
+            
             $totalPaidUSD = 0;
             foreach($sale->paymentDetails as $payment) {
-                if(isset($totalPaidPerCurrency[$payment->currency_code])) {
+                if($payment->method == 'bank' && $payment->bank_id) {
+                    if(isset($totalPaidPerBank[$payment->bank_id])) {
+                        $totalPaidPerBank[$payment->bank_id] += $payment->amount;
+                    }
+                } elseif(isset($totalPaidPerCurrency[$payment->currency_code])) {
                     $totalPaidPerCurrency[$payment->currency_code] += $payment->amount;
                 }
+
+                // Summarized Total (All payments by currency)
+                if(isset($totalPaidPerCurrencySummarized[$payment->currency_code])) {
+                    $totalPaidPerCurrencySummarized[$payment->currency_code] += $payment->amount;
+                }
+
                  $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
                 $totalPaidUSD += ($payment->amount / $rate);
             }
@@ -219,6 +299,9 @@ class DailySalesReport extends Component
                 $code = $sale->primary_currency_code ?? 'VED';
                  if(isset($totalPaidPerCurrency[$code])) {
                     $totalPaidPerCurrency[$code] += $sale->cash;
+                }
+                if(isset($totalPaidPerCurrencySummarized[$code])) {
+                    $totalPaidPerCurrencySummarized[$code] += $sale->cash;
                 }
                  $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
                 $totalPaidUSD += ($sale->cash / $rate);
@@ -232,13 +315,18 @@ class DailySalesReport extends Component
         $pdf = Pdf::loadView('reports.daily-sales-report-pdf', [
             'data' => $data,
             'currencies' => $this->currencies,
+            'banks' => $banks,
             'dateFrom' => $this->dateFrom,
             'dateTo' => $this->dateTo,
             'groupBy' => $this->groupBy,
             'totalNeto' => $totalNeto,
             'totalCredit' => $totalCredit,
-            'totalPaidPerCurrency' => $totalPaidPerCurrency
-        ]);
+            'totalPaidPerCurrency' => $totalPaidPerCurrency,
+            'totalPaidPerCurrencySummarized' => $totalPaidPerCurrencySummarized,
+            'totalPaidPerBank' => $totalPaidPerBank,
+            'reportFormat' => $this->reportFormat,
+            'includeDetails' => $this->includeDetails
+        ])->setPaper('a4', 'landscape');
 
         return response()->streamDownload(function () use ($pdf) {
             echo $pdf->output();

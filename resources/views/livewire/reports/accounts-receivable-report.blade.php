@@ -44,7 +44,7 @@
 
                                     <div class="mt-3">
                                         <span class="f-14"><b>Estatus</b></span>
-                                        <select wire:model.live='status' class="form-select">
+                                        <select wire:model.live='status' class="form-control">
                                             <option value="0">Todos</option>
                                             <option value="pending">Pendiente</option>
                                             <option value="paid">Pagado</option>
@@ -53,7 +53,7 @@
 
                                     <div class="mt-3">
                                         <span class="f-14"><b>Usuario</b></span>
-                                        <select wire:model="user_id" class="form-select form-control-sm">
+                                        <select wire:model="user_id" class="form-control form-control-sm">
                                             <option value="0">Seleccionar</option>
                                             @foreach ($users as $user)
                                                 <option value="{{ $user->id }}">
@@ -65,7 +65,7 @@
 
                                     <div class="mt-3">
                                         <span class="f-14"><b>Agrupar por</b></span>
-                                        <select wire:model='groupBy' class="form-select">
+                                        <select wire:model='groupBy' class="form-control">
                                             <option value="none">Ninguno</option>
                                             <option value="customer_id">Cliente</option>
                                             <option value="date">Fecha</option>
@@ -76,7 +76,7 @@
 
                                     <div class="mt-3">
                                         <span class="f-14"><b>Vendedor</b></span>
-                                        <select wire:model="seller_id" class="form-select form-control-sm">
+                                        <select wire:model="seller_id" class="form-control form-control-sm">
                                             <option value="0">Seleccionar</option>
                                             @foreach ($sellers as $seller)
                                                 <option value="{{ $seller->id }}">
@@ -140,13 +140,18 @@
                                                             return $detail->amount / $rate;
                                                         });
                                                         $totalAbonadoUSD = $totalPaidUSD + $initialPaidUSD;
-                                                        $saldoUSD = max(0, $sale->total_usd - $totalAbonadoUSD);
+                                                        
+                                                        // Calculate Total USD with fallback
+                                                        $exchangeRate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                                                        $finalTotalUSD = $sale->total_usd > 0 ? $sale->total_usd : $sale->total / $exchangeRate;
+                                                        
+                                                        $saldoUSD = max(0, $finalTotalUSD - $totalAbonadoUSD);
                                                     @endphp
                                                     <tr class="text-center">
                                                         <td>{{ $sale->id }}</td>
                                                         <td class="text-capitalize">{{ $sale->customer->name }}</td>
                                                         <td style="background-color: rgb(210, 243, 252)">
-                                                            ${{ number_format($sale->total_usd, 2) }}
+                                                            ${{ number_format($finalTotalUSD, 2) }}
                                                         </td>
                                                         <td>${{ number_format($totalAbonadoUSD, 2) }}</td>
                                                         <td style="background-color: beige">
@@ -205,6 +210,9 @@
     <style>
         .ts-dropdown {
             z-index: 1000000 !important;
+        }
+        .rest {
+            display: block !important;
         }
     </style>
 
@@ -298,6 +306,23 @@
 
             Livewire.on('show-payhistory', event => {
                 $('#modalPayHistory').modal('show')
+            })
+
+            Livewire.on('update-header', (data) => {
+                const rfx = document.querySelector('.breadcrumb-item.rfx');
+                const breadcrumbItems = document.querySelectorAll('.breadcrumb .breadcrumb-item');
+                
+                if (breadcrumbItems.length >= 4) {
+                    if (data.map) breadcrumbItems[1].innerText = data.map;
+                    if (data.child) breadcrumbItems[2].innerText = data.child;
+                    if (data.rest) breadcrumbItems[3].innerText = data.rest;
+                } else {
+                    const active = document.querySelector('.breadcrumb-item.active');
+                    const rest = document.querySelector('.breadcrumb-item.rest');
+                    if (rfx && data.map) rfx.innerText = data.map;
+                    if (active && data.child) active.innerText = data.child;
+                    if (rest && data.rest) rest.innerText = data.rest;
+                }
             })
 
         })

@@ -47,21 +47,21 @@
                                     <button wire:click.prevent="Ajustar({{ $item->id }}, getValue({{$item->id}}), 2)"
                                         data-container="body" data-bs-toggle="tooltip" data-bs-placement="top"
                                         data-bs-html="true" data-bs-title="<b>Agregar cantidad al stock</b>"
-                                        class="btn btn-light btn-sm"><i class="icofont icofont-ui-add"></i>
+                                        class="btn btn-dark btn-sm"><i class="fas fa-plus"></i>
                                     </button>
 
                                     <button wire:click.prevent="Ajustar({{ $item->id }}, getValue({{$item->id}}), 1)"
                                         data-container="body" data-bs-toggle="tooltip" data-bs-placement="top"
                                         data-bs-html="true" data-bs-title="<b>Restar cantidad al stock</b>"
-                                        class="btn btn-light btn-sm"><i class="icofont icofont-minus"></i>
+                                        class="btn btn-warning btn-sm"><i class="fas fa-minus"></i>
                                     </button>
 
 
                                     <button wire:click.prevent="Ajustar({{ $item->id }}, getValue({{$item->id}}), 3)"
-                                        class="btn btn-light btn-sm" data-container="body" data-bs-toggle="tooltip"
+                                        class="btn btn-info btn-sm" data-container="body" data-bs-toggle="tooltip"
                                         data-bs-placement="top" data-bs-html="true"
                                         data-bs-title="<b>Ajustar cantidad del stock</b>"><i
-                                            class="icofont icofont-calculator-alt-1"></i>
+                                            class="fas fa-calculator"></i>
                                     </button>
                                 </div>
                             </td>

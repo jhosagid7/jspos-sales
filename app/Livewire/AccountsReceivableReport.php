@@ -35,7 +35,7 @@ class AccountsReceivableReport extends Component
         $this->paymentCurrency = $this->currencies->firstWhere('is_primary', 1)->code ?? 'COP';
         $this->sellers = \App\Models\User::role('Vendedor')->orderBy('name')->get();
         $this->users = \App\Models\User::orderBy('name')->get(); // Load users
-        session(['map' => "", 'child' => '', 'pos' => 'Reporte de Cuentas por Cobrar']);
+        session(['map' => "TOTAL COSTO $0.00", 'child' => 'TOTAL VENTA $0.00', 'rest' => 'GANANCIA: $0.00 / MARGEN: 0.00%', 'pos' => 'Reporte de Cuentas por Cobrar']);
 
         if (request()->has('c')) {
             $customer = \App\Models\Customer::find(request()->c);
@@ -133,6 +133,31 @@ class AccountsReceivableReport extends Component
 
                 return max(0, $totalUSD - ($totalPaidUSD + $initialPaidUSD));
             });
+
+            // Calculate Total Sale (Total Value of the sales, not just debt)
+            $totalSale = $sales->getCollection()->sum(function($sale) {
+                 $exchangeRate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                 return $sale->total_usd > 0 ? $sale->total_usd : $sale->total / $exchangeRate;
+            });
+
+            // Calculate Total Cost
+            $saleIds = $sales->getCollection()->pluck('id');
+            $totalCost = DB::table('sale_details')
+                ->join('products', 'sale_details.product_id', '=', 'products.id')
+                ->whereIn('sale_details.sale_id', $saleIds)
+                ->sum(DB::raw('sale_details.quantity * products.cost'));
+
+            // Calculate Profit and Margin
+            $profit = $totalSale - $totalCost;
+            $margin = $totalSale > 0 ? ($profit / $totalSale) * 100 : 0;
+
+            // Update Header
+            $map = "TOTAL COSTO $" . number_format($totalCost, 2);
+            $child = "TOTAL VENTA $" . number_format($totalSale, 2);
+            $rest = " GANANCIA: $" . number_format($profit, 2) . " / MARGEN: " . number_format($margin, 2) . "%";
+
+            session(['map' => $map, 'child' => $child, 'rest' => $rest, 'pos' => 'Reporte de Cuentas por Cobrar']);
+            $this->dispatch('update-header', map: $map, child: $child, rest: $rest);
 
             return $sales;
 

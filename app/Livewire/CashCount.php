@@ -27,6 +27,8 @@ class CashCount extends Component
     public $salesByCurrency = [];
     public $paymentsByCurrency = [];
     public $currencies;
+    public $totalCashDetails = [];
+    public $totalBankDetails = [];
 
 
     function mount()
@@ -173,6 +175,8 @@ class CashCount extends Component
             $this->salesByCurrency = $this->aggregateSalesByCurrency($sales);
             $this->paymentsByCurrency = $this->aggregatePaymentsByCurrency($payments);
 
+            $this->calculateTotalBreakdowns();
+
             $this->dispatch('noty', msg: 'Info actualizada');
             //
         } catch (\Exception $th) {
@@ -291,6 +295,8 @@ class CashCount extends Component
             // Aggregate by currency
             $this->salesByCurrency = $this->aggregateSalesByCurrency($sales);
             $this->paymentsByCurrency = $this->aggregatePaymentsByCurrency($payments);
+
+            $this->calculateTotalBreakdowns();
 
             $this->dispatch('noty', msg: 'Info actualizada');
             //
@@ -459,5 +465,82 @@ class CashCount extends Component
 
         return $aggregated;
     }
+
+    private function calculateTotalBreakdowns()
+    {
+        // 1. Total Cash Breakdown
+        $this->totalCashDetails = [];
+        
+        // Add Sales Cash
+        if (isset($this->salesByCurrency['cash'])) {
+            foreach ($this->salesByCurrency['cash'] as $currency => $amount) {
+                if (!isset($this->totalCashDetails[$currency])) {
+                    $this->totalCashDetails[$currency] = 0;
+                }
+                $this->totalCashDetails[$currency] += $amount;
+            }
+        }
+
+        // Add Payments Cash
+        if (isset($this->paymentsByCurrency['cash'])) {
+            foreach ($this->paymentsByCurrency['cash'] as $currency => $amount) {
+                if (!isset($this->totalCashDetails[$currency])) {
+                    $this->totalCashDetails[$currency] = 0;
+                }
+                $this->totalCashDetails[$currency] += $amount;
+            }
+        }
+
+        // 2. Total Bank Breakdown
+        $this->totalBankDetails = [];
+
+        // Add Sales Bank (Deposit)
+        if (isset($this->salesByCurrency['deposit'])) {
+            foreach ($this->salesByCurrency['deposit'] as $key => $value) {
+                if (is_array($value)) {
+                    // Structure: BankName -> Currency -> Amount
+                    $bankName = $key;
+                    foreach ($value as $currency => $amount) {
+                        if (!isset($this->totalBankDetails[$bankName])) {
+                            $this->totalBankDetails[$bankName] = [];
+                        }
+                        if (!isset($this->totalBankDetails[$bankName][$currency])) {
+                            $this->totalBankDetails[$bankName][$currency] = 0;
+                        }
+                        $this->totalBankDetails[$bankName][$currency] += $amount;
+                    }
+                } else {
+                    // Legacy Structure: Currency -> Amount (No Bank Name)
+                    $currency = $key;
+                    $amount = $value;
+                    $bankName = 'Otros'; // Fallback for legacy data
+                    
+                    if (!isset($this->totalBankDetails[$bankName])) {
+                        $this->totalBankDetails[$bankName] = [];
+                    }
+                    if (!isset($this->totalBankDetails[$bankName][$currency])) {
+                        $this->totalBankDetails[$bankName][$currency] = 0;
+                    }
+                    $this->totalBankDetails[$bankName][$currency] += $amount;
+                }
+            }
+        }
+
+        // Add Payments Bank (Deposit)
+        if (isset($this->paymentsByCurrency['deposit'])) {
+            foreach ($this->paymentsByCurrency['deposit'] as $bankName => $currencies) {
+                foreach ($currencies as $currency => $amount) {
+                    if (!isset($this->totalBankDetails[$bankName])) {
+                        $this->totalBankDetails[$bankName] = [];
+                    }
+                    if (!isset($this->totalBankDetails[$bankName][$currency])) {
+                        $this->totalBankDetails[$bankName][$currency] = 0;
+                    }
+                    $this->totalBankDetails[$bankName][$currency] += $amount;
+                }
+            }
+        }
+    }
+
 }
 

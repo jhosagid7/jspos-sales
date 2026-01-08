@@ -22,7 +22,7 @@ class PaymentRelationshipReport extends Component
         session()->forget('relationship_customer');
         $this->sellers = \App\Models\User::role('Vendedor')->orderBy('name')->get();
         $this->users = \App\Models\User::orderBy('name')->get(); // Load users
-        session(['map' => "", 'child' => '', 'pos' => 'Reporte Relación de Pagos']);
+        session(['map' => "TOTAL COSTO $0.00", 'child' => 'TOTAL VENTA $0.00', 'rest' => 'GANANCIA: $0.00 / MARGEN: 0.00%', 'pos' => 'Reporte Relación de Pagos']);
     }
 
     public function render()
@@ -77,6 +77,63 @@ class PaymentRelationshipReport extends Component
             }
 
             $sales = $query->orderBy('id', 'desc')->paginate($this->pagination);
+
+            // Calculate Totals for Header
+            $salesQuery = Sale::where('type', 'credit')
+                ->when($this->customer != null, function ($query) {
+                    $query->where('customer_id', $this->customer['id']);
+                })
+                ->when($this->seller_id != null, function ($query) {
+                    $query->whereHas('customer', function($q) {
+                        $q->where('seller_id', $this->seller_id);
+                    });
+                })
+                ->when($this->user_id != null, function ($query) {
+                    $query->where('user_id', $this->user_id);
+                });
+
+            if ($this->dateFrom != null && $this->dateTo != null) {
+                $dFrom = Carbon::parse($this->dateFrom)->startOfDay();
+                $dTo = Carbon::parse($this->dateTo)->endOfDay();
+                $salesQuery->whereBetween('created_at', [$dFrom, $dTo]);
+            }
+
+            $totalSale = $salesQuery->sum('total');
+            
+            // Calculate Total Cost
+            $totalCostQuery = \Illuminate\Support\Facades\DB::table('sale_details')
+                ->join('sales', 'sale_details.sale_id', '=', 'sales.id')
+                ->join('products', 'sale_details.product_id', '=', 'products.id')
+                ->join('customers', 'sales.customer_id', '=', 'customers.id') 
+                ->where('sales.type', 'credit')
+                ->when($this->customer != null, function ($query) {
+                     $query->where('sales.customer_id', $this->customer['id']);
+                })
+                ->when($this->seller_id != null, function ($query) {
+                    $query->where('customers.seller_id', $this->seller_id);
+                })
+                ->when($this->user_id != null, function ($query) {
+                    $query->where('sales.user_id', $this->user_id);
+                });
+
+            if ($this->dateFrom != null && $this->dateTo != null) {
+                $dFrom = Carbon::parse($this->dateFrom)->startOfDay();
+                $dTo = Carbon::parse($this->dateTo)->endOfDay();
+                $totalCostQuery->whereBetween('sales.created_at', [$dFrom, $dTo]);
+            }
+
+            $totalCost = $totalCostQuery->sum(\Illuminate\Support\Facades\DB::raw('sale_details.quantity * products.cost'));
+
+            $profit = $totalSale - $totalCost;
+            $margin = $totalSale > 0 ? ($profit / $totalSale) * 100 : 0;
+
+            // Update Header
+            $map = "TOTAL COSTO $" . number_format($totalCost, 2);
+            $child = "TOTAL VENTA $" . number_format($totalSale, 2);
+            $rest = " GANANCIA: $" . number_format($profit, 2) . " / MARGEN: " . number_format($margin, 2) . "%";
+
+            session(['map' => $map, 'child' => $child, 'rest' => $rest, 'pos' => 'Reporte Relación de Pagos']);
+            $this->dispatch('update-header', map: $map, child: $child, rest: $rest);
 
             return $sales;
 

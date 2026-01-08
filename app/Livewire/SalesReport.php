@@ -27,7 +27,7 @@ class SalesReport extends Component
     function mount()
     {
         session()->forget('sale_customer'); // Clear session
-        session(['map' => "", 'child' => '', 'rest' => '', 'pos' => 'Reporte de Ventas']);
+        session(['map' => "TOTAL COSTO $0.00", 'child' => 'TOTAL VENTA $0.00', 'rest' => 'GANANCIA: $0.00 / MARGEN: 0.00%', 'pos' => 'Reporte de Ventas']);
 
         $this->users = User::orderBy('name')->get();
         $this->sellers = User::role('Vendedor')->orderBy('name')->get();
@@ -144,7 +144,8 @@ class SalesReport extends Component
             // Actualizar header
             $map = "TOTAL COSTO $" . number_format($totalCost, 2);
             $child = "TOTAL VENTA $" . number_format($totalSale, 2);
-            $rest = " GANANCIA:" . number_format($profit, 2);
+            $margin = $totalSale > 0 ? ($profit / $totalSale) * 100 : 0;
+            $rest = " GANANCIA: $" . number_format($profit, 2) . " / MARGEN: " . number_format($margin, 2) . "%";
 
             session(['map' => $map, 'child' => $child, 'rest' => $rest, 'pos' => 'Reporte de Ventas']);
             

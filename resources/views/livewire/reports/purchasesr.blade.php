@@ -37,7 +37,7 @@
 
                     <div class="mt-2">
                         <span class="f-14"><b>Tipo</b></span>
-                        <select wire:model='type' class="form-select">
+                        <select wire:model='type' class="form-control">
                             <option value="0">Todas</option>
                             <option value="cash">Contado</option>
                             <option value="credit">Crédito</option>

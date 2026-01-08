@@ -175,10 +175,18 @@
         <thead>
             <tr>
                 <th>Folio</th>
-                <th>Total Neto (USD)</th>
+                <th>Cliente</th>
+                <th>Total Neto</th>
                 @foreach($currencies as $currency)
                     <th>Pagado {{ $currency->code }}</th>
                 @endforeach
+                
+                @if($reportFormat == 'detailed')
+                    @foreach($banks as $bank)
+                        <th>{{ $bank->name }}</th>
+                    @endforeach
+                @endif
+
                 <th>Crédito (USD)</th>
                 <th>Fecha</th>
             </tr>
@@ -187,7 +195,7 @@
             @forelse ($data as $key => $groupData)
                 @if($groupBy != 'none')
                     <tr class="customer-header">
-                        <td colspan="{{ 4 + count($currencies) }}">
+                        <td colspan="{{ 5 + count($currencies) + ($reportFormat == 'detailed' ? count($banks) : 0) }}">
                             @if($groupBy == 'customer_id') CLIENTE: 
                             @elseif($groupBy == 'user_id') USUARIO: 
                             @elseif($groupBy == 'seller_id') VENDEDOR: 
@@ -201,16 +209,25 @@
                 @foreach ($groupData['sales'] as $sale)
                     @php
                         $paidPerCurrency = [];
+                        $paidPerBank = [];
                         $totalPaidUSD = 0;
                         
                         foreach($currencies as $currency) {
                             $paidPerCurrency[$currency->code] = 0;
                         }
+                        foreach($banks as $bank) {
+                            $paidPerBank[$bank->id] = 0;
+                        }
 
                         foreach($sale->paymentDetails as $payment) {
-                            if(isset($paidPerCurrency[$payment->currency_code])) {
+                            if($payment->method == 'bank' && $payment->bank_id) {
+                                if(isset($paidPerBank[$payment->bank_id])) {
+                                    $paidPerBank[$payment->bank_id] += $payment->amount;
+                                }
+                            } elseif(isset($paidPerCurrency[$payment->currency_code])) {
                                 $paidPerCurrency[$payment->currency_code] += $payment->amount;
                             }
+                            
                             $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
                             $totalPaidUSD += ($payment->amount / $rate);
                         }
@@ -231,17 +248,42 @@
                     @endphp
                     <tr class="text-center">
                         <td>{{ $sale->invoice_number ?? $sale->id }}</td>
-                        <td>${{ number_format($sale->total_usd, 2) }}</td>
+                        <td class="text-uppercase">{{ $sale->customer->name }}</td>
+                        <td>${{ number_format($sale->total, 2) }}</td>
                         
                         @foreach($currencies as $currency)
                             <td>
-                                @if($paidPerCurrency[$currency->code] > 0)
-                                    {{ number_format($paidPerCurrency[$currency->code], 2) }}
+                                @php
+                                    $amount = $paidPerCurrency[$currency->code] ?? 0;
+                                    // If summarized, add bank payments of this currency to the total
+                                    if($reportFormat == 'summarized') {
+                                        foreach($sale->paymentDetails as $pd) {
+                                            if($pd->method == 'bank' && $pd->currency_code == $currency->code) {
+                                                $amount += $pd->amount;
+                                            }
+                                        }
+                                    }
+                                @endphp
+
+                                @if($amount > 0)
+                                    {{ number_format($amount, 2) }}
                                 @else
                                     -
                                 @endif
                             </td>
                         @endforeach
+
+                        @if($reportFormat == 'detailed')
+                            @foreach($banks as $bank)
+                                <td>
+                                    @if($paidPerBank[$bank->id] > 0)
+                                        {{ number_format($paidPerBank[$bank->id], 2) }}
+                                    @else
+                                        -
+                                    @endif
+                                </td>
+                            @endforeach
+                        @endif
                         
                         <td>
                             @if($creditUSD > 0.01)
@@ -253,38 +295,74 @@
                         
                         <td>{{ $sale->created_at->format('d/m/Y') }}</td>
                     </tr>
+                    
+                    @if($includeDetails)
+                        <tr>
+                            <td colspan="{{ 5 + count($currencies) + ($reportFormat == 'detailed' ? count($banks) : 0) }}" style="padding: 0 10px 10px 10px; font-size: 9px; color: #666; border-top: none;">
+                                <strong>Detalles:</strong>
+                                @foreach($sale->paymentDetails as $pd)
+                                    @if($pd->reference || $pd->notes)
+                                        <span style="margin-right: 15px;">
+                                            [{{ $pd->method == 'bank' ? ($pd->bank->name ?? 'Banco') : 'Efectivo' }}]: 
+                                            {{ $pd->reference ? 'Ref: ' . $pd->reference : '' }} 
+                                            {{ $pd->notes ? '(' . $pd->notes . ')' : '' }}
+                                        </span>
+                                    @endif
+                                @endforeach
+                            </td>
+                        </tr>
+                    @endif
                 @endforeach
                 
                 @if($groupBy != 'none')
                     <tr class="total-row">
-                        <td class="text-right">TOTAL:</td>
+                        <td colspan="2" class="text-right">TOTAL:</td>
                         <td class="text-center">${{ number_format($groupData['total_usd'], 2) }}</td>
-                        <td colspan="{{ 2 + count($currencies) }}"></td>
+                        <td colspan="{{ 2 + count($currencies) + count($banks) }}"></td>
                     </tr>
                 @endif
 
             @empty
                 <tr>
-                    <td colspan="{{ 4 + count($currencies) }}" class="text-center">Sin ventas registradas</td>
+                    <td colspan="{{ 5 + count($currencies) + count($banks) }}" class="text-center">Sin ventas registradas</td>
                 </tr>
             @endforelse
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="{{ 4 + count($currencies) }}">&nbsp;</td>
+                <td colspan="{{ 5 + count($currencies) + count($banks) }}">&nbsp;</td>
             </tr>
             <tr class="grand-total-row">
-                <td class="text-right">TOTAL GENERAL:</td>
+                <td colspan="2" class="text-right">TOTAL GENERAL:</td>
                 <td class="text-center">${{ number_format($totalNeto, 2) }}</td>
                 @foreach($currencies as $currency)
                     <td class="text-center">
-                        @if($totalPaidPerCurrency[$currency->code] > 0)
-                            {{ number_format($totalPaidPerCurrency[$currency->code], 2) }}
+                        @php
+                            $total = $reportFormat == 'summarized' 
+                                ? ($totalPaidPerCurrencySummarized[$currency->code] ?? 0)
+                                : ($totalPaidPerCurrency[$currency->code] ?? 0);
+                        @endphp
+                        
+                        @if($total > 0)
+                            {{ number_format($total, 2) }}
                         @else
                             -
                         @endif
                     </td>
                 @endforeach
+                
+                @if($reportFormat == 'detailed')
+                    @foreach($banks as $bank)
+                         <td class="text-center">
+                            @if(isset($totalPaidPerBank[$bank->id]) && $totalPaidPerBank[$bank->id] > 0)
+                                {{ number_format($totalPaidPerBank[$bank->id], 2) }}
+                            @else
+                                -
+                            @endif
+                        </td>
+                    @endforeach
+                @endif
+
                 <td class="text-center">${{ number_format($totalCredit, 2) }}</td>
                 <td></td>
             </tr>
