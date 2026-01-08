@@ -44,7 +44,8 @@ class Sale extends Model
         'commission_payment_amount',
         'commission_payment_notes',
         'batch_name',
-        'batch_sequence'
+        'batch_sequence',
+        'credit_days'
     ];
 
     protected $casts = [
@@ -105,5 +106,26 @@ class Sale extends Model
         $debt = $this->total - $totalPays;
 
         return $debt;
+    }
+
+    public function getDaysOverdueAttribute()
+    {
+        $creditDays = $this->credit_days ?? 0;
+        $dueDate = \Carbon\Carbon::parse($this->created_at)->addDays($creditDays);
+
+        if ($this->status == 'paid') {
+            $lastPayment = $this->payments->first(); // Ordered by id desc in relationship
+            if ($lastPayment) {
+                $paymentDate = \Carbon\Carbon::parse($lastPayment->created_at);
+                return $dueDate->diffInDays($paymentDate, false);
+            }
+            return 0;
+        }
+        
+        // Return signed difference: 
+        // Negative = Days remaining (e.g. -5)
+        // Positive = Days overdue (e.g. +5)
+        // Zero = Due today
+        return $dueDate->diffInDays(\Carbon\Carbon::now(), false);
     }
 }

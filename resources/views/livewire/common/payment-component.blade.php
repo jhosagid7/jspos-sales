@@ -112,28 +112,58 @@
                                                     </div>
                                                 @endif
 
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Fecha Zelle <span class="text-danger">*</span></label>
-                                                    <input class="form-control" type="date" wire:model.live="zelleDate">
-                                                    @error('zelleDate') <span class="text-danger small">{{ $message }}</span> @enderror
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Monto Zelle <span class="text-danger">*</span></label>
-                                                    <input class="form-control" type="number" wire:model.live="zelleAmount" placeholder="0.00">
-                                                    @error('zelleAmount') <span class="text-danger small">{{ $message }}</span> @enderror
-                                                </div>
-                                                <div class="col-12">
-                                                    <label class="form-label">Nombre del Emisor <span class="text-danger">*</span></label>
-                                                    <input class="form-control" type="text" wire:model.live="zelleSender" placeholder="Nombre completo">
-                                                    @error('zelleSender') <span class="text-danger small">{{ $message }}</span> @enderror
-                                                </div>
                                                 <div class="col-12">
                                                     <label class="form-label">Referencia (Opcional)</label>
-                                                    <input class="form-control" type="text" wire:model="zelleReference">
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">
+                                                            <i class="fas fa-barcode"></i>
+                                                        </span>
+                                                        <input type="text" wire:model="zelleReference" class="form-control" placeholder="Referencia">
+                                                    </div>
                                                 </div>
-                                                <div class="col-12">
-                                                    <label class="form-label">Comprobante (Imagen)</label>
-                                                    <input class="form-control" type="file" wire:model="zelleImage" accept="image/*">
+
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Nombre del Emisor <span class="text-danger">*</span></label>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">
+                                                            <i class="fas fa-user"></i>
+                                                        </span>
+                                                        <input type="text" wire:model.live="zelleSender" class="form-control" placeholder="Nombre del titular">
+                                                    </div>
+                                                    @error('zelleSender') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                </div>
+
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Fecha <span class="text-danger">*</span></label>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">
+                                                            <i class="fas fa-calendar"></i>
+                                                        </span>
+                                                        <input type="date" wire:model.live="zelleDate" class="form-control">
+                                                    </div>
+                                                    @error('zelleDate') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                </div>
+
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Monto <span class="text-danger">*</span></label>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">
+                                                            <i class="fas fa-dollar-sign"></i>
+                                                        </span>
+                                                        <input type="number" wire:model.live="zelleAmount" class="form-control" placeholder="0.00">
+                                                    </div>
+                                                    @error('zelleAmount') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                </div>
+
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Comprobante (Foto) <span class="text-danger">*</span></label>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">
+                                                            <i class="fas fa-camera"></i>
+                                                        </span>
+                                                        <input type="file" wire:model="zelleImage" class="form-control" accept="image/*">
+                                                    </div>
+                                                    @error('zelleImage') <span class="text-danger small">{{ $message }}</span> @enderror
                                                     @if ($zelleImage)
                                                         <div class="mt-2">
                                                             <img src="{{ $zelleImage->temporaryUrl() }}" class="img-thumbnail" style="max-height: 100px;">

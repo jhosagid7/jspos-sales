@@ -19,7 +19,8 @@ class SalePaymentDetail extends Model
         'phone_number',
         'amount',
         'exchange_rate',
-        'amount_in_primary_currency'
+        'amount_in_primary_currency',
+        'zelle_record_id'
     ];
 
     protected $casts = [
@@ -31,5 +32,10 @@ class SalePaymentDetail extends Model
     public function sale()
     {
         return $this->belongsTo(Sale::class);
+    }
+
+    public function zelleRecord()
+    {
+        return $this->belongsTo(ZelleRecord::class);
     }
 }
