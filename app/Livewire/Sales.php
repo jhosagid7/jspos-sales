@@ -98,6 +98,15 @@ class Sales extends Component
     public $selectedChangeAmount; // Monto a dar en esa moneda
     public $totalCartAtPayment; // Total del carrito en el momento del pago (para evitar que cambie durante re-renders)
 
+    public $applyCommissions = false; // Toggle for applying commissions
+
+    public function updatedApplyCommissions($value)
+    {
+        session(['applyCommissions' => $value]);
+        $this->recalculateCartWithSellerConfig();
+        $this->dispatch('noty', msg: $value ? 'Comisiones Activadas' : 'Comisiones Desactivadas');
+    }
+
 
 
     public function addPayment()
@@ -431,6 +440,8 @@ class Sales extends Component
         // Establecer la moneda principal como la seleccionada por defecto
         $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
         $this->paymentCurrency = $primaryCurrency ? $primaryCurrency->code : null;
+
+        $this->applyCommissions = session('applyCommissions', false);
     }
     
     public function hydrate()
@@ -900,8 +911,8 @@ class Sales extends Component
     // SIEMPRE usar el precio base del producto como precio de venta predeterminado
     // La lista de precios solo se usa cuando el usuario selecciona manualmente un precio diferente
     
-    // Aplicar markup si existe configuración de vendedor
-    if ($this->sellerConfig) {
+    // Aplicar markup si existe configuración de vendedor Y el toggle está activo
+    if ($this->sellerConfig && $this->applyCommissions) {
         $comm = ($basePriceInPrimary * $this->sellerConfig->commission_percent) / 100;
         $freight = ($basePriceInPrimary * $this->sellerConfig->freight_percent) / 100;
         $diff = ($basePriceInPrimary * $this->sellerConfig->exchange_diff_percent) / 100;
@@ -1205,8 +1216,8 @@ class Sales extends Component
             // Base price in primary currency
             $basePrice = $product->price * $exchangeRate;
             
-            // Apply logic if config exists
-            if ($this->sellerConfig) {
+            // Apply logic if config exists AND toggle is active
+            if ($this->sellerConfig && $this->applyCommissions) {
                 $comm = ($basePrice * $this->sellerConfig->commission_percent) / 100;
                 $freight = ($basePrice * $this->sellerConfig->freight_percent) / 100;
                 $diff = ($basePrice * $this->sellerConfig->exchange_diff_percent) / 100;

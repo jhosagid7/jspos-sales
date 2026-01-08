@@ -7,6 +7,7 @@ use App\Models\Bank;
 use App\Models\Currency;
 use App\Models\Payable;
 use App\Models\Purchase;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use App\Traits\PrintTrait;
 use Livewire\Attributes\On;
@@ -122,125 +123,92 @@ class AccountsPayableReport extends Component
         $this->debt = $debt;
         $this->supplier_name = $supplier_name;
         $this->purchase_id = $purchase->id;
-        $this->dispatch('show-modal-payable');
+        
+        // For Accounts Payable, we assume the purchase total is in the primary currency or handled similarly
+        // If Purchases are multi-currency, we might need conversion logic here similar to Sales.
+        // Assuming Purchase->total is in primary currency for now based on existing code.
+        
+        $primaryCurrency = \App\Models\Currency::where('is_primary', true)->first();
+        
+        $this->dispatch('initPayment', 
+            total: $this->debt, 
+            currency: $primaryCurrency->code, 
+            customer: $supplier_name, // Reusing 'customer' param for supplier name
+            allowPartial: true
+        );
     }
 
-    function doPayable()
+    #[On('payment-completed')]
+    public function handlePaymentCompleted($payments, $change, $changeDistribution)
     {
-        $this->resetValidation();
+        if (!$this->purchase_id) return;
 
-        if ($this->paymentMethod == 'deposit') {
-            if ($this->bank == 0) {
-                $this->addError('bank', 'SELECCIONA EL BANCO');
-            }
-            if (empty($this->acountNumber)) {
-                $this->addError('nacount', 'INGRESA EL NÚMERO DE CUENTA');
-            }
-            if (empty($this->depositNumber)) {
-                $this->addError('ndeposit',  'INGRESA EL NÚMERO DE DEPÓSITO');
-            }
-        }
-        
-        if ($this->paymentMethod == 'nequi') {
-             if (empty($this->phoneNumber)) {
-                $this->addError('phoneNumber', 'INGRESA EL NÚMERO DE TELÉFONO');
-            }
-        }
-        if (empty($this->amount) || strlen($this->amount) < 1) {
-            $this->addError('amount', 'INGRESA EL MONTO');
-        }
-        if (floatval($this->amount) <= 0) {
-            $this->addError('amount', 'MONTO DEBE SER MAYOR A CERO');
-        }
-
-        if (count($this->getErrorBag()) > 0) {
-            return;
-        }
-
+        DB::beginTransaction();
         try {
+            $purchase = Purchase::find($this->purchase_id);
+            $primaryCurrency = \App\Models\Currency::where('is_primary', true)->first();
 
-            $type = null;
-            $amount = floatval($this->amount);
-            if (floatval($this->amount) >= floatval($this->debt)) {
-                $type = 'settled'; //liquida crédito
-            } else {
-                $type = 'pay'; // abono
-            }
-
-            if (floatval($this->amount) > floatval($this->debt)) {
-                $amount = $this->debt;
-            }
-
-            // Determine currency and exchange rate based on payment method
-            $currencyCode = 'COP';
-            $exchangeRate = 1;
-
-            if ($this->paymentMethod == 'cash') {
-                $currencyCode = $this->paymentCurrency;
-                $selectedCurrency = $this->currencies->firstWhere('code', $currencyCode);
-                $exchangeRate = $selectedCurrency ? $selectedCurrency->exchange_rate : 1;
-            } elseif ($this->paymentMethod == 'deposit') {
-                $bank = $this->banks->find($this->bank);
-                $currencyCode = $bank ? $bank->currency_code : 'COP';
-                // Find exchange rate for bank's currency
-                $selectedCurrency = $this->currencies->firstWhere('code', $currencyCode);
-                $exchangeRate = $selectedCurrency ? $selectedCurrency->exchange_rate : 1;
-            } elseif ($this->paymentMethod == 'nequi') {
-                $currencyCode = 'COP';
-                $exchangeRate = 1;
-            }
-
-            // Calculate amount in primary currency
-            $amountInPrimary = $amount;
-            // If currency is not primary, convert to primary to check against debt
-            $currencyObj = $this->currencies->firstWhere('code', $currencyCode);
-            if ($currencyObj && $currencyObj->is_primary != 1) {
-                 $amountInPrimary = $amount / $exchangeRate;
-            }
-
-            // Re-validate against debt with converted amount
-             if ($amountInPrimary > floatval($this->debt)) {
-                $amountInPrimary = $this->debt;
-                // Recalculate original amount if capped
-                $amount = $amountInPrimary * $exchangeRate; 
-            }
-            
-            if ($amountInPrimary >= floatval($this->debt)) {
-                $type = 'settled';
-            }
-
-            //crear pago
-            $pay =  Payable::create(
-                [
+            foreach ($payments as $payment) {
+                $amount = $payment['amount'];
+                $currencyCode = $payment['currency'];
+                $exchangeRate = $payment['exchange_rate'];
+                
+                // Determine type
+                // We need to check if this payment settles the debt.
+                // Since we might have multiple payments, we should check total paid.
+                
+                $pay = Payable::create([
                     'user_id' => Auth()->user()->id,
                     'purchase_id' => $this->purchase_id,
                     'amount' => floatval($amount),
                     'currency_code' => $currencyCode,
                     'exchange_rate' => $exchangeRate,
-                    'pay_way' => $this->paymentMethod,
-                    'type' => $type,
-                    'bank' => ($this->paymentMethod == 'deposit' && $this->bank != 0 ? Bank::where('id', $this->bank)->first()->name : ''),
-                    'account_number' => $this->acountNumber,
-                    'deposit_number' => $this->depositNumber,
-                    'phone_number' => $this->phoneNumber
-                ]
-            );
-
-            // actualizar status venta
-            if ($type == 'settled') {
-                Purchase::where('id', $this->purchase_id)->update([
-                    'status' => 'paid'
+                    'pay_way' => $payment['method'] == 'bank' ? 'deposit' : $payment['method'],
+                    'type' => 'pay', // Default to pay
+                    'bank' => $payment['bank_name'] ?? null,
+                    'account_number' => $payment['account_number'] ?? null,
+                    'deposit_number' => $payment['reference'] ?? null,
+                    'phone_number' => $payment['phone'] ?? null
                 ]);
             }
 
+            // Check if settled
+            // Recalculate debt
+            $totalPaid = $purchase->payables()->sum('amount'); // Assuming amount is in same currency as total
+            // If payables store amount in original currency, we need to normalize.
+            // Existing code: $purchase->payables->sum('amount')
+            // This implies 'amount' in payables is already normalized or in same currency as Purchase total.
+            // Let's assume 'amount' is what matters.
+            
+            // Wait, in Sales we convert to USD. Here Purchases seem simpler or maybe single currency?
+            // The existing code used: $purchase->total - $purchase->payables->sum('amount')
+            // So we stick to that logic.
+            
+            if ($totalPaid >= ($purchase->total - 0.01)) {
+                $purchase->update(['status' => 'paid']);
+                
+                Payable::where('purchase_id', $purchase->id)
+                    ->where('created_at', '>=', \Carbon\Carbon::now()->subMinute())
+                    ->update(['type' => 'settled']);
+            }
+
+            DB::commit();
+
             $this->printPayable($pay->id);
             $this->dispatch('noty', msg: 'PAGO REGISTRADO CON ÉXITO');
-            $this->reset('amount', 'acountNumber', 'depositNumber', 'debt', 'bank', 'phoneNumber');
-            $this->dispatch('close-modal');
-            //
+            $this->dispatch('hide-modal-payment'); // Close PaymentComponent modal if needed (it closes itself mostly)
+            
+            $this->reset('debt', 'purchase_id', 'supplier_name');
+
         } catch (\Exception $th) {
-            $this->dispatch('noty', msg: "Error al intentar registrar el pago parcial: {$th->getMessage()} ");
+            DB::rollBack();
+            $this->dispatch('noty', msg: "Error al registrar el pago: {$th->getMessage()} ");
         }
+    }
+
+    public function cancelPay()
+    {
+        $this->reset('debt', 'purchase_id', 'supplier_name');
     }
 
     function historyPayables(Purchase $purchase)

@@ -8,6 +8,9 @@
         </div>
     </div>
 
+</div>
+
+@push('my-scripts')
     <script>
         document.addEventListener('livewire:init', function() {
         if (document.querySelector('#inputSearchProduct')) {
@@ -67,6 +70,4 @@ Livewire.on('focus-cost', event => {
 })
 
     </script>
-
-
-</div>
+@endpush

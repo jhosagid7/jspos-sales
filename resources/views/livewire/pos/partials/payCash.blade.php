@@ -8,7 +8,7 @@
                         <i class="fa fa-cash-register me-2"></i>
                         PAGO DE VENTA
                     </h5>
-                    <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button class="btn-close btn-close-white" type="button" data-dismiss="modal" aria-label="Close" onclick="$('#modalCash').modal('hide')"></button>
                 </div>
 
                 <div class="modal-body">
@@ -350,7 +350,7 @@
 
                 {{-- Footer --}}
                 <div class="modal-footer">
-                    <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">
+                    <button class="btn btn-secondary" type="button" data-dismiss="modal" onclick="$('#modalCash').modal('hide')">
                         <i class="fa fa-times me-2"></i>Cerrar
                     </button>
                     <button class="btn btn-primary" wire:click.prevent='Store' type="button"

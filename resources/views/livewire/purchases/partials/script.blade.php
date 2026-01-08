@@ -1,3 +1,4 @@
+@push('my-scripts')
 <script>
     var inputSup
     var tomselect
@@ -135,6 +136,14 @@ Livewire.on('close-modal', event => {
     document.getElementById('inputFlete').value =''
 })
 
+Livewire.on('show-modal', event => {
+    $('#' + event).modal('show')
+})
+
+Livewire.on('hide-modal', event => {
+    $('#' + event).modal('hide')
+})
+
 
 
   //buscar cualquier rut en sistema
@@ -216,7 +225,7 @@ Livewire.on('close-modal', event => {
 
     function cancelSale() {
         swal({
-        title: '¿CONFIRMAS CANCELAR LA VENTA?',
+        title: '¿CONFIRMAS CANCELAR LA COMPRA?',
         text: "",
         icon: "warning",
         buttons: true,         
@@ -239,4 +248,31 @@ function initPartialPay() {
     $('#modalPartialPayment').modal('show')
 }
 
+function processOrder() {
+    $('#modalProcessOrder').modal('show')
+}
+
+function DestroyOrder(rowId) {
+    swal({
+        title: '¿CONFIRMAS ELIMINAR LA ORDEN?',
+        text: "",
+        icon: "warning",
+        buttons: true,
+        dangerMode: true,
+        buttons: {
+            cancel: "Cancelar",
+            catch: {
+                text: "Aceptar"
+            }
+        },
+    }).then((willDestroy) => {
+        if (willDestroy) {
+            Livewire.dispatch('DestroyOrder', {
+                purchaseId: rowId
+            })
+        }
+    });
+}
+
 </script>
+@endpush

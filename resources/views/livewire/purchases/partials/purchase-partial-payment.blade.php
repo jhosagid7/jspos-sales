@@ -3,7 +3,7 @@
         <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
             <div class="modal-content ">
                 <div class="modal-header bg-primary">
-                    <h5 class="modal-title">Abono a Cuenta</h5>
+                    <h5 class="modal-title">Abono a Compra</h5>
                     <button class="btn-close py-0" type="button" wire:click="cancelPay" data-dismiss="modal" aria-label="Close" onclick="$('#modalPartialPayment').modal('hide')"></button>
                 </div>
                 <div class="modal-body">
@@ -12,18 +12,18 @@
                         <div class="faq-form">
                             <input wire:keydown.enter.prevent="$set('search', $event.target.value)"
                                 class="form-control form-control-lg" type="text"
-                                placeholder="Ingresa el nombre del cliente" id="inputPartialPaySearch"
+                                placeholder="Ingresa el nombre del proveedor" id="inputPartialPaySearch"
                                 style="background-color: beige">
                             <i class="search-icon" data-feather="user"></i>
                         </div>
 
-                        {{-- @json($sales) --}}
+                        {{-- @json($purchases) --}}
                         <div class="order-history table-responsive  mt-2">
                             <table class="table table-bordered">
                                 <thead class="">
                                     <tr>
-                                        <th class='p-2'> Cliente</th>
-                                        <th class='p-2'>Venta</th>
+                                        <th class='p-2'> Proveedor</th>
+                                        <th class='p-2'>Compra</th>
                                         <th class='p-2'>Total</th>
                                         <th class='p-2'>Abonado</th>
                                         <th class='p-2'>Debe</th>
@@ -31,31 +31,31 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @forelse ($sales as $sale)
+                                    @forelse ($purchases as $purchase)
                                         <tr>
                                             <td>
-                                                <div class="txt-info">{{ $sale->customer->name }}</div>
+                                                <div class="txt-info">{{ $purchase->supplier->name }}</div>
                                             </td>
                                             <td>
-                                                <div> <b>{{ $sale->id }}</b></div>
+                                                <div> <b>{{ $purchase->id }}</b></div>
                                                 <small><i class="icon-calendar"></i>
-                                                    {{ app('fun')->dateFormat($sale->created_at) }}</small>
+                                                    {{ app('fun')->dateFormat($purchase->created_at) }}</small>
                                             </td>
-                                            <td>${{ number_format($sale->total_display, 2) }}</td>
-                                            <td>${{ number_format($sale->total_paid_display, 2) }}</td>
-                                            <td>${{ number_format($sale->debt_display, 2) }}</td>
+                                            <td>${{ number_format($purchase->total_display, 2) }}</td>
+                                            <td>${{ number_format($purchase->total_paid_display, 2) }}</td>
+                                            <td>${{ number_format($purchase->debt_display, 2) }}</td>
                                             <td>
 
 
-                                                @if ($sale->total_paid_display > 0)
+                                                @if ($purchase->total_paid_display > 0)
                                                     <button class="btn btn-default btn-sm"
-                                                        wire:click="historyPayments({{ $sale->id }})" title="Ver Historial">
+                                                        wire:click="historyPayments({{ $purchase->id }})" title="Ver Historial">
                                                         <i class="fas fa-receipt text-primary"></i>
                                                     </button>
                                                 @endif
 
                                                 <button class="btn btn-default btn-sm"
-                                                    wire:click="initPay({{ $sale->id }},'{{ $sale->customer->name }}',{{ $sale->debt_display }})" title="Abonar">
+                                                    wire:click="initPay({{ $purchase->id }},'{{ $purchase->supplier->name }}',{{ $purchase->debt_display }})" title="Abonar">
                                                     <i class="fas fa-money-bill-wave text-success"></i>
                                                 </button>
 
@@ -71,7 +71,8 @@
                                 </tbody>
                             </table>
                         </div>
-                        @include('livewire.payments.historypays')
+                        @include('livewire.payments.historypays') {{-- Reusing history view if compatible, or create new one --}}
+
 
 
 

@@ -1,120 +1,118 @@
 <div class="card">
     <div class="card-header">
         <div class="row">
-            <div class="col-sm-12 col-md-5">
-                @if($supplier != null)
-                <span> {{ $supplier['name'] }} <i class="icofont icofont-verification-check"></i></span>
-                @else
-                Selecciona el proveedor
-                @endif
-                <div class="input-group" wire:ignore>
-                    <input class="form-control" type="text" id="inputSupplier" placeholder="F1">
-                    <span class="input-group-text list-light">
-                        <i class="search-icon" data-feather="user"></i>
-                    </span>
-                </div>
-
-
-
-            </div>
-            <div class="col-sm-12 col-md-7 ">
+            <div class="col-sm-12 col-md-6">
                 <livewire:product-search>
+            </div>
+            <div class="col-sm-12 col-md-6 d-flex justify-content-end">
+                <div class="btn-group btn-group-pill " role="group" aria-label="Basic example">
 
-
-
-                    {{-- <button @if($totalCart>0)
-                        onclick="cancelSale()"
-                        @endif
-                        type="button" class="btn btn-outline-light-2x txt-dark"><i class="icon-trash"></i>
+                    <button onclick="processOrder()" type="button" class="btn btn-outline-light-2x txt-dark"><i
+                            class="icon-money"></i>
+                        Ordenes</button>
+                    <button @if ($totalCart > 0) onclick="cancelSale()" @endif type="button"
+                        class="btn btn-outline-light-2x txt-dark"><i class="icon-trash"></i>
                         Cancelar</button>
                     <button onclick="initPartialPay()" type="button" class="btn btn-outline-light-2x txt-dark"><i
                             class="icon-money"></i>
                         Abonos</button>
                     <button wire:click.prevent="printLast" type="button" class="btn btn-outline-light-2x txt-dark"><i
                             class="icon-printer"></i>
-                        Última</button> --}}
-
-
+                        Última</button>
+                </div>
             </div>
         </div>
     </div>
     <div class="card-body">
-        {{-- @json($cart) --}}
         <div class="row">
             <div class="order-history table-responsive wishlist">
-                <table class="table table-bordered" id="tblProducts">
+                <table class="table table-bordered table-sm table-striped align-middle">
                     <thead>
                         <tr>
-                            {{-- <th class="p-2" width="100"></th> --}}
-                            <th class="p-2">Descripción</th>
-                            <th class="p-2" width="300">Cantidad</th>
-                            <th class="p-2" width="200">Costo</th>
-                            <th class="p-2">Importe</th>
-                            @if($flete >0)
-                            <th class="p-2">Flete</th>
-                            <th class="p-2">Total</th>
+                            <th class="p-1">Descripción</th>
+                            <th class="p-1" width="140">Cantidad</th>
+                            <th class="p-1" width="130">Costo</th>
+                            <th class="p-1" width="130">Precio Vta</th>
+                            <th class="p-1" width="100">Utilidad %</th>
+                            <th class="p-1" width="100">Importe</th>
+                            @if($flete > 0)
+                            <th class="p-1">Flete</th>
+                            <th class="p-1">Total</th>
                             @endif
-                            <th class="p-2"></th>
+                            <th class="p-1" width="60">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-
                         @forelse($cart as $item)
                         <tr>
                             <td>
-                                <div class="product-name txt-info">{{ strtoupper($item['name']) }}</div>
-
+                                <div class="product-name txt-info font-weight-bold" style="font-size: 0.9rem;">{{ strtoupper($item['name']) }}</div>
                             </td>
-
-
                             <td>
-                                <div class="right-details">
-                                    <div class="touchspin-wrapper">
-                                        <button wire:click="IncDec('{{ $item['id'] }}', 2)"
-                                            class="decrement-touchspin btn-touchspin"><i
-                                                class="fa fa-minus text-gray"></i></button>
-                                        <input
-                                            wire:keydown.enter.prevent="updateQty('{{ $item['id'] }}', $event.target.value )"
-                                            class=" input-touchspin" type="number" value="{{ $item['qty'] }}"
-                                            data-qty="{{ $item['qty'] }}" id="p{{$item['id']}}">
-
-                                        <button wire:click="IncDec('{{ $item['id'] }}', 1)"
-                                            class="increment-touchspin btn-touchspin"><i
-                                                class="fa fa-plus text-gray"></i></button>
+                                <div class="input-group input-group-sm" style="width: 120px;">
+                                    <div class="input-group-prepend">
+                                        <button class="btn btn-dark btn-sm" type="button"
+                                            wire:click="IncDec('{{ $item['id'] }}', 2)">
+                                            <i class="fas fa-minus"></i>
+                                        </button>
+                                    </div>
+                                    <input type="number" 
+                                        wire:keydown.enter.prevent="updateQty('{{ $item['id'] }}', $event.target.value )"
+                                        class="form-control form-control-sm text-center" 
+                                        value="{{ $item['qty'] }}"
+                                        id="p{{$item['id']}}">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-dark btn-sm" type="button"
+                                            wire:click="IncDec('{{ $item['id'] }}', 1)">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
                                     </div>
                                 </div>
-
                             </td>
                             <td>
-                                <input wire:keydown.enter.prevent="setCost('{{ $item['id'] }}', $event.target.value )"
-                                    class="form-control text-center" type="number" value="{{ $item['cost'] }}"
-                                    id="c{{$item['id']}}">
+                                <div class="input-group input-group-sm">
+                                    <input wire:change="setCost('{{ $item['id'] }}', $event.target.value )"
+                                        class="form-control form-control-sm text-center" type="number" value="{{ $item['cost'] }}"
+                                        id="c{{$item['id']}}">
+                                </div>
+                            </td>
+                            <td>
+                                <div class="input-group input-group-sm">
+                                    <input wire:change="setPrice('{{ $item['id'] }}', $event.target.value )"
+                                        class="form-control form-control-sm text-center" type="number" value="{{ $item['price'] ?? 0 }}"
+                                        id="pr{{$item['id']}}">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-warning btn-sm" type="button" wire:click="openPriceModal('{{ $item['id'] }}')" title="Gestionar Precios">
+                                            <i class="fa fa-list"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                {{ $item['margin'] ?? 0 }}%
                             </td>
                             <td>${{ $item['total'] }}</td>
-                            @if($flete >0)
+                            @if($flete > 0)
                             <td>${{ $item['flete']['flete_producto'] }}</td>
                             <td>
                                 ${{ floatval($item['total']) + floatval($item['flete']['total_flete']) }}
                             </td>
                             @endif
                             <td>
-
                                 <button wire:click.prevent="removeItem('{{ $item['id'] }}')"
-                                    class="btn btn-light btn-sm">
-                                    <i class="fa fa-trash fa-2x"></i>
+                                    class="btn btn-danger btn-sm">
+                                    <i class="fas fa-trash"></i>
                                 </button>
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="6" class="text-center">Agrega productos al carrito</td>
+                            <td colspan="9" class="text-center">Agrega productos al carrito</td>
                         </tr>
                         @endforelse
-
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
-    <!-- Container-fluid Ends-->
 </div>

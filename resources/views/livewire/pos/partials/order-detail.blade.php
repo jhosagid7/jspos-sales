@@ -4,7 +4,7 @@
             <div class="modal-content">
                 <div class="p-1 modal-header bg-primary">
                     <h5 class="modal-title">Detalles de la orden #{{ $order_id }}</h5>
-                    <button class="py-0 btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button class="py-0 btn-close" type="button" data-dismiss="modal" aria-label="Close" onclick="$('#modalOrderDetail').modal('hide')"></button>
                 </div>
 
                 <div class="modal-body">
@@ -60,7 +60,7 @@
 
                 <div class="modal-footer">
 
-                    <button class="btn btn-dark " type="button" data-bs-dismiss="modal">Cerrar</button>
+                    <button class="btn btn-dark " type="button" data-dismiss="modal" onclick="$('#modalOrderDetail').modal('hide')">Cerrar</button>
 
 
                 </div>
