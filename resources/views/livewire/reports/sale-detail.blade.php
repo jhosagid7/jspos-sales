@@ -14,7 +14,70 @@
                             if(isset($salesObt) && $salesObt->primary_currency_code) {
                                 $currencySymbol = \App\Helpers\CurrencyHelper::getSymbol($salesObt->primary_currency_code);
                             }
+
+                            // Calculate Charges
+                            $commPercent = $salesObt->applied_commission_percent ?? 0;
+                            $freightPercent = $salesObt->applied_freight_percent ?? 0;
+                            $diffPercent = $salesObt->applied_exchange_diff_percent ?? 0;
+                            $totalPercent = ($commPercent + $freightPercent + $diffPercent) / 100;
+
+                            $baseAmount = $salesObt->total;
+                            $commAmount = 0;
+                            $freightAmount = 0;
+                            $diffAmount = 0;
+
+                            if ($totalPercent > 0) {
+                                $baseAmount = $salesObt->total / (1 + $totalPercent);
+                                $commAmount = $baseAmount * ($commPercent / 100);
+                                $freightAmount = $baseAmount * ($freightPercent / 100);
+                                $diffAmount = $baseAmount * ($diffPercent / 100);
+                            }
                         @endphp
+
+                        {{-- Header Information --}}
+                        <div class="row mb-4">
+                            <div class="col-sm-6">
+                                <div><b>Cliente:</b> {{ $salesObt->customer->name ?? 'N/A' }}</div>
+                                <div><b>Folio:</b> {{ $salesObt->invoice_number ?? 'N/A' }}</div>
+                                <div><b>Fecha:</b> {{ $salesObt->created_at->format('d/m/Y h:i A') }}</div>
+                            </div>
+                            <div class="col-sm-6 text-end">
+                                <div><b>Vendedor:</b> {{ $salesObt->customer->seller->name ?? 'N/A' }}</div>
+                                <div><b>Operador:</b> {{ $salesObt->user->name ?? 'N/A' }}</div>
+                            </div>
+                        </div>
+
+                        {{-- Additional Charges Breakdown --}}
+                        @if ($totalPercent > 0)
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <div class="alert alert-light border">
+                                        <h6 class="text-info"><i class="fa fa-calculator"></i> Desglose de Cargos Adicionales</h6>
+                                        <div class="row">
+                                            @if($commPercent > 0)
+                                                <div class="col-md-4">
+                                                    <small>Comisión ({{ number_format($commPercent, 2) }}%):</small>
+                                                    <strong>{{ $currencySymbol }}{{ number_format($commAmount, 2) }}</strong>
+                                                </div>
+                                            @endif
+                                            @if($freightPercent > 0)
+                                                <div class="col-md-4">
+                                                    <small>Flete ({{ number_format($freightPercent, 2) }}%):</small>
+                                                    <strong>{{ $currencySymbol }}{{ number_format($freightAmount, 2) }}</strong>
+                                                </div>
+                                            @endif
+                                            @if($diffPercent > 0)
+                                                <div class="col-md-4">
+                                                    <small>Dif. Cambiaria ({{ number_format($diffPercent, 2) }}%):</small>
+                                                    <strong>{{ $currencySymbol }}{{ number_format($diffAmount, 2) }}</strong>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
                         <div class="table-responsive">
                             <table class="table table-responsive-md table-hover" id="tblPermissions">
                                 <thead class="thead-primary">

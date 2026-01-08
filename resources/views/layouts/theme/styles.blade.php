@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="{{ asset('assets/css/tom.css') }}">
 <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/vendors/flatpickr/flatpickr.min.css') }}">
 <link rel="stylesheet" type="text/css" href="{{ asset('assets/js/flat-pickr/confetti.css') }}">
+<link rel="stylesheet" type="text/css" href="{{ asset('assets/css/vendors/icofont.css') }}">
 
 <!-- Custom Responsive CSS for Sales View -->
 <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/custom-responsive.css') }}?v={{ time() }}">

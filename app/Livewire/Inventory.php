@@ -28,7 +28,10 @@ class Inventory extends Component
             return $product->stock_qty * $product->price;
         });
 
-        session(['map' => "TOTAL COSTO $" . number_format($tcosto, 2), 'child' => "TOTAL VENTA $" . number_format($tventa, 2), 'rest' => ' GANANCIA:' . number_format(($tventa - $tcosto), 2), 'pos' => '']);
+        $profit = $tventa - $tcosto;
+        $margin = $tventa > 0 ? ($profit / $tventa) * 100 : 0;
+
+        session(['map' => "TOTAL COSTO $" . number_format($tcosto, 2), 'child' => "TOTAL VENTA $" . number_format($tventa, 2), 'rest' => ' GANANCIA: $' . number_format($profit, 2) . " / MARGEN: " . number_format($margin, 2) . "%", 'pos' => '']);
 
         return $data;
     }

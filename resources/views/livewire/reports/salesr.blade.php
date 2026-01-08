@@ -23,7 +23,7 @@
 
                     <div class="mt-3">
                         <span class="f-14"><b>Usuario</b></span>
-                        <select wire:model="user_id" class="form-select form-control-sm">
+                        <select wire:model="user_id" class="form-control form-control-sm">
                             <option value="0">Seleccionar</option>
                             @foreach ($users as $user)
                                 <option value="{{ $user->id }}">
@@ -35,7 +35,7 @@
 
                     <div class="mt-3">
                         <span class="f-14"><b>Vendedor</b></span>
-                        <select wire:model="seller_id" class="form-select form-control-sm">
+                        <select wire:model="seller_id" class="form-control form-control-sm">
                             <option value="0">Seleccionar</option>
                             @foreach ($sellers as $seller)
                                 <option value="{{ $seller->id }}">
@@ -63,7 +63,7 @@
 
                     <div class="mt-3">
                         <span class="f-14"><b>Tipo</b></span>
-                        <select wire:model='type' class="form-select">
+                        <select wire:model='type' class="form-control">
                             <option value="0">Todas</option>
                             <option value="cash">Contado</option>
                             <option value="credit">Crédito</option>

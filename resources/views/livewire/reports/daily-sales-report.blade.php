@@ -22,8 +22,15 @@
                     </div>
 
                     <div class="mt-3">
+                        <span class="f-14"><b>Folio / Factura</b></span>
+                        <div class="input-group">
+                            <input wire:model="searchFolio" class="form-control" type="text" placeholder="Buscar por Folio">
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
                         <span class="f-14"><b>Usuario</b></span>
-                        <select wire:model="user_id" class="form-select form-control-sm">
+                        <select wire:model="user_id" class="form-control form-control-sm">
                             <option value="0">Seleccionar</option>
                             @foreach ($users as $user)
                                 <option value="{{ $user->id }}">
@@ -35,7 +42,7 @@
 
                     <div class="mt-3">
                         <span class="f-14"><b>Vendedor</b></span>
-                        <select wire:model="seller_id" class="form-select form-control-sm">
+                        <select wire:model="seller_id" class="form-control form-control-sm">
                             <option value="0">Seleccionar</option>
                             @foreach ($sellers as $seller)
                                 <option value="{{ $seller->id }}">
@@ -63,7 +70,7 @@
 
                     <div class="mt-3">
                         <span class="f-14"><b>Agrupar por</b></span>
-                        <select wire:model='groupBy' class="form-select">
+                        <select wire:model='groupBy' class="form-control">
                             <option value="none">Ninguno</option>
                             <option value="customer_id">Cliente</option>
                             <option value="date">Fecha</option>
@@ -74,11 +81,35 @@
 
                     <div class="mt-3">
                         <span class="f-14"><b>Tipo</b></span>
-                        <select wire:model='type' class="form-select">
+                        <select wire:model='type' class="form-control">
                             <option value="0">Todas</option>
                             <option value="cash">Contado</option>
                             <option value="credit">Crédito</option>
                         </select>
+                    </div>
+
+                    <div class="mt-4">
+                        <h6 class="txt-light">Configuración del Reporte</h6>
+                        <hr class="mt-1 mb-2">
+                        
+                        <span class="f-14"><b>Formato</b></span>
+                        <div class="mt-2">
+                            <div class="custom-control custom-radio">
+                                <input class="custom-control-input" type="radio" id="formatDetailed" name="reportFormat" value="detailed" wire:model="reportFormat">
+                                <label for="formatDetailed" class="custom-control-label">Detallado (Bancos)</label>
+                            </div>
+                            <div class="custom-control custom-radio">
+                                <input class="custom-control-input" type="radio" id="formatSummarized" name="reportFormat" value="summarized" wire:model="reportFormat">
+                                <label for="formatSummarized" class="custom-control-label">Resumido (Moneda)</label>
+                            </div>
+                        </div>
+
+                        <div class="mt-3">
+                            <div class="custom-control custom-checkbox">
+                                <input class="custom-control-input" type="checkbox" id="includeDetails" wire:model="includeDetails">
+                                <label for="includeDetails" class="custom-control-label">Incluir Detalles (Referencias)</label>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="mt-3">
@@ -295,6 +326,23 @@
                     },
                 });
             }
+
+            Livewire.on('update-header', (data) => {
+                const rfx = document.querySelector('.breadcrumb-item.rfx');
+                const breadcrumbItems = document.querySelectorAll('.breadcrumb .breadcrumb-item');
+                
+                if (breadcrumbItems.length >= 4) {
+                    if (data.map) breadcrumbItems[1].innerText = data.map;
+                    if (data.child) breadcrumbItems[2].innerText = data.child;
+                    if (data.rest) breadcrumbItems[3].innerText = data.rest;
+                } else {
+                    const active = document.querySelector('.breadcrumb-item.active');
+                    const rest = document.querySelector('.breadcrumb-item.rest');
+                    if (rfx && data.map) rfx.innerText = data.map;
+                    if (active && data.child) active.innerText = data.child;
+                    if (rest && data.rest) rest.innerText = data.rest;
+                }
+            })
 
         })
     </script>

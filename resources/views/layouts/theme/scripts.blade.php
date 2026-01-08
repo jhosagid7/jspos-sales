@@ -97,4 +97,7 @@
 
   })
 
+
+
 </script>
+<script src="{{ asset('assets/js/demo.js') }}"></script>

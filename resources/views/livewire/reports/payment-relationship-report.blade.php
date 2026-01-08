@@ -44,7 +44,7 @@
 
                                     <div class="mt-3">
                                         <span class="f-14"><b>Usuario</b></span>
-                                        <select wire:model="user_id" class="form-select form-control-sm">
+                                        <select wire:model="user_id" class="form-control form-control-sm">
                                             <option value="0">Seleccionar</option>
                                             @foreach ($users as $user)
                                                 <option value="{{ $user->id }}">
@@ -56,7 +56,7 @@
 
                                     <div class="mt-3">
                                         <span class="f-14"><b>Agrupar por</b></span>
-                                        <select wire:model='groupBy' class="form-select">
+                                        <select wire:model='groupBy' class="form-control">
                                             <option value="none">Ninguno</option>
                                             <option value="customer_id">Cliente</option>
                                             <option value="date">Fecha</option>
@@ -67,7 +67,7 @@
 
                                     <div class="mt-3">
                                         <span class="f-14"><b>Vendedor</b></span>
-                                        <select wire:model="seller_id" class="form-select form-control-sm">
+                                        <select wire:model="seller_id" class="form-control form-control-sm">
                                             <option value="0">Seleccionar</option>
                                             @foreach ($sellers as $seller)
                                                 <option value="{{ $seller->id }}">
@@ -175,6 +175,9 @@
         .ts-dropdown {
             z-index: 1000000 !important;
         }
+        .rest {
+            display: block !important;
+        }
     </style>
 
     <script>
@@ -191,6 +194,14 @@
         }
 
         document.addEventListener('livewire:init', () => {
+            
+            window.addEventListener('update-header', event => {
+                // console.log(event.detail) 
+                $('.rfx').text(event.detail.map)
+                $('.breadcrumb-item.active').text(event.detail.child)
+                $('.rest').text(event.detail.rest)
+            })
+
             flatpickr("#dateFrom", {
                 dateFormat: "Y/m/d",
                 locale: "es",

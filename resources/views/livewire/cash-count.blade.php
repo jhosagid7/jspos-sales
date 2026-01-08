@@ -287,25 +287,55 @@
                                 <div class="card-body">
                                     <div class="row">
                                         <div class="col-md-6">
-                                            <div class="text-center p-3 bg-light rounded">
+                                            <div class="text-center p-3 bg-light rounded h-100">
                                                 <h6 class="text-muted mb-2">Total en Efectivo</h6>
-                                                <h4 class="text-success mb-0">{{ $symbol }}{{ number_format($totalCash + $totalPaymentsCash, 2) }}</h4>
+                                                @if (!empty($totalCashDetails))
+                                                    @foreach ($totalCashDetails as $currency => $amount)
+                                                        @php
+                                                            $curr = collect($currencies)->firstWhere('code', $currency);
+                                                            $currSymbol = $curr ? $curr->symbol : $currency;
+                                                            $label = $curr ? $curr->label : $currency;
+                                                        @endphp
+                                                        <h4 class="text-success mb-0">{{ $currSymbol }}{{ number_format($amount, 2) }}</h4>
+                                                        <small class="text-muted">{{ $label }}</small><br>
+                                                    @endforeach
+                                                @else
+                                                     <h4 class="text-success mb-0">{{ $symbol }}0.00</h4>
+                                                @endif
                                             </div>
                                         </div>
                                         <div class="col-md-6">
-                            <div class="text-center p-3 bg-light rounded">
-                                <h6 class="text-muted mb-2">Total en Banco</h6>
-                                <h4 class="text-success mb-0">{{ $symbol }}{{ number_format($totalDeposit + $totalPaymentsDeposit, 2) }}</h4>
-                            </div>
-                        </div>
-                    </div>
+                                            <div class="text-center p-3 bg-light rounded h-100">
+                                                <h6 class="text-muted mb-2">Total en Banco</h6>
+                                                @if (!empty($totalBankDetails))
+                                                    @foreach ($totalBankDetails as $bankName => $currenciesInBank)
+                                                        <div class="mb-2 border-bottom pb-1">
+                                                            <strong class="text-dark f-14">{{ $bankName }}</strong>
+                                                            @foreach ($currenciesInBank as $currency => $amount)
+                                                                @php
+                                                                    $curr = collect($currencies)->firstWhere('code', $currency);
+                                                                    $currSymbol = $curr ? $curr->symbol : $currency;
+                                                                @endphp
+                                                                <div class="d-flex justify-content-between px-4">
+                                                                    <span class="text-muted f-12">{{ $currency }}</span>
+                                                                    <span class="text-success fw-bold f-12">{{ $currSymbol }}{{ number_format($amount, 2) }}</span>
+                                                                </div>
+                                                            @endforeach
+                                                        </div>
+                                                    @endforeach
+                                                @else
+                                                    <h4 class="text-success mb-0">{{ $symbol }}0.00</h4>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
 
                     <div class="row mt-4">
                         <div class="col-12">
                             <div class="alert alert-success mb-0 py-3">
                                 <h5 class="mb-0">
                                     <strong>TOTAL GENERAL:</strong>
-                                    <span class="float-end">{{ $symbol }}{{ number_format($totalSales + $totalPayments, 2) }}</span>
+                                    <span class="float-end">{{ $symbol }}{{ number_format($totalCash + $totalDeposit + $totalPayments, 2) }}</span>
                                 </h5>
                             </div>
                         </div>
