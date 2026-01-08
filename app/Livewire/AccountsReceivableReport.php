@@ -413,6 +413,48 @@ class AccountsReceivableReport extends Component
                 $currencyCode = $payment['currency'];
                 $exchangeRate = $payment['exchange_rate'];
                 
+                // Handle Zelle Record
+                $zelleRecordId = null;
+                if ($payment['method'] == 'zelle') {
+                    // Check if Zelle record exists
+                    $zelleRecord = \App\Models\ZelleRecord::where('sender_name', $payment['zelle_sender'])
+                        ->where('zelle_date', $payment['zelle_date'])
+                        ->where('amount', $payment['zelle_amount'])
+                        ->first();
+
+                    $amountUsed = $payment['amount'];
+
+                    if ($zelleRecord) {
+                        // Use existing record
+                        $zelleRecord->remaining_balance -= $amountUsed;
+                        if ($zelleRecord->remaining_balance < 0) $zelleRecord->remaining_balance = 0;
+                        
+                        $zelleRecord->status = $zelleRecord->remaining_balance <= 0.01 ? 'used' : 'partial';
+                        $zelleRecord->save();
+                        
+                        $zelleRecordId = $zelleRecord->id;
+                    } else {
+                        // Create new record
+                        $remaining = $payment['zelle_amount'] - $amountUsed;
+                        
+                        $zelleRecord = \App\Models\ZelleRecord::create([
+                            'sender_name' => $payment['zelle_sender'],
+                            'zelle_date' => $payment['zelle_date'],
+                            'amount' => $payment['zelle_amount'],
+                            'reference' => $payment['reference'] ?? null,
+                            'image_path' => $payment['zelle_image'] ?? null,
+                            'status' => $remaining <= 0.01 ? 'used' : 'partial',
+                            'remaining_balance' => max(0, $remaining),
+                            'customer_id' => $sale->customer_id,
+                            'sale_id' => $sale->id,
+                            'invoice_total' => $sale->total,
+                            'payment_type' => $amountUsed >= ($sale->total - 0.01) ? 'full' : 'partial'
+                        ]);
+                        
+                        $zelleRecordId = $zelleRecord->id;
+                    }
+                }
+
                 $pay = Payment::create([
                     'user_id' => Auth()->user()->id,
                     'sale_id' => $this->sale_id,
@@ -426,7 +468,8 @@ class AccountsReceivableReport extends Component
                     'account_number' => $payment['account_number'] ?? null,
                     'deposit_number' => $payment['reference'] ?? null,
                     'phone_number' => $payment['phone'] ?? null,
-                    'payment_date' => \Carbon\Carbon::now()
+                    'payment_date' => \Carbon\Carbon::now(),
+                    'zelle_record_id' => $zelleRecordId
                 ]);
                 
                 $amountUSD = $amount / $exchangeRate;

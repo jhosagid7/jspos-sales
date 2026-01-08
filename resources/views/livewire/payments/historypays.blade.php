@@ -39,6 +39,9 @@
                                                 $methodName = $pay->bank ?: 'Banco';
                                                 $badgeColor = 'info';
 
+                                            } elseif ($pay->pay_way == 'zelle') {
+                                                $methodName = 'Zelle';
+                                                $badgeColor = 'dark';
                                             }
                                             
                                             // Determinar nombre de moneda
@@ -75,6 +78,16 @@
                                                         <small>NC:{{ $pay->account_number }} /
                                                             ND:{{ $pay->deposit_number }}</small>
                                                     </div>
+                                                @elseif ($pay->pay_way == 'zelle' && $pay->zelleRecord)
+                                                    <div>
+                                                        <small>Zelle: {{ $pay->zelleRecord->sender_name }}</small><br>
+                                                        <small>Fecha: {{ $pay->zelleRecord->zelle_date }}</small>
+                                                    </div>
+                                                    @if($pay->zelleRecord->image_path)
+                                                        <a href="{{ asset('storage/zelle_receipts/' . $pay->zelleRecord->image_path) }}" target="_blank">
+                                                            <i class="fas fa-image"></i> Ver
+                                                        </a>
+                                                    @endif
                                                 @endif
 
                                             </td>

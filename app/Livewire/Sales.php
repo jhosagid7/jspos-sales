@@ -8,6 +8,7 @@ use App\Models\Bank;
 use App\Models\Sale;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ZelleRecord;
 use Livewire\Component;
 use App\Models\Currency;
 use App\Models\Customer;
@@ -1446,6 +1447,55 @@ class Sales extends Component
             // Guardar detalles de pagos en múltiples monedas
             if (!empty($this->payments)) {
                 foreach ($this->payments as $payment) {
+                    $zelleRecordId = null;
+
+                    Log::info("Processing payment in Sales", ['method' => $payment['method'], 'has_zelle_sender' => isset($payment['zelle_sender'])]);
+
+                    if ($payment['method'] == 'zelle') {
+                        Log::info("Zelle payment detected in Sales", $payment);
+                        // Check if Zelle record exists
+                        $zelleRecord = ZelleRecord::where('sender_name', $payment['zelle_sender'])
+                            ->where('zelle_date', $payment['zelle_date'])
+                            ->where('amount', $payment['zelle_amount'])
+                            ->first();
+
+                        $amountUsed = $payment['amount']; // Amount applied to this sale
+
+                        if ($zelleRecord) {
+                            // Use existing record
+                            $zelleRecord->remaining_balance -= $amountUsed;
+                            if ($zelleRecord->remaining_balance < 0) $zelleRecord->remaining_balance = 0;
+                            
+                            $zelleRecord->status = $zelleRecord->remaining_balance <= 0.01 ? 'used' : 'partial';
+                            $zelleRecord->save();
+                            
+                            $zelleRecordId = $zelleRecord->id;
+                        } else {
+                            // Create new record
+                            $remaining = $payment['zelle_amount'] - $amountUsed;
+                            
+                                $zelleRecord = ZelleRecord::create([
+                                'sender_name' => $payment['zelle_sender'],
+                                'zelle_date' => $payment['zelle_date'],
+                                'amount' => $payment['zelle_amount'],
+                                'reference' => $payment['reference'] ?? null,
+                                'image_path' => $payment['zelle_image'] ?? null,
+                                'status' => $remaining <= 0.01 ? 'used' : 'partial',
+                                'remaining_balance' => max(0, $remaining),
+                                'customer_id' => $sale->customer_id,
+                                'sale_id' => $sale->id,
+                                'invoice_total' => $sale->total,
+                                'payment_type' => $amountUsed >= ($sale->total - 0.01) ? 'full' : 'partial'
+                            ]);
+                            
+                            $zelleRecordId = $zelleRecord->id;
+                        }
+                        
+                        Log::info("Zelle Record processed", ['id' => $zelleRecordId, 'created_new' => !$zelleRecord->wasRecentlyCreated]);
+                    } else {
+                        Log::info("Not a Zelle payment", ['method' => $payment['method']]);
+                    }
+
                     SalePaymentDetail::create([
                         'sale_id' => $sale->id,
                         'payment_method' => $payment['method'],
@@ -1455,8 +1505,9 @@ class Sales extends Component
                         'amount_in_primary_currency' => $payment['amount_in_primary_currency'],
                         'bank_name' => $payment['bank_name'] ?? null,
                         'account_number' => $payment['account_number'] ?? null,
-                        'reference_number' => $payment['deposit_number'] ?? null,
+                        'reference_number' => $payment['reference'] ?? ($payment['deposit_number'] ?? null),
                         'phone_number' => $payment['phone_number'] ?? null,
+                        'zelle_record_id' => $zelleRecordId
                     ]);
                 }
             } elseif ($type == 1) {

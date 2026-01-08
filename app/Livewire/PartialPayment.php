@@ -9,6 +9,7 @@ use App\Models\Sale;
 use App\Models\SalePaymentDetail;
 use App\Traits\PrintTrait;
 use Livewire\Component;
+use Livewire\Attributes\On;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -19,10 +20,10 @@ class PartialPayment extends Component
     public $sales, $pays;
     public  $search, $sale_selected_id, $customer_name, $debt, $debt_usd;
     
-    // Listeners
+    // Add listeners for compatibility
     protected $listeners = [
         'payment-completed' => 'handlePaymentCompleted',
-        'close-modal' => 'resetUI' 
+        'close-modal' => 'resetUI'
     ];
 
     function mount($key = null)
@@ -126,9 +127,16 @@ class PartialPayment extends Component
         );
     }
 
+    #[On('payment-completed')]
     public function handlePaymentCompleted($payments, $change, $changeDistribution)
     {
-        if (!$this->sale_selected_id) return;
+        Log::info("=== handlePaymentCompleted CALLED ===");
+        Log::info("handlePaymentCompleted called", ['payments_count' => count($payments), 'payments' => $payments]);
+        
+        if (!$this->sale_selected_id) {
+            Log::info("handlePaymentCompleted: No sale selected, returning");
+            return;
+        }
 
         DB::beginTransaction();
         try {
@@ -146,6 +154,54 @@ class PartialPayment extends Component
                 $currencyCode = $payment['currency'];
                 $exchangeRate = $payment['exchange_rate'];
                 
+                Log::info("Processing Payment in PartialPayment", ['method' => $payment['method'], 'data' => $payment]);
+
+                // Handle Zelle Record
+                $zelleRecordId = null;
+                if ($payment['method'] == 'zelle') {
+                    Log::info("Zelle method detected");
+                    // Check if Zelle record exists
+                    $zelleRecord = \App\Models\ZelleRecord::where('sender_name', $payment['zelle_sender'])
+                        ->where('zelle_date', $payment['zelle_date'])
+                        ->where('amount', $payment['zelle_amount'])
+                        ->first();
+
+                    $amountUsed = $payment['amount'];
+
+                    if ($zelleRecord) {
+                        // Use existing record
+                        $zelleRecord->remaining_balance -= $amountUsed;
+                        if ($zelleRecord->remaining_balance < 0) $zelleRecord->remaining_balance = 0;
+                        
+                        $zelleRecord->status = $zelleRecord->remaining_balance <= 0.01 ? 'used' : 'partial';
+                        $zelleRecord->save();
+                        
+                        $zelleRecordId = $zelleRecord->id;
+                    } else {
+                        // Create new record
+                        $remaining = $payment['zelle_amount'] - $amountUsed;
+                        
+                        $zelleRecord = \App\Models\ZelleRecord::create([
+                            'sender_name' => $payment['zelle_sender'],
+                            'zelle_date' => $payment['zelle_date'],
+                            'amount' => $payment['zelle_amount'],
+                            'reference' => $payment['reference'] ?? null,
+                            'image_path' => $payment['zelle_image'] ?? null,
+                            'status' => $remaining <= 0.01 ? 'used' : 'partial',
+                            'remaining_balance' => max(0, $remaining),
+                            'customer_id' => $sale->customer_id,
+                            'sale_id' => $sale->id,
+                            'invoice_total' => $sale->total,
+                            'payment_type' => $amountUsed >= ($sale->total - 0.01) ? 'full' : 'partial'
+                        ]);
+                        
+                        $zelleRecordId = $zelleRecord->id;
+                        Log::info("Zelle Record Created/Updated", ['id' => $zelleRecordId]);
+                    }
+                } else {
+                    Log::info("Not a Zelle payment: " . $payment['method']);
+                }
+
                 // Create Payment Record
                 $pay = Payment::create([
                     'user_id' => Auth()->user()->id,
@@ -160,7 +216,13 @@ class PartialPayment extends Component
                     'account_number' => $payment['account_number'] ?? null,
                     'deposit_number' => $payment['reference'] ?? null,
                     'phone_number' => $payment['phone'] ?? null,
-                    'payment_date' => \Carbon\Carbon::now() // Or allow user to pick date in component?
+                    'payment_date' => \Carbon\Carbon::now(),
+                    'zelle_record_id' => $zelleRecordId
+                    // We need to add zelle_record_id to payments table if we want to link it directly
+                    // But wait, the payments table doesn't have zelle_record_id column yet?
+                    // Sales.php uses SalePaymentDetail which has it.
+                    // PartialPayment uses Payment model.
+                    // We should check if Payment model has zelle_record_id.
                 ]);
                 
                 // Calculate USD amount for this payment
@@ -207,6 +269,7 @@ class PartialPayment extends Component
         }
     }
 
+    #[On('close-modal')]
     public function resetUI()
     {
         $this->sale_selected_id = null;
