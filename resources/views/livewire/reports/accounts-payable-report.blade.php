@@ -150,7 +150,7 @@
 
         </div>
     </div>
-    @include('livewire.reports.partialpayable')
+    <livewire:common.payment-component />
     @include('livewire.payables.historypayables')
     <style>
         .ts-dropdown {

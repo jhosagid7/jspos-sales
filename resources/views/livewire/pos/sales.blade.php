@@ -76,13 +76,20 @@
 
                 <div class="card-body p-3">
                     <div class="form-group">
-                        <label>
-                            @if ($customer != null)
-                                {{ $customer['name'] ?? '' }} <i class="fas fa-check-circle text-success"></i>
-                            @else
-                                Cliente
-                            @endif
-                        </label>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="mb-0">
+                                @if ($customer != null)
+                                    {{ $customer['name'] ?? '' }} <i class="fas fa-check-circle text-success"></i>
+                                @else
+                                    Cliente
+                                @endif
+                            </label>
+                            
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" id="customSwitch1" wire:model.live="applyCommissions">
+                                <label class="custom-control-label" for="customSwitch1" style="font-size: 0.8rem;">Aplicar Comisiones</label>
+                            </div>
+                        </div>
                         
                         @if($sellerConfig)
                             <div class="alert alert-info p-2" style="font-size: 0.85rem;">

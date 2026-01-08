@@ -12,7 +12,8 @@ class CommissionService
     public static function calculateCommission(Sale $sale)
     {
         $customer = $sale->customer;
-        $seller = $sale->user; // Assuming the sale has a user relation pointing to the seller
+        // Use the customer's assigned seller if available, otherwise the user who made the sale
+        $seller = $customer->seller ?? $sale->user; 
         $config = Configuration::first();
 
         // 1. Check Customer Configuration

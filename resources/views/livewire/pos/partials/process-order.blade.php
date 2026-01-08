@@ -4,7 +4,7 @@
             <div class="modal-content">
                 <div class="modal-header bg-primary">
                     <h5 class="modal-title">Procesar Ordenes</h5>
-                    <button class="py-0 btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button class="py-0 btn-close" type="button" data-dismiss="modal" aria-label="Close" onclick="$('#modalProcessOrder').modal('hide')"></button>
                 </div>
                 <div class="modal-body">
                     @if ($order_selected_id == null)
@@ -86,7 +86,7 @@
                     @endif
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cerrar</button>
+                    <button class="btn btn-secondary" type="button" data-dismiss="modal" onclick="$('#modalProcessOrder').modal('hide')">Cerrar</button>
                 </div>
             </div>
         </div>

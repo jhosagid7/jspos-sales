@@ -6,43 +6,37 @@ use App\Models\Bank;
 use App\Models\Currency;
 use App\Models\Payment;
 use App\Models\Sale;
+use App\Models\SalePaymentDetail;
 use App\Traits\PrintTrait;
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PartialPayment extends Component
 {
     use PrintTrait;
 
-    public $sales, $banks, $pays;
-    public $currencies, $paymentCurrency;
+    public $sales, $pays;
     public  $search, $sale_selected_id, $customer_name, $debt, $debt_usd;
-    public $amount, $acountNumber, $depositNumber, $bank, $phoneNumber, $paymentDate;
-    public $paymentMethod = 'cash'; // cash, nequi, deposit
+    
+    // Listeners
+    protected $listeners = [
+        'payment-completed' => 'handlePaymentCompleted',
+        'close-modal' => 'resetUI' 
+    ];
 
     function mount($key = null)
     {
-        $this->banks = Bank::orderBy('sort')->get();
-        $this->currencies = Currency::orderBy('is_primary', 'desc')->orderBy('id', 'asc')->get();
-        $this->paymentCurrency = $this->currencies->firstWhere('is_primary', 1)->code ?? 'COP';
-        $this->bank = 0;
-        $this->paymentMethod = 'cash';
-
         $this->sales = [];
         $this->pays = [];
-        $this->amount = null;
         $this->search = null;
         $this->sale_selected_id = null;
         $this->customer_name = null;
-        $this->paymentDate = \Carbon\Carbon::now()->format('Y-m-d');
     }
-
 
     public function render()
     {
-
         $this->getSalesWithDetails();
-
         return view('livewire.payments.partial-payment');
     }
 
@@ -97,8 +91,6 @@ class PartialPayment extends Component
         $this->sales = $sales;
     }
 
-
-
     function initPay($sale_id, $customer, $debt)
     {
         $sale = Sale::find($sale_id);
@@ -110,7 +102,6 @@ class PartialPayment extends Component
         
         // Calcular deuda en USD (moneda base)
         $totalPaidUSD = $sale->payments->sum(function($payment) {
-            // Convertir cada pago a USD
             $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
             return $payment->amount / $rate;
         });
@@ -124,181 +115,109 @@ class PartialPayment extends Component
         $this->sale_selected_id = $sale_id;
         $this->customer_name = $customer;
         $this->debt = round($debtInPrimary, 2);
-        $this->debt_usd = round($debtUSD, 2); // Guardar también en USD para validaciones
-        $this->paymentDate = \Carbon\Carbon::now()->format('Y-m-d');
-        $this->dispatch('focus-partialPayInput');
+        $this->debt_usd = round($debtUSD, 2);
+        
+        // Open the Payment Component Modal
+        $this->dispatch('initPayment', 
+            total: $this->debt, 
+            currency: 'USD', 
+            customer: $this->customer_name, 
+            allowPartial: true
+        );
     }
 
-    function doPayment()
+    public function handlePaymentCompleted($payments, $change, $changeDistribution)
     {
-        $this->resetValidation();
-
-        if ($this->paymentMethod == 'deposit') {
-            if ($this->bank == 0) {
-                $this->addError('bank', 'SELECCIONA EL BANCO');
-            }
-            if (empty($this->acountNumber)) {
-                $this->addError('nacount', 'INGRESA EL NÚMERO DE CUENTA');
-            }
-            if (empty($this->depositNumber)) {
-                $this->addError('ndeposit',  'INGRESA EL NÚMERO DE DEPÓSITO');
-            }
-        }
-        
-        if ($this->paymentMethod == 'nequi') {
-             if (empty($this->phoneNumber)) {
-                $this->addError('phoneNumber', 'INGRESA EL NÚMERO DE TELÉFONO');
-            }
-        }
-
-        if (empty($this->amount) || strlen($this->amount) < 1) {
-            $this->addError('amount', 'INGRESA EL MONTO');
-        }
-        if (floatval($this->amount) <= 0) {
-            $this->addError('amount', 'MONTO DEBE SER MAYOR A CERO');
-        }
-
-        if (count($this->getErrorBag()) > 0) {
-            return;
-        }
-
-        $type = null;
-        $amount = floatval($this->amount);
-        if (floatval($this->amount) >= floatval($this->debt)) {
-            $type = 'settled'; //liquida crédito
-        } else {
-            $type = 'pay'; // abono
-        }
-
-        if (floatval($this->amount) > floatval($this->debt)) {
-            $amount = $this->debt;
-        }
-
+        if (!$this->sale_selected_id) return;
 
         DB::beginTransaction();
-
         try {
-            // Determine currency and exchange rate based on payment method
-            $currencyCode = 'COP';
-            $exchangeRate = 1;
-
-            if ($this->paymentMethod == 'cash') {
-                $currencyCode = $this->paymentCurrency;
-                $selectedCurrency = $this->currencies->firstWhere('code', $currencyCode);
-                $exchangeRate = $selectedCurrency ? $selectedCurrency->exchange_rate : 1;
-            } elseif ($this->paymentMethod == 'deposit') {
-                $bank = $this->banks->find($this->bank);
-                $currencyCode = $bank ? $bank->currency_code : 'COP';
-                // Find exchange rate for bank's currency
-                $selectedCurrency = $this->currencies->firstWhere('code', $currencyCode);
-                $exchangeRate = $selectedCurrency ? $selectedCurrency->exchange_rate : 1;
-            } elseif ($this->paymentMethod == 'nequi') {
-                $currencyCode = 'COP';
-                $exchangeRate = 1;
-            }
-
-            // Calculate amount in primary currency if needed
-            $primaryCurrency = $this->currencies->firstWhere('is_primary', 1);
-            $amountInPrimary = $amount;
+            $sale = Sale::find($this->sale_selected_id);
+            $primaryCurrency = Currency::where('is_primary', true)->first();
             
-            // If currency is not primary, convert to primary through USD base
-            $currencyObj = $this->currencies->firstWhere('code', $currencyCode);
-            if ($currencyObj && $currencyObj->is_primary != 1) {
-                // Convert to USD first, then to primary currency
-                $amountInUSD = $amount / $exchangeRate;
-                $amountInPrimary = $amountInUSD * $primaryCurrency->exchange_rate;
-            } else {
-                // If it's the primary currency, convert to USD
-                $amountInUSD = $amount / $primaryCurrency->exchange_rate;
-            }
+            $totalPaidUSD = 0;
 
-            // Re-validate against debt in USD (source of truth)
-             if ($amountInUSD > $this->debt_usd) {
-                $amountInUSD = $this->debt_usd;
-                // Recalculate amounts based on capped USD amount
-                $amountInPrimary = $amountInUSD * $primaryCurrency->exchange_rate;
-                $amount = $amountInUSD * $exchangeRate;
-            }
-            
-            if ($amountInUSD >= $this->debt_usd) {
-                $type = 'settled';
-            }
-
-            //crear pago
-            $pay =  Payment::create(
-                [
+            foreach ($payments as $payment) {
+                // Determine type (pay vs settled)
+                // This is tricky with multiple payments. 
+                // We'll calculate total paid vs debt at the end.
+                
+                $amount = $payment['amount'];
+                $currencyCode = $payment['currency'];
+                $exchangeRate = $payment['exchange_rate'];
+                
+                // Create Payment Record
+                $pay = Payment::create([
                     'user_id' => Auth()->user()->id,
                     'sale_id' => $this->sale_selected_id,
                     'amount' => floatval($amount),
                     'currency' => $currencyCode,
                     'exchange_rate' => $exchangeRate,
                     'primary_exchange_rate' => $primaryCurrency->exchange_rate,
-                    'pay_way' => $this->paymentMethod,
-                    'type' => $type,
-                    'bank' => ($this->paymentMethod == 'deposit' && $this->bank != 0 ? $this->banks->where('id', $this->bank)->first()->name : ''),
-                    'account_number' => $this->acountNumber,
-                    'deposit_number' => $this->depositNumber,
-                    'phone_number' => $this->phoneNumber,
-                    'payment_date' => $this->paymentDate ? \Carbon\Carbon::parse($this->paymentDate) : \Carbon\Carbon::now()
-                ]
-            );
-
-            // actualizar status venta
-            if ($type == 'settled') {
-                Sale::where('id', $this->sale_selected_id)->update([
-                    'status' => 'paid'
+                    'pay_way' => $payment['method'] == 'bank' ? 'deposit' : $payment['method'],
+                    'type' => 'pay', // Default to pay, update later if settled
+                    'bank' => $payment['bank_name'] ?? null,
+                    'account_number' => $payment['account_number'] ?? null,
+                    'deposit_number' => $payment['reference'] ?? null,
+                    'phone_number' => $payment['phone'] ?? null,
+                    'payment_date' => \Carbon\Carbon::now() // Or allow user to pick date in component?
                 ]);
+                
+                // Calculate USD amount for this payment
+                $amountUSD = $amount / $exchangeRate;
+                $totalPaidUSD += $amountUSD;
+            }
+
+            // Check if settled
+            // Re-calculate total debt in USD
+            $previousPaidUSD = $sale->payments->sum(function($p) {
+                $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
+                return $p->amount / $rate;
+            });
+            
+            $newTotalPaidUSD = $previousPaidUSD + $totalPaidUSD;
+            
+            // Tolerance for floating point
+            if ($newTotalPaidUSD >= ($sale->total_usd - 0.01)) {
+                // Mark sale as paid
+                $sale->update(['status' => 'paid']);
+                
+                // Update all recent payments to 'settled'
+                // Or just the last one? Usually 'settled' means this payment settled it.
+                // Let's mark all payments from this batch as 'settled' if the sale is now paid.
+                // But we just created them.
+                Payment::where('sale_id', $sale->id)
+                    ->where('created_at', '>=', \Carbon\Carbon::now()->subMinute())
+                    ->update(['type' => 'settled']);
+                    
+                // Calculate Commission
+                \App\Services\CommissionService::calculateCommission($sale);
             }
 
             DB::commit();
 
-            // Calculate Commission if sale is settled
-            if ($type == 'settled') {
-                $sale = Sale::find($this->sale_selected_id);
-                if ($sale) {
-                    \App\Services\CommissionService::calculateCommission($sale);
-                }
-            }
+            $this->dispatch('noty', msg: 'ABONO REGISTRADO CON ÉXITO');
+            $this->dispatch('close-modal'); // Close PartialPayment modal
+            $this->resetUI();
 
-            $this->printPayment($pay->id);
-            $this->dispatch('noty', msg: 'PAGO REGISTRADO CON ÉXITO');
-            $this->dispatch('close-modal');
-            
-            // Limpiar datos de la venta seleccionada
-            $this->sale_selected_id = null;
-            $this->customer_name = null;
-            $this->debt = null;
-            $this->debt_usd = null;
-            $this->amount = null;
-            $this->acountNumber = null;
-            $this->depositNumber = null;
-            $this->phoneNumber = null;
-            $this->bank = 0;
-            $this->paymentMethod = 'cash';
-            
-            $this->resetExcept('banks', 'pays', 'currencies');
-
-            //
         } catch (\Exception $th) {
             DB::rollBack();
-
-            $this->dispatch('noty', msg: "Error al intentar registrar el pago parcial: {$th->getMessage()}");
+            Log::error($th);
+            $this->dispatch('noty', msg: "Error al registrar el pago: {$th->getMessage()}");
         }
     }
 
-    function cancelPay()
+    public function resetUI()
     {
         $this->sale_selected_id = null;
         $this->customer_name = null;
         $this->debt = null;
         $this->debt_usd = null;
-        $this->amount = null;
-        $this->acountNumber = null;
-        $this->depositNumber = null;
-        $this->phoneNumber = null;
-        $this->bank = 0;
-        $this->paymentMethod = 'cash';
-        $this->dispatch('close-modal');
+    }
+
+    public function cancelPay()
+    {
+        $this->resetUI();
     }
 
     function historyPayments(Sale $sale)

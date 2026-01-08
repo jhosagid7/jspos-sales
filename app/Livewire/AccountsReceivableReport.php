@@ -113,8 +113,8 @@ class AccountsReceivableReport extends Component
 
             // Calculate total pending balance in USD
             $this->totales = $sales->getCollection()->sum(function($sale) {
-                $totalPaidUSD = $sale->payments->sum(function($payment) {
-                    $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
+                $totalPaidUSD = $sale->payments->sum(function($payment) use ($sale) {
+                    $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : ($payment->currency == 'USD' ? 1 : ($sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1));
                     return $payment->amount / $rate;
                 });
                 
@@ -124,7 +124,14 @@ class AccountsReceivableReport extends Component
                     return $detail->amount / $rate;
                 });
 
-                return max(0, $sale->total_usd - ($totalPaidUSD + $initialPaidUSD));
+                // Calculate total USD if missing
+                $totalUSD = $sale->total_usd;
+                if (!$totalUSD || $totalUSD == 0) {
+                    $exchangeRate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                    $totalUSD = $sale->total / $exchangeRate;
+                }
+
+                return max(0, $totalUSD - ($totalPaidUSD + $initialPaidUSD));
             });
 
             return $sales;
@@ -225,8 +232,8 @@ class AccountsReceivableReport extends Component
 
         foreach ($sales as $sale) {
             // Calculate balance in USD
-            $totalPaidUSD = $sale->payments->sum(function($payment) {
-                $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
+            $totalPaidUSD = $sale->payments->sum(function($payment) use ($sale) {
+                $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : ($payment->currency == 'USD' ? 1 : ($sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1));
                 return $payment->amount / $rate;
             });
             
@@ -235,7 +242,14 @@ class AccountsReceivableReport extends Component
                 return $detail->amount / $rate;
             });
 
-            $balance = max(0, $sale->total_usd - ($totalPaidUSD + $initialPaidUSD));
+            // Calculate total USD if missing
+            $totalUSD = $sale->total_usd;
+            if (!$totalUSD || $totalUSD == 0) {
+                $exchangeRate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                $totalUSD = $sale->total / $exchangeRate;
+            }
+
+            $balance = max(0, $totalUSD - ($totalPaidUSD + $initialPaidUSD));
 
             // Only include if there is balance (debt)
             if ($balance < 0.01) continue;
@@ -353,130 +367,79 @@ class AccountsReceivableReport extends Component
         $this->customer_name = $customer;
         $this->debt = round($debtInPrimary, 2);
         $this->debt_usd = round($debtUSD, 2);
-        $this->dispatch('show-modal-payment');
+        
+        $this->dispatch('initPayment', total: $this->debt, currency: 'USD', customer: $this->customer_name, allowPartial: true);
     }
 
-    function doPayment()
+    #[On('payment-completed')]
+    public function handlePaymentCompleted($payments, $change, $changeDistribution)
     {
-        $this->resetValidation();
-
-        if ($this->paymentMethod == 'deposit') {
-            if ($this->bank == 0) {
-                $this->addError('bank', 'SELECCIONA EL BANCO');
-            }
-            if (empty($this->acountNumber)) {
-                $this->addError('nacount', 'INGRESA EL NÚMERO DE CUENTA');
-            }
-            if (empty($this->depositNumber)) {
-                $this->addError('ndeposit',  'INGRESA EL NÚMERO DE DEPÓSITO');
-            }
-        }
-        
-        if ($this->paymentMethod == 'nequi') {
-             if (empty($this->phoneNumber)) {
-                $this->addError('phoneNumber', 'INGRESA EL NÚMERO DE TELÉFONO');
-            }
-        }
-
-        if (empty($this->amount) || strlen($this->amount) < 1) {
-            $this->addError('amount', 'INGRESA EL MONTO');
-        }
-        if (floatval($this->amount) <= 0) {
-            $this->addError('amount', 'MONTO DEBE SER MAYOR A CERO');
-        }
-
-        if (count($this->getErrorBag()) > 0) {
-            return;
-        }
-
-        $type = null;
-        $amount = floatval($this->amount);
-        if (floatval($this->amount) >= floatval($this->debt)) {
-            $type = 'settled';
-        } else {
-            $type = 'pay';
-        }
-
-        if (floatval($this->amount) > floatval($this->debt)) {
-            $amount = $this->debt;
-        }
+        if (!$this->sale_id) return;
 
         DB::beginTransaction();
-
         try {
-            $currencyCode = 'COP';
-            $exchangeRate = 1;
-
-            if ($this->paymentMethod == 'cash') {
-                $currencyCode = $this->paymentCurrency;
-                $selectedCurrency = $this->currencies->firstWhere('code', $currencyCode);
-                $exchangeRate = $selectedCurrency ? $selectedCurrency->exchange_rate : 1;
-            } elseif ($this->paymentMethod == 'deposit') {
-                $bank = $this->banks->find($this->bank);
-                $currencyCode = $bank ? $bank->currency_code : 'COP';
-                $selectedCurrency = $this->currencies->firstWhere('code', $currencyCode);
-                $exchangeRate = $selectedCurrency ? $selectedCurrency->exchange_rate : 1;
-            } elseif ($this->paymentMethod == 'nequi') {
-                $currencyCode = 'COP';
-                $exchangeRate = 1;
-            }
-
-            $primaryCurrency = $this->currencies->firstWhere('is_primary', 1);
-            $amountInPrimary = $amount;
+            $sale = Sale::find($this->sale_id);
+            $primaryCurrency = \App\Models\Currency::where('is_primary', true)->first();
             
-            $currencyObj = $this->currencies->firstWhere('code', $currencyCode);
-            if ($currencyObj && $currencyObj->is_primary != 1) {
-                $amountInUSD = $amount / $exchangeRate;
-                $amountInPrimary = $amountInUSD * $primaryCurrency->exchange_rate;
-            } else {
-                $amountInUSD = $amount / $primaryCurrency->exchange_rate;
+            $totalPaidUSD = 0;
+
+            foreach ($payments as $payment) {
+                $amount = $payment['amount'];
+                $currencyCode = $payment['currency'];
+                $exchangeRate = $payment['exchange_rate'];
+                
+                $pay = Payment::create([
+                    'user_id' => Auth()->user()->id,
+                    'sale_id' => $this->sale_id,
+                    'amount' => floatval($amount),
+                    'currency' => $currencyCode,
+                    'exchange_rate' => $exchangeRate,
+                    'primary_exchange_rate' => $primaryCurrency->exchange_rate,
+                    'pay_way' => $payment['method'] == 'bank' ? 'deposit' : $payment['method'],
+                    'type' => 'pay',
+                    'bank' => $payment['bank_name'] ?? null,
+                    'account_number' => $payment['account_number'] ?? null,
+                    'deposit_number' => $payment['reference'] ?? null,
+                    'phone_number' => $payment['phone'] ?? null,
+                    'payment_date' => \Carbon\Carbon::now()
+                ]);
+                
+                $amountUSD = $amount / $exchangeRate;
+                $totalPaidUSD += $amountUSD;
             }
 
-             if ($amountInUSD > $this->debt_usd) {
-                $amountInUSD = $this->debt_usd;
-                $amountInPrimary = $amountInUSD * $primaryCurrency->exchange_rate;
-                $amount = $amountInUSD * $exchangeRate;
-            }
+            // Check if settled
+            $previousPaidUSD = $sale->payments->sum(function($p) {
+                $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
+                return $p->amount / $rate;
+            });
             
-            if ($amountInUSD >= $this->debt_usd) {
-                $type = 'settled';
-            }
-
-            $pay = Payment::create([
-                'user_id' => Auth()->user()->id,
-                'sale_id' => $this->sale_id,
-                'amount' => floatval($amount),
-                'currency' => $currencyCode,
-                'exchange_rate' => $exchangeRate,
-                'primary_exchange_rate' => $primaryCurrency->exchange_rate,
-                'pay_way' => $this->paymentMethod,
-                'type' => $type,
-                'bank' => ($this->paymentMethod == 'deposit' && $this->bank != 0 ? $this->banks->where('id', $this->bank)->first()->name : ''),
-                'account_number' => $this->acountNumber,
-                'deposit_number' => $this->depositNumber,
-                'phone_number' => $this->phoneNumber
-            ]);
-
-            if ($type == 'settled') {
-                Sale::where('id', $this->sale_id)->update(['status' => 'paid']);
+            $newTotalPaidUSD = $previousPaidUSD + $totalPaidUSD;
+            
+            if ($newTotalPaidUSD >= ($sale->total_usd - 0.01)) {
+                $sale->update(['status' => 'paid']);
+                
+                Payment::where('sale_id', $sale->id)
+                    ->where('created_at', '>=', \Carbon\Carbon::now()->subMinute())
+                    ->update(['type' => 'settled']);
+                    
+                \App\Services\CommissionService::calculateCommission($sale);
             }
 
             DB::commit();
 
-            $this->printPayment($pay->id);
+            $this->printPayment($pay->id); // Print last payment receipt
             $this->dispatch('noty', msg: 'PAGO REGISTRADO CON ÉXITO');
-            $this->dispatch('hide-modal-payment');
-            $this->resetExcept('banks', 'pays', 'currencies', 'config', 'sellers', 'users');
-            $this->amount = null;
-            $this->acountNumber = null;
-            $this->depositNumber = null;
-            $this->phoneNumber = null;
-            $this->bank = 0;
-            $this->paymentMethod = 'cash';
+            $this->dispatch('hide-modal-payment'); // This might be redundant if component closes itself
+            
+            $this->sale_id = null;
+            $this->customer_name = null;
+            $this->debt = null;
+            $this->debt_usd = null;
 
         } catch (\Exception $th) {
             DB::rollBack();
-            $this->dispatch('noty', msg: "Error al intentar registrar el pago: {$th->getMessage()}");
+            $this->dispatch('noty', msg: "Error al registrar el pago: {$th->getMessage()}");
         }
     }
 
@@ -486,8 +449,6 @@ class AccountsReceivableReport extends Component
         $this->customer_name = null;
         $this->debt = null;
         $this->debt_usd = null;
-        $this->amount = null;
-        $this->dispatch('hide-modal-payment');
     }
 
     function historyPayments(Sale $sale)

@@ -4,7 +4,7 @@
             <div class="modal-content">
                 <div class="modal-header bg-success">
                     <h5 class="modal-title">{{ $payTypeName }}</h5>
-                    <button class="btn-close py-0" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button class="btn-close py-0" type="button" data-dismiss="modal" aria-label="Close" onclick="$('#modalDeposit').modal('hide')"></button>
                 </div>
                 <div class="modal-body">
 
@@ -90,7 +90,7 @@
 
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary " type="button" data-bs-dismiss="modal">Cerrar</button>
+                    <button class="btn btn-secondary " type="button" data-dismiss="modal" onclick="$('#modalDeposit').modal('hide')">Cerrar</button>
 
                     <button class="btn btn-primary" wire:click.prevent='Store' type="button"
                         wire:loading.attr="disabled" {{ floatval($totalCart)==0 ? 'disabled' : '' }} {{

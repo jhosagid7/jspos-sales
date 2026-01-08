@@ -44,13 +44,17 @@
             <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
                 <span class="dropdown-item dropdown-header">{{ $noty_purchases->count() }} Cuentas por Pagar</span>
                 <div class="dropdown-divider"></div>
+                @if(isset($total_payables) && $total_payables > 0)
+                <span class="dropdown-item dropdown-header text-danger font-weight-bold">Total Vencido: ${{ number_format($total_payables, 2) }}</span>
+                <div class="dropdown-divider"></div>
+                @endif
                 @foreach ($noty_purchases as $npurchase)
                     <a href="{{ route('reports.accounts.payables', ['s' => $npurchase->supplier_id]) }}" class="dropdown-item">
                         <div class="media">
                             <div class="media-body">
                                 <h3 class="dropdown-item-title font-weight-bold">
                                     {{ $npurchase->supplier->name }}
-                                    <span class="float-right text-sm text-danger"><i class="fas fa-clock"></i> {{ app('fun')->overdue($npurchase->created_at, now()) }}d</span>
+                                    <span class="float-right text-sm text-danger"><i class="fas fa-clock"></i> {{ app('fun')->overdue($npurchase->created_at, now()) - $credit_purchase_days }}d</span>
                                 </h3>
                                 <p class="text-sm">Compra #{{ $npurchase->id }}</p>
                                 <p class="text-sm text-muted"><i class="fas fa-money-bill-wave mr-1"></i> Deuda: ${{ number_format($npurchase->debt, 2) }}</p>
@@ -71,18 +75,60 @@
                 <span class="badge badge-warning navbar-badge">{{ $noty_sales->count() }}</span>
             </a>
             <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
-                <span class="dropdown-item dropdown-header">{{ $noty_sales->count() }} Cuentas por Cobrar</span>
-                <div class="dropdown-divider"></div>
+                            <span class="dropdown-item dropdown-header">{{ $noty_sales->count() }} Notificaciones</span>
+                            <div class="dropdown-divider"></div>
+                            @if(isset($total_receivables) && $total_receivables > 0)
+                            <span class="dropdown-item dropdown-header text-danger font-weight-bold">Total Vencido: ${{ number_format($total_receivables, 2) }}</span>
+                            <div class="dropdown-divider"></div>
+                            @endif
                 @foreach ($noty_sales as $nsale)
                     <a href="{{ route('reports.accounts.receivable', ['c' => $nsale->customer_id]) }}" class="dropdown-item">
                         <div class="media">
                             <div class="media-body">
                                 <h3 class="dropdown-item-title font-weight-bold">
                                     {{ $nsale->customer->name }}
-                                    <span class="float-right text-sm text-danger"><i class="fas fa-clock"></i> {{ app('fun')->overdue($nsale->created_at, now()) }}d</span>
+                                    <span class="float-right text-sm text-danger"><i class="fas fa-clock"></i> {{ app('fun')->overdue($nsale->created_at, now()) - $credit_days }}d</span>
                                 </h3>
                                 <p class="text-sm">Venta #{{ $nsale->id }}</p>
                                 <p class="text-sm text-muted"><i class="fas fa-hand-holding-usd mr-1"></i> Deuda: ${{ number_format($nsale->debt, 2) }}</p>
+                            </div>
+                        </div>
+                    </a>
+                    <div class="dropdown-divider"></div>
+                @endforeach
+            </div>
+        </li>
+        @endif
+
+        <!-- Commissions Notifications -->
+        @if (isset($noty_commissions) && $noty_commissions->count() > 0)
+        <li class="nav-item dropdown">
+            <a class="nav-link" data-toggle="dropdown" href="#">
+                <i class="fas fa-hand-holding-usd"></i>
+                <span class="badge badge-success navbar-badge">{{ $noty_commissions->count() }}</span>
+            </a>
+            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+                <span class="dropdown-item dropdown-header">{{ $noty_commissions->count() }} Comisiones Pendientes</span>
+                <div class="dropdown-divider"></div>
+                @if(isset($total_commissions) && $total_commissions > 0)
+                <span class="dropdown-item dropdown-header text-success font-weight-bold">Total Pendiente: ${{ number_format($total_commissions, 2) }}</span>
+                <div class="dropdown-divider"></div>
+                @endif
+                @foreach ($noty_commissions as $ncomm)
+                    <a href="{{ route('commissions') }}" class="dropdown-item">
+                        <div class="media">
+                            <div class="media-body">
+                                <h3 class="dropdown-item-title font-weight-bold">
+                                    {{ $ncomm->customer->name ?? 'Cliente N/A' }}
+                                    <span class="float-right text-sm text-success">
+                                        ${{ number_format($ncomm->final_commission_amount ?? 0, 2) }}
+                                    </span>
+                                </h3>
+                                <p class="text-sm">Venta #{{ $ncomm->id }}</p>
+                                <p class="text-sm text-muted">
+                                    <i class="far fa-clock mr-1"></i> 
+                                    {{ $ncomm->created_at->diffForHumans() }}
+                                </p>
                             </div>
                         </div>
                     </a>
