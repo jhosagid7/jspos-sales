@@ -5,27 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.0] - 2026-01-09
-
-### Added
-- **Dashboard**:
-  - Implemented a comprehensive Dashboard at `/welcome`.
-  - Added KPI Cards for Sales, Purchases, and Receivables.
-  - Added "Recent Sales" table and "Top Products" list.
-  - Added "Low Stock Alerts" widget.
-  - Added "Pending Commissions" widget (moved to top row).
-  - Added "Sales vs Profit" Chart (Last 7 Days).
-  - Added "Top Suppliers" widget.
-- **UI Enhancements**:
-  - Added scrollbar (`max-height: 300px`) to all header notification dropdowns.
+## [1.2.2] - 2026-01-09
 
 ### Fixed
-- **Dashboard**:
-  - Resolved `MultipleRootElementsDetectedException` in Livewire component.
-  - Fixed Commission Widget value to match Header Notification logic (Paid sales, Foreign sales, Permissions).
-  - Fixed Low Stock Alert contrast issue.
-- **Navigation**:
-  - Added "DASHBOARD" link to the sidebar.
+- **Purchases**:
+  - Fixed layout issue where the "Resumen" card was not properly aligned in the grid (wrapped in `col-md-3`).
 
 ## [1.2.0] - 2026-01-09
 
