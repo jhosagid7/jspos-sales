@@ -40,13 +40,45 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <h2>Reporte de Comisiones</h2>
-        <p>
-            <strong>Fecha:</strong> {{ \Carbon\Carbon::now()->format('d/m/Y H:i') }} <br>
-            <strong>Vendedor:</strong> {{ $sellerName }} <br>
-            <strong>Periodo:</strong> {{ \Carbon\Carbon::parse($dateFrom)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($dateTo)->format('d/m/Y') }}
-        </p>
+    @php
+        $config = \App\Models\Configuration::first();
+    @endphp
+    <table style="width: 100%; margin-bottom: 20px;">
+        <tr>
+            <td style="width: 25%; text-align: left;">
+                @if($config->logo)
+                    <img src="{{ public_path('storage/' . $config->logo) }}" alt="Logo" style="max-width: 100px; max-height: 80px;">
+                @else
+                    <img src="{{ public_path('assets/images/logo/logo-icon.png') }}" alt="Logo" style="max-width: 100px; max-height: 80px;">
+                @endif
+            </td>
+            <td style="width: 50%; text-align: center;">
+                <h2 style="margin: 0; font-size: 20px; font-weight: bold; color: #0380b2;">{{ $config->business_name }}</h2>
+            </td>
+            <td style="width: 25%; text-align: right;">
+                <h3 style="margin: 0; font-size: 16px; font-weight: bold; color: #0380b2;">REPORTE DE COMISIONES</h3>
+                <p style="margin: 0; font-size: 10px; font-weight: bold; color: #0380b2;">REPORTE</p>
+            </td>
+        </tr>
+    </table>
+
+    <div style="border: 1px solid #6B7280; border-radius: 15px; padding: 10px; margin-bottom: 20px;">
+        <table style="width: 100%;">
+            <tr>
+                <td style="width: 60%; vertical-align: top; border: none;">
+                    <p style="margin: 2px 0;"><strong>Empresa:</strong> {{ $config->business_name }}</p>
+                    <p style="margin: 2px 0;"><strong>NIT:</strong> {{ $config->nit }}</p>
+                    <p style="margin: 2px 0;"><strong>Dirección:</strong> {{ $config->address }}</p>
+                    <p style="margin: 2px 0;"><strong>Teléfono:</strong> {{ $config->phone }}</p>
+                </td>
+                <td style="width: 40%; vertical-align: top; text-align: right; border: none;">
+                    <p style="margin: 2px 0;"><strong>Fecha Reporte:</strong> {{ \Carbon\Carbon::now()->format('d/m/Y H:i') }}</p>
+                    <p style="margin: 2px 0;"><strong>Generado por:</strong> {{ $user->name }}</p>
+                    <p style="margin: 2px 0;"><strong>Periodo:</strong> {{ \Carbon\Carbon::parse($dateFrom)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($dateTo)->format('d/m/Y') }}</p>
+                    <p style="margin: 2px 0;"><strong>Vendedor:</strong> {{ $sellerName }}</p>
+                </td>
+            </tr>
+        </table>
     </div>
 
     <table class="table">
