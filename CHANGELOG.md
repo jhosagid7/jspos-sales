@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-01-08
+
+### Added
+- **Collection Sheet Reports**:
+  - Implemented `CollectionSheet` model and migration.
+  - Added "Relación de Cobro" (Payment Relationship) reports with detailed and basic views.
+  - Added PDF export functionality for Collection Sheets (Basic and Detailed).
+  - Added "Hojas de Cobranza" listing and management.
+
+### Changed
+- **Payment Relationship**:
+  - Enhanced `PaymentRelationshipReport` to include dynamic filtering and better data presentation.
+  - Refined PDF layouts for better readability and data accuracy.
+  - Updated `Payment` model to support new reporting relationships.
+
 ## [1.0.0] - 2026-01-08
 
 ### Added

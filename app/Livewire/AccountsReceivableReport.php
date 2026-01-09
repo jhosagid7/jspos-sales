@@ -455,6 +455,34 @@ class AccountsReceivableReport extends Component
                     }
                 }
 
+                // Handle Collection Sheet (Global Daily Sheet)
+                $today = \Carbon\Carbon::now()->format('Y-m-d');
+                
+                // 1. Close any open sheet from previous days
+                \App\Models\CollectionSheet::where('status', 'open')
+                    ->whereDate('opened_at', '<', $today)
+                    ->update(['status' => 'closed', 'closed_at' => \Carbon\Carbon::now()]);
+
+                // 2. Find or Create Open Sheet for Today
+                $sheet = \App\Models\CollectionSheet::where('status', 'open')
+                    ->whereDate('opened_at', $today)
+                    ->first();
+
+                if (!$sheet) {
+                    // Create new sheet for today
+                    // Generate Sheet Number: YYYYMMDD-01
+                    $dateStr = \Carbon\Carbon::now()->format('Ymd');
+                    $count = \App\Models\CollectionSheet::whereDate('opened_at', $today)->count() + 1;
+                    $sheetNumber = $dateStr . '-' . str_pad($count, 2, '0', STR_PAD_LEFT);
+
+                    $sheet = \App\Models\CollectionSheet::create([
+                        'sheet_number' => $sheetNumber,
+                        'status' => 'open',
+                        'opened_at' => \Carbon\Carbon::now(),
+                        'total_amount' => 0
+                    ]);
+                }
+
                 $pay = Payment::create([
                     'user_id' => Auth()->user()->id,
                     'sale_id' => $this->sale_id,
@@ -469,8 +497,15 @@ class AccountsReceivableReport extends Component
                     'deposit_number' => $payment['reference'] ?? null,
                     'phone_number' => $payment['phone'] ?? null,
                     'payment_date' => \Carbon\Carbon::now(),
-                    'zelle_record_id' => $zelleRecordId
+                    'zelle_record_id' => $zelleRecordId,
+                    'collection_sheet_id' => $sheet->id
                 ]);
+
+                // Update Sheet Total (Convert to Base Currency USD if needed, or keep original? 
+                // Usually sheets track total collected value. For simplicity let's track USD equivalent or just sum amounts if single currency.
+                // Given multi-currency, tracking USD equivalent in total_amount is safer for aggregation)
+                $amountUSD = $amount / $exchangeRate;
+                $sheet->increment('total_amount', $amountUSD);
                 
                 $amountUSD = $amount / $exchangeRate;
                 $totalPaidUSD += $amountUSD;
