@@ -197,13 +197,84 @@ class PaymentRelationshipReport extends Component
             // Calculate Payment Method Summary
             $summary = $this->calculateSummary($payments);
 
+            // Calculate Commissions for Paid Invoices
+            $commissions = [];
+            $groupedPayments = $payments->groupBy('sale_id');
+            
+            foreach ($groupedPayments as $saleId => $salePayments) {
+                $sale = $salePayments->first()->sale;
+                if (!$sale || $sale->status != 'paid') continue;
+
+                // Check if the sale was fully paid within this sheet context
+                // (Ideally we check if the last payment is in this sheet, or if the balance became 0 with these payments)
+                // For simplicity, if it's paid and appears here, we calculate.
+                // Refinement: We should use the date of the LAST payment of the sale to calculate timeliness.
+                $lastPayment = $sale->payments->sortByDesc('created_at')->first();
+                $paymentDate = $lastPayment ? $lastPayment->created_at : now();
+
+                // Calculate Commission Percentage and Amount
+                // We use a temporary instance or static method that doesn't persist if we just want to show it?
+                // The user said "se debe colocar una tabla... y el porcentage que se le tenga que pagar".
+                // If we use CommissionService::calculateCommission, it SAVES to the DB. 
+                // This might be desired if it wasn't calculated yet.
+                $percentage = \App\Services\CommissionService::calculateCommission($sale, $paymentDate);
+                
+                if ($percentage > 0) {
+                    // Determine Payment Currency (Majority Rule)
+                    $usdTotal = $sale->payments->where('currency', 'USD')->sum('amount');
+                    $copTotal = $sale->payments->where('currency', 'COP')->sum('amount'); // In COP
+                    $vesTotal = $sale->payments->where('currency', 'VES')->sum('amount'); // In VES
+                    
+                    // Convert all to USD to compare magnitude? Or just count?
+                    // User said: "si una factura es pagada con dolar se paga con dolar..."
+                    // Let's use the currency with the highest USD equivalent value.
+                    $copInUsd = $copTotal / ($sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 4000); // Approx if rate missing
+                    $vesInUsd = $vesTotal / ($sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 50); // Very rough if rate missing
+                    
+                    // Better: Use the exchange rates recorded in payments if available
+                    $copInUsd = $sale->payments->where('currency', 'COP')->sum(function($p) { return $p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1); });
+                    $vesInUsd = $sale->payments->where('currency', 'VES')->sum(function($p) { return $p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1); });
+
+                    $paymentCurrency = 'USD';
+                    $maxVal = $usdTotal;
+
+                    if ($copInUsd > $maxVal) {
+                        $maxVal = $copInUsd;
+                        $paymentCurrency = 'COP';
+                    }
+                    if ($vesInUsd > $maxVal) {
+                        $paymentCurrency = 'VES';
+                    }
+
+                    // Calculate Base Amount for Display
+                    $totalSurchargePercent = ($sale->applied_commission_percent ?? 0) + 
+                                             ($sale->applied_freight_percent ?? 0) + 
+                                             ($sale->applied_exchange_diff_percent ?? 0);
+                    
+                    $baseAmount = $sale->total;
+                    if ($totalSurchargePercent > 0) {
+                        $baseAmount = $sale->total / (1 + ($totalSurchargePercent / 100));
+                    }
+
+                    $commissions[] = [
+                        'invoice' => $sale->invoice_number ?? $sale->id,
+                        'client' => $sale->customer->name,
+                        'base' => $baseAmount, // Calculated Base Amount
+                        'total_with_surcharges' => $sale->total, // Total with surcharges
+                        'percentage' => $percentage,
+                        'commission_usd' => $sale->final_commission_amount, // Calculated by service
+                        'payment_currency' => $paymentCurrency
+                    ];
+                }
+            }
+
             // Fetch Dynamic Headers for PDF
             $currencies = \App\Models\Currency::all();
             $banks = \App\Models\Bank::orderBy('sort')->get();
 
             $view = $type == 'detailed' ? 'reports.collection-sheet-detail-full-pdf' : 'reports.collection-sheet-detail-pdf';
             
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView($view, compact('sheet', 'payments', 'config', 'user', 'date', 'summary', 'filters', 'currencies', 'banks'));
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView($view, compact('sheet', 'payments', 'config', 'user', 'date', 'summary', 'filters', 'currencies', 'banks', 'commissions'));
             $pdf->setPaper('a4', 'landscape'); // Set Landscape
             $suffix = $type == 'detailed' ? '_Detallado_' : '_Basico_';
             // Clean filename to avoid encoding issues
