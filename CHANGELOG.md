@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] - 2026-01-09
+
+### Added
+- **Settings**:
+  - Added "Company Logo" upload functionality in General Settings.
+  - Added `logo` field to `configurations` table.
+
+### Changed
+- **PDF Reports & Invoices**:
+  - **Standardized Header Design**: Applied a consistent, professional header design across ALL system PDFs (Invoices, Orders, Reports).
+    - Layout: Logo (Left), Company Name (Center), Document Title/Number (Right).
+    - Added rounded "Info Box" for client/report details.
+    - Updated color scheme to use consistent Blue (`#0380b2`) for titles and backgrounds.
+  - **Updated Templates**:
+    - `invoice-paid` (Sales Invoice)
+    - `invoice-order-processed` (Processed Order)
+    - `invoice-order-pending` (Pending Order)
+    - `accounts-receivable-pdf` (Cuentas por Cobrar)
+    - `payment-relationship-pdf` (Relación de Pagos)
+    - `daily-sales-report-pdf` (Ventas Diarias)
+    - `payment-history-pdf` (Historial de Pagos)
+    - `collection-sheets-list-pdf` (Planillas General)
+    - `collection-sheet-detail-pdf` (Planilla Básica)
+    - `collection-sheet-detail-full-pdf` (Planilla Detallada)
+
 ## [1.2.2] - 2026-01-09
 
 ### Fixed

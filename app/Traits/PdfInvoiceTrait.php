@@ -125,7 +125,7 @@ trait PdfInvoiceTrait
                     // ->filename($seller->name . ' ' . $customer->name)
                     ->addItems($items)
                     ->notes($notes)
-                    ->logo(public_path('logo/logo.jpg'))
+                    ->logo($config->logo ? public_path('storage/' . $config->logo) : public_path('logo/logo.jpg'))
                     // You can additionally save generated invoice to configured disk
                     ->save('public');
 
@@ -226,7 +226,7 @@ trait PdfInvoiceTrait
                     // ->filename($seller->name . ' ' . $customer->name)
                     ->addItems($items)
                     ->notes($notes)
-                    ->logo(public_path('logo/logo.jpg'))
+                    ->logo($config->logo ? public_path('storage/' . $config->logo) : public_path('logo/logo.jpg'))
                     // You can additionally save generated invoice to configured disk
                     ->save('public');
 

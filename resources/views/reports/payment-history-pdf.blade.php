@@ -105,30 +105,75 @@
         </style>
     </head>
 
-    <body>
-        <div class="logo-container">
-             @if($config->logo)
-                <img src="{{ public_path('storage/' . $config->logo) }}" alt="logo" height="50">
-            @else
-                <h2>{{ strtoupper($config->business_name) }}</h2>
-            @endif
-        </div>
+            .invoice-title {
+                color: #0380b2;
+                font-weight: bold;
+                font-size: 20px;
+                margin: 0;
+            }
+            .report-title {
+                color: #0380b2;
+                font-size: 16px;
+                font-weight: bold;
+                margin: 0;
+            }
+            .box-details {
+                border: 1px solid #6B7280;
+                border-radius: 15px;
+                padding: 10px;
+                margin-bottom: 20px;
+            }
+            .text-blue {
+                color: #0380b2;
+            }
+        </style>
+    </head>
 
-        <div class="header-info">
-            <table class="table" style="border: none;">
+    <body>
+        {{-- Header --}}
+        <table class="table mt-1" style="margin-bottom: 0;">
+            <tbody>
                 <tr>
-                    <td style="border: none;">
-                        <strong>Historial de Pagos</strong><br>
-                        <strong>Factura:</strong> {{ $sale->invoice_number ?? $sale->id }}<br>
-                        <strong>Fecha Emisión:</strong> {{ $sale->created_at->format('d/m/Y') }}<br>
-                        <strong>Cliente:</strong> {{ $sale->customer->name }}
+                    <td class="pl-0 border-0" width="25%" style="vertical-align: middle;">
+                       @if($config->logo)
+                            <img src="{{ public_path('storage/' . $config->logo) }}" alt="logo" height="60">
+                        @endif
                     </td>
-                    <td class="text-right" style="border: none;">
-                        <strong>{{ $config->business_name }}</strong><br>
-                        {{ $config->address }}<br>
-                        NIT: {{ $config->taxpayer_id }}
+                    <td class="border-0 text-center" width="50%" style="vertical-align: middle;">
+                        <h4 class="text-uppercase invoice-title">
+                            {{ $config->business_name }}
+                        </h4>
+                    </td>
+                    <td class="border-0 text-right" width="25%" style="vertical-align: middle;">
+                        <h4 class="text-uppercase report-title">
+                            HISTORIAL DE PAGOS
+                        </h4>
+                        <span style="font-size: 10px; font-weight: bold;">REPORTE</span>
                     </td>
                 </tr>
+            </tbody>
+        </table>
+
+        {{-- Info Box --}}
+        <div class="box-details">
+            <table class="table border-0" style="margin: 0;">
+                <tbody>
+                    <tr>
+                        {{-- Business Info (Left) --}}
+                        <td class="border-0 pl-0" width="50%" style="vertical-align: top;">
+                            <strong class="text-uppercase" style="font-size: 14px;">{{ $config->business_name }}</strong><br>
+                            NIT: {{ $config->taxpayer_id }}<br>
+                            {{ $config->address }}
+                        </td>
+
+                        {{-- Sale/Client Info (Right) --}}
+                        <td class="border-0 text-right pr-0" width="50%" style="vertical-align: top;">
+                            Factura: <strong>{{ $sale->invoice_number ?? $sale->id }}</strong><br>
+                            Fecha Emisión: <strong>{{ $sale->created_at->format('d/m/Y') }}</strong><br>
+                            Cliente: <strong>{{ $sale->customer->name }}</strong>
+                        </td>
+                    </tr>
+                </tbody>
             </table>
         </div>
 

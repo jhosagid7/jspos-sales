@@ -102,39 +102,81 @@
                 padding-bottom: 10px;
             }
             
-            .logo-container {
-                text-align: center;
-                margin-bottom: 10px;
+            .invoice-title {
+                color: #0380b2;
+                font-weight: bold;
+                font-size: 20px;
+                margin: 0;
+            }
+            .report-title {
+                color: #0380b2;
+                font-size: 16px;
+                font-weight: bold;
+                margin: 0;
+            }
+            .box-details {
+                border: 1px solid #6B7280;
+                border-radius: 15px;
+                padding: 10px;
+                margin-bottom: 20px;
+            }
+            .text-blue {
+                color: #0380b2;
             }
         </style>
     </head>
 
     <body>
-        <div class="logo-container">
-             @if($config->logo)
-                <img src="{{ public_path('storage/' . $config->logo) }}" alt="logo" height="50">
-            @else
-                <h2>{{ strtoupper($config->business_name) }}</h2>
-            @endif
-        </div>
-
-        <div class="header-info">
-            <table class="table">
+        {{-- Header --}}
+        <table class="table mt-1" style="margin-bottom: 0;">
+            <tbody>
                 <tr>
-                    <td>
-                        <strong>Reporte Cuentas Por Cobrar</strong><br>
-                        @if($seller_name)
-                            <strong class="text-green">VENDEDOR: {{ strtoupper($seller_name) }}</strong><br>
+                    <td class="pl-0 border-0" width="25%" style="vertical-align: middle;">
+                       @if($config->logo)
+                            <img src="{{ public_path('storage/' . $config->logo) }}" alt="logo" height="60">
                         @endif
-                        <strong>Fecha Reporte:</strong> {{ $date }}<br>
-                        <strong>Generado por:</strong> {{ $user->name }}
                     </td>
-                    <td class="text-right">
-                        <strong>{{ $config->business_name }}</strong><br>
-                        {{ $config->address }}<br>
-                        NIT: {{ $config->taxpayer_id }}
+                    <td class="border-0 text-center" width="50%" style="vertical-align: middle;">
+                        <h4 class="text-uppercase invoice-title">
+                            {{ $config->business_name }}
+                        </h4>
+                    </td>
+                    <td class="border-0 text-right" width="25%" style="vertical-align: middle;">
+                        <h4 class="text-uppercase report-title">
+                            CUENTAS POR COBRAR
+                        </h4>
+                        <span style="font-size: 10px; font-weight: bold;">REPORTE</span>
                     </td>
                 </tr>
+            </tbody>
+        </table>
+
+        {{-- Info Box --}}
+        <div class="box-details">
+            <table class="table border-0" style="margin: 0;">
+                <tbody>
+                    <tr>
+                        {{-- Business Info (Left) --}}
+                        <td class="border-0 pl-0" width="60%" style="vertical-align: top;">
+                            <strong class="text-uppercase" style="font-size: 14px;">{{ $config->business_name }}</strong><br>
+                            NIT: {{ $config->taxpayer_id }}<br>
+                            {{ $config->address }}<br>
+                            {{ $config->email }}<br>
+                            {{ $config->phone }}
+                        </td>
+
+                        {{-- Report Details (Right) --}}
+                        <td class="border-0 text-right pr-0" width="40%" style="vertical-align: top;">
+                            Fecha Reporte: <strong>{{ $date }}</strong><br>
+                            Generado por: <strong>{{ $user->name }}</strong><br>
+                            @if($seller_name)
+                                <div style="margin-top: 5px;">
+                                    Vendedor: <strong class="text-green">{{ strtoupper($seller_name) }}</strong>
+                                </div>
+                            @endif
+                        </td>
+                    </tr>
+                </tbody>
             </table>
         </div>
 
