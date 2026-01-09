@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.4] - 2026-01-09
+
+### Added
+- **Profile**:
+  - **Browser Sessions**: Added functionality to view and manage active browser sessions (Desktop/Mobile, IP, Last Activity).
+  - **Logout Other Devices**: Added ability to log out from all other devices securely.
+  - **AdminLTE Integration**: Redesigned the entire Profile page to match the system's AdminLTE theme.
+    - Used Bootstrap Grid and Cards.
+    - Replaced Tailwind CSS forms with Bootstrap forms.
+    - Replaced Alpine.js modals with Bootstrap modals.
+
+### Fixed
+- **UI/UX**:
+  - **Sidebar Logo**: Fixed the sidebar to dynamically display the company logo and name from settings.
+  - **Profile Page**: Fixed broken layout and navigation links on the profile page by switching to the correct AdminLTE layout component.
+  - **Vite Manifest**: Resolved `ViteManifestNotFoundException` by regenerating build assets.
+
 ## [1.2.3] - 2026-01-09
 
 ### Added
