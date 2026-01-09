@@ -1,8 +1,13 @@
 <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <!-- Brand Logo -->
+    @php
+        $config = \App\Models\Configuration::first();
+        $logo = $config && $config->logo ? asset('storage/' . $config->logo) : asset('assets/images/logo/logo-icon.png');
+        $appName = $config && $config->business_name ? $config->business_name : 'JSPOS v1.7';
+    @endphp
     <a href="{{ route('sales') }}" class="brand-link">
-        <img src="{{ asset('assets/images/logo/logo-icon.png') }}" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
-        <span class="brand-text font-weight-light">JSPOS v1.7</span>
+        <img src="{{ $logo }}" alt="Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
+        <span class="brand-text font-weight-light">{{ $appName }}</span>
     </a>
 
     <!-- Sidebar -->
