@@ -34,6 +34,8 @@ class Configuration extends Model
         'global_commission_1_threshold',
         'global_commission_1_percentage',
         'global_commission_2_threshold',
-        'global_commission_2_percentage'
+        'global_commission_2_threshold',
+        'global_commission_2_percentage',
+        'logo'
     ];
 }

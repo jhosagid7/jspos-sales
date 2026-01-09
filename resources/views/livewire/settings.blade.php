@@ -133,6 +133,20 @@
                                         @error('leyend') <span class="text-danger">{{ $message }}</span> @enderror
                                     </div>
 
+                                    <div class="col-sm-12 col-md-6">
+                                        <label class="form-label">LOGO DE LA EMPRESA</label>
+                                        <input type="file" wire:model="logo" accept="image/png, image/jpeg, image/jpg" class="form-control">
+                                        @error('logo') <span class="text-danger">{{ $message }}</span> @enderror
+
+                                        <div class="mt-2">
+                                            @if ($logo)
+                                                <img src="{{ $logo->temporaryUrl() }}" alt="Logo Preview" class="img-thumbnail" style="max-height: 100px;">
+                                            @elseif($logo_preview)
+                                                <img src="{{ asset('storage/' . $logo_preview) }}" alt="Current Logo" class="img-thumbnail" style="max-height: 100px;">
+                                            @endif
+                                        </div>
+                                    </div>
+
                                     <div class="col-sm-12">
                                         <label class="form-label">DIRECCIÓN</label>
                                         <textarea wire:model="address" class="form-control" cols="30" rows="2"></textarea>

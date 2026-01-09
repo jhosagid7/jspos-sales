@@ -8,8 +8,11 @@ use Illuminate\Support\Facades\DB;
 
 class Settings extends Component
 {
+    use \Livewire\WithFileUploads;
+
     public $setting_id = 0, $businessName, $phone, $taxpayerId, $vat, $printerName, $website, $leyend, $creditDays = 15, $address, $city, $creditPurchaseDays, $confirmationCode, $decimals;
     public $globalCommission1Threshold, $globalCommission1Percentage, $globalCommission2Threshold, $globalCommission2Percentage;
+    public $logo, $logo_preview; // Logo properties
     
     public $tab = 1; // Control de pestañas
 
@@ -58,6 +61,7 @@ class Settings extends Component
             $this->globalCommission1Percentage = $config->global_commission_1_percentage;
             $this->globalCommission2Threshold = $config->global_commission_2_threshold;
             $this->globalCommission2Percentage = $config->global_commission_2_percentage;
+            $this->logo_preview = $config->logo; // Load existing logo
         }
     }
 
@@ -107,33 +111,51 @@ class Settings extends Component
         if (!empty($this->globalCommission2Percentage) && !is_numeric($this->globalCommission2Percentage)) {
             $this->addError('globalCommission2Percentage', 'Debe ser numérico');
         }
+        
+        // Validate Logo
+        if ($this->logo) {
+            $this->validate([
+                'logo' => 'image|max:1024', // 1MB Max
+            ]);
+        }
+
         if (count($this->getErrorBag()) > 0) {
             return;
         }
 
 
         try {
+            $data = [
+                'business_name' => trim($this->businessName),
+                'address' => trim($this->address),
+                'city' => trim($this->city),
+                'phone' => trim($this->phone),
+                'taxpayer_id' => trim($this->taxpayerId),
+                'vat' => trim($this->vat),
+                'decimals' => trim($this->decimals),
+                'printer_name' => trim($this->printerName),
+                'leyend' => trim($this->leyend),
+                'website' => trim($this->website),
+                'credit_days' => intval($this->creditDays),
+                'credit_purchase_days' => intval($this->creditPurchaseDays),
+                'confirmation_code' => intval($this->confirmationCode),
+                'global_commission_1_threshold' => $this->globalCommission1Threshold,
+                'global_commission_1_percentage' => $this->globalCommission1Percentage,
+                'global_commission_2_threshold' => $this->globalCommission2Threshold,
+                'global_commission_2_percentage' => $this->globalCommission2Percentage
+            ];
+
+            // Handle Logo Upload
+            if ($this->logo) {
+                $customFileName = uniqid() . '_.' . $this->logo->extension();
+                $this->logo->storeAs('public/logos', $customFileName);
+                $data['logo'] = 'logos/' . $customFileName;
+                $this->logo_preview = $data['logo'];
+            }
+
             Configuration::updateOrCreate(
                 ['id' => $this->setting_id],
-                [
-                    'business_name' => trim($this->businessName),
-                    'address' => trim($this->address),
-                    'city' => trim($this->city),
-                    'phone' => trim($this->phone),
-                    'taxpayer_id' => trim($this->taxpayerId),
-                    'vat' => trim($this->vat),
-                    'decimals' => trim($this->decimals),
-                    'printer_name' => trim($this->printerName),
-                    'leyend' => trim($this->leyend),
-                    'website' => trim($this->website),
-                    'credit_days' => intval($this->creditDays),
-                    'credit_purchase_days' => intval($this->creditPurchaseDays),
-                    'confirmation_code' => intval($this->confirmationCode),
-                    'global_commission_1_threshold' => $this->globalCommission1Threshold,
-                    'global_commission_1_percentage' => $this->globalCommission1Percentage,
-                    'global_commission_2_threshold' => $this->globalCommission2Threshold,
-                    'global_commission_2_percentage' => $this->globalCommission2Percentage
-                ]
+                $data
             );
 
             $this->loadConfig();

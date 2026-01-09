@@ -115,14 +115,14 @@
         .grand-total {
             font-size: 1.2rem;
             font-weight: bold;
-            background-color: #28a745;
+            background-color: #0380b2;
             color: white;
             padding: 10px;
         }
         
         .grand-total-row td {
             font-weight: bold;
-            background-color: #28a745;
+            background-color: #0380b2;
             color: white;
             border-top: 2px solid #000;
         }
@@ -131,45 +131,83 @@
             margin-bottom: 20px;
         }
         
-        .logo-container {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-    </style>
-</head>
-<body>
-    @php
-        $config = \App\Models\Configuration::first();
-    @endphp
+            .invoice-title {
+                color: #0380b2;
+                font-weight: bold;
+                font-size: 20px;
+                margin: 0;
+            }
+            .report-title {
+                color: #0380b2;
+                font-size: 16px;
+                font-weight: bold;
+                margin: 0;
+            }
+            .box-details {
+                border: 1px solid #6B7280;
+                border-radius: 15px;
+                padding: 10px;
+                margin-bottom: 20px;
+            }
+            .text-blue {
+                color: #0380b2;
+            }
+        </style>
+    </head>
+    <body>
+        @php
+            $config = \App\Models\Configuration::first();
+        @endphp
 
-    <div class="logo-container">
-            @if($config && $config->logo)
-            <img src="{{ public_path('storage/' . $config->logo) }}" alt="logo" height="60">
-        @else
-            <h2>{{ strtoupper($config->business_name ?? 'SISTEMA POS') }}</h2>
-        @endif
-    </div>
-
-    <div class="header-info">
-        <table class="table table-borderless">
-            <tr>
-                <td>
-                    <strong>Reporte de Ventas Diarias</strong><br>
-                    <strong>Fecha Reporte:</strong> {{ \Carbon\Carbon::now()->format('d/m/Y H:i') }}<br>
-                    <strong>Generado por:</strong> {{ auth()->user()->name }}<br>
-                    @if($dateFrom && $dateTo)
-                        <strong>Periodo:</strong> {{ $dateFrom }} - {{ $dateTo }}
-                    @endif
-                </td>
-                <td class="text-right">
-                    <strong>{{ $config->business_name ?? '' }}</strong><br>
-                    {{ $config->address ?? '' }}<br>
-                    NIT: {{ $config->taxpayer_id ?? '' }}<br>
-                    Tel: {{ $config->phone ?? '' }}
-                </td>
-            </tr>
+        {{-- Header --}}
+        <table class="table mt-1" style="margin-bottom: 0;">
+            <tbody>
+                <tr>
+                    <td class="pl-0 border-0" width="25%" style="vertical-align: middle;">
+                       @if($config && $config->logo)
+                            <img src="{{ public_path('storage/' . $config->logo) }}" alt="logo" height="60">
+                        @endif
+                    </td>
+                    <td class="border-0 text-center" width="50%" style="vertical-align: middle;">
+                        <h4 class="text-uppercase invoice-title">
+                            {{ $config->business_name ?? 'SISTEMA POS' }}
+                        </h4>
+                    </td>
+                    <td class="border-0 text-right" width="25%" style="vertical-align: middle;">
+                        <h4 class="text-uppercase report-title">
+                            VENTAS DIARIAS
+                        </h4>
+                        <span style="font-size: 10px; font-weight: bold;">REPORTE</span>
+                    </td>
+                </tr>
+            </tbody>
         </table>
-    </div>
+
+        {{-- Info Box --}}
+        <div class="box-details">
+            <table class="table border-0" style="margin: 0;">
+                <tbody>
+                    <tr>
+                        {{-- Business Info (Left) --}}
+                        <td class="border-0 pl-0" width="60%" style="vertical-align: top;">
+                            <strong class="text-uppercase" style="font-size: 14px;">{{ $config->business_name ?? '' }}</strong><br>
+                            NIT: {{ $config->taxpayer_id ?? '' }}<br>
+                            {{ $config->address ?? '' }}<br>
+                            Tel: {{ $config->phone ?? '' }}
+                        </td>
+
+                        {{-- Report Details (Right) --}}
+                        <td class="border-0 text-right pr-0" width="40%" style="vertical-align: top;">
+                            Fecha Reporte: <strong>{{ \Carbon\Carbon::now()->format('d/m/Y H:i') }}</strong><br>
+                            Generado por: <strong>{{ auth()->user()->name }}</strong><br>
+                            @if($dateFrom && $dateTo)
+                                Periodo: <strong>{{ $dateFrom }} - {{ $dateTo }}</strong>
+                            @endif
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
     <table class="table">
         <thead>
