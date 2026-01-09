@@ -89,7 +89,7 @@ class PaymentRelationshipReport extends Component
         $allSheetsQuery = clone $query;
         // To get accurate "Total Recaudado" based on filters, we should sum the payments matching filters
         $totalRecaudado = \App\Models\Payment::whereHas('sale', function($q) {
-                // Sale filters
+                // Sale filters applied below via applyPaymentFilters
             })
             ->whereIn('collection_sheet_id', $allSheetsQuery->pluck('id'))
             ->where(function($q) {
@@ -101,6 +101,17 @@ class PaymentRelationshipReport extends Component
         $child = "PLANILLAS: " . $sheets->total();
         
         $this->dispatch('update-header', map: $map, child: $child, rest: '');
+
+        // Calculate Summary for General View
+        $summaryPayments = \App\Models\Payment::whereHas('sale', function($q) {
+                // Sale filters applied below via applyPaymentFilters
+            })
+            ->whereIn('collection_sheet_id', $allSheetsQuery->pluck('id'))
+            ->where(function($q) {
+                $this->applyPaymentFilters($q);
+            })->get();
+            
+        $this->summaryData = $this->calculateSummary($summaryPayments);
 
         return $sheets;
     }
@@ -184,11 +195,7 @@ class PaymentRelationshipReport extends Component
             $payments = $this->getSheetDetails($sheet);
             
             // Calculate Payment Method Summary
-            $methods = $payments->groupBy('pay_way')->map(function($group) {
-                return $group->sum(function($p) {
-                    return $p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1);
-                });
-            });
+            $summary = $this->calculateSummary($payments);
 
             // Fetch Dynamic Headers for PDF
             $currencies = \App\Models\Currency::all();
@@ -196,7 +203,7 @@ class PaymentRelationshipReport extends Component
 
             $view = $type == 'detailed' ? 'reports.collection-sheet-detail-full-pdf' : 'reports.collection-sheet-detail-pdf';
             
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView($view, compact('sheet', 'payments', 'config', 'user', 'date', 'methods', 'filters', 'currencies', 'banks'));
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView($view, compact('sheet', 'payments', 'config', 'user', 'date', 'summary', 'filters', 'currencies', 'banks'));
             $pdf->setPaper('a4', 'landscape'); // Set Landscape
             $suffix = $type == 'detailed' ? '_Detallado_' : '_Basico_';
             // Clean filename to avoid encoding issues
@@ -219,11 +226,22 @@ class PaymentRelationshipReport extends Component
 
             $sheets = $query->with('payments')->orderBy('opened_at', 'desc')->get();
             
+            // Calculate Global Summary
+            $allPayments = \App\Models\Payment::whereHas('sale', function($q) {
+                // Sale filters applied below via applyPaymentFilters
+            })
+            ->whereIn('collection_sheet_id', $sheets->pluck('id'))
+            ->where(function($q) {
+                $this->applyPaymentFilters($q);
+            })->get();
+
+            $summary = $this->calculateSummary($allPayments);
+
             // Fetch Dynamic Headers for PDF
             $currencies = \App\Models\Currency::all();
             $banks = \App\Models\Bank::orderBy('sort')->get();
 
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.collection-sheets-list-pdf', compact('sheets', 'config', 'user', 'date', 'filters', 'currencies', 'banks'));
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.collection-sheets-list-pdf', compact('sheets', 'config', 'user', 'date', 'filters', 'currencies', 'banks', 'summary'));
             $pdf->setPaper('a4', 'landscape'); // Set Landscape
             $fileName = 'Relacion_Cobro_General_' . \Carbon\Carbon::now()->format('YmdHis') . '.pdf';
         }
@@ -231,5 +249,82 @@ class PaymentRelationshipReport extends Component
         return response()->streamDownload(function () use ($pdf) {
             echo $pdf->output();
         }, $fileName);
+    }
+    public $summaryData = [];
+
+    function calculateSummary($payments)
+    {
+        $summary = [];
+        $currencies = \App\Models\Currency::all();
+        $banks = \App\Models\Bank::orderBy('sort')->get();
+        $knownBanks = $banks->pluck('name')->toArray();
+
+        // 1. Cash Payments by Currency
+        foreach ($currencies as $currency) {
+            $cashPayments = $payments->where('pay_way', 'cash')->where('currency', $currency->code);
+            $amount = $cashPayments->sum('amount');
+            
+            if ($amount > 0) {
+                $equivalent = $cashPayments->sum(function($p) {
+                    return $p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1);
+                });
+
+                $summary[] = [
+                    'name' => "Efectivo {$currency->code}",
+                    'original' => $amount,
+                    'currency' => $currency->code,
+                    'equivalent' => $equivalent
+                ];
+            }
+        }
+
+        // 2. Bank Payments by Bank
+        foreach ($banks as $bank) {
+            $bankPayments = $payments->filter(function($p) use ($bank) {
+                $match = ($p->pay_way == 'bank' || $p->pay_way == 'deposit') && $p->bank == $bank->name;
+                if (stripos($bank->name, 'zelle') !== false && $p->pay_way == 'zelle') $match = true;
+                return $match;
+            });
+
+            $amount = $bankPayments->sum('amount');
+
+            if ($amount > 0) {
+                $equivalent = $bankPayments->sum(function($p) {
+                    return $p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1);
+                });
+                
+                $summary[] = [
+                    'name' => $bank->name,
+                    'original' => $amount,
+                    'currency' => $bank->currency_code ?? 'USD', 
+                    'equivalent' => $equivalent
+                ];
+            }
+        }
+
+        // 3. Other Banks (Grouped by Currency)
+        $otherPayments = $payments->filter(function($p) use ($knownBanks) {
+             return ($p->pay_way == 'bank' || $p->pay_way == 'deposit') && !in_array($p->bank, $knownBanks);
+        });
+
+        $otherByCurrency = $otherPayments->groupBy('currency');
+
+        foreach ($otherByCurrency as $currencyCode => $groupedPayments) {
+            $amount = $groupedPayments->sum('amount');
+            if ($amount > 0) {
+                $equivalent = $groupedPayments->sum(function($p) {
+                    return $p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1);
+                });
+
+                $summary[] = [
+                    'name' => "Otros Bancos ($currencyCode)",
+                    'original' => $amount,
+                    'currency' => $currencyCode,
+                    'equivalent' => $equivalent
+                ];
+            }
+        }
+
+        return $summary;
     }
 }

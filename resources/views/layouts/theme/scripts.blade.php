@@ -29,6 +29,16 @@
         theme: "confetti" 
     })
 
+    window.addEventListener('update-header', event => {
+        const map = document.getElementById('header-map')
+        const child = document.getElementById('header-child')
+        const rest = document.getElementById('header-rest')
+
+        if(map) map.innerText = event.detail.map
+        if(child) child.innerText = event.detail.child
+        if(rest) rest.innerText = event.detail.rest
+    })
+
     
     window.addEventListener('noty', event => {   
         Toastify({

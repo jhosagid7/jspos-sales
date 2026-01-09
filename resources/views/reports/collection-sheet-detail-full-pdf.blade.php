@@ -58,6 +58,29 @@
             @endif
         </div>
 
+        <div style="margin-bottom: 20px; width: 50%;">
+            <table class="table table-bordered">
+                <thead style="background-color: #e9ecef;">
+                    <tr>
+                        <th>MÉTODO / BANCO</th>
+                        <th class="text-right">MONTO ORIGINAL</th>
+                        <th class="text-right">TOTAL (USD)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($summary as $item)
+                        <tr>
+                            <td>{{ $item['name'] }}</td>
+                            <td class="text-right">
+                                ${{ number_format($item['original'], 2) }} {{ $item['currency'] }}
+                            </td>
+                            <td class="text-right">${{ number_format($item['equivalent'], 2) }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
         <table class="table table-bordered">
             <thead style="background-color: #f8f9fa;">
                 <tr>
@@ -183,27 +206,6 @@
             </tfoot>
         </table>
 
-        <div style="margin-top: 20px; width: 50%;">
-            <table class="table table-bordered">
-                <thead style="background-color: #e9ecef;">
-                    <tr>
-                        <th colspan="2">RESUMEN POR MÉTODO DE PAGO (USD)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($methods as $method => $amount)
-                        <tr>
-                            <td style="text-transform: capitalize;">
-                                @if($method == 'cash') Efectivo
-                                @elseif($method == 'deposit') Banco
-                                @else {{ $method }}
-                                @endif
-                            </td>
-                            <td class="text-right">${{ number_format($amount, 2) }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
+
     </body>
 </html>
