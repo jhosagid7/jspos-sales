@@ -21,8 +21,10 @@ class Customer extends Model
         'seller_id',
         'customer_commission_1_threshold',
         'customer_commission_1_percentage',
+        'customer_commission_1_percentage',
         'customer_commission_2_threshold',
-        'customer_commission_2_percentage'
+        'customer_commission_2_percentage',
+        'zone'
     ];
 
     function sales()
