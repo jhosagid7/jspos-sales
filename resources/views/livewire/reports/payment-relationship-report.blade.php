@@ -69,6 +69,33 @@
                     </div>
                 </div>
 
+                @if(count($summaryData) > 0)
+                    <div class="row mb-3">
+                        <div class="col-sm-12 col-md-6">
+                            <table class="table table-bordered table-sm">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th>MÉTODO / BANCO</th>
+                                        <th class="text-right">MONTO ORIGINAL</th>
+                                        <th class="text-right">TOTAL (USD)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($summaryData as $item)
+                                        <tr>
+                                            <td>{{ $item['name'] }}</td>
+                                            <td class="text-right">
+                                                ${{ number_format($item['original'], 2) }} {{ $item['currency'] }}
+                                            </td>
+                                            <td class="text-right">${{ number_format($item['equivalent'], 2) }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                @endif
+
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped mt-1">
                         <thead class="text-white" style="background: #3B3F5C">

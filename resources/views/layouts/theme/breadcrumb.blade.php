@@ -10,9 +10,9 @@
                             <i class="icon-location-pin"></i>
                         </a>
                     </li>
-                    <li class="breadcrumb-item rfx text-warning">{{ session('map') }}</li>
-                    <li class="breadcrumb-item active">{{ session('child') }}</li>
-                    <li class="breadcrumb-item rest text-success">{{ session('rest') }}</li>
+                    <li class="breadcrumb-item rfx text-warning" id="header-map">{{ session('map') }}</li>
+                    <li class="breadcrumb-item active" id="header-child">{{ session('child') }}</li>
+                    <li class="breadcrumb-item rest text-success" id="header-rest">{{ session('rest') }}</li>
                 </ol>
             </div>
         </div>

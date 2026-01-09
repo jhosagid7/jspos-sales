@@ -56,6 +56,29 @@
             @endif
         </div>
 
+        <div style="margin-bottom: 20px; width: 50%;">
+            <table class="table table-bordered">
+                <thead style="background-color: #e9ecef;">
+                    <tr>
+                        <th>MÉTODO / BANCO</th>
+                        <th class="text-right">MONTO ORIGINAL</th>
+                        <th class="text-right">TOTAL (USD)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($summary as $item)
+                        <tr>
+                            <td>{{ $item['name'] }}</td>
+                            <td class="text-right">
+                                ${{ number_format($item['original'], 2) }} {{ $item['currency'] }}
+                            </td>
+                            <td class="text-right">${{ number_format($item['equivalent'], 2) }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
         <table class="table table-bordered">
             <thead style="background-color: #f8f9fa;">
                 <tr>
@@ -151,5 +174,7 @@
                 </tr>
             </tfoot>
         </table>
+
+
     </body>
 </html>
