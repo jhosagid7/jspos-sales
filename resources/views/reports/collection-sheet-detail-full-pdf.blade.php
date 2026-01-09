@@ -58,28 +58,78 @@
             @endif
         </div>
 
-        <div style="margin-bottom: 20px; width: 50%;">
-            <table class="table table-bordered">
-                <thead style="background-color: #e9ecef;">
-                    <tr>
-                        <th>MÉTODO / BANCO</th>
-                        <th class="text-right">MONTO ORIGINAL</th>
-                        <th class="text-right">TOTAL (USD)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($summary as $item)
-                        <tr>
-                            <td>{{ $item['name'] }}</td>
-                            <td class="text-right">
-                                ${{ number_format($item['original'], 2) }} {{ $item['currency'] }}
-                            </td>
-                            <td class="text-right">${{ number_format($item['equivalent'], 2) }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
+        <table style="width: 100%; border: none; margin-bottom: 20px;">
+            <tr style="border: none;">
+                <!-- Summary Table Column -->
+                <td style="width: 40%; vertical-align: top; border: none; padding-right: 20px;">
+                     <table class="table table-bordered">
+                        <thead style="background-color: #e9ecef;">
+                            <tr>
+                                <th>MÉTODO / BANCO</th>
+                                <th class="text-right">MONTO ORIGINAL</th>
+                                <th class="text-right">TOTAL (USD)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($summary as $item)
+                                <tr>
+                                    <td>{{ $item['name'] }}</td>
+                                    <td class="text-right">
+                                        ${{ number_format($item['original'], 2) }} {{ $item['currency'] }}
+                                    </td>
+                                    <td class="text-right">${{ number_format($item['equivalent'], 2) }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </td>
+
+                <!-- Commissions Table Column -->
+                <td style="width: 60%; vertical-align: top; border: none;">
+                    @if(isset($commissions) && count($commissions) > 0)
+                        <table class="table table-bordered">
+                            <thead style="background-color: #e9ecef;">
+                                <tr>
+                                    <th colspan="7" class="text-center">COMISIONES POR PAGAR</th>
+                                </tr>
+                                <tr>
+                                    <th>FACTURA</th>
+                                    <th>CLIENTE</th>
+                                    <th class="text-right">BASE</th>
+                                    <th class="text-right">TOTAL</th>
+                                    <th class="text-center">%</th>
+                                    <th class="text-right">A PAGAR (USD)</th>
+                                    <th class="text-center">MONEDA</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($commissions as $comm)
+                                    <tr>
+                                        <td>{{ $comm['invoice'] }}</td>
+                                        <td>{{ Str::limit($comm['client'], 15) }}</td>
+                                        <td class="text-right">${{ number_format($comm['base'], 2) }}</td>
+                                        <td class="text-right">${{ number_format($comm['total_with_surcharges'], 2) }}</td>
+                                        <td class="text-center">{{ $comm['percentage'] }}%</td>
+                                        <td class="text-right">${{ number_format($comm['commission_usd'], 2) }}</td>
+                                        <td class="text-center">
+                                            @if($comm['payment_currency'] == 'USD')
+                                                <span class="badge badge-success">Dólar</span>
+                                            @elseif($comm['payment_currency'] == 'COP')
+                                                <span class="badge badge-info">Pesos</span>
+                                            @elseif($comm['payment_currency'] == 'VES')
+                                                <span class="badge badge-warning">Bolívar</span>
+                                            @else
+                                                {{ $comm['payment_currency'] }}
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @endif
+                </td>
+            </tr>
+        </table>
 
         <table class="table table-bordered">
             <thead style="background-color: #f8f9fa;">
