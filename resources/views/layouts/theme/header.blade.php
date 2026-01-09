@@ -41,7 +41,7 @@
                 <i class="fas fa-shopping-cart"></i>
                 <span class="badge badge-danger navbar-badge">{{ $noty_purchases->count() }}</span>
             </a>
-            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right" style="max-height: 300px; overflow-y: auto;">
                 <span class="dropdown-item dropdown-header">{{ $noty_purchases->count() }} Cuentas por Pagar</span>
                 <div class="dropdown-divider"></div>
                 @if(isset($total_payables) && $total_payables > 0)
@@ -74,7 +74,7 @@
                 <i class="far fa-bell"></i>
                 <span class="badge badge-warning navbar-badge">{{ $noty_sales->count() }}</span>
             </a>
-            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right" style="max-height: 300px; overflow-y: auto;">
                             <span class="dropdown-item dropdown-header">{{ $noty_sales->count() }} Notificaciones</span>
                             <div class="dropdown-divider"></div>
                             @if(isset($total_receivables) && $total_receivables > 0)
@@ -107,7 +107,7 @@
                 <i class="fas fa-hand-holding-usd"></i>
                 <span class="badge badge-success navbar-badge">{{ $noty_commissions->count() }}</span>
             </a>
-            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right" style="max-height: 300px; overflow-y: auto;">
                 <span class="dropdown-item dropdown-header">{{ $noty_commissions->count() }} Comisiones Pendientes</span>
                 <div class="dropdown-divider"></div>
                 @if(isset($total_commissions) && $total_commissions > 0)
