@@ -7,6 +7,12 @@
                 </div>
                 <div class="col-sm-12 col-md-3">
                     <div class="form-group">
+                        <label>Buscar</label>
+                        <input type="text" wire:model.live="search" class="form-control" placeholder="Nombre o Código">
+                    </div>
+                </div>
+                <div class="col-sm-12 col-md-3">
+                    <div class="form-group">
                         <label>Proveedor</label>
                         <select wire:model.live="supplier_id" class="form-control">
                             <option value="">Todos</option>
@@ -54,7 +60,7 @@
                             $cost = $bestSupplier ? $bestSupplier->cost : 0;
                             $totalCost = $deficit * $cost;
                         @endphp
-                        <tr>
+                        <tr wire:key="product-{{ $product->id }}">
                             <td class="text-center">
                                 <input type="checkbox" wire:model.live="selected" value="{{ $product->id }}">
                             </td>
