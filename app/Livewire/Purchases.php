@@ -721,6 +721,28 @@ class Purchases extends Component
                         ]);
                     }
                 }
+
+                // Auto-link Supplier to Product if not exists
+                $exists = \App\Models\ProductSupplier::where('product_id', $item['pid'])
+                    ->where('supplier_id', $this->supplier['id'])
+                    ->exists();
+                
+                if (!$exists) {
+                    \App\Models\ProductSupplier::create([
+                        'product_id' => $item['pid'],
+                        'supplier_id' => $this->supplier['id'],
+                        'cost' => $item['cost'] ?? 0,
+                        'last_purchase_date' => Carbon::now()
+                    ]);
+                } else {
+                    // Update last purchase date and cost
+                     \App\Models\ProductSupplier::where('product_id', $item['pid'])
+                        ->where('supplier_id', $this->supplier['id'])
+                        ->update([
+                            'cost' => $item['cost'] ?? 0,
+                            'last_purchase_date' => Carbon::now()
+                        ]);
+                }
             }
 
             DB::commit();
@@ -915,6 +937,15 @@ class Purchases extends Component
             $this->setFlete($purchase->flete);
         }
 
+        // Set supplier if exists
+        if ($purchase->supplier) {
+            $this->setCustomer($purchase->supplier);
+        } else {
+            // Reset supplier session if order has no supplier
+            session()->forget('purchase_supplier');
+            $this->supplier = null;
+        }
+
         // Delete the pending order as it's now in cart (or keep it until saved again?)
         // In Sales, it seems to just load it. If we save again, it creates a NEW purchase?
         // Or does it update the existing one?
@@ -942,9 +973,7 @@ class Purchases extends Component
     {
         $purchase = Purchase::find($purchaseId);
         if ($purchase) {
-            $purchase->status = 'deleted'; // Soft delete or status change
-            $purchase->save();
-            // Or $purchase->delete(); if using soft deletes model
+            $purchase->delete();
             $this->dispatch('noty', msg: 'Orden eliminada');
         }
     }
