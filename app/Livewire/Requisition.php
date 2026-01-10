@@ -41,18 +41,29 @@ class Requisition extends Component
         }
 
         $products = Product::whereIn('id', $this->selected)->get();
-        $ordersBySupplier = [];
+        $itemsToCreate = [];
         $productsWithoutSupplier = [];
 
+        // Determine the supplier for the entire order
+        // If a specific supplier is selected in the dropdown, use it.
+        // Otherwise, set it to NULL (user will select it later in Purchases).
+        $orderSupplierId = $this->supplier_id ? $this->supplier_id : null;
+
         foreach ($products as $product) {
-            $supplierInfo = $product->getCheapestSupplier();
-            
-            if (!$supplierInfo) {
-                $productsWithoutSupplier[] = $product->name;
-                continue;
+            $cost = 0;
+
+            if ($orderSupplierId) {
+                // Scenario 1: Specific supplier selected
+                // Try to find existing cost for this supplier
+                $ps = $product->productSuppliers()->where('supplier_id', $orderSupplierId)->first();
+                $cost = $ps ? $ps->cost : $product->cost; // Fallback to product cost
+            } else {
+                // Scenario 2: No specific supplier (Mixed/All)
+                // We use the product's current cost or cheapest supplier cost as a reference
+                $supplierInfo = $product->getCheapestSupplier();
+                $cost = $supplierInfo ? $supplierInfo->cost : $product->cost;
             }
 
-            $supplierId = $supplierInfo->supplier_id;
             $deficit = $product->max_stock - $product->stock_qty;
             
             // If deficit is <= 0 (stock is full), we default to 1 unit as requested
@@ -60,67 +71,56 @@ class Requisition extends Component
                 $deficit = 1;
             }
 
-            $ordersBySupplier[$supplierId][] = [
+            $itemsToCreate[] = [
                 'product_id' => $product->id,
                 'qty' => $deficit,
-                'cost' => $supplierInfo->cost
+                'cost' => $cost
             ];
         }
         
-        // If there are valid orders, create them
-        if (!empty($ordersBySupplier)) {
+        // Create the SINGLE order
+        if (!empty($itemsToCreate)) {
             \Illuminate\Support\Facades\DB::beginTransaction();
             try {
-                foreach ($ordersBySupplier as $supplierId => $items) {
-                    $total = 0;
-                    foreach ($items as $item) {
-                        $total += $item['qty'] * $item['cost'];
-                    }
+                $total = 0;
+                foreach ($itemsToCreate as $item) {
+                    $total += $item['qty'] * $item['cost'];
+                }
 
-                    $purchase = \App\Models\Purchase::create([
-                        'supplier_id' => $supplierId,
-                        'status' => 'pending',
-                        'type' => 'credit',
-                        'user_id' => auth()->id(),
-                        'total' => $total,
-                        'items' => count($items),
-                        'notes' => 'Generado desde Requisición'
+                $purchase = \App\Models\Purchase::create([
+                    'supplier_id' => $orderSupplierId, // Can be null now
+                    'status' => 'pending',
+                    'type' => 'credit',
+                    'user_id' => auth()->id(),
+                    'total' => $total,
+                    'items' => count($itemsToCreate),
+                    'notes' => 'Generado desde Requisición'
+                ]);
+
+                foreach ($itemsToCreate as $item) {
+                    \App\Models\PurchaseDetail::create([
+                        'purchase_id' => $purchase->id,
+                        'product_id' => $item['product_id'],
+                        'quantity' => $item['qty'],
+                        'cost' => $item['cost'],
+                        'flete_total' => 0,
+                        'flete_product' => 0,
+                        'created_at' => now()
                     ]);
-
-                    foreach ($items as $item) {
-                        \App\Models\PurchaseDetail::create([
-                            'purchase_id' => $purchase->id,
-                            'product_id' => $item['product_id'],
-                            'quantity' => $item['qty'],
-                            'cost' => $item['cost'],
-                            'flete_total' => 0,
-                            'flete_product' => 0,
-                            'created_at' => now()
-                        ]);
-                    }
                 }
 
                 \Illuminate\Support\Facades\DB::commit();
                 $this->selected = [];
                 
-                $msg = 'Órdenes generadas exitosamente.';
-                if (!empty($productsWithoutSupplier)) {
-                    $msg .= ' Atención: Algunos productos no tienen proveedor asignado: ' . implode(', ', $productsWithoutSupplier);
-                }
-                
+                $msg = 'Orden generada exitosamente.';
                 $this->dispatch('msg', $msg);
 
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\DB::rollback();
-                $this->dispatch('error', 'Error al generar órdenes: ' . $e->getMessage());
+                $this->dispatch('error', 'Error al generar orden: ' . $e->getMessage());
             }
         } else {
-            // No valid orders were generated
-            if (!empty($productsWithoutSupplier)) {
-                 $this->dispatch('noty', msg: 'No se generaron órdenes. Productos sin proveedor: ' . implode(', ', $productsWithoutSupplier));
-            } else {
-                 $this->dispatch('noty', msg: 'No se generaron órdenes. Verifique stock.');
-            }
+             $this->dispatch('noty', msg: 'No se pudieron procesar los productos seleccionados.');
         }
     }
 
