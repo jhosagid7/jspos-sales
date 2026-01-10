@@ -36,6 +36,12 @@ class Configuration extends Model
         'global_commission_2_threshold',
         'global_commission_2_threshold',
         'global_commission_2_percentage',
-        'logo'
+        'logo',
+        'default_warehouse_id'
     ];
+
+    public function defaultWarehouse()
+    {
+        return $this->belongsTo(Warehouse::class, 'default_warehouse_id');
+    }
 }

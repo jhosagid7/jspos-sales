@@ -45,6 +45,11 @@ class Warehouses extends Component
 
     public function Store()
     {
+        if (!auth()->user()->can('warehouses.create')) {
+            $this->dispatch('noty', msg: 'No tienes permiso para crear depósitos');
+            return;
+        }
+
         $rules = [
             'name' => 'required|min:3|unique:warehouses,name',
         ];
@@ -69,6 +74,11 @@ class Warehouses extends Component
 
     public function Update()
     {
+        if (!auth()->user()->can('warehouses.edit')) {
+            $this->dispatch('noty', msg: 'No tienes permiso para editar depósitos');
+            return;
+        }
+
         $rules = [
             'name' => "required|min:3|unique:warehouses,name,{$this->selected_id}",
         ];
@@ -107,6 +117,11 @@ class Warehouses extends Component
 
     public function Destroy(Warehouse $warehouse)
     {
+        if (!auth()->user()->can('warehouses.delete')) {
+            $this->dispatch('noty', msg: 'No tienes permiso para eliminar depósitos');
+            return;
+        }
+
         $warehouse->delete();
         $this->resetUI();
         $this->dispatch('warehouse-deleted', 'Depósito Eliminado');

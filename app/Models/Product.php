@@ -89,6 +89,11 @@ class Product extends Model
         return $this->hasMany(ProductSupplier::class);
     }
 
+    public function productWarehouses()
+    {
+        return $this->hasMany(ProductWarehouse::class);
+    }
+
     public function units()
     {
         return $this->hasMany(ProductUnit::class);

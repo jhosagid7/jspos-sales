@@ -105,7 +105,7 @@
                             <div class="input-group-prepend">
                                 <span class="input-group-text"><i class="fas fa-warehouse"></i></span>
                             </div>
-                            <select wire:model.live="warehouse_id" class="form-control">
+                            <select wire:model.live="warehouse_id" class="form-control" @cannot('sales.switch_warehouse') disabled @endcannot>
                                 @foreach($warehouses as $w)
                                     <option value="{{ $w->id }}">{{ $w->name }}</option>
                                 @endforeach

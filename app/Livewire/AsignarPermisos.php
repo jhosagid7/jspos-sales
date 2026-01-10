@@ -29,11 +29,72 @@ class AsignarPermisos extends Component
 
     public function render()
     {
+        $permisos = Permission::when($this->search != null, function ($query) {
+            $query->where('name', 'like', "%{$this->search}%");
+        })->orderBy('name')->get();
+
+        // Group and Translate Permissions
+        $groupedPermissions = $permisos->groupBy(function ($item) {
+            return explode('.', $item->name)[0];
+        })->map(function ($group, $key) {
+            $groupName = $this->translateGroup($key);
+            return [
+                'name' => $groupName,
+                'permissions' => $group->map(function ($perm) {
+                    $perm->display_name = $this->translatePermission($perm->name);
+                    return $perm;
+                })
+            ];
+        })->sortBy('name');
+
         return view('livewire.roles.asignar-permisos', [
-            'permisos' => Permission::when($this->search != null, function ($query) {
-                $query->where('name', 'like', "%{$this->search}%");
-            })->orderBy('name')->get(),
+            'permisos' => $permisos, // Keep for compatibility if needed, but we'll use groupedPermissions
+            'groupedPermissions' => $groupedPermissions
         ]);
+    }
+
+    private function translateGroup($key)
+    {
+        $map = [
+            'sales' => 'Ventas',
+            'warehouses' => 'Depósitos',
+            'cash_register' => 'Caja',
+            'settings' => 'Configuración',
+            'products' => 'Productos',
+            'categories' => 'Categorías',
+            'users' => 'Usuarios',
+            'roles' => 'Roles',
+            'reports' => 'Reportes',
+            'customers' => 'Clientes',
+            'suppliers' => 'Proveedores',
+            'purchases' => 'Compras',
+        ];
+        return $map[$key] ?? ucfirst($key);
+    }
+
+    private function translatePermission($name)
+    {
+        $parts = explode('.', $name);
+        $action = $parts[1] ?? $name;
+
+        $map = [
+            'create' => 'Crear',
+            'edit' => 'Editar',
+            'delete' => 'Eliminar',
+            'view' => 'Ver',
+            'view_all' => 'Ver Todos',
+            'view_own' => 'Ver Propios',
+            'switch_warehouse' => 'Cambiar Depósito',
+            'mix_warehouses' => 'Mezclar Depósitos',
+            'close' => 'Cerrar',
+            'open' => 'Abrir',
+            'print' => 'Imprimir',
+            'download' => 'Descargar',
+            'assign' => 'Asignar',
+            'revoke' => 'Revocar',
+        ];
+
+        return $map[$action] ?? ucfirst(str_replace('_', ' ', $action));
     }
 
     function updatedRoleSelectedId()
