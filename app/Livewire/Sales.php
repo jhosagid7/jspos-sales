@@ -305,7 +305,7 @@ class Sales extends Component
             }
             
             // Limit results for performance
-            $this->products = $query->take(20)->get();
+            $this->products = $query->with(['productWarehouses.warehouse'])->take(20)->get();
 
             if ($this->products->count() == 0) {
                 $this->dispatch('noty', msg: 'NO EXISTE EL CÓDIGO ESCANEADO PERO PREGUNTELE');
@@ -330,10 +330,10 @@ class Sales extends Component
         }
     }
 
-    public function selectProduct($index)
+    public function selectProduct($index, $warehouseId = null)
     {
         if (isset($this->products[$index])) {
-            $this->AddProduct($this->products[$index]); // Llama a tu método para agregar el producto
+            $this->AddProduct($this->products[$index], 1, $warehouseId); // Llama a tu método para agregar el producto
             $this->search3 = ''; // Resetear el campo de búsqueda
             $this->products = []; // Limpiar la lista de productos
             $this->selectedIndex = -1; // Resetear el índice seleccionado
@@ -414,7 +414,22 @@ class Sales extends Component
         }
 
         $this->warehouses = \App\Models\Warehouse::where('is_active', 1)->get();
-        $this->warehouse_id = $this->warehouses->first()->id ?? null;
+        
+        $user = Auth::user();
+        if ($user->warehouse_id) {
+            $this->warehouse_id = $user->warehouse_id;
+        } else {
+            // Use system default or fallback to first active
+            $this->warehouse_id = $this->config->default_warehouse_id ?? ($this->warehouses->first()->id ?? null);
+        }
+
+        // If user cannot switch warehouse, restrict the list or just ensure the selected one is enforced
+        if (!$user->can('sales.switch_warehouse')) {
+            if ($this->warehouse_id) {
+                 // Restrict list to the assigned (or default) warehouse
+                $this->warehouses = $this->warehouses->where('id', $this->warehouse_id);
+            }
+        }
 
         $this->amount = null;
         $this->search = null;
@@ -753,7 +768,7 @@ class Sales extends Component
     {
         //limpiamos el carrito
 
-        $this->resetExcept('config', 'banks', 'bank', 'currencies');
+        $this->resetExcept('config', 'banks', 'bank', 'currencies', 'warehouses');
         $this->clear();
         session()->forget('sale_customer');
 
@@ -775,7 +790,7 @@ class Sales extends Component
             $product = Product::find($detail->product_id);
 
             // Llamar al método AddProduct con los detalles del producto y la cantidad
-            $this->AddProduct($product, $detail->quantity);
+            $this->AddProduct($product, $detail->quantity, $detail->warehouse_id);
         }
 
         // Recalcular precios con la configuración del vendedor (si aplica)
@@ -850,146 +865,137 @@ class Sales extends Component
         return;
     }
 
-    function AddProduct(Product $product, $qty = 1)
+    function AddProduct(Product $product, $qty = 1, $warehouseId = null)
     {
-        // Obtener la cantidad actual del producto en el carrito
-        $currentQtyInCart = 0;
-        if ($this->inCart($product->id)) {
-            // Si el producto ya está en el carrito, obtener la cantidad actual
-            $currentQtyInCart = $this->getQtyInCart($product->id);
+        // Determine which warehouse to use
+        // If specific warehouse passed, use it. Otherwise use global selection.
+        $targetWarehouseId = $warehouseId ?? $this->warehouse_id;
+
+        // Permission Check: Mix Warehouses
+        if ($this->cart->isNotEmpty()) {
+            $firstItem = $this->cart->first();
+            $currentWarehouseId = $firstItem['warehouse_id'] ?? null;
+
+            // If the cart has items from a different warehouse than the one we are trying to add from
+            if ($currentWarehouseId && $targetWarehouseId != $currentWarehouseId) {
+                if (!Auth::user()->can('sales.mix_warehouses')) {
+                    $this->dispatch('noty', msg: 'No tienes permiso para mezclar productos de diferentes depósitos en una misma venta.');
+                    return;
+                }
+            }
         }
 
-        // Calcular la cantidad total que se intentará agregar
-        $totalQtyToAdd = $currentQtyInCart + $qty;
+        // Check if this specific product+warehouse combination is already in cart
+        $existingItem = $this->cart->first(function ($item) use ($product, $targetWarehouseId) {
+            return $item['pid'] === $product->id && ($item['warehouse_id'] ?? null) == $targetWarehouseId;
+        });
 
-        // Mensaje de depuración
-        \Log::info("Intentando agregar al carrito: {$product->name}, Cantidad solicitada: {$qty}, Stock disponible: {$product->stock_qty}, Cantidad en carrito: {$currentQtyInCart}");
+        if ($existingItem) {
+            // Update quantity of existing item
+            $this->updateQty($existingItem['id'], $existingItem['qty'] + $qty);
+            return;
+        }
+
+        // Validate stock if managed
         if ($product->manage_stock == 1) {
-            // Check stock in selected warehouse
-            $stockInWarehouse = $product->stockIn($this->warehouse_id);
-            
-            // Verificar si la cantidad total a agregar es mayor que el stock disponible en el almacén
-            if ($totalQtyToAdd > $stockInWarehouse) {
+            $stockInWarehouse = $product->stockIn($targetWarehouseId);
+            if ($qty > $stockInWarehouse) {
                 $this->dispatch('noty', msg: 'No hay suficiente stock en el almacén seleccionado para: ' . $product->name);
                 return;
             }
         }
-        if ($this->inCart($product->id)) {
-        $this->updateQty(null, $totalQtyToAdd, $product->id);
-        return;
-    }
 
-    // Obtener moneda principal y tasa
-    $primaryCurrency = CurrencyHelper::getPrimaryCurrency();
-    $exchangeRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
+        // Obtener moneda principal y tasa
+        $primaryCurrency = CurrencyHelper::getPrimaryCurrency();
+        $exchangeRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
 
-// DEBUG: Log currency information
-\Log::info("=== CURRENCY CONVERSION DEBUG ===");
-\Log::info("Product: {$product->name}");
-\Log::info("Product Price (USD): {$product->price}");
-\Log::info("Primary Currency: " . ($primaryCurrency ? $primaryCurrency->code : 'NULL'));
-\Log::info("Exchange Rate: {$exchangeRate}");
-
-    // Convertir precio base a moneda principal
-    $basePriceInPrimary = $product->price * $exchangeRate;
-
-\Log::info("Base Price in Primary Currency: {$basePriceInPrimary}");
-\Log::info("=================================");
-    
-    // Convertir lista de precios a moneda principal
-    $priceListInPrimary = [];
-
-    // Agregar precio principal a la lista
-    $priceListInPrimary[] = [
-        'id' => 'main',
-        'price' => $basePriceInPrimary,
-        'name' => 'Precio Principal'
-    ];
-
-    if (count($product->priceList) > 0) {
-        foreach ($product->priceList as $p) {
-            $priceListInPrimary[] = [
-                'id' => $p['id'],
-                'price' => $p['price'] * $exchangeRate, // Convertir a moneda principal
-                'name' => $p['name'] ?? ''
-            ];
-        }
-    }
-
-    // SIEMPRE usar el precio base del producto como precio de venta predeterminado
-    // La lista de precios solo se usa cuando el usuario selecciona manualmente un precio diferente
-    
-    // Aplicar markup si existe configuración de vendedor Y el toggle está activo
-    if ($this->sellerConfig && $this->applyCommissions) {
-        $comm = ($basePriceInPrimary * $this->sellerConfig->commission_percent) / 100;
-        $freight = ($basePriceInPrimary * $this->sellerConfig->freight_percent) / 100;
-        $diff = ($basePriceInPrimary * $this->sellerConfig->exchange_diff_percent) / 100;
+        // Convertir precio base a moneda principal
+        $basePriceInPrimary = $product->price * $exchangeRate;
         
-        $salePrice = $basePriceInPrimary + $comm + $freight + $diff;
-    } else {
-        $salePrice = $basePriceInPrimary;
+        // Convertir lista de precios a moneda principal
+        $priceListInPrimary = [];
+
+        // Agregar precio principal a la lista
+        $priceListInPrimary[] = [
+            'id' => 'main',
+            'price' => $basePriceInPrimary,
+            'name' => 'Precio Principal'
+        ];
+
+        if (count($product->priceList) > 0) {
+            foreach ($product->priceList as $p) {
+                $priceListInPrimary[] = [
+                    'id' => $p['id'],
+                    'price' => $p['price'] * $exchangeRate, // Convertir a moneda principal
+                    'name' => $p['name'] ?? ''
+                ];
+            }
+        }
+
+        // Aplicar markup si existe configuración de vendedor Y el toggle está activo
+        if ($this->sellerConfig && $this->applyCommissions) {
+            $comm = ($basePriceInPrimary * $this->sellerConfig->commission_percent) / 100;
+            $freight = ($basePriceInPrimary * $this->sellerConfig->freight_percent) / 100;
+            $diff = ($basePriceInPrimary * $this->sellerConfig->exchange_diff_percent) / 100;
+            
+            $salePrice = $basePriceInPrimary + $comm + $freight + $diff;
+        } else {
+            $salePrice = $basePriceInPrimary;
+        }
+
+        // Obtener el número de decimales configurados
+        $decimals = ConfigurationService::getDecimalPlaces();
+
+        // Obtener el IVA desde la configuración
+        $iva = ConfigurationService::getVat() / 100;
+
+        // Determinamos el precio de venta (con IVA)
+        if ($iva > 0) {
+            $precioUnitarioSinIva =  $salePrice / (1 + $iva);
+            $subtotalNeto =   $precioUnitarioSinIva * $this->formatAmount($qty);
+            $montoIva = $subtotalNeto  * $iva;
+            $totalConIva =  $subtotalNeto + $montoIva;
+
+            $tax = round($montoIva, $decimals);
+            $total = round($totalConIva, $decimals);
+        } else {
+            $precioUnitarioSinIva =  $salePrice;
+            $subtotalNeto =   $precioUnitarioSinIva * $this->formatAmount($qty);
+            $montoIva = 0;
+            $totalConIva =  $subtotalNeto + $montoIva;
+
+            $tax = round($montoIva, $decimals);
+            $total = round($totalConIva, $decimals);
+        }
+
+        $uid = uniqid() . $product->id;
+
+        $itemCart = [
+            'id' => $uid,
+            'pid' => $product->id,
+            'name' => $product->name,
+            'sku' => $product->sku,
+            'price1' => $basePriceInPrimary, 
+            'price2' => $product->price2 * $exchangeRate, 
+            'sale_price' => $salePrice,
+            'pricelist' => $priceListInPrimary, 
+            'qty' => $this->formatAmount($qty),
+            'tax' => $tax,
+            'total' => $total,
+            'stock' => $product->stock_qty,
+            'type' => $product->type,
+            'image' => $product->photo,
+            'platform_id' => $product->platform_id,
+            'warehouse_id' => $targetWarehouseId // Store warehouse ID
+        ];
+
+        $this->cart->push($itemCart);
+        $this->save();
+        $this->dispatch('refresh');
+        $this->search3 = '';
+        $this->products = [];
+        $this->dispatch('noty', msg: 'PRODUCTO AGREGADO AL CARRITO');
     }
-
-    // Obtener el número de decimales configurados
-    $decimals = ConfigurationService::getDecimalPlaces();
-
-    // Obtener el IVA desde la configuración
-    $iva = ConfigurationService::getVat() / 100;
-
-    // Determinamos el precio de venta (con IVA)
-    if ($iva > 0) {
-        // Precio unitario sin IVA
-        $precioUnitarioSinIva =  $salePrice / (1 + $iva);
-        // Subtotal neto
-        $subtotalNeto =   $precioUnitarioSinIva * $this->formatAmount($qty);
-        // Monto IVA
-        $montoIva = $subtotalNeto  * $iva;
-        // Total con IVA
-        $totalConIva =  $subtotalNeto + $montoIva;
-
-        $tax = round($montoIva, $decimals);
-        $total = round($totalConIva, $decimals);
-    } else {
-        // Precio unitario sin IVA
-        $precioUnitarioSinIva =  $salePrice;
-        // Subtotal neto
-        $subtotalNeto =   $precioUnitarioSinIva * $this->formatAmount($qty);
-        // Monto IVA
-        $montoIva = 0;
-        // Total con IVA
-        $totalConIva =  $subtotalNeto + $montoIva;
-
-        $tax = round($montoIva, $decimals);
-        $total = round($totalConIva, $decimals);
-    }
-
-    $uid = uniqid() . $product->id;
-
-    $itemCart = [
-        'id' => $uid,
-        'pid' => $product->id,
-        'name' => $product->name,
-        'sku' => $product->sku,
-        'price1' => $basePriceInPrimary, // Guardar en moneda principal
-        'price2' => $product->price2 * $exchangeRate, // Guardar en moneda principal
-        'sale_price' => $salePrice,
-        'pricelist' => $priceListInPrimary, // Guardar lista convertida
-        'qty' => $this->formatAmount($qty),
-        'tax' => $tax,
-        'total' => $total,
-        'stock' => $product->stock_qty,
-        'type' => $product->type,
-        'image' => $product->photo,
-        'platform_id' => $product->platform_id
-    ];
-
-    $this->cart->push($itemCart);
-    $this->save();
-    $this->dispatch('refresh');
-    $this->search3 = '';
-    $this->products = [];
-    $this->dispatch('noty', msg: 'PRODUCTO AGREGADO AL CARRITO');
-}
 
     // Método para obtener la cantidad de un producto en el carrito
     function getQtyInCart($productId)
@@ -1056,6 +1062,13 @@ class Sales extends Component
             $product_id = $oldItem['pid'];
         } else {
             $oldItem = $mycart->firstWhere('pid', $product_id);
+            if ($oldItem) {
+                $uid = $oldItem['id']; // Resolve UID from the found item
+            }
+        }
+
+        if (!$oldItem) {
+            return;
         }
 
         $product = Product::find($product_id);
@@ -1063,8 +1076,13 @@ class Sales extends Component
         // Verificar si la cantidad total a agregar es mayor que el stock disponible
         if ($product->manage_stock == 1) {
             $newQty = $cant; // solo se agrega la cantidad que se está agregando
-            if ($product->stock_qty < $newQty) {
-                \Log::info("Intentando agregar al carrito: {$product->name}, Cantidad solicitada: {$newQty}, Stock disponible: {$product->stock_qty}, Cantidad en carrito: {$oldItem['qty']}");
+            
+            // Validate against the specific warehouse of the item
+            $itemWarehouseId = $oldItem['warehouse_id'] ?? null;
+            $stockInWarehouse = $product->stockIn($itemWarehouseId);
+
+            if ($stockInWarehouse < $newQty) {
+                \Log::info("Intentando agregar al carrito: {$product->name}, Cantidad solicitada: {$newQty}, Stock disponible: {$stockInWarehouse}, Cantidad en carrito: {$oldItem['qty']}");
                 $this->dispatch('noty', msg: 'No hay suficiente stock para el producto: ' . $product->name);
                 return;
             }
@@ -1081,9 +1099,9 @@ class Sales extends Component
         $newItem['tax'] = round($values['iva'], $decimals);
         $newItem['total'] = $this->formatAmount(round($values['total'], $decimals));
 
-        // Actualizar el carrito
-        $this->cart = $this->cart->reject(function ($product) use ($uid, $product_id) {
-            return $product['id'] === $uid || $product['pid'] === $product_id;
+        // Actualizar el carrito - SOLO eliminar el item específico por ID
+        $this->cart = $this->cart->reject(function ($product) use ($uid) {
+            return $product['id'] === $uid;
         });
 
         // Agregar el nuevo artículo al carrito
@@ -1109,7 +1127,7 @@ class Sales extends Component
     #[On('cancelSale')]
     function cancelSale()
     {
-        $this->resetExcept('config', 'banks');
+        $this->resetExcept('config', 'banks', 'warehouses');
         $this->clear();
         session()->forget('sale_customer');
 
@@ -1408,6 +1426,7 @@ class Sales extends Component
             $cart = collect(session("cart"));
 
             // insert sale detail
+            // insert sale detail
             $details = $cart->map(function ($item) use ($sale, $decimals, $primaryCurrency) {
                 // El precio del producto está en USD (base)
                 $product = Product::find($item['pid']);
@@ -1425,7 +1444,8 @@ class Sales extends Component
                     'price_usd' => $priceUSD,
                     'exchange_rate' => $primaryCurrency->exchange_rate,
                     'created_at' => Carbon::now(),
-                    'discount' => 0
+                    'discount' => 0,
+                    'warehouse_id' => $item['warehouse_id'] ?? null // Store warehouse ID
                 ];
             })->toArray();
 
@@ -1438,9 +1458,11 @@ class Sales extends Component
                 $product->decrement('stock_qty', $item['qty']);
                 
                 // Decrement warehouse stock
-                if ($this->warehouse_id) {
+                $itemWarehouseId = $item['warehouse_id'] ?? null;
+                
+                if ($itemWarehouseId) {
                     $productWarehouse = \App\Models\ProductWarehouse::where('product_id', $item['pid'])
-                        ->where('warehouse_id', $this->warehouse_id)
+                        ->where('warehouse_id', $itemWarehouseId)
                         ->first();
                     
                     if ($productWarehouse) {
@@ -1449,7 +1471,7 @@ class Sales extends Component
                         // Create negative stock entry if not exists (or handle as error depending on logic)
                         \App\Models\ProductWarehouse::create([
                             'product_id' => $item['pid'],
-                            'warehouse_id' => $this->warehouse_id,
+                            'warehouse_id' => $itemWarehouseId,
                             'stock_qty' => -$item['qty']
                         ]);
                     }
@@ -1643,7 +1665,7 @@ class Sales extends Component
 
             $this->dispatch('noty', msg: 'VENTA REGISTRADA CON ÉXITO');
             $this->dispatch('close-modalPay', element: $type == 3 ? 'modalDeposit' : ($type == 4 ? 'modalNequi' : 'modalCash'));
-            $this->resetExcept('config', 'banks', 'bank');
+            $this->resetExcept('config', 'banks', 'bank', 'warehouses');
             $this->clear();
             session()->forget('sale_customer');
             
@@ -1713,7 +1735,8 @@ class Sales extends Component
                             'regular_price' => round($item['price1'] ?? 0, $decimals),
                             'sale_price' => round($item['sale_price'], $decimals),
                             'created_at' => Carbon::now(),
-                            'discount' => 0
+                            'discount' => 0,
+                            'warehouse_id' => $item['warehouse_id'] ?? null // Save warehouse_id
                         ];
                     })->toArray();
 
@@ -1751,7 +1774,8 @@ class Sales extends Component
                         'regular_price' => round($item['price1'] ?? 0, $decimals),
                         'sale_price' => round($item['sale_price'], $decimals),
                         'created_at' => Carbon::now(),
-                        'discount' => 0
+                        'discount' => 0,
+                        'warehouse_id' => $item['warehouse_id'] ?? null // Save warehouse_id
                     ];
                 })->toArray();
 
@@ -1774,7 +1798,7 @@ class Sales extends Component
                  // Let's check initPayment instead.
             }
 
-            $this->resetExcept('config', 'banks', 'bank', 'currencies');
+            $this->resetExcept('config', 'banks', 'bank', 'currencies', 'warehouses');
             $this->clear();
             session()->forget('sale_customer');
             // Obtener el último registro insertado

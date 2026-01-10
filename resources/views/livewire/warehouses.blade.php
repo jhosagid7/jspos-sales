@@ -11,20 +11,29 @@
                     <div class="form-group">
                         <label>Nombre</label>
                         <input wire:model="name" id='inputFocus' type="text"
-                            class="form-control form-control-lg" placeholder="Nombre del depósito">
+                            class="form-control form-control-lg" placeholder="Nombre del depósito"
+                            @cannot('warehouses.create') disabled @endcannot
+                            @if($selected_id > 0) @cannot('warehouses.edit') disabled @endcannot @endif
+                            >
                         @error('name') <span class="text-danger">{{ $message }}</span> @enderror
                     </div>
 
                     <div class="form-group">
                         <label>Dirección</label>
                         <input wire:model="address" type="text"
-                            class="form-control form-control-lg" placeholder="Dirección (Opcional)">
+                            class="form-control form-control-lg" placeholder="Dirección (Opcional)"
+                             @cannot('warehouses.create') disabled @endcannot
+                             @if($selected_id > 0) @cannot('warehouses.edit') disabled @endcannot @endif
+                            >
                         @error('address') <span class="text-danger">{{ $message }}</span> @enderror
                     </div>
 
                     <div class="form-group">
                         <label>Estatus</label>
-                        <select wire:model="is_active" class="form-control">
+                        <select wire:model="is_active" class="form-control"
+                             @cannot('warehouses.create') disabled @endcannot
+                             @if($selected_id > 0) @cannot('warehouses.edit') disabled @endcannot @endif
+                            >
                             <option value="1">Activo</option>
                             <option value="0">Inactivo</option>
                         </select>
@@ -37,9 +46,19 @@
                         wire:click="resetUI">Cancelar
                     </button>
 
-                    <button class="btn btn-info save" wire:click="{{ $selected_id > 0 ? 'Update' : 'Store' }}">
-                        {{ $selected_id > 0 ? 'Actualizar' : 'Guardar' }}
-                    </button>
+                    @if($selected_id > 0)
+                        @can('warehouses.edit')
+                            <button class="btn btn-info save" wire:click="Update">
+                                Actualizar
+                            </button>
+                        @endcan
+                    @else
+                        @can('warehouses.create')
+                            <button class="btn btn-info save" wire:click="Store">
+                                Guardar
+                            </button>
+                        @endcan
+                    @endif
                 </div>
             </div>
         </div>
@@ -84,12 +103,17 @@
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-pill" role="group" aria-label="Basic example">
+                                            @can('warehouses.edit')
                                             <button class="btn btn-light btn-sm" wire:click="Edit({{ $item->id }})">
                                                 <i class="fa fa-edit fa-2x"></i>
                                             </button>
+                                            @endcan
+                                            
+                                            @can('warehouses.delete')
                                             <button class="btn btn-light btn-sm" onclick="Confirm({{ $item->id }})">
                                                 <i class="fa fa-trash fa-2x"></i>
                                             </button>
+                                            @endcan
                                         </div>
                                     </td>
                                 </tr>

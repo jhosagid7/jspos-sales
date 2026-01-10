@@ -11,4 +11,9 @@ class ProductWarehouse extends Model
 
     protected $table = 'product_warehouse';
     protected $fillable = ['product_id', 'warehouse_id', 'stock_qty'];
+
+    public function warehouse()
+    {
+        return $this->belongsTo(Warehouse::class);
+    }
 }

@@ -26,23 +26,33 @@
                                         $priceInPrimary = $product->price * $primaryRate;
                                     @endphp
                                     <li class="p-2 list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                                        wire:click="selectProduct({{ $index }})"
                                         style="cursor: pointer; {{ $selectedIndex === $index ? 'background-color: #e9ecef;' : '' }}">
-                                        <div>
-                                            <h6
-                                                class="mb-0 text-{{ $product->stock_qty <= 0 ? 'danger' : ($product->stock_qty < $product->low_stock ? 'info' : 'primary') }}">
-                                                <small class="mb-0" style="text-muted">
-                                                    {{ $product->sku }} - {{ Str::limit($product->name, 50) }}
-                                                </small> - {{ $primarySymbol }}{{ number_format($priceInPrimary, 2) }} / <small>stock:
-                                                    @if ($product->stock_qty <= 0)
-                                                        <span class="text-danger">Agotado</span>
-                                                    @else
-                                                        <span>{{ $product->stock_qty }}</span>
-                                                    @endif
-
-
-                                                </small>
-                                            </h6>
+                                        <div class="w-100">
+                                            <div class="d-flex justify-content-between" wire:click="selectProduct({{ $index }})">
+                                                <h6 class="mb-0 text-{{ $product->stock_qty <= 0 ? 'danger' : ($product->stock_qty < $product->low_stock ? 'info' : 'primary') }}">
+                                                    <small class="mb-0" style="text-muted">
+                                                        {{ $product->sku }} - {{ Str::limit($product->name, 50) }}
+                                                    </small> - {{ $primarySymbol }}{{ number_format($priceInPrimary, 2) }} / <small>Total: {{ $product->stock_qty }}</small>
+                                                </h6>
+                                            </div>
+                                            
+                                            @if($product->productWarehouses->count() > 0)
+                                                @can('sales.switch_warehouse')
+                                                    <div class="mt-1 ml-3">
+                                                        <small class="text-muted">Stock por depósito:</small>
+                                                        <div class="d-flex flex-wrap">
+                                                            @foreach($product->productWarehouses as $pw)
+                                                                @if($pw->stock_qty > 0)
+                                                                    <button class="btn btn-xs btn-outline-secondary mr-1 mb-1" 
+                                                                        wire:click.stop="selectProduct({{ $index }}, {{ $pw->warehouse_id }})">
+                                                                        {{ $pw->warehouse->name }}: {{ $pw->stock_qty }}
+                                                                    </button>
+                                                                @endif
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                @endcan
+                                            @endif
                                         </div>
                                     </li>
                                 @endforeach

@@ -30,7 +30,13 @@ class User extends Authenticatable
         'seller_commission_2_threshold',
         'seller_commission_2_percentage',
         'profile_photo_path',
+        'warehouse_id',
     ];
+
+    public function warehouse()
+    {
+        return $this->belongsTo(Warehouse::class);
+    }
 
     /**
      * The attributes that should be hidden for serialization.
