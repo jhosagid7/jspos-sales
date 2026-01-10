@@ -22,6 +22,7 @@ class Welcome extends Component
     public $profitChartData = [];
     public $topSuppliers = [];
     public $pendingCommissions = 0;
+    public $topSellersChartData = [];
 
     public function mount()
     {
@@ -46,15 +47,21 @@ class Welcome extends Component
         $this->recentSales = \App\Models\Sale::with('customer')->latest()->take(10)->get();
 
         // Top Products
-        $this->topProducts = \App\Models\SaleDetail::select('product_id', \Illuminate\Support\Facades\DB::raw('sum(quantity) as total_qty'))
-            ->groupBy('product_id')
+        // Top Products (This Month)
+        $this->topProducts = \App\Models\SaleDetail::query()
+            ->join('sales', 'sale_details.sale_id', '=', 'sales.id')
+            ->select('sale_details.product_id', \Illuminate\Support\Facades\DB::raw('sum(sale_details.quantity) as total_qty'))
+            ->where('sales.status', 'paid')
+            ->whereMonth('sales.created_at', \Carbon\Carbon::now()->month)
+            ->groupBy('sale_details.product_id')
             ->orderByDesc('total_qty')
             ->take(5)
-            ->with('product')
+            ->with('product.images')
             ->get();
 
         // Low Stock
-        $this->lowStockProducts = \App\Models\Product::whereColumn('stock_qty', '<=', 'low_stock')
+        $this->lowStockProducts = \App\Models\Product::select('id', 'name', 'stock_qty', 'low_stock', 'manage_stock')
+            ->whereColumn('stock_qty', '<=', 'low_stock')
             ->where('manage_stock', 1)
             ->take(10)
             ->get();
@@ -130,6 +137,36 @@ class Welcome extends Component
             'labels' => $dates,
             'data' => $profitData
         ];
+
+        // Top Sellers by Profit (This Month)
+        $topSellers = \App\Models\SaleDetail::query()
+            ->join('sales', 'sale_details.sale_id', '=', 'sales.id')
+            ->join('products', 'sale_details.product_id', '=', 'products.id')
+            ->join('customers', 'sales.customer_id', '=', 'customers.id')
+            ->join('users', 'customers.seller_id', '=', 'users.id')
+            ->join('model_has_roles', function($join) {
+                $join->on('users.id', '=', 'model_has_roles.model_id')
+                     ->where('model_has_roles.model_type', 'App\Models\User');
+            })
+            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
+            ->select(
+                'users.name as seller_name',
+                \Illuminate\Support\Facades\DB::raw('SUM((sale_details.sale_price - COALESCE(products.cost, 0)) * sale_details.quantity) as total_profit')
+            )
+            ->where('sales.status', 'paid')
+            ->whereMonth('sales.created_at', \Carbon\Carbon::now()->month)
+            ->where('roles.name', 'Vendedor')
+            ->groupBy('users.name')
+            ->orderByDesc('total_profit')
+            ->take(5)
+            ->get();
+
+        $this->topSellersChartData = $topSellers->map(function($seller) {
+            return [
+                'name' => $seller->seller_name,
+                'y' => (float) $seller->total_profit
+            ];
+        })->toArray();
     }
 
     public function render()

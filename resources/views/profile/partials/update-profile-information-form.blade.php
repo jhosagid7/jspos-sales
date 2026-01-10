@@ -7,7 +7,7 @@
         @csrf
     </form>
 
-    <form method="post" action="{{ route('profile.update') }}" class="form-horizontal">
+    <form method="post" action="{{ route('profile.update') }}" class="form-horizontal" enctype="multipart/form-data">
         @csrf
         @method('patch')
 
@@ -16,6 +16,20 @@
                 {{ __("Update your account's profile information and email address.") }}
             </p>
 
+            <div class="form-group">
+                <label for="photo">{{ __('Profile Photo') }}</label>
+                <div class="mb-2">
+                    @if ($user->profile_photo_path)
+                        <img src="{{ asset('storage/' . $user->profile_photo_path) }}" alt="{{ $user->name }}" class="rounded-circle" style="width: 100px; height: 100px; object-fit: cover;">
+                    @else
+                        <img src="https://ui-avatars.com/api/?name={{ urlencode($user->name) }}&color=7F9CF5&background=EBF4FF" alt="{{ $user->name }}" class="rounded-circle" style="width: 100px; height: 100px; object-fit: cover;">
+                    @endif
+                </div>
+                <input type="file" class="form-control-file @error('photo') is-invalid @enderror" id="photo" name="photo">
+                @error('photo')
+                    <span class="error invalid-feedback d-block">{{ $message }}</span>
+                @enderror
+            </div>
             <div class="form-group">
                 <label for="name">{{ __('Name') }}</label>
                 <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name', $user->name) }}" required autofocus autocomplete="name">

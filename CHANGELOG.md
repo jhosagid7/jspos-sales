@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.8] - 2026-01-10
+
+### Added
+- **Reports**:
+  - **Best Sellers Report**: Added a new report module to view top-selling products with filters for date range, category, and status. Includes Bar and Pie charts.
+- **Dashboard**:
+  - **Top Sellers Chart**: Added a new chart to visualize the top 5 sellers by profit for the current month.
+  - **Chart Type Toggle**: Added functionality to switch the "Top Sellers" chart between Column, Bar, Pie, and Donut views dynamically.
+  - **Role Filtering**: Configured "Top Sellers" chart to only display users with the "Vendedor" role, correctly attributing sales to the account manager (Customer's Seller).
+
+### Changed
+- **Dashboard**:
+  - **Charting Library**: Migrated all dashboard charts from Chart.js to **Highcharts** for better performance and consistency.
+  - **Optimizations**: Optimized database queries for "Top Products" and "Low Stock" widgets to improve dashboard load time.
+  - **Image Handling**: Improved product image loading logic to prevent broken images.
+
 ## [1.2.4] - 2026-01-09
 
 ### Added
