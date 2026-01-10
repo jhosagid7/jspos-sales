@@ -40,7 +40,7 @@ class Purchases extends Component
     // Supplier creation properties
     public $sname, $saddress, $sphone;
     
-    public $warehouse_id, $warehouses=[];
+    public $warehouse_id, $warehouses;
 
     // Listeners
     protected $listeners = [
