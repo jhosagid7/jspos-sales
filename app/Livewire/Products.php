@@ -89,9 +89,32 @@ class Products extends Component
         $this->form->manage_stock = $product->manage_stock;
         $this->form->stock_qty = $product->stock_qty;
         $this->form->low_stock = $product->low_stock;
+        $this->form->max_stock = $product->max_stock;
+        $this->form->brand = $product->brand;
+        $this->form->presentation = $product->presentation;
         $this->form->supplier_id = $product->supplier_id;
         $this->form->category_id = $product->category_id;
         $this->form->values = $product->priceList->toArray();
+        
+        // Load Suppliers
+        $this->form->product_suppliers = $product->productSuppliers->map(function($item) {
+            return [
+                'supplier_id' => $item->supplier_id,
+                'name' => $item->supplier->name,
+                'cost' => $item->cost
+            ];
+        })->toArray();
+
+        // Load Units
+        $this->form->product_units = $product->units->map(function($item) {
+            return [
+                'unit_name' => $item->unit_name,
+                'factor' => $item->conversion_factor,
+                'price' => $item->price,
+                'barcode' => $item->barcode
+            ];
+        })->toArray();
+
         $this->editing = true;
 
         session(['values' => $product->priceList->toArray()]);
@@ -188,6 +211,67 @@ class Products extends Component
         $this->dispatch('noty', msg: 'Precio eliminado correctamente');
 
         // $this->tab = 4;
+    }
+
+    public function addSupplier()
+    {
+        $this->validate([
+            'form.supplier_id' => 'required|not_in:0',
+            'form.supplier_cost' => 'required|numeric|min:0'
+        ]);
+
+        $supplier = Supplier::find($this->form->supplier_id);
+        
+        // Check if exists
+        foreach($this->form->product_suppliers as $s) {
+            if($s['supplier_id'] == $this->form->supplier_id) {
+                $this->dispatch('noty', msg: 'El proveedor ya está agregado');
+                return;
+            }
+        }
+
+        $this->form->product_suppliers[] = [
+            'supplier_id' => $supplier->id,
+            'name' => $supplier->name,
+            'cost' => $this->form->supplier_cost
+        ];
+
+        $this->form->supplier_cost = '';
+        $this->dispatch('noty', msg: 'Proveedor agregado');
+    }
+
+    public function removeSupplier($index)
+    {
+        unset($this->form->product_suppliers[$index]);
+        $this->form->product_suppliers = array_values($this->form->product_suppliers);
+    }
+
+    public function addUnit()
+    {
+        $this->validate([
+            'form.unit_name' => 'required',
+            'form.unit_factor' => 'required|numeric|min:0',
+            'form.unit_price' => 'required|numeric|min:0'
+        ]);
+
+        $this->form->product_units[] = [
+            'unit_name' => $this->form->unit_name,
+            'factor' => $this->form->unit_factor,
+            'price' => $this->form->unit_price,
+            'barcode' => $this->form->unit_barcode
+        ];
+
+        $this->form->unit_name = '';
+        $this->form->unit_factor = '';
+        $this->form->unit_price = '';
+        $this->form->unit_barcode = '';
+        $this->dispatch('noty', msg: 'Presentación agregada');
+    }
+
+    public function removeUnit($index)
+    {
+        unset($this->form->product_units[$index]);
+        $this->form->product_units = array_values($this->form->product_units);
     }
 
 

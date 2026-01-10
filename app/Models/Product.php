@@ -23,7 +23,10 @@ class Product extends Model
         'stock_qty',
         'low_stock',
         'supplier_id',
-        'category_id'
+        'category_id',
+        'max_stock',
+        'brand',
+        'presentation'
     ];
 
     //relationships
@@ -74,6 +77,34 @@ class Product extends Model
         return $this->belongsTo(Category::class);
     }
 
+    public function warehouses()
+    {
+        return $this->belongsToMany(Warehouse::class, 'product_warehouse')
+            ->withPivot('stock_qty')
+            ->withTimestamps();
+    }
+
+    public function productSuppliers()
+    {
+        return $this->hasMany(ProductSupplier::class);
+    }
+
+    public function units()
+    {
+        return $this->hasMany(ProductUnit::class);
+    }
+
+    public function stockIn($warehouseId)
+    {
+        $warehouse = $this->warehouses()->where('warehouse_id', $warehouseId)->first();
+        return $warehouse ? $warehouse->pivot->stock_qty : 0;
+    }
+
+
+    public function getCheapestSupplier()
+    {
+        return $this->productSuppliers()->orderBy('cost', 'asc')->first();
+    }
 
     //scope
     public function scopeSearch($query, $term)

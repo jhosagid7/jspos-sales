@@ -43,15 +43,15 @@ class PurchasesReport extends Component
 
         if ($this->dateFrom == null && $this->dateTo == null) {
             $this->dispatch('noty', msg: 'SELECCIONA LAS FECHAS PARA CONSULTAR LAS COMPRAS');
-            return;
+            return [];
         }
         if ($this->dateFrom != null && $this->dateTo == null) {
             $this->dispatch('noty', msg: 'SELECCIONA LA FECHA DESDE Y HASTA');
-            return;
+            return [];
         }
         if ($this->dateFrom == null && $this->dateTo != null) {
             $this->dispatch('noty', msg: 'SELECCIONA LA FECHA DESDE Y HASTA');
-            return;
+            return [];
         }
 
 

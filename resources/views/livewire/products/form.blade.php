@@ -67,6 +67,36 @@
                             </div>
                         </a>
                     </li>
+                    <li class="nav-item mb-2">
+                        <a class="nav-link {{ $tab == 5 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                           wire:click.prevent="$set('tab',5)" href="#">
+                            <i class="fa fa-cubes fa-2x"></i>
+                            <div>
+                                <h6 class="mb-0">Inventario</h6>
+                                <small class="{{ $tab == 5 ? 'text-white' : 'text-muted' }}">Stock y Alertas</small>
+                            </div>
+                        </a>
+                    </li>
+                    <li class="nav-item mb-2">
+                        <a class="nav-link {{ $tab == 6 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                           wire:click.prevent="$set('tab',6)" href="#">
+                            <i class="fa fa-truck fa-2x"></i>
+                            <div>
+                                <h6 class="mb-0">Proveedores</h6>
+                                <small class="{{ $tab == 6 ? 'text-white' : 'text-muted' }}">Multi-proveedor</small>
+                            </div>
+                        </a>
+                    </li>
+                    <li class="nav-item mb-2">
+                        <a class="nav-link {{ $tab == 7 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                           wire:click.prevent="$set('tab',7)" href="#">
+                            <i class="fa fa-box-open fa-2x"></i>
+                            <div>
+                                <h6 class="mb-0">Presentaciones</h6>
+                                <small class="{{ $tab == 7 ? 'text-white' : 'text-muted' }}">Unidades y Factores</small>
+                            </div>
+                        </a>
+                    </li>
                 </ul>
             </div>
             <div class="col-xxl-9 col-xl-8 box-col-8 position-relative">
@@ -158,35 +188,7 @@
                                     </div>
                                 </div>
 
-                                {{-- manage stock --}}
-                                <div class="col-sm-12 col-md-3">
-                                    <label class="form-label">Administrar Stock <span
-                                            class="txt-danger">*</span></label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fa fa-clipboard-check"></i></span>
-                                        <select wire:model="form.manage_stock" class="form-select">
-                                            <option value="1" selected>Si, Controlar Stock</option>
-                                            <option value="0">Vender sin Límites</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                {{-- stock qty --}}
-                                <div class="col-sm-12 col-md-3">
-                                    <label class="form-label">Stock Actual <span class="txt-danger">*</span></label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fa fa-cubes"></i></span>
-                                        <input wire:model="form.stock_qty" class="form-control numerico" type="number" placeholder="0">
-                                    </div>
-                                </div>
-                                {{-- low stock --}}
-                                <div class="col-sm-12 col-md-3">
-                                    <label class="form-label">Stock de Alerta <span
-                                            class="txt-danger">*</span></label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fa fa-exclamation-triangle"></i></span>
-                                        <input wire:model="form.low_stock" class="form-control numerico" type="number" placeholder="5">
-                                    </div>
-                                </div>
+                                {{-- stock fields moved to Inventory tab --}}
 
                             </form>
                             <div class="mt-3">
@@ -369,6 +371,140 @@
                                 </div>
 
                             </form>
+                        </div>
+                    </div>
+
+                    {{-- Inventory Tab --}}
+                    <div class="tab-pane fade {{ $tab == 5 ? 'active show' : '' }}" id="inventory" role="tabpanel">
+                        <div class="sidebar-body">
+                            <form class="row g-3">
+                                <div class="col-sm-12 col-md-6">
+                                    <label class="form-label">Administrar Stock</label>
+                                    <select wire:model="form.manage_stock" class="form-select">
+                                        <option value="1">Si, Controlar Stock</option>
+                                        <option value="0">Vender sin Límites</option>
+                                    </select>
+                                </div>
+                                <div class="col-sm-12 col-md-6">
+                                    <label class="form-label">Stock Actual</label>
+                                    <input wire:model="form.stock_qty" class="form-control" type="number">
+                                </div>
+                                <div class="col-sm-12 col-md-6">
+                                    <label class="form-label">Stock Mínimo (Alerta)</label>
+                                    <input wire:model="form.low_stock" class="form-control" type="number">
+                                </div>
+                                <div class="col-sm-12 col-md-6">
+                                    <label class="form-label">Stock Máximo (Ideal)</label>
+                                    <input wire:model="form.max_stock" class="form-control" type="number">
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    {{-- Suppliers Tab --}}
+                    <div class="tab-pane fade {{ $tab == 6 ? 'active show' : '' }}" id="suppliers" role="tabpanel">
+                        <div class="sidebar-body">
+                            <div class="row g-3">
+                                <div class="col-md-5">
+                                    <label>Proveedor</label>
+                                    <select wire:model="form.supplier_id" class="form-control">
+                                        <option value="0">Seleccionar</option>
+                                        @foreach($suppliers as $s)
+                                        <option value="{{ $s->id }}">{{ $s->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label>Costo</label>
+                                    <input wire:model="form.supplier_cost" type="number" class="form-control" placeholder="0.00">
+                                </div>
+                                <div class="col-md-3">
+                                    <button wire:click.prevent="addSupplier" class="btn btn-primary mt-4">Agregar</button>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <table class="table table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th>Proveedor</th>
+                                                <th>Costo</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($form->product_suppliers as $index => $s)
+                                            <tr>
+                                                <td>{{ $s['name'] }}</td>
+                                                <td>${{ number_format($s['cost'], 2) }}</td>
+                                                <td>
+                                                    <button wire:click.prevent="removeSupplier({{ $index }})" class="btn btn-danger btn-sm">
+                                                        <i class="fa fa-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Presentations Tab --}}
+                    <div class="tab-pane fade {{ $tab == 7 ? 'active show' : '' }}" id="presentations" role="tabpanel">
+                        <div class="sidebar-body">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label>Unidad</label>
+                                    <input wire:model="form.unit_name" type="text" class="form-control" placeholder="Ej: Caja 12u">
+                                </div>
+                                <div class="col-md-2">
+                                    <label>Factor</label>
+                                    <input wire:model="form.unit_factor" type="number" class="form-control" placeholder="12">
+                                </div>
+                                <div class="col-md-2">
+                                    <label>Precio</label>
+                                    <input wire:model="form.unit_price" type="number" class="form-control" placeholder="0.00">
+                                </div>
+                                <div class="col-md-3">
+                                    <label>Código Barras</label>
+                                    <input wire:model="form.unit_barcode" type="text" class="form-control">
+                                </div>
+                                <div class="col-md-2">
+                                    <button wire:click.prevent="addUnit" class="btn btn-primary mt-4">Agregar</button>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <table class="table table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th>Unidad</th>
+                                                <th>Factor</th>
+                                                <th>Precio</th>
+                                                <th>Código</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($form->product_units as $index => $u)
+                                            <tr>
+                                                <td>{{ $u['unit_name'] }}</td>
+                                                <td>{{ $u['factor'] }}</td>
+                                                <td>${{ number_format($u['price'], 2) }}</td>
+                                                <td>{{ $u['barcode'] }}</td>
+                                                <td>
+                                                    <button wire:click.prevent="removeUnit({{ $index }})" class="btn btn-danger btn-sm">
+                                                        <i class="fa fa-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

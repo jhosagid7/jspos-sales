@@ -37,7 +37,11 @@
             <!-- Main content -->
             <section class="content">
                 <div class="container-fluid">
-                    {{ $slot }}
+                    @if(isset($slot))
+                        {{ $slot }}
+                    @else
+                        @yield('content')
+                    @endif
                 </div>
             </section>
             <!-- /.content -->

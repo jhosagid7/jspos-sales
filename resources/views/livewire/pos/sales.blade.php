@@ -101,6 +101,17 @@
                             </div>
                         @endif
 
+                        <div class="input-group mb-2">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-warehouse"></i></span>
+                            </div>
+                            <select wire:model.live="warehouse_id" class="form-control">
+                                @foreach($warehouses as $w)
+                                    <option value="{{ $w->id }}">{{ $w->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
                         <div class="input-group" wire:ignore>
                             <input class="form-control" type="text" id="inputCustomer" placeholder="Buscar Cliente (Shift + C)">
                             <div class="input-group-append">

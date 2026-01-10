@@ -70,6 +70,15 @@
                 </div>
                 <div class="card-body p-3">
                     <div class="form-group">
+                        <label>Depósito Destino</label>
+                        <select wire:model.live="warehouse_id" class="form-control">
+                            @foreach($warehouses as $w)
+                                <option value="{{ $w->id }}">{{ $w->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="form-group">
                         <label>
                             @if ($supplier != null)
                                 {{ $supplier['name'] ?? '' }} <i class="fas fa-check-circle text-success"></i>

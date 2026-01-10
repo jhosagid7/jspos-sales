@@ -232,10 +232,39 @@
 
                 @can('inventarios')
                 <li class="nav-item">
-                    <a href="{{ route('inventories') }}" class="nav-link {{ Request::is('inventories') ? 'active' : '' }}">
+                    <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-boxes"></i>
-                        <p>INVENTARIOS</p>
+                        <p>
+                            INVENTARIOS
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
                     </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('inventories') }}" class="nav-link {{ Request::is('inventories') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Inventario General</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('warehouses') }}" class="nav-link {{ Request::is('warehouses') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Depósitos</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('transfers') }}" class="nav-link {{ Request::is('transfers') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Traspasos</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('requisition') }}" class="nav-link {{ Request::is('requisition') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Requisición</p>
+                            </a>
+                        </li>
+                    </ul>
                 </li>
                 @endcan
 
