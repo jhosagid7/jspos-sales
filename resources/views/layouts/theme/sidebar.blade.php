@@ -15,10 +15,16 @@
         <!-- Sidebar user panel (optional) -->
         <div class="user-panel mt-3 pb-3 mb-3 d-flex">
             <div class="image">
-                <img src="{{ asset('assets/images/dashboard/profile.png') }}" class="img-circle elevation-2" alt="User Image">
+                <a href="{{ route('profile.edit') }}">
+                    @if(Auth::user()->profile_photo_path)
+                        <img src="{{ asset('storage/' . Auth::user()->profile_photo_path) }}" class="img-circle elevation-2" alt="User Image" style="width: 33px; height: 33px; object-fit: cover;">
+                    @else
+                        <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&color=7F9CF5&background=EBF4FF" class="img-circle elevation-2" alt="User Image" style="width: 33px; height: 33px; object-fit: cover;">
+                    @endif
+                </a>
             </div>
             <div class="info">
-                <a href="#" class="d-block">{{ Auth()->user()->name ?? 'Guest' }}</a>
+                <a href="{{ route('profile.edit') }}" class="d-block">{{ Auth()->user()->name ?? 'Guest' }}</a>
             </div>
         </div>
 
@@ -205,6 +211,12 @@
                             </a>
                         </li>
                         @endcan
+                        <li class="nav-item">
+                            <a href="{{ route('reports.best.sellers') }}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Más Vendidos</p>
+                            </a>
+                        </li>
                     </ul>
                 </li>
                 @endcan

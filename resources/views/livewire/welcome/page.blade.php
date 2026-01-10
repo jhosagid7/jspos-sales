@@ -122,11 +122,13 @@
                         @foreach($topProducts as $item)
                             <li class="item">
                                 <div class="product-img">
-                                    @if($item->product->image)
-                                        <img src="{{ asset('storage/' . $item->product->image) }}" alt="Product Image" class="img-size-50">
-                                    @else
-                                        <img src="https://via.placeholder.com/50" alt="Product Image" class="img-size-50">
-                                    @endif
+                                    @php
+                                        $image = $item->product->photo;
+                                        if ($image && !str_starts_with($image, 'http')) {
+                                            $image = asset($image);
+                                        }
+                                    @endphp
+                                    <img src="{{ $image }}" alt="Product Image" class="img-size-50">
                                 </div>
                                 <div class="product-info">
                                     <a href="javascript:void(0)" class="product-title">{{ Str::limit($item->product->name, 20) }}
@@ -174,7 +176,7 @@
                     <h3 class="card-title">Ventas vs Ganancias (Últimos 7 Días)</h3>
                 </div>
                 <div class="card-body">
-                    <canvas id="salesChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                    <div id="salesChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></div>
                 </div>
             </div>
         </div>
@@ -204,77 +206,157 @@
                     </ul>
                 </div>
             </div>
+
+            <!-- Top Sellers Chart -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title">Top Vendedores (Ganancia)</h3>
+                    <div class="card-tools">
+                        <select id="chartTypeSelector" class="form-control form-control-sm" onchange="changeChartType(this.value)">
+                            <option value="column">Columnas</option>
+                            <option value="bar" selected>Barras</option>
+                            <option value="pie">Pastel</option>
+                            <option value="donut">Dona</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="topSellersChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></div>
+                </div>
+            </div>
         </div>
     </div>
 
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    document.addEventListener('livewire:init', () => {
-        const ctx = document.getElementById('salesChart').getContext('2d');
-        const salesChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: @json($salesChartData['labels']),
-                datasets: [
-                    {
-                        label: 'Ventas Contado',
-                        data: @json($salesChartData['cash']),
-                        backgroundColor: 'rgba(40, 167, 69, 0.9)', // Green
-                        borderColor: 'rgba(40, 167, 69, 0.8)',
-                        pointRadius: false,
-                        pointColor: '#28a745',
-                        pointStrokeColor: '#28a745',
-                        pointHighlightFill: '#fff',
-                        pointHighlightStroke: '#28a745',
-                        fill: false
-                    },
-                    {
-                        label: 'Ventas Crédito',
-                        data: @json($salesChartData['credit']),
-                        backgroundColor: 'rgba(255, 193, 7, 0.9)', // Yellow
-                        borderColor: 'rgba(255, 193, 7, 0.8)',
-                        pointRadius: false,
-                        pointColor: '#ffc107',
-                        pointStrokeColor: '#ffc107',
-                        pointHighlightFill: '#fff',
-                        pointHighlightStroke: '#ffc107',
-                        fill: false
-                    },
-                    {
-                        label: 'Ganancias',
-                        data: @json($profitChartData['data']),
-                        backgroundColor: 'rgba(60, 141, 188, 0.9)', // Blue
-                        borderColor: 'rgba(60, 141, 188, 0.8)',
-                        pointRadius: false,
-                        pointColor: '#3b8bba',
-                        pointStrokeColor: 'rgba(60,141,188,1)',
-                        pointHighlightFill: '#fff',
-                        pointHighlightStroke: 'rgba(60,141,188,1)',
-                        fill: false
-                    }
-                ]
-            },
-            options: {
-                maintainAspectRatio: false,
-                responsive: true,
-                legend: {
-                    display: true
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/export-data.js"></script>
+    <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+
+    <script>
+        let topSellersChart; // Global variable to access the chart
+
+        document.addEventListener('livewire:init', () => {
+            
+            Highcharts.chart('salesChart', {
+                chart: {
+                    type: 'spline'
                 },
-                scales: {
-                    xAxes: [{
-                        gridLines: {
-                            display: false,
+                title: {
+                    text: ''
+                },
+                xAxis: {
+                    categories: @json($salesChartData['labels']),
+                    crosshair: true
+                },
+                yAxis: {
+                    min: 0,
+                    title: {
+                        text: 'Monto ($)'
+                    }
+                },
+                tooltip: {
+                    headerFormat: '<span style="font-size:10px">{point.key}</span><table>',
+                    pointFormat: '<tr><td style="color:{series.color};padding:0">{series.name}: </td>' +
+                        '<td style="padding:0"><b>${point.y:.2f}</b></td></tr>',
+                    footerFormat: '</table>',
+                    shared: true,
+                    useHTML: true
+                },
+                plotOptions: {
+                    column: {
+                        pointPadding: 0.2,
+                        borderWidth: 0
+                    }
+                },
+                series: [{
+                    name: 'Ventas Contado',
+                    data: @json($salesChartData['cash']),
+                    color: '#28a745'
+                }, {
+                    name: 'Ventas Crédito',
+                    data: @json($salesChartData['credit']),
+                    color: '#ffc107'
+                }, {
+                    name: 'Ganancias',
+                    data: @json($profitChartData['data']),
+                    color: '#3b8bba'
+                }]
+            });
+
+            const topSellersData = @json($topSellersChartData ?? []);
+            
+            // Initialize Top Sellers Chart
+            topSellersChart = Highcharts.chart('topSellersChart', {
+                chart: {
+                    type: 'bar'
+                },
+                title: {
+                    text: ''
+                },
+                xAxis: {
+                    type: 'category'
+                },
+                yAxis: {
+                    min: 0,
+                    title: {
+                        text: 'Ganancia ($)'
+                    }
+                },
+                tooltip: {
+                    pointFormat: '<b>${point.y:.2f}</b>'
+                },
+                plotOptions: {
+                    series: {
+                        borderWidth: 0,
+                        dataLabels: {
+                            enabled: true,
+                            format: '${point.y:.1f}'
                         }
-                    }],
-                    yAxes: [{
-                        gridLines: {
-                            display: false,
+                    },
+                    pie: {
+                        allowPointSelect: true,
+                        cursor: 'pointer',
+                        dataLabels: {
+                            enabled: true,
+                            format: '<b>{point.name}</b>: {point.percentage:.1f} %'
                         }
-                    }]
-                }
-            }
+                    }
+                },
+                series: [{
+                    name: 'Ganancia',
+                    colorByPoint: true,
+                    data: topSellersData,
+                    showInLegend: false
+                }]
+            });
         });
-    });
-</script>
+
+        function changeChartType(type) {
+            if (!topSellersChart) return;
+
+            let newType = type;
+            let options = {};
+
+            if (type === 'donut') {
+                newType = 'pie';
+                options = {
+                    innerSize: '50%'
+                };
+            } else {
+                options = {
+                    innerSize: '0%'
+                };
+            }
+
+            topSellersChart.update({
+                chart: {
+                    type: newType
+                },
+                plotOptions: {
+                    pie: options
+                }
+            });
+        }
+    </script>
 </div>
