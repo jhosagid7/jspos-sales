@@ -67,6 +67,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('purchases', Purchases::class)->name('purchases')->middleware('can:compras');
     Route::get('inventories', Inventory::class)->name('inventories')->middleware('can:inventarios');
+    Route::get('warehouses', \App\Livewire\Warehouses::class)->name('warehouses');
+    Route::get('transfers', \App\Livewire\Transfers::class)->name('transfers');
+    Route::get('requisition', \App\Livewire\Requisition::class)->name('requisition');
 
 
     //personas / roles y permisos

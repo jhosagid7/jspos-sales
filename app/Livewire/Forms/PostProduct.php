@@ -18,10 +18,19 @@ class PostProduct extends Form
     //#[Validate('unique:products,name', message: 'El nombre ya existe',  onUpdate: false)]
     //#[Validate('unique:productos,name,' . $this->product_id, message: 'El título debe ser único')]
     public $name, $sku, $description, $type = 'physical', $status = 'available', $cost = 0, $price = 0, $manage_stock = 1, $stock_qty = 0, $low_stock = 0, $category_id = 0, $supplier_id = 0, $product_id = 0, $gallery;
+    public $max_stock = 0, $brand, $presentation;
 
     //properties priceList
     public $value;
     public $values = [];
+
+    //properties suppliers
+    public $supplier_cost;
+    public $product_suppliers = [];
+
+    //properties units
+    public $unit_name, $unit_factor, $unit_price, $unit_barcode;
+    public $product_units = [];
 
     //reglas de validacion
     public function rules()
@@ -107,6 +116,9 @@ class PostProduct extends Form
             'manage_stock' => $this->manage_stock ? $this->manage_stock : 1,
             'stock_qty' => $this->stock_qty,
             'low_stock' => $this->low_stock,
+            'max_stock' => $this->max_stock,
+            'brand' => $this->brand,
+            'presentation' => $this->presentation,
             'supplier_id' => $this->supplier_id,
             'category_id' => $this->category_id
         ]);
@@ -135,14 +147,34 @@ class PostProduct extends Form
 
         //lista de precios
         if (session()->has('values')) {
-
-            // Prepara los datos para la inserción
             $data = array_map(function ($value) use ($product) {
                 return ['product_id' => $product->id, 'price' => $value['price']];
             }, $this->values);
-
-            // Inserta los datos en la tabla
             PriceList::insert($data);
+        }
+
+        // Save Suppliers
+        if (!empty($this->product_suppliers)) {
+            foreach ($this->product_suppliers as $supplier) {
+                \App\Models\ProductSupplier::create([
+                    'product_id' => $product->id,
+                    'supplier_id' => $supplier['supplier_id'],
+                    'cost' => $supplier['cost']
+                ]);
+            }
+        }
+
+        // Save Units
+        if (!empty($this->product_units)) {
+            foreach ($this->product_units as $unit) {
+                \App\Models\ProductUnit::create([
+                    'product_id' => $product->id,
+                    'unit_name' => $unit['unit_name'],
+                    'conversion_factor' => $unit['factor'],
+                    'price' => $unit['price'],
+                    'barcode' => $unit['barcode'] ?? null
+                ]);
+            }
         }
 
         $this->reset();
@@ -176,6 +208,9 @@ class PostProduct extends Form
             'manage_stock' => $this->manage_stock,
             'stock_qty' => $this->stock_qty,
             'low_stock' => $this->low_stock,
+            'max_stock' => $this->max_stock,
+            'brand' => $this->brand,
+            'presentation' => $this->presentation,
             'supplier_id' => $this->supplier_id,
             'category_id' => $this->category_id
         ]);
@@ -211,16 +246,37 @@ class PostProduct extends Form
 
         //lista de precios
         if (session()->has('values')) {
-            // delete prices
             PriceList::where('product_id', $this->product_id)->delete();
-
-            // Prepara los datos para la inserción
             $data = array_map(function ($value) {
                 return ['product_id' => $this->product_id, 'price' => $value['price']];
             }, $this->values);
-
-            // Inserta los datos en la tabla
             PriceList::insert($data);
+        }
+
+        // Update Suppliers
+        \App\Models\ProductSupplier::where('product_id', $this->product_id)->delete();
+        if (!empty($this->product_suppliers)) {
+            foreach ($this->product_suppliers as $supplier) {
+                \App\Models\ProductSupplier::create([
+                    'product_id' => $this->product_id,
+                    'supplier_id' => $supplier['supplier_id'],
+                    'cost' => $supplier['cost']
+                ]);
+            }
+        }
+
+        // Update Units
+        \App\Models\ProductUnit::where('product_id', $this->product_id)->delete();
+        if (!empty($this->product_units)) {
+            foreach ($this->product_units as $unit) {
+                \App\Models\ProductUnit::create([
+                    'product_id' => $this->product_id,
+                    'unit_name' => $unit['unit_name'],
+                    'conversion_factor' => $unit['factor'],
+                    'price' => $unit['price'],
+                    'barcode' => $unit['barcode'] ?? null
+                ]);
+            }
         }
 
         $this->reset();

@@ -23,6 +23,16 @@
 
   document.addEventListener('livewire:init', () => {   
 
+    Livewire.on('msg', (message) => {
+        window.dispatchEvent(new CustomEvent('noty', { detail: { msg: message } }));
+    })
+    Livewire.on('noty', (data) => {
+        window.dispatchEvent(new CustomEvent('noty', { detail: { msg: data.msg } }));
+    })
+    Livewire.on('error', (message) => {
+        window.dispatchEvent(new CustomEvent('noty2', { detail: { msg: message } }));
+    })
+
     flatpickr(".flatpicker", {
         dateFormat: "d/m/Y",
         locale: "es",

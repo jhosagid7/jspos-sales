@@ -56,6 +56,7 @@ class Sales extends Component
     public $banks, $cashAmount, $nequiAmount, $phoneNumber, $acountNumber, $depositNumber, $bank, $payType = 1, $payTypeName = 'PAGO EN EFECTIVO';
 
     public $search3, $products = [], $selectedIndex = -1;
+    public $warehouse_id, $warehouses;
 
     public $order_selected_id, $customer_name, $amount;
     public $order_id, $ordersObt, $order_note, $details = [];
@@ -411,6 +412,9 @@ class Sales extends Component
         } else {
             $this->bank = null; 
         }
+
+        $this->warehouses = \App\Models\Warehouse::where('is_active', 1)->get();
+        $this->warehouse_id = $this->warehouses->first()->id ?? null;
 
         $this->amount = null;
         $this->search = null;
@@ -861,9 +865,12 @@ class Sales extends Component
         // Mensaje de depuración
         \Log::info("Intentando agregar al carrito: {$product->name}, Cantidad solicitada: {$qty}, Stock disponible: {$product->stock_qty}, Cantidad en carrito: {$currentQtyInCart}");
         if ($product->manage_stock == 1) {
-            // Verificar si la cantidad total a agregar es mayor que el stock disponible
-            if ($totalQtyToAdd > $product->stock_qty) {
-                $this->dispatch('noty', msg: 'No hay suficiente stock para el producto: ' . $product->name);
+            // Check stock in selected warehouse
+            $stockInWarehouse = $product->stockIn($this->warehouse_id);
+            
+            // Verificar si la cantidad total a agregar es mayor que el stock disponible en el almacén
+            if ($totalQtyToAdd > $stockInWarehouse) {
+                $this->dispatch('noty', msg: 'No hay suficiente stock en el almacén seleccionado para: ' . $product->name);
                 return;
             }
         }
@@ -958,27 +965,24 @@ class Sales extends Component
 
     $uid = uniqid() . $product->id;
 
-    $coll = collect(
-        [
-            'id' => $uid,
-            'pid' => $product->id,
-            'name' => $product->name,
-            'sku' => $product->sku,
-            'price1' => $basePriceInPrimary, // Guardar en moneda principal
-            'price2' => $product->price2 * $exchangeRate, // Guardar en moneda principal
-            'sale_price' => $salePrice,
-            'pricelist' => $priceListInPrimary, // Guardar lista convertida
-            'qty' => $this->formatAmount($qty),
-            'tax' => $tax,
-            'total' => $total,
-            'stock' => $product->stock_qty,
-            'type' => $product->type,
-            'image' => $product->photo,
-            'platform_id' => $product->platform_id
-        ]
-    );
+    $itemCart = [
+        'id' => $uid,
+        'pid' => $product->id,
+        'name' => $product->name,
+        'sku' => $product->sku,
+        'price1' => $basePriceInPrimary, // Guardar en moneda principal
+        'price2' => $product->price2 * $exchangeRate, // Guardar en moneda principal
+        'sale_price' => $salePrice,
+        'pricelist' => $priceListInPrimary, // Guardar lista convertida
+        'qty' => $this->formatAmount($qty),
+        'tax' => $tax,
+        'total' => $total,
+        'stock' => $product->stock_qty,
+        'type' => $product->type,
+        'image' => $product->photo,
+        'platform_id' => $product->platform_id
+    ];
 
-    $itemCart = Arr::add($coll, null, null);
     $this->cart->push($itemCart);
     $this->save();
     $this->dispatch('refresh');
@@ -1429,7 +1433,27 @@ class Sales extends Component
 
             //update stocks
             foreach ($cart as  $item) {
-                Product::find($item['pid'])->decrement('stock_qty', $item['qty']);
+                $product = Product::find($item['pid']);
+                // Decrement global stock
+                $product->decrement('stock_qty', $item['qty']);
+                
+                // Decrement warehouse stock
+                if ($this->warehouse_id) {
+                    $productWarehouse = \App\Models\ProductWarehouse::where('product_id', $item['pid'])
+                        ->where('warehouse_id', $this->warehouse_id)
+                        ->first();
+                    
+                    if ($productWarehouse) {
+                        $productWarehouse->decrement('stock_qty', $item['qty']);
+                    } else {
+                        // Create negative stock entry if not exists (or handle as error depending on logic)
+                        \App\Models\ProductWarehouse::create([
+                            'product_id' => $item['pid'],
+                            'warehouse_id' => $this->warehouse_id,
+                            'stock_qty' => -$item['qty']
+                        ]);
+                    }
+                }
             }
 
             // Guardar detalles de vueltos en múltiples monedas

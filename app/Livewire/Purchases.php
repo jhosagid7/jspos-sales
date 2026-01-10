@@ -39,6 +39,8 @@ class Purchases extends Component
 
     // Supplier creation properties
     public $sname, $saddress, $sphone;
+    
+    public $warehouse_id, $warehouses=[];
 
     // Listeners
     protected $listeners = [
@@ -151,6 +153,9 @@ class Purchases extends Component
         // dd($this->config);
 
         session(['map' => 'Compras', 'child' => ' Componente ', 'pos' => 'MÓDULO DE COMPRAS']);
+
+        $this->warehouses = \App\Models\Warehouse::where('is_active', 1)->get();
+        $this->warehouse_id = $this->warehouses->first()->id ?? null;
     }
 
 
@@ -695,7 +700,27 @@ class Purchases extends Component
 
             //update stocks
             foreach ($cart as  $item) {
-                Product::find($item['pid'])->increment('stock_qty', $item['qty']);
+                $product = Product::find($item['pid']);
+                // Increment global stock
+                $product->increment('stock_qty', $item['qty']);
+                
+                // Increment warehouse stock
+                if ($this->warehouse_id) {
+                    $productWarehouse = \App\Models\ProductWarehouse::where('product_id', $item['pid'])
+                        ->where('warehouse_id', $this->warehouse_id)
+                        ->first();
+                    
+                    if ($productWarehouse) {
+                        $productWarehouse->increment('stock_qty', $item['qty']);
+                    } else {
+                        // Create stock entry if not exists
+                        \App\Models\ProductWarehouse::create([
+                            'product_id' => $item['pid'],
+                            'warehouse_id' => $this->warehouse_id,
+                            'stock_qty' => $item['qty']
+                        ]);
+                    }
+                }
             }
 
             DB::commit();
@@ -703,7 +728,8 @@ class Purchases extends Component
             $this->dispatch('reset-tom');
             $this->dispatch('noty', msg: 'COMPRA REGISTRADA EXITOSAMENTE');
             $this->dispatch('close-modal');
-            $this->reset();
+            $this->resetExcept(['warehouses']);
+            $this->warehouse_id = $this->warehouses->first()->id ?? null;
             $this->clear();
             session()->forget('purchase_supplier');
             session()->forget('flete');
@@ -957,7 +983,8 @@ class Purchases extends Component
     #[On('cancelSale')]
     public function cancelSale()
     {
-        $this->reset();
+        $this->resetExcept(['warehouses']);
+        $this->warehouse_id = $this->warehouses->first()->id ?? null;
         $this->clear();
         session()->forget('purchase_supplier');
         session()->forget('flete');
