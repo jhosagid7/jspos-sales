@@ -116,6 +116,15 @@
                                     </div>
 
                                     <div class="col-sm-12 col-md-6">
+                                        <label class="form-label">ANCHO DE IMPRESIÓN</label>
+                                        <select wire:model="printerWidth" class="form-control">
+                                            <option value="80mm">80mm (Estándar)</option>
+                                            <option value="58mm">58mm (Pequeña)</option>
+                                        </select>
+                                        @error('printerWidth') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <div class="col-sm-12 col-md-6">
                                         <label class="form-label">CITY</label>
                                         <input wire:model="city" class="form-control" type="text" maxlength="255">
                                         @error('city') <span class="text-danger">{{ $message }}</span> @enderror
@@ -178,6 +187,28 @@
                                         <label class="form-label">COMPRAS CRÉDITO (DÍAS)</label>
                                         <input wire:model="creditPurchaseDays" class="form-control" type="text" maxlength="255">
                                         @error('creditPurchaseDays') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <div class="col-sm-12 col-md-6">
+                                        <label class="form-label">DEPÓSITO PREDETERMINADO</label>
+                                        <select wire:model="defaultWarehouseId" class="form-control">
+                                            <option value="">Seleccionar Depósito</option>
+                                            @foreach($warehouses as $warehouse)
+                                                <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('defaultWarehouseId') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <div class="col-sm-12 col-md-6">
+                                        <label class="form-label">VALIDAR STOCK RESERVADO</label>
+                                        <div class="form-check form-switch pl-0">
+                                            <div class="custom-control custom-switch">
+                                                <input type="checkbox" class="custom-control-input" id="checkStockReservation" wire:model="checkStockReservation">
+                                                <label class="custom-control-label" for="checkStockReservation">Activar alerta de pedidos pendientes</label>
+                                            </div>
+                                            @error('checkStockReservation') <span class="text-danger">{{ $message }}</span> @enderror
+                                        </div>
                                     </div>
 
                                     <div class="col-sm-12">

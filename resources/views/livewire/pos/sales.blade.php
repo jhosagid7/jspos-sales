@@ -210,15 +210,51 @@
             </div>
         </div>
     </div>
-    <script src="{{ asset('assets/js/keypress.js') }}"></script>
-
 
     @include('livewire.pos.partials.payCash')
-
     @include('livewire.pos.partials.payDeposit')
     @include('livewire.pos.partials.process-order')
-    @include('livewire.pos.partials.order-detail')
     @include('livewire.pos.partials.script')
     @include('livewire.pos.partials.shortcuts')
 
+    <!-- Modal Stock Warning -->
+    <div wire:ignore.self class="modal fade" id="modalStockWarning" tabindex="-1" role="dialog" aria-labelledby="modalStockWarningLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title text-dark" id="modalStockWarningLabel">
+                        <i class="fas fa-exclamation-triangle"></i> Advertencia de Stock Reservado
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    <p class="text-center">{!! $stockWarningMessage !!}</p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" wire:click="$set('stockWarningMessage', null)">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    @if($maxAvailableQty > 0)
+                        <button type="button" class="btn btn-info" wire:click="adjustToMax">
+                            <i class="fas fa-check-circle"></i> Ajustar a {{ $maxAvailableQty }}
+                        </button>
+                    @endif
+                    <button type="button" class="btn btn-warning font-weight-bold" wire:click="forceAddProduct">
+                        <i class="fas fa-check"></i> Continuar de todos modos
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('livewire:init', () => {
+             Livewire.on('show-stock-warning', (event) => {
+                $('#modalStockWarning').modal('show');
+            });
+            Livewire.on('close-stock-warning', (event) => {
+                $('#modalStockWarning').modal('hide');
+            });
+        });
+    </script>
+    <script src="{{ asset('assets/js/keypress.js') }}"></script>
 </div>

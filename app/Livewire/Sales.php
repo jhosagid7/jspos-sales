@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\ZelleRecord;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use App\Models\Currency;
 use App\Models\Customer;
 use App\Traits\JsonTrait;
@@ -43,6 +44,7 @@ class Sales extends Component
     use JsonTrait;
     use WithPagination;
     use SaleTrait;
+    use WithFileUploads;
 
     public Collection $cart;
     public $taxCart = 0, $itemsCart, $subtotalCart = 0, $totalCart = 0, $ivaCart = 0;
@@ -56,7 +58,13 @@ class Sales extends Component
     public $banks, $cashAmount, $nequiAmount, $phoneNumber, $acountNumber, $depositNumber, $bank, $payType = 1, $payTypeName = 'PAGO EN EFECTIVO';
 
     public $search3, $products = [], $selectedIndex = -1;
-    public $warehouse_id, $warehouses;
+    public $warehouse_id;
+    public $bypassReservation = false;
+    public $stockWarningMessage;
+    public $pendingProductToAdd;
+    public $pendingQtyToAdd;
+    public $pendingWarehouseId;
+    public $warehouses;
 
     public $order_selected_id, $customer_name, $amount;
     public $order_id, $ordersObt, $order_note, $details = [];
@@ -83,6 +91,85 @@ class Sales extends Component
     public $bankAmount;
     
     public $pagoMovilBank, $pagoMovilPhoneNumber, $pagoMovilReference, $pagoMovilAmount;
+
+    // Zelle Properties
+    public $zelleAmount;
+    public $zelleDate;
+    public $zelleSender;
+    public $zelleReference;
+    public $zelleImage;
+    public $isZelleSelected = false;
+    
+    // Zelle Validation Status
+    public $zelleStatusMessage = '';
+    public $zelleStatusType = ''; // 'info', 'warning', 'danger', 'success'
+    public $zelleRemainingBalance = null;
+
+    public function updatedBankId($value)
+    {
+        $this->isZelleSelected = false;
+        if($value) {
+            $bank = collect($this->banks)->firstWhere('id', $value);
+            if($bank && stripos($bank->name, 'zelle') !== false) {
+                $this->isZelleSelected = true;
+            }
+        }
+    }
+
+    public function updatedZelleSender() { $this->checkZelleStatus(); }
+    public function updatedZelleDate() { $this->checkZelleStatus(); }
+    public function updatedZelleAmount() 
+    { 
+        $this->paymentAmount = $this->zelleAmount;
+        $this->checkZelleStatus(); 
+    }
+
+    public function checkZelleStatus()
+    {
+        if ($this->zelleSender && $this->zelleDate && $this->zelleAmount) {
+            
+            // 1. Check for Session Duplicates (Already in list)
+            $isDuplicateInSession = collect($this->payments)->contains(function ($payment) {
+                return $payment['method'] === 'zelle' &&
+                       $payment['zelle_sender'] === $this->zelleSender &&
+                       $payment['zelle_date'] === $this->zelleDate &&
+                       floatval($payment['zelle_amount']) === floatval($this->zelleAmount);
+            });
+
+            if ($isDuplicateInSession) {
+                $this->zelleStatusMessage = "Este Zelle ya está en la lista de pagos. Si desea cambiar el monto, elimine el anterior y agréguelo nuevamente.";
+                $this->zelleStatusType = 'warning'; // Orange: Session Duplicate
+                $this->zelleRemainingBalance = null;
+                return;
+            }
+
+            // 2. Check Database
+            $zelleRecord = ZelleRecord::where('sender_name', $this->zelleSender)
+                ->where('zelle_date', $this->zelleDate)
+                ->where('amount', $this->zelleAmount)
+                ->first();
+
+            if ($zelleRecord) {
+                if ($zelleRecord->remaining_balance <= 0.01) {
+                    $this->zelleStatusMessage = "Este Zelle ya fue utilizado completamente.";
+                    $this->zelleStatusType = 'danger'; // Red: DB Exhausted
+                    $this->zelleRemainingBalance = 0;
+                } else {
+                    $this->zelleStatusMessage = "Zelle encontrado. Saldo restante: $" . number_format($zelleRecord->remaining_balance, 2);
+                    $this->zelleStatusType = 'success'; // Green: Available Balance
+                    $this->zelleRemainingBalance = $zelleRecord->remaining_balance;
+                }
+            } else {
+                $this->zelleStatusMessage = "Nuevo Zelle (No registrado en BD).";
+                $this->zelleStatusType = 'success'; // Green: New
+                $this->zelleRemainingBalance = $this->zelleAmount;
+            }
+        } else {
+            $this->zelleStatusMessage = '';
+            $this->zelleStatusType = '';
+            $this->zelleRemainingBalance = null;
+        }
+    }
 
     // /**
     //  * @var Collection
@@ -223,6 +310,89 @@ class Sales extends Component
     }
 
 
+
+    public function addZellePayment()
+    {
+        $this->validate([
+            'zelleAmount' => 'required|numeric|min:0.01',
+            'zelleDate' => 'required|date',
+            'zelleSender' => 'required|string',
+            'zelleReference' => 'nullable|string',
+            'zelleImage' => 'required|image|max:2048', // Validate image
+        ]);
+
+        // Check for duplicate Zelle
+        $this->checkZelleStatus();
+        
+        // Block if danger (Overused) OR warning (Session Duplicate)
+        if ($this->zelleStatusType === 'danger' || $this->zelleStatusType === 'warning') {
+             $this->dispatch('noty', msg: $this->zelleStatusMessage);
+             return;
+        }
+        
+        // Validate Amount vs Remaining Balance (Only for DB records)
+        // Note: paymentAmount is the amount being used in this transaction
+        $amountToUse = $this->paymentAmount ?: $this->zelleAmount;
+        
+        if ($this->zelleRemainingBalance !== null && $amountToUse > $this->zelleRemainingBalance) {
+            $this->dispatch('noty', msg: "El monto a usar ($" . number_format($amountToUse, 2) . ") excede el saldo restante del Zelle ($" . number_format($this->zelleRemainingBalance, 2) . ")");
+            return;
+        }
+
+        // Check if USD exists in currencies
+        $currency = collect($this->currencies)->firstWhere('code', 'USD');
+        
+        if (!$currency) {
+             $this->dispatch('noty', msg: 'Moneda USD no configurada para Zelle.');
+             return;
+        }
+
+        // Handle Image Upload
+        $imagePath = null;
+        if ($this->zelleImage) {
+            $imagePath = $this->zelleImage->store('zelle_receipts', 'public');
+        }
+
+        // Determine amount to use (paymentAmount if set, else zelleAmount)
+        $amountToUse = $this->paymentAmount ?: $this->zelleAmount;
+
+        // Convertir a moneda principal
+        $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
+        
+        // Zelle is USD. 
+        // If amountToUse is in USD (which it should be for Zelle context), convert to Primary.
+        $amountInPrimaryCurrency = $amountToUse * $primaryCurrency->exchange_rate;
+
+        $this->payments[] = [
+            'method' => 'zelle',
+            'amount' => $amountToUse,
+            'currency' => 'USD',
+            'symbol' => '$',
+            'exchange_rate' => $currency->exchange_rate,
+            'amount_in_primary_currency' => $amountInPrimaryCurrency,
+            'zelle_date' => $this->zelleDate,
+            'zelle_sender' => $this->zelleSender,
+            'reference' => $this->zelleReference,
+            'zelle_amount' => $this->zelleAmount, // The actual Zelle transaction amount
+            'zelle_image' => $imagePath,
+            'zelle_file_url' => $imagePath ? asset('storage/' . $imagePath) : null,
+            'details' => "Zelle: {$this->zelleSender}, Fecha: {$this->zelleDate}, Ref: {$this->zelleReference}",
+        ];
+
+        $this->calculateRemainingAndChange();
+        session(['payments' => $this->payments]);
+        session(['remainingAmount' => $this->remainingAmount]);
+        session(['change' => $this->change]);
+        
+        $this->reset(['zelleAmount', 'zelleSender', 'zelleReference', 'zelleImage', 'paymentAmount']);
+        $this->zelleDate = date('Y-m-d'); // Reset date to today
+        $this->zelleStatusMessage = '';
+        $this->zelleStatusType = '';
+        $this->zelleRemainingBalance = null;
+        $this->dispatch('noty', msg: 'Pago Zelle agregado correctamente');
+    }
+
+
     public function calculateRemainingAndChange()
     {
         $totalPaid = array_sum(array_column($this->payments, 'amount_in_primary_currency'));
@@ -299,7 +469,10 @@ class Sales extends Component
                 if (!empty($token)) {
                     $query->where(function($q) use ($token) {
                         $q->where('name', 'like', "%{$token}%")
-                          ->orWhere('sku', 'like', "%{$token}%");
+                          ->orWhere('sku', 'like', "%{$token}%")
+                          ->orWhereHas('category', function ($subQuery) use ($token) {
+                              $subQuery->where('name', 'like', "%{$token}%");
+                          });
                     });
                 }
             }
@@ -462,6 +635,9 @@ class Sales extends Component
         $this->paymentCurrency = $primaryCurrency ? $primaryCurrency->code : null;
 
         $this->applyCommissions = session('applyCommissions', false);
+        
+        // Initialize Zelle Date
+        $this->zelleDate = date('Y-m-d');
     }
     
     public function hydrate()
@@ -871,6 +1047,19 @@ class Sales extends Component
         // If specific warehouse passed, use it. Otherwise use global selection.
         $targetWarehouseId = $warehouseId ?? $this->warehouse_id;
 
+        // Fallback: If no warehouse selected, try to use the first active one
+        if (!$targetWarehouseId) {
+            $firstWarehouse = $this->warehouses->first();
+            if ($firstWarehouse) {
+                $targetWarehouseId = $firstWarehouse->id;
+                // Optionally update the component state so the dropdown reflects this
+                $this->warehouse_id = $targetWarehouseId; 
+            } else {
+                $this->dispatch('noty', msg: 'No hay depósitos activos configurados.');
+                return;
+            }
+        }
+
         // Permission Check: Mix Warehouses
         if ($this->cart->isNotEmpty()) {
             $firstItem = $this->cart->first();
@@ -896,12 +1085,61 @@ class Sales extends Component
             return;
         }
 
-        // Validate stock if managed
+            // Validate stock if managed
         if ($product->manage_stock == 1) {
-            $stockInWarehouse = $product->stockIn($targetWarehouseId);
-            if ($qty > $stockInWarehouse) {
-                $this->dispatch('noty', msg: 'No hay suficiente stock en el almacén seleccionado para: ' . $product->name);
+            $stock = $product->stockIn($targetWarehouseId);
+
+            // FIX: Handle Legacy Data (Global Stock > 0 but no Warehouse Entry)
+            if ($stock == 0 && $product->stock_qty > 0 && $product->productWarehouses()->count() == 0) {
+                // Auto-initialize stock in the target warehouse
+                \App\Models\ProductWarehouse::create([
+                    'product_id' => $product->id,
+                    'warehouse_id' => $targetWarehouseId,
+                    'stock_qty' => $product->stock_qty
+                ]);
+                $stock = $product->stock_qty;
+                Log::info("Legacy stock migrated for product {$product->id} to warehouse {$targetWarehouseId}");
+            }
+
+            if ($stock < $qty) {
+                $this->dispatch('noty', msg: 'STOCK INSUFICIENTE EN EL DEPÓSITO SELECCIONADO');
                 return;
+            }
+
+            // Stock Reservation Check
+            Log::info('Stock Check Debug:', [
+                'check_stock_reservation' => $this->config->check_stock_reservation,
+                'bypassReservation' => $this->bypassReservation,
+                'targetWarehouseId' => $targetWarehouseId,
+                'stock' => $stock,
+            ]);
+
+            if ($this->config->check_stock_reservation && !$this->bypassReservation) {
+                $reserved = $product->getReservedStock($targetWarehouseId);
+                $availableReal = $stock - $reserved;
+
+                Log::info('Reservation Details:', [
+                    'reserved' => $reserved,
+                    'availableReal' => $availableReal,
+                    'qty_requested' => $qty
+                ]);
+
+                if ($qty > $availableReal) {
+                    $warehouseName = $this->warehouses->where('id', $targetWarehouseId)->first()->name ?? 'Desconocido';
+                    $this->stockWarningMessage = "En el depósito <b>{$warehouseName}</b>:<br>
+                                                  Stock Físico: <b>{$stock}</b><br>
+                                                  Reservado en Pedidos: <b>{$reserved}</b><br>
+                                                  Disponible Real: <b>{$availableReal}</b><br><br>
+                                                  Estás intentando vender <b>{$qty}</b> unidades.<br>
+                                                  ¿Deseas continuar ignorando la reserva?";
+                    
+                    $this->pendingProductToAdd = $product->id;
+                    $this->pendingQtyToAdd = $qty;
+                    $this->pendingWarehouseId = $targetWarehouseId;
+                    
+                    $this->dispatch('show-stock-warning');
+                    return;
+                }
             }
         }
 
@@ -1046,6 +1284,50 @@ class Sales extends Component
         $this->dispatch('noty', msg: 'PRODUCTO ELIMINADO');
     }
 
+    public $pendingUpdateUid = null;
+    public $maxAvailableQty = 0;
+
+    #[On('forceAddProduct')]
+    public function forceAddProduct()
+    {
+        if ($this->pendingUpdateUid) {
+            // Handle forced update
+            $this->bypassReservation = true;
+            $this->updateQty($this->pendingUpdateUid, $this->pendingQtyToAdd);
+            $this->bypassReservation = false;
+            
+            $this->reset(['pendingProductToAdd', 'pendingQtyToAdd', 'pendingWarehouseId', 'stockWarningMessage', 'pendingUpdateUid', 'maxAvailableQty']);
+            $this->dispatch('close-stock-warning');
+        } elseif ($this->pendingProductToAdd) {
+            $product = Product::find($this->pendingProductToAdd);
+            if ($product) {
+                $this->bypassReservation = true;
+                $this->AddProduct($product, $this->pendingQtyToAdd, $this->pendingWarehouseId);
+                $this->bypassReservation = false;
+                
+                $this->reset(['pendingProductToAdd', 'pendingQtyToAdd', 'pendingWarehouseId', 'stockWarningMessage', 'maxAvailableQty']);
+                $this->dispatch('close-stock-warning');
+            }
+        }
+    }
+
+    public function adjustToMax()
+    {
+        if ($this->maxAvailableQty <= 0) return;
+
+        if ($this->pendingUpdateUid) {
+            $this->updateQty($this->pendingUpdateUid, $this->maxAvailableQty);
+        } elseif ($this->pendingProductToAdd) {
+            $product = Product::find($this->pendingProductToAdd);
+            if ($product) {
+                $this->AddProduct($product, $this->maxAvailableQty, $this->pendingWarehouseId);
+            }
+        }
+        
+        $this->reset(['pendingProductToAdd', 'pendingQtyToAdd', 'pendingWarehouseId', 'stockWarningMessage', 'pendingUpdateUid', 'maxAvailableQty']);
+        $this->dispatch('close-stock-warning');
+    }
+
     public function updateQty($uid, $cant = 1, $product_id = null)
     {
         // Validar que la cantidad sea numérica y mayor que cero
@@ -1086,11 +1368,55 @@ class Sales extends Component
                 $this->dispatch('noty', msg: 'No hay suficiente stock para el producto: ' . $product->name);
                 return;
             }
+
+            // Stock Reservation Check
+            if ($this->config->check_stock_reservation && !$this->bypassReservation) {
+                $reserved = $product->getReservedStock($itemWarehouseId);
+                $availableReal = $stockInWarehouse - $reserved;
+
+                if ($newQty > $availableReal) {
+                    $warehouseName = $this->warehouses->where('id', $itemWarehouseId)->first()->name ?? 'Desconocido';
+                    $this->stockWarningMessage = "En el depósito <b>{$warehouseName}</b>:<br>
+                        Stock Físico: <b>{$stockInWarehouse}</b><br>
+                        Reservado en Pedidos: <b>{$reserved}</b><br>
+                        Disponible Real: <b>{$availableReal}</b><br><br>
+                        Estás intentando vender <b>{$newQty}</b> unidades.";
+                    
+                    // Store pending action
+                    // For updateQty, we can't easily "resume" the action via forceAddProduct because the logic is different.
+                    // However, we can just show the warning. If the user wants to proceed, they might need to be an admin.
+                    // But wait, forceAddProduct calls AddProduct. 
+                    // To support "Continue Anyway" for updateQty, we would need a separate forceUpdateQty method or adapt forceAddProduct.
+                    // For now, let's just block/warn.
+                    
+                    // If we want to allow admins to bypass, we need a way to handle the confirmation.
+                    // Let's use the same modal but we need to handle the "Continue" action.
+                    
+                    // Ideally, we should refactor to have a common "checkStock" method.
+                    
+                    // For this fix, let's just show the warning and block the update if not confirmed.
+                    // Since we can't easily "pause" the updateQty execution and resume it from a modal callback without more complex state management,
+                    // we will just block it for now if it exceeds available real stock, unless we implement the full bypass flow.
+                    
+                    // Let's implement the bypass flow:
+                    $this->pendingProductToAdd = $product->id; // We can reuse this or create new state variables
+                    $this->pendingQtyToAdd = $newQty;
+                    $this->pendingWarehouseId = $itemWarehouseId;
+                    // We need to know we are in "update" mode.
+                    // Let's add a property $pendingUpdateUid
+                    $this->pendingUpdateUid = $uid;
+                    $this->maxAvailableQty = $availableReal; // Set max available
+                    
+                    $this->dispatch('show-stock-warning');
+                    return;
+                }
+            }
         }
 
         // Crear un nuevo artículo con la cantidad actualizada
         $newItem = $oldItem;
-
+        // Force new ID to trigger DOM replacement and ensure input value updates
+        $newItem['id'] = uniqid() . $newItem['pid']; 
         $newItem['qty'] = $this->formatAmount($cant);
 
         // Calcular valores
@@ -1299,6 +1625,14 @@ class Sales extends Component
             $this->dispatch('noty', msg: 'SELECCIONA EL CLIENTE');
             return;
         }
+
+        // Validar que si se seleccionó Banco/Zelle, se haya agregado el pago a la lista
+        if ($this->selectedPaymentMethod === 'bank' && empty($this->payments)) {
+            $this->dispatch('noty', msg: 'POR FAVOR AGREGUE EL PAGO (BOTÓN "+") ANTES DE GUARDAR');
+            return;
+        }
+
+
 
         if ($type == 1) {
 
@@ -1805,11 +2139,11 @@ class Sales extends Component
             $order = Order::latest('id')->first();
 
             // return $order;
-            $this->dispatch('noty', msg: 'ORDEN  imprimientod ' . $order->id . ' CON ÉXITO ');
-
-
-            // mike42
-            $this->printOrder($order->id);
+            if ($this->config->auto_print_order) {
+                $this->dispatch('noty', msg: 'ORDEN #' . $order->id . ' IMPRESA CON ÉXITO');
+                // mike42
+                $this->printOrder($order->id);
+            }
 
             $this->loadCurrencies();
 

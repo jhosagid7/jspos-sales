@@ -53,16 +53,16 @@
 
     }
 
-    function updateQty(product_id, uid, option) {
+    function updateQty(uid, option) {
 
-        var qty = parseInt(document.getElementById('p' + product_id).value)
+        var qty = parseInt(document.getElementById('qty-' + uid).value)
         if (option == 'increment')
             qty += 1
         else
             qty -= 1
 
         if (qty < 1) {
-            @this.removeItem(product_id)
+            @this.removeItem(uid) // Note: removeItem expects ID, check if it handles UID or PID. Sales.php removeItem handles both.
         } else {
             @this.updateQty(uid, qty)
         }
@@ -165,9 +165,9 @@
                         <b class="text-dark">${ escape(item.id) }
                     </span>
                     <span class="text-warning">|${ escape(item.name.toUpperCase()) }</span>
-                </div>
-            </div>
-        </div>`;
+                <\/div>
+            <\/div>
+        <\/div>`;
                     },
                 },
             });

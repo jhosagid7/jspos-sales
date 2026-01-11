@@ -35,11 +35,13 @@
                                             $methodName = 'Efectivo';
                                             $badgeColor = 'success';
                                             
-                                            if ($pay->pay_way == 'deposit') {
-                                                $methodName = $pay->bank ?: 'Banco';
+                                            $payWay = $pay->pay_way ?? $pay->payment_method;
+                                            
+                                            if ($payWay == 'deposit' || $payWay == 'bank') {
+                                                $methodName = $pay->bank ?? $pay->bank_name ?? 'Banco';
                                                 $badgeColor = 'info';
 
-                                            } elseif ($pay->pay_way == 'zelle') {
+                                            } elseif ($payWay == 'zelle') {
                                                 $methodName = 'Zelle';
                                                 $badgeColor = 'dark';
                                             }
@@ -73,12 +75,18 @@
                                             </td>
                                             <td>{{ number_format($pay->exchange_rate, 2) }}</td>
                                             <td>
-                                                @if ($pay->pay_way == 'deposit')
+                                                @php
+                                                    $payWay = $pay->pay_way ?? $pay->payment_method;
+                                                @endphp
+                                                @if ($payWay == 'deposit' || $payWay == 'bank')
                                                     <div>
-                                                        <small>NC:{{ $pay->account_number }} /
-                                                            ND:{{ $pay->deposit_number }}</small>
+                                                        <small>
+                                                            @if($pay->account_number) Cta:{{ $pay->account_number }} @endif
+                                                            @if($pay->account_number && ($pay->deposit_number || $pay->reference_number)) / @endif
+                                                            @if($pay->deposit_number || $pay->reference_number) Ref:{{ $pay->reference_number ?? $pay->deposit_number }} @endif
+                                                        </small>
                                                     </div>
-                                                @elseif ($pay->pay_way == 'zelle' && $pay->zelleRecord)
+                                                @elseif ($payWay == 'zelle' && $pay->zelleRecord)
                                                     <div class="small text-left">
                                                         <div><b>Emisor:</b> {{ $pay->zelleRecord->sender_name }}</div>
                                                         <div><b>Fecha:</b> {{ \Carbon\Carbon::parse($pay->zelleRecord->zelle_date)->format('d/m/Y') }}</div>

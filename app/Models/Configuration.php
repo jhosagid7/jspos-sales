@@ -37,7 +37,8 @@ class Configuration extends Model
         'global_commission_2_threshold',
         'global_commission_2_percentage',
         'logo',
-        'default_warehouse_id'
+        'default_warehouse_id',
+        'check_stock_reservation'
     ];
 
     public function defaultWarehouse()

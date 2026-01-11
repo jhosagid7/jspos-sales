@@ -36,6 +36,8 @@ class Users extends Component
         'sellerCommission1Percentage' => 'nullable|numeric',
         'sellerCommission2Threshold' => 'nullable|numeric',
         'sellerCommission2Percentage' => 'nullable|numeric',
+        'user.printer_name' => 'nullable|string|max:55',
+        'user.printer_width' => 'nullable|in:80mm,58mm',
     ];
 
     protected $messages = [
@@ -175,6 +177,13 @@ class Users extends Component
         $this->user->seller_commission_1_percentage = $this->sellerCommission1Percentage;
         $this->user->seller_commission_2_threshold = $this->sellerCommission2Threshold;
         $this->user->seller_commission_2_percentage = $this->sellerCommission2Percentage;
+        
+        // Printer Name (Optional)
+        // Ensure it's in fillable or manually assigned if not
+        // Assuming User model is not strict or we assign it directly
+        // $this->user->printer_name is already bound via wire:model if we add it
+        // But we need to make sure it's safe.
+        // Let's add it to rules first.
 
         // save model
         $this->user->save();

@@ -10,6 +10,7 @@ use App\Models\Payment;
 use Mike42\Escpos\Printer;
 use App\Models\Configuration;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Mike42\Escpos\PrintConnectors\WindowsPrintConnector;
 
 trait PrintTrait
@@ -27,11 +28,19 @@ trait PrintTrait
 
                 $sale = Sale::with(['customer', 'user', 'details', 'details.product'])->find($saleId);
 
-                $connector = new WindowsPrintConnector($config->printer_name);
+                // Determine printer name: User assigned or Global default
+                $printerName = Auth::user()->printer_name ?? $config->printer_name;
+                
+                // If user has empty string as printer name, fallback to config
+                if (empty($printerName)) {
+                    $printerName = $config->printer_name;
+                }
+
+                $connector = new WindowsPrintConnector($printerName);
                 $printer = new Printer($connector);
 
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
-                $printer->setTextSize(2, 2);
+                $printer->setTextSize(1, 1);
 
                 $printer->text(strtoupper($config->business_name) . "\n");
                 $printer->setTextSize(1, 1);
@@ -44,6 +53,8 @@ trait PrintTrait
                 $printer->text("Folio: " . $sale->id . "\n");
                 $printer->text("Fecha: " . Carbon::parse($sale->created_at)->format('d/m/Y h:m:s') . "\n");
                 $printer->text("Cajero: " . $sale->user->name . " \n");
+                $condition = $sale->type == 'credit' ? 'CRÉDITO' : 'CONTADO';
+                $printer->text("Condición: " . $condition . "\n");
                 //$printer->text("=============================================\n");
 
 
@@ -58,17 +69,37 @@ trait PrintTrait
                     }
                 }
 
-                $maskHead = "%-30s %-5s %-8s";
-                $maskRow = $maskHead; //"%-.31s %-4s %-5s";
+                // Determine widths based on configuration
+                if (!empty(Auth::user()->printer_name)) {
+                     $widthConfig = Auth::user()->printer_width ?? '80mm';
+                } else {
+                     $widthConfig = $config->printer_width ?? '80mm';
+                }
+
+                $is58mm = $widthConfig === '58mm';
+                
+                if ($is58mm) {
+                    // 58mm ~32 chars
+                    $maskHead = "%-16.16s %-5.5s %-9.9s"; // 16+1+5+1+9 = 32
+                    $maskRow = $maskHead;
+                    $col1Width = 16;
+                    $separator = "--------------------------------";
+                } else {
+                    // 80mm ~42-48 chars
+                    $maskHead = "%-30s %-5s %-8s";
+                    $maskRow = $maskHead;
+                    $col1Width = 30;
+                    $separator = "=============================================";
+                }
 
                 $headersName = sprintf($maskHead, 'DESCRIPCION', 'CANT', 'PRECIO');
-                $printer->text("=============================================\n");
+                $printer->text($separator . "\n");
                 $printer->text($headersName . "\n");
-                $printer->text("=============================================\n");
+                $printer->text($separator . "\n");
 
                 foreach ($sale->details as $item) {
 
-                    $descripcion_1 = $this->cortar($item->product->name, 30);
+                    $descripcion_1 = $this->cortar($item->product->name, $col1Width);
                     $row_1 = sprintf($maskRow, $descripcion_1[0], $item->quantity, $currencySymbol . number_format($item->sale_price, 2));
                     $printer->text($row_1 . "\n");
 
@@ -78,7 +109,7 @@ trait PrintTrait
                     }
                 }
 
-                $printer->text("=============================================" . "\n");
+                $printer->text($separator . "\n");
 
                 $printer->text("CLIENTE: " . $sale->customer->name  . "\n\n");
 
@@ -113,6 +144,7 @@ trait PrintTrait
             //
         } catch (\Exception $th) {
             Log::info("Error al intentar imprimir el comprobante de venta \n {$th->getMessage()}");
+            $this->dispatch('noty', msg: 'ERROR AL IMPRIMIR: ' . $th->getMessage());
         }
     }
 
@@ -126,7 +158,7 @@ trait PrintTrait
                 $connector = new WindowsPrintConnector($config->printer_name);
                 $printer = new Printer($connector);
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
-                $printer->setTextSize(2, 2);
+                $printer->setTextSize(1, 1);
 
                 $printer->text(strtoupper($config->business_name) . "\n");
 
@@ -152,10 +184,20 @@ trait PrintTrait
                     }
                 }
 
+                // Determine widths based on configuration
+                if (!empty(Auth::user()->printer_name)) {
+                     $widthConfig = Auth::user()->printer_width ?? '80mm';
+                } else {
+                     $widthConfig = $config->printer_width ?? '80mm';
+                }
+
+                $is58mm = $widthConfig === '58mm';
+                $separator = $is58mm ? "--------------------------------" : "=============================================";
+
                 $printer->text("Folio:" . $payment->id . "\n");
                 $printer->text("Fecha:" . Carbon::parse($payment->created_at)->format('d-m-Y H:i') . "\n");
                 $printer->text("Cliente:" . $payment->sale->customer->name . "\n");
-                $printer->text("=============================================" . "\n");
+                $printer->text($separator . "\n");
                 $printer->text("Compra: " . $currencySymbol . $payment->sale->total . "\n");
                 $printer->text("Abono: " . $currencySymbol . $payment->amount . "\n");
 
@@ -198,7 +240,7 @@ trait PrintTrait
 
 
 
-                $printer->text("=============================================" . "\n");
+                $printer->text($separator . "\n");
                 $printer->text("Atiende:" . $payment->sale->user->name . "\n");
 
 
@@ -224,7 +266,7 @@ trait PrintTrait
                 $connector = new WindowsPrintConnector($config->printer_name);
                 $printer = new Printer($connector);
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
-                $printer->setTextSize(2, 2);
+                $printer->setTextSize(1, 1);
 
                 $printer->text(strtoupper($config->business_name) . "\n");
 
@@ -250,10 +292,20 @@ trait PrintTrait
                     }
                 }
 
+                // Determine widths based on configuration
+                if (!empty(Auth::user()->printer_name)) {
+                     $widthConfig = Auth::user()->printer_width ?? '80mm';
+                } else {
+                     $widthConfig = $config->printer_width ?? '80mm';
+                }
+
+                $is58mm = $widthConfig === '58mm';
+                $separator = $is58mm ? "--------------------------------" : "=============================================";
+
                 $printer->text("Folio:" . $payable->id . "\n");
                 $printer->text("Fecha:" . Carbon::parse($payable->created_at)->format('d-m-Y H:i') . "\n");
                 $printer->text("Proveedor:" . $payable->purchase->supplier->name . "\n");
-                $printer->text("=============================================" . "\n");
+                $printer->text($separator . "\n");
                 $printer->text("Compra: " . $currencySymbol . $payable->purchase->total . "\n");
                 $printer->text("Abono: " . $currencySymbol . $payable->amount . "\n");
 
@@ -340,7 +392,7 @@ trait PrintTrait
                 $printer = new Printer($connector);
 
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
-                $printer->setTextSize(2, 2);
+                $printer->setTextSize(1, 1);
 
                 $printer->text(strtoupper($config->business_name) . "\n");
                 $printer->setTextSize(1, 1);
@@ -350,11 +402,21 @@ trait PrintTrait
 
                 $printer->setJustification(Printer::JUSTIFY_LEFT);
 
-                $printer->text("=============================================\n");
+                // Determine widths based on configuration
+                if (!empty(Auth::user()->printer_name)) {
+                     $widthConfig = Auth::user()->printer_width ?? '80mm';
+                } else {
+                     $widthConfig = $config->printer_width ?? '80mm';
+                }
+
+                $is58mm = $widthConfig === '58mm';
+                $separator = $is58mm ? "--------------------------------" : "=============================================";
+
+                $printer->text($separator . "\n");
                 $printer->text("Desde: " . Carbon::parse($dfrom)->format('d/m/Y') . "\n");
                 $printer->text("Hasta: " . Carbon::parse($dto)->format('d/m/Y') . "\n");
                 $printer->text("Usuario: " . $user_name . " \n");
-                $printer->text("=============================================\n");
+                $printer->text($separator . "\n");
 
                 $primary = \App\Helpers\CurrencyHelper::getPrimaryCurrency();
                 $currencySymbol = $primary ? $primary->symbol : '$';
@@ -370,7 +432,7 @@ trait PrintTrait
                 $printer->text("  Contado: " . $currencySymbol . number_format($pcash, 2) . "\n");
 
                 $printer->text("  Banco: " . $currencySymbol . number_format($pdeposit, 2) . "\n");
-                $printer->text("=============================================\n");
+                $printer->text($separator . "\n");
 
                 // DETAILED SALES BREAKDOWN
                 if (!empty($salesByCurrency)) {
@@ -404,7 +466,7 @@ trait PrintTrait
                         }
                     }
                 }
-                     $printer->text("=============================================\n");
+                     $printer->text($separator . "\n");
                 }
 
 
@@ -429,17 +491,31 @@ trait PrintTrait
             if ($config) {
                 $order = Order::with(['customer', 'user', 'details', 'details.product'])->find($orderId);
 
-                $connector = new WindowsPrintConnector($config->printer_name);
+                // Determine printer name: User assigned or Global default
+                $printerName = Auth::user()->printer_name ?? $config->printer_name;
+                
+                // If user has empty string as printer name, fallback to config
+                if (empty($printerName)) {
+                    $printerName = $config->printer_name;
+                }
+
+                $connector = new WindowsPrintConnector($printerName);
                 $printer = new Printer($connector);
 
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
-                $printer->setTextSize(2, 2);
+                $printer->setTextSize(1, 1);
 
                 $printer->text(strtoupper($config->business_name) . "\n");
                 $printer->setTextSize(1, 1);
                 $printer->text("$config->address \n");
                 $printer->text("NIT: $config->taxpayer_id \n");
                 $printer->text("TEL: $config->phone \n\n");
+
+                // Add Title
+                $printer->setJustification(Printer::JUSTIFY_CENTER);
+                $printer->setTextSize(1, 2);
+                $printer->text("** ORDEN DE VENTA **\n\n");
+                $printer->setTextSize(1, 1);
 
                 $printer->setJustification(Printer::JUSTIFY_LEFT);
                 //$printer->text("=============================================\n");
@@ -448,16 +524,38 @@ trait PrintTrait
                 $printer->text("Cajero: " . $order->user->name . " \n");
                 //$printer->text("=============================================\n");
 
-                $maskHead = "%-30s %-5s %-8s";
-                $maskRow = $maskHead; //"%-.31s %-4s %-5s";
+                // Determine widths based on configuration
+                // If user has a specific printer assigned, use their width preference (defaulting to 80mm if not set)
+                // Otherwise use global config width
+                if (!empty(Auth::user()->printer_name)) {
+                     $widthConfig = Auth::user()->printer_width ?? '80mm';
+                } else {
+                     $widthConfig = $config->printer_width ?? '80mm';
+                }
+
+                $is58mm = $widthConfig === '58mm';
+                
+                if ($is58mm) {
+                    // 58mm ~32 chars
+                    $maskHead = "%-16.16s %-5.5s %-9.9s"; // 16+1+5+1+9 = 32
+                    $maskRow = $maskHead;
+                    $col1Width = 16;
+                    $separator = "--------------------------------";
+                } else {
+                    // 80mm ~42-48 chars (using 42 as safe default from previous code)
+                    $maskHead = "%-30s %-5s %-8s";
+                    $maskRow = $maskHead;
+                    $col1Width = 30;
+                    $separator = "=============================================";
+                }
 
                 $headersName = sprintf($maskHead, 'DESCRIPCION', 'CANT', 'PRECIO');
-                $printer->text("=============================================\n");
+                $printer->text($separator . "\n");
                 $printer->text($headersName . "\n");
-                $printer->text("=============================================\n");
+                $printer->text($separator . "\n");
 
                 foreach ($order->details as $item) {
-                    $descripcion_1 = $this->cortar($item->product->name, 30);
+                    $descripcion_1 = $this->cortar($item->product->name, $col1Width);
                     $row_1 = sprintf($maskRow, $descripcion_1[0], $item->quantity, '$' . number_format($item->sale_price, 2));
                     $printer->text($row_1 . "\n");
 
@@ -467,7 +565,7 @@ trait PrintTrait
                     }
                 }
 
-                $printer->text("=============================================" . "\n");
+                $printer->text($separator . "\n");
 
                 $printer->text("CLIENTE: " . $order->customer->name  . "\n\n");
 
@@ -515,22 +613,32 @@ trait PrintTrait
                 $printer = new Printer($connector);
 
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
-                $printer->setTextSize(2, 2);
+                $printer->setTextSize(1, 1);
 
                 $printer->text(strtoupper($config->business_name) . "\n");
                 $printer->setTextSize(1, 1);
                 $printer->text("Historial de Pagos\n\n");
 
+                // Determine widths based on configuration
+                if (!empty(Auth::user()->printer_name)) {
+                     $widthConfig = Auth::user()->printer_width ?? '80mm';
+                } else {
+                     $widthConfig = $config->printer_width ?? '80mm';
+                }
+
+                $is58mm = $widthConfig === '58mm';
+                $separator = $is58mm ? "--------------------------------" : "=============================================";
+
                 $printer->setJustification(Printer::JUSTIFY_LEFT);
-                $printer->text("=============================================\n");
+                $printer->text($separator . "\n");
                 $printer->text("Folio Venta: " . $sale->id . "\n");
                 $printer->text("Fecha Emisión: " . Carbon::parse($sale->created_at)->format('d/m/Y H:i') . "\n");
                 $printer->text("Cliente: " . $sale->customer->name . "\n");
-                $printer->text("=============================================\n");
+                $printer->text($separator . "\n");
 
                 $mask = "%-10.10s %-10.10s %-10.10s";
                 $printer->text(sprintf($mask, "FECHA", "MONTO", "METODO") . "\n");
-                $printer->text("---------------------------------------------\n");
+                $printer->text($separator . "\n");
 
                 $totalPaidUSD = 0;
                 $primaryCurrency = \App\Models\Currency::where('is_primary', 1)->first();
@@ -555,7 +663,7 @@ trait PrintTrait
                     $totalPaidUSD += $amountUSD;
                 }
 
-                $printer->text("=============================================\n");
+                $printer->text($separator . "\n");
                 
                 // Totals
                 $totalSaleUSD = $sale->total; 

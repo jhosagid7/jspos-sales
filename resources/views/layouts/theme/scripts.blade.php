@@ -23,15 +23,7 @@
 
   document.addEventListener('livewire:init', () => {   
 
-    Livewire.on('msg', (message) => {
-        window.dispatchEvent(new CustomEvent('noty', { detail: { msg: message } }));
-    })
-    Livewire.on('noty', (data) => {
-        window.dispatchEvent(new CustomEvent('noty', { detail: { msg: data.msg } }));
-    })
-    Livewire.on('error', (message) => {
-        window.dispatchEvent(new CustomEvent('noty2', { detail: { msg: message } }));
-    })
+
 
     flatpickr(".flatpicker", {
         dateFormat: "d/m/Y",
@@ -50,34 +42,37 @@
     })
 
     
-    window.addEventListener('noty', event => {   
-        Toastify({
-            text:  event.detail.msg,
-            duration: 4000,
-            gravity: 'bottom',
-            style: {
-          background: "linear-gradient(to right,  #d35400,  #34495e )",
-        },
-          }).showToast();
-    })
+    if (!window.notyListenerAdded) {
+        window.addEventListener('noty', event => {   
+            Toastify({
+                text:  event.detail.msg,
+                duration: 4000,
+                gravity: 'bottom',
+                style: {
+                    background: "linear-gradient(to right,  #d35400,  #34495e )",
+                },
+            }).showToast();
+        })
 
-
-    window.addEventListener('noty2', event => {   
-      swal({
-        title:'info',
-      text: event.detail.msg,
-      buttons: {
-        cancel: false,
-        confirm: {
-          text: "OK",
-          value: true,
-          visible: true,
-          closeModal: true
-        }
-      },
-      timer: 5000
-    })
-    })
+        window.addEventListener('noty2', event => {   
+            swal({
+                title:'info',
+                text: event.detail.msg,
+                buttons: {
+                    cancel: false,
+                    confirm: {
+                        text: "OK",
+                        value: true,
+                        visible: true,
+                        closeModal: true
+                    }
+                },
+                timer: 5000
+            })
+        })
+        
+        window.notyListenerAdded = true;
+    }
 
     // window.addEventListener('error', event => {   
     //   swal({
