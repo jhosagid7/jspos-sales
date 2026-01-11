@@ -28,12 +28,15 @@
                                     <li class="p-2 list-group-item list-group-item-action d-flex justify-content-between align-items-center"
                                         style="cursor: pointer; {{ $selectedIndex === $index ? 'background-color: #e9ecef;' : '' }}">
                                         <div class="w-100">
-                                            <div class="d-flex justify-content-between" wire:click="selectProduct({{ $index }})">
-                                                <h6 class="mb-0 text-{{ $product->stock_qty <= 0 ? 'danger' : ($product->stock_qty < $product->low_stock ? 'info' : 'primary') }}">
-                                                    <small class="mb-0" style="text-muted">
-                                                        {{ $product->sku }} - {{ Str::limit($product->name, 50) }}
-                                                    </small> - {{ $primarySymbol }}{{ number_format($priceInPrimary, 2) }} / <small>Total: {{ $product->stock_qty }}</small>
-                                                </h6>
+                                            <div class="d-flex justify-content-between align-items-center" wire:click="selectProduct({{ $index }})">
+                                                <div class="d-flex align-items-center">
+                                                    <img src="{{ asset($product->photo) }}" alt="img" class="rounded mr-2" style="width: 40px; height: 40px; object-fit: cover;">
+                                                    <h6 class="mb-0 text-{{ $product->stock_qty <= 0 ? 'danger' : ($product->stock_qty < $product->low_stock ? 'info' : 'primary') }}">
+                                                        <small class="mb-0" style="text-muted">
+                                                            {{ $product->sku }} - {{ Str::limit($product->name, 50) }}
+                                                        </small> - {{ $primarySymbol }}{{ number_format($priceInPrimary, 2) }} / <small>Total: {{ $product->stock_qty }}</small>
+                                                    </h6>
+                                                </div>
                                             </div>
                                             
                                             @if($product->productWarehouses->count() > 0)
@@ -209,7 +212,7 @@
                                     <div class="input-group input-group-sm" style="width: 120px;">
                                         <div class="input-group-prepend">
                                             <button class="btn btn-dark btn-sm" type="button"
-                                                onclick="updateQty({{ $item['pid'] }},'{{ $item['id'] }}','decrement')">
+                                                onclick="updateQty('{{ $item['id'] }}','decrement')">
                                                 <i class="fas fa-minus"></i>
                                             </button>
                                         </div>
@@ -217,10 +220,10 @@
                                             wire:keydown.enter.prevent="updateQty('{{ $item['id'] }}', $event.target.value )"
                                             class="form-control form-control-sm text-center" 
                                             value="{{ $item['qty'] }}"
-                                            id="p{{ $item['pid'] }}">
+                                            id="qty-{{ $item['id'] }}">
                                         <div class="input-group-append">
                                             <button class="btn btn-dark btn-sm" type="button"
-                                                onclick="updateQty({{ $item['pid'] }},'{{ $item['id'] }}','increment')">
+                                                onclick="updateQty('{{ $item['id'] }}','increment')">
                                                 <i class="fas fa-plus"></i>
                                             </button>
                                         </div>

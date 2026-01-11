@@ -31,6 +31,8 @@ class User extends Authenticatable
         'seller_commission_2_percentage',
         'profile_photo_path',
         'warehouse_id',
+        'printer_name',
+        'printer_width',
     ];
 
     public function warehouse()

@@ -5,7 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.9] - 2026-01-10
+## [1.2.9] - 2026-01-11
+
+### Added
+- **Sales**:
+  - **Zelle Integration**: Fully integrated Zelle payments into the Sales module.
+    - Added `zelle_records` and `sale_payment_details` tables.
+    - Implemented real-time validation for Zelle payments.
+    - Made Zelle image upload mandatory for verification.
+    - Added "Ver Comprobante" link in Sale Details modal.
+- **Printing**:
+  - **Dynamic Ticket Format**: Implemented intelligent detection for **58mm** and **80mm** printers.
+    - Tickets automatically adjust width and separators based on configuration.
+    - Centered business header with optimized font size.
+    - Added "Condición de Venta" (Crédito/Contado) to the ticket header.
+    - Validated compatibility across all ticket types (Sales, Orders, Payments, Cash Count).
+
+## [1.2.8] - 2026-01-10
 
 ### Added
 - **Warehouse Management**:

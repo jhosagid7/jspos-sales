@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\OrderDetail;
 
 class Product extends Model
 {
@@ -103,6 +104,16 @@ class Product extends Model
     {
         $warehouse = $this->warehouses()->where('warehouse_id', $warehouseId)->first();
         return $warehouse ? $warehouse->pivot->stock_qty : 0;
+    }
+
+    public function getReservedStock($warehouseId)
+    {
+        return OrderDetail::where('product_id', $this->id)
+            ->where('warehouse_id', $warehouseId)
+            ->whereHas('order', function ($query) {
+                $query->where('status', 'pending');
+            })
+            ->sum('quantity');
     }
 
 

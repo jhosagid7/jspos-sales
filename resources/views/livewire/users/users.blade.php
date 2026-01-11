@@ -117,6 +117,29 @@
                     </div>
 
                     <div class="form-group mt-3">
+                        <span>Impresora Asignada (Opcional)</span>
+                        <input wire:model="user.printer_name" type="text" class="form-control" placeholder="Ej: \\CAJA-1\EPSON o POS-58">
+                        <small class="text-muted">Dejar en blanco para usar la impresora predeterminada.</small>
+                        @error('user.printer_name') <span class="text-danger">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="form-group mt-3">
+                        <span>Ancho de Impresión</span>
+                        <select wire:model="user.printer_width" class="form-control">
+                            <option value="80mm">80mm (Estándar)</option>
+                            <option value="58mm">58mm (Pequeña)</option>
+                        </select>
+                        @error('user.printer_width') <span class="text-danger">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="alert alert-light-info mt-2" role="alert">
+                        <i class="fas fa-info-circle"></i> <b>Para imprimir en red:</b><br>
+                        1. Comparte la impresora en la PC donde está conectada.<br>
+                        2. El nombre debe ser: <code>\\NOMBRE-PC\NOMBRE-IMPRESORA</code><br>
+                        3. Asegúrate que el servidor tenga acceso a esa PC.
+                    </div>
+
+                    <div class="form-group mt-3">
                         <span>Perfil <span class="txt-danger">*</span></span>
                         @if (Auth::user()->roles[0]->name == 'Admin')
                             <select wire:model.live="user.profile" class="form-select form-control-sm">

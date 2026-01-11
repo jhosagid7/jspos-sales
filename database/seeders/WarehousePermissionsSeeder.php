@@ -18,7 +18,8 @@ class WarehousePermissionsSeeder extends Seeder
             'sales.mix_warehouses',
             'warehouses.create',
             'warehouses.edit',
-            'warehouses.delete'
+            'warehouses.delete',
+            'settings.stock_reservation'
         ];
 
         foreach ($permissions as $permission) {

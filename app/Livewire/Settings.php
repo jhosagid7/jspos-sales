@@ -11,6 +11,7 @@ class Settings extends Component
     use \Livewire\WithFileUploads;
 
     public $setting_id = 0, $businessName, $phone, $taxpayerId, $vat, $printerName, $website, $leyend, $creditDays = 15, $address, $city, $creditPurchaseDays, $confirmationCode, $decimals;
+    public $checkStockReservation;
     public $globalCommission1Threshold, $globalCommission1Percentage, $globalCommission2Threshold, $globalCommission2Percentage;
     public $logo, $logo_preview; // Logo properties
     
@@ -24,6 +25,9 @@ class Settings extends Component
     public $newCurrencyLabel;
     public $newCurrencySymbol;
     public $newExchangeRate;
+    
+    public $defaultWarehouseId;
+    public $warehouses = [];
 
     function mount()
     {
@@ -32,6 +36,7 @@ class Settings extends Component
         $this->loadConfig();
         $this->loadCurrencies();
         $this->loadBanks();
+        $this->warehouses = \App\Models\Warehouse::where('is_active', 1)->get();
     }
 
     public function render()
@@ -62,6 +67,8 @@ class Settings extends Component
             $this->globalCommission2Threshold = $config->global_commission_2_threshold;
             $this->globalCommission2Percentage = $config->global_commission_2_percentage;
             $this->logo_preview = $config->logo; // Load existing logo
+            $this->checkStockReservation = (bool) $config->check_stock_reservation;
+            $this->defaultWarehouseId = $config->default_warehouse_id;
         }
     }
 
@@ -120,7 +127,17 @@ class Settings extends Component
         }
 
         if (count($this->getErrorBag()) > 0) {
+            $this->dispatch('noty', msg: 'Hay errores de validación. Por favor revisa todas las pestañas.');
             return;
+        }
+
+        // Permission check for stock reservation setting
+        $currentConfig = Configuration::find($this->setting_id);
+        if ($currentConfig && $this->checkStockReservation != $currentConfig->check_stock_reservation) {
+            if (!auth()->user()->can('settings.stock_reservation')) {
+                $this->addError('checkStockReservation', 'No tienes permiso para cambiar la configuración de reserva de stock.');
+                return;
+            }
         }
 
 
@@ -142,7 +159,9 @@ class Settings extends Component
                 'global_commission_1_threshold' => $this->globalCommission1Threshold,
                 'global_commission_1_percentage' => $this->globalCommission1Percentage,
                 'global_commission_2_threshold' => $this->globalCommission2Threshold,
-                'global_commission_2_percentage' => $this->globalCommission2Percentage
+                'global_commission_2_percentage' => $this->globalCommission2Percentage,
+                'check_stock_reservation' => $this->checkStockReservation ? 1 : 0,
+                'default_warehouse_id' => $this->defaultWarehouseId
             ];
 
             // Handle Logo Upload

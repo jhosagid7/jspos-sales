@@ -54,7 +54,7 @@
                                 <div class="card-body">
                                     <div class="row g-2">
                                         {{-- Efectivo --}}
-                                        <div class="col-4">
+                                        <div class="col-6">
                                             <button 
                                                 type="button"
                                                 wire:click="$set('selectedPaymentMethod', 'cash')"
@@ -65,19 +65,17 @@
                                             </button>
                                         </div>
 
-                                        {{-- Banco --}}
-                                        <div class="col-4">
+                                        {{-- Banco / Zelle --}}
+                                        <div class="col-6">
                                             <button 
                                                 type="button"
                                                 wire:click="$set('selectedPaymentMethod', 'bank')"
                                                 class="btn w-100 {{ $selectedPaymentMethod === 'bank' ? 'btn-primary' : 'btn-outline-primary' }}"
                                                 style="padding: 15px 10px;">
                                                 <i class="fa fa-university fa-2x d-block mb-2"></i>
-                                                <small class="d-block">Banco</small>
+                                                <small class="d-block">Banco / Zelle</small>
                                             </button>
                                         </div>
-
-
                                     </div>
                                 </div>
                             </div>
@@ -125,11 +123,11 @@
                                         </div>
                                     @endif
 
-                                    {{-- BANCO --}}
+                                    {{-- BANCO / ZELLE --}}
                                     @if($selectedPaymentMethod === 'bank')
                                         <div class="row g-3">
                                             <div class="col-12">
-                                                <label class="form-label">Banco</label>
+                                                <label class="form-label">Banco / Plataforma</label>
                                                 <select class="form-control" wire:model.live="bankId">
                                                     <option value="">Seleccione un banco</option>
                                                     @forelse($banks as $bank)
@@ -144,42 +142,124 @@
                                                     @endforelse
                                                 </select>
                                             </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label">Monto</label>
-                                                <input 
-                                                    class="form-control" 
-                                                    oninput="validarInputNumber(this)"
-                                                    wire:model.live="bankAmount" 
-                                                    type="number"
-                                                    placeholder="0.00">
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label">N°. Cuenta</label>
-                                                <input 
-                                                    class="form-control" 
-                                                    oninput="validarInputNumber(this)"
-                                                    wire:model.live="bankAccountNumber" 
-                                                    type="text"
-                                                    placeholder="Número de cuenta">
-                                            </div>
-                                            <div class="col-12">
-                                                <label class="form-label">N°. Depósito/Referencia</label>
-                                                <input 
-                                                    class="form-control" 
-                                                    oninput="validarInputNumber(this)"
-                                                    wire:model.live="bankDepositNumber" 
-                                                    type="text"
-                                                    placeholder="Número de depósito o referencia">
-                                            </div>
-                                            <div class="col-12">
-                                                <button class="btn btn-primary w-100" wire:click="addBankPayment" type="button">
-                                                    <i class="fa fa-plus-circle me-2"></i>Agregar Pago con Banco
-                                                </button>
-                                            </div>
+
+                                            @if($isZelleSelected)
+                                                {{-- ZELLE FIELDS --}}
+                                                <div class="col-12">
+                                                    @if($zelleStatusMessage)
+                                                        <div class="alert alert-{{ $zelleStatusType == 'danger' ? 'danger' : ($zelleStatusType == 'warning' ? 'warning' : 'success') }} py-2 mb-3">
+                                                            <i class="fa fa-{{ $zelleStatusType == 'danger' ? 'times-circle' : ($zelleStatusType == 'warning' ? 'exclamation-triangle' : 'check-circle') }} me-1"></i>
+                                                            {{ $zelleStatusMessage }}
+                                                        </div>
+                                                    @endif
+                                                
+                                                    <label class="form-label">Referencia (Opcional)</label>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">
+                                                            <i class="fas fa-barcode"></i>
+                                                        </span>
+                                                        <input type="text" wire:model="zelleReference" class="form-control" placeholder="Referencia">
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Nombre del Emisor <span class="text-danger">*</span></label>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">
+                                                            <i class="fas fa-user"></i>
+                                                        </span>
+                                                        <input type="text" wire:model.live="zelleSender" class="form-control" placeholder="Nombre del titular">
+                                                    </div>
+                                                    @error('zelleSender') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                </div>
+
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Fecha <span class="text-danger">*</span></label>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">
+                                                            <i class="fas fa-calendar"></i>
+                                                        </span>
+                                                        <input type="date" wire:model.live="zelleDate" class="form-control">
+                                                    </div>
+                                                    @error('zelleDate') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                </div>
+
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Monto (USD) <span class="text-danger">*</span></label>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">
+                                                            <i class="fas fa-dollar-sign"></i>
+                                                        </span>
+                                                        <input type="number" wire:model.live="zelleAmount" class="form-control" placeholder="0.00">
+                                                    </div>
+                                                    @error('zelleAmount') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                </div>
+
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Comprobante (Foto) <span class="text-danger">*</span></label>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">
+                                                            <i class="fas fa-camera"></i>
+                                                        </span>
+                                                        <input type="file" wire:model="zelleImage" class="form-control" accept="image/*">
+                                                    </div>
+                                                    @error('zelleImage') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                    @if ($zelleImage)
+                                                        <div class="mt-2">
+                                                            <img src="{{ $zelleImage->temporaryUrl() }}" class="img-thumbnail" style="max-height: 100px;">
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                                
+                                                <div class="col-12 mt-3">
+                                                    <div class="alert alert-info py-2">
+                                                        <small><i class="fa fa-info-circle me-1"></i> El monto a usar en esta venta se calculará automáticamente.</small>
+                                                    </div>
+                                                    <label class="form-label">Monto a usar en esta venta</label>
+                                                    <input class="form-control" type="number" wire:model="paymentAmount" placeholder="Monto a aplicar">
+                                                    @error('paymentAmount') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                </div>
+            
+                                                <div class="col-12">
+                                                    <button class="btn btn-purple w-100" style="background-color: #6f42c1; color: white;" wire:click="addZellePayment">Agregar Pago Zelle</button>
+                                                </div>
+                                            @else
+                                                {{-- STANDARD BANK FIELDS --}}
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Monto</label>
+                                                    <input 
+                                                        class="form-control" 
+                                                        oninput="validarInputNumber(this)"
+                                                        wire:model.live="bankAmount" 
+                                                        type="number"
+                                                        placeholder="0.00">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">N°. Cuenta</label>
+                                                    <input 
+                                                        class="form-control" 
+                                                        oninput="validarInputNumber(this)"
+                                                        wire:model.live="bankAccountNumber" 
+                                                        type="text"
+                                                        placeholder="Número de cuenta">
+                                                </div>
+                                                <div class="col-12">
+                                                    <label class="form-label">N°. Depósito/Referencia</label>
+                                                    <input 
+                                                        class="form-control" 
+                                                        oninput="validarInputNumber(this)"
+                                                        wire:model.live="bankDepositNumber" 
+                                                        type="text"
+                                                        placeholder="Número de depósito o referencia">
+                                                </div>
+                                                <div class="col-12">
+                                                    <button class="btn btn-primary w-100" wire:click="addBankPayment" type="button">
+                                                        <i class="fa fa-plus-circle me-2"></i>Agregar Pago con Banco
+                                                    </button>
+                                                </div>
+                                            @endif
                                         </div>
                                     @endif
-
-
                                 </div>
                             </div>
                         </div>
@@ -217,6 +297,14 @@
                                                                         <i class="fa fa-university"></i> Banco
                                                                     </span>
                                                                     <br><small class="text-muted">{{ $payment['bank_name'] ?? 'N/A' }}</small>
+                                                                @elseif($payment['method'] === 'zelle')
+                                                                    <span class="badge bg-info text-white" style="background-color: #6f42c1 !important;">
+                                                                        <i class="fa fa-mobile-alt"></i> Zelle
+                                                                    </span>
+                                                                    <br><small class="text-muted">{{ $payment['zelle_sender'] ?? 'N/A' }}</small>
+                                                                    @if(isset($payment['zelle_file_url']) && $payment['zelle_file_url'])
+                                                                        <br><a href="{{ $payment['zelle_file_url'] }}" target="_blank"><i class="fa fa-image"></i> Ver</a>
+                                                                    @endif
                                                                 @endif
 
                                                             </td>

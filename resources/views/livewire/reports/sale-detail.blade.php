@@ -134,12 +134,15 @@
                                 foreach($salesObt->paymentDetails as $detail) {
                                     $allPayments->push((object)[
                                         'type' => 'initial',
-                                        'method' => $detail->payment_method, // cash, bank, nequi
+                                        'method' => $detail->payment_method, // cash, bank, nequi, zelle
                                         'bank_name' => $detail->bank_name,
                                         'currency' => $detail->currency_code,
                                         'amount' => $detail->amount,
                                         'rate' => $detail->exchange_rate,
-                                        'amount_primary' => $detail->amount_in_primary_currency
+                                        'amount_primary' => $detail->amount_in_primary_currency,
+                                        'reference' => $detail->reference_number,
+                                        'account' => $detail->account_number,
+                                        'zelle_record' => $detail->zelleRecord
                                     ]);
                                 }
                             }
@@ -174,7 +177,7 @@
                                     // Normalizar método
                                     $method = match($pay->pay_way) {
                                         'deposit' => 'bank',
-
+                                        'zelle' => 'zelle',
                                         default => 'cash'
                                     };
 
@@ -185,7 +188,10 @@
                                         'currency' => $pay->currency,
                                         'amount' => $pay->amount,
                                         'rate' => $displayRate,
-                                        'amount_primary' => $amountInPrimary
+                                        'amount_primary' => $amountInPrimary,
+                                        'reference' => $pay->deposit_number ?? $pay->reference, // Adaptar según modelo
+                                        'account' => $pay->account_number,
+                                        'zelle_record' => $pay->zelleRecord
                                     ]);
                                 }
                             }
@@ -204,6 +210,7 @@
                                                 <th>Monto</th>
                                                 <th>Tasa de Cambio</th>
                                                 <th>Equivalente ({{ $primaryCurrency->code }})</th>
+                                                <th>Detalles</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -212,7 +219,8 @@
                                                     // Determinar el nombre del método
                                                     if ($payment->method == 'bank' && $payment->bank_name) {
                                                         $methodName = $payment->bank_name;
-
+                                                    } elseif ($payment->method == 'zelle') {
+                                                        $methodName = 'Zelle';
                                                     } else {
                                                         $methodName = 'Efectivo';
                                                     }
@@ -227,7 +235,7 @@
                                                     
                                                     $badgeColor = match($payment->method) {
                                                         'bank' => 'info',
-
+                                                        'zelle' => 'dark',
                                                         default => 'success'
                                                     };
                                                 @endphp
@@ -250,6 +258,29 @@
                                                     <td>{{ number_format($payment->amount, 2) }}</td>
                                                     <td>{{ number_format($payment->rate, 4) }}</td>
                                                     <td>{{ number_format($payment->amount_primary, 2) }}</td>
+                                                    <td class="text-start">
+                                                        @if ($payment->method == 'bank' || $payment->method == 'deposit')
+                                                            <small>
+                                                                @if($payment->account) <div><b>Cta:</b> {{ $payment->account }}</div> @endif
+                                                                @if($payment->reference) <div><b>Ref:</b> {{ $payment->reference }}</div> @endif
+                                                            </small>
+                                                        @elseif ($payment->method == 'zelle' && $payment->zelle_record)
+                                                            <div class="small">
+                                                                <div><b>Emisor:</b> {{ $payment->zelle_record->sender_name }}</div>
+                                                                <div><b>Fecha:</b> {{ \Carbon\Carbon::parse($payment->zelle_record->zelle_date)->format('d/m/Y') }}</div>
+                                                                @if($payment->zelle_record->reference)
+                                                                    <div><b>Ref:</b> {{ $payment->zelle_record->reference }}</div>
+                                                                @endif
+                                                                @if(!empty($payment->zelle_record->image_path))
+                                                                    <div class="mt-1">
+                                                                        <a href="{{ asset('storage/' . $payment->zelle_record->image_path) }}" target="_blank" class="text-primary">
+                                                                            <i class="fas fa-image"></i> Ver Comprobante
+                                                                        </a>
+                                                                    </div>
+                                                                @endif
+                                                            </div>
+                                                        @endif
+                                                    </td>
                                                 </tr>
                                             @endforeach
                                         </tbody>
@@ -257,6 +288,7 @@
                                             <tr>
                                                 <td colspan="5" class="text-end"><b>Total Pagado:</b></td>
                                                 <td class="text-center"><b>{{ number_format($allPayments->sum('amount_primary'), 2) }}</b></td>
+                                                <td></td>
                                             </tr>
                                         </tfoot>
                                     </table>
