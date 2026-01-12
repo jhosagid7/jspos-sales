@@ -84,5 +84,18 @@ class HeaderComposer
         $view->with('total_receivables', $total_receivables);
         $view->with('total_commissions', $total_commissions);
         $view->with('total_payables', $total_payables);
+
+        // Check for Updates (Cached for 12 hours)
+        $updateAvailable = \Illuminate\Support\Facades\Cache::remember('system_update_available', 43200, function () {
+            try {
+                $updater = new \App\Services\UpdateService();
+                $result = $updater->checkUpdate();
+                return $result['has_update'] ? $result['new_version'] : false;
+            } catch (\Exception $e) {
+                return false;
+            }
+        });
+
+        $view->with('updateAvailable', $updateAvailable);
     }
 }

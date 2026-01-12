@@ -33,6 +33,16 @@
             </div>
         </li>
 
+        <!-- Update Available Notification -->
+        @if(isset($updateAvailable) && $updateAvailable)
+        <li class="nav-item">
+            <a class="nav-link text-primary font-weight-bold" href="{{ route('updates') }}" title="Nueva versión disponible">
+                <i class="fas fa-gift fa-pulse"></i>
+                <span class="d-none d-sm-inline">v{{ $updateAvailable }}</span>
+            </a>
+        </li>
+        @endif
+
         <!-- License Warning -->
         @if(isset($license_days_remaining) && $license_days_remaining <= 5)
         <li class="nav-item">

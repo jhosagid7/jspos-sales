@@ -125,6 +125,9 @@ Route::middleware('auth')->group(function () {
 
     //settings
     Route::get('settings', Settings::class)->name('settings');
+    Route::get('updates', \App\Livewire\Settings\UpdateSystem::class)->name('updates');
+    Route::get('backups', \App\Livewire\Settings\Backups::class)->name('backups');
+    Route::get('backups/download/{fileName}', [\App\Http\Controllers\BackupController::class, 'download'])->name('backups.download');
 
     //generate pdf invoices
     Route::get('sales/{sale}', [Sales::class, 'generatePdfInvoice'])->name('pos.sales.generatePdfInvoice');

@@ -38,7 +38,12 @@ class Configuration extends Model
         'global_commission_2_percentage',
         'logo',
         'default_warehouse_id',
-        'check_stock_reservation'
+        'check_stock_reservation',
+        'backup_emails'
+    ];
+
+    protected $casts = [
+        'backup_emails' => 'array',
     ];
 
     public function defaultWarehouse()

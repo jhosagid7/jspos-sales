@@ -14,6 +14,7 @@ class Settings extends Component
     public $checkStockReservation;
     public $globalCommission1Threshold, $globalCommission1Percentage, $globalCommission2Threshold, $globalCommission2Percentage;
     public $logo, $logo_preview; // Logo properties
+    public $backupEmails; // Backup Emails
     
     public $tab = 1; // Control de pestañas
 
@@ -69,6 +70,9 @@ class Settings extends Component
             $this->logo_preview = $config->logo; // Load existing logo
             $this->checkStockReservation = (bool) $config->check_stock_reservation;
             $this->defaultWarehouseId = $config->default_warehouse_id;
+            
+            // Load backup emails (array to string)
+            $this->backupEmails = is_array($config->backup_emails) ? implode(', ', $config->backup_emails) : $config->backup_emails;
         }
     }
 
@@ -142,6 +146,9 @@ class Settings extends Component
 
 
         try {
+            // Process backup emails
+            $backupEmailsArray = array_filter(array_map('trim', explode(',', $this->backupEmails)));
+
             $data = [
                 'business_name' => trim($this->businessName),
                 'address' => trim($this->address),
@@ -161,7 +168,8 @@ class Settings extends Component
                 'global_commission_2_threshold' => $this->globalCommission2Threshold,
                 'global_commission_2_percentage' => $this->globalCommission2Percentage,
                 'check_stock_reservation' => $this->checkStockReservation ? 1 : 0,
-                'default_warehouse_id' => $this->defaultWarehouseId
+                'default_warehouse_id' => $this->defaultWarehouseId,
+                'backup_emails' => $backupEmailsArray
             ];
 
             // Handle Logo Upload

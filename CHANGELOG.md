@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2026-01-12
+
+### Added
+- **Backup System**:
+  - **Google Drive Integration**: Added support for automated backups to Google Drive.
+  - **Windows Automation**: Included `backup.bat` script for Windows Task Scheduler integration.
+  - **Email Attachments**: Configured system to send database backups via email (optional).
+- **Auto-Updater**:
+  - Implemented `UpdateService` to fetch releases from GitHub.
+  - Added "Update System" UI in Settings to check for and apply updates.
+
 ## [1.3.0] - 2026-01-11
 
 ### Added
