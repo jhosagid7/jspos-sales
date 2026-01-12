@@ -16,6 +16,11 @@ class AsignarPermisos extends Component
 
     function mount()
     {
+        // Strict protection: Only Admin can access this component
+        if (!auth()->user()->hasRole('Admin')) {
+            abort(403, 'NO TIENES AUTORIZACIÓN PARA ACCEDER A ESTE MÓDULO');
+        }
+
         session(['map' => '', 'child' => '', 'pos' => 'Asignación de Roles y Permisos']);
 
         $this->users = User::orderBy('id')->get();

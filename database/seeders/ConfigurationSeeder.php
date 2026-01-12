@@ -28,6 +28,7 @@ class ConfigurationSeeder extends Seeder
             'global_commission_1_percentage' => 8.00,
             'global_commission_2_threshold' => 30,
             'global_commission_2_percentage' => 4.00,
+            'default_warehouse_id' => \App\Models\Warehouse::first()->id ?? null,
         ]);
     }
 }

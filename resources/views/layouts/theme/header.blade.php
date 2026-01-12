@@ -33,6 +33,16 @@
             </div>
         </li>
 
+        <!-- License Warning -->
+        @if(isset($license_days_remaining) && $license_days_remaining <= 5)
+        <li class="nav-item">
+            <a class="nav-link text-danger font-weight-bold" href="#" title="Su licencia vence pronto">
+                <i class="fas fa-exclamation-triangle"></i>
+                Licencia vence en {{ $license_days_remaining }} días
+            </a>
+        </li>
+        @endif
+
         <!-- Notifications Dropdown Menu -->
         <!-- Purchases Notifications -->
         @if ($noty_purchases->count() > 0)

@@ -24,36 +24,15 @@ class UserSeeder extends Seeder
         ]);
         $admin->assignRole('Admin');
 
-        // Sellers
-        $sellers = [
-            [
-                'name' => 'Oficina',
-                'email' => 'oficina@gmail.com',
-            ],
-            [
-                'name' => 'Elizabeth Hernandez',
-                'email' => 'elizabeth@gmail.com',
-            ],
-            [
-                'name' => 'Orlando Udaneta',
-                'email' => 'orlando@gmail.com',
-            ],
-            [
-                'name' => 'Javier Ramirez',
-                'email' => 'javier@gmail.com',
-            ],
-        ];
-
-        foreach ($sellers as $sellerData) {
-            $seller = User::create([
-                'name' => $sellerData['name'],
-                'email' => $sellerData['email'],
-                'password' => bcrypt('1234'),
-                'profile' => 'Vendedor',
-                'status' => 'Active',
-                'commission_percentage' => 8.00,
-            ]);
-            $seller->assignRole('Vendedor');
-        }
+        // Generic Seller for Testing
+        $seller = User::create([
+            'name' => 'Vendedor de Prueba',
+            'email' => 'vendedor@prueba.com',
+            'password' => bcrypt('12345678'),
+            'profile' => 'Vendedor',
+            'status' => 'Active',
+            'commission_percentage' => 5.00,
+        ]);
+        $seller->assignRole('Vendedor');
     }
 }

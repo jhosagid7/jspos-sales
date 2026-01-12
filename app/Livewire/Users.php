@@ -73,7 +73,31 @@ class Users extends Component
 
         session(['map' => 'Usuarios', 'child' => ' Componente ']);
 
-        $this->roles = Role::with('permissions')->orderBy('name')->get();
+        // Role Hierarchy Logic (Level-based)
+        $currentUserRole = auth()->user()->roles->first(); // Get the role object to access 'level'
+        
+        if ($currentUserRole) {
+            // Show only roles with level strictly lower than current user's level
+            // Admin (100) sees < 100 (50, 30, 10)
+            // Dueño (50) sees < 50 (30, 10)
+            // Administrador (30) sees < 30 (10)
+            
+            // Special case: Admin (100) should be able to see all roles except maybe other Admins?
+            // Or strictly follow the rule: Admin can assign anything <= 100?
+            // Usually Admin can assign anything. Let's say Admin (100) can assign anything < 100.
+            // But wait, Admin needs to be able to create other Admins?
+            // User said: "el unico que puede crear roles es el admin" and "yo siempre tendre el control".
+            // Let's assume Admin (100) can see ALL roles.
+            
+            if ($currentUserRole->level >= 100) {
+                 $this->roles = Role::with('permissions')->orderBy('name')->get();
+            } else {
+                 $this->roles = Role::where('level', '<', $currentUserRole->level)->orderBy('name')->get();
+            }
+        } else {
+            $this->roles = [];
+        }
+
         if (count($this->roles) > 0) {
             $this->role = Role::find($this->roles[0]->id);
             $this->roleSelectedId = $this->role->id;
@@ -112,6 +136,12 @@ class Users extends Component
 
     public function Edit(User $user)
     {
+        // Protect Super Admin
+        if ($user->email === 'jhosagid77@gmail.com' && auth()->user()->email !== 'jhosagid77@gmail.com') {
+            $this->dispatch('noty', msg: 'NO TIENES PERMISO PARA EDITAR AL SUPER ADMIN');
+            return;
+        }
+
         $this->user = $user;
         $this->editing = true;
         $this->pwd = '';
@@ -200,7 +230,28 @@ class Users extends Component
 
 
         $this->dispatch('noty', msg: $this->user->id != null ? 'USUARIO ACTUALIZADO CORRECTAMENTE' : 'USUARIO REGISTRADO CON ÉXITO');
-        // dd($this->user->profile);
+        
+        // Validate Role Assignment Permission (Level-based)
+        $targetRoleName = $this->user->profile;
+        $currentUserRole = auth()->user()->roles->first();
+        $targetRole = Role::where('name', $targetRoleName)->first();
+
+        $allowed = false;
+        
+        if ($currentUserRole && $targetRole) {
+            if ($currentUserRole->level >= 100) {
+                $allowed = true; // Admin can do anything
+            } else {
+                // Strictly lower level
+                $allowed = $targetRole->level < $currentUserRole->level;
+            }
+        }
+
+        if (!$allowed) {
+             $this->dispatch('noty', msg: 'NO TIENES PERMISO PARA ASIGNAR ESTE ROL (NIVEL INSUFICIENTE)');
+             return;
+        }
+
         $this->assignRole($this->user->id, $this->getRoleId($this->user->profile));
 
         $this->resetExcept('user');
@@ -242,6 +293,12 @@ class Users extends Component
         }
         if ($user->purchases()->count() > 0) {
             $this->dispatch('noty', msg: 'EL USUARIO TIENE COMPRAS RELACIONADAS, NO ES POSIBLE ELIMINARLO');
+            return;
+        }
+
+        // Protect Super Admin
+        if ($user->email === 'jhosagid77@gmail.com') {
+            $this->dispatch('noty', msg: 'NO ES POSIBLE ELIMINAR AL SUPER ADMIN');
             return;
         }
 

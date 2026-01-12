@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-01-11
+
+### Added
+- **Licensing System**:
+  - Implemented secure offline licensing using RSA cryptography.
+  - Added "System Locked" mode for expired licenses.
+  - Added "License Generator" tool for administrators.
+- **Installation System**:
+  - Created a web-based Installation Wizard (Steps: Requirements, Database, Migrations, License, Admin).
+  - Added `InstallController` and routes to handle the setup process.
+  - Added `CheckInstalled` middleware to redirect to installer if not configured.
+- **Role Management**:
+  - Implemented **Level-based Hierarchy** (Admin=100, Dueño=50, etc.).
+  - Users can only assign roles with a lower level than their own.
+  - Added `level` column to `roles` table.
+  - Protected Super Admin account from modification.
+- **Desktop Integration**:
+  - Added "Create Shortcut" feature to the installer.
+  - Generates a `.bat` script that creates a Chrome App Mode shortcut (`--app`) and auto-launches the system.
+- **Data Initialization**:
+  - Added `WarehouseSeeder` to create a default "Tienda Principal" warehouse.
+  - Updated `ConfigurationSeeder` to set the default warehouse automatically.
+
 ## [1.2.9] - 2026-01-11
 
 ### Added
