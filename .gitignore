@@ -20,3 +20,5 @@ yarn-error.log
 /.vscode
 desinstalar-servicio.bat
 instalar-servicio.bat
+private_key.pem
+generate_keys.php

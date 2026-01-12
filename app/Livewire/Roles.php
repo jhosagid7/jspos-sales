@@ -11,11 +11,15 @@ use Spatie\Permission\Models\Permission;
 class Roles extends Component
 {
     public $search;
-    public  $roleName, $roleId;
+    public  $roleName, $roleId, $roleLevel = 0;
     public $permissionName, $permissionId;
 
     function mount()
     {
+        // Strict protection: Only Admin can access this component
+        if (!auth()->user()->hasRole('Admin')) {
+            abort(403, 'NO TIENES AUTORIZACIÓN PARA ACCEDER A ESTE MÓDULO');
+        }
 
         session(['map' => '', 'child' => '', 'pos' => 'Control de Roles y Permisos']);
     }
@@ -24,7 +28,7 @@ class Roles extends Component
     public function render()
     {
         return view('livewire.roles.roles', [
-            'roles' => Role::orderBy('name')->get(),
+            'roles' => Role::orderBy('level', 'desc')->orderBy('name')->get(), // Order by level first
             'permisos' => Permission::when($this->search != null, function ($query) {
                 $query->where('name', 'like', "%{$this->search}%");
             })->orderBy('name')->get(),
@@ -49,20 +53,24 @@ class Roles extends Component
         }
 
 
-        Role::create(['name' =>  $this->roleName]);
+        Role::create([
+            'name' =>  $this->roleName,
+            'level' => $this->roleLevel
+        ]);
         $this->dispatch('noty', msg: 'Se ha creado con éxito el role ' . $this->roleName);
-        $this->roleName = '';
+        $this->reset('roleName', 'roleLevel');
     }
 
     function Edit(Role $role)
     {
         $this->roleName = $role->name;
         $this->roleId = $role->id;
+        $this->roleLevel = $role->level;
     }
 
     function cancelRoleEdit()
     {
-        $this->reset('roleName', 'roleId');
+        $this->reset('roleName', 'roleId', 'roleLevel');
     }
 
     function updateRole()
@@ -80,9 +88,12 @@ class Roles extends Component
             return;
         }
 
-        Role::where('id', $this->roleId)->update(['name' =>  $this->roleName]);
+        Role::where('id', $this->roleId)->update([
+            'name' =>  $this->roleName,
+            'level' => $this->roleLevel
+        ]);
         $this->dispatch('noty', msg: 'Se actualizó el role con éxito ');
-        $this->reset('roleName', 'roleId');
+        $this->reset('roleName', 'roleId', 'roleLevel');
     }
 
     #[On('destroyRole')]

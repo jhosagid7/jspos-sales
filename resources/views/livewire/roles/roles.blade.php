@@ -14,7 +14,10 @@
                             {{$roleId == null ? 'Nuevo Role' : 'Editar Role' }}
                         </span>
                         <input class="form-control @error('roleName') border-danger @enderror" wire:model='roleName'
-                            type="text" placeholder="Focus [ F1 ]" id="roleName">
+                            type="text" placeholder="Nombre del Rol" id="roleName">
+                        
+                        <input class="form-control" wire:model='roleLevel' type="number" placeholder="Nivel (0-100)" min="0" max="100" style="max-width: 100px;">
+
                         <span wire:click="{{$roleId == null ? 'createRole' : 'updateRole' }}" class="input-group-text"
                             style="cursor: pointer" {{$roleName===null ? 'disabled' : '' }}>
                             <i class="fas fa-save"></i>
@@ -31,6 +34,7 @@
                             <thead class="thead-primary">
                                 <tr>
                                     <th>Descripción</th>
+                                    <th>Nivel</th>
                                     <th class="text-end"></th>
                                 </tr>
                             </thead>
@@ -38,6 +42,7 @@
                                 @forelse ($roles as $rol)
                                 <tr>
                                     <td class="text-primary">{{$rol->name }}</td>
+                                    <td><span class="badge badge-dark">{{ $rol->level }}</span></td>
                                     <td class="text-end">
                                         <div class="btn-group btn-group-pill" role="group" aria-label="Basic example">
                                             <button class="btn btn-light btn-sm" wire:click="Edit({{ $rol->id }})"><i

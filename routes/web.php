@@ -41,6 +41,28 @@ Route::get('/', function () {
     return view('auth.login');
 });
 
+// License Routes
+Route::get('/license/expired', [\App\Http\Controllers\LicenseController::class, 'expired'])->name('license.expired');
+Route::post('/license/activate', [\App\Http\Controllers\LicenseController::class, 'activate'])->name('license.activate');
+
+Route::post('/license/activate', [\App\Http\Controllers\LicenseController::class, 'activate'])->name('license.activate');
+
+// Installation Routes
+Route::prefix('install')->name('install.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\InstallController::class, 'index'])->name('index');
+    Route::get('/step1', [\App\Http\Controllers\InstallController::class, 'step1'])->name('step1');
+    Route::get('/step2', [\App\Http\Controllers\InstallController::class, 'step2'])->name('step2');
+    Route::post('/step2', [\App\Http\Controllers\InstallController::class, 'saveDatabase'])->name('saveDatabase');
+    Route::get('/step3', [\App\Http\Controllers\InstallController::class, 'step3'])->name('step3');
+    Route::post('/step3', [\App\Http\Controllers\InstallController::class, 'runMigrations'])->name('runMigrations');
+    Route::get('/step4', [\App\Http\Controllers\InstallController::class, 'step4'])->name('step4');
+    Route::post('/step4', [\App\Http\Controllers\InstallController::class, 'activateLicense'])->name('activateLicense');
+    Route::get('/step5', [\App\Http\Controllers\InstallController::class, 'step5'])->name('step5');
+    Route::post('/step5', [\App\Http\Controllers\InstallController::class, 'createAdmin'])->name('createAdmin');
+    Route::get('/finish', [\App\Http\Controllers\InstallController::class, 'finish'])->name('finish');
+    Route::get('/download-shortcut', [\App\Http\Controllers\InstallController::class, 'downloadShortcut'])->name('downloadShortcut');
+});
+
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
