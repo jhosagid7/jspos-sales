@@ -24,5 +24,23 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         \Illuminate\Support\Facades\View::composer('layouts.theme.header', \App\View\Composers\HeaderComposer::class);
+
+        try {
+            $config = \App\Models\Configuration::first();
+            if ($config) {
+                if (!empty($config->backup_emails)) {
+                    config(['backup.notifications.mail.to' => $config->backup_emails]);
+                }
+                
+                $appName = "JSPOS(" . ($config->business_name ?? 'Sistema') . ")";
+                config([
+                    'backup.backup.name' => $appName,
+                    'mail.from.name' => $appName,
+                    'app.name' => $appName
+                ]);
+            }
+        } catch (\Throwable $th) {
+            // Fails silently
+        }
     }
 }

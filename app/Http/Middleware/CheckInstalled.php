@@ -16,7 +16,7 @@ class CheckInstalled
     public function handle(Request $request, Closure $next): Response
     {
         // If already installed, continue
-        if (env('APP_INSTALLED', false) === true) {
+        if (config('app.installed') === true) {
             return $next($request);
         }
 

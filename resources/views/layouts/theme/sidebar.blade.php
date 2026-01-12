@@ -270,10 +270,33 @@
 
                 @can('settings')
                 <li class="nav-item">
-                    <a href="{{ route('settings') }}" class="nav-link {{ Request::is('settings') ? 'active' : '' }}">
+                    <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-cogs"></i>
-                        <p>SISTEMA</p>
+                        <p>
+                            SISTEMA
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
                     </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('settings') }}" class="nav-link {{ Request::is('settings') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Configuración</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('updates') }}" class="nav-link {{ Request::is('updates') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Actualizaciones</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('backups') }}" class="nav-link {{ Request::is('backups') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Copias de Seguridad</p>
+                            </a>
+                        </li>
+                    </ul>
                 </li>
                 @endcan
 

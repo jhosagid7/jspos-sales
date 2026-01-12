@@ -142,6 +142,12 @@
                                         @error('leyend') <span class="text-danger">{{ $message }}</span> @enderror
                                     </div>
 
+                                    <div class="col-sm-12">
+                                        <label class="form-label">EMAILS PARA COPIAS DE SEGURIDAD (Separados por coma)</label>
+                                        <textarea wire:model="backupEmails" class="form-control" cols="30" rows="2" placeholder="ejemplo@correo.com, otro@correo.com"></textarea>
+                                        @error('backupEmails') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+
                                     <div class="col-sm-12 col-md-6">
                                         <label class="form-label">LOGO DE LA EMPRESA</label>
                                         <input type="file" wire:model="logo" accept="image/png, image/jpeg, image/jpg" class="form-control">
