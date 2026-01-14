@@ -41,6 +41,8 @@ class RoleSeeder extends Seeder
             'usuarios',
             'ventas',
             'gestionar_comisiones',
+            'aprobar_cargos',
+            'aprobar_descargos',
         ];
 
         foreach ($permissions as $permission) {

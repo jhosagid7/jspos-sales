@@ -92,6 +92,13 @@ Route::middleware('auth')->group(function () {
     Route::get('warehouses', \App\Livewire\Warehouses::class)->name('warehouses');
     Route::get('transfers', \App\Livewire\Transfers::class)->name('transfers');
     Route::get('requisition', \App\Livewire\Requisition::class)->name('requisition');
+    Route::get('cargos', \App\Livewire\Cargos\CargosList::class)->name('cargos');
+    Route::get('cargos/create', \App\Livewire\Cargos\CreateCargo::class)->name('cargos.create');
+    Route::get('cargos/{cargo}/pdf', [\App\Http\Controllers\CargoController::class, 'pdf'])->name('cargos.pdf');
+
+    Route::get('descargos', \App\Livewire\Descargos\DescargosList::class)->name('descargos');
+    Route::get('descargos/create', \App\Livewire\Descargos\CreateDescargo::class)->name('descargos.create');
+    Route::get('descargos/{descargo}/pdf', [\App\Http\Controllers\DescargoController::class, 'pdf'])->name('descargos.pdf');
 
 
     //personas / roles y permisos

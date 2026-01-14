@@ -65,6 +65,7 @@ class Sales extends Component
     public $pendingQtyToAdd;
     public $pendingWarehouseId;
     public $warehouses;
+    public $selectedProductForUnits = null;
 
     public $order_selected_id, $customer_name, $amount;
     public $order_id, $ordersObt, $order_note, $details = [];
@@ -155,7 +156,7 @@ class Sales extends Component
                     $this->zelleStatusType = 'danger'; // Red: DB Exhausted
                     $this->zelleRemainingBalance = 0;
                 } else {
-                    $this->zelleStatusMessage = "Zelle encontrado. Saldo restante: $" . number_format($zelleRecord->remaining_balance, 2);
+                    $this->zelleStatusMessage = "Zelle encontrado. Saldo restante: $" . number_format((float)$zelleRecord->remaining_balance, 2);
                     $this->zelleStatusType = 'success'; // Green: Available Balance
                     $this->zelleRemainingBalance = $zelleRecord->remaining_balance;
                 }
@@ -478,7 +479,8 @@ class Sales extends Component
             }
             
             // Limit results for performance
-            $this->products = $query->with(['productWarehouses.warehouse'])->take(20)->get();
+            // Limit results for performance
+            $this->products = $query->with(['productWarehouses.warehouse', 'units'])->take(25)->get();
 
             if ($this->products->count() == 0) {
                 $this->dispatch('noty', msg: 'NO EXISTE EL CÓDIGO ESCANEADO PERO PREGUNTELE');
@@ -1041,6 +1043,8 @@ class Sales extends Component
         return;
     }
 
+
+
     function AddProduct(Product $product, $qty = 1, $warehouseId = null)
     {
         // Determine which warehouse to use
@@ -1076,7 +1080,8 @@ class Sales extends Component
 
         // Check if this specific product+warehouse combination is already in cart
         $existingItem = $this->cart->first(function ($item) use ($product, $targetWarehouseId) {
-            return $item['pid'] === $product->id && ($item['warehouse_id'] ?? null) == $targetWarehouseId;
+            return $item['pid'] === $product->id && 
+                   ($item['warehouse_id'] ?? null) == $targetWarehouseId;
         });
 
         if ($existingItem) {
@@ -1165,7 +1170,7 @@ class Sales extends Component
                 $priceListInPrimary[] = [
                     'id' => $p['id'],
                     'price' => $p['price'] * $exchangeRate, // Convertir a moneda principal
-                    'name' => $p['name'] ?? ''
+                    'name' => 'Precio ' . $p['name']
                 ];
             }
         }
@@ -1224,7 +1229,7 @@ class Sales extends Component
             'type' => $product->type,
             'image' => $product->photo,
             'platform_id' => $product->platform_id,
-            'warehouse_id' => $targetWarehouseId // Store warehouse ID
+            'warehouse_id' => $targetWarehouseId, // Store warehouse ID
         ];
 
         $this->cart->push($itemCart);
@@ -1443,6 +1448,8 @@ class Sales extends Component
 
 
 
+
+
     public function clear()
     {
         $this->cart = new Collection;
@@ -1562,8 +1569,13 @@ class Sales extends Component
             $product = Product::find($item['pid']);
             if(!$product) continue;
 
-            // Base price in primary currency
-            $basePrice = $product->price * $exchangeRate;
+            // Determine Base Price (Unit or Product)
+            $basePrice = $product->price;
+            
+
+
+            // Convert to primary currency
+            $basePrice = $basePrice * $exchangeRate;
             
             // Apply logic if config exists AND toggle is active
             if ($this->sellerConfig && $this->applyCommissions) {
@@ -1788,8 +1800,13 @@ class Sales extends Component
             //update stocks
             foreach ($cart as  $item) {
                 $product = Product::find($item['pid']);
+                
+                // Calculate quantity to deduct based on conversion factor
+                $conversionFactor = $item['conversion_factor'] ?? 1;
+                $qtyToDeduct = $item['qty'] * $conversionFactor;
+
                 // Decrement global stock
-                $product->decrement('stock_qty', $item['qty']);
+                $product->decrement('stock_qty', $qtyToDeduct);
                 
                 // Decrement warehouse stock
                 $itemWarehouseId = $item['warehouse_id'] ?? null;
@@ -1800,13 +1817,13 @@ class Sales extends Component
                         ->first();
                     
                     if ($productWarehouse) {
-                        $productWarehouse->decrement('stock_qty', $item['qty']);
+                        $productWarehouse->decrement('stock_qty', $qtyToDeduct);
                     } else {
                         // Create negative stock entry if not exists (or handle as error depending on logic)
                         \App\Models\ProductWarehouse::create([
                             'product_id' => $item['pid'],
                             'warehouse_id' => $itemWarehouseId,
-                            'stock_qty' => -$item['qty']
+                            'stock_qty' => -$qtyToDeduct
                         ]);
                     }
                 }

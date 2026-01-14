@@ -28,9 +28,7 @@ class PostProduct extends Form
     public $supplier_cost;
     public $product_suppliers = [];
 
-    //properties units
-    public $unit_name, $unit_factor, $unit_price, $unit_barcode;
-    public $product_units = [];
+
 
     //reglas de validacion
     public function rules()
@@ -148,7 +146,10 @@ class PostProduct extends Form
         //lista de precios
         if (session()->has('values')) {
             $data = array_map(function ($value) use ($product) {
-                return ['product_id' => $product->id, 'price' => $value['price']];
+                return [
+                    'product_id' => $product->id, 
+                    'price' => $value['price']
+                ];
             }, $this->values);
             PriceList::insert($data);
         }
@@ -164,18 +165,7 @@ class PostProduct extends Form
             }
         }
 
-        // Save Units
-        if (!empty($this->product_units)) {
-            foreach ($this->product_units as $unit) {
-                \App\Models\ProductUnit::create([
-                    'product_id' => $product->id,
-                    'unit_name' => $unit['unit_name'],
-                    'conversion_factor' => $unit['factor'],
-                    'price' => $unit['price'],
-                    'barcode' => $unit['barcode'] ?? null
-                ]);
-            }
-        }
+
 
         $this->reset();
 
@@ -248,7 +238,10 @@ class PostProduct extends Form
         if (session()->has('values')) {
             PriceList::where('product_id', $this->product_id)->delete();
             $data = array_map(function ($value) {
-                return ['product_id' => $this->product_id, 'price' => $value['price']];
+                return [
+                    'product_id' => $this->product_id, 
+                    'price' => $value['price']
+                ];
             }, $this->values);
             PriceList::insert($data);
         }
@@ -265,19 +258,7 @@ class PostProduct extends Form
             }
         }
 
-        // Update Units
-        \App\Models\ProductUnit::where('product_id', $this->product_id)->delete();
-        if (!empty($this->product_units)) {
-            foreach ($this->product_units as $unit) {
-                \App\Models\ProductUnit::create([
-                    'product_id' => $this->product_id,
-                    'unit_name' => $unit['unit_name'],
-                    'conversion_factor' => $unit['factor'],
-                    'price' => $unit['price'],
-                    'barcode' => $unit['barcode'] ?? null
-                ]);
-            }
-        }
+
 
         $this->reset();
     }

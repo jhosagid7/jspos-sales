@@ -216,6 +216,7 @@
     @include('livewire.pos.partials.process-order')
     @include('livewire.pos.partials.script')
     @include('livewire.pos.partials.shortcuts')
+    @include('livewire.pos.partials.unit-selection-modal')
 
     <!-- Modal Stock Warning -->
     <div wire:ignore.self class="modal fade" id="modalStockWarning" tabindex="-1" role="dialog" aria-labelledby="modalStockWarningLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">

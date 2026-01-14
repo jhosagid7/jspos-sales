@@ -5,24 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class SaleDetail extends Model
+class CargoDetail extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'sale_id', 
-        'product_id', 
-        'warehouse_id',
-        'regular_price', 
-        'quantity', 
-        'sale_price', 
-        'discount',
-        'exchange_rate'
+        'cargo_id',
+        'product_id',
+        'quantity',
+        'cost'
     ];
 
-    public function sale()
+    public function cargo()
     {
-        return $this->belongsTo(Sale::class);
+        return $this->belongsTo(Cargo::class);
     }
 
     public function product()

@@ -25,37 +25,39 @@
                                     @php
                                         $priceInPrimary = $product->price * $primaryRate;
                                     @endphp
-                                    <li class="p-2 list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                                    <li class="p-1 list-group-item list-group-item-action d-flex justify-content-between align-items-center"
                                         style="cursor: pointer; {{ $selectedIndex === $index ? 'background-color: #e9ecef;' : '' }}">
                                         <div class="w-100">
-                                            <div class="d-flex justify-content-between align-items-center" wire:click="selectProduct({{ $index }})">
-                                                <div class="d-flex align-items-center">
-                                                    <img src="{{ asset($product->photo) }}" alt="img" class="rounded mr-2" style="width: 40px; height: 40px; object-fit: cover;">
-                                                    <h6 class="mb-0 text-{{ $product->stock_qty <= 0 ? 'danger' : ($product->stock_qty < $product->low_stock ? 'info' : 'primary') }}">
-                                                        <small class="mb-0" style="text-muted">
-                                                            {{ $product->sku }} - {{ Str::limit($product->name, 50) }}
-                                                        </small> - {{ $primarySymbol }}{{ number_format($priceInPrimary, 2) }} / <small>Total: {{ $product->stock_qty }}</small>
-                                                    </h6>
+                                            <div class="d-flex justify-content-between align-items-center" wire:click="AddProduct({{ $product->id }})">
+                                                <div class="d-flex align-items-center w-100">
+                                                    <img src="{{ asset($product->photo) }}" alt="img" class="rounded mr-2" style="width: 30px; height: 30px; object-fit: cover;">
+                                                    <div class="d-flex flex-column flex-grow-1">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <h6 class="mb-0 text-{{ $product->stock_qty <= 0 ? 'danger' : ($product->stock_qty < $product->low_stock ? 'info' : 'primary') }}" style="font-size: 0.9rem;">
+                                                                <small class="text-muted">{{ $product->sku }}</small> - {{ Str::limit($product->name, 40) }}
+                                                            </h6>
+                                                            <span class="badge badge-light text-dark" style="font-size: 0.8rem;">
+                                                                {{ $primarySymbol }}{{ number_format($priceInPrimary, 2) }} / Total: {{ $product->productWarehouses->sum('stock_qty') }}
+                                                            </span>
+                                                        </div>
+                                                        
+                                                        @if($product->productWarehouses->count() > 0)
+                                                            @can('sales.switch_warehouse')
+                                                                <div class="d-flex flex-wrap mt-1 align-items-center">
+                                                                    @foreach($product->productWarehouses as $pw)
+                                                                        @if($pw->stock_qty > 0)
+                                                                            <button class="btn btn-xs btn-outline-secondary mr-1 p-0 px-1" style="font-size: 0.7rem;"
+                                                                                wire:click.stop="AddProduct({{ $product->id }}, 1, {{ $pw->warehouse_id }})">
+                                                                                {{ $pw->warehouse->name }}: {{ $pw->stock_qty }}
+                                                                            </button>
+                                                                        @endif
+                                                                    @endforeach
+                                                                </div>
+                                                            @endcan
+                                                        @endif
+                                                    </div>
                                                 </div>
                                             </div>
-                                            
-                                            @if($product->productWarehouses->count() > 0)
-                                                @can('sales.switch_warehouse')
-                                                    <div class="mt-1 ml-3">
-                                                        <small class="text-muted">Stock por depósito:</small>
-                                                        <div class="d-flex flex-wrap">
-                                                            @foreach($product->productWarehouses as $pw)
-                                                                @if($pw->stock_qty > 0)
-                                                                    <button class="btn btn-xs btn-outline-secondary mr-1 mb-1" 
-                                                                        wire:click.stop="selectProduct({{ $index }}, {{ $pw->warehouse_id }})">
-                                                                        {{ $pw->warehouse->name }}: {{ $pw->stock_qty }}
-                                                                    </button>
-                                                                @endif
-                                                            @endforeach
-                                                        </div>
-                                                    </div>
-                                                @endcan
-                                            @endif
                                         </div>
                                     </li>
                                 @endforeach
@@ -124,6 +126,10 @@
                                 </td>
                                 <td>
                                     <div class="product-name txt-info font-weight-bold" style="font-size: 0.9rem;">{{ strtoupper($item['name']) }}</div>
+                                    @php
+                                        $product = \App\Models\Product::find($item['pid']);
+                                    @endphp
+
                                 </td>
                                 <td>
                                     @if (count($item['pricelist']) <= 1)

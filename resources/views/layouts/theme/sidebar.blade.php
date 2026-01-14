@@ -247,6 +247,18 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a href="{{ route('cargos') }}" class="nav-link {{ Request::is('cargos*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Cargos / Ajustes</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('descargos') }}" class="nav-link {{ Request::is('descargos*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Descargos / Salidas</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a href="{{ route('warehouses') }}" class="nav-link {{ Request::is('warehouses') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Depósitos</p>

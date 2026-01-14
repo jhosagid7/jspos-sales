@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] - 2026-01-14
+
+### Changed
+- **POS**:
+  - **Compact Search Results**: Redesigned the product search dropdown to be more compact, showing more results (limit increased to 25).
+  - **Stock Display**: Fixed discrepancy in "Total Stock" display by dynamically summing warehouse stocks.
+  - **Revert**: Reverted "Product Presentations" and "Advanced Pricing" features to restore previous stability and functionality.
+
 ## [1.3.1] - 2026-01-12
 
 ### Added
