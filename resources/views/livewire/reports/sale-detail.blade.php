@@ -94,7 +94,10 @@
                                     @forelse ($details as $detail)
                                         <tr class="text-center">
                                             <td>{{ $detail->id }}</td>
-                                            <td>{{ $detail->product->name }}</td>
+                                            <td>
+                                                {{ $detail->product->name }}
+
+                                            </td>
                                             <td>{{ $detail->quantity }}</td>
                                             <td>{{ $currencySymbol }}{{ $detail->sale_price }}</td>
                                             <td>{{ $currencySymbol }}{{ round($detail->sale_price * $detail->quantity, 2) }}</td>

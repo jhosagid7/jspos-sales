@@ -77,26 +77,7 @@
                             </div>
                         </a>
                     </li>
-                    <li class="nav-item mb-2">
-                        <a class="nav-link {{ $tab == 6 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
-                           wire:click.prevent="$set('tab',6)" href="#">
-                            <i class="fa fa-truck fa-2x"></i>
-                            <div>
-                                <h6 class="mb-0">Proveedores</h6>
-                                <small class="{{ $tab == 6 ? 'text-white' : 'text-muted' }}">Multi-proveedor</small>
-                            </div>
-                        </a>
-                    </li>
-                    <li class="nav-item mb-2">
-                        <a class="nav-link {{ $tab == 7 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
-                           wire:click.prevent="$set('tab',7)" href="#">
-                            <i class="fa fa-box-open fa-2x"></i>
-                            <div>
-                                <h6 class="mb-0">Presentaciones</h6>
-                                <small class="{{ $tab == 7 ? 'text-white' : 'text-muted' }}">Unidades y Factores</small>
-                            </div>
-                        </a>
-                    </li>
+
                 </ul>
             </div>
             <div class="col-xxl-9 col-xl-8 box-col-8 position-relative">
@@ -171,20 +152,50 @@
                                     {{-- @error('status') <span class="text-danger">{{ $message }}</span>
                                     @enderror --}}
                                 </div>
-                                {{-- cost --}}
-                                <div class="col-sm-12 col-md-3">
-                                    <label class="form-label">Costo de Compra</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text">$</span>
-                                        <input wire:model="form.cost" class="form-control numerico" type="number" placeholder="0.00">
-                                    </div>
-                                </div>
-                                {{-- price --}}
-                                <div class="col-sm-12 col-md-3">
-                                    <label class="form-label">Precio de Venta</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text">$</span>
-                                        <input wire:model="form.price" class="form-control numerico" type="number" placeholder="0.00">
+                                {{-- Cost, Price, Margin Wrapper --}}
+                                <div class="col-sm-12" x-data="{
+                                    cost: @entangle('form.cost'),
+                                    price: @entangle('form.price'),
+                                    margin: 0,
+                                    calculateMargin() {
+                                        if(this.cost > 0 && this.price > 0) {
+                                            this.margin = ((this.price - this.cost) / this.price * 100).toFixed(2);
+                                        } else {
+                                            this.margin = 0;
+                                        }
+                                    },
+                                    calculatePrice() {
+                                        if(this.cost > 0 && this.margin > 0) {
+                                            // Price = Cost / (1 - Margin%)
+                                            this.price = (this.cost / (1 - (this.margin / 100))).toFixed(2);
+                                        }
+                                    }
+                                }" x-init="calculateMargin()">
+                                    <div class="row">
+                                        {{-- cost --}}
+                                        <div class="col-sm-12 col-md-4">
+                                            <label class="form-label">Costo de Compra</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">$</span>
+                                                <input wire:model="form.cost" x-model="cost" @input="calculateMargin()" class="form-control numerico" type="number" placeholder="0.00">
+                                            </div>
+                                        </div>
+                                        {{-- price --}}
+                                        <div class="col-sm-12 col-md-4">
+                                            <label class="form-label">Precio de Venta</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">$</span>
+                                                <input wire:model="form.price" x-model="price" @input="calculateMargin()" class="form-control numerico" type="number" placeholder="0.00">
+                                            </div>
+                                        </div>
+                                        {{-- margin --}}
+                                        <div class="col-sm-12 col-md-4">
+                                            <label class="form-label">Margen de Ganancia (%)</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">%</span>
+                                                <input x-model="margin" @input="calculatePrice()" class="form-control numerico" type="number" placeholder="0.00">
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -327,13 +338,37 @@
                         aria-labelledby="pricings-tab">
                         <div class="sidebar-body">
                             <form class="price-wrapper">
-                                <div class="row g-3 custom-input">
+                                <div class="row g-3 custom-input" x-data="{
+                                    cost: @entangle('form.cost'),
+                                    price: @entangle('form.value'),
+                                    margin: 0,
+                                    calculateMargin() {
+                                        if(this.cost > 0 && this.price > 0) {
+                                            this.margin = ((this.price - this.cost) / this.price * 100).toFixed(2);
+                                        } else {
+                                            this.margin = 0;
+                                        }
+                                    },
+                                    calculatePrice() {
+                                        if(this.cost > 0 && this.margin > 0) {
+                                            this.price = (this.cost / (1 - (this.margin / 100))).toFixed(2);
+                                        }
+                                    }
+                                }">
+
                                     <div class="col-sm-3">
                                         <label class="form-label" for="initialCost">Precio de Venta <span
                                                 class="txt-danger">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text">$</span>
-                                            <input wire:model="form.value" class="form-control numerico" type="number" placeholder="0.00">
+                                            <input wire:model="form.value" x-model="price" @input="calculateMargin()" class="form-control numerico" type="number" placeholder="0.00">
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-3">
+                                        <label class="form-label">Margen (%)</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">%</span>
+                                            <input x-model="margin" @input="calculatePrice()" class="form-control numerico" type="number" placeholder="0.00">
                                         </div>
                                     </div>
                                     <div class="col-sm-12 col-md-2">
@@ -355,7 +390,8 @@
                                                 @foreach ($form->values as $item)
                                                     <tr wire:key="{{ $item['id'] }}">
                                                         {{-- <td>{{ $item }}</td> --}}
-                                                        <td>${{ $item['price'] }}</td>
+                                                        <td>${{ $item['price'] }} 
+                                                        </td>
                                                         <td>
                                                             <button class="btn btn-light btn-sm"
                                                                 wire:click.prevent="removeTempPrice({{ $item['id'] }})">
@@ -401,112 +437,7 @@
                         </div>
                     </div>
 
-                    {{-- Suppliers Tab --}}
-                    <div class="tab-pane fade {{ $tab == 6 ? 'active show' : '' }}" id="suppliers" role="tabpanel">
-                        <div class="sidebar-body">
-                            <div class="row g-3">
-                                <div class="col-md-5">
-                                    <label>Proveedor</label>
-                                    <select wire:model="form.supplier_id" class="form-control">
-                                        <option value="0">Seleccionar</option>
-                                        @foreach($suppliers as $s)
-                                        <option value="{{ $s->id }}">{{ $s->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label>Costo</label>
-                                    <input wire:model="form.supplier_cost" type="number" class="form-control" placeholder="0.00">
-                                </div>
-                                <div class="col-md-3">
-                                    <button wire:click.prevent="addSupplier" class="btn btn-primary mt-4">Agregar</button>
-                                </div>
-                            </div>
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <table class="table table-bordered">
-                                        <thead>
-                                            <tr>
-                                                <th>Proveedor</th>
-                                                <th>Costo</th>
-                                                <th>Acciones</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach($form->product_suppliers as $index => $s)
-                                            <tr>
-                                                <td>{{ $s['name'] }}</td>
-                                                <td>${{ number_format($s['cost'], 2) }}</td>
-                                                <td>
-                                                    <button wire:click.prevent="removeSupplier({{ $index }})" class="btn btn-danger btn-sm">
-                                                        <i class="fa fa-trash"></i>
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
-                    {{-- Presentations Tab --}}
-                    <div class="tab-pane fade {{ $tab == 7 ? 'active show' : '' }}" id="presentations" role="tabpanel">
-                        <div class="sidebar-body">
-                            <div class="row g-3">
-                                <div class="col-md-3">
-                                    <label>Unidad</label>
-                                    <input wire:model="form.unit_name" type="text" class="form-control" placeholder="Ej: Caja 12u">
-                                </div>
-                                <div class="col-md-2">
-                                    <label>Factor</label>
-                                    <input wire:model="form.unit_factor" type="number" class="form-control" placeholder="12">
-                                </div>
-                                <div class="col-md-2">
-                                    <label>Precio</label>
-                                    <input wire:model="form.unit_price" type="number" class="form-control" placeholder="0.00">
-                                </div>
-                                <div class="col-md-3">
-                                    <label>Código Barras</label>
-                                    <input wire:model="form.unit_barcode" type="text" class="form-control">
-                                </div>
-                                <div class="col-md-2">
-                                    <button wire:click.prevent="addUnit" class="btn btn-primary mt-4">Agregar</button>
-                                </div>
-                            </div>
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <table class="table table-bordered">
-                                        <thead>
-                                            <tr>
-                                                <th>Unidad</th>
-                                                <th>Factor</th>
-                                                <th>Precio</th>
-                                                <th>Código</th>
-                                                <th>Acciones</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach($form->product_units as $index => $u)
-                                            <tr>
-                                                <td>{{ $u['unit_name'] }}</td>
-                                                <td>{{ $u['factor'] }}</td>
-                                                <td>${{ number_format($u['price'], 2) }}</td>
-                                                <td>{{ $u['barcode'] }}</td>
-                                                <td>
-                                                    <button wire:click.prevent="removeUnit({{ $index }})" class="btn btn-danger btn-sm">
-                                                        <i class="fa fa-trash"></i>
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
                 </div>
             </div>

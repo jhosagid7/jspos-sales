@@ -96,24 +96,7 @@ class Products extends Component
         $this->form->category_id = $product->category_id;
         $this->form->values = $product->priceList->toArray();
         
-        // Load Suppliers
-        $this->form->product_suppliers = $product->productSuppliers->map(function($item) {
-            return [
-                'supplier_id' => $item->supplier_id,
-                'name' => $item->supplier->name,
-                'cost' => $item->cost
-            ];
-        })->toArray();
 
-        // Load Units
-        $this->form->product_units = $product->units->map(function($item) {
-            return [
-                'unit_name' => $item->unit_name,
-                'factor' => $item->conversion_factor,
-                'price' => $item->price,
-                'barcode' => $item->barcode
-            ];
-        })->toArray();
 
         $this->editing = true;
 
@@ -190,7 +173,10 @@ class Products extends Component
         // validar que el valor no esté repetido
         if (!in_array($this->form->value, array_column($this->form->values, 'price'))) {
             $newId = Str::uuid()->toString();
-            $this->form->values[] = ['id' => $newId, 'price' => $this->form->value];
+            $this->form->values[] = [
+                'id' => $newId, 
+                'price' => $this->form->value
+            ];
             $this->form->value = ''; // limpiar property después de agregar
             session(['values' => $this->form->values]); // Guardar los valores en sesión
             $this->dispatch('noty', msg: 'Precio agregado correctamente');
@@ -213,66 +199,7 @@ class Products extends Component
         // $this->tab = 4;
     }
 
-    public function addSupplier()
-    {
-        $this->validate([
-            'form.supplier_id' => 'required|not_in:0',
-            'form.supplier_cost' => 'required|numeric|min:0'
-        ]);
 
-        $supplier = Supplier::find($this->form->supplier_id);
-        
-        // Check if exists
-        foreach($this->form->product_suppliers as $s) {
-            if($s['supplier_id'] == $this->form->supplier_id) {
-                $this->dispatch('noty', msg: 'El proveedor ya está agregado');
-                return;
-            }
-        }
-
-        $this->form->product_suppliers[] = [
-            'supplier_id' => $supplier->id,
-            'name' => $supplier->name,
-            'cost' => $this->form->supplier_cost
-        ];
-
-        $this->form->supplier_cost = '';
-        $this->dispatch('noty', msg: 'Proveedor agregado');
-    }
-
-    public function removeSupplier($index)
-    {
-        unset($this->form->product_suppliers[$index]);
-        $this->form->product_suppliers = array_values($this->form->product_suppliers);
-    }
-
-    public function addUnit()
-    {
-        $this->validate([
-            'form.unit_name' => 'required',
-            'form.unit_factor' => 'required|numeric|min:0',
-            'form.unit_price' => 'required|numeric|min:0'
-        ]);
-
-        $this->form->product_units[] = [
-            'unit_name' => $this->form->unit_name,
-            'factor' => $this->form->unit_factor,
-            'price' => $this->form->unit_price,
-            'barcode' => $this->form->unit_barcode
-        ];
-
-        $this->form->unit_name = '';
-        $this->form->unit_factor = '';
-        $this->form->unit_price = '';
-        $this->form->unit_barcode = '';
-        $this->dispatch('noty', msg: 'Presentación agregada');
-    }
-
-    public function removeUnit($index)
-    {
-        unset($this->form->product_units[$index]);
-        $this->form->product_units = array_values($this->form->product_units);
-    }
 
 
     function Store()
