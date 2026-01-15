@@ -1090,8 +1090,33 @@ class Sales extends Component
             return;
         }
 
+        // Validar stock de componentes
+        if ($product->components->count() > 0) {
+            foreach ($product->components as $component) {
+                $requiredQty = $qty * $component->pivot->quantity;
+                
+                // Check global stock for component
+                if ($component->manage_stock && $component->stock_qty < $requiredQty) {
+                     $this->dispatch('noty', msg: "Stock insuficiente para el componente: {$component->name}");
+                     return;
+                }
+                
+                // Check warehouse stock for component (if warehouse selected)
+                if ($targetWarehouseId) {
+                    $compStockInWarehouse = $component->stockIn($targetWarehouseId);
+                     if ($component->manage_stock && $compStockInWarehouse < $requiredQty) {
+                         $this->dispatch('noty', msg: "Stock insuficiente en almacén para el componente: {$component->name}");
+                         return;
+                    }
+                }
+            }
+        }
+
             // Validate stock if managed
-        if ($product->manage_stock == 1) {
+        // SKIP if it is a Dynamic Composite Product (stock is virtual)
+        $isDynamic = $product->components->count() > 0 && !$product->is_pre_assembled;
+        
+        if ($product->manage_stock == 1 && !$isDynamic) {
             $stock = $product->stockIn($targetWarehouseId);
 
             // FIX: Handle Legacy Data (Global Stock > 0 but no Warehouse Entry)
@@ -1346,7 +1371,9 @@ class Sales extends Component
 
         if ($product_id == null) {
             $oldItem = $mycart->firstWhere('id', $uid);
-            $product_id = $oldItem['pid'];
+            if ($oldItem) {
+                $product_id = $oldItem['pid'];
+            }
         } else {
             $oldItem = $mycart->firstWhere('pid', $product_id);
             if ($oldItem) {
@@ -1358,10 +1385,40 @@ class Sales extends Component
             return;
         }
 
+        if (!$oldItem) {
+            return;
+        }
+
         $product = Product::find($product_id);
 
+        // Validar stock de componentes
+        if ($product->components->count() > 0) {
+            foreach ($product->components as $component) {
+                $requiredQty = $cant * $component->pivot->quantity;
+                
+                // Check global stock for component
+                if ($component->manage_stock && $component->stock_qty < $requiredQty) {
+                     $this->dispatch('noty', msg: "Stock insuficiente para el componente: {$component->name}");
+                     return;
+                }
+                
+                // Check warehouse stock for component (if warehouse selected)
+                $itemWarehouseId = $oldItem['warehouse_id'] ?? null;
+                if ($itemWarehouseId) {
+                    $compStockInWarehouse = $component->stockIn($itemWarehouseId);
+                     if ($component->manage_stock && $compStockInWarehouse < $requiredQty) {
+                         $this->dispatch('noty', msg: "Stock insuficiente en almacén para el componente: {$component->name}");
+                         return;
+                    }
+                }
+            }
+        }
+
         // Verificar si la cantidad total a agregar es mayor que el stock disponible
-        if ($product->manage_stock == 1) {
+        // SKIP if it is a Dynamic Composite Product (stock is virtual)
+        $isDynamic = $product->components->count() > 0 && !$product->is_pre_assembled;
+
+        if ($product->manage_stock == 1 && !$isDynamic) {
             $newQty = $cant; // solo se agrega la cantidad que se está agregando
             
             // Validate against the specific warehouse of the item
@@ -1630,16 +1687,19 @@ class Sales extends Component
 
         //type:  1 = efectivo, 2 = crédito, 3 = depósito
         if (floatval($this->totalCart) <= 0) {
+            echo "DEBUG: Returning because totalCart <= 0\n";
             $this->dispatch('noty', msg: 'AGREGA PRODUCTOS AL CARRITO');
             return;
         }
         if ($this->customer == null) {
+            echo "DEBUG: Returning because customer is null\n";
             $this->dispatch('noty', msg: 'SELECCIONA EL CLIENTE');
             return;
         }
 
         // Validar que si se seleccionó Banco/Zelle, se haya agregado el pago a la lista
         if ($this->selectedPaymentMethod === 'bank' && empty($this->payments)) {
+            echo "DEBUG: Returning because bank payment missing\n";
             $this->dispatch('noty', msg: 'POR FAVOR AGREGUE EL PAGO (BOTÓN "+") ANTES DE GUARDAR');
             return;
         }
@@ -1649,6 +1709,7 @@ class Sales extends Component
         if ($type == 1) {
 
             if (!$this->validateCash()) {
+                echo "DEBUG: Returning because validateCash failed\n";
                 $this->dispatch('noty', msg: 'EL MONTO PAGADO ES MENOR AL TOTAL DE LA VENTA');
                 return;
             }
@@ -1804,27 +1865,55 @@ class Sales extends Component
                 // Calculate quantity to deduct based on conversion factor
                 $conversionFactor = $item['conversion_factor'] ?? 1;
                 $qtyToDeduct = $item['qty'] * $conversionFactor;
-
-                // Decrement global stock
-                $product->decrement('stock_qty', $qtyToDeduct);
-                
-                // Decrement warehouse stock
                 $itemWarehouseId = $item['warehouse_id'] ?? null;
-                
-                if ($itemWarehouseId) {
-                    $productWarehouse = \App\Models\ProductWarehouse::where('product_id', $item['pid'])
-                        ->where('warehouse_id', $itemWarehouseId)
-                        ->first();
-                    
-                    if ($productWarehouse) {
-                        $productWarehouse->decrement('stock_qty', $qtyToDeduct);
-                    } else {
-                        // Create negative stock entry if not exists (or handle as error depending on logic)
-                        \App\Models\ProductWarehouse::create([
-                            'product_id' => $item['pid'],
-                            'warehouse_id' => $itemWarehouseId,
-                            'stock_qty' => -$qtyToDeduct
-                        ]);
+
+                // Determine Composite Mode
+                $isComposite = $product->components->count() > 0;
+                $isPreAssembled = $product->is_pre_assembled;
+                $isDynamic = $isComposite && !$isPreAssembled;
+
+                if ($isDynamic) {
+                    // Dynamic Mode: Deduct Components ONLY
+                    foreach ($product->components as $component) {
+                         $componentQtyToDeduct = $qtyToDeduct * $component->pivot->quantity;
+                         $component->decrement('stock_qty', $componentQtyToDeduct);
+                         
+                         if ($itemWarehouseId) {
+                             $compWarehouse = \App\Models\ProductWarehouse::where('product_id', $component->id)
+                                ->where('warehouse_id', $itemWarehouseId)
+                                ->first();
+                             if ($compWarehouse) {
+                                 $compWarehouse->decrement('stock_qty', $componentQtyToDeduct);
+                             } else {
+                                  \App\Models\ProductWarehouse::create([
+                                    'product_id' => $component->id,
+                                    'warehouse_id' => $itemWarehouseId,
+                                    'stock_qty' => -$componentQtyToDeduct
+                                ]);
+                             }
+                         }
+                    }
+                } else {
+                    // Normal Product OR Pre-assembled Kit: Deduct Product Stock
+                    // Decrement global stock
+                    $product->decrement('stock_qty', $qtyToDeduct);
+
+                    // Decrement warehouse stock
+                    if ($itemWarehouseId) {
+                        $productWarehouse = \App\Models\ProductWarehouse::where('product_id', $item['pid'])
+                            ->where('warehouse_id', $itemWarehouseId)
+                            ->first();
+                        
+                        if ($productWarehouse) {
+                            $productWarehouse->decrement('stock_qty', $qtyToDeduct);
+                        } else {
+                            // Create negative stock entry if not exists
+                            \App\Models\ProductWarehouse::create([
+                                'product_id' => $item['pid'],
+                                'warehouse_id' => $itemWarehouseId,
+                                'stock_qty' => -$qtyToDeduct
+                            ]);
+                        }
                     }
                 }
             }
@@ -2365,4 +2454,12 @@ class Sales extends Component
 
         return 0; // Default if no rule matches
     }
+    #[On('hideResults')]
+    public function hideResults()
+    {
+        $this->search3 = '';
+        $this->products = [];
+    }
+
+
 }

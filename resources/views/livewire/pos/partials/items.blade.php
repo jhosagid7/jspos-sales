@@ -8,6 +8,7 @@
                             <input type="text" wire:model.live.debounce.300ms="search3" class="form-control"
                                 placeholder="[ F1 ] Ingresa nombre o código del producto"
                                 style="text-transform: capitalize" autocomplete="off" id="inputSearch"
+                                wire:keydown.escape="hideResults"
                                 wire:keydown="keyDown($event.key)">
                             <!-- Captura las teclas presionadas -->
                             <i class="search-icon" data-feather="search"></i>
@@ -33,7 +34,7 @@
                                                     <img src="{{ asset($product->photo) }}" alt="img" class="rounded mr-2" style="width: 30px; height: 30px; object-fit: cover;">
                                                     <div class="d-flex flex-column flex-grow-1">
                                                         <div class="d-flex justify-content-between align-items-center">
-                                                            <h6 class="mb-0 text-{{ $product->stock_qty <= 0 ? 'danger' : ($product->stock_qty < $product->low_stock ? 'info' : 'primary') }}" style="font-size: 0.9rem;">
+                                                            <h6 class="mb-0 font-weight-bold text-{{ $product->stock_qty <= 0 ? 'danger' : ($product->stock_qty <= $product->low_stock ? 'warning' : 'success') }}" style="font-size: 1rem;">
                                                                 <small class="text-muted">{{ $product->sku }}</small> - {{ Str::limit($product->name, 40) }}
                                                             </h6>
                                                             <span class="badge badge-light text-dark" style="font-size: 0.8rem;">

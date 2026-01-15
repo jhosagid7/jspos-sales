@@ -94,7 +94,7 @@
                                 @forelse ($purchases as $purchase)
                                 <tr class="text-center">
                                     <td>{{$purchase->id }}</td>
-                                    <td>{{$purchase->supplier->name }}</td>
+                                    <td>{{$purchase->supplier ? $purchase->supplier->name : 'Sin Proveedor' }}</td>
                                     <td>${{$purchase->total }}</td>
                                     <td>{{$purchase->items }}</td>
                                     <td><span class="badge f-12 {{ $purchase->status == 'paid' ? 'badge-success' : ($purchase->status == 'return' ? 'badge-warning' : ($purchase->status == 'pending' ? 'badge-warning' : 'badge-danger')) }} ">{{$purchase->status }}</span></td>

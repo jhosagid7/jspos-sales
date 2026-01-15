@@ -26,13 +26,11 @@ class UpdateService
 
     public function getCurrentVersion()
     {
-        // Try to get from git tag
-        try {
-            $version = trim(shell_exec('git describe --tags --abbrev=0'));
-            if ($version) return $version;
-        } catch (\Exception $e) {}
-
-        return 'v1.3.0'; // Fallback
+        $path = base_path('version.txt');
+        if (File::exists($path)) {
+            return trim(File::get($path));
+        }
+        return 'v1.0.0';
     }
 
     public function checkUpdate()
@@ -72,61 +70,69 @@ class UpdateService
         ];
     }
 
-    public function updateSystem($downloadUrl)
+    public function runBackup()
     {
-        // 1. Backup Database
         try {
             Artisan::call('backup:run', ['--only-db' => true]);
+            return true;
         } catch (\Exception $e) {
             throw new \Exception("Backup failed: " . $e->getMessage());
         }
+    }
 
-        // 2. Download Update
+    public function downloadUpdate($downloadUrl)
+    {
         $tempPath = storage_path('app/temp_update.zip');
         
-        // GitHub requires User-Agent
-        $response = Http::withHeaders([
-            'User-Agent' => 'JSPOS-Updater'
-        ])->sink($tempPath)->get($downloadUrl);
+        try {
+            $response = Http::withHeaders([
+                'User-Agent' => 'JSPOS-Updater'
+            ])->sink($tempPath)->get($downloadUrl);
 
-        if (!$response->successful()) {
-            throw new \Exception("Download failed.");
+            if (!$response->successful()) {
+                throw new \Exception("Download failed.");
+            }
+            return true;
+        } catch (\Exception $e) {
+            throw new \Exception("Download failed: " . $e->getMessage());
         }
+    }
 
-        // 3. Unzip and Install
+    public function installUpdate()
+    {
+        $tempPath = storage_path('app/temp_update.zip');
         $zip = new ZipArchive;
+        
         if ($zip->open($tempPath) === TRUE) {
-            // GitHub zips usually have a root folder like 'user-repo-hash'. 
-            // We need to extract content OF that folder to root.
-            
             $extractPath = storage_path('app/temp_extract');
             File::makeDirectory($extractPath, 0755, true, true);
             
             $zip->extractTo($extractPath);
             $zip->close();
 
-            // Find the root folder inside extraction
             $files = File::directories($extractPath);
             if (count($files) > 0) {
-                $source = $files[0]; // This is the 'user-repo-hash' folder
-                
-                // Move files to base_path
+                $source = $files[0];
                 File::copyDirectory($source, base_path());
             }
 
-            // Cleanup
             File::deleteDirectory($extractPath);
             File::delete($tempPath);
+            return true;
         } else {
             throw new \Exception("Failed to unzip update.");
         }
+    }
 
-        // 4. Run Migrations
+    public function runMigrations()
+    {
         Artisan::call('migrate', ['--force' => true]);
-        
-        // 5. Clear Cache
-        Artisan::call('optimize:clear');
+        return true;
+    }
 
+    public function cleanup()
+    {
+        Artisan::call('optimize:clear');
         return true;
     }
 }
