@@ -22,6 +22,7 @@ class Products extends Component
 
     //operational properties
     public $search, $editing, $tab = 1, $categories, $suppliers, $btnCreateCategory = false, $btnCreateSupplier = false, $catalogueName, $pagination = 6;
+    public $search_component = '', $component_search_results = [];
 
 
 
@@ -94,8 +95,37 @@ class Products extends Component
         $this->form->presentation = $product->presentation;
         $this->form->supplier_id = $product->supplier_id;
         $this->form->category_id = $product->category_id;
+        $this->form->is_pre_assembled = (bool) $product->is_pre_assembled;
+        $this->form->additional_cost = $product->additional_cost;
         $this->form->values = $product->priceList->toArray();
+
+        // Load suppliers
+        $this->form->product_suppliers = $product->productSuppliers->map(function($ps) {
+            return [
+                'supplier_id' => $ps->supplier_id,
+                'name' => $ps->supplier->name,
+                'cost' => $ps->cost
+            ];
+        })->toArray();
         
+        // Load components
+        $this->form->product_components = $product->components->map(function($child) {
+            return [
+                'child_product_id' => $child->id,
+                'name' => $child->name,
+                'quantity' => $child->pivot->quantity
+            ];
+        })->toArray();
+
+        // Load Stock Details
+        $warehouses = \App\Models\Warehouse::all();
+        $this->form->stock_details = $warehouses->map(function($warehouse) use ($product) {
+            $stock = $product->warehouses()->where('warehouse_id', $warehouse->id)->first()->pivot->stock_qty ?? 0;
+            return [
+                'warehouse_name' => $warehouse->name,
+                'stock' => $stock
+            ];
+        })->toArray();
 
 
         $this->editing = true;
@@ -199,6 +229,116 @@ class Products extends Component
         // $this->tab = 4;
     }
 
+    public function addSupplier()
+    {
+        $this->validate([
+            'form.temp_supplier_id' => 'required|not_in:0',
+            'form.supplier_cost' => 'required|numeric|min:0'
+        ]);
+
+        // Check if supplier already exists in the list
+        $exists = collect($this->form->product_suppliers)->contains('supplier_id', $this->form->temp_supplier_id);
+
+        if ($exists) {
+            $this->dispatch('noty', msg: 'El proveedor ya está agregado a la lista');
+            return;
+        }
+
+        $supplier = Supplier::find($this->form->temp_supplier_id);
+
+        $this->form->product_suppliers[] = [
+            'supplier_id' => $this->form->temp_supplier_id,
+            'name' => $supplier->name,
+            'cost' => $this->form->supplier_cost
+        ];
+
+        $this->form->supplier_cost = '';
+        $this->form->temp_supplier_id = 0; // Reset selection
+        $this->dispatch('noty', msg: 'Proveedor agregado correctamente');
+    }
+
+    public function removeSupplier($index)
+    {
+        unset($this->form->product_suppliers[$index]);
+        $this->form->product_suppliers = array_values($this->form->product_suppliers);
+        $this->dispatch('noty', msg: 'Proveedor eliminado correctamente');
+        $this->dispatch('noty', msg: 'Proveedor eliminado correctamente');
+    }
+
+    public function updatedSearchComponent()
+    {
+        if (strlen($this->search_component) > 2) {
+            $this->component_search_results = Product::where('name', 'like', "%{$this->search_component}%")
+                ->orWhere('sku', 'like', "%{$this->search_component}%")
+                ->take(10)
+                ->get();
+        } else {
+            $this->component_search_results = [];
+        }
+    }
+
+    public function addComponent($productId, $name)
+    {
+        // Check if already exists
+        $exists = collect($this->form->product_components)->contains('child_product_id', $productId);
+        if ($exists) {
+            $this->dispatch('noty', msg: 'El componente ya está en la lista');
+            return;
+        }
+
+        // Prevent adding itself
+        if ($this->form->product_id == $productId && $this->form->product_id != 0) {
+            $this->dispatch('noty', msg: 'No puedes agregar el mismo producto como componente');
+            return;
+        }
+
+        $this->form->product_components[] = [
+            'child_product_id' => $productId,
+            'name' => $name,
+            'quantity' => 1
+        ];
+
+        $this->search_component = '';
+        $this->component_search_results = [];
+        $this->calculateCompositeCost();
+        $this->dispatch('noty', msg: 'Componente agregado');
+    }
+
+    public function removeComponent($index)
+    {
+        unset($this->form->product_components[$index]);
+        $this->form->product_components = array_values($this->form->product_components);
+        $this->calculateCompositeCost();
+        $this->dispatch('noty', msg: 'Componente eliminado');
+    }
+
+    public function updateComponentQty($index, $qty)
+    {
+        if ($qty > 0) {
+            $this->form->product_components[$index]['quantity'] = $qty;
+            $this->calculateCompositeCost();
+        }
+    }
+
+    public function calculateCompositeCost()
+    {
+        $totalCost = 0;
+        foreach ($this->form->product_components as $component) {
+            $childProduct = Product::find($component['child_product_id']);
+            if ($childProduct) {
+                $totalCost += $childProduct->cost * $component['quantity'];
+            }
+        }
+        
+        $totalCost += floatval($this->form->additional_cost);
+        $this->form->cost = round($totalCost, 2);
+    }
+
+    public function updatedFormAdditionalCost()
+    {
+        $this->calculateCompositeCost();
+    }
+
 
 
 
@@ -206,10 +346,11 @@ class Products extends Component
     {
         try {
             $this->resetErrorBag();
-            $this->form->store();
+            $product = $this->form->store();
 
             $this->dispatch('noty', msg: 'PRODUCTO CREADO');
-            $this->editing = false;
+            // Stay on form, switch to edit mode
+            $this->Edit($product);
 
             //
         } catch (\Exception $th) {
@@ -227,7 +368,7 @@ class Products extends Component
 
             $this->dispatch('noty', msg: 'PRODUCTO ACTUALIZADO');
 
-            $this->editing = false;
+            // $this->editing = false;
 
             //
         } catch (\Exception $th) {

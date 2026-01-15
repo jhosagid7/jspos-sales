@@ -18,7 +18,7 @@ class PostProduct extends Form
     //#[Validate('unique:products,name', message: 'El nombre ya existe',  onUpdate: false)]
     //#[Validate('unique:productos,name,' . $this->product_id, message: 'El título debe ser único')]
     public $name, $sku, $description, $type = 'physical', $status = 'available', $cost = 0, $price = 0, $manage_stock = 1, $stock_qty = 0, $low_stock = 0, $category_id = 0, $supplier_id = 0, $product_id = 0, $gallery;
-    public $max_stock = 0, $brand, $presentation;
+    public $max_stock = 0, $brand, $presentation, $is_pre_assembled = false, $additional_cost = 0, $stock_details = [];
 
     //properties priceList
     public $value;
@@ -26,7 +26,9 @@ class PostProduct extends Form
 
     //properties suppliers
     public $supplier_cost;
+    public $temp_supplier_id;
     public $product_suppliers = [];
+    public $product_components = [];
 
 
 
@@ -71,6 +73,10 @@ class PostProduct extends Form
                 "required",
                 Rule::notIn([0])
             ],
+            'product_suppliers' => 'nullable|array',
+            'product_components' => 'nullable|array',
+            'is_pre_assembled' => 'nullable|boolean',
+            'additional_cost' => 'nullable|numeric|min:0',
         ];
         return $rules;
     }
@@ -105,6 +111,20 @@ class PostProduct extends Form
 
         $this->validate();
 
+        // Validate Component Stock for Pre-assembled
+        if ($this->is_pre_assembled && $this->stock_qty > 0 && !empty($this->product_components)) {
+            foreach ($this->product_components as $component) {
+                $childProduct = Product::find($component['child_product_id']);
+                $requiredQty = $component['quantity'] * $this->stock_qty;
+                
+                // Check Global Stock
+                if ($childProduct->stock_qty < $requiredQty) {
+                    $this->addError('stock_qty', "Stock insuficiente de componente: {$childProduct->name}. Requerido: {$requiredQty}, Disponible: {$childProduct->stock_qty}");
+                    return;
+                }
+            }
+        }
+
         $product =  Product::create([
             'name' => $this->name,
             'description' => $this->description,
@@ -118,7 +138,9 @@ class PostProduct extends Form
             'brand' => $this->brand,
             'presentation' => $this->presentation,
             'supplier_id' => $this->supplier_id,
-            'category_id' => $this->category_id
+            'category_id' => $this->category_id,
+            'is_pre_assembled' => $this->is_pre_assembled ? 1 : 0,
+            'additional_cost' => $this->additional_cost
         ]);
 
 
@@ -165,29 +187,75 @@ class PostProduct extends Form
             }
         }
 
+        // Save Components
+        if (!empty($this->product_components)) {
+            $product->components()->attach(
+                collect($this->product_components)->mapWithKeys(function ($item) {
+                    return [$item['child_product_id'] => ['quantity' => $item['quantity']]];
+                })->toArray()
+            );
+        }
+
+        // Sync Stock to Default Warehouse
+        if ($this->manage_stock == 1) {
+            $config = \App\Models\Configuration::first();
+            $defaultWarehouseId = $config->default_warehouse_id ?? \App\Models\Warehouse::first()->id;
+            
+            if ($defaultWarehouseId) {
+                \App\Models\ProductWarehouse::updateOrCreate(
+                    ['product_id' => $product->id, 'warehouse_id' => $defaultWarehouseId],
+                    ['stock_qty' => $this->stock_qty]
+                );
+
+                // Deduct Components Stock if Pre-assembled
+                if ($this->is_pre_assembled && $this->stock_qty > 0 && !empty($this->product_components)) {
+                    foreach ($this->product_components as $component) {
+                        $childProduct = Product::find($component['child_product_id']);
+                        $qtyToDeduct = $component['quantity'] * $this->stock_qty;
+                        
+                        // Deduct Global
+                        $childProduct->decrement('stock_qty', $qtyToDeduct);
+                        
+                        // Deduct Warehouse
+                        $childPw = \App\Models\ProductWarehouse::where('product_id', $childProduct->id)
+                            ->where('warehouse_id', $defaultWarehouseId)
+                            ->first();
+                        
+                        if ($childPw) {
+                            $childPw->decrement('stock_qty', $qtyToDeduct);
+                        }
+                    }
+                }
+            }
+        }
 
 
-        $this->reset();
 
-        // $this->resetExcept(['product']);
-
-        // $this->product = new Product();
-        // $this->product->type = 'service';
-        // $this->product->status = 'available';
-        // $this->product->manage_stock = 1;
-
-        // $this->product->supplier_id = $this->suppliers->first()->id ?? null;
-
-        //
-
+        return $product;
     }
 
 
     function update()
     {
         $this->validate();
-
+        
         $product =  Product::find($this->product_id);
+        $oldStock = $product->stock_qty; // Capture old stock
+
+        // Validate Component Stock for Pre-assembled (Only if increasing stock)
+        if ($this->is_pre_assembled && $this->stock_qty > $oldStock && !empty($this->product_components)) {
+            $diff = $this->stock_qty - $oldStock;
+            foreach ($this->product_components as $component) {
+                $childProduct = Product::find($component['child_product_id']);
+                $requiredQty = $component['quantity'] * $diff;
+                
+                // Check Global Stock
+                if ($childProduct->stock_qty < $requiredQty) {
+                    $this->addError('stock_qty', "Stock insuficiente de componente: {$childProduct->name}. Requerido para aumento: {$requiredQty}, Disponible: {$childProduct->stock_qty}");
+                    return;
+                }
+            }
+        }
 
         $product->update([
             'name' => $this->name,
@@ -202,7 +270,9 @@ class PostProduct extends Form
             'brand' => $this->brand,
             'presentation' => $this->presentation,
             'supplier_id' => $this->supplier_id,
-            'category_id' => $this->category_id
+            'category_id' => $this->category_id,
+            'is_pre_assembled' => $this->is_pre_assembled ? 1 : 0,
+            'additional_cost' => $this->additional_cost
         ]);
 
 
@@ -258,9 +328,61 @@ class PostProduct extends Form
             }
         }
 
+        // Update Components
+        $product->components()->detach();
+        if (!empty($this->product_components)) {
+            $product->components()->attach(
+                collect($this->product_components)->mapWithKeys(function ($item) {
+                    return [$item['child_product_id'] => ['quantity' => $item['quantity']]];
+                })->toArray()
+            );
+        }
+
+        // Sync Stock to Default Warehouse
+        if ($this->manage_stock == 1) {
+            $config = \App\Models\Configuration::first();
+            $defaultWarehouseId = $config->default_warehouse_id ?? \App\Models\Warehouse::first()->id;
+            
+            if ($defaultWarehouseId) {
+                \App\Models\ProductWarehouse::updateOrCreate(
+                    ['product_id' => $product->id, 'warehouse_id' => $defaultWarehouseId],
+                    ['stock_qty' => $this->stock_qty]
+                );
+
+                // Adjust Components Stock if Pre-assembled
+                if ($this->is_pre_assembled && !empty($this->product_components)) {
+                    $diff = $this->stock_qty - $oldStock;
+                    
+                    if ($diff != 0) {
+                        foreach ($this->product_components as $component) {
+                            $childProduct = Product::find($component['child_product_id']);
+                            $qtyToAdjust = $component['quantity'] * abs($diff);
+                            
+                            if ($diff > 0) { // Increased Stock -> Deduct Components
+                                $childProduct->decrement('stock_qty', $qtyToAdjust);
+                                $childPw = \App\Models\ProductWarehouse::where('product_id', $childProduct->id)->where('warehouse_id', $defaultWarehouseId)->first();
+                                if ($childPw) $childPw->decrement('stock_qty', $qtyToAdjust);
+                            } else { // Decreased Stock -> Return Components
+                                $childProduct->increment('stock_qty', $qtyToAdjust);
+                                $childPw = \App\Models\ProductWarehouse::where('product_id', $childProduct->id)->where('warehouse_id', $defaultWarehouseId)->first();
+                                if ($childPw) {
+                                    $childPw->increment('stock_qty', $qtyToAdjust);
+                                } else {
+                                    \App\Models\ProductWarehouse::create([
+                                        'product_id' => $childProduct->id, 
+                                        'warehouse_id' => $defaultWarehouseId, 
+                                        'stock_qty' => $qtyToAdjust
+                                    ]);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
 
-        $this->reset();
+
     }
 
     function cancel()

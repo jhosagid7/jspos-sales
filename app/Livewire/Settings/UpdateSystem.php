@@ -14,6 +14,8 @@ class UpdateSystem extends Component
     public $releaseBody;
     public $currentReleaseNotes;
     public $status = ''; // idle, checking, backing_up, downloading, updating, done, error
+    public $progress = 0;
+    public $progressStatus = '';
 
     public function mount(UpdateService $updater)
     {
@@ -73,30 +75,100 @@ class UpdateSystem extends Component
         }
     }
 
-    public function update(UpdateService $updater)
+    public function startUpdate()
     {
         if (!$this->hasUpdate) return;
+        
+        $this->status = 'updating';
+        $this->progress = 0;
+        $this->progressStatus = 'Iniciando actualización...';
+        
+        // Step 1: Backup
+        $this->dispatch('run-backup');
+    }
 
-        $this->status = 'backing_up';
-        $this->dispatch('status-changed', status: 'Realizando copia de seguridad...');
+    public function runBackup(UpdateService $updater)
+    {
+        $this->progressStatus = 'Creando copia de seguridad...';
+        $this->progress = 10;
+        
+        try {
+            $updater->runBackup();
+            $this->dispatch('run-download');
+        } catch (\Exception $e) {
+            $this->handleError($e);
+        }
+    }
+
+    public function download(UpdateService $updater)
+    {
+        $this->progressStatus = 'Descargando archivos...';
+        $this->progress = 30;
 
         try {
-            // Ideally this should be a job or handled step-by-step to show progress
-            // For simplicity in Livewire, we might block. 
-            // Better: use a Job and poll status. But let's try direct execution for now.
-            
-            $updater->updateSystem($this->updateUrl);
-            
-            $this->status = 'done';
-            $this->dispatch('noty', msg: 'Sistema actualizado correctamente a la versión ' . $this->newVersion);
-            
-            // Reload to apply changes
-            $this->redirect(request()->header('Referer'));
-
+            $updater->downloadUpdate($this->updateUrl);
+            $this->dispatch('run-install');
         } catch (\Exception $e) {
-            $this->status = 'error';
-            $this->addError('update', $e->getMessage());
+            $this->handleError($e);
         }
+    }
+
+    public function install(UpdateService $updater)
+    {
+        $this->progressStatus = 'Descomprimiendo e instalando...';
+        $this->progress = 60;
+
+        try {
+            $updater->installUpdate();
+            $this->dispatch('run-migrate');
+        } catch (\Exception $e) {
+            $this->handleError($e);
+        }
+    }
+
+    public function migrate(UpdateService $updater)
+    {
+        $this->progressStatus = 'Actualizando base de datos...';
+        $this->progress = 80;
+
+        try {
+            $updater->runMigrations();
+            $this->dispatch('run-cleanup');
+        } catch (\Exception $e) {
+            $this->handleError($e);
+        }
+    }
+
+    public function cleanup(UpdateService $updater)
+    {
+        $this->progressStatus = 'Limpiando archivos temporales...';
+        $this->progress = 90;
+
+        try {
+            $updater->cleanup();
+            $this->finish();
+        } catch (\Exception $e) {
+            $this->handleError($e);
+        }
+    }
+
+    public function finish()
+    {
+        $this->progress = 100;
+        $this->progressStatus = '¡Actualización completada!';
+        $this->status = 'done';
+        
+        $this->dispatch('noty', msg: 'Sistema actualizado correctamente a la versión ' . $this->newVersion);
+        
+        // Reload after a short delay
+        $this->dispatch('reload-page');
+    }
+
+    protected function handleError(\Exception $e)
+    {
+        $this->status = 'error';
+        $this->progressStatus = 'Error: ' . $e->getMessage();
+        $this->addError('update', $e->getMessage());
     }
 
     public function render()

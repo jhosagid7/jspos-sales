@@ -31,20 +31,24 @@
                                     {!! nl2br(e($releaseBody)) !!}
                                 </div>
                                 <hr>
-                                <button wire:click="update" class="btn btn-success btn-lg mt-3" wire:loading.attr="disabled">
+                                <button wire:click="startUpdate" class="btn btn-success btn-lg mt-3" wire:loading.attr="disabled">
                                     <i class="fas fa-cloud-download-alt me-2"></i> Actualizar Ahora
                                 </button>
                             </div>
-                        @elseif(in_array($status, ['backing_up', 'downloading', 'updating']))
+                        @elseif($status === 'updating')
                             <div class="alert alert-primary">
                                 <h4 class="alert-heading"><i class="fas fa-cog fa-spin me-2"></i> Actualizando Sistema...</h4>
-                                <p class="mb-0">Por favor espere, este proceso puede tardar unos minutos.</p>
+                                <p class="mb-0">Por favor no cierre esta ventana.</p>
                                 <hr>
-                                <p class="mb-0">
-                                    @if($status === 'backing_up') Creando copia de seguridad...
-                                    @elseif($status === 'downloading') Descargando archivos...
-                                    @elseif($status === 'updating') Instalando actualización...
-                                    @endif
+                                <div class="progress br-30 mb-2">
+                                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ $progress }}%" aria-valuenow="{{ $progress }}" aria-valuemin="0" aria-valuemax="100">
+                                        <div class="progress-title">
+                                            <span>{{ $progress }}%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="mb-0 text-center font-weight-bold">
+                                    {{ $progressStatus }}
                                 </p>
                             </div>
                         @elseif($status === 'done')
@@ -78,7 +82,32 @@
                         </div>
                     </div>
                     @endif
-                </div>
+                    </div>
+    <script>
+        document.addEventListener('livewire:initialized', () => {
+            @this.on('run-backup', () => {
+                @this.call('runBackup');
+            });
+            @this.on('run-download', () => {
+                @this.call('download');
+            });
+            @this.on('run-install', () => {
+                @this.call('install');
+            });
+            @this.on('run-migrate', () => {
+                @this.call('migrate');
+            });
+            @this.on('run-cleanup', () => {
+                @this.call('cleanup');
+            });
+            @this.on('reload-page', () => {
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            });
+        });
+    </script>
+</div>
             </div>
         </div>
     </div>

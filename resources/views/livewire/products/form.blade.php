@@ -76,6 +76,25 @@
                                 <small class="{{ $tab == 5 ? 'text-white' : 'text-muted' }}">Stock y Alertas</small>
                             </div>
                         </a>
+                    <li class="nav-item mb-2">
+                        <a class="nav-link {{ $tab == 6 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                           wire:click.prevent="$set('tab',6)" href="#">
+                            <i class="fa fa-users fa-2x"></i>
+                            <div>
+                                <h6 class="mb-0">Proveedores</h6>
+                                <small class="{{ $tab == 6 ? 'text-white' : 'text-muted' }}">Asignar Proveedores</small>
+                            </div>
+                        </a>
+                    </li>
+                    <li class="nav-item mb-2">
+                        <a class="nav-link {{ $tab == 7 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                           wire:click.prevent="$set('tab',7)" href="#">
+                            <i class="fa fa-puzzle-piece fa-2x"></i>
+                            <div>
+                                <h6 class="mb-0">Componentes</h6>
+                                <small class="{{ $tab == 7 ? 'text-white' : 'text-muted' }}">Productos Compuestos</small>
+                            </div>
+                        </a>
                     </li>
 
                 </ul>
@@ -131,7 +150,7 @@
                                     <label class="form-label">Tipo <span class="txt-danger">*</span></label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fa fa-shapes"></i></span>
-                                        <select wire:model="form.type" class="form-select" required="">
+                                        <select wire:model="form.type" class="form-control form-select" required="">
                                             <option value="service">Servicio</option>
                                             <option value="physical">Producto Físico</option>
                                         </select>
@@ -144,7 +163,7 @@
                                     <label class="form-label">Estatus <span class="txt-danger">*</span></label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fa fa-check-circle"></i></span>
-                                        <select wire:model="form.status" class="form-select" required="">
+                                        <select wire:model="form.status" class="form-control form-select" required="">
                                             <option value="available" selected>Disponible</option>
                                             <option value="out_of_stock">Sin Stock</option>
                                         </select>
@@ -262,7 +281,7 @@
                                                     <div class="col-12">
                                                         <div class="input-group">
                                                             <span class="input-group-text"><i class="fa fa-tags"></i></span>
-                                                            <select wire:model="form.category_id" class="form-select">
+                                                            <select wire:model="form.category_id" class="form-control form-select">
                                                                 <option value="0" disabled>
                                                                     Seleccionar</option>
                                                                 @foreach ($categories as $category)
@@ -301,7 +320,7 @@
                                                     <div class="col-12">
                                                         <div class="input-group">
                                                             <span class="input-group-text"><i class="fa fa-truck"></i></span>
-                                                            <select wire:model="form.supplier_id" class="form-select"
+                                                            <select wire:model="form.supplier_id" class="form-control form-select"
                                                                 id="supplier">
                                                                 <option value="0" disabled> Seleccionar</option>
                                                                 @foreach ($suppliers as $supplier)
@@ -416,14 +435,19 @@
                             <form class="row g-3">
                                 <div class="col-sm-12 col-md-6">
                                     <label class="form-label">Administrar Stock</label>
-                                    <select wire:model="form.manage_stock" class="form-select">
+                                    <select wire:model="form.manage_stock" class="form-control form-select">
                                         <option value="1">Si, Controlar Stock</option>
                                         <option value="0">Vender sin Límites</option>
                                     </select>
                                 </div>
                                 <div class="col-sm-12 col-md-6">
                                     <label class="form-label">Stock Actual</label>
-                                    <input wire:model="form.stock_qty" class="form-control" type="number">
+                                    @if(!empty($form->product_components) && !$form->is_pre_assembled)
+                                        <input type="text" class="form-control" value="Calculado Dinámicamente" disabled>
+                                        <small class="text-info">El stock depende de los componentes disponibles.</small>
+                                    @else
+                                        <input wire:model="form.stock_qty" class="form-control" type="number">
+                                    @endif
                                 </div>
                                 <div class="col-sm-12 col-md-6">
                                     <label class="form-label">Stock Mínimo (Alerta)</label>
@@ -434,6 +458,167 @@
                                     <input wire:model="form.max_stock" class="form-control" type="number">
                                 </div>
                             </form>
+
+                            <div class="col-sm-12 mt-4">
+                                <h6>Distribución de Stock por Depósito</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered table-striped">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Depósito</th>
+                                                <th class="text-center">Stock</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @forelse($form->stock_details as $detail)
+                                                <tr>
+                                                    <td>{{ $detail['warehouse_name'] }}</td>
+                                                    <td class="text-center">{{ $detail['stock'] }}</td>
+                                                </tr>
+                                            @empty
+                                                <tr>
+                                                    <td colspan="2" class="text-center">No hay información de stock disponible</td>
+                                                </tr>
+                                            @endforelse
+                                            <tr class="table-info fw-bold">
+                                                <td>TOTAL</td>
+                                                <td class="text-center">{{ collect($form->stock_details)->sum('stock') }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Suppliers Tab --}}
+                    <div class="tab-pane fade {{ $tab == 6 ? 'active show' : '' }}" id="suppliers" role="tabpanel">
+                        <div class="sidebar-body">
+                            <form class="row g-3">
+                                <div class="col-sm-12 col-md-5">
+                                    <label class="form-label">Proveedor</label>
+                                    <select wire:model="form.temp_supplier_id" class="form-control form-select">
+                                        <option value="0">Seleccionar</option>
+                                        @foreach ($suppliers as $supplier)
+                                            <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('form.temp_supplier_id') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+                                <div class="col-sm-12 col-md-4">
+                                    <label class="form-label">Costo</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input wire:model="form.supplier_cost" class="form-control numerico" type="number" placeholder="0.00">
+                                    </div>
+                                    @error('form.supplier_cost') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+                                <div class="col-sm-12 col-md-3">
+                                    <button wire:click.prevent="addSupplier" class="btn btn-primary mt-4">Agregar</button>
+                                </div>
+                            </form>
+
+                            <div class="table-responsive mt-3">
+                                <table class="table table-bordered table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Proveedor</th>
+                                            <th>Costo</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($form->product_suppliers as $index => $item)
+                                            <tr>
+                                                <td>{{ $item['name'] }}</td>
+                                                <td>${{ number_format($item['cost'], 2) }}</td>
+                                                <td>
+                                                    <button wire:click.prevent="removeSupplier({{ $index }})" class="btn btn-danger btn-sm">
+                                                        <i class="fa fa-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Components Tab --}}
+                    <div class="tab-pane fade {{ $tab == 7 ? 'active show' : '' }}" id="components" role="tabpanel">
+                        <div class="sidebar-body">
+                            <div class="row g-3 position-relative">
+                                <div class="col-sm-12 col-md-6">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="preAssembledSwitch" wire:model="form.is_pre_assembled">
+                                        <label class="form-check-label" for="preAssembledSwitch">Kit Pre-ensamblado (Stock Manual)</label>
+                                    </div>
+                                    <small class="text-muted">
+                                        Activado: Creas stock manualmente descontando componentes.<br>
+                                        Desactivado: Stock calculado dinámicamente según componentes.
+                                    </small>
+                                </div>
+                                <div class="col-sm-12 col-md-6">
+                                    <label class="form-label">Costo Adicional (Mano de obra, etc)</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input wire:model.live.debounce.500ms="form.additional_cost" class="form-control numerico" type="number" placeholder="0.00">
+                                    </div>
+                                </div>
+
+                                <div class="col-sm-12">
+                                    <label class="form-label">Buscar Componente</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa fa-search"></i></span>
+                                        <input wire:model.live.debounce.300ms="search_component" class="form-control" type="text" placeholder="Escribe para buscar...">
+                                    </div>
+                                    
+                                    @if(!empty($component_search_results))
+                                        <ul class="list-group mt-1 w-100" style="z-index: 1000; max-height: 200px; overflow-y: auto;">
+                                            @foreach($component_search_results as $result)
+                                                <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                                                    style="cursor: pointer;"
+                                                    wire:click="addComponent({{ $result->id }}, '{{ $result->name }}')">
+                                                    <span>{{ $result->name }} ({{ $result->sku }})</span>
+                                                    <span class="badge badge-primary">Agregar</span>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <div class="table-responsive mt-3">
+                                <table class="table table-bordered table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Componente</th>
+                                            <th width="150">Cantidad</th>
+                                            <th width="100">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($form->product_components as $index => $item)
+                                            <tr>
+                                                <td>{{ $item['name'] }}</td>
+                                                <td>
+                                                    <input type="number" 
+                                                           class="form-control form-control-sm" 
+                                                           value="{{ $item['quantity'] }}"
+                                                           wire:change="updateComponentQty({{ $index }}, $event.target.value)"
+                                                           min="0.01" step="0.01">
+                                                </td>
+                                                <td>
+                                                    <button wire:click.prevent="removeComponent({{ $index }})" class="btn btn-danger btn-sm">
+                                                        <i class="fa fa-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
 
@@ -445,7 +630,7 @@
     </div>
     <div class="card-footer d-flex justify-content-between">
         <button wire:click.prevent="cancel" class="btn btn-light">
-            Cancelar
+            Volver a Productos
         </button>
 
         @if ($editing && $form->product_id == 0)

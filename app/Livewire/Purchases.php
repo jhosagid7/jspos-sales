@@ -155,7 +155,7 @@ class Purchases extends Component
         session(['map' => 'Compras', 'child' => ' Componente ', 'pos' => 'MÓDULO DE COMPRAS']);
 
         $this->warehouses = \App\Models\Warehouse::where('is_active', 1)->get();
-        $this->warehouse_id = $this->warehouses->first()->id ?? null;
+        $this->warehouse_id = $this->config->default_warehouse_id ?? $this->warehouses->first()->id ?? null;
     }
 
 
@@ -701,24 +701,57 @@ class Purchases extends Component
             //update stocks
             foreach ($cart as  $item) {
                 $product = Product::find($item['pid']);
-                // Increment global stock
-                $product->increment('stock_qty', $item['qty']);
-                
-                // Increment warehouse stock
-                if ($this->warehouse_id) {
-                    $productWarehouse = \App\Models\ProductWarehouse::where('product_id', $item['pid'])
-                        ->where('warehouse_id', $this->warehouse_id)
-                        ->first();
+                // Determine if it's a Dynamic Composite Product
+                $isComposite = $product->components->count() > 0;
+                $isPreAssembled = $product->is_pre_assembled;
+                $isDynamic = $isComposite && !$isPreAssembled;
+
+                if ($isDynamic) {
+                    // Dynamic Mode: Increment Components ONLY
+                    foreach ($product->components as $component) {
+                        $componentQtyToAdd = $item['qty'] * $component->pivot->quantity;
+                        
+                        // Increment global stock
+                        $component->increment('stock_qty', $componentQtyToAdd);
+
+                        // Increment warehouse stock
+                        if ($this->warehouse_id) {
+                            $compWarehouse = \App\Models\ProductWarehouse::where('product_id', $component->id)
+                                ->where('warehouse_id', $this->warehouse_id)
+                                ->first();
+                            
+                            if ($compWarehouse) {
+                                $compWarehouse->increment('stock_qty', $componentQtyToAdd);
+                            } else {
+                                \App\Models\ProductWarehouse::create([
+                                    'product_id' => $component->id,
+                                    'warehouse_id' => $this->warehouse_id,
+                                    'stock_qty' => $componentQtyToAdd
+                                ]);
+                            }
+                        }
+                    }
+                } else {
+                    // Normal Product OR Pre-assembled Kit: Increment Product Stock
+                    // Increment global stock
+                    $product->increment('stock_qty', $item['qty']);
                     
-                    if ($productWarehouse) {
-                        $productWarehouse->increment('stock_qty', $item['qty']);
-                    } else {
-                        // Create stock entry if not exists
-                        \App\Models\ProductWarehouse::create([
-                            'product_id' => $item['pid'],
-                            'warehouse_id' => $this->warehouse_id,
-                            'stock_qty' => $item['qty']
-                        ]);
+                    // Increment warehouse stock
+                    if ($this->warehouse_id) {
+                        $productWarehouse = \App\Models\ProductWarehouse::where('product_id', $item['pid'])
+                            ->where('warehouse_id', $this->warehouse_id)
+                            ->first();
+                        
+                        if ($productWarehouse) {
+                            $productWarehouse->increment('stock_qty', $item['qty']);
+                        } else {
+                            // Create stock entry if not exists
+                            \App\Models\ProductWarehouse::create([
+                                'product_id' => $item['pid'],
+                                'warehouse_id' => $this->warehouse_id,
+                                'stock_qty' => $item['qty']
+                            ]);
+                        }
                     }
                 }
 
@@ -751,7 +784,8 @@ class Purchases extends Component
             $this->dispatch('noty', msg: 'COMPRA REGISTRADA EXITOSAMENTE');
             $this->dispatch('close-modal');
             $this->resetExcept(['warehouses']);
-            $this->warehouse_id = $this->warehouses->first()->id ?? null;
+            $config = Configuration::first();
+            $this->warehouse_id = $config->default_warehouse_id ?? $this->warehouses->first()->id ?? null;
             $this->clear();
             session()->forget('purchase_supplier');
             session()->forget('flete');

@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-01-14
+
+### Added
+- **Composite Products (Kits/Bundles)**:
+  - **Modes**: Implemented "Pre-assembled" (Physical Stock) and "On-Demand" (Dynamic Stock) modes.
+  - **Stock Management**:
+    - **Pre-assembled**: Creating/Increasing stock deducts components. Selling deducts the kit. Purchasing increments the kit.
+    - **On-Demand**: Selling deducts components directly. Purchasing increments components.
+  - **UI**: Added "Pre-assembled" switch and "Additional Cost" field to Product Form.
+- **Inventory Visibility**:
+  - **Stock Distribution**: Added a table in Product Form (Inventory tab) showing stock quantity per warehouse.
+- **Product Form Enhancements**:
+  - **Persistent Edit**: Form now stays open after saving/updating to allow continuous editing.
+  - **Navigation**: Renamed "Cancel" button to "Volver a Productos" for clarity.
+
+### Changed
+- **Sales**:
+  - **Validation**: Updated stock validation to allow selling "On-Demand" products even if parent stock is 0 (checks components instead).
+- **Purchases**:
+  - **Stock Logic**: Updated purchase logic to handle both composite modes correctly.
+
 ## [1.3.2] - 2026-01-14
 
 ### Changed

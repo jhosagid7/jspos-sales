@@ -27,7 +27,9 @@ class Product extends Model
         'category_id',
         'max_stock',
         'brand',
-        'presentation'
+        'presentation',
+        'is_pre_assembled',
+        'additional_cost'
     ];
 
     //relationships
@@ -138,4 +140,17 @@ class Product extends Model
     //appends
 
 
+    public function components()
+    {
+        return $this->belongsToMany(Product::class, 'product_components', 'parent_product_id', 'child_product_id')
+            ->withPivot('quantity')
+            ->withTimestamps();
+    }
+
+    public function parents()
+    {
+        return $this->belongsToMany(Product::class, 'product_components', 'child_product_id', 'parent_product_id')
+            ->withPivot('quantity')
+            ->withTimestamps();
+    }
 }
