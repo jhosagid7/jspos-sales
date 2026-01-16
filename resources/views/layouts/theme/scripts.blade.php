@@ -16,6 +16,7 @@
 <script src="{{ asset('assets/js/flat-pickr/flatpickr.js') }}"></script>
 {{-- <script src="{{ asset('assets/js/flat-pickr/custom-flatpickr.js') }}"></script> --}}
 <script src="{{ asset('assets/js/flat-pickr/es.js') }}"></script>
+<script src="https://code.highcharts.com/highcharts.js"></script>
 
 
 <script>

@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [1.4.1] - 2026-01-16
+
+### Fixed
+- **Update System**:
+  - **Version Persistence**: Fixed an issue where `version.txt` was not being updated after a system update.
+  - **Update Logic**: Modified `UpdateService` to explicitly write the new version number to `version.txt` upon successful installation.
+
 ## [1.4.0] - 2026-01-14
 
 ### Added
@@ -25,6 +33,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Validation**: Updated stock validation to allow selling "On-Demand" products even if parent stock is 0 (checks components instead).
 - **Purchases**:
   - **Stock Logic**: Updated purchase logic to handle both composite modes correctly.
+
+## [1.3.3] - 2026-01-15
+
+### Added
+- **Reports**:
+  - **Rotation Report**: Added a new report to analyze product rotation and movement.
+- **Configuration**:
+  - **Purchasing Settings**: Added configuration for purchasing calculation mode and coverage days.
+- **Products**:
+  - **Pre-assembled Products**: Added support for pre-assembled products and additional costs.
 
 ## [1.3.2] - 2026-01-14
 

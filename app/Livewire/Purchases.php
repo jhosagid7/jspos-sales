@@ -144,12 +144,27 @@ class Purchases extends Component
 
     public function mount()
     {
-        if (session()->has("purchase_cart")) {
+        $this->config = Configuration::first();
+
+        if (session()->has('purchase_order_from_report')) {
+            $this->cart = new Collection;
+            $items = session('purchase_order_from_report');
+            
+            foreach ($items as $item) {
+                $product = Product::find($item['product_id']);
+                if ($product) {
+                    $this->AddProduct($product, $item['quantity']);
+                }
+            }
+            
+            session()->forget('purchase_order_from_report');
+            $this->dispatch('noty', msg: 'Orden generada desde Reporte de Rotación');
+        } elseif (session()->has("purchase_cart")) {
             $this->cart = session("purchase_cart");
         } else {
             $this->cart = new Collection;
         }
-        $this->config = Configuration::first();
+        
         // dd($this->config);
 
         session(['map' => 'Compras', 'child' => ' Componente ', 'pos' => 'MÓDULO DE COMPRAS']);

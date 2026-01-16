@@ -125,6 +125,7 @@ Route::middleware('auth')->group(function () {
         Route::get('daily-sales', \App\Livewire\Reports\DailySalesReport::class)->name('reports.daily.sales')->middleware('can:reportes');
         Route::get('commissions', \App\Livewire\CommissionReport::class)->name('reports.commissions')->middleware('can:reportes');
         Route::get('best-sellers', \App\Livewire\Reports\BestSellers::class)->name('reports.best.sellers')->middleware('can:reportes');
+        Route::get('rotation', \App\Livewire\Reports\RotationReport::class)->name('reports.rotation')->middleware('can:reportes');
     });
 
     //corte de caja
