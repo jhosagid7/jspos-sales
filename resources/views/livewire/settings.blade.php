@@ -67,6 +67,18 @@
                                 </div>
                             </a>
                         </li>
+
+                        {{-- Tab 6: Configuración de Compras --}}
+                        <li class="nav-item mb-2">
+                            <a class="nav-link {{ $tab == 6 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                               wire:click.prevent="$set('tab',6)" href="#">
+                                <i class="fa fa-shopping-bag fa-2x"></i>
+                                <div>
+                                    <h6 class="mb-0">Compras</h6>
+                                    <small class="{{ $tab == 6 ? 'text-white' : 'text-muted' }}">Inteligencia de Compras</small>
+                                </div>
+                            </a>
+                        </li>
                     </ul>
                 </div>
 
@@ -430,6 +442,50 @@
                                         <label class="form-label">Porcentaje (%)</label>
                                         <input wire:model="globalCommission2Percentage" type="number" step="0.01" class="form-control" placeholder="Ej: 4">
                                         @error('globalCommission2Percentage') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <div class="col-12">
+                                        <button class="btn btn-primary" wire:click.prevent="saveConfig" wire:loading.attr="disabled">
+                                            <span wire:loading.remove wire:target="saveConfig">Guardar Configuración</span>
+                                            <span wire:loading wire:target="saveConfig">Guardando...</span>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        {{-- TAB 6: CONFIGURACIÓN DE COMPRAS --}}
+                        <div class="tab-pane fade {{ $tab == 6 ? 'active show' : '' }}" id="purchasing-settings" role="tabpanel"
+                            aria-labelledby="purchasing-settings-tab">
+                            <div class="sidebar-body">
+                                <form class="row g-3">
+                                    <div class="col-12">
+                                        <div class="alert alert-light-primary" role="alert">
+                                            <i class="fas fa-info-circle"></i> Configura cómo el sistema sugiere las cantidades a comprar.
+                                        </div>
+                                    </div>
+                                    
+                                    <h6 class="mb-2">Inteligencia de Compras</h6>
+                                    
+                                    <div class="col-sm-12 col-md-6">
+                                        <label class="form-label">Modo de Cálculo</label>
+                                        <select wire:model="purchasingCalculationMode" class="form-control">
+                                            <option value="recent">Tendencia Reciente (Últimos meses)</option>
+                                            <option value="seasonal">Estacional (Mismo periodo año anterior)</option>
+                                        </select>
+                                        <small class="text-muted">
+                                            @if($purchasingCalculationMode == 'recent')
+                                                Basar sugerencia en el promedio de ventas reciente. Ideal para empezar.
+                                            @else
+                                                Basar sugerencia en las ventas del año pasado. Ideal con historial.
+                                            @endif
+                                        </small>
+                                    </div>
+
+                                    <div class="col-sm-12 col-md-6">
+                                        <label class="form-label">Días de Cobertura Deseados</label>
+                                        <input wire:model="purchasingCoverageDays" type="number" class="form-control" placeholder="Ej: 15">
+                                        <small class="text-muted">¿Para cuántos días de venta quieres tener stock?</small>
                                     </div>
 
                                     <div class="col-12">

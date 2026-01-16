@@ -22,7 +22,7 @@ class Products extends Component
 
     //operational properties
     public $search, $editing, $tab = 1, $categories, $suppliers, $btnCreateCategory = false, $btnCreateSupplier = false, $catalogueName, $pagination = 6;
-    public $search_component = '', $component_search_results = [];
+    public $search_component = '', $component_search_results = [], $stats = [];
 
 
 
@@ -127,8 +127,19 @@ class Products extends Component
             ];
         })->toArray();
 
+        // Load Statistics
+        $statsService = new \App\Services\ProductStatisticsService();
+        $this->stats = [
+            'velocity' => $statsService->calculateVelocity($product),
+            'last_sale' => $statsService->getLastSale($product),
+            'frequency' => $statsService->getSalesFrequency($product),
+            'trend' => $statsService->getSalesTrend($product),
+            'top_customers' => $statsService->getTopCustomers($product),
+            'suggestion' => $statsService->getPurchaseSuggestion($product)
+        ];
 
         $this->editing = true;
+        // $this->dispatch('modalCatalogue');
 
         session(['values' => $product->priceList->toArray()]);
         $this->dispatch('update-quill-content', content: $product->description);

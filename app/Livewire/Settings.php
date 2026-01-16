@@ -15,6 +15,7 @@ class Settings extends Component
     public $globalCommission1Threshold, $globalCommission1Percentage, $globalCommission2Threshold, $globalCommission2Percentage;
     public $logo, $logo_preview; // Logo properties
     public $backupEmails; // Backup Emails
+    public $purchasingCalculationMode, $purchasingCoverageDays; // Purchasing Intelligence
     
     public $tab = 1; // Control de pestañas
 
@@ -73,6 +74,10 @@ class Settings extends Component
             
             // Load backup emails (array to string)
             $this->backupEmails = is_array($config->backup_emails) ? implode(', ', $config->backup_emails) : $config->backup_emails;
+
+            // Purchasing Intelligence
+            $this->purchasingCalculationMode = $config->purchasing_calculation_mode ?? 'recent';
+            $this->purchasingCoverageDays = $config->purchasing_coverage_days ?? 15;
         }
     }
 
@@ -169,7 +174,9 @@ class Settings extends Component
                 'global_commission_2_percentage' => $this->globalCommission2Percentage,
                 'check_stock_reservation' => $this->checkStockReservation ? 1 : 0,
                 'default_warehouse_id' => $this->defaultWarehouseId,
-                'backup_emails' => $backupEmailsArray
+                'backup_emails' => $backupEmailsArray,
+                'purchasing_calculation_mode' => $this->purchasingCalculationMode,
+                'purchasing_coverage_days' => intval($this->purchasingCoverageDays)
             ];
 
             // Handle Logo Upload
