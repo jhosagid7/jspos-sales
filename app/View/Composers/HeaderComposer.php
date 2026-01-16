@@ -10,6 +10,25 @@ use Carbon\Carbon;
 
 class HeaderComposer
 {
+    private function cleanString($string)
+    {
+        if (is_null($string)) return '';
+
+        // Force UTF-8 first
+        $string = iconv('UTF-8', 'UTF-8//IGNORE', $string);
+        
+        // Remove control characters
+        $cleaned = preg_replace('/[\x00-\x1F\x7F]/u', '', $string);
+        $string = $cleaned ?? $string;
+
+        // JSON Failsafe
+        if (json_encode($string) === false) {
+            return "INVALID_ENCODING";
+        }
+        
+        return $string;
+    }
+
     public function compose(View $view)
     {
         $config = Configuration::first();
@@ -25,7 +44,13 @@ class HeaderComposer
                 ->where('created_at', '<', Carbon::now()->subDays($creditDays))
                 ->with('customer')
                 ->orderBy('id', 'asc')
-                ->get();
+                ->get()
+                ->transform(function($sale) {
+                    if ($sale->customer) {
+                        $sale->customer->name = $this->cleanString($sale->customer->name);
+                    }
+                    return $sale;
+                });
         }
 
         if ($creditPurchaseDays > 0) {
@@ -34,7 +59,13 @@ class HeaderComposer
                 ->where('created_at', '<', Carbon::now()->subDays($creditPurchaseDays))
                 ->with('supplier')
                 ->orderBy('id', 'asc')
-                ->get();
+                ->get()
+                ->transform(function($purchase) {
+                    if ($purchase->supplier) {
+                        $purchase->supplier->name = $this->cleanString($purchase->supplier->name);
+                    }
+                    return $purchase;
+                });
         }
 
         $view->with('noty_sales', $noty_sales);
@@ -65,7 +96,18 @@ class HeaderComposer
                 });
             }
 
-            $noty_commissions = $query->orderBy('created_at', 'desc')->get();
+            $noty_commissions = $query->orderBy('created_at', 'desc')->get()
+                ->transform(function($sale) {
+                    if ($sale->customer) {
+                        $sale->customer->name = $this->cleanString($sale->customer->name);
+                    }
+                    return $sale;
+                });
+        }
+
+        // Sanitize user name
+        if ($user) {
+            $user->name = $this->cleanString($user->name);
         }
 
         $view->with('noty_commissions', $noty_commissions);

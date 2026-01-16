@@ -98,7 +98,7 @@ class UpdateService
         }
     }
 
-    public function installUpdate()
+    public function installUpdate($newVersion = null)
     {
         $tempPath = storage_path('app/temp_update.zip');
         $zip = new ZipArchive;
@@ -114,6 +114,11 @@ class UpdateService
             if (count($files) > 0) {
                 $source = $files[0];
                 File::copyDirectory($source, base_path());
+            }
+
+            // Explicitly update version.txt
+            if ($newVersion) {
+                File::put(base_path('version.txt'), $newVersion);
             }
 
             File::deleteDirectory($extractPath);

@@ -3,7 +3,7 @@
     @php
         $config = \App\Models\Configuration::first();
         $logo = $config && $config->logo ? asset('storage/' . $config->logo) : asset('assets/images/logo/logo-icon.png');
-        $appName = $config && $config->business_name ? $config->business_name : 'JSPOS v1.7';
+        $appName = $config && $config->business_name ? iconv('UTF-8', 'UTF-8//IGNORE', $config->business_name) : 'JSPOS v1.7';
     @endphp
     <a href="{{ route('sales') }}" class="brand-link">
         <img src="{{ $logo }}" alt="Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
@@ -215,6 +215,12 @@
                             <a href="{{ route('reports.best.sellers') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Más Vendidos</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('reports.rotation') }}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Rotación</p>
                             </a>
                         </li>
                     </ul>
