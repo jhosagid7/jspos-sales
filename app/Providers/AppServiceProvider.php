@@ -32,7 +32,12 @@ class AppServiceProvider extends ServiceProvider
                     config(['backup.notifications.mail.to' => $config->backup_emails]);
                 }
                 
-                $appName = "JSPOS(" . ($config->business_name ?? 'Sistema') . ")";
+                $businessName = $config->business_name ?? 'Sistema';
+                // Sanitize business name
+                $businessName = iconv('UTF-8', 'UTF-8//IGNORE', $businessName);
+                $businessName = preg_replace('/[\x00-\x1F\x7F]/u', '', $businessName) ?? $businessName;
+
+                $appName = "JSPOS(" . $businessName . ")";
                 config([
                     'backup.backup.name' => $appName,
                     'mail.from.name' => $appName,

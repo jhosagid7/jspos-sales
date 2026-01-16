@@ -119,7 +119,7 @@ class UpdateSystem extends Component
         $this->progress = 60;
 
         try {
-            $updater->installUpdate();
+            $updater->installUpdate($this->newVersion);
             $this->dispatch('run-migrate');
         } catch (\Exception $e) {
             $this->handleError($e);

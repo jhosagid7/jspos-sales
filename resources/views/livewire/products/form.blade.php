@@ -48,6 +48,16 @@
                         </a>
                     </li>
                     <li class="nav-item mb-2">
+                        <a class="nav-link {{ $tab == 8 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                           wire:click.prevent="$set('tab',8)" href="#">
+                            <i class="fa fa-chart-bar fa-2x"></i>
+                            <div>
+                                <h6 class="mb-0">Estadísticas</h6>
+                                <small class="{{ $tab == 8 ? 'text-white' : 'text-muted' }}">Datos de ventas y stock</small>
+                            </div>
+                        </a>
+                    </li>
+                    <li class="nav-item mb-2">
                         <a class="nav-link {{ $tab == 3 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                            wire:click.prevent="$set('tab',3)" href="#">
                             <i class="fa fa-tags fa-2x"></i>
@@ -619,6 +629,228 @@
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                    </div>
+
+                    {{-- Statistics Tab --}}
+                    <div class="tab-pane fade {{ $tab == 8 ? 'active show' : '' }}" id="statistics" role="tabpanel">
+                        <div class="sidebar-body">
+                            @if(!empty($stats))
+                                {{-- KPI Cards --}}
+                                <div class="row mb-4">
+                                    <div class="col-md-4">
+                                        <div class="card bg-light border-0 shadow-sm">
+                                            <div class="card-body text-center">
+                                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.8rem; letter-spacing: 1px;">Velocidad de Venta</h6>
+                                                <h3 class="fw-bold text-dark mb-0">{{ $stats['velocity'] }} <small class="fs-6 text-muted">u/día</small></h3>
+                                                <small class="text-success fw-bold" style="font-size: 0.75rem;">Promedio últimos 30 días</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card bg-light border-0 shadow-sm">
+                                            <div class="card-body text-center">
+                                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.8rem; letter-spacing: 1px;">Frecuencia de Venta</h6>
+                                                <h3 class="fw-bold text-dark mb-0">{{ $stats['frequency']['frequency_percentage'] }}%</h3>
+                                                <small class="text-info fw-bold" style="font-size: 0.75rem;">{{ $stats['frequency']['days_with_sales'] }} de {{ $stats['frequency']['total_days'] }} días</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card bg-light border-0 shadow-sm">
+                                            <div class="card-body text-center">
+                                                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.8rem; letter-spacing: 1px;">Última Venta</h6>
+                                                @if($stats['last_sale'])
+                                                    <h5 class="fw-bold text-dark mb-0">{{ $stats['last_sale']['date'] }}</h5>
+                                                    <small class="text-muted" style="font-size: 0.75rem;">{{ \Illuminate\Support\Str::limit($stats['last_sale']['customer'], 20) }} ({{ $stats['last_sale']['quantity'] }} u)</small>
+                                                @else
+                                                    <h5 class="fw-bold text-dark mb-0">-</h5>
+                                                    <small class="text-muted" style="font-size: 0.75rem;">Sin ventas recientes</small>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Trend Chart & Suggestion --}}
+                                <div class="row mb-4">
+                                    <div class="col-md-8">
+                                        <div class="card h-100 border-0 shadow-sm">
+                                            <div class="card-header bg-white border-bottom-0 pt-3 ps-3">
+                                                <h6 class="mb-0 fw-bold">Tendencia de Ventas (Últimos 12 Meses)</h6>
+                                            </div>
+                                            <div class="card-body p-2" wire:ignore>
+                                                <div x-data='{
+                                                    init() {
+                                                        if (typeof Highcharts !== "undefined") {
+                                                            this.renderChart();
+                                                        } else {
+                                                            document.addEventListener("DOMContentLoaded", () => this.renderChart());
+                                                        }
+                                                    },
+                                                    renderChart() {
+                                                        const trendData = @json($stats["trend"]);
+                                                        Highcharts.chart(this.$refs.chart, {
+                                                            chart: { type: "areaspline", backgroundColor: "transparent" },
+                                                            title: { text: "" },
+                                                            xAxis: { 
+                                                                categories: trendData.map(item => item.label),
+                                                                crosshair: true,
+                                                                lineColor: "transparent",
+                                                                tickColor: "transparent"
+                                                            },
+                                                            yAxis: { 
+                                                                min: 0, 
+                                                                title: { text: "" }, 
+                                                                gridLineColor: "#f0f0f0" 
+                                                            },
+                                                            tooltip: {
+                                                                shared: true,
+                                                                headerFormat: "<span style=\"font-size: 10px\">{point.key}</span><br/>",
+                                                                pointFormat: "<span style=\"color:{point.color}\">\u25CF</span> {series.name}: <b>{point.y}</b><br/>"
+                                                            },
+                                                            plotOptions: {
+                                                                areaspline: {
+                                                                    fillOpacity: 0.1,
+                                                                    marker: { enabled: false, symbol: "circle", radius: 2, states: { hover: { enabled: true } } }
+                                                                }
+                                                            },
+                                                            series: [{
+                                                                name: "Ventas",
+                                                                data: trendData.map(item => item.value),
+                                                                color: "#6366f1",
+                                                                lineColor: "#6366f1"
+                                                            }],
+                                                            credits: { enabled: false },
+                                                            legend: { enabled: false }
+                                                        });
+                                                    }
+                                                }'>
+                                                    <div x-ref="chart" style="height: 250px;"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card h-100 border-primary shadow-sm" style="border-width: 2px;">
+                                            <div class="card-header bg-primary text-white text-center py-2">
+                                                <h6 class="mb-0 text-uppercase" style="font-size: 0.85rem; letter-spacing: 1px;">Sugerencia de Compra</h6>
+                                            </div>
+                                            <div class="card-body text-center d-flex flex-column justify-content-center p-3">
+                                                <h6 class="text-muted mb-1" style="font-size: 0.85rem;">Para cubrir {{ $stats['suggestion']['days_coverage'] }} días</h6>
+                                                <h1 class="display-3 fw-bold text-primary mb-2">{{ $stats['suggestion']['suggestion'] }}</h1>
+                                                <p class="mb-3 text-uppercase fw-bold text-muted" style="font-size: 0.75rem;">Unidades a pedir</p>
+                                                <div class="bg-light rounded p-2">
+                                                    <div class="d-flex justify-content-between mb-1">
+                                                        <span class="text-muted" style="font-size: 0.8rem;">Stock Actual:</span>
+                                                        <strong class="text-dark">{{ $stats['suggestion']['current_stock'] }}</strong>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between">
+                                                        <span class="text-muted" style="font-size: 0.8rem;">Stock Ideal:</span>
+                                                        <strong class="text-dark">{{ $stats['suggestion']['required_stock'] }}</strong>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Top Customers --}}
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="card border-0 shadow-sm">
+                                            <div class="card-header bg-white border-bottom-0 pt-3 ps-3">
+                                                <h6 class="mb-0 fw-bold">Top 5 Clientes</h6>
+                                            </div>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-hover mb-0 align-middle">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th class="ps-3 border-0">Cliente</th>
+                                                            <th class="text-center border-0">Unidades Compradas</th>
+                                                            <th class="text-end pe-3 border-0">Total Gastado</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @forelse($stats['top_customers'] as $customer)
+                                                            <tr>
+                                                                <td class="ps-3">{{ $customer['name'] }}</td>
+                                                                <td class="text-center">
+                                                                    <span class="badge bg-info text-dark">{{ $customer['quantity'] }}</span>
+                                                                </td>
+                                                                <td class="text-end pe-3 fw-bold text-success">${{ number_format($customer['amount'], 2) }}</td>
+                                                            </tr>
+                                                        @empty
+                                                            <tr>
+                                                                <td colspan="3" class="text-center py-3 text-muted">No hay datos suficientes</td>
+                                                            </tr>
+                                                        @endforelse
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Chart Script --}}
+                                <script>
+                                    document.addEventListener('livewire:initialized', () => {
+                                        initChart();
+                                    });
+                                    
+                                    // Re-init chart when tab is shown (if needed) or when Livewire updates
+                                    document.addEventListener('livewire:navigated', () => {
+                                        initChart();
+                                    });
+
+                                    function initChart() {
+                                        if (!document.getElementById('salesTrendChart')) return;
+                                        
+                                        const trendData = @json($stats['trend']);
+                                        
+                                        Highcharts.chart('salesTrendChart', {
+                                            chart: { type: 'areaspline', backgroundColor: 'transparent' },
+                                            title: { text: '' },
+                                            xAxis: { 
+                                                categories: trendData.map(item => item.label),
+                                                crosshair: true,
+                                                lineColor: 'transparent',
+                                                tickColor: 'transparent'
+                                            },
+                                            yAxis: { 
+                                                min: 0, 
+                                                title: { text: '' }, 
+                                                gridLineColor: '#f0f0f0' 
+                                            },
+                                            tooltip: {
+                                                shared: true,
+                                                headerFormat: '<span style="font-size: 10px">{point.key}</span><br/>',
+                                                pointFormat: '<span style="color:{point.color}">\u25CF</span> {series.name}: <b>{point.y}</b><br/>'
+                                            },
+                                            plotOptions: {
+                                                areaspline: {
+                                                    fillOpacity: 0.1,
+                                                    marker: { enabled: false, symbol: 'circle', radius: 2, states: { hover: { enabled: true } } }
+                                                }
+                                            },
+                                            series: [{
+                                                name: 'Ventas',
+                                                data: trendData.map(item => item.value),
+                                                color: '#6366f1',
+                                                lineColor: '#6366f1'
+                                            }],
+                                            credits: { enabled: false },
+                                            legend: { enabled: false }
+                                        });
+                                    }
+                                </script>
+                            @else
+                                <div class="d-flex flex-column align-items-center justify-content-center py-5 text-muted">
+                                    <i class="fa fa-chart-line fa-3x mb-3 text-secondary"></i>
+                                    <h5 class="fw-bold">Estadísticas no disponibles</h5>
+                                    <p class="mb-0">Guarda el producto para comenzar a ver sus estadísticas de venta.</p>
+                                </div>
+                            @endif
                         </div>
                     </div>
 

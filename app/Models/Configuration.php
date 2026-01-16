@@ -39,7 +39,9 @@ class Configuration extends Model
         'logo',
         'default_warehouse_id',
         'check_stock_reservation',
-        'backup_emails'
+        'backup_emails',
+        'purchasing_calculation_mode',
+        'purchasing_coverage_days'
     ];
 
     protected $casts = [
