@@ -138,6 +138,7 @@ class UpdateService
     public function cleanup()
     {
         Artisan::call('optimize:clear');
+        \Illuminate\Support\Facades\Cache::forget('system_update_available');
         return true;
     }
 }
