@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+
+## [1.4.4] - 2026-01-17
+
+### Fixed
+- **Update System**:
+  - **Changelog Visibility**: Fixed an issue where `CHANGELOG.md` was excluded from release zips (via `.gitattributes`), causing clients to not see release notes after updating.
+
 ## [1.4.3] - 2026-01-16
 
 ### Changed
