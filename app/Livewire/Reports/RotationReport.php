@@ -50,19 +50,15 @@ class RotationReport extends Component
     {
         if (is_null($string)) return '';
 
-        // Force UTF-8 first
-        $string = iconv('UTF-8', 'UTF-8//IGNORE', $string);
+        // 1. Ensure valid UTF-8
+        // mb_convert_encoding with UTF-8 to UTF-8 will replace invalid sequences with ?
+        $string = mb_convert_encoding($string, 'UTF-8', 'UTF-8');
         
-        // Remove control characters
-        $cleaned = preg_replace('/[\x00-\x1F\x7F]/u', '', $string);
-        $string = $cleaned ?? $string;
-
-        // JSON Failsafe
-        if (json_encode($string) === false) {
-            return "INVALID_ENCODING";
-        }
+        // 2. Remove control characters (0-31 except 9=Tab, 10=LF, 13=CR) and 127=DEL
+        // We do NOT use /u modifier here to avoid PCRE UTF-8 validity checks crashing
+        $string = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $string);
         
-        return $string;
+        return trim($string);
     }
 
     public function render()
@@ -202,24 +198,38 @@ class RotationReport extends Component
 
     public function generatePdf()
     {
-        if (count($this->selectedProducts) > 0) {
-            $query = $this->getQuery();
-            $query->whereIn('products.id', $this->selectedProducts);
-            $data = $query->get();
-        } else {
-            $data = $this->getQuery()->get();
+        try {
+            // DEBUG: Step 4 - Restore Real Data
+            if (count($this->selectedProducts) > 0) {
+                $query = $this->getQuery();
+                $query->whereIn('products.id', $this->selectedProducts);
+                $data = $query->get();
+            } else {
+                $data = $this->getQuery()->get();
+            }
+
+            $data = $this->processMetrics($data);
+            
+            $config = \App\Models\Configuration::first();
+
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('livewire.reports.rotation-report-pdf', [
+                'data' => $data,
+                'dateFrom' => $this->dateFrom,
+                'dateTo' => $this->dateTo,
+                'coverageDays' => $this->coverageDays,
+                'config' => $config
+            ]);
+
+            return response()->streamDownload(function () use ($pdf) {
+                echo $pdf->output();
+            }, 'Reporte_Rotacion.pdf');
+
+        } catch (\Exception $e) {
+
+        } catch (\Exception $e) {
+            $this->dispatch('noty', msg: "Error al generar PDF: " . $e->getMessage());
+            return;
         }
-
-        $data = $this->processMetrics($data);
-
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('livewire.reports.rotation-report-pdf', [
-            'data' => $data,
-            'dateFrom' => $this->dateFrom,
-            'dateTo' => $this->dateTo,
-            'coverageDays' => $this->coverageDays
-        ]);
-
-        return $pdf->stream('Reporte_Rotacion.pdf');
     }
 
     public function createPurchaseOrder()

@@ -287,7 +287,7 @@
                                     </div>
                                     <div class="card-body">
                                         <div class="row g-2">
-                                            <div class="col-5">
+                                            <div class="col-6 col-md-5">
                                                 <select class="form-control form-control-sm" wire:model="selectedChangeCurrency">
                                                     <option value="">Moneda...</option>
                                                     @foreach($currencies as $c)
@@ -295,10 +295,10 @@
                                                     @endforeach
                                                 </select>
                                             </div>
-                                            <div class="col-4">
+                                            <div class="col-6 col-md-4">
                                                 <input type="number" class="form-control form-control-sm" wire:model="selectedChangeAmount" placeholder="Monto">
                                             </div>
-                                            <div class="col-3">
+                                            <div class="col-12 col-md-3">
                                                 <button class="btn btn-success btn-sm w-100" wire:click="addChangeDistribution"><i class="fa fa-plus"></i></button>
                                             </div>
                                         </div>

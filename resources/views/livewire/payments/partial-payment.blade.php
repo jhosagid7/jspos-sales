@@ -19,7 +19,7 @@
 
                         {{-- @json($sales) --}}
                         <div class="order-history table-responsive  mt-2">
-                            <table class="table table-bordered">
+                            <table class="table table-bordered table-mobile-cards">
                                 <thead class="">
                                     <tr>
                                         <th class='p-2'> Cliente</th>
@@ -33,18 +33,18 @@
                                 <tbody>
                                     @forelse ($sales as $sale)
                                         <tr>
-                                            <td>
+                                            <td data-label="Cliente">
                                                 <div class="txt-info">{{ $sale->customer->name }}</div>
                                             </td>
-                                            <td>
+                                            <td data-label="Venta">
                                                 <div> <b>{{ $sale->id }}</b></div>
                                                 <small><i class="icon-calendar"></i>
                                                     {{ app('fun')->dateFormat($sale->created_at) }}</small>
                                             </td>
-                                            <td>${{ number_format($sale->total_display, 2) }}</td>
-                                            <td>${{ number_format($sale->total_paid_display, 2) }}</td>
-                                            <td>${{ number_format($sale->debt_display, 2) }}</td>
-                                            <td>
+                                            <td data-label="Total">${{ number_format($sale->total_display, 2) }}</td>
+                                            <td data-label="Abonado">${{ number_format($sale->total_paid_display, 2) }}</td>
+                                            <td data-label="Debe">${{ number_format($sale->debt_display, 2) }}</td>
+                                            <td data-label="Acciones">
 
 
                                                 @if ($sale->total_paid_display > 0)
