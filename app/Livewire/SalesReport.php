@@ -162,7 +162,7 @@ class SalesReport extends Component
     function getSaleDetail(Sale $sale)
     {
         // dd($sale->status);
-        $this->salesObt = $sale;
+        $this->salesObt = $sale->load(['deliveryCollections.payments.currency']);
         $this->sale_id = $sale->id;
         $this->sale_status = $sale->status;
         $this->details = $sale->details;

@@ -79,6 +79,17 @@
                                 </div>
                             </a>
                         </li>
+                        {{-- Tab 7: Configuración Móvil --}}
+                        <li class="nav-item mb-2">
+                            <a class="nav-link {{ $tab == 7 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                               wire:click.prevent="$set('tab',7)" href="#">
+                                <i class="fa fa-mobile fa-2x"></i>
+                                <div>
+                                    <h6 class="mb-0">Móvil</h6>
+                                    <small class="{{ $tab == 7 ? 'text-white' : 'text-muted' }}">Escáner y Cámara</small>
+                                </div>
+                            </a>
+                        </li>
                     </ul>
                 </div>
 
@@ -495,6 +506,46 @@
                                         </button>
                                     </div>
                                 </form>
+                            </div>
+                        </div>
+
+                        {{-- TAB 7: CONFIGURACIÓN MÓVIL --}}
+                        <div class="tab-pane fade {{ $tab == 7 ? 'active show' : '' }}" id="mobile-settings" role="tabpanel"
+                            aria-labelledby="mobile-settings-tab">
+                            <div class="sidebar-body">
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <div class="alert alert-light-info" role="alert">
+                                            <i class="fas fa-info-circle"></i> Instrucciones para habilitar el escáner de cámara en dispositivos móviles.
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <h5 class="mb-3">Configuración de Chrome Flags (Solo Localhost)</h5>
+                                        <p>Para usar la cámara en una red local (sin HTTPS), debes configurar Chrome en tu celular:</p>
+                                        
+                                        <ol class="list-group list-group-numbered mb-3">
+                                            <li class="list-group-item">Abre <strong>Chrome</strong> en tu celular.</li>
+                                            <li class="list-group-item">Escribe en la barra de direcciones: <code>chrome://flags</code></li>
+                                            <li class="list-group-item">Busca: <strong>"Insecure origins treated as secure"</strong></li>
+                                            <li class="list-group-item">Cambia a <strong>Enabled</strong>.</li>
+                                            <li class="list-group-item">
+                                                En el cuadro de texto, escribe la IP de tu servidor:<br>
+                                                <div class="input-group mt-2">
+                                                    <input type="text" class="form-control" value="{{ request()->root() }}" readonly>
+                                                    <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText('{{ request()->root() }}')">
+                                                        <i class="fa fa-copy"></i> Copiar
+                                                    </button>
+                                                </div>
+                                            </li>
+                                            <li class="list-group-item">Toca el botón <strong>Relaunch</strong> para reiniciar Chrome.</li>
+                                        </ol>
+                                        
+                                        <div class="alert alert-warning">
+                                            <i class="fas fa-exclamation-triangle"></i> Esta configuración es necesaria solo si accedes por IP (ej. 192.168.x.x). Si usas un dominio seguro (HTTPS), no es necesario.
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

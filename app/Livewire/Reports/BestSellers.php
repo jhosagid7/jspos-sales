@@ -36,63 +36,70 @@ class BestSellers extends Component
 
     public function getData()
     {
-        $query = SaleDetail::query()
+        // 1. Aggregate First (Fast Query)
+        // Only query sales and sale_details to get the top product IDs and totals.
+        // This avoids joining products and categories tables for every single sale detail row before grouping.
+        $aggregated = SaleDetail::query()
             ->join('sales', 'sale_details.sale_id', '=', 'sales.id')
-            ->join('products', 'sale_details.product_id', '=', 'products.id')
-            ->join('categories', 'products.category_id', '=', 'categories.id')
             ->select(
-                'products.id',
-                'products.name',
-                'categories.name as category',
-                'products.sku',
+                'sale_details.product_id',
                 DB::raw('SUM(sale_details.quantity) as total_qty'),
-                DB::raw('SUM(sale_details.quantity * sale_details.sale_price) as total_sales'),
-                'products.cost as unit_cost' 
+                DB::raw('SUM(sale_details.quantity * sale_details.sale_price) as total_sales')
             )
             ->whereBetween('sales.created_at', [$this->dateFrom . ' 00:00:00', $this->dateTo . ' 23:59:59'])
             ->where('sales.status', 'paid')
-            ->groupBy('products.id', 'products.name', 'categories.name', 'products.sku', 'products.cost')
+            ->groupBy('sale_details.product_id')
             ->orderBy('total_qty', 'desc');
 
         if (!$this->isDetailed) {
-            $query->limit($this->limit);
+            $aggregated->limit($this->limit);
         }
 
-        $results = $query->get();
+        $results = $aggregated->get();
+
+        if ($results->isEmpty()) {
+            return collect();
+        }
+
+        // 2. Fetch Details Later (Deferred Join)
+        // Now fetch the product details only for the aggregated results.
+        $productIds = $results->pluck('product_id');
+        
+        $products = \App\Models\Product::with(['category', 'images'])
+            ->whereIn('id', $productIds)
+            ->get()
+            ->keyBy('id');
 
         // Calculate grand totals for percentages
         $grandTotalQty = $results->sum('total_qty');
         $grandTotalSales = $results->sum('total_sales');
 
-        // Eager load images for the products found
-        $productIds = $results->pluck('id');
-        $productsWithImages = \App\Models\Product::with('images')->whereIn('id', $productIds)->get()->keyBy('id');
+        // 3. Merge and Process
+        $processed = $results->map(function($item) use ($products, $grandTotalQty, $grandTotalSales) {
+            $product = $products->get($item->product_id);
+            
+            if (!$product) {
+                // Handle case where product might have been deleted but sales exist
+                return null;
+            }
 
-        // Calculate profit and margin
-        $processed = $results->map(function($item) use ($productsWithImages, $grandTotalQty, $grandTotalSales) {
-            $totalCost = $item->total_qty * $item->unit_cost;
+            $totalCost = $item->total_qty * $product->cost;
             $profit = $item->total_sales - $totalCost;
             $margin = $item->total_sales > 0 ? ($profit / $item->total_sales) * 100 : 0;
             
-            $product = $productsWithImages->get($item->id);
-            $image = $product ? $product->photo : null;
-            
+            $image = $product->photo;
             // Normalize image to full URL
             if ($image && !str_starts_with($image, 'http')) {
                 $image = asset($image);
             }
 
             return (object) [
-                'id' => $item->id,
-                'name' => $item->name,
-                'category' => $item->category,
+                'id' => $product->id,
+                'name' => $product->name,
+                'category' => $product->category->name ?? 'Sin Categoría',
                 'image' => $image,
-                'barcode' => $item->sku, // Mapping sku to barcode property for view compatibility, or we can change view. Let's keep property name or change it?
-                // The view uses $item->barcode. I will map it here to avoid changing view if possible, 
-                // BUT it is better to be explicit. I will change it to 'code' or 'sku'.
-                // Let's keep 'barcode' as the key for now to minimize view changes, 
-                // OR better, change it to 'sku' and update view.
-                'sku' => $item->sku,
+                'barcode' => $product->sku, 
+                'sku' => $product->sku,
                 'total_qty' => $item->total_qty,
                 'total_sales' => $item->total_sales,
                 'total_cost' => $totalCost,
@@ -101,7 +108,7 @@ class BestSellers extends Component
                 'percentage_qty' => $grandTotalQty > 0 ? ($item->total_qty / $grandTotalQty) * 100 : 0,
                 'percentage_sales' => $grandTotalSales > 0 ? ($item->total_sales / $grandTotalSales) * 100 : 0,
             ];
-        });
+        })->filter(); // Remove nulls
 
         return $processed;
     }

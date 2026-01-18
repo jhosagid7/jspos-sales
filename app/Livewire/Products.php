@@ -97,6 +97,7 @@ class Products extends Component
         $this->form->category_id = $product->category_id;
         $this->form->is_pre_assembled = (bool) $product->is_pre_assembled;
         $this->form->additional_cost = $product->additional_cost;
+        $this->form->tags = $product->tags->pluck('name')->implode(',');
         $this->form->values = $product->priceList->toArray();
 
         // Load suppliers
