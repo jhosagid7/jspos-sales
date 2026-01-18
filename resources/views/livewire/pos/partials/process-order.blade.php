@@ -17,7 +17,7 @@
                         </div>
 
                         <div class="mt-3 table-responsive">
-                            <table class="table table-responsive-md table-hover" id="tblSalesRpt">
+                            <table class="table table-responsive-md table-hover table-mobile-cards" id="tblSalesRpt">
                                 <thead class="thead-primary">
                                     <tr class="text-center">
                                         <th>Folio</th>
@@ -33,17 +33,17 @@
 
                                     @forelse ($orders as $order)
                                         <tr class="text-center">
-                                            <td>{{ $order->order_number ?? $order->id }}</td>
-                                            <td>{{ $order->customer->name }}</td>
-                                            <td>${{ $order->total }}</td>
-                                            <td>{{ $order->items }}</td>
-                                            <td><span
+                                            <td data-label="Folio">{{ $order->order_number ?? $order->id }}</td>
+                                            <td data-label="Cliente">{{ $order->customer->name }}</td>
+                                            <td data-label="Total">${{ $order->total }}</td>
+                                            <td data-label="Articulos">{{ $order->items }}</td>
+                                            <td data-label="Estatus"><span
                                                     class="badge f-12 {{ $order->status == 'paid' ? 'badge-light-success' : ($order->status == 'return' ? 'badge-light-warning' : ($order->status == 'pending' ? 'badge-light-warning' : 'badge-light-danger')) }}">{{ $order->status }}</span>
                                             </td>
-                                            <td>{{ $order->created_at }}</td>
+                                            <td data-label="Fecha">{{ $order->created_at }}</td>
                                             <td class="text-primary"></td>
 
-                                            <td data-container="body" data-bs-toggle="tooltip" data-bs-placement="top"
+                                            <td data-label="Acciones" data-container="body" data-bs-toggle="tooltip" data-bs-placement="top"
                                                 data-bs-html="true" data-bs-title="<b>Ver los detalles de la orden</b>">
                                                 <button class="btn btn-primary"
                                                     wire:click.prevent="loadOrderToCart({{ $order->id }})">Agregar al
