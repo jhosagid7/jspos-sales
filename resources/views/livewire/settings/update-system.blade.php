@@ -40,10 +40,10 @@
                                 <h4 class="alert-heading"><i class="fas fa-cog fa-spin me-2"></i> Actualizando Sistema...</h4>
                                 <p class="mb-0">Por favor no cierre esta ventana.</p>
                                 <hr>
-                                <div class="progress br-30 mb-2">
-                                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ $progress }}%" aria-valuenow="{{ $progress }}" aria-valuemin="0" aria-valuemax="100">
+                                <div class="progress br-30 mb-2 bg-white">
+                                    <div class="progress-bar bg-warning" role="progressbar" style="width: {{ $progress }}%" aria-valuenow="{{ $progress }}" aria-valuemin="0" aria-valuemax="100">
                                         <div class="progress-title">
-                                            <span>{{ $progress }}%</span>
+                                            <span class="text-dark font-weight-bold">{{ $progress }}%</span>
                                         </div>
                                     </div>
                                 </div>
