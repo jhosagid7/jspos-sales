@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.5.1] - 2026-01-18
+
+### Fixed
+- **System Update**:
+  - **UI**: Fixed an issue where a dark overlay (backdrop) would block the screen after an update.
+  - **Error Handling**: Added robust error handling for reading release notes.
+- **Database**:
+  - **Migrations**: Fixed execution order for delivery tracking migrations to prevent "Column not found" errors.
+  - **Roles**: Ensure "Driver" role is correctly created by the seeder.
+- **Access Control**:
+  - **Super Admin**: Added failsafe mechanism to restore Admin access for the system owner.
+
+## [1.5.0] - 2026-01-18
+
+### Added
+- **Delivery Tracking System**:
+  - **Driver Dashboard**: New dedicated dashboard for drivers to view assigned orders, update status, and report collections.
+  - **Live Tracking**: Real-time driver location tracking for administrators.
+  - **Collection Reporting**: Drivers can now report payments (multi-currency) and notes directly from their dashboard.
+  - **Admin Visibility**: Added "Reportes de Chofer / Cobranza" section to the Sale Detail modal in Admin Sales Report.
+- **Mobile Experience**:
+  - **Barcode Scanner**: Integrated camera-based barcode scanner for mobile POS.
+  - **Optimizations**: Improved touch targets and layout for mobile devices.
+- **Performance**:
+  - **Database Indexes**: Added missing indexes to `sales`, `products`, and `customers` tables for faster queries.
+  - **Query Optimization**: Fixed N+1 query issues in Sales and Reports.
+
 ## [1.4.11] - 2026-01-18
 
 ### Fixed

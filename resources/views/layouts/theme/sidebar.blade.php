@@ -32,18 +32,37 @@
         <nav class="mt-2">
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
                 
+                @unlessrole('Driver')
                 <li class="nav-item">
                     <a href="{{ route('welcome') }}" class="nav-link {{ Request::is('welcome') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-tachometer-alt"></i>
                         <p>DASHBOARD</p>
                     </a>
                 </li>
+                @endunlessrole
+
+                @role('Driver')
+                <li class="nav-item">
+                    <a href="{{ route('driver.dashboard') }}" class="nav-link {{ Request::is('driver/dashboard') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-truck-loading"></i>
+                        <p>MI RUTA</p>
+                    </a>
+                </li>
+                @endrole
+                
+                @unlessrole('Driver')
                 
                 @can('ventas')
                 <li class="nav-item">
                     <a href="{{ route('sales') }}" class="nav-link {{ Request::is('sales') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-shopping-cart"></i>
                         <p>VENTAS</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('delivery.map') }}" class="nav-link {{ Request::is('delivery/map') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-map-marked-alt"></i>
+                        <p>MAPA CHOFERES</p>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -324,6 +343,7 @@
                 </li>
                 @endcan
 
+                @endunlessrole
             </ul>
         </nav>
         <!-- /.sidebar-menu -->

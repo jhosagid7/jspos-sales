@@ -64,3 +64,16 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Mobile Barcode Scanner Setup (Localhost)
+
+To use the mobile barcode scanner on a local network (without HTTPS), you must configure Chrome on your mobile device to trust the insecure origin.
+
+1.  Open Chrome on your mobile device.
+2.  Navigate to `chrome://flags`.
+3.  Search for **"Insecure origins treated as secure"**.
+4.  Enable the setting.
+5.  In the text box, enter your server's IP address including the protocol and port (e.g., `http://192.168.1.15` or `http://192.168.1.15:8000`).
+6.  Tap **Relaunch** to restart Chrome.
+
+Once configured, the camera permission prompt will appear when you click the scan button in the POS.

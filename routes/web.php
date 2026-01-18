@@ -64,6 +64,9 @@ Route::prefix('install')->name('install.')->group(function () {
 });
 
 Route::get('/dashboard', function () {
+    if (auth()->user()->hasRole('Driver')) {
+        return redirect()->route('driver.dashboard');
+    }
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -138,6 +141,11 @@ Route::middleware('auth')->group(function () {
     Route::get('backups/download/{fileName}', [\App\Http\Controllers\BackupController::class, 'download'])->name('backups.download');
     Route::get('devices', \App\Livewire\Settings\DeviceManager::class)->name('devices');
 
+    // Delivery Routes
+    Route::get('driver/dashboard', \App\Livewire\DriverDashboard::class)->name('driver.dashboard');
+    Route::get('delivery/tracking/{sale}', \App\Livewire\DeliveryTracking::class)->name('delivery.tracking');
+    Route::get('delivery/map', \App\Livewire\LiveDriverMap::class)->name('delivery.map');
+
     //generate pdf invoices
     Route::get('sales/{sale}', [Sales::class, 'generatePdfInvoice'])->name('pos.sales.generatePdfInvoice');
     //generate pdf orders invoices
@@ -184,3 +192,41 @@ Route::prefix('system')->name('system.')->group(function () {
 require __DIR__ . '/auth.php';
 
 
+
+Route::get('/fix-driver-role', function () {
+    try {
+        // Create Role if not exists
+        if (!\Spatie\Permission\Models\Role::where('name', 'Driver')->exists()) {
+            \Spatie\Permission\Models\Role::create(['name' => 'Driver', 'guard_name' => 'web', 'level' => 10]);
+        }
+        
+        // Clear Cache
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        
+        return "Rol 'Driver' creado y caché limpiada correctamente. <a href='/dashboard'>Volver al Dashboard</a>";
+    } catch (\Exception $e) {
+        return "Error: " . $e->getMessage();
+    }
+});
+
+Route::get('/fix-super-admin', function () {
+    try {
+        $user = \App\Models\User::where('email', 'jhosagid77@gmail.com')->first();
+        if (!$user) return "Usuario no encontrado";
+        
+        // Ensure Admin role exists
+        if (!\Spatie\Permission\Models\Role::where('name', 'Admin')->exists()) {
+            \Spatie\Permission\Models\Role::create(['name' => 'Admin', 'guard_name' => 'web', 'level' => 100]);
+        }
+        
+        $adminRole = \Spatie\Permission\Models\Role::where('name', 'Admin')->first();
+        $user->assignRole($adminRole);
+        
+        // Clear Cache
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        
+        return "Rol Admin asignado a {$user->name} y caché limpiada. <a href='/dashboard'>Volver</a>";
+    } catch (\Exception $e) {
+        return "Error: " . $e->getMessage();
+    }
+});

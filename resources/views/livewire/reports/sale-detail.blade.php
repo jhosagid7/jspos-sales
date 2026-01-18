@@ -299,6 +299,46 @@
                             </div>
                         @endif
                         
+                        {{-- Detalles de Cobranza del Chofer --}}
+                        @if($salesObt && $salesObt->deliveryCollections && $salesObt->deliveryCollections->count() > 0)
+                            <div class="mt-4">
+                                <h6 class="text-primary"><i class="fa fa-truck"></i> Reportes de Chofer / Cobranza</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered">
+                                        <thead class="table-light">
+                                            <tr class="text-center">
+                                                <th>Fecha</th>
+                                                <th>Chofer</th>
+                                                <th>Nota</th>
+                                                <th>Pagos Reportados</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($salesObt->deliveryCollections as $collection)
+                                                <tr class="text-center">
+                                                    <td>{{ $collection->created_at->format('d/m/Y H:i') }}</td>
+                                                    <td>{{ $collection->driver->name ?? 'N/A' }}</td>
+                                                    <td class="text-start fst-italic">{{ $collection->note ?? '-' }}</td>
+                                                    <td class="text-start">
+                                                        @if($collection->payments->count() > 0)
+                                                            @foreach($collection->payments as $payment)
+                                                                <div class="small">
+                                                                    <span class="fw-bold">{{ $payment->currency->code }}:</span> 
+                                                                    {{ number_format($payment->amount, 2) }}
+                                                                </div>
+                                                            @endforeach
+                                                        @else
+                                                            <span class="text-muted small">Solo nota</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        @endif
+
                         {{-- Detalles de Vueltos en Múltiples Monedas --}}
                         @if($salesObt && $salesObt->changeDetails && $salesObt->changeDetails->count() > 0)
                             <div class="mt-4">

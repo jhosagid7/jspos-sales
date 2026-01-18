@@ -110,6 +110,19 @@
                                     <option value="{{ $w->id }}">{{ $w->name }}</option>
                                 @endforeach
                             </select>
+                            </select>
+                        </div>
+
+                        <div class="input-group mb-2">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-truck"></i></span>
+                            </div>
+                            <select wire:model="driver_id" class="form-control">
+                                <option value="">Seleccionar Chofer (Opcional)</option>
+                                @foreach($drivers as $driver)
+                                    <option value="{{ $driver->id }}">{{ $driver->name }}</option>
+                                @endforeach
+                            </select>
                         </div>
 
                         <div class="input-group" wire:ignore>

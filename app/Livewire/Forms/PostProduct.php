@@ -18,7 +18,7 @@ class PostProduct extends Form
     //#[Validate('unique:products,name', message: 'El nombre ya existe',  onUpdate: false)]
     //#[Validate('unique:productos,name,' . $this->product_id, message: 'El título debe ser único')]
     public $name, $sku, $description, $type = 'physical', $status = 'available', $cost = 0, $price = 0, $manage_stock = 1, $stock_qty = 0, $low_stock = 0, $category_id = 0, $supplier_id = 0, $product_id = 0, $gallery;
-    public $max_stock = 0, $brand, $presentation, $is_pre_assembled = false, $additional_cost = 0, $stock_details = [];
+    public $max_stock = 0, $brand, $presentation, $is_pre_assembled = false, $additional_cost = 0, $stock_details = [], $tags = '';
 
     //properties priceList
     public $value;
@@ -77,6 +77,7 @@ class PostProduct extends Form
             'product_components' => 'nullable|array',
             'is_pre_assembled' => 'nullable|boolean',
             'additional_cost' => 'nullable|numeric|min:0',
+            'tags' => 'nullable|string',
         ];
         return $rules;
     }
@@ -229,7 +230,19 @@ class PostProduct extends Form
             }
         }
 
-
+        // Save Tags
+        if (!empty($this->tags)) {
+            $tagNames = explode(',', $this->tags);
+            $tagIds = [];
+            foreach ($tagNames as $name) {
+                $name = trim($name);
+                if (!empty($name)) {
+                    $tag = \App\Models\Tag::firstOrCreate(['name' => $name]);
+                    $tagIds[] = $tag->id;
+                }
+            }
+            $product->tags()->sync($tagIds);
+        }
 
         return $product;
     }
@@ -381,7 +394,21 @@ class PostProduct extends Form
             }
         }
 
-
+        // Update Tags
+        if (!empty($this->tags)) {
+            $tagNames = explode(',', $this->tags);
+            $tagIds = [];
+            foreach ($tagNames as $name) {
+                $name = trim($name);
+                if (!empty($name)) {
+                    $tag = \App\Models\Tag::firstOrCreate(['name' => $name]);
+                    $tagIds[] = $tag->id;
+                }
+            }
+            $product->tags()->sync($tagIds);
+        } else {
+            $product->tags()->detach();
+        }
 
     }
 
