@@ -57,6 +57,7 @@ class RoleSeeder extends Seeder
         $operatorRole = Role::firstOrCreate(['name' => 'Operador'], ['level' => 10]);
         $cashierRole = Role::firstOrCreate(['name' => 'Cajero'], ['level' => 10]);
         $sellerRole = Role::firstOrCreate(['name' => 'Vendedor'], ['level' => 10]);
+        $driverRole = Role::firstOrCreate(['name' => 'Driver'], ['level' => 10]);
         
         // Update levels if roles already exist
         $adminRole->update(['level' => 100]);
