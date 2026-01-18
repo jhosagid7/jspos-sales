@@ -136,6 +136,7 @@ Route::middleware('auth')->group(function () {
     Route::get('updates', \App\Livewire\Settings\UpdateSystem::class)->name('updates');
     Route::get('backups', \App\Livewire\Settings\Backups::class)->name('backups');
     Route::get('backups/download/{fileName}', [\App\Http\Controllers\BackupController::class, 'download'])->name('backups.download');
+    Route::get('devices', \App\Livewire\Settings\DeviceManager::class)->name('devices');
 
     //generate pdf invoices
     Route::get('sales/{sale}', [Sales::class, 'generatePdfInvoice'])->name('pos.sales.generatePdfInvoice');
@@ -159,6 +160,11 @@ Route::middleware('auth')->group(function () {
 // });
 
 // Route::get('tester', Tester::class);
+
+
+Route::get('/access-denied', function () {
+    return view('errors.access-denied');
+})->name('access.denied');
 
 require __DIR__ . '/auth.php';
 

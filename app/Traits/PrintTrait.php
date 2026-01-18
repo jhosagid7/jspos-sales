@@ -28,10 +28,33 @@ trait PrintTrait
 
                 $sale = Sale::with(['customer', 'user', 'details', 'details.product'])->find($saleId);
 
-                // Determine printer name: User assigned or Global default
-                $printerName = Auth::user()->printer_name ?? $config->printer_name;
+                // Determine printer name: Device > User > Global
+                $printerName = null;
+                $printerWidth = '80mm';
+
+                // 1. Check Device Authorization
+                $deviceToken = \Illuminate\Support\Facades\Cookie::get('device_token');
+                if ($deviceToken) {
+                    $deviceAuth = \App\Models\DeviceAuthorization::where('uuid', $deviceToken)->first();
+                    if ($deviceAuth && !empty($deviceAuth->printer_name)) {
+                        $printerName = $deviceAuth->printer_name;
+                        $printerWidth = $deviceAuth->printer_width ?? '80mm';
+                    }
+                }
+
+                // 2. Check User (if no device printer)
+                if (empty($printerName)) {
+                    $printerName = Auth::user()->printer_name;
+                    $printerWidth = Auth::user()->printer_width ?? '80mm';
+                }
+
+                // 3. Check Global Config (if no user printer)
+                if (empty($printerName)) {
+                    $printerName = $config->printer_name;
+                    $printerWidth = $config->printer_width ?? '80mm';
+                }
                 
-                // If user has empty string as printer name, fallback to config
+                // Final fallback if config is empty (though validation should prevent this)
                 if (empty($printerName)) {
                     $printerName = $config->printer_name;
                 }
@@ -70,11 +93,7 @@ trait PrintTrait
                 }
 
                 // Determine widths based on configuration
-                if (!empty(Auth::user()->printer_name)) {
-                     $widthConfig = Auth::user()->printer_width ?? '80mm';
-                } else {
-                     $widthConfig = $config->printer_width ?? '80mm';
-                }
+                $widthConfig = $printerWidth;
 
                 $is58mm = $widthConfig === '58mm';
                 
@@ -155,7 +174,38 @@ trait PrintTrait
             $config = Configuration::first();
 
             if ($config) {
-                $connector = new WindowsPrintConnector($config->printer_name);
+                // Determine printer name: Device > User > Global
+                $printerName = null;
+                $printerWidth = '80mm';
+
+                // 1. Check Device Authorization
+                $deviceToken = \Illuminate\Support\Facades\Cookie::get('device_token');
+                if ($deviceToken) {
+                    $deviceAuth = \App\Models\DeviceAuthorization::where('uuid', $deviceToken)->first();
+                    if ($deviceAuth && !empty($deviceAuth->printer_name)) {
+                        $printerName = $deviceAuth->printer_name;
+                        $printerWidth = $deviceAuth->printer_width ?? '80mm';
+                    }
+                }
+
+                // 2. Check User (if no device printer)
+                if (empty($printerName)) {
+                    $printerName = Auth::user()->printer_name;
+                    $printerWidth = Auth::user()->printer_width ?? '80mm';
+                }
+
+                // 3. Check Global Config (if no user printer)
+                if (empty($printerName)) {
+                    $printerName = $config->printer_name;
+                    $printerWidth = $config->printer_width ?? '80mm';
+                }
+                
+                // Final fallback
+                if (empty($printerName)) {
+                    $printerName = $config->printer_name;
+                }
+
+                $connector = new WindowsPrintConnector($printerName);
                 $printer = new Printer($connector);
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
                 $printer->setTextSize(1, 1);
@@ -185,11 +235,7 @@ trait PrintTrait
                 }
 
                 // Determine widths based on configuration
-                if (!empty(Auth::user()->printer_name)) {
-                     $widthConfig = Auth::user()->printer_width ?? '80mm';
-                } else {
-                     $widthConfig = $config->printer_width ?? '80mm';
-                }
+                $widthConfig = $printerWidth;
 
                 $is58mm = $widthConfig === '58mm';
                 $separator = $is58mm ? "--------------------------------" : "=============================================";
@@ -263,7 +309,38 @@ trait PrintTrait
             $config = Configuration::first();
 
             if ($config) {
-                $connector = new WindowsPrintConnector($config->printer_name);
+                // Determine printer name: Device > User > Global
+                $printerName = null;
+                $printerWidth = '80mm';
+
+                // 1. Check Device Authorization
+                $deviceToken = \Illuminate\Support\Facades\Cookie::get('device_token');
+                if ($deviceToken) {
+                    $deviceAuth = \App\Models\DeviceAuthorization::where('uuid', $deviceToken)->first();
+                    if ($deviceAuth && !empty($deviceAuth->printer_name)) {
+                        $printerName = $deviceAuth->printer_name;
+                        $printerWidth = $deviceAuth->printer_width ?? '80mm';
+                    }
+                }
+
+                // 2. Check User (if no device printer)
+                if (empty($printerName)) {
+                    $printerName = Auth::user()->printer_name;
+                    $printerWidth = Auth::user()->printer_width ?? '80mm';
+                }
+
+                // 3. Check Global Config (if no user printer)
+                if (empty($printerName)) {
+                    $printerName = $config->printer_name;
+                    $printerWidth = $config->printer_width ?? '80mm';
+                }
+                
+                // Final fallback
+                if (empty($printerName)) {
+                    $printerName = $config->printer_name;
+                }
+
+                $connector = new WindowsPrintConnector($printerName);
                 $printer = new Printer($connector);
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
                 $printer->setTextSize(1, 1);
@@ -293,11 +370,7 @@ trait PrintTrait
                 }
 
                 // Determine widths based on configuration
-                if (!empty(Auth::user()->printer_name)) {
-                     $widthConfig = Auth::user()->printer_width ?? '80mm';
-                } else {
-                     $widthConfig = $config->printer_width ?? '80mm';
-                }
+                $widthConfig = $printerWidth;
 
                 $is58mm = $widthConfig === '58mm';
                 $separator = $is58mm ? "--------------------------------" : "=============================================";
@@ -388,7 +461,38 @@ trait PrintTrait
             $config = Configuration::first();
 
             if ($config) {
-                $connector = new WindowsPrintConnector($config->printer_name);
+                // Determine printer name: Device > User > Global
+                $printerName = null;
+                $printerWidth = '80mm';
+
+                // 1. Check Device Authorization
+                $deviceToken = \Illuminate\Support\Facades\Cookie::get('device_token');
+                if ($deviceToken) {
+                    $deviceAuth = \App\Models\DeviceAuthorization::where('uuid', $deviceToken)->first();
+                    if ($deviceAuth && !empty($deviceAuth->printer_name)) {
+                        $printerName = $deviceAuth->printer_name;
+                        $printerWidth = $deviceAuth->printer_width ?? '80mm';
+                    }
+                }
+
+                // 2. Check User (if no device printer)
+                if (empty($printerName)) {
+                    $printerName = Auth::user()->printer_name;
+                    $printerWidth = Auth::user()->printer_width ?? '80mm';
+                }
+
+                // 3. Check Global Config (if no user printer)
+                if (empty($printerName)) {
+                    $printerName = $config->printer_name;
+                    $printerWidth = $config->printer_width ?? '80mm';
+                }
+                
+                // Final fallback
+                if (empty($printerName)) {
+                    $printerName = $config->printer_name;
+                }
+
+                $connector = new WindowsPrintConnector($printerName);
                 $printer = new Printer($connector);
 
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
@@ -403,11 +507,7 @@ trait PrintTrait
                 $printer->setJustification(Printer::JUSTIFY_LEFT);
 
                 // Determine widths based on configuration
-                if (!empty(Auth::user()->printer_name)) {
-                     $widthConfig = Auth::user()->printer_width ?? '80mm';
-                } else {
-                     $widthConfig = $config->printer_width ?? '80mm';
-                }
+                $widthConfig = $printerWidth;
 
                 $is58mm = $widthConfig === '58mm';
                 $separator = $is58mm ? "--------------------------------" : "=============================================";
@@ -491,10 +591,33 @@ trait PrintTrait
             if ($config) {
                 $order = Order::with(['customer', 'user', 'details', 'details.product'])->find($orderId);
 
-                // Determine printer name: User assigned or Global default
-                $printerName = Auth::user()->printer_name ?? $config->printer_name;
+                // Determine printer name: Device > User > Global
+                $printerName = null;
+                $printerWidth = '80mm';
+
+                // 1. Check Device Authorization
+                $deviceToken = \Illuminate\Support\Facades\Cookie::get('device_token');
+                if ($deviceToken) {
+                    $deviceAuth = \App\Models\DeviceAuthorization::where('uuid', $deviceToken)->first();
+                    if ($deviceAuth && !empty($deviceAuth->printer_name)) {
+                        $printerName = $deviceAuth->printer_name;
+                        $printerWidth = $deviceAuth->printer_width ?? '80mm';
+                    }
+                }
+
+                // 2. Check User (if no device printer)
+                if (empty($printerName)) {
+                    $printerName = Auth::user()->printer_name ?? $config->printer_name;
+                    $printerWidth = Auth::user()->printer_width ?? '80mm';
+                }
+
+                // 3. Check Global Config (if no user printer)
+                if (empty($printerName)) {
+                    $printerName = $config->printer_name;
+                    $printerWidth = $config->printer_width ?? '80mm';
+                }
                 
-                // If user has empty string as printer name, fallback to config
+                // Final fallback
                 if (empty($printerName)) {
                     $printerName = $config->printer_name;
                 }
@@ -525,13 +648,7 @@ trait PrintTrait
                 //$printer->text("=============================================\n");
 
                 // Determine widths based on configuration
-                // If user has a specific printer assigned, use their width preference (defaulting to 80mm if not set)
-                // Otherwise use global config width
-                if (!empty(Auth::user()->printer_name)) {
-                     $widthConfig = Auth::user()->printer_width ?? '80mm';
-                } else {
-                     $widthConfig = $config->printer_width ?? '80mm';
-                }
+                $widthConfig = $printerWidth;
 
                 $is58mm = $widthConfig === '58mm';
                 
@@ -609,7 +726,38 @@ trait PrintTrait
             if ($config) {
                 $sale = Sale::with(['customer', 'payments', 'user'])->find($saleId);
                 
-                $connector = new WindowsPrintConnector($config->printer_name);
+                // Determine printer name: Device > User > Global
+                $printerName = null;
+                $printerWidth = '80mm';
+
+                // 1. Check Device Authorization
+                $deviceToken = \Illuminate\Support\Facades\Cookie::get('device_token');
+                if ($deviceToken) {
+                    $deviceAuth = \App\Models\DeviceAuthorization::where('uuid', $deviceToken)->first();
+                    if ($deviceAuth && !empty($deviceAuth->printer_name)) {
+                        $printerName = $deviceAuth->printer_name;
+                        $printerWidth = $deviceAuth->printer_width ?? '80mm';
+                    }
+                }
+
+                // 2. Check User (if no device printer)
+                if (empty($printerName)) {
+                    $printerName = Auth::user()->printer_name;
+                    $printerWidth = Auth::user()->printer_width ?? '80mm';
+                }
+
+                // 3. Check Global Config (if no user printer)
+                if (empty($printerName)) {
+                    $printerName = $config->printer_name;
+                    $printerWidth = $config->printer_width ?? '80mm';
+                }
+                
+                // Final fallback
+                if (empty($printerName)) {
+                    $printerName = $config->printer_name;
+                }
+
+                $connector = new WindowsPrintConnector($printerName);
                 $printer = new Printer($connector);
 
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
@@ -620,11 +768,7 @@ trait PrintTrait
                 $printer->text("Historial de Pagos\n\n");
 
                 // Determine widths based on configuration
-                if (!empty(Auth::user()->printer_name)) {
-                     $widthConfig = Auth::user()->printer_width ?? '80mm';
-                } else {
-                     $widthConfig = $config->printer_width ?? '80mm';
-                }
+                $widthConfig = $printerWidth;
 
                 $is58mm = $widthConfig === '58mm';
                 $separator = $is58mm ? "--------------------------------" : "=============================================";

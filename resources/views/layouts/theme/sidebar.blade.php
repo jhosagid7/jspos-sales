@@ -314,6 +314,12 @@
                                 <p>Copias de Seguridad</p>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="{{ route('devices') }}" class="nav-link {{ Request::is('devices') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Dispositivos</p>
+                            </a>
+                        </li>
                     </ul>
                 </li>
                 @endcan
