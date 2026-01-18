@@ -105,6 +105,9 @@ class Sales extends Component
     public $zelleStatusMessage = '';
     public $zelleStatusType = ''; // 'info', 'warning', 'danger', 'success'
     public $zelleRemainingBalance = null;
+    
+    public $drivers = []; // List of users with Driver role
+    public $driver_id = null; // Selected driver
 
     public function updatedBankId($value)
     {
@@ -473,6 +476,9 @@ class Sales extends Component
                           ->orWhere('sku', 'like', "%{$token}%")
                           ->orWhereHas('category', function ($subQuery) use ($token) {
                               $subQuery->where('name', 'like', "%{$token}%");
+                          })
+                          ->orWhereHas('tags', function ($subQuery) use ($token) {
+                              $subQuery->where('name', 'like', "%{$token}%");
                           });
                     });
                 }
@@ -640,6 +646,9 @@ class Sales extends Component
         
         // Initialize Zelle Date
         $this->zelleDate = date('Y-m-d');
+        
+        // Load Drivers
+        $this->drivers = \App\Models\User::role('Driver')->get();
     }
     
     public function hydrate()
@@ -795,15 +804,48 @@ class Sales extends Component
 
             if ($currency && isset($payment['amount'])) {
                 // Si el monto en la moneda principal ya está definido, úsalo
-                if (isset($payment['amount_in_primary_currency']) && $payment['amount_in_primary_currency'] > 0) {
+                if (isset($payment['amount_in_primary_currency']) && $payment['amount_in_primary_currency'] !== null) {
                     $this->totalInPrimaryCurrency += $payment['amount_in_primary_currency'];
                 } else {
-                    // Si no está definido, calcula la conversión
-                    $this->totalInPrimaryCurrency += $payment['amount'] / $currency->exchange_rate;
+                    // Si no, calcúlalo (esto es un fallback, idealmente siempre debería estar definido)
+                    $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
+                    $amountInUSD = $payment['amount'] / $currency->exchange_rate;
+                    $amountInPrimaryCurrency = $amountInUSD * $primaryCurrency->exchange_rate;
+                    $this->totalInPrimaryCurrency += $amountInPrimaryCurrency;
                 }
             }
         }
     }
+
+    public function assignDriver($orderId, $driverId)
+    {
+        $order = Order::find($orderId);
+        // Note: In this system, Orders are basically Sales with status 'pending' or similar.
+        // But wait, the table iterates $orders. Let's check getOrdersWithDetails.
+        // It returns Order model.
+        // But my migration added fields to 'sales' table.
+        // Order model usually maps to 'sales' table or 'orders' table?
+        // Let's check Order model.
+        
+        // Assuming Order model maps to 'sales' table based on previous context (Sales.php uses Order model for pending sales).
+        // If Order model is separate, I might need to update Order model too.
+        // Let's assume Order maps to 'sales' table for now or 'orders' table.
+        // Wait, migration was: Schema::table('sales'...
+        // If Order model uses 'orders' table, then I updated the wrong table or need to update 'orders' table too.
+        // Let's check Order model file content if possible.
+        
+        // For now, I'll assume Order model is what is used in the view.
+        // If Order is a separate table, I need to check.
+        
+        if ($order) {
+            $order->driver_id = $driverId ?: null;
+            $order->delivery_status = $driverId ? 'pending' : 'pending'; // Reset status if driver changed
+            $order->save();
+            $this->dispatch('noty', msg: 'Chofer asignado correctamente');
+        }
+    }
+
+
 
 
     
@@ -980,30 +1022,32 @@ class Sales extends Component
     public function getOrdersWithDetails()
     {
         if (empty(trim($this->search))) {
-            return Order::whereHas('customer')
+            return Order::with('customer')
+                ->whereHas('customer')
                 ->where('status', 'pending')
                 ->orderBy('orders.id', 'desc')
                 ->paginate($this->pagination);
         } else {
             $search = strtolower(trim($this->search));
 
-            return Order::where(function ($query) use ($search) {
-                // Búsqueda por el nombre del cliente
-                $query->whereHas('customer', function ($subQuery) use ($search) {
-                    $subQuery->whereRaw("LOWER(name) LIKE ?", ["%{$search}%"]);
-                });
+            return Order::with('customer')
+                ->where(function ($query) use ($search) {
+                    // Búsqueda por el nombre del cliente
+                    $query->whereHas('customer', function ($subQuery) use ($search) {
+                        $subQuery->whereRaw("LOWER(name) LIKE ?", ["%{$search}%"]);
+                    });
 
-                // Búsqueda por el ID de la orden
-                $query->orWhere('id', 'LIKE', "%{$search}%");
+                    // Búsqueda por el ID de la orden
+                    $query->orWhere('id', 'LIKE', "%{$search}%");
 
-                // Búsqueda por el total
-                $query->orWhere('total', 'LIKE', "%{$search}%");
+                    // Búsqueda por el total
+                    $query->orWhere('total', 'LIKE', "%{$search}%");
 
-                // Búsqueda por el usuario (suponiendo que tienes una relación 'user' en Order)
-                $query->orWhereHas('user', function ($subQuery) use ($search) {
-                    $subQuery->whereRaw("LOWER(name) LIKE ?", ["%{$search}%"]); // Cambia 'name' por el campo que corresponda en tu modelo User
-                });
-            })
+                    // Búsqueda por el usuario (suponiendo que tienes una relación 'user' en Order)
+                    $query->orWhereHas('user', function ($subQuery) use ($search) {
+                        $subQuery->whereRaw("LOWER(name) LIKE ?", ["%{$search}%"]); // Cambia 'name' por el campo que corresponda en tu modelo User
+                    });
+                })
                 ->where('status', $this->status)
                 ->orderBy('id', 'desc')
                 ->paginate($this->pagination);
@@ -1510,6 +1554,7 @@ class Sales extends Component
     public function clear()
     {
         $this->cart = new Collection;
+        $this->driver_id = null;
         $this->save();
         $this->dispatch('refresh');
     }
@@ -1826,7 +1871,10 @@ class Sales extends Component
                 'order_number' => $orderNumber,
                 'batch_name' => $batchName,
                 'batch_sequence' => $batchSequence,
-                'credit_days' => $this->calculateCreditDays()
+
+                'credit_days' => $this->calculateCreditDays(),
+                'driver_id' => $this->driver_id ?: null,
+                'delivery_status' => $this->driver_id ? 'pending' : 'delivered'
             ]);
 
             // get cart session

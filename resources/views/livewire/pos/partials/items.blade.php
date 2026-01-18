@@ -3,68 +3,73 @@
         <div class="row">
             <div class="col-sm-12 col-md-6">
                 <div x-data @click.away="$wire.dispatch('hideResults')" class="relative">
-                    <div class="faq-form">
-                        <div class="form-control form-control-lg">
-                            <input type="text" wire:model.live.debounce.300ms="search3" class="form-control"
-                                placeholder="[ F1 ] Ingresa nombre o código del producto"
-                                style="text-transform: capitalize" autocomplete="off" id="inputSearch"
-                                wire:keydown.escape="hideResults"
-                                wire:keydown="keyDown($event.key)">
-                            <!-- Captura las teclas presionadas -->
-                            <i class="search-icon" data-feather="search"></i>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="faq-form w-100">
+                            <div class="form-control form-control-lg">
+                                <input type="text" wire:model.live.debounce.300ms="search3" class="form-control"
+                                    placeholder="[ F1 ] Ingresa nombre o código del producto"
+                                    style="text-transform: capitalize" autocomplete="off" id="inputSearch"
+                                    wire:keydown.escape="hideResults"
+                                    wire:keydown="keyDown($event.key)">
+                                <!-- Captura las teclas presionadas -->
+                                <i class="search-icon" data-feather="search"></i>
+                            </div>
                         </div>
+                        <button type="button" class="btn btn-primary d-md-none ml-2" data-toggle="modal" data-target="#modalScanner">
+                            <i class="fas fa-camera"></i>
+                        </button>
+                    </div>
 
-                        @if (!empty($products))
-                            @php
-                                $primaryCurrency = $currencies->firstWhere('is_primary', true);
-                                $primaryRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
-                                $primarySymbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
-                            @endphp
-                            <ul class="mt-0 bg-white border-0 list-group position-absolute w-100"
-                                style="z-index: 1000; max-height: 200px; overflow-y: auto;">
-                                @foreach ($products as $index => $product)
-                                    @php
-                                        $priceInPrimary = $product->price * $primaryRate;
-                                    @endphp
-                                    <li class="p-1 list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                                        style="cursor: pointer; {{ $selectedIndex === $index ? 'background-color: #e9ecef;' : '' }}">
-                                        <div class="w-100">
-                                            <div class="d-flex justify-content-between align-items-center" wire:click="AddProduct({{ $product->id }})">
-                                                <div class="d-flex align-items-center w-100">
-                                                    <img src="{{ asset($product->photo) }}" alt="img" class="rounded mr-2" style="width: 30px; height: 30px; object-fit: cover;">
-                                                    <div class="d-flex flex-column flex-grow-1">
-                                                        <div class="d-flex justify-content-between align-items-center">
-                                                            <h6 class="mb-0 font-weight-bold text-{{ $product->stock_qty <= 0 ? 'danger' : ($product->stock_qty <= $product->low_stock ? 'warning' : 'success') }}" style="font-size: 1rem;">
-                                                                <small class="text-muted">{{ $product->sku }}</small> - {{ Str::limit($product->name, 40) }}
-                                                            </h6>
-                                                            <span class="badge badge-light text-dark" style="font-size: 0.8rem;">
-                                                                {{ $primarySymbol }}{{ number_format($priceInPrimary, 2) }} / Total: {{ $product->productWarehouses->sum('stock_qty') }}
-                                                            </span>
-                                                        </div>
-                                                        
-                                                        @if($product->productWarehouses->count() > 0)
-                                                            @can('sales.switch_warehouse')
-                                                                <div class="d-flex flex-wrap mt-1 align-items-center">
-                                                                    @foreach($product->productWarehouses as $pw)
-                                                                        @if($pw->stock_qty > 0)
-                                                                            <button class="btn btn-xs btn-outline-secondary mr-1 p-0 px-1" style="font-size: 0.7rem;"
-                                                                                wire:click.stop="AddProduct({{ $product->id }}, 1, {{ $pw->warehouse_id }})">
-                                                                                {{ $pw->warehouse->name }}: {{ $pw->stock_qty }}
-                                                                            </button>
-                                                                        @endif
-                                                                    @endforeach
-                                                                </div>
-                                                            @endcan
-                                                        @endif
+                    @if (!empty($products))
+                        @php
+                            $primaryCurrency = $currencies->firstWhere('is_primary', true);
+                            $primaryRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
+                            $primarySymbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
+                        @endphp
+                        <ul class="mt-0 bg-white border-0 list-group position-absolute w-100"
+                            style="z-index: 1000; max-height: 200px; overflow-y: auto;">
+                            @foreach ($products as $index => $product)
+                                @php
+                                    $priceInPrimary = $product->price * $primaryRate;
+                                @endphp
+                                <li class="p-1 list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                                    style="cursor: pointer; {{ $selectedIndex === $index ? 'background-color: #e9ecef;' : '' }}">
+                                    <div class="w-100">
+                                        <div class="d-flex justify-content-between align-items-center" wire:click="AddProduct({{ $product->id }})">
+                                            <div class="d-flex align-items-center w-100">
+                                                <img src="{{ asset($product->photo) }}" alt="img" class="rounded mr-2" style="width: 30px; height: 30px; object-fit: cover;">
+                                                <div class="d-flex flex-column flex-grow-1">
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <h6 class="mb-0 font-weight-bold text-{{ $product->stock_qty <= 0 ? 'danger' : ($product->stock_qty <= $product->low_stock ? 'warning' : 'success') }}" style="font-size: 1rem;">
+                                                            <small class="text-muted">{{ $product->sku }}</small> - {{ Str::limit($product->name, 40) }}
+                                                        </h6>
+                                                        <span class="badge badge-light text-dark" style="font-size: 0.8rem;">
+                                                            {{ $primarySymbol }}{{ number_format($priceInPrimary, 2) }} / Total: {{ $product->productWarehouses->sum('stock_qty') }}
+                                                        </span>
                                                     </div>
+                                                    
+                                                    @if($product->productWarehouses->count() > 0)
+                                                        @can('sales.switch_warehouse')
+                                                            <div class="d-flex flex-wrap mt-1 align-items-center">
+                                                                @foreach($product->productWarehouses as $pw)
+                                                                    @if($pw->stock_qty > 0)
+                                                                        <button class="btn btn-xs btn-outline-secondary mr-1 p-0 px-1" style="font-size: 0.7rem;"
+                                                                            wire:click.stop="AddProduct({{ $product->id }}, 1, {{ $pw->warehouse_id }})">
+                                                                            {{ $pw->warehouse->name }}: {{ $pw->stock_qty }}
+                                                                        </button>
+                                                                    @endif
+                                                                @endforeach
+                                                            </div>
+                                                        @endcan
+                                                    @endif
                                                 </div>
                                             </div>
                                         </div>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        @endif
-                    </div>
+                                    </div>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
                 </div>
             </div>
             {{-- <div class="col-sm-12 col-md-6">
@@ -256,5 +261,75 @@
             </div>
         </div>
     </div>
+    
+    <!-- Modal Scanner -->
+    <div class="modal fade" id="modalScanner" tabindex="-1" role="dialog" aria-labelledby="modalScannerLabel" aria-hidden="true" wire:ignore>
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalScannerLabel">Escanear Código de Barras</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body p-0">
+                    <div id="reader" style="width: 100%;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let html5QrcodeScanner = null;
+
+            $('#modalScanner').on('shown.bs.modal', function () {
+                if (html5QrcodeScanner === null) {
+                    html5QrcodeScanner = new Html5Qrcode("reader");
+                }
+                
+                const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+                
+                html5QrcodeScanner.start({ facingMode: "environment" }, config, onScanSuccess)
+                .catch(err => {
+                    console.error("Error starting scanner", err);
+                    alert("No se pudo iniciar la cámara. Verifique los permisos.");
+                });
+            });
+
+            $('#modalScanner').on('hidden.bs.modal', function () {
+                if (html5QrcodeScanner) {
+                    html5QrcodeScanner.stop().then(() => {
+                        console.log("Scanner stopped");
+                    }).catch(err => {
+                        console.error("Failed to stop scanner", err);
+                    });
+                }
+            });
+
+            function onScanSuccess(decodedText, decodedResult) {
+                // Handle the scanned code
+                console.log(`Code matched = ${decodedText}`, decodedResult);
+                
+                // Set value to search input
+                let searchInput = document.getElementById('inputSearch');
+                searchInput.value = decodedText;
+                
+                // Trigger Livewire update
+                searchInput.dispatchEvent(new Event('input'));
+                
+                // Close modal
+                $('#modalScanner').modal('hide');
+                
+                // Optional: Play a beep sound
+                // let audio = new Audio('path/to/beep.mp3');
+                // audio.play();
+            }
+        });
+    </script>
     <!-- Container-fluid Ends-->
 </div>

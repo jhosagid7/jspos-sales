@@ -26,6 +26,9 @@ class Welcome extends Component
 
     public function mount()
     {
+        if (auth()->user()->hasRole('Driver')) {
+            return redirect()->route('driver.dashboard');
+        }
         $this->fetchDashboardData();
     }
 
