@@ -76,17 +76,19 @@
 
     /* Custom Scrollbar */
     ::-webkit-scrollbar {
-        width: 12px;
-        height: 12px;
+        width: 14px; /* Slightly wider */
+        height: 14px;
     }
     ::-webkit-scrollbar-track {
-        background: #f1f1f1; 
+        background: #e0e0e0; /* Darker track */
+        border-left: 1px solid #dcdcdc;
     }
     ::-webkit-scrollbar-thumb {
-        background: #888; 
-        border-radius: 6px;
+        background: #555; /* Much darker thumb */
+        border-radius: 0; /* Square for more visibility or keep rounded */
+        border: 2px solid #e0e0e0; /* Creates padding effect */
     }
     ::-webkit-scrollbar-thumb:hover {
-        background: #555; 
+        background: #333; /* Almost black on hover */
     }
 </style>

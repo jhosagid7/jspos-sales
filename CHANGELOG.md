@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.4.8] - 2026-01-17
+
+### Fixed
+- **UI**:
+  - **Scrollbar**: Further improved scrollbar visibility with high-contrast colors (Dark Grey thumb on Light Grey track) and increased width for better accessibility.
+
 ## [1.4.6] - 2026-01-17
 
 ### Fixed
