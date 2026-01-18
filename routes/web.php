@@ -166,6 +166,19 @@ Route::get('/access-denied', function () {
     return view('errors.access-denied');
 })->name('access.denied');
 
+// System Update Routes
+Route::prefix('system')->name('system.')->group(function () {
+    Route::get('/upgrade-db', function () {
+        try {
+            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+            return redirect('/dashboard')->with('success', 'Base de datos actualizada correctamente.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error al actualizar: ' . $e->getMessage());
+        }
+    })->name('upgrade-db');
+});
+
 require __DIR__ . '/auth.php';
 
 
