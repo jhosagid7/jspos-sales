@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.4.6] - 2026-01-17
+
+### Fixed
+- **System Update**:
+  - **Friendly Error Page**: Implemented a user-friendly "Update Required" page when database migrations are pending, replacing the raw Laravel error screen.
+  - **Auto-Fix Button**: Added a "Run Update" button to the error page that automatically executes pending migrations.
+- **UI**:
+  - **Scrollbar**: Improved scrollbar visibility (darker contrast) in the POS sales view.
+
+## [1.4.5] - 2026-01-17
+
+### Added
+- **Printing**:
+  - **Device-Specific Printers**: Added ability to assign a specific printer and paper width to each device (PC/Mobile) via "Device Manager".
+  - **Priority Logic**: Printing now prioritizes: Device Configuration > User Configuration > Global Configuration.
+- **Device Manager**:
+  - **Inline Editing**: Restored ability to edit device names directly in the list.
+  - **Configuration Modal**: Added modal to configure printer name/path and width per device.
+  - **Help Guide**: Added comprehensive guide for device and printer configuration.
+
 ## [1.4.4] - 2026-01-17
 
 ### Fixed
