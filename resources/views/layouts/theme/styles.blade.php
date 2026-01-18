@@ -91,4 +91,87 @@
     ::-webkit-scrollbar-thumb:hover {
         background: #333; /* Almost black on hover */
     }
+
+    /* Mobile POS Optimization */
+    @media (max-width: 768px) {
+        /* Hide Table Header */
+        .table-mobile-cards thead {
+            display: none;
+        }
+
+        /* Make Rows look like Cards */
+        .table-mobile-cards tbody tr {
+            display: block;
+            margin-bottom: 15px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            padding: 10px;
+            position: relative;
+        }
+
+        /* Make Cells block or flex */
+        .table-mobile-cards tbody td {
+            display: block;
+            border: none;
+            padding: 5px 0;
+            text-align: left;
+            width: 100% !important; /* Override width attributes */
+        }
+
+        /* Specific Column Styling */
+        
+        /* Code & Name (Row 1) */
+        .table-mobile-cards tbody td:nth-child(1) { /* Code */
+            display: inline-block;
+            width: auto !important;
+            font-size: 0.85rem;
+        }
+        .table-mobile-cards tbody td:nth-child(2) { /* Name */
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        /* Price & Qty (Row 2 - Flex) */
+        .table-mobile-cards tbody td:nth-child(3), /* Price */
+        .table-mobile-cards tbody td:nth-child(4) { /* Qty */
+            display: inline-block;
+            width: 48% !important;
+            vertical-align: middle;
+        }
+
+        /* Total & Actions (Row 3 - Flex) */
+        .table-mobile-cards tbody td:nth-child(5) { /* Total */
+            display: inline-block;
+            width: auto !important;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #444;
+            margin-top: 10px;
+        }
+        
+        .table-mobile-cards tbody td:nth-child(6) { /* Actions */
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: auto !important;
+            padding: 0;
+        }
+
+        /* Input sizing adjustments */
+        .input-group-sm > .form-control, 
+        .input-group-sm > .input-group-prepend > .btn, 
+        .input-group-sm > .input-group-append > .btn {
+            height: calc(2.2em + 2px); /* Taller inputs for touch */
+            font-size: 1rem;
+        }
+        
+        /* Sticky Summary */
+        .customer-sticky {
+            position: static; /* Reset sticky on mobile if needed, or keep it */
+        }
+    }
 </style>

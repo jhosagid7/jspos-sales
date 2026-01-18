@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.4.10] - 2026-01-17
+
+### Fixed
+- **POS**:
+  - **Partial Payment Modal**: Fixed a bug where the "Abonos" modal would close automatically (leaving a gray backdrop) due to a component re-render issue caused by a dynamic key.
+
 ## [1.4.9] - 2026-01-17
 
 ### Fixed

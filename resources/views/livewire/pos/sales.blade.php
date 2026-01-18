@@ -1,6 +1,6 @@
 <div>
     <div class="row">
-        <div class="col-sm-12 col-md-9">
+        <div class="col-sm-12 col-md-9 mb-3 mb-md-0">
             @include('livewire.pos.partials.items')
         </div>
         <div class="col-sm-12 col-md-3">
