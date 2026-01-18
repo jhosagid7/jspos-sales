@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.5.2] - 2026-01-18
+
+### Fixed
+- **Database**:
+  - **Migrations**: Fixed "Column already exists" error by making the delivery fields migration idempotent. This ensures smooth updates even if previous migrations partially ran.
+
 ## [1.5.1] - 2026-01-18
 
 ### Fixed
