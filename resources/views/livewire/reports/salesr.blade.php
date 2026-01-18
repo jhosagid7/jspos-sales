@@ -225,6 +225,14 @@
                                                 <i class="fas fa-list"></i>
                                             </button>
 
+                                            @if($sale->driver_id)
+                                                <a class="border-0 btn btn-outline-dark btn-xs"
+                                                    href="{{ route('delivery.tracking', $sale->id) }}"
+                                                    target="_blank" title="Rastreo">
+                                                    <i class="fas fa-map-marker-alt text-info"></i>
+                                                </a>
+                                            @endif
+
                                             <a class="border-0 btn btn-outline-dark btn-xs link-offset-2 link-underline link-underline-opacity-0 {{ $sale->status == 'returned' ? 'disabled' : '' }}"
                                                 href="{{ route('pos.sales.generatePdfInvoice', $sale->id) }}"
                                                 target="_blank" title="PDF"><i

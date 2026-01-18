@@ -355,6 +355,23 @@
                                                         </i>Nuevo Proveedor </a>
                                                 </div>
                                             </div>
+
+                                            <div class="col-12">
+                                                <div class="row g-2">
+                                                    <div class="col-12">
+                                                        <label class="form-label m-0">Etiquetas (Separadas por coma)</label>
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <div class="input-group">
+                                                            <span class="input-group-text"><i class="fa fa-tags"></i></span>
+                                                            <input wire:model="form.tags" class="form-control" type="text" placeholder="Ej: oferta, nuevo, verano">
+                                                        </div>
+                                                        @error('form.tags')
+                                                            <span class="text-danger">{{ $message }}</span>
+                                                        @enderror
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 

@@ -45,7 +45,10 @@ class Sale extends Model
         'commission_payment_notes',
         'batch_name',
         'batch_sequence',
-        'credit_days'
+        'credit_days',
+        'driver_id',
+        'delivery_status',
+        'delivered_at',
     ];
 
     protected $casts = [
@@ -111,7 +114,15 @@ class Sale extends Model
     public function getDaysOverdueAttribute()
     {
         $creditDays = $this->credit_days ?? 0;
-        $dueDate = \Carbon\Carbon::parse($this->created_at)->addDays($creditDays);
+        
+        if ($creditDays <= 0) {
+            return 0;
+        }
+
+        // Use delivered_at if available, otherwise fallback to created_at (or maybe should be null if not delivered?)
+        // For now, fallback to created_at to maintain backward compatibility for old sales.
+        $startDate = $this->delivered_at ? \Carbon\Carbon::parse($this->delivered_at) : \Carbon\Carbon::parse($this->created_at);
+        $dueDate = $startDate->addDays($creditDays);
 
         if ($this->status == 'paid') {
             $lastPayment = $this->payments->first(); // Ordered by id desc in relationship
@@ -127,5 +138,19 @@ class Sale extends Model
         // Positive = Days overdue (e.g. +5)
         // Zero = Due today
         return $dueDate->diffInDays(\Carbon\Carbon::now(), false);
+    }
+    public function driver()
+    {
+        return $this->belongsTo(User::class, 'driver_id');
+    }
+
+    public function deliveryLocations()
+    {
+        return $this->hasMany(DeliveryLocation::class);
+    }
+
+    public function deliveryCollections()
+    {
+        return $this->hasMany(DeliveryCollection::class);
     }
 }

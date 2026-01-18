@@ -64,6 +64,9 @@ Route::prefix('install')->name('install.')->group(function () {
 });
 
 Route::get('/dashboard', function () {
+    if (auth()->user()->hasRole('Driver')) {
+        return redirect()->route('driver.dashboard');
+    }
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -137,6 +140,11 @@ Route::middleware('auth')->group(function () {
     Route::get('backups', \App\Livewire\Settings\Backups::class)->name('backups');
     Route::get('backups/download/{fileName}', [\App\Http\Controllers\BackupController::class, 'download'])->name('backups.download');
     Route::get('devices', \App\Livewire\Settings\DeviceManager::class)->name('devices');
+
+    // Delivery Routes
+    Route::get('driver/dashboard', \App\Livewire\DriverDashboard::class)->name('driver.dashboard');
+    Route::get('delivery/tracking/{sale}', \App\Livewire\DeliveryTracking::class)->name('delivery.tracking');
+    Route::get('delivery/map', \App\Livewire\LiveDriverMap::class)->name('delivery.map');
 
     //generate pdf invoices
     Route::get('sales/{sale}', [Sales::class, 'generatePdfInvoice'])->name('pos.sales.generatePdfInvoice');

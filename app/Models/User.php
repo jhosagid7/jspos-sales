@@ -80,4 +80,13 @@ class User extends Authenticatable
     {
         return $this->hasOne(SellerConfig::class)->latestOfMany();
     }
+    public function deliveries()
+    {
+        return $this->hasMany(Sale::class, 'driver_id');
+    }
+
+    public function locations()
+    {
+        return $this->hasMany(DriverLocation::class, 'driver_id');
+    }
 }
