@@ -26,5 +26,15 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             //
         });
+
+        $this->renderable(function (\Illuminate\Database\QueryException $e, $request) {
+            // SQLSTATE[42S02]: Base table or view not found
+            // SQLSTATE[42S22]: Column not found
+            if ($e->getCode() === '42S02' || $e->getCode() === '42S22') {
+                if (!$request->is('system/*')) { // Prevent infinite loops if the error page itself has DB issues
+                    return response()->view('errors.db-update-required', [], 500);
+                }
+            }
+        });
     }
 }
