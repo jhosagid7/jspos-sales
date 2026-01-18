@@ -9,13 +9,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('sales', function (Blueprint $table) {
-            $table->unsignedBigInteger('driver_id')->nullable()->after('user_id');
-            $table->enum('delivery_status', ['pending', 'in_transit', 'delivered', 'cancelled'])
-                  ->default('pending')
-                  ->after('status');
+            if (!Schema::hasColumn('sales', 'driver_id')) {
+                $table->unsignedBigInteger('driver_id')->nullable()->after('user_id');
+                $table->foreign('driver_id')->references('id')->on('users')->onDelete('set null');
+            }
             
-            $table->foreign('driver_id')->references('id')->on('users')->onDelete('set null');
-            $table->index('delivery_status');
+            if (!Schema::hasColumn('sales', 'delivery_status')) {
+                $table->enum('delivery_status', ['pending', 'in_transit', 'delivered', 'cancelled'])
+                      ->default('pending')
+                      ->after('status');
+                $table->index('delivery_status');
+            }
         });
     }
 
