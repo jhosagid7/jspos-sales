@@ -77,11 +77,7 @@
             <div class="col-sm-12 col-md-6 d-flex justify-content-end">
                 <div class="btn-group btn-group-pill " role="group" aria-label="Basic example">
 
-                    @php
-                        $uniqueKey = uniqid();
-                    @endphp
-
-                    <livewire:partial-payment :key="$uniqueKey" />
+                    <livewire:partial-payment key="partial-payment-component" />
                     <button onclick="processOrder()" type="button" class="btn btn-outline-light-2x txt-dark"><i
                             class="icon-money"></i>
                         Ordenes</button>
@@ -103,7 +99,7 @@
         {{-- @json($cart) --}}
         <div class="row">
             <div class="order-history table-responsive wishlist">
-                <table class="table table-bordered table-sm table-striped align-middle">
+                <table class="table table-bordered table-sm table-striped align-middle table-mobile-cards">
                     <thead>
                         <tr>
                             <th class="p-1" width="100">Código</th>
