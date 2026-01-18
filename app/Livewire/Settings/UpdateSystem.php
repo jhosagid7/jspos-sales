@@ -20,7 +20,11 @@ class UpdateSystem extends Component
     public function mount(UpdateService $updater)
     {
         $this->currentVersion = $updater->getCurrentVersion();
-        $this->currentReleaseNotes = $this->getReleaseNotes($this->currentVersion);
+        try {
+            $this->currentReleaseNotes = $this->getReleaseNotes($this->currentVersion);
+        } catch (\Exception $e) {
+            $this->currentReleaseNotes = "Error al cargar las notas de la versión: " . $e->getMessage();
+        }
     }
 
     public function getReleaseNotes($version)

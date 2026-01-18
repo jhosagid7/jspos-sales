@@ -208,3 +208,25 @@ Route::get('/fix-driver-role', function () {
         return "Error: " . $e->getMessage();
     }
 });
+
+Route::get('/fix-super-admin', function () {
+    try {
+        $user = \App\Models\User::where('email', 'jhosagid77@gmail.com')->first();
+        if (!$user) return "Usuario no encontrado";
+        
+        // Ensure Admin role exists
+        if (!\Spatie\Permission\Models\Role::where('name', 'Admin')->exists()) {
+            \Spatie\Permission\Models\Role::create(['name' => 'Admin', 'guard_name' => 'web', 'level' => 100]);
+        }
+        
+        $adminRole = \Spatie\Permission\Models\Role::where('name', 'Admin')->first();
+        $user->assignRole($adminRole);
+        
+        // Clear Cache
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        
+        return "Rol Admin asignado a {$user->name} y caché limpiada. <a href='/dashboard'>Volver</a>";
+    } catch (\Exception $e) {
+        return "Error: " . $e->getMessage();
+    }
+});

@@ -85,6 +85,10 @@
                     </div>
     <script>
         document.addEventListener('livewire:initialized', () => {
+            // Force remove backdrop if it exists
+            $('.modal-backdrop').remove();
+            $('body').removeClass('modal-open');
+
             @this.on('run-backup', () => {
                 @this.call('runBackup');
             });
@@ -105,6 +109,14 @@
                     window.location.reload();
                 }, 2000);
             });
+        });
+
+        // Also run on DOMContentLoaded just in case
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                $('.modal-backdrop').remove();
+                $('body').removeClass('modal-open');
+            }, 500);
         });
     </script>
 </div>
