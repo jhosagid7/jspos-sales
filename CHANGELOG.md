@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.4.9] - 2026-01-17
+
+### Fixed
+- **System Update**:
+  - **Progress Bar Visibility**: Changed the update progress bar color to yellow (`bg-warning`) with a white background track to ensure it is clearly visible against the blue alert background.
+
 ## [1.4.8] - 2026-01-17
 
 ### Fixed
