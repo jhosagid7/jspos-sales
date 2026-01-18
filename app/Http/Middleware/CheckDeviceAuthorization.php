@@ -15,6 +15,11 @@ class CheckDeviceAuthorization
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // Skip if not installed
+        if (config('app.installed') !== true) {
+            return $next($request);
+        }
+
         // Exclude public routes and login/logout
         if ($request->is('login', 'logout', 'register', 'password/*', 'access-denied')) {
             return $next($request);

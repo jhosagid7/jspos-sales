@@ -24,7 +24,7 @@ class CheckLicense
     public function handle(Request $request, Closure $next): Response
     {
         // Skip license check if the app is not installed yet
-        if (env('APP_INSTALLED', false) !== true) {
+        if (config('app.installed') !== true) {
             return $next($request);
         }
 
