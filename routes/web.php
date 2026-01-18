@@ -192,3 +192,19 @@ Route::prefix('system')->name('system.')->group(function () {
 require __DIR__ . '/auth.php';
 
 
+
+Route::get('/fix-driver-role', function () {
+    try {
+        // Create Role if not exists
+        if (!\Spatie\Permission\Models\Role::where('name', 'Driver')->exists()) {
+            \Spatie\Permission\Models\Role::create(['name' => 'Driver', 'guard_name' => 'web', 'level' => 10]);
+        }
+        
+        // Clear Cache
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        
+        return "Rol 'Driver' creado y caché limpiada correctamente. <a href='/dashboard'>Volver al Dashboard</a>";
+    } catch (\Exception $e) {
+        return "Error: " . $e->getMessage();
+    }
+});
