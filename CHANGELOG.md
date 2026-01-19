@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.6.0] - 2026-01-18
+
+### Added
+- **Label Generator Module**:
+  - **New Module**: Added a dedicated module for generating product labels (accessible via Sidebar > Etiquetas).
+  - **Product Selection**: Search by Name, SKU, Category, or Tag.
+  - **PDF Generation**: Generates a printable PDF with 28 labels per page (4 columns x 7 rows) on Letter size paper.
+  - **Label Design**: Includes Product Name (Large), Operator, Date, and Barcode (Code 128).
+
 ## [1.5.4] - 2026-01-18
 
 ### Fixed
