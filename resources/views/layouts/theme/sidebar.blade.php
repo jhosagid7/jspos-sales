@@ -255,6 +255,13 @@
                 </li>
                 @endcan
 
+                <li class="nav-item">
+                    <a href="{{ route('labels.index') }}" class="nav-link {{ Request::is('labels') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-tags"></i>
+                        <p>ETIQUETAS</p>
+                    </a>
+                </li>
+
                 @can('inventarios')
                 <li class="nav-item">
                     <a href="#" class="nav-link">

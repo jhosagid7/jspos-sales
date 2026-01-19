@@ -108,7 +108,12 @@ Route::middleware('auth')->group(function () {
     Route::get('users', Users::class)->name('users')->middleware('can:usuarios');
     Route::get('roles', Roles::class)->name('roles')->middleware('can:roles');
     Route::get('asignar', AsignarPermisos::class)->name('asignar')->middleware('can:asignacion');
+    Route::get('asignar', AsignarPermisos::class)->name('asignar')->middleware('can:asignacion');
     Route::get('commissions', \App\Livewire\Commissions::class)->name('commissions');
+    
+    // Label Generator
+    Route::get('labels', \App\Livewire\LabelGenerator::class)->name('labels.index');
+    Route::get('labels/pdf', [\App\Http\Controllers\LabelController::class, 'generate'])->name('labels.pdf');
 
 
 
