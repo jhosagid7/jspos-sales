@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.5.4] - 2026-01-18
+
+### Fixed
+- **Access Control**:
+  - **Permissions**: Fixed "Access Denied" error in "Assign Permissions" module for the Super Admin account when the "Admin" role is missing. Added explicit bypass for the owner's email.
+
 ## [1.5.3] - 2026-01-18
 
 ### Fixed
