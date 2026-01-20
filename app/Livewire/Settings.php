@@ -16,6 +16,7 @@ class Settings extends Component
     public $logo, $logo_preview; // Logo properties
     public $backupEmails; // Backup Emails
     public $purchasingCalculationMode, $purchasingCoverageDays; // Purchasing Intelligence
+    public $productionEmailRecipients, $productionEmailSubject, $productionEmailBody; // Production Email Settings
     
     public $tab = 1; // Control de pestañas
 
@@ -78,6 +79,11 @@ class Settings extends Component
             // Purchasing Intelligence
             $this->purchasingCalculationMode = $config->purchasing_calculation_mode ?? 'recent';
             $this->purchasingCoverageDays = $config->purchasing_coverage_days ?? 15;
+
+            // Production Email Settings
+            $this->productionEmailRecipients = is_array($config->production_email_recipients) ? implode(', ', $config->production_email_recipients) : $config->production_email_recipients;
+            $this->productionEmailSubject = $config->production_email_subject;
+            $this->productionEmailBody = $config->production_email_body;
         }
     }
 
@@ -176,7 +182,10 @@ class Settings extends Component
                 'default_warehouse_id' => $this->defaultWarehouseId,
                 'backup_emails' => $backupEmailsArray,
                 'purchasing_calculation_mode' => $this->purchasingCalculationMode,
-                'purchasing_coverage_days' => intval($this->purchasingCoverageDays)
+                'purchasing_coverage_days' => intval($this->purchasingCoverageDays),
+                'production_email_recipients' => array_filter(array_map('trim', explode(',', $this->productionEmailRecipients))),
+                'production_email_subject' => trim($this->productionEmailSubject),
+                'production_email_body' => trim($this->productionEmailBody)
             ];
 
             // Handle Logo Upload

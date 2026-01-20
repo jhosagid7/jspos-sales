@@ -41,11 +41,15 @@ class Configuration extends Model
         'check_stock_reservation',
         'backup_emails',
         'purchasing_calculation_mode',
-        'purchasing_coverage_days'
+        'purchasing_coverage_days',
+        'production_email_recipients',
+        'production_email_subject',
+        'production_email_body'
     ];
 
     protected $casts = [
         'backup_emails' => 'array',
+        'production_email_recipients' => 'array',
     ];
 
     public function defaultWarehouse()

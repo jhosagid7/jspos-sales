@@ -39,7 +39,7 @@
             overflow: hidden;
         }
         .product-name {
-            font-size: 13px; /* Restored font size */
+            font-size: 18px; /* Restored font size */
             font-weight: bold;
             text-align: center;
             height: 1.4cm; /* Restored height */

@@ -262,6 +262,15 @@
                     </a>
                 </li>
 
+                @can('manage_production')
+                <li class="nav-item">
+                    <a href="{{ route('production.index') }}" class="nav-link {{ Request::is('production*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-industry"></i>
+                        <p>PRODUCCIÓN</p>
+                    </a>
+                </li>
+                @endcan
+
                 @can('inventarios')
                 <li class="nav-item">
                     <a href="#" class="nav-link">
