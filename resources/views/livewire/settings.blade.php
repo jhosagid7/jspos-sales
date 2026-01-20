@@ -89,6 +89,16 @@
                                     <small class="{{ $tab == 7 ? 'text-white' : 'text-muted' }}">Escáner y Cámara</small>
                                 </div>
                             </a>
+                        {{-- Tab 8: Configuración de Producción --}}
+                        <li class="nav-item mb-2">
+                            <a class="nav-link {{ $tab == 8 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                               wire:click.prevent="$set('tab',8)" href="#">
+                                <i class="fa fa-industry fa-2x"></i>
+                                <div>
+                                    <h6 class="mb-0">Producción</h6>
+                                    <small class="{{ $tab == 8 ? 'text-white' : 'text-muted' }}">Emails y reportes</small>
+                                </div>
+                            </a>
                         </li>
                     </ul>
                 </div>
@@ -546,6 +556,51 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        {{-- TAB 8: CONFIGURACIÓN DE PRODUCCIÓN --}}
+                        <div class="tab-pane fade {{ $tab == 8 ? 'active show' : '' }}" id="production-settings" role="tabpanel"
+                            aria-labelledby="production-settings-tab">
+                            <div class="sidebar-body">
+                                <form class="row g-3">
+                                    <div class="col-12">
+                                        <div class="alert alert-light-primary" role="alert">
+                                            <i class="fas fa-info-circle"></i> Configura el envío de reportes de producción por correo electrónico.
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-sm-12">
+                                        <label class="form-label">DESTINATARIOS (Separados por coma)</label>
+                                        <textarea wire:model="productionEmailRecipients" class="form-control" cols="30" rows="2" placeholder="ejemplo@correo.com, jefe@correo.com"></textarea>
+                                        <small class="text-muted">Estos correos recibirán el PDF de producción.</small>
+                                    </div>
+
+                                    <div class="col-sm-12">
+                                        <label class="form-label">ASUNTO DEL CORREO</label>
+                                        <input wire:model="productionEmailSubject" type="text" class="form-control" placeholder="Ej: Reporte de Producción - [FECHA]">
+                                    </div>
+
+                                    <div class="col-sm-12">
+                                        <label class="form-label">CUERPO DEL CORREO</label>
+                                        <textarea wire:model="productionEmailBody" class="form-control" cols="30" rows="4" placeholder="Mensaje que acompañará al PDF adjunto..."></textarea>
+                                        <div class="alert alert-light-info mt-2">
+                                            <small>
+                                                <b>Variables Disponibles:</b><br>
+                                                <code>[FECHA]</code> : Fecha de producción (ej: Lunes, 12 de Enero de 2026)<br>
+                                                <code>[SALUDO]</code> : Saludo automático (Buenos días / tardes / noches)<br>
+                                                <code>[USUARIO]</code> : Nombre del usuario que envía el correo
+                                            </small>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <button class="btn btn-primary" wire:click.prevent="saveConfig" wire:loading.attr="disabled">
+                                            <span wire:loading.remove wire:target="saveConfig">Guardar Configuración</span>
+                                            <span wire:loading wire:target="saveConfig">Guardando...</span>
+                                        </button>
+                                    </div>
+                                </form>
                             </div>
                         </div>
 

@@ -99,6 +99,11 @@ Route::middleware('auth')->group(function () {
     Route::get('cargos/create', \App\Livewire\Cargos\CreateCargo::class)->name('cargos.create');
     Route::get('cargos/{cargo}/pdf', [\App\Http\Controllers\CargoController::class, 'pdf'])->name('cargos.pdf');
 
+    // Production Routes
+    Route::get('production', \App\Livewire\Production\ProductionList::class)->name('production.index')->middleware('can:manage_production');
+    Route::get('production/create', \App\Livewire\Production\CreateProduction::class)->name('production.create')->middleware('can:manage_production');
+    Route::get('production/{id}/pdf', [\App\Http\Controllers\ProductionController::class, 'pdf'])->name('production.pdf')->middleware('can:manage_production');
+
     Route::get('descargos', \App\Livewire\Descargos\DescargosList::class)->name('descargos');
     Route::get('descargos/create', \App\Livewire\Descargos\CreateDescargo::class)->name('descargos.create');
     Route::get('descargos/{descargo}/pdf', [\App\Http\Controllers\DescargoController::class, 'pdf'])->name('descargos.pdf');
