@@ -20,11 +20,38 @@ class CreateProduction extends Component
     public $selectedCategory = null;
     public $selectedTag = null;
 
-    public function mount()
+    public $productionId;
+    public $isEdit = false;
+
+    public function mount($production = null)
     {
-        $this->production_date = now()->format('Y-m-d');
         $this->categories = \App\Models\Category::orderBy('name')->get();
         $this->tags = \App\Models\Tag::orderBy('name')->get();
+
+        if ($production) {
+            $productionModel = \App\Models\Production::find($production);
+            if ($productionModel && $productionModel->status == 'pending') {
+                $this->productionId = $productionModel->id;
+                $this->production_date = $productionModel->production_date->format('Y-m-d');
+                $this->note = $productionModel->note;
+                $this->isEdit = true;
+
+                foreach ($productionModel->details as $detail) {
+                    $this->cart[$detail->product_id] = [
+                        'id' => $detail->product_id,
+                        'name' => $detail->product->name,
+                        'sku' => $detail->product->sku,
+                        'quantity' => floatval($detail->quantity),
+                        'weight' => floatval($detail->weight),
+                        'material_type' => $detail->material_type
+                    ];
+                }
+            } else {
+                return redirect()->route('production.index');
+            }
+        } else {
+            $this->production_date = now()->format('Y-m-d');
+        }
     }
 
     public function updatedSearch()
@@ -144,12 +171,24 @@ class CreateProduction extends Component
         try {
             \Illuminate\Support\Facades\DB::beginTransaction();
 
-            $production = \App\Models\Production::create([
-                'user_id' => auth()->id(),
-                'production_date' => $this->production_date,
-                'note' => $this->note,
-                'status' => 'pending'
-            ]);
+            if ($this->isEdit) {
+                $production = \App\Models\Production::find($this->productionId);
+                $production->update([
+                    'production_date' => $this->production_date,
+                    'note' => $this->note,
+                ]);
+                
+                // Delete old details
+                $production->details()->delete();
+                
+            } else {
+                $production = \App\Models\Production::create([
+                    'user_id' => auth()->id(),
+                    'production_date' => $this->production_date,
+                    'note' => $this->note,
+                    'status' => 'pending'
+                ]);
+            }
 
             foreach ($this->cart as $item) {
                 \App\Models\ProductionDetail::create([
@@ -164,7 +203,8 @@ class CreateProduction extends Component
             \Illuminate\Support\Facades\DB::commit();
             
             $this->reset(['cart', 'note', 'search']);
-            $this->dispatch('noty', msg: 'Producción registrada correctamente');
+            $msg = $this->isEdit ? 'Producción actualizada correctamente' : 'Producción registrada correctamente';
+            $this->dispatch('noty', msg: $msg);
             return redirect()->route('production.index');
             
         } catch (\Exception $e) {
