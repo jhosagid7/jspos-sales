@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.7.3] - 2026-01-22
+
+### Added
+- **Production Module**:
+  - **Edit Functionality**: Enabled editing for productions in "Pending" status. Users can now modify dates, notes, and product details before sending to inventory.
+  - **UI/UX**: Added an "Edit" button (pencil icon) in the production list, strictly controlled by status logic.
+
 ## [1.7.2] - 2026-01-22
 
 ### Fixed
