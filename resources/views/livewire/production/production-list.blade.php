@@ -51,6 +51,11 @@
                                             class="btn btn-info mtmobile" title="Enviar a Cargo">
                                         <i class="fas fa-box-open"></i>
                                     </button>
+
+                                    <a href="{{ route('production.create', ['production' => $row->id]) }}" 
+                                       class="btn btn-warning mtmobile" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
                                     @endif
                                     
                                     <a href="{{ route('production.pdf', $row->id) }}" target="_blank" class="btn btn-dark mtmobile" title="PDF">

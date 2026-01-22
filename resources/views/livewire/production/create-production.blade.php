@@ -3,7 +3,7 @@
         <div class="widget widget-chart-one">
             <div class="widget-heading">
                 <h4 class="card-title">
-                    <b>Nueva Producción</b>
+                    <b>{{ $isEdit ? 'Editar Producción' : 'Registrar Producción' }}</b>
                 </h4>
                 <ul class="tabs tab-pills">
                     <li>
@@ -153,12 +153,10 @@
                 </div>
 
                 <div class="row mt-3">
-                    <div class="col-sm-12 text-center">
-                        @if(count($cart) > 0)
-                        <button wire:click="save" class="btn btn-primary btn-lg">
-                            GUARDAR PRODUCCIÓN
+                    <div class="col-sm-12 col-md-4 d-flex justify-content-end align-items-center">
+                        <button wire:click.prevent="save" class="btn btn-dark btn-lg">
+                            {{ $isEdit ? 'ACTUALIZAR' : 'GUARDAR' }}
                         </button>
-                        @endif
                     </div>
                 </div>
 
