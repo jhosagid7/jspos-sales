@@ -222,7 +222,7 @@
                                             @if ($logo)
                                                 <img src="{{ $logo->temporaryUrl() }}" alt="Logo Preview" class="img-thumbnail" style="max-height: 100px;">
                                             @elseif($logo_preview)
-                                                <img src="{{ asset('storage/' . $logo_preview) }}" alt="Current Logo" class="img-thumbnail" style="max-height: 100px;">
+                                            <img src="{{ asset('storage/' . $logo_preview) }}" alt="Current Logo" class="img-thumbnail" style="max-height: 100px;" onerror="this.onerror=null;this.src='{{ asset('logo/logo.jpg') }}';">
                                             @endif
                                         </div>
                                     </div>
