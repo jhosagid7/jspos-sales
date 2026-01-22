@@ -9,11 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
-## [1.7.1] - 2026-01-22
-
-### Fixed
-- **Update System**: Increased download timeout limit to 5 minutes to prevent cURL error 28 on slow connections.
-
 ## [1.7.2] - 2026-01-22
 
 ### Fixed
@@ -26,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Backup System**:
   - **Database Dump**: Configured `mysqldump` binary path explicitly to fix "mysqldump not recognized" error.
   - **Transaction Mode**: Enabled `useSingleTransaction` to ensure consistent backups without locking tables.
+
+## [1.7.1] - 2026-01-22
+
+### Fixed
+- **Update System**: Increased download timeout limit to 5 minutes to prevent cURL error 28 on slow connections.
 
 ## [1.7.0] - 2026-01-22
 
