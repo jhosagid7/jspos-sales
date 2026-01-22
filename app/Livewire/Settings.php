@@ -144,6 +144,16 @@ class Settings extends Component
              if (empty($this->printerShare)) $this->addError('printerShare', 'Ingresa el nombre compartido');
         }
 
+        // Validate Backup Emails
+        if (!empty($this->backupEmails)) {
+            $emails = array_map('trim', explode(',', $this->backupEmails));
+            foreach ($emails as $email) {
+                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $this->addError('backupEmails', "El correo '$email' no es válido.");
+                }
+            }
+        }
+
         if (empty($this->creditDays)) {
             $this->addError('creditDays', 'Ingresa días límite de pago');
         }

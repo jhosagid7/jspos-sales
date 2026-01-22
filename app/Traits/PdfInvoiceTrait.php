@@ -22,23 +22,30 @@ trait PdfInvoiceTrait
     public function generatePdfInvoice(Sale $sale)
     {
         try {
-            // dd($sale);
+            Log::info("PDF Generation requested for Sale ID: {$sale->id} | Status: {$sale->status}");
+            
             $config = Configuration::first();
 
             if ($config) {
                 if ($sale->status == 'paid') {
-                    // dd($sale->status);
+                    Log::info("Generating PAID invoice for Sale ID: {$sale->id}");
                     return $this->generatePdfInvoicePaid($sale);
                 }
                 if ($sale->status == 'pending') {
-                    // dd($sale->status);
+                    Log::info("Generating PENDING invoice for Sale ID: {$sale->id}");
                     return $this->generatePdfInvoicePending($sale);
                 }
+                
+                Log::warning("Sale status '{$sale->status}' is not supported for PDF generation. Sale ID: {$sale->id}");
+                return response()->json(['error' => "El estado de la venta '{$sale->status}' no permite generar PDF."], 422);
+
             } else {
-                Log::info("La tabla configurations está vacía, no es posible imprimir la venta");
+                Log::error("Configuration table is empty. Cannot generate PDF.");
+                return response()->json(['error' => 'No hay configuración del sistema.'], 500);
             }
         } catch (\Exception $th) {
-            Log::info("Error al intentar imprimir la remisión de venta \n {$th->getMessage()}");
+            Log::error("Error generating PDF for Sale ID: {$sale->id}: " . $th->getMessage());
+            return response()->json(['error' => 'Error interno al generar PDF.'], 500);
         }
     }
 
@@ -104,6 +111,21 @@ trait PdfInvoiceTrait
                     }
                 }
 
+                $logoPath = $config->logo ? public_path('storage/' . $config->logo) : public_path('logo/logo.jpg');
+                if (!file_exists($logoPath)) {
+                    Log::warning("Logo file not found at: $logoPath. Using default.");
+                    $logoPath = public_path('logo/logo.jpg');
+                    if (!file_exists($logoPath)) {
+                        Log::warning("Default logo not found either. PDF will have no logo.");
+                        $logoPath = null;
+                        // Or maybe a transparent 1x1 pixel image if the library requires it?
+                        // Jhosagid\Invoices likely handles null or missing logo gracefully OR crashes if 'logo' method is called with bad path via dompdf.
+                        // Ideally we pass a valid path or empty string.
+                    }
+                }
+                
+                Log::info("Using Logo Path: " . ($logoPath ?? 'NONE'));
+
                 $invoice = Invoice::make($config->business_name)->template('invoice-paid-short')
                     ->series('remision_numero')
                     // ability to include translated invoice status
@@ -125,7 +147,7 @@ trait PdfInvoiceTrait
                     // ->filename($seller->name . ' ' . $customer->name)
                     ->addItems($items)
                     ->notes($notes)
-                    ->logo($config->logo ? public_path('storage/' . $config->logo) : public_path('logo/logo.jpg'))
+                    ->logo($logoPath ?? '')
                     // You can additionally save generated invoice to configured disk
                     ->save('public');
 
@@ -138,38 +160,33 @@ trait PdfInvoiceTrait
                 Log::info("La tabla configurations está vacía, no es posible imprimir la venta");
             }
         } catch (\Exception $th) {
-            Log::info("Error al intentar imprimir la remisión de venta \n {$th->getMessage()}");
+            Log::error("Error generating PAID invoice for Sale ID: {$sale->id}: " . $th->getMessage());
+            return response()->json(['error' => 'Error generating PDF: ' . $th->getMessage()], 500);
         }
     }
 
     public function generatePdfInvoicePending($sale)
     {
-
         try {
+            Log::info("Generating PENDING invoice logic for Sale ID: {$sale->id}");
             $config = Configuration::first();
 
             if ($config) {
-
-                // $sale = Sale::with(['customer', 'user', 'details', 'details.product'])->find($sale->id);
-
                 $seller = new Party([
                     'name'          => $config->business_name,
-                    'vat'           => $config->taxpayer_id,
+                    'CC/NIT'           => $config->taxpayer_id,
                     'address'       => $config->address,
-                    'city'           => 'Bogota',
+                    'city'           => $config->city,
                     'phone'         => $sale->customer->phone,
 
                     'custom_fields' => [
                         'email'         => $sale->customer->email,
                         'vendedor'        => $sale->user->name,
-
                     ],
                 ]);
 
                 $customer = new Party([
                     'name'          => $sale->customer->name,
-
-
                     'custom_fields' => [
                         'CC/NIT'           => $sale->customer->taxpayer_id,
                         'address'       => $sale->customer->address,
@@ -179,14 +196,12 @@ trait PdfInvoiceTrait
                     ],
                 ]);
 
+                $items = [];
                 foreach ($sale->details as $detail) {
-
                     $items[] = InvoiceItem::make($detail->product->name)->reference($detail->product->sku ? $detail->product->sku : '')->pricePerUnit($detail->sale_price)->quantity($detail->quantity);
                 }
 
-                $notes = [
-                    $sale->notes,
-                ];
+                $notes = [$sale->notes];
                 $notes = implode("<br>", $notes);
 
                 $credit_days = $sale->type == 'credit' ? $config->credit_days : 0;
@@ -205,16 +220,26 @@ trait PdfInvoiceTrait
                     }
                 }
 
+                // Logo Logic with Fallback
+                $logoPath = $config->logo ? public_path('storage/' . $config->logo) : public_path('logo/logo.jpg');
+                if (!file_exists($logoPath)) {
+                    Log::warning("Logo file not found at: $logoPath. Using default.");
+                    $logoPath = public_path('logo/logo.jpg');
+                    if (!file_exists($logoPath)) {
+                        Log::warning("Default logo not found either. PDF will have no logo.");
+                        $logoPath = null;
+                    }
+                }
+                
+                Log::info("Using Logo Path for Pending: " . ($logoPath ?? 'NONE'));
+
                 $invoice = Invoice::make($config->business_name)->template('invoice-credit-short')
                     ->series('remision_numero')
-                    // ability to include translated invoice status
-                    // in case it was paid
                     ->status(__('invoices::invoice.credit'))
                     ->sequence($sale->id)
                     ->serialNumberFormat('{SEQUENCE}')
                     ->seller($seller)
                     ->buyer($customer)
-                    // ->date(now()->subWeeks(3))
                     ->dateFormat('d-M-Y')
                     ->payUntilDays($credit_days)
                     ->currencySymbol($currencySymbol)
@@ -223,25 +248,24 @@ trait PdfInvoiceTrait
                     ->currencyFormat('{SYMBOL}{VALUE}')
                     ->currencyThousandsSeparator('.')
                     ->currencyDecimalPoint(',')
-                    // ->filename($seller->name . ' ' . $customer->name)
                     ->addItems($items)
                     ->notes($notes)
-                    ->logo($config->logo ? public_path('storage/' . $config->logo) : public_path('logo/logo.jpg'))
-                    // You can additionally save generated invoice to configured disk
+                    ->logo($logoPath ?? '')
                     ->save('public');
 
-                $link = $invoice->url();
-                // Then send email to party with link
-
-                // And return invoice itself to browser or have a different view
                 return $invoice->stream();
             } else {
-                Log::info("La tabla configurations está vacía, no es posible imprimir la venta");
+                 Log::error("Configuration table is empty. Cannot generate PDF.");
+                return response()->json(['error' => 'No hay configuración del sistema.'], 500);
             }
-        } catch (\Exception $th) {
-            Log::info("Error al intentar imprimir la remisión de venta \n {$th->getMessage()}");
+         } catch (\Exception $th) {
+            Log::error("Error generating PENDING invoice for Sale ID: {$sale->id}: " . $th->getMessage());
+            return response()->json(['error' => 'Error generating PDF: ' . $th->getMessage()], 500);
         }
     }
+
+
+
 
     // function printSale($saleId)
     // {
