@@ -6,6 +6,7 @@ use Livewire\Component;
 use App\Models\DeviceAuthorization;
 use App\Models\Configuration;
 use Livewire\WithPagination;
+use Illuminate\Support\Str;
 
 class DeviceManager extends Component
 {
@@ -16,6 +17,8 @@ class DeviceManager extends Component
     public $search = '', $access_mode = 'open';
     public $selected_device_id, $new_name;
     public $printer_name, $printer_width = '80mm';
+    public $is_network = false, $printer_user = '', $printer_password = '';
+    public $printer_host = '', $printer_share = '';
     public $is_editing_printer = false;
 
     public function mount()
@@ -97,8 +100,31 @@ class DeviceManager extends Component
         $device = DeviceAuthorization::find($id);
         if ($device) {
             $this->selected_device_id = $id;
+            $this->selected_device_id = $id;
             $this->printer_name = $device->printer_name;
             $this->printer_width = $device->printer_width ?? '80mm';
+            $this->is_network = (bool) $device->is_network;
+            $this->printer_user = $device->printer_user;
+            $this->printer_password = $device->printer_password;
+
+            // Extract Host and Share from printer_name if it is network
+            $this->printer_host = '';
+            $this->printer_share = $this->printer_name;
+            
+            if ($this->is_network && Str::contains($this->printer_name, '\\')) {
+                $clean = str_replace('\\\\', '', $this->printer_name);
+                $parts = explode('\\', $clean);
+                if (count($parts) >= 2) {
+                    $this->printer_host = $parts[0];
+                    $this->printer_share = $parts[1];
+                } else {
+                     $this->printer_host = $clean; // Fallback
+                }
+            } elseif ($this->is_network && !empty($this->printer_name)) {
+                // Try to handle case where user entered just Name but it IS network
+                 $this->printer_share = $this->printer_name;
+            }
+
             $this->dispatch('show-modal', 'modalPrinter');
         }
     }
@@ -107,8 +133,27 @@ class DeviceManager extends Component
     {
         $device = DeviceAuthorization::find($this->selected_device_id);
         if ($device) {
+            
+            // If network, construct the printer name from Host + Share
+            if ($this->is_network) {
+                 // Format: \\HOST\SHARE
+                 $host = trim($this->printer_host, '\\'); // remove any leading/trailing slashes user might have typed
+                 $share = trim($this->printer_share, '\\');
+                 
+                 if (empty($host)) {
+                     // If host is empty, we can't make a valid UNC. 
+                     // Fallback to just share? Or error? 
+                     // For now let's assume user knows what they are doing or handled validation
+                 }
+                 
+                 $this->printer_name = "\\\\" . $host . "\\" . $share;
+            }
+
             $device->printer_name = $this->printer_name;
             $device->printer_width = $this->printer_width;
+            $device->is_network = $this->is_network;
+            $device->printer_user = $this->printer_user;
+            $device->printer_password = $this->printer_password;
             $device->save();
             $this->dispatch('noty', msg: 'Configuración de impresora actualizada');
             $this->dispatch('close-modal', 'modalPrinter');

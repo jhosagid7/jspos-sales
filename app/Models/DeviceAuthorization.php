@@ -16,9 +16,13 @@ class DeviceAuthorization extends Model
         'last_accessed_at',
         'printer_name',
         'printer_width',
+        'is_network',
+        'printer_user',
+        'printer_password',
     ];
 
     protected $casts = [
         'last_accessed_at' => 'datetime',
+        'is_network' => 'boolean',
     ];
 }

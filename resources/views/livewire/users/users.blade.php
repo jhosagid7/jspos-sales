@@ -117,11 +117,45 @@
                     </div>
 
                     <div class="form-group mt-3">
-                        <span>Impresora Asignada (Opcional)</span>
-                        <input wire:model="user.printer_name" type="text" class="form-control" placeholder="Ej: \\CAJA-1\EPSON o POS-58">
-                        <small class="text-muted">Dejar en blanco para usar la impresora predeterminada.</small>
-                        @error('user.printer_name') <span class="text-danger">{{ $message }}</span> @enderror
+                        <div class="form-check form-switch pl-0">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" id="isNetworkUser" wire:model.live="isNetwork">
+                                <label class="custom-control-label" for="isNetworkUser">¿Es una impresora de red con contraseña?</label>
+                            </div>
+                        </div>
                     </div>
+
+                    @if($isNetwork)
+                        <div class="row">
+                            <div class="col-sm-6 form-group mt-2">
+                                <span class="form-label">IP o Host <span class="txt-danger">*</span></span>
+                                <input wire:model="printerHost" type="text" class="form-control" placeholder="Ej: 192.168.1.50">
+                                @error('printerHost') <span class="text-danger">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="col-sm-6 form-group mt-2">
+                                <span class="form-label">Nombre Compartido <span class="txt-danger">*</span></span>
+                                <input wire:model="printerShare" type="text" class="form-control" placeholder="Ej: EPSON_TM">
+                                @error('printerShare') <span class="text-danger">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="col-sm-6 form-group mt-2">
+                                <span class="form-label">Usuario</span>
+                                <input wire:model="user.printer_user" type="text" class="form-control" placeholder="Opcional">
+                                @error('user.printer_user') <span class="text-danger">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="col-sm-6 form-group mt-2">
+                                <span class="form-label">Contraseña</span>
+                                <input wire:model="user.printer_password" type="password" class="form-control" placeholder="Opcional">
+                                @error('user.printer_password') <span class="text-danger">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+                    @else
+                        <div class="form-group mt-3">
+                            <span>Impresora Asignada (Opcional)</span>
+                            <input wire:model="user.printer_name" type="text" class="form-control" placeholder="Ej: \\CAJA-1\EPSON o POS-58">
+                            <small class="text-muted">Dejar en blanco para usar la impresora predeterminada.</small>
+                            @error('user.printer_name') <span class="text-danger">{{ $message }}</span> @enderror
+                        </div>
+                    @endif
 
                     <div class="form-group mt-3">
                         <span>Ancho de Impresión</span>

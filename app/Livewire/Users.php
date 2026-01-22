@@ -20,6 +20,10 @@ class Users extends Component
     public  $role, $roleSelectedId,  $permissionId, $roles = [];
     public $commission_percent = 0, $freight_percent = 0, $exchange_diff_percent = 0, $current_batch = '1';
     public $sellerCommission1Threshold, $sellerCommission1Percentage, $sellerCommission2Threshold, $sellerCommission2Percentage;
+    
+    // Printer Auth
+    public $isNetwork = false;
+    public $printerHost, $printerShare;
 
     protected $rules =
     [
@@ -38,6 +42,9 @@ class Users extends Component
         'sellerCommission2Percentage' => 'nullable|numeric',
         'user.printer_name' => 'nullable|string|max:55',
         'user.printer_width' => 'nullable|in:80mm,58mm',
+        'user.is_network' => 'boolean',
+        'user.printer_user' => 'nullable|string',
+        'user.printer_password' => 'nullable|string',
     ];
 
     protected $messages = [
@@ -154,6 +161,22 @@ class Users extends Component
         $this->sellerCommission2Threshold = $user->seller_commission_2_threshold;
         $this->sellerCommission2Percentage = $user->seller_commission_2_percentage;
 
+        // Load Network Printer Settings
+        $this->isNetwork = (bool) $user->is_network;
+        $this->printerHost = null;
+        $this->printerShare = null;
+
+        if ($this->isNetwork && $user->printer_name) {
+            $cleanName = str_replace('\\\\', '', $user->printer_name);
+            $parts = explode('\\', $cleanName);
+            if (count($parts) >= 2) {
+                $this->printerHost = $parts[0];
+                $this->printerShare = $parts[1];
+            } else {
+                 $this->printerHost = $cleanName;
+            }
+        }
+
         $latestConfig = $user->latestSellerConfig;
         if($latestConfig) {
             $this->commission_percent = $latestConfig->commission_percent;
@@ -179,6 +202,9 @@ class Users extends Component
         $this->commission_percent = 0;
         $this->freight_percent = 0;
         $this->exchange_diff_percent = 0;
+        $this->isNetwork = false;
+        $this->printerHost = null;
+        $this->printerShare = null;
         $this->resetCommissionFields();
         $this->editing = false;
     }
@@ -186,8 +212,22 @@ class Users extends Component
     public function Store()
     {
         $this->rules['user.name'] = $this->user->id > 0 ? "required|max:85|unique:users,name,{$this->user->id}" : 'required|max:85|unique:users,name';
+        
+        // Add manual validation for host/share if network
+        if ($this->isNetwork) {
+             if (empty($this->printerHost)) $this->addError('printerHost', 'Ingresa la IP o Host');
+             if (empty($this->printerShare)) $this->addError('printerShare', 'Ingresa el nombre compartido');
+        } else {
+             // Non-network printer validation if needed, or just standard printer_name rule applies
+        }
 
         $this->validate($this->rules, $this->messages);
+        
+        if ($this->isNetwork) {
+             if (empty($this->printerHost) || empty($this->printerShare)) {
+                 return; // Stop if manual validation failed
+             }
+        }
 
         if ($this->user->id == null) {
             if (empty($this->pwd)) {
@@ -208,12 +248,24 @@ class Users extends Component
         $this->user->seller_commission_2_threshold = $this->sellerCommission2Threshold;
         $this->user->seller_commission_2_percentage = $this->sellerCommission2Percentage;
         
-        // Printer Name (Optional)
-        // Ensure it's in fillable or manually assigned if not
-        // Assuming User model is not strict or we assign it directly
-        // $this->user->printer_name is already bound via wire:model if we add it
-        // But we need to make sure it's safe.
-        // Let's add it to rules first.
+        // Printer Logic
+        $this->user->is_network = $this->isNetwork;
+        
+        if ($this->isNetwork) {
+            $host = trim($this->printerHost, '\\'); 
+            $share = trim($this->printerShare, '\\');
+            $this->user->printer_name = "\\\\{$host}\\{$share}";
+            // printer_user and printer_password are bound directly to user, but let's trim them if needed
+            // Actually nice to trim
+            if($this->user->printer_user) $this->user->printer_user = trim($this->user->printer_user);
+            if($this->user->printer_password) $this->user->printer_password = trim($this->user->printer_password);
+        } else {
+            // printer_name is bound directly to user for non-network case, valid layout?
+            // Wait, in non-network mode, user inputs into user.printer_name directly.
+            // But we should clear auth fields if switching off network?
+            $this->user->printer_user = null;
+            $this->user->printer_password = null;
+        }
 
         // save model
         $this->user->save();
@@ -263,6 +315,9 @@ class Users extends Component
         $this->freight_percent = 0;
         $this->freight_percent = 0;
         $this->exchange_diff_percent = 0;
+        $this->isNetwork = false;
+        $this->printerHost = null;
+        $this->printerShare = null;
         $this->resetCommissionFields();
     }
 

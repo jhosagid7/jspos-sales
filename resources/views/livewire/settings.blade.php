@@ -142,11 +142,43 @@
                                         @error('decimals') <span class="text-danger">{{ $message }}</span> @enderror
                                     </div>
 
-                                    <div class="col-sm-12 col-md-6">
-                                        <label class="form-label">IMPRESORA <span class="txt-danger">*</span></label>
-                                        <input wire:model="printerName" type="text" class="form-control" maxlength="55">
-                                        @error('printerName') <span class="text-danger">{{ $message }}</span> @enderror
+                                    <div class="col-sm-12 col-md-12">
+                                        <div class="form-check form-switch pl-0">
+                                            <div class="custom-control custom-switch">
+                                                <input type="checkbox" class="custom-control-input" id="isNetwork" wire:model.live="isNetwork">
+                                                <label class="custom-control-label" for="isNetwork">¿Es una impresora de red con contraseña?</label>
+                                            </div>
+                                        </div>
                                     </div>
+
+                                    @if($isNetwork)
+                                        <div class="col-sm-12 col-md-6">
+                                            <label class="form-label">IP o Nombre del Equipo <span class="txt-danger">*</span></label>
+                                            <input wire:model="printerHost" type="text" class="form-control" placeholder="Ej: 192.168.1.50">
+                                            @error('printerHost') <span class="text-danger">{{ $message }}</span> @enderror
+                                        </div>
+                                        <div class="col-sm-12 col-md-6">
+                                            <label class="form-label">Nombre Compartido <span class="txt-danger">*</span></label>
+                                            <input wire:model="printerShare" type="text" class="form-control" placeholder="Ej: EPSON_TM">
+                                            @error('printerShare') <span class="text-danger">{{ $message }}</span> @enderror
+                                        </div>
+                                        <div class="col-sm-12 col-md-6">
+                                            <label class="form-label">Usuario</label>
+                                            <input wire:model="printerUser" type="text" class="form-control" placeholder="Opcional">
+                                            @error('printerUser') <span class="text-danger">{{ $message }}</span> @enderror
+                                        </div>
+                                        <div class="col-sm-12 col-md-6">
+                                            <label class="form-label">Contraseña</label>
+                                            <input wire:model="printerPassword" type="password" class="form-control" placeholder="Opcional">
+                                            @error('printerPassword') <span class="text-danger">{{ $message }}</span> @enderror
+                                        </div>
+                                    @else
+                                        <div class="col-sm-12 col-md-6">
+                                            <label class="form-label">IMPRESORA <span class="txt-danger">*</span></label>
+                                            <input wire:model="printerName" type="text" class="form-control" maxlength="55">
+                                            @error('printerName') <span class="text-danger">{{ $message }}</span> @enderror
+                                        </div>
+                                    @endif
 
                                     <div class="col-sm-12 col-md-6">
                                         <label class="form-label">ANCHO DE IMPRESIÓN</label>

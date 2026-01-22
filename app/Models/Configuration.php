@@ -44,12 +44,16 @@ class Configuration extends Model
         'purchasing_coverage_days',
         'production_email_recipients',
         'production_email_subject',
-        'production_email_body'
+        'production_email_body',
+        'is_network',
+        'printer_user',
+        'printer_password',
     ];
 
     protected $casts = [
         'backup_emails' => 'array',
         'production_email_recipients' => 'array',
+        'is_network' => 'boolean',
     ];
 
     public function defaultWarehouse()
