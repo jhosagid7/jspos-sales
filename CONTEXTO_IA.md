@@ -3,6 +3,21 @@
 Este archivo sirve para almacenar instrucciones recurrentes, decisiones de diseño y contexto del proyecto `jspos-sales`.
 La IA debe leer este archivo para entender cómo trabajar en este proyecto específico.
 
+## Reglas de Trabajo (Workflow)
+
+### Gestión de Versiones y Git
+1.  **Ramas por Funcionalidad**: NUNCA trabajar directamente en `develop` o `main`. Siempre crear una rama nueva para cada tarea o corrección.
+    -   Formato: `feature/nombre-tarea` o `fix/nombre-bug`.
+2.  **Flujo de Aprobación**:
+    -   Hacer cambios en la rama temporal.
+    -   Verificar funcionalmente.
+    -   Si todo está bien, fusionar (merge) con `develop`.
+    -   Crear el Release / Tag.
+3.  **Orden del Changelog**: Las versiones más recientes siempre deben ir arriba en `CHANGELOG.md`.
+
+## Decisiones de Diseño
+...
+
 ## 1. Reglas Generales de Desarrollo
 - **Stack Tecnológico**: Laravel, Blade/Vue (según aplique), Tailwind CSS, MySQL.
 - **Estilo de Código**: Seguir estándares de Laravel.
