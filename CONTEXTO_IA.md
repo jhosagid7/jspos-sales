@@ -28,3 +28,7 @@ La IA debe leer este archivo para entender cómo trabajar en este proyecto espec
 
 ## 5. Historial de Decisiones Importantes
 - [Fecha]: decisión tomada...
+
+## 6. Flujo de Trabajo y Control de Versiones (CRÍTICO)
+- **CHANGELOG Obligatorio**: ANTES de hacer cualquier commit de release, tag, o `git push origin develop`, **SIEMPRE** se debe actualizar el archivo `CHANGELOG.md` con los cambios realizados.
+- **Recordatorio Constante**: Si el usuario pide "subir cambios" o "hacer release", el primer paso es verificar y actualizar el Changelog.

@@ -11,13 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.7.0] - 2026-01-22
 
-### Added
-- **Network Printer Authentication**:
-  - **Global Settings**: Added fields in "Configuraciones > General" to define a default network printer with authentication (IP, Share Name, User, Password).
-  - **User Profile**: Added overrides in "Usuarios > Editar" to assign specific network printers and credentials per user.
-  - **Database**: Added `is_network`, `printer_user`, and `printer_password` columns to `configurations` and `users` tables.
-  - **Printing Logic**: Updated system to prioritize printer configuration in the following order: Device > User > Global.
-  - **SMB Protocol**: Implemented secure SMB connection URI construction (`smb://user:pass@host/share`) for printing to password-protected shared printers.
+### Agregado
+- **Autenticación de Impresora de Red**:
+  - **Configuración Global**: Se agregaron campos en "Configuraciones > General" para definir una impresora de red predeterminada con autenticación (IP, Nombre Compartido, Usuario, Contraseña).
+  - **Perfil de Usuario**: Se agregaron opciones en "Usuarios > Editar" para asignar impresoras de red y credenciales específicas por usuario (sobreescribe la global).
+  - **Base de Datos**: Nuevas columnas `is_network`, `printer_user`, y `printer_password` en las tablas `configurations` y `users`.
+  - **Lógica de Impresión**: El sistema ahora prioriza la configuración en este orden: Dispositivo > Usuario > Global.
+  - **Protocolo SMB**: Implementación de conexión segura SMB (`smb://usuario:pass@host/recurso`) para imprimir en impresoras compartidas protegidas por contraseña.
 
 ## [1.6.0] - 2026-01-18
 
