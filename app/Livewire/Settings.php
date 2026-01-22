@@ -18,7 +18,14 @@ class Settings extends Component
     public $purchasingCalculationMode, $purchasingCoverageDays; // Purchasing Intelligence
     public $productionEmailRecipients, $productionEmailSubject, $productionEmailBody; // Production Email Settings
     
+    // Printer Auth
+    public $isNetwork = false;
+    public $printerHost, $printerShare;
+    public $printerUser, $printerPassword;
+
     public $tab = 1; // Control de pestañas
+    
+    // ... items ...
 
     public $primaryCurrency; // Moneda principal
     public $availableCurrencies = ['USD', 'COP', 'VES']; // Lista de monedas disponibles
@@ -73,6 +80,23 @@ class Settings extends Component
             $this->checkStockReservation = (bool) $config->check_stock_reservation;
             $this->defaultWarehouseId = $config->default_warehouse_id;
             
+            // Network Printer
+            $this->isNetwork = (bool) $config->is_network;
+            $this->printerUser = $config->printer_user;
+            $this->printerPassword = $config->printer_password;
+            
+            if ($this->isNetwork && $this->printerName) {
+                // Try to parse \\HOST\SHARE
+                $cleanName = str_replace('\\\\', '', $this->printerName);
+                $parts = explode('\\', $cleanName);
+                if (count($parts) >= 2) {
+                    $this->printerHost = $parts[0];
+                    $this->printerShare = $parts[1];
+                } else {
+                     $this->printerHost = $cleanName;
+                }
+            }
+
             // Load backup emails (array to string)
             $this->backupEmails = is_array($config->backup_emails) ? implode(', ', $config->backup_emails) : $config->backup_emails;
 
@@ -110,9 +134,16 @@ class Settings extends Component
         if (!is_numeric($this->decimals)) {
             $this->addError('decimals', 'Ingresa el Decimales en números!');
         }
-        if (empty($this->printerName)) {
+        
+        // Printer Validation logic
+        if (!$this->isNetwork && empty($this->printerName)) {
             $this->addError('printerName', 'Ingresa la impresora');
         }
+        if ($this->isNetwork) {
+             if (empty($this->printerHost)) $this->addError('printerHost', 'Ingresa la IP o Host');
+             if (empty($this->printerShare)) $this->addError('printerShare', 'Ingresa el nombre compartido');
+        }
+
         if (empty($this->creditDays)) {
             $this->addError('creditDays', 'Ingresa días límite de pago');
         }
@@ -159,6 +190,15 @@ class Settings extends Component
         try {
             // Process backup emails
             $backupEmailsArray = array_filter(array_map('trim', explode(',', $this->backupEmails)));
+            
+            // Construct printer name
+            $finalPrinterName = $this->printerName;
+            if ($this->isNetwork) {
+                // Ensure no double backslashes unless needed (Windows UNC starts with \\)
+                $host = trim($this->printerHost, '\\'); 
+                $share = trim($this->printerShare, '\\');
+                $finalPrinterName = "\\\\{$host}\\{$share}";
+            }
 
             $data = [
                 'business_name' => trim($this->businessName),
@@ -168,7 +208,7 @@ class Settings extends Component
                 'taxpayer_id' => trim($this->taxpayerId),
                 'vat' => trim($this->vat),
                 'decimals' => trim($this->decimals),
-                'printer_name' => trim($this->printerName),
+                'printer_name' => $finalPrinterName,
                 'leyend' => trim($this->leyend),
                 'website' => trim($this->website),
                 'credit_days' => intval($this->creditDays),
@@ -185,7 +225,10 @@ class Settings extends Component
                 'purchasing_coverage_days' => intval($this->purchasingCoverageDays),
                 'production_email_recipients' => array_filter(array_map('trim', explode(',', $this->productionEmailRecipients))),
                 'production_email_subject' => trim($this->productionEmailSubject),
-                'production_email_body' => trim($this->productionEmailBody)
+                'production_email_body' => trim($this->productionEmailBody),
+                'is_network' => $this->isNetwork ? 1 : 0,
+                'printer_user' => $this->isNetwork ? trim($this->printerUser) : null,
+                'printer_password' => $this->isNetwork ? trim($this->printerPassword) : null,
             ];
 
             // Handle Logo Upload

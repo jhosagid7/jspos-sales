@@ -164,13 +164,30 @@
                 <div class="modal-body">
                     <div class="alert alert-info text-white" role="alert">
                         <strong>Nota:</strong> Esta configuración tiene prioridad sobre la impresora del usuario y la global.
-                        Use el nombre exacto de la impresora compartida en red (ej: <code>\\SERVIDOR\ImpresoraCaja</code>) o el nombre local.
+                        Si es de red, ingrese la IP/Nombre del equipo y el nombre compartido por separado.
                     </div>
-                    <div class="form-group">
-                        <label for="printerName">Nombre de la Impresora</label>
-                        <input type="text" class="form-control" id="printerName" wire:model="printer_name" placeholder="Ej: EPSON TM-T20II o \\PC-CAJA\TicketPrinter">
+                    <div class="form-group" @if($is_network) style="display:none" @endif>
+                        <label for="printerName">Nombre de la Impresora (Local)</label>
+                        <input type="text" class="form-control" id="printerName" wire:model="printer_name" placeholder="Ej: EPSON TM-T20II">
                         @error('printer_name') <span class="text-danger">{{ $message }}</span> @enderror
                     </div>
+
+                    @if($is_network)
+                    <div class="row">
+                         <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="printerHost">IP o Nombre del Equipo</label>
+                                <input type="text" class="form-control" id="printerHost" wire:model="printer_host" placeholder="Ej: 192.168.1.50 o CAJA-PC">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="printerShare">Nombre Compartido</label>
+                                <input type="text" class="form-control" id="printerShare" wire:model="printer_share" placeholder="Ej: POS-80">
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                     <div class="form-group">
                         <label for="printerWidth">Ancho del Papel</label>
                         <select class="form-control" id="printerWidth" wire:model="printer_width">
@@ -178,6 +195,30 @@
                             <option value="58mm">58mm (Pequeña)</option>
                         </select>
                     </div>
+                    
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="isNetwork" wire:model.live="is_network">
+                            <label class="custom-control-label" for="isNetwork">¿Es una impresora de red con contraseña?</label>
+                        </div>
+                    </div>
+
+                    @if($is_network)
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="printerUser">Usuario</label>
+                                <input type="text" class="form-control" id="printerUser" wire:model="printer_user" placeholder="Ej: Administrador">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="printerPassword">Contraseña</label>
+                                <input type="password" class="form-control" id="printerPassword" wire:model="printer_password" placeholder="********">
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>

@@ -12,54 +12,108 @@ use App\Models\Configuration;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Mike42\Escpos\PrintConnectors\WindowsPrintConnector;
+use App\Services\CustomWindowsPrintConnector;
 
 trait PrintTrait
 {
     use UtilTrait;
+
+    protected function getPrinterConfig() {
+        $config = Configuration::first();
+        if (!$config) return null;
+
+        // Determine printer name: Device > User > Global
+        $printerName = null;
+        $printerWidth = '80mm';
+        
+        // 1. Check Device Authorization
+        $deviceToken = \Illuminate\Support\Facades\Cookie::get('device_token');
+        $isNetwork = false;
+        $printerUser = null;
+        $printerPassword = null;
+
+        if ($deviceToken) {
+            $deviceAuth = \App\Models\DeviceAuthorization::where('uuid', $deviceToken)->first();
+            if ($deviceAuth && !empty($deviceAuth->printer_name)) {
+                $printerName = $deviceAuth->printer_name;
+                $printerWidth = $deviceAuth->printer_width ?? '80mm';
+                $isNetwork = $deviceAuth->is_network;
+                $printerUser = $deviceAuth->printer_user;
+                $printerPassword = $deviceAuth->printer_password;
+            }
+        }
+
+        // 2. Check User (if no device printer)
+        if (empty($printerName)) {
+            $user = Auth::user();
+            if ($user && $user->printer_name) {
+                $printerName = $user->printer_name;
+                $printerWidth = $user->printer_width ?? '80mm';
+                $isNetwork = $user->is_network;
+                $printerUser = $user->printer_user;
+                $printerPassword = $user->printer_password;
+            }
+        }
+
+        // 3. Check Global Config (if no user printer)
+        if (empty($printerName)) {
+            $printerName = $config->printer_name;
+            $printerWidth = $config->printer_width ?? '80mm';
+            $isNetwork = $config->is_network;
+            $printerUser = $config->printer_user;
+            $printerPassword = $config->printer_password;
+        }
+        
+        // Final fallback
+        if (empty($printerName)) {
+            $printerName = $config->printer_name;
+        }
+
+        if ($isNetwork && $printerUser && $printerPassword) {
+                // Let's try to detect if it is a UNC path to convert it to smb format
+                $cleanName = str_replace('\\\\', '', $printerName); // Remove leading \\
+                $parts = explode('\\', $cleanName);
+                
+                if (count($parts) >= 2) {
+                    $computer = $parts[0];
+                    $share = $parts[1];
+                     // Need to URL Encode user and pass if they have special chars for the URI format to be valid
+                     // But parse_url needs them encoded to separate correctly if they contain @ or :
+                     // However, our Custom Connector will handle raw strings if we pass safely or we should encode?
+                     // Standard URL encoding is safest for URI format.
+                     $encUser = urlencode($printerUser);
+                     $encPass = urlencode($printerPassword);
+                     $printerName = "smb://{$encUser}:{$encPass}@{$computer}/{$share}";
+                } else {
+                    $encUser = urlencode($printerUser);
+                    $encPass = urlencode($printerPassword);
+                    $printerName = "smb://{$encUser}:{$encPass}@{$cleanName}";
+                }
+        }
+
+        return [
+            'config' => $config,
+            'printerName' => $printerName,
+            'printerWidth' => $printerWidth
+        ];
+    }
 
     function printSale($saleId)
     {
 
         try {
 
-            $config = Configuration::first();
-
-            if ($config) {
+            $printConfig = $this->getPrinterConfig();
+            
+            if ($printConfig) {
+                $config = $printConfig['config'];
+                $printerName = $printConfig['printerName'];
+                $printerWidth = $printConfig['printerWidth'];
 
                 $sale = Sale::with(['customer', 'user', 'details', 'details.product'])->find($saleId);
 
-                // Determine printer name: Device > User > Global
-                $printerName = null;
-                $printerWidth = '80mm';
-
-                // 1. Check Device Authorization
-                $deviceToken = \Illuminate\Support\Facades\Cookie::get('device_token');
-                if ($deviceToken) {
-                    $deviceAuth = \App\Models\DeviceAuthorization::where('uuid', $deviceToken)->first();
-                    if ($deviceAuth && !empty($deviceAuth->printer_name)) {
-                        $printerName = $deviceAuth->printer_name;
-                        $printerWidth = $deviceAuth->printer_width ?? '80mm';
-                    }
-                }
-
-                // 2. Check User (if no device printer)
-                if (empty($printerName)) {
-                    $printerName = Auth::user()->printer_name;
-                    $printerWidth = Auth::user()->printer_width ?? '80mm';
-                }
-
-                // 3. Check Global Config (if no user printer)
-                if (empty($printerName)) {
-                    $printerName = $config->printer_name;
-                    $printerWidth = $config->printer_width ?? '80mm';
-                }
-                
-                // Final fallback if config is empty (though validation should prevent this)
-                if (empty($printerName)) {
-                    $printerName = $config->printer_name;
-                }
-
-                $connector = new WindowsPrintConnector($printerName);
+                // Use Custom Connector
+                $connector = new CustomWindowsPrintConnector($printerName);
                 $printer = new Printer($connector);
 
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
@@ -171,41 +225,14 @@ trait PrintTrait
     public  function printPayment($payId)
     {
         try {
-            $config = Configuration::first();
+            $printConfig = $this->getPrinterConfig();
 
-            if ($config) {
-                // Determine printer name: Device > User > Global
-                $printerName = null;
-                $printerWidth = '80mm';
+            if ($printConfig) {
+                $config = $printConfig['config'];
+                $printerName = $printConfig['printerName'];
+                $printerWidth = $printConfig['printerWidth'];
 
-                // 1. Check Device Authorization
-                $deviceToken = \Illuminate\Support\Facades\Cookie::get('device_token');
-                if ($deviceToken) {
-                    $deviceAuth = \App\Models\DeviceAuthorization::where('uuid', $deviceToken)->first();
-                    if ($deviceAuth && !empty($deviceAuth->printer_name)) {
-                        $printerName = $deviceAuth->printer_name;
-                        $printerWidth = $deviceAuth->printer_width ?? '80mm';
-                    }
-                }
-
-                // 2. Check User (if no device printer)
-                if (empty($printerName)) {
-                    $printerName = Auth::user()->printer_name;
-                    $printerWidth = Auth::user()->printer_width ?? '80mm';
-                }
-
-                // 3. Check Global Config (if no user printer)
-                if (empty($printerName)) {
-                    $printerName = $config->printer_name;
-                    $printerWidth = $config->printer_width ?? '80mm';
-                }
-                
-                // Final fallback
-                if (empty($printerName)) {
-                    $printerName = $config->printer_name;
-                }
-
-                $connector = new WindowsPrintConnector($printerName);
+                $connector = new CustomWindowsPrintConnector($printerName);
                 $printer = new Printer($connector);
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
                 $printer->setTextSize(1, 1);
@@ -299,6 +326,7 @@ trait PrintTrait
             //
         } catch (\Exception $th) {
             Log::info("Error al intentar imprimir el comprobante de pago \n {$th->getMessage()}");
+            $this->dispatch('noty', msg: 'ERROR AL IMPRIMIR PAGO: ' . $th->getMessage());
         }
     }
 
@@ -306,41 +334,14 @@ trait PrintTrait
     public  function printPayable($payId)
     {
         try {
-            $config = Configuration::first();
+            $printConfig = $this->getPrinterConfig();
 
-            if ($config) {
-                // Determine printer name: Device > User > Global
-                $printerName = null;
-                $printerWidth = '80mm';
+            if ($printConfig) {
+                $config = $printConfig['config'];
+                $printerName = $printConfig['printerName'];
+                $printerWidth = $printConfig['printerWidth'];
 
-                // 1. Check Device Authorization
-                $deviceToken = \Illuminate\Support\Facades\Cookie::get('device_token');
-                if ($deviceToken) {
-                    $deviceAuth = \App\Models\DeviceAuthorization::where('uuid', $deviceToken)->first();
-                    if ($deviceAuth && !empty($deviceAuth->printer_name)) {
-                        $printerName = $deviceAuth->printer_name;
-                        $printerWidth = $deviceAuth->printer_width ?? '80mm';
-                    }
-                }
-
-                // 2. Check User (if no device printer)
-                if (empty($printerName)) {
-                    $printerName = Auth::user()->printer_name;
-                    $printerWidth = Auth::user()->printer_width ?? '80mm';
-                }
-
-                // 3. Check Global Config (if no user printer)
-                if (empty($printerName)) {
-                    $printerName = $config->printer_name;
-                    $printerWidth = $config->printer_width ?? '80mm';
-                }
-                
-                // Final fallback
-                if (empty($printerName)) {
-                    $printerName = $config->printer_name;
-                }
-
-                $connector = new WindowsPrintConnector($printerName);
+                $connector = new CustomWindowsPrintConnector($printerName);
                 $printer = new Printer($connector);
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
                 $printer->setTextSize(1, 1);
@@ -425,6 +426,7 @@ trait PrintTrait
             //
         } catch (\Exception $th) {
             Log::info("Error al intentar imprimir el comprobante de pago \n {$th->getMessage()}");
+            $this->dispatch('noty', msg: 'ERROR AL IMPRIMIR ABONO: ' . $th->getMessage());
         }
     }
 
@@ -457,42 +459,14 @@ trait PrintTrait
     function printCashCount($user_name, $dfrom, $dto, $totales, $salesTotal, $cash, $nequi, $deposit, $payments, $credit, $pcash, $pdeposit, $pnequi, $salesByCurrency = [], $paymentsByCurrency = [])
     {
         try {
+            $printConfig = $this->getPrinterConfig();
 
-            $config = Configuration::first();
+            if ($printConfig) {
+                $config = $printConfig['config'];
+                $printerName = $printConfig['printerName'];
+                $printerWidth = $printConfig['printerWidth'];
 
-            if ($config) {
-                // Determine printer name: Device > User > Global
-                $printerName = null;
-                $printerWidth = '80mm';
-
-                // 1. Check Device Authorization
-                $deviceToken = \Illuminate\Support\Facades\Cookie::get('device_token');
-                if ($deviceToken) {
-                    $deviceAuth = \App\Models\DeviceAuthorization::where('uuid', $deviceToken)->first();
-                    if ($deviceAuth && !empty($deviceAuth->printer_name)) {
-                        $printerName = $deviceAuth->printer_name;
-                        $printerWidth = $deviceAuth->printer_width ?? '80mm';
-                    }
-                }
-
-                // 2. Check User (if no device printer)
-                if (empty($printerName)) {
-                    $printerName = Auth::user()->printer_name;
-                    $printerWidth = Auth::user()->printer_width ?? '80mm';
-                }
-
-                // 3. Check Global Config (if no user printer)
-                if (empty($printerName)) {
-                    $printerName = $config->printer_name;
-                    $printerWidth = $config->printer_width ?? '80mm';
-                }
-                
-                // Final fallback
-                if (empty($printerName)) {
-                    $printerName = $config->printer_name;
-                }
-
-                $connector = new WindowsPrintConnector($printerName);
+                $connector = new CustomWindowsPrintConnector($printerName);
                 $printer = new Printer($connector);
 
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
@@ -580,49 +554,23 @@ trait PrintTrait
             //
         } catch (\Exception $th) {
             Log::info("Error al intentar imprimir el corte de caja \n {$th->getMessage()} ");
+            $this->dispatch('noty', msg: 'ERROR AL IMPRIMIR CORTE: ' . $th->getMessage());
         }
     }
 
     function printOrder($orderId)
     {
         try {
-            $config = Configuration::first();
+            $printConfig = $this->getPrinterConfig();
 
-            if ($config) {
+            if ($printConfig) {
+                $config = $printConfig['config'];
+                $printerName = $printConfig['printerName'];
+                $printerWidth = $printConfig['printerWidth'];
+
                 $order = Order::with(['customer', 'user', 'details', 'details.product'])->find($orderId);
 
-                // Determine printer name: Device > User > Global
-                $printerName = null;
-                $printerWidth = '80mm';
-
-                // 1. Check Device Authorization
-                $deviceToken = \Illuminate\Support\Facades\Cookie::get('device_token');
-                if ($deviceToken) {
-                    $deviceAuth = \App\Models\DeviceAuthorization::where('uuid', $deviceToken)->first();
-                    if ($deviceAuth && !empty($deviceAuth->printer_name)) {
-                        $printerName = $deviceAuth->printer_name;
-                        $printerWidth = $deviceAuth->printer_width ?? '80mm';
-                    }
-                }
-
-                // 2. Check User (if no device printer)
-                if (empty($printerName)) {
-                    $printerName = Auth::user()->printer_name ?? $config->printer_name;
-                    $printerWidth = Auth::user()->printer_width ?? '80mm';
-                }
-
-                // 3. Check Global Config (if no user printer)
-                if (empty($printerName)) {
-                    $printerName = $config->printer_name;
-                    $printerWidth = $config->printer_width ?? '80mm';
-                }
-                
-                // Final fallback
-                if (empty($printerName)) {
-                    $printerName = $config->printer_name;
-                }
-
-                $connector = new WindowsPrintConnector($printerName);
+                $connector = new CustomWindowsPrintConnector($printerName);
                 $printer = new Printer($connector);
 
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
@@ -716,48 +664,23 @@ trait PrintTrait
             //
         } catch (\Exception $th) {
             Log::info("Error al intentar imprimir el comprobante de venta \n {$th->getMessage()}");
+            $this->dispatch('noty', msg: 'ERROR AL IMPRIMIR ORDEN: ' . $th->getMessage());
         }
     }
 
     function printPaymentHistory($saleId)
     {
         try {
-            $config = Configuration::first();
-            if ($config) {
+            $printConfig = $this->getPrinterConfig();
+            
+            if ($printConfig) {
+                $config = $printConfig['config'];
+                $printerName = $printConfig['printerName'];
+                $printerWidth = $printConfig['printerWidth'];
+
                 $sale = Sale::with(['customer', 'payments', 'user'])->find($saleId);
                 
-                // Determine printer name: Device > User > Global
-                $printerName = null;
-                $printerWidth = '80mm';
-
-                // 1. Check Device Authorization
-                $deviceToken = \Illuminate\Support\Facades\Cookie::get('device_token');
-                if ($deviceToken) {
-                    $deviceAuth = \App\Models\DeviceAuthorization::where('uuid', $deviceToken)->first();
-                    if ($deviceAuth && !empty($deviceAuth->printer_name)) {
-                        $printerName = $deviceAuth->printer_name;
-                        $printerWidth = $deviceAuth->printer_width ?? '80mm';
-                    }
-                }
-
-                // 2. Check User (if no device printer)
-                if (empty($printerName)) {
-                    $printerName = Auth::user()->printer_name;
-                    $printerWidth = Auth::user()->printer_width ?? '80mm';
-                }
-
-                // 3. Check Global Config (if no user printer)
-                if (empty($printerName)) {
-                    $printerName = $config->printer_name;
-                    $printerWidth = $config->printer_width ?? '80mm';
-                }
-                
-                // Final fallback
-                if (empty($printerName)) {
-                    $printerName = $config->printer_name;
-                }
-
-                $connector = new WindowsPrintConnector($printerName);
+                $connector = new CustomWindowsPrintConnector($printerName);
                 $printer = new Printer($connector);
 
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
@@ -844,6 +767,7 @@ trait PrintTrait
             }
         } catch (\Exception $th) {
             Log::error("Error printing payment history: " . $th->getMessage());
+            $this->dispatch('noty', msg: 'ERROR IMPRIMIENDO HISTORIAL: ' . $th->getMessage());
         }
     }
 }

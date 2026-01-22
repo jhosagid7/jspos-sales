@@ -33,6 +33,9 @@ class User extends Authenticatable
         'warehouse_id',
         'printer_name',
         'printer_width',
+        'is_network',
+        'printer_user',
+        'printer_password',
     ];
 
     public function warehouse()
@@ -58,6 +61,7 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'is_network' => 'boolean',
     ];
 
 
