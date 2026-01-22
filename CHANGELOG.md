@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.7.1] - 2026-01-22
+
+### Fixed
+- **Update System**: Increased download timeout limit to 5 minutes to prevent cURL error 28 on slow connections.
+
 ## [1.7.0] - 2026-01-22
 
 ### Added
