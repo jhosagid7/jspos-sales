@@ -7,6 +7,7 @@ La IA debe leer este archivo para entender cómo trabajar en este proyecto espec
 - **Stack Tecnológico**: Laravel, Blade/Vue (según aplique), Tailwind CSS, MySQL.
 - **Estilo de Código**: Seguir estándares de Laravel.
 - **Idioma**: Español (según preferencia del usuario).
+- **Diseño Responsivo (OBLIGATORIO)**: Todas las nuevas interfaces o modificaciones DEBEN verse y funcionar correctamente en Celulares, Tablets y PC. El sistema es multi-dispositivo.
 
 ## 2. Instrucciones Frecuentes
 *(Pega aquí las instrucciones que repites en cada sesión)*
