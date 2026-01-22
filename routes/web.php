@@ -101,7 +101,7 @@ Route::middleware('auth')->group(function () {
 
     // Production Routes
     Route::get('production', \App\Livewire\Production\ProductionList::class)->name('production.index')->middleware('can:manage_production');
-    Route::get('production/create', \App\Livewire\Production\CreateProduction::class)->name('production.create')->middleware('can:manage_production');
+    Route::get('production/create/{production?}', \App\Livewire\Production\CreateProduction::class)->name('production.create')->middleware('can:manage_production');
     Route::get('production/{id}/pdf', [\App\Http\Controllers\ProductionController::class, 'pdf'])->name('production.pdf')->middleware('can:manage_production');
 
     Route::get('descargos', \App\Livewire\Descargos\DescargosList::class)->name('descargos');
