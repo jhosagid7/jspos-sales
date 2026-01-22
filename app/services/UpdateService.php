@@ -87,7 +87,7 @@ class UpdateService
         try {
             $response = Http::withHeaders([
                 'User-Agent' => 'JSPOS-Updater'
-            ])->sink($tempPath)->get($downloadUrl);
+            ])->timeout(300)->sink($tempPath)->get($downloadUrl);
 
             if (!$response->successful()) {
                 throw new \Exception("Download failed.");
