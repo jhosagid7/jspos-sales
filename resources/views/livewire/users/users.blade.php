@@ -1,7 +1,13 @@
 <div>
     <div class="row">
 
-        <div class="col-md-8">
+        <!-- Form View (Hidden by default, shown when editing) -->
+        <div class="col-sm-12 {{ !$editing ? 'd-none' : 'd-block' }}">
+            @include('livewire.users.form')
+        </div>
+
+        <!-- List View (Shown by default, hidden when editing) -->
+        <div class="col-sm-12 {{ $editing ? 'd-none' : 'd-block' }}">
             <div class="card height-equal">
                 <div class="card-header border-l-primary border-2">
                     <div class="row">
@@ -17,12 +23,13 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="contact-edit chat-alert" wire:click='Add'><i class="icon-plus"></i></div>
+                        <div class="contact-edit chat-alert" wire:click='Add'>
+                            <button class="btn btn-primary btn-sm"><i class="icon-plus"></i> Nuevo</button>
+                        </div>
                     </div>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-
                         <table class="table table-responsive-md table-hover">
                             <thead class="thead-primary">
                                 <tr>
@@ -38,7 +45,11 @@
                                     <tr>
                                         <td> {{ $objUser->name }}</td>
                                         <td>{{ $objUser->email }}</td>
-                                        <td>{{ $objUser->status == 'Active' ? 'Activo' : 'Bloqueado' }}</td>
+                                        <td>
+                                            <span class="badge {{ $objUser->status == 'Active' ? 'badge-light-success' : 'badge-light-danger' }}">
+                                                {{ $objUser->status == 'Active' ? 'Activo' : 'Bloqueado' }}
+                                            </span>
+                                        </td>
                                         <td>{{ $objUser->profile == 0 ? '' : $objUser->profile }}</td>
                                         <td class="text-center">
                                             @if (Auth::user()->hasRole('Admin'))
@@ -60,16 +71,13 @@
                                                         onclick="confirmDestroy({{ $objUser->id }})"
                                                         {{ $objUser->sales->count() == 0 ? '' : 'disabled' }}><i
                                                             class="fa fa-trash fa-2x"></i></button>
-                                                    <button class="btn btn-light btn-sm"
-                                                        wire:click="viewHistory({{ $objUser->id }})" title="Historial de Cambios"><i
-                                                            class="fa fa-clock-o fa-2x"></i></button>
                                                 </div>
                                             @endif
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="3">Sin resultados</td>
+                                        <td colspan="5" class="text-center">Sin resultados</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -78,200 +86,6 @@
                 </div>
                 <div class="card-footer p-1">
                     {{ $users->links() }}
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card card-absolute">
-                <div class="card-header bg-primary">
-                    <h5 class="txt-light">{{ $editing ? 'Editar Usuario' : 'Crear Usuario' }}</h5>
-                </div>
-
-                <div class="card-body">
-
-                    <div class="form-group">
-                        <span>Nombre <span class="txt-danger">*</span></span>
-                        <input wire:model="user.name" id='inputFocus' type="text"
-                            class="form-control form-control-lg" placeholder="nombre">
-                        @error('user.name')
-                            <span class="text-danger">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    <div class="form-group mt-3">
-                        <span class="form-label">Email <span class="txt-danger">*</span></span>
-                        <input wire:model="user.email" class="form-control" type="text">
-                        @error('user.email')
-                            <span class="text-danger">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    <div class="form-group mt-3">
-                        <span>Password <span class="txt-danger">*</span></span>
-                        <input wire:model="pwd" type="password" class="form-control form-control-lg"
-                            placeholder="password">
-                        @error('pwd')
-                            <span class="text-danger">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    <div class="form-group mt-3">
-                        <div class="form-check form-switch pl-0">
-                            <div class="custom-control custom-switch">
-                                <input type="checkbox" class="custom-control-input" id="isNetworkUser" wire:model.live="isNetwork">
-                                <label class="custom-control-label" for="isNetworkUser">¿Es una impresora de red con contraseña?</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    @if($isNetwork)
-                        <div class="row">
-                            <div class="col-sm-6 form-group mt-2">
-                                <span class="form-label">IP o Host <span class="txt-danger">*</span></span>
-                                <input wire:model="printerHost" type="text" class="form-control" placeholder="Ej: 192.168.1.50">
-                                @error('printerHost') <span class="text-danger">{{ $message }}</span> @enderror
-                            </div>
-                            <div class="col-sm-6 form-group mt-2">
-                                <span class="form-label">Nombre Compartido <span class="txt-danger">*</span></span>
-                                <input wire:model="printerShare" type="text" class="form-control" placeholder="Ej: EPSON_TM">
-                                @error('printerShare') <span class="text-danger">{{ $message }}</span> @enderror
-                            </div>
-                            <div class="col-sm-6 form-group mt-2">
-                                <span class="form-label">Usuario</span>
-                                <input wire:model="user.printer_user" type="text" class="form-control" placeholder="Opcional">
-                                @error('user.printer_user') <span class="text-danger">{{ $message }}</span> @enderror
-                            </div>
-                            <div class="col-sm-6 form-group mt-2">
-                                <span class="form-label">Contraseña</span>
-                                <input wire:model="user.printer_password" type="password" class="form-control" placeholder="Opcional">
-                                @error('user.printer_password') <span class="text-danger">{{ $message }}</span> @enderror
-                            </div>
-                        </div>
-                    @else
-                        <div class="form-group mt-3">
-                            <span>Impresora Asignada (Opcional)</span>
-                            <input wire:model="user.printer_name" type="text" class="form-control" placeholder="Ej: \\CAJA-1\EPSON o POS-58">
-                            <small class="text-muted">Dejar en blanco para usar la impresora predeterminada.</small>
-                            @error('user.printer_name') <span class="text-danger">{{ $message }}</span> @enderror
-                        </div>
-                    @endif
-
-                    <div class="form-group mt-3">
-                        <span>Ancho de Impresión</span>
-                        <select wire:model="user.printer_width" class="form-control">
-                            <option value="80mm">80mm (Estándar)</option>
-                            <option value="58mm">58mm (Pequeña)</option>
-                        </select>
-                        @error('user.printer_width') <span class="text-danger">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div class="alert alert-light-info mt-2" role="alert">
-                        <i class="fas fa-info-circle"></i> <b>Para imprimir en red:</b><br>
-                        1. Comparte la impresora en la PC donde está conectada.<br>
-                        2. El nombre debe ser: <code>\\NOMBRE-PC\NOMBRE-IMPRESORA</code><br>
-                        3. Asegúrate que el servidor tenga acceso a esa PC.
-                    </div>
-
-                    <div class="form-group mt-3">
-                        <span>Perfil <span class="txt-danger">*</span></span>
-                        @if (Auth::user()->roles[0]->name == 'Admin')
-                            <select wire:model.live="user.profile" class="form-select form-control-sm">
-                                <option value="0">Seleccionar </option>
-                                @foreach ($roles as $rol)
-                                    <option value="{{ $rol->name }}"
-                                        {{ $user->hasRole($rol->name) == $user->profile ? 'selected' : '' }}>
-                                        {{ $rol->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        @else
-                            @if ($user->hasRole('Admin'))
-                                <span class="mr-6">No se puede editar</span>
-                            @else
-                                <select wire:model.live="user.profile" class="form-select form-control-sm">
-                                    <option value="0">Seleccionar</option>
-                                    @foreach ($roles as $rol)
-                                        @if ($rol->name != 'Admin')
-                                            <option value="{{ $rol->name }}"
-                                                {{ $user->hasRole($rol->name) ? 'selected' : '' }}>
-                                                {{ $rol->name }}
-                                            </option>
-                                        @endif
-                                    @endforeach
-                                </select>
-                            @endif
-                        @endif
-
-                        @error('user.profile')
-                            <span class="text-danger">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    @if($user->profile == 'Vendedor')
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <h6 class="text-info">Configuración Vendedor Foráneo</h6>
-                        </div>
-                        <div class="col-sm-4 form-group mt-3">
-                            <span class="form-label">Comisión (%)</span>
-                            <input wire:model="commission_percent" class="form-control" type="number" step="0.01" min="0" max="100">
-                            @error('commission_percent') <span class="text-danger">{{ $message }}</span> @enderror
-                        </div>
-                        <div class="col-sm-4 form-group mt-3">
-                            <span class="form-label">Flete (%)</span>
-                            <input wire:model="freight_percent" class="form-control" type="number" step="0.01" min="0" max="100">
-                            @error('freight_percent') <span class="text-danger">{{ $message }}</span> @enderror
-                        </div>
-                        <div class="col-sm-4 form-group mt-3">
-                            <span class="form-label">Dif. Cambiario (%)</span>
-                            <input wire:model="exchange_diff_percent" class="form-control" type="number" step="0.01" min="0" max="1000">
-                            @error('exchange_diff_percent') <span class="text-danger">{{ $message }}</span> @enderror
-                        </div>
-                        <div class="col-sm-12 form-group mt-3">
-                            <span class="form-label">Lote Actual</span>
-                            <input wire:model="current_batch" class="form-control" type="text" placeholder="Ej: 1">
-                            <small class="text-muted">Identificador del lote actual de ventas</small>
-                        </div>
-
-                        <div class="col-sm-12 mt-3">
-                            <h6 class="text-info">Sobrescribir Comisiones (Opcional)</h6>
-                            <small class="text-muted">Dejar en blanco para usar la configuración global.</small>
-                        </div>
-                        
-                        <div class="col-sm-6 form-group mt-2">
-                            <span class="form-label">Nivel 1: Días (<=)</span>
-                            <input wire:model="sellerCommission1Threshold" class="form-control" type="number" placeholder="Global">
-                            @error('sellerCommission1Threshold') <span class="text-danger">{{ $message }}</span> @enderror
-                        </div>
-                        <div class="col-sm-6 form-group mt-2">
-                            <span class="form-label">Nivel 1: Porcentaje (%)</span>
-                            <input wire:model="sellerCommission1Percentage" class="form-control" type="number" step="0.01" placeholder="Global">
-                            @error('sellerCommission1Percentage') <span class="text-danger">{{ $message }}</span> @enderror
-                        </div>
-
-                        <div class="col-sm-6 form-group mt-2">
-                            <span class="form-label">Nivel 2: Días (<=)</span>
-                            <input wire:model="sellerCommission2Threshold" class="form-control" type="number" placeholder="Global">
-                            @error('sellerCommission2Threshold') <span class="text-danger">{{ $message }}</span> @enderror
-                        </div>
-                        <div class="col-sm-6 form-group mt-2">
-                            <span class="form-label">Nivel 2: Porcentaje (%)</span>
-                            <input wire:model="sellerCommission2Percentage" class="form-control" type="number" step="0.01" placeholder="Global">
-                            @error('sellerCommission2Percentage') <span class="text-danger">{{ $message }}</span> @enderror
-                        </div>
-                    </div>
-                    @endif
-
-
-
-                </div>
-                <div class="card-footer d-flex justify-content-between">
-                    <button class="btn btn-light  hidden {{ $editing ? 'd-block' : 'd-none' }}"
-                        wire:click="cancelEdit">Cancelar
-                    </button>
-
-                    <button class="btn btn-info  save" wire:click.prevent="Store">Guardar</button>
                 </div>
             </div>
         </div>
@@ -297,6 +111,7 @@
                                 </tr>
                             </thead>
                             <tbody wire:key="history-table-{{ $viewingUserId }}">
+                                @if($history)
                                 @forelse($history as $record)
                                     <tr>
                                         <td>{{ $record->created_at->format('d/m/Y H:i') }}</td>
@@ -309,6 +124,7 @@
                                         <td colspan="4" class="text-center">No hay historial disponible</td>
                                     </tr>
                                 @endforelse
+                                @endif
                             </tbody>
                         </table>
                     </div>
@@ -324,7 +140,7 @@
         <script>
         document.addEventListener('livewire:init', () => {
             Livewire.on('init-new', (event) => {
-                $('#inputFocus').focus()
+                // $('#inputFocus').focus() // Validar si inputFocus existe en el nuevo form
             })
             Livewire.on('show-history-modal', (event) => {
                 $('#modalHistory').modal('show')
@@ -359,4 +175,3 @@
     @endpush
 
 </div>
-```

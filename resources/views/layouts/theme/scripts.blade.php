@@ -44,6 +44,7 @@
 
     
     if (!window.notyListenerAdded) {
+        // Listener for window events (legacy/manual dispatch)
         window.addEventListener('noty', event => {   
             Toastify({
                 text:  event.detail.msg,
@@ -54,17 +55,60 @@
                 },
             }).showToast();
         })
+        
+        // Listener for Livewire v3 dispatch
+        // Listener for Livewire v3 dispatch (Commented out to avoid double notification with window listener)
+        /*
+        Livewire.on('noty', data => {   
+            // Handle both object with msg property or direct string (fallback)
+            let msg = data.msg || data; 
+            let type = data.type || 'info';
+            
+            let bg = "linear-gradient(to right,  #d35400,  #34495e )"; // Default / Info
+            if(type === 'success') bg = "linear-gradient(to right, #00b09b, #96c93d)";
+            if(type === 'error') bg = "linear-gradient(to right, #ff5f6d, #ffc371)";
+            if(type === 'warning') bg = "linear-gradient(to right, #f85032, #e73827)";
 
-        window.addEventListener('noty2', event => {   
+            Toastify({
+                text:  msg,
+                duration: 4000,
+                gravity: 'bottom',
+                style: {
+                    background: bg,
+                },
+            }).showToast();
+        })
+        */
+
+        // Variable Modal Listeners
+        Livewire.on('show-variable-modal', () => {
+            console.log('Event received: show-variable-modal');
+            var modal = $('#variableItemModal');
+            console.log('Modal found:', modal.length);
+            
+            if(modal.length > 0) {
+                modal.modal('show');
+            } else {
+                alert('Error: Modal not found in DOM');
+            }
+        });
+
+        Livewire.on('close-variable-modal', () => {
+            $('#variableItemModal').modal('hide');
+        });
+
+        Livewire.on('noty2', data => {
+            let msg = data.msg || data;
             swal({
-                title:'info',
-                text: event.detail.msg,
+                title:'Info',
+                text: msg,
+                icon: 'success',
                 buttons: {
-                    cancel: false,
                     confirm: {
                         text: "OK",
                         value: true,
                         visible: true,
+                        className: "btn btn-primary",
                         closeModal: true
                     }
                 },
@@ -116,4 +160,5 @@
 
 
 </script>
+
 <script src="{{ asset('assets/js/demo.js') }}"></script>

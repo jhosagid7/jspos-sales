@@ -114,13 +114,44 @@
                                     @forelse($cart as $productId => $item)
                                         <tr>
                                             <td class="text-center">{{ $item['sku'] }}</td>
-                                            <td>{{ $item['name'] }}</td>
+                                            <td>
+                                                {{ $item['name'] }}
+                                                @if($item['is_variable'])
+                                                    <div class="mt-1">
+                                                        <span class="badge badge-info">Variable</span>
+                                                        <button wire:click="openVariableModal({{ $productId }})" class="btn btn-sm btn-primary ml-2">
+                                                            <i class="fas fa-plus"></i> Agregar Item
+                                                        </button>
+                                                        @if(count($item['items']) > 0)
+                                                            <ul class="list-unstyled mt-2 pl-2 border-left">
+                                                                @foreach($item['items'] as $idx => $vItem)
+                                                                    <li class="d-flex justify-content-between align-items-center mb-1">
+                                                                        <small>
+                                                                            <b>{{ $vItem['weight'] }} kg</b> 
+                                                                            @if($vItem['color']) | {{ $vItem['color'] }} @endif
+                                                                            @if($vItem['batch']) | Lote: {{ $vItem['batch'] }} @endif
+                                                                        </small>
+                                                                        <a href="javascript:void(0)" wire:click="removeVariableItem({{ $productId }}, {{ $idx }})" class="text-danger ml-2">
+                                                                            <i class="fas fa-times"></i>
+                                                                        </a>
+                                                                    </li>
+                                                                @endforeach
+                                                            </ul>
+                                                        @endif
+                                                    </div>
+                                                @endif
+                                            </td>
                                             <td class="text-center">
-                                                <input type="number" 
-                                                       class="form-control text-center" 
-                                                       value="{{ $item['quantity'] }}" 
-                                                       wire:change="updateQuantity({{ $productId }}, $event.target.value)"
-                                                       style="width: 100px; margin: 0 auto;">
+                                                @if($item['is_variable'])
+                                                    <input type="text" class="form-control text-center" value="{{ $item['quantity'] }}" disabled style="width: 100px; margin: 0 auto;">
+                                                    <small class="text-muted">Auto</small>
+                                                @else
+                                                    <input type="number" 
+                                                           class="form-control text-center" 
+                                                           value="{{ $item['quantity'] }}" 
+                                                           wire:change="updateQuantity({{ $productId }}, $event.target.value)"
+                                                           style="width: 100px; margin: 0 auto;">
+                                                @endif
                                             </td>
                                             <td class="text-right">${{ number_format($item['cost'], 2) }}</td>
                                             <td class="text-right">${{ number_format($item['quantity'] * $item['cost'], 2) }}</td>
@@ -163,7 +194,58 @@
     </div>
 </div>
 
+    <!-- Modal Variable Item -->
+    <div class="modal fade" id="modalVariableItem" tabindex="-1" role="dialog" wire:ignore.self>
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title">Agregar Item / Bobina</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-sm-12 mb-3">
+                            <label>Peso (Kg)</label>
+                            <input type="number" id="vw_weight" wire:model="vw_weight" wire:keydown.enter="addVariableItem" class="form-control" placeholder="0.00" autofocus>
+                            @error('vw_weight') <span class="text-danger">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-sm-12 mb-3">
+                            <label>Color (Opcional)</label>
+                            <input type="text" wire:model="vw_color" wire:keydown.enter="addVariableItem" class="form-control" placeholder="Ej: Rojo">
+                        </div>
+                        <div class="col-sm-12 mb-3">
+                            <label>Lote (Opcional)</label>
+                            <input type="text" wire:model="vw_batch" wire:keydown.enter="addVariableItem" class="form-control" placeholder="Lote #">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" wire:click="addVariableItem">Agregar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <script>
+    document.addEventListener('livewire:initialized', () => {
+         Livewire.on('show-variable-modal', () => {
+             $('#modalVariableItem').modal('show');
+             setTimeout(() => {
+                 $('#vw_weight').focus();
+             }, 500);
+         });
+
+         Livewire.on('focus-weight', () => {
+             setTimeout(() => {
+                 $('#vw_weight').val(''); 
+                 $('#vw_weight').focus();
+             }, 300);
+         });
+    });
+
     document.addEventListener('DOMContentLoaded', function() {
         window.livewire.on('noty', msg => {
             noty(msg)

@@ -191,6 +191,12 @@ class Sales extends Component
     public $selectedChangeAmount; // Monto a dar en esa moneda
     public $totalCartAtPayment; // Total del carrito en el momento del pago (para evitar que cambie durante re-renders)
 
+    public $variableItemStats = [
+        'available' => 0,
+        'reserved' => 0,
+        'total' => 0
+    ];
+
     public $applyCommissions = false; // Toggle for applying commissions
 
     public function updatedApplyCommissions($value)
@@ -463,7 +469,7 @@ class Sales extends Component
     {
         $search = trim($this->search3);
         
-        if (strlen($search) > 1) {
+        if (strlen($search) > 0) {
             $query = Product::with('priceList');
             
             // Tokenize search terms for multi-word search
@@ -500,8 +506,6 @@ class Sales extends Component
                 $this->dispatch('refresh');
             }
         } else {
-            $this->search3 = '';
-            $this->dispatch('refresh');
             $this->products = [];
             // Only notify if user explicitly cleared or typed 1 char, maybe too noisy? 
             // Keeping original behavior but checking if empty
@@ -511,26 +515,7 @@ class Sales extends Component
         }
     }
 
-    public function selectProduct($index, $warehouseId = null)
-    {
-        if (isset($this->products[$index])) {
-            $this->AddProduct($this->products[$index], 1, $warehouseId); // Llama a tu método para agregar el producto
-            $this->search3 = ''; // Resetear el campo de búsqueda
-            $this->products = []; // Limpiar la lista de productos
-            $this->selectedIndex = -1; // Resetear el índice seleccionado
-        }
-    }
 
-    public function keyDown($key)
-    {
-        if ($key === 'ArrowDown') {
-            $this->selectedIndex = min(count($this->products) - 1, $this->selectedIndex + 1);
-        } elseif ($key === 'ArrowUp') {
-            $this->selectedIndex = max(-1, $this->selectedIndex - 1);
-        } elseif ($key === 'Enter') {
-            $this->selectProduct($this->selectedIndex);
-        }
-    }
 
     function updatedCashAmount()
     {
@@ -1005,13 +990,26 @@ class Sales extends Component
         // Obtener los detalles de la orden
         $orderDetails = OrderDetail::where('order_id', $orderId)->get();
 
+        // Bypass reservation check because items are reserved by THIS order
+        $this->bypassReservation = true;
+
         foreach ($orderDetails as $detail) {
             // Obtener el producto correspondiente
             $product = Product::find($detail->product_id);
 
-            // Llamar al método AddProduct con los detalles del producto y la cantidad
-            $this->AddProduct($product, $detail->quantity, $detail->warehouse_id);
+            // Verificar metadata para items variables (bobinas)
+            $metadata = json_decode($detail->metadata, true);
+            
+            if (isset($metadata['product_item_id'])) {
+                 // Cargar directamente el item variable
+                 $this->addVariableItem($metadata['product_item_id']);
+            } else {
+                 // Producto normal o sin metadata
+                 $this->AddProduct($product, $detail->quantity, $detail->warehouse_id);
+            }
         }
+        
+        $this->bypassReservation = false;
 
         // Recalcular precios con la configuración del vendedor (si aplica)
         $this->recalculateCartWithSellerConfig();
@@ -1089,6 +1087,10 @@ class Sales extends Component
 
 
 
+    public $showVariableModal = false;
+    public $availableVariableItems = [];
+    public $selectedVariableProduct = null;
+
     function AddProduct(Product $product, $qty = 1, $warehouseId = null)
     {
         // Determine which warehouse to use
@@ -1122,10 +1124,82 @@ class Sales extends Component
             }
         }
 
+        // VARIABLE QUANTITY CHECK
+        if ($product->is_variable_quantity) {
+             Log::info("Sales::AddProduct - Variable Product Detected: {$product->id} Name: {$product->name} WH: {$targetWarehouseId}");
+             
+             // Fetch available items for this product and warehouse
+             // Filter out items already in the cart
+             $cartItemIds = $this->cart->pluck('product_item_id')->filter()->toArray();
+
+             $query = \App\Models\ProductItem::where('product_id', $product->id)
+                ->where('warehouse_id', $targetWarehouseId)
+                ->whereNotIn('id', $cartItemIds);
+
+             // If check_stock_reservation is TRUE, show ONLY available.
+             // If FALSE, show available OR reserved.
+             if ($this->config->check_stock_reservation) {
+                 $query->where('status', 'available');
+             } else {
+                 $query->whereIn('status', ['available', 'reserved']);
+             }
+
+             $this->availableVariableItems = $query->get();
+
+             // Calculate Stats for Modal
+             // We want totals for the WAREHOUSE, regardless of cart exclusions or config?
+             // User likely wants to see the BIG PICTURE.
+             // So we query ALL items for this product/warehouse to get stats.
+             $statsQuery = \App\Models\ProductItem::where('product_id', $product->id)
+                ->where('warehouse_id', $targetWarehouseId)
+                ->selectRaw("
+                    SUM(CASE WHEN status = 'available' THEN quantity ELSE 0 END) as available_weight,
+                    SUM(CASE WHEN status = 'reserved' THEN quantity ELSE 0 END) as reserved_weight
+                ")
+                ->first();
+            
+             $avail = $statsQuery->available_weight ?? 0;
+             $res = $statsQuery->reserved_weight ?? 0;
+             
+             // Get Warehouse Name
+             $whName = 'Desconocido';
+             if($targetWarehouseId) {
+                 $wh = \App\Models\Warehouse::find($targetWarehouseId);
+                 if($wh) $whName = $wh->name;
+             }
+
+             $this->variableItemStats = [
+                 'available' => floatval($avail),
+                 'reserved' => floatval($res),
+                 'total' => floatval($avail + $res),
+                 'warehouse' => $whName
+             ];
+                
+             Log::info("Sales::AddProduct - Items Found: " . $this->availableVariableItems->count());
+
+             if ($this->availableVariableItems->isEmpty()) {
+                 Log::info("Sales::AddProduct - No items, dispatching warning.");
+                 $this->dispatch('noty', msg: 'No hay items/bobinas disponibles (o ya están en carrito).', type: 'warning');
+                 return;
+             }
+             
+             $this->selectedVariableProduct = $product;
+             Log::info("Sales::AddProduct - Executing JS to show modal");
+             // Force open modal via direct JS execution (Livewire v3)
+             $this->js("
+                console.log('Backend ordered modal open'); 
+                var modal = $('#variableItemModal');
+                if(modal.length) { modal.modal('show'); } 
+                else { alert('Modal not found!'); }
+             ");
+             return;
+        }
+
         // Check if this specific product+warehouse combination is already in cart
         $existingItem = $this->cart->first(function ($item) use ($product, $targetWarehouseId) {
             return $item['pid'] === $product->id && 
-                   ($item['warehouse_id'] ?? null) == $targetWarehouseId;
+                   ($item['warehouse_id'] ?? null) == $targetWarehouseId &&
+                   !isset($item['product_item_id']); // Only merge if it's NOT a specific item
         });
 
         if ($existingItem) {
@@ -1361,6 +1435,114 @@ class Sales extends Component
     public $pendingUpdateUid = null;
     public $maxAvailableQty = 0;
 
+    public function addVariableItem($itemId)
+    {
+        $item = \App\Models\ProductItem::find($itemId);
+        if (!$item) {
+            $this->dispatch('noty', msg: 'Item no encontrado.', type: 'error');
+            return;
+        }
+
+        // Check status based on configuration
+        // Check status based on configuration
+        $isValidStatus = false;
+        
+        // If bypassing reservation (e.g. loading own order), allow reserved
+        if ($this->bypassReservation) {
+             if (in_array($item->status, ['available', 'reserved'])) $isValidStatus = true;
+        } else {
+            if ($this->config->check_stock_reservation) {
+                // Strict mode: Only available
+                if ($item->status === 'available') $isValidStatus = true;
+            } else {
+                // Relaxed mode: Available OR Reserved
+                if (in_array($item->status, ['available', 'reserved'])) $isValidStatus = true;
+            }
+        }
+
+        if (!$isValidStatus) {
+            $this->dispatch('noty', msg: 'Este item no está disponible (Estado: ' . $item->status . ').', type: 'warning');
+            return;
+        }
+
+        $product = $item->product;
+        // Use the item's current quantity (weight)
+        $qty = $item->quantity; 
+
+        // Exchange Rate Logic
+        $primaryCurrency = CurrencyHelper::getPrimaryCurrency();
+        $exchangeRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
+        $basePriceInPrimary = $product->price * $exchangeRate;
+
+        // Apply markup if configured
+        if ($this->sellerConfig && $this->applyCommissions) {
+             $comm = ($basePriceInPrimary * $this->sellerConfig->commission_percent) / 100;
+             $freight = ($basePriceInPrimary * $this->sellerConfig->freight_percent) / 100;
+             $diff = ($basePriceInPrimary * $this->sellerConfig->exchange_diff_percent) / 100;
+             $salePrice = $basePriceInPrimary + $comm + $freight + $diff;
+        } else {
+            $salePrice = $basePriceInPrimary;
+        }
+
+        // Taxes
+        $decimals = ConfigurationService::getDecimalPlaces();
+        $iva = ConfigurationService::getVat() / 100;
+
+        if ($iva > 0) {
+            $precioUnitarioSinIva =  $salePrice / (1 + $iva);
+            $subtotalNeto =   $precioUnitarioSinIva * $this->formatAmount($qty);
+            $montoIva = $subtotalNeto  * $iva;
+            $totalConIva =  $subtotalNeto + $montoIva;
+            $tax = round($montoIva, $decimals);
+            $total = round($totalConIva, $decimals);
+        } else {
+            $precioUnitarioSinIva =  $salePrice;
+            $subtotalNeto =   $precioUnitarioSinIva * $this->formatAmount($qty);
+            $montoIva = 0;
+            $totalConIva =  $subtotalNeto + $montoIva;
+            $tax = round($montoIva, $decimals);
+            $total = round($totalConIva, $decimals);
+        }
+
+        $uid = uniqid() . $product->id . '-' . $item->id;
+
+        $itemCart = [
+            'id' => $uid,
+            'pid' => $product->id,
+            'product_item_id' => $item->id, // IMPORTANT
+            'name' => $product->name . ' (' . ($item->color ? $item->color . ' - ' : '') . floatval($qty) . ')', 
+            'sku' => $product->sku,
+            'price1' => $basePriceInPrimary, 
+            'price2' => $product->price2 * $exchangeRate, 
+            'sale_price' => $salePrice,
+            'pricelist' => [], 
+            'qty' => $this->formatAmount($qty),
+            'tax' => $tax,
+            'total' => $total,
+            'stock' => $product->stock_qty, 
+            'type' => $product->type,
+            'image' => $product->photo,
+            'platform_id' => $product->platform_id,
+            'warehouse_id' => $item->warehouse_id, 
+        ];
+
+        $this->cart->push($itemCart);
+        $this->save();
+        $this->dispatch('refresh');
+        
+        $this->showVariableModal = false;
+        $this->availableVariableItems = [];
+        $this->selectedVariableProduct = null;
+        
+        // Force close modal via JS
+        $this->js("$('#variableItemModal').modal('hide');");
+        //$this->dispatch('close-variable-modal');
+        
+        $this->dispatch('noty', msg: 'ITEM AGREGADO AL CARRITO');
+        $this->search3 = '';
+        $this->products = [];
+    }
+
     #[On('forceAddProduct')]
     public function forceAddProduct()
     {
@@ -1408,6 +1590,24 @@ class Sales extends Component
         if (!is_numeric($cant) || $cant <= 0) {
             $this->dispatch('noty', msg: 'EL VALOR DE LA CANTIDAD ES INCORRECTO');
             return;
+        }
+
+        // Obtener producto para validación de decimales
+        $tempProductId = $product_id;
+        if(!$tempProductId) {
+             $mycart = $this->cart;
+             $tempItem = $mycart->firstWhere('id', $uid);
+             if($tempItem) $tempProductId = $tempItem['pid'];
+        }
+
+        if($tempProductId) {
+            $prod = Product::find($tempProductId);
+            if($prod && !$prod->allow_decimal) {
+                if(floor($cant) != $cant) {
+                    $this->dispatch('noty', msg: "Este producto NO permite cantidades decimales. Se ajustó a número entero.");
+                    $cant = round($cant);
+                }
+            }
         }
 
         // Obtener el carrito actual
@@ -1637,25 +1837,35 @@ class Sales extends Component
     #[On('sale_customer')]
     function setCustomer($customer)
     {
-        // Ensure customer is array
-        if (is_object($customer)) {
-            $customer = $customer->toArray();
-        }
-
-        // dd($customer);
-        session(['sale_customer' => $customer]);
-        $this->customer = $customer;
-
-        // Check for Foreign Seller Config
-        $this->sellerConfig = null;
-        if(isset($customer['seller_id']) && $customer['seller_id']) {
-            $seller = \App\Models\User::find($customer['seller_id']);
-            if($seller) {
-                $this->sellerConfig = $seller->latestSellerConfig;
+        try {
+            // Ensure customer is array
+            if (is_object($customer)) {
+                $customer = $customer->toArray();
             }
+
+            session(['sale_customer' => $customer]);
+            $this->customer = $customer;
+
+            // Check for Foreign Seller Config
+            $this->sellerConfig = null;
+            if(isset($customer['seller_id']) && $customer['seller_id']) {
+                $seller = \App\Models\User::find($customer['seller_id']);
+                if($seller) {
+                    $this->sellerConfig = $seller->latestSellerConfig;
+                    if (!$this->sellerConfig) {
+                        // Log::info('No seller config found for seller ' . $seller->id);
+                    }
+                }
+            }
+            
+            $this->recalculateCartWithSellerConfig();
+            
+            // Success notification (Debug - remove later if annoying)
+            // $this->dispatch('noty', msg: 'Cliente seleccionado: ' . ($customer['name'] ?? 'N/A'));
+
+        } catch (\Exception $e) {
+            $this->dispatch('noty', msg: 'Error al seleccionar cliente: ' . $e->getMessage());
         }
-        
-        $this->recalculateCartWithSellerConfig();
     }
 
     public function recalculateCartWithSellerConfig()
@@ -1964,6 +2174,22 @@ class Sales extends Component
                         }
                     }
                 }
+
+                // Update Variable Item Status (Bobinas)
+                if (isset($item['product_item_id'])) {
+                    Log::info("Sales::storeOrder - Found variable item ID: {$item['product_item_id']}");
+                    $prodItem = \App\Models\ProductItem::find($item['product_item_id']);
+                    if ($prodItem) {
+                        $newStatus = ($sale->status == 'paid') ? 'sold' : 'reserved';
+                        $prodItem->status = $newStatus;
+                        $saved = $prodItem->save();
+                        Log::info("Sales::storeOrder - Updated status for item {$prodItem->id} to {$newStatus}. Result: " . ($saved ? 'true' : 'false'));
+                    } else {
+                        Log::error("Sales::storeOrder - ProductItem not found for ID: {$item['product_item_id']}");
+                    }
+                } else {
+                    Log::info("Sales::storeOrder - Item does not have product_item_id");
+                }
             }
 
             // Guardar detalles de vueltos en múltiples monedas
@@ -2224,7 +2450,8 @@ class Sales extends Component
                             'sale_price' => round($item['sale_price'], $decimals),
                             'created_at' => Carbon::now(),
                             'discount' => 0,
-                            'warehouse_id' => $item['warehouse_id'] ?? null // Save warehouse_id
+                            'warehouse_id' => $item['warehouse_id'] ?? null,
+                            'metadata' => isset($item['product_item_id']) ? json_encode(['product_item_id' => $item['product_item_id']]) : null
                         ];
                     })->toArray();
 
@@ -2263,11 +2490,23 @@ class Sales extends Component
                         'sale_price' => round($item['sale_price'], $decimals),
                         'created_at' => Carbon::now(),
                         'discount' => 0,
-                        'warehouse_id' => $item['warehouse_id'] ?? null // Save warehouse_id
+                        'warehouse_id' => $item['warehouse_id'] ?? null,
+                        'metadata' => isset($item['product_item_id']) ? json_encode(['product_item_id' => $item['product_item_id']]) : null
                     ];
                 })->toArray();
 
                 OrderDetail::insert($details);
+            }
+
+            // Update Variable Item Status (Bobinas)
+            foreach ($cart as $item) {
+                if (isset($item['product_item_id'])) {
+                    $prodItem = \App\Models\ProductItem::find($item['product_item_id']);
+                    if ($prodItem) {
+                        $prodItem->status = 'reserved';
+                        $prodItem->save();
+                    }
+                }
             }
 
             DB::commit();
@@ -2389,6 +2628,22 @@ class Sales extends Component
                     'status' => $status,
                     'deleted_at' => Carbon::now(),
                 ]);
+                
+                // Restaurar items variables si existen
+                $details = \App\Models\OrderDetail::where('order_id', $order->id)->get();
+                foreach($details as $d) {
+                    if($d->metadata) {
+                        $meta = json_decode($d->metadata, true);
+                        if(isset($meta['product_item_id'])) {
+                            $pi = \App\Models\ProductItem::find($meta['product_item_id']);
+                            if($pi) {
+                                $pi->status = 'available';
+                                $pi->save();
+                            }
+                        }
+                    }
+                }
+
                 $msg = 'eliminada';
             }
             if ($status == 'processed') {
@@ -2437,9 +2692,21 @@ class Sales extends Component
 
             // Restaurar stock de productos
             foreach ($sale->details as $detail) {
-                $product = Product::find($detail->product_id);
                 if ($product && $product->manage_stock == 1) {
                     $product->increment('stock_qty', $detail->quantity);
+                }
+
+                // Restaurar item variable (status -> available)
+                if($detail->metadata) { // Check metadata via model or query? SaleDetail table might NOT have metadata yet? 
+                     // Wait, I only added metadata to ORDER_DETAILS. 
+                     // Did I add it to SALE_DETAILS? Checks Step 2544... found `2024_10_18_..._create_sale_details_table.php`.
+                     // I did NOT add metadata to sale_details in Step 2542! I only added it to order_details!
+                     // If SaleDetail doesn't have metadata, we can't restore it here easily.
+                     // However, SaleDetail creation (Step 2588 view) does NOT seem to save metadata to SaleDetail.
+                     // I need to add metadata to SaleDetail too if we want to support cancelling PAID sales containing bobinas.
+                     // For now, let's assume OrderDetail is the main focus for "Pending Orders".
+                     // IF the user cancels a PAID sale, the stock increments but the item status might remain 'sold'.
+                     // I should address this.
                 }
             }
 

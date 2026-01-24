@@ -75,10 +75,27 @@
 
                 @can('compras')
                 <li class="nav-item">
-                    <a href="{{ route('purchases') }}" class="nav-link {{ Request::is('purchases') ? 'active' : '' }}">
+                    <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-truck"></i>
-                        <p>COMPRAS</p>
+                        <p>
+                            COMPRAS
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
                     </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('purchases') }}" class="nav-link {{ Request::is('purchases') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Nueva Compra</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('purchase.list') }}" class="nav-link {{ Request::is('purchase-list') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Listado</p>
+                            </a>
+                        </li>
+                    </ul>
                 </li>
                 @endcan
 

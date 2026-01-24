@@ -51,6 +51,7 @@ class RoleSeeder extends Seeder
 
         // Create Roles
         // Create Roles with Levels
+        $superAdminRole = Role::firstOrCreate(['name' => 'Super Admin'], ['level' => 1000]); // Max Level
         $adminRole = Role::firstOrCreate(['name' => 'Admin'], ['level' => 100]);
         $ownerRole = Role::firstOrCreate(['name' => 'Dueño'], ['level' => 50]);
         $managerRole = Role::firstOrCreate(['name' => 'Administrador'], ['level' => 30]);
