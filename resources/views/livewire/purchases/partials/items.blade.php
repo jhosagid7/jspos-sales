@@ -47,8 +47,36 @@
                         <tr>
                             <td>
                                 <div class="product-name txt-info font-weight-bold" style="font-size: 0.9rem;">{{ strtoupper($item['name']) }}</div>
+                                @if(isset($item['is_variable']) && $item['is_variable'])
+                                    <div class="mt-1">
+                                        <span class="badge badge-info">Variable</span>
+                                        <button wire:click="openVariableModal('{{ $item['id'] }}')" class="btn btn-sm btn-primary ml-2">
+                                            <i class="fas fa-plus"></i> Items
+                                        </button>
+                                        @if(isset($item['items']) && count($item['items']) > 0)
+                                            <ul class="list-unstyled mt-2 pl-2 border-left">
+                                                @foreach($item['items'] as $idx => $vItem)
+                                                    <li class="d-flex justify-content-between align-items-center mb-1">
+                                                        <small>
+                                                            <b>{{ $vItem['weight'] }} kg</b> 
+                                                            @if($vItem['color']) | {{ $vItem['color'] }} @endif
+                                                            @if($vItem['batch']) | Lote: {{ $vItem['batch'] }} @endif
+                                                        </small>
+                                                        <a href="javascript:void(0)" wire:click="removeVariableItem('{{ $item['id'] }}', {{ $idx }})" class="text-danger ml-2">
+                                                            <i class="fas fa-times"></i>
+                                                        </a>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        @endif
+                                    </div>
+                                @endif
                             </td>
                             <td>
+                                @if(isset($item['is_variable']) && $item['is_variable'])
+                                    <input type="text" class="form-control form-control-sm text-center" value="{{ $item['qty'] }}" disabled>
+                                    <small class="text-muted d-block text-center mt-1">Auto</small>
+                                @else
                                 <div class="input-group input-group-sm" style="width: 120px;">
                                     <div class="input-group-prepend">
                                         <button class="btn btn-dark btn-sm" type="button"
@@ -68,6 +96,7 @@
                                         </button>
                                     </div>
                                 </div>
+                                @endif
                             </td>
                             <td>
                                 <div class="input-group input-group-sm">

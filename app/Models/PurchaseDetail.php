@@ -15,7 +15,12 @@ class PurchaseDetail extends Model
         'product_id',
         'flete_total',
         'purchase_id',
-        'flete_product'
+        'flete_product',
+        'metadata'
+    ];
+
+    protected $casts = [
+        'metadata' => 'array'
     ];
 
     public function purchase()

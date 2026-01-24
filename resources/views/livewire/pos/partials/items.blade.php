@@ -2,15 +2,87 @@
     <div class="card-header">
         <div class="row">
             <div class="col-sm-12 col-md-6">
-                <div x-data @click.away="$wire.dispatch('hideResults')" class="relative">
+                <div x-data="{
+                    selectedIndex: -1,
+                    itemCount: 0,
+                    
+                    init() {
+                         // Listen for Livewire updates to products
+                         Livewire.on('refresh', () => {
+                             // Wait for DOM update
+                             this.$nextTick(() => {
+                                 // Recalculate item count from the DOM list
+                                 this.itemCount = this.$refs.resultsList ? this.$refs.resultsList.children.length : 0;
+                                 this.selectedIndex = -1;
+                             });
+                         });
+
+                         // Also watch for manual property updates if needed
+                         $watch('itemCount', value => {
+                             if(value === 0) this.selectedIndex = -1;
+                         });
+                    },
+
+                    checkScroll() {
+                        this.$nextTick(() => {
+                            if (!this.$refs.resultsList) return;
+                            const activeItem = this.$refs.resultsList.children[this.selectedIndex];
+                            if (activeItem) {
+                                activeItem.scrollIntoView({ block: 'nearest' });
+                            }
+                        });
+                    },
+
+                    navigate(direction) {
+                        // Ensure itemCount is current
+                        if (this.$refs.resultsList) {
+                            this.itemCount = this.$refs.resultsList.children.length;
+                        } else {
+                            this.itemCount = 0;
+                        }
+
+                        if (this.itemCount === 0) return;
+                        
+                        if (direction === 'down') {
+                            this.selectedIndex = this.selectedIndex < this.itemCount - 1 ? this.selectedIndex + 1 : this.selectedIndex;
+                        } else {
+                            this.selectedIndex = this.selectedIndex > 0 ? this.selectedIndex - 1 : 0;
+                        }
+                        this.checkScroll();
+                    },
+
+                    selectItem() {
+                         if (this.selectedIndex >= 0 && this.$refs.resultsList) {
+                            // Find the product ID from the DOM element at the selected index
+                            const activeItem = this.$refs.resultsList.children[this.selectedIndex];
+                            if (activeItem && activeItem.dataset.id) {
+                                @this.AddProduct(activeItem.dataset.id);
+                                this.reset();
+                            }
+                         }
+                    },
+
+                    reset() {
+                        this.selectedIndex = -1;
+                        $wire.dispatch('hideResults');
+                    }
+                }" 
+                @click.away="reset()" 
+                class="relative">
                     <div class="d-flex align-items-center gap-2">
                         <div class="faq-form w-100">
                             <div class="form-control form-control-lg">
-                                <input type="text" wire:model.live.debounce.300ms="search3" class="form-control"
+                                <input type="text" 
+                                    wire:model.live.debounce.300ms="search3" 
+                                    class="form-control"
                                     placeholder="[ F1 ] Ingresa nombre o código del producto"
-                                    style="text-transform: capitalize" autocomplete="off" id="inputSearch"
-                                    wire:keydown.escape="hideResults"
-                                    wire:keydown="keyDown($event.key)">
+                                    style="text-transform: capitalize" 
+                                    autocomplete="off" 
+                                    id="inputSearch"
+                                    @keydown.escape="reset()"
+                                    @keydown.arrow-down.prevent="navigate('down')"
+                                    @keydown.arrow-up.prevent="navigate('up')"
+                                    @keydown.enter.prevent="selectItem()">
                                 <!-- Captura las teclas presionadas -->
                                 <i class="search-icon" data-feather="search"></i>
                             </div>
@@ -26,25 +98,34 @@
                             $primaryRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
                             $primarySymbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
                         @endphp
-                        <ul class="mt-0 bg-white border-0 list-group position-absolute w-100"
-                            style="z-index: 1000; max-height: 200px; overflow-y: auto;">
+                        {{-- Update item count for Alpine --}}
+                        <div x-init="itemCount = {{ count($products) }}"></div>
+
+                        <ul x-ref="resultsList" 
+                            class="mt-0 bg-white border-0 list-group position-absolute w-100 shadow-sm"
+                            style="z-index: 1000; max-height: 300px; overflow-y: auto;">
                             @foreach ($products as $index => $product)
                                 @php
                                     $priceInPrimary = $product->price * $primaryRate;
                                 @endphp
                                 <li class="p-1 list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                                    style="cursor: pointer; {{ $selectedIndex === $index ? 'background-color: #e9ecef;' : '' }}">
+                                    data-id="{{ $product->id }}"
+                                    :class="{ 'bg-light': selectedIndex === {{ $index }} }"
+                                    @click="@this.AddProduct({{ $product->id }}); reset()"
+                                    @mouseenter="selectedIndex = {{ $index }}"
+                                    style="cursor: pointer; border-bottom: 1px solid #f0f0f0;">
                                     <div class="w-100">
-                                        <div class="d-flex justify-content-between align-items-center" wire:click="AddProduct({{ $product->id }})">
+                                        <div class="d-flex justify-content-between align-items-center">
                                             <div class="d-flex align-items-center w-100">
-                                                <img src="{{ asset($product->photo) }}" alt="img" class="rounded mr-2" style="width: 30px; height: 30px; object-fit: cover;">
+                                                <img src="{{ asset($product->photo) }}" alt="img" class="rounded mr-2" style="width: 40px; height: 40px; object-fit: cover;">
                                                 <div class="d-flex flex-column flex-grow-1">
                                                     <div class="d-flex justify-content-between align-items-center">
                                                         <h6 class="mb-0 font-weight-bold text-{{ $product->stock_qty <= 0 ? 'danger' : ($product->stock_qty <= $product->low_stock ? 'warning' : 'success') }}" style="font-size: 1rem;">
                                                             <small class="text-muted">{{ $product->sku }}</small> - {{ Str::limit($product->name, 40) }}
                                                         </h6>
-                                                        <span class="badge badge-light text-dark" style="font-size: 0.8rem;">
-                                                            {{ $primarySymbol }}{{ number_format($priceInPrimary, 2) }} / Total: {{ $product->productWarehouses->sum('stock_qty') }}
+                                                        <span class="badge badge-light text-dark border" style="font-size: 0.85rem;">
+                                                            {{ $primarySymbol }}{{ number_format($priceInPrimary, 2) }} 
+                                                            <span class="text-muted ml-1">| Stock: {{ $product->productWarehouses->sum('stock_qty') }}</span>
                                                         </span>
                                                     </div>
                                                     
@@ -53,7 +134,7 @@
                                                             <div class="d-flex flex-wrap mt-1 align-items-center">
                                                                 @foreach($product->productWarehouses as $pw)
                                                                     @if($pw->stock_qty > 0)
-                                                                        <button class="btn btn-xs btn-outline-secondary mr-1 p-0 px-1" style="font-size: 0.7rem;"
+                                                                        <button type="button" class="btn btn-xs btn-outline-secondary mr-1 p-0 px-1" style="font-size: 0.75rem;"
                                                                             wire:click.stop="AddProduct({{ $product->id }}, 1, {{ $pw->warehouse_id }})">
                                                                             {{ $pw->warehouse->name }}: {{ $pw->stock_qty }}
                                                                         </button>
@@ -225,6 +306,7 @@
                                             </button>
                                         </div>
                                         <input type="number" 
+                                            wire:blur="updateQty('{{ $item['id'] }}', $event.target.value )"
                                             wire:keydown.enter.prevent="updateQty('{{ $item['id'] }}', $event.target.value )"
                                             class="form-control form-control-sm text-center" 
                                             value="{{ $item['qty'] }}"
@@ -281,6 +363,70 @@
             </div>
         </div>
     </div>
+
+    <!-- Variable Item Modal -->
+    <div class="modal fade" id="variableItemModal" tabindex="-1" role="dialog" aria-hidden="true" wire:ignore.self>
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title font-weight-bold">
+                        Seleccionar Item
+                        @if(isset($variableItemStats) && isset($variableItemStats['warehouse']))
+                             - <span class="text-warning">{{ $variableItemStats['warehouse'] }}</span>
+                        @endif
+                        
+                        <br>
+                        @if(isset($variableItemStats))
+                            <div class="d-flex justify-content-between mt-2 p-1 bg-light rounded" style="font-size: 0.95rem;">
+                                <span class="badge badge-success px-2 py-1 mr-1">Disp: {{ $variableItemStats['available'] }} Kg</span>
+                                <span class="badge badge-warning px-2 py-1 mr-1">Reserv: {{ $variableItemStats['reserved'] }} Kg</span>
+                                <span class="badge badge-info px-2 py-1">Total: {{ $variableItemStats['total'] }} Kg</span>
+                            </div>
+                        @endif
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Color</th>
+                                    <th>Peso (Kg)</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if(isset($availableVariableItems) && count($availableVariableItems) > 0)
+                                    @foreach($availableVariableItems as $item)
+                                        <tr>
+                                            <td>#{{ $item->id }}</td>
+                                            <td>{{ $item->color ?? 'N/A' }}</td>
+                                            <td class="font-weight-bold">{{ floatval($item->quantity) }}</td>
+                                            <td>
+                                                <button wire:click="addVariableItem({{ $item->id }})" class="btn btn-sm btn-success">
+                                                    <i class="fas fa-plus"></i> Seleccionar
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                @else
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">No hay items disponibles</td>
+                                    </tr>
+                                @endif
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
 
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <script>

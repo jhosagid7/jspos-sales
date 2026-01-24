@@ -16,9 +16,11 @@ class PostProduct extends Form
     //#[Validate('required', message: 'Ingresa el nombre')]
     //#[Validate('max:60', message: 'El nombre debe tener maximo 60 caracteres')]
     //#[Validate('unique:products,name', message: 'El nombre ya existe',  onUpdate: false)]
+    //#[Validate('unique:products,name', message: 'El nombre ya existe',  onUpdate: false)]
     //#[Validate('unique:productos,name,' . $this->product_id, message: 'El título debe ser único')]
     public $name, $sku, $description, $type = 'physical', $status = 'available', $cost = 0, $price = 0, $manage_stock = 1, $stock_qty = 0, $low_stock = 0, $category_id = 0, $supplier_id = 0, $product_id = 0, $gallery;
-    public $max_stock = 0, $brand, $presentation, $is_pre_assembled = false, $additional_cost = 0, $stock_details = [], $tags = '';
+    public $max_stock = 0, $brand, $presentation, $is_pre_assembled = false, $additional_cost = 0, $stock_details = [], $tags = '', $allow_decimal = false;
+    public $is_variable_quantity = false;
 
     //properties priceList
     public $value;
@@ -41,12 +43,12 @@ class PostProduct extends Form
                 'string',
                 'min:3',
                 'max:60',
-                Rule::unique('products', 'name')->ignore($this->product_id, 'id')
+                'unique:products,name,'. $this->product_id
             ],
             'sku' => [
                 'nullable',
                 'max:25',
-                Rule::unique('products', 'sku')->ignore($this->product_id, 'id'),
+                'unique:products,sku,'. $this->product_id
             ],
             'description' => [
                 'nullable',
@@ -78,6 +80,8 @@ class PostProduct extends Form
             'is_pre_assembled' => 'nullable|boolean',
             'additional_cost' => 'nullable|numeric|min:0',
             'tags' => 'nullable|string',
+            'allow_decimal' => 'boolean',
+            'is_variable_quantity' => 'boolean'
         ];
         return $rules;
     }
@@ -141,7 +145,9 @@ class PostProduct extends Form
             'supplier_id' => $this->supplier_id,
             'category_id' => $this->category_id,
             'is_pre_assembled' => $this->is_pre_assembled ? 1 : 0,
-            'additional_cost' => $this->additional_cost
+            'additional_cost' => $this->additional_cost,
+            'allow_decimal' => $this->allow_decimal ? 1 : 0,
+            'is_variable_quantity' => $this->is_variable_quantity ? 1 : 0
         ]);
 
 
@@ -285,7 +291,9 @@ class PostProduct extends Form
             'supplier_id' => $this->supplier_id,
             'category_id' => $this->category_id,
             'is_pre_assembled' => $this->is_pre_assembled ? 1 : 0,
-            'additional_cost' => $this->additional_cost
+            'additional_cost' => $this->additional_cost,
+            'allow_decimal' => $this->allow_decimal ? 1 : 0,
+            'is_variable_quantity' => $this->is_variable_quantity ? 1 : 0
         ]);
 
 

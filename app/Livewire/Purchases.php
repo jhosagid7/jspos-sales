@@ -249,7 +249,8 @@ class Purchases extends Component
 
         $exist = $this->cart->firstWhere('pid', $product->id);
         
-        if ($exist) {
+        // Skip merge if product is variable
+        if ($exist && !$product->is_variable_quantity) {
             $this->updateQty($exist['id'], $exist['qty'] + $qty);
             return;
         }
@@ -305,12 +306,13 @@ class Purchases extends Component
                 'cost' => $cost,
                 'price' => $price,
                 'margin' => $margin,
-                'qty' => floatval($qty),
+                'qty' => $product->is_variable_quantity ? 0 : floatval($qty),
                 'total' => $total,
                 'tax' => $tax,
                 'flete' => array('flete_producto' =>  0, 'total_flete' => 0, 'valor_flete' => 0, 'nuevo_total' => 0),
-
-
+                'is_variable' => (bool)$product->is_variable_quantity,
+                'items' => [], // metadata for bobinas
+                // If we want per-item warehouse, we add it here. For now, we use global $this->warehouse_id
             ]
         );
 
@@ -600,6 +602,80 @@ class Purchases extends Component
 
 
 
+    // Variable Item Inputs
+    public $vw_weight, $vw_color, $vw_batch, $current_cart_id;
+
+    public function openVariableModal($cartId)
+    {
+        $this->current_cart_id = $cartId;
+        $this->vw_weight = '';
+        $this->vw_color = '';
+        $this->vw_batch = '';
+        $this->dispatch('show-variable-modal');
+    }
+
+    public function addVariableItem()
+    {
+        $this->validate([
+            'vw_weight' => 'required|numeric|min:0.01',
+            'vw_color' => 'nullable|string|max:50',
+            'vw_batch' => 'nullable|string|max:50'
+        ]);
+
+        $item = $this->cart->firstWhere('id', $this->current_cart_id);
+
+        if ($item) {
+            $items = $item['items'] ?? [];
+            $items[] = [
+                'weight' => $this->vw_weight,
+                'color' => $this->vw_color,
+                'batch' => $this->vw_batch
+            ];
+            
+            // Recalculate total weight/quantity
+            $totalWeight = collect($items)->sum('weight');
+            
+            // Update item
+            $item['items'] = $items;
+            $item['qty'] = $totalWeight;
+            $item['total'] = round($item['qty'] * $item['cost'], 2);
+
+            // Replace in cart
+            $this->cart = $this->cart->reject(function ($p) {
+                return $p['id'] == $this->current_cart_id; // Use loose comparison just in case, or ensure types match
+            });
+            $this->cart->push($item);
+            $this->save();
+        }
+
+        $this->reset(['vw_weight', 'vw_color', 'vw_batch']);
+        $this->dispatch('noty', msg: 'Item agregado a la lista');
+        $this->dispatch('focus-weight');
+    }
+
+    public function removeVariableItem($cartId, $index)
+    {
+        $item = $this->cart->firstWhere('id', $cartId);
+
+        if ($item && isset($item['items'][$index])) {
+            unset($item['items'][$index]);
+            // Re-index array
+            $item['items'] = array_values($item['items']);
+            
+            // Recalculate
+            $totalWeight = collect($item['items'])->sum('weight');
+            $item['qty'] = $totalWeight;
+            $item['total'] = round($item['qty'] * $item['cost'], 2);
+
+            // Replace in cart
+            $this->cart = $this->cart->reject(function ($p) use ($cartId) {
+                return $p['id'] == $cartId;
+            });
+            $this->cart->push($item);
+            $this->save();
+        }
+    }
+
     function initPayment($type)
     {
         $this->purchaseType = $type;
@@ -654,6 +730,7 @@ class Purchases extends Component
                     'cost' => $item['cost'] ?? 0,
                     'flete_total' => $item['flete']['total_flete'],
                     'flete_product' => $item['flete']['flete_producto'],
+                    'metadata' => isset($item['items']) ? json_encode($item['items']) : null,
                     'created_at' => Carbon::now()
                 ];
             })->toArray();
@@ -663,6 +740,21 @@ class Purchases extends Component
 
             //actualizar nuevo precio de venta
             foreach ($cart as  $item) {
+
+                // Create Product Items (Bobinas) for Variable Products
+                if (!empty($item['is_variable']) && !empty($item['items'])) {
+                    foreach ($item['items'] as $bobina) {
+                        \App\Models\ProductItem::create([
+                            'product_id' => $item['pid'],
+                            'warehouse_id' => $this->warehouse_id,
+                            'quantity' => $bobina['weight'],
+                            'original_quantity' => $bobina['weight'],
+                            'color' => $bobina['color'] ?? null,
+                            'batch' => $bobina['batch'] ?? null,
+                            'status' => 'available' // Purchases go straight to available usually
+                        ]);
+                    }
+                }
 
                 $myProduct = Product::find($item['pid']);
 
@@ -855,6 +947,7 @@ class Purchases extends Component
                     'cost' => $item['cost'] ?? 0,
                     'flete_total' => $item['flete']['total_flete'],
                     'flete_product' => $item['flete']['flete_producto'],
+                    'metadata' => isset($item['items']) ? json_encode($item['items']) : null,
                     'created_at' => Carbon::now()
                 ];
             })->toArray();
@@ -915,7 +1008,11 @@ class Purchases extends Component
             $this->dispatch('reset-tom');
             $this->dispatch('noty', msg: 'ORDEN REGISTRADA EXITOSAMENTE');
             $this->dispatch('close-modal');
-            $this->reset();
+            $this->dispatch('noty', msg: 'ORDEN REGISTRADA EXITOSAMENTE');
+            $this->dispatch('close-modal');
+            $this->resetExcept(['warehouses']);
+            $config = Configuration::first();
+            $this->warehouse_id = $config->default_warehouse_id ?? $this->warehouses->first()->id ?? null; // Restore default warehouse
             $this->clear();
             session()->forget('purchase_supplier');
             session()->forget('flete');
@@ -975,9 +1072,51 @@ class Purchases extends Component
                 $product->cost = $detail->cost;
                 $this->AddProduct($product, $detail->quantity);
                 
-                // If flete was saved, we might need to handle it. 
-                // Current AddProduct logic initializes flete to 0.
-                // If we want to restore flete, we'd need to update the item in cart.
+                // Restore Metadata (Bobinas)
+                if ($product->is_variable_quantity && !empty($detail->metadata)) {
+                    // Update the last added item in the cart
+                    // Since AddProduct pushes to the end, we get the last one or find by pid
+                    // Finding by pid might get the wrong one if multiple same products? 
+                    // But AddProduct updates quantity if exists, so it's one row per product usually.
+                    // Except for variable products?
+                    // In AddProduct for variable, we skip merge if "exist && !variable". 
+                    // If variable, we might have multiple rows OR one row with multiple items.
+                    // Our logic produces ONE row per product ID for variable items in Purchases mostly?
+                    // No, AddProduct allows multiple rows if we changed logic.
+                    // Wait, AddProduct says: "Skip merge if product is variable". 
+                    // So if I add variable product A, then add it again, it ADDS A NEW ROW.
+                    // So `AddProduct` calls inside this loop might create multiple rows if `details` has multiple rows for same product?
+                    // Usually `details` has one row per product unless separated.
+                    // If `loadOrderToCart` iterates details, and each detail corresponds to a cart row...
+                    // We need to identify WHICH cart row we just added.
+                    // `AddProduct` generates a uid. We don't have it returned.
+                    // But `cart` collection has it.
+                    // We can match by `pid` and ensuring we pick the one we just added?
+                    // A safer way is to manually construct the cart item here instead of calling AddProduct?
+                    // Or modify AddProduct to return the uid.
+                    // But for now, let's assume one row per product for simplicity in loading, 
+                    // OR since we just added it, it's the last one in the cart collection?
+                    // `AddProduct` pushes to cart. So it is the last one.
+                    
+                    $lastItemKey = $this->cart->keys()->last();
+                    $lastItem = $this->cart->get($lastItemKey);
+                    
+                    if ($lastItem && $lastItem['pid'] == $product->id) {
+                         $lastItem['items'] = $detail->metadata; // Metadata is already array due to cast? Or need json_decode?
+                         // PurchaseDetail model has cast 'metadata' => 'array'. So it is array.
+                         
+                         // Recalculate totals just in case
+                         $totalWeight = collect($lastItem['items'])->sum('weight');
+                         if($totalWeight > 0) {
+                             $lastItem['qty'] = $totalWeight;
+                             $lastItem['total'] = round($lastItem['qty'] * $lastItem['cost'], 2);
+                         }
+                         
+                         // Update cart
+                         $this->cart->put($lastItemKey, $lastItem);
+                         $this->save();
+                    }
+                }
             }
         }
         

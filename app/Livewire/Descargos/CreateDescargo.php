@@ -123,6 +123,18 @@ class CreateDescargo extends Component
             'cart' => 'required|array|min:1'
         ]);
 
+        // Validate Decimals
+        foreach ($this->cart as $item) {
+            $product = \App\Models\Product::find($item['id']);
+            if ($product && !$product->allow_decimal) {
+                if (floor($item['quantity']) != $item['quantity']) {
+                    $this->addError("cart.{$item['id']}.quantity", "El producto {$product->name} no permite decimales.");
+                    $this->dispatch('noty', msg: "El producto {$product->name} no permite cantidades decimales.", type: 'error');
+                    return;
+                }
+            }
+        }
+
         try {
             \Illuminate\Support\Facades\DB::beginTransaction();
 

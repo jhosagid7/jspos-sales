@@ -159,6 +159,9 @@ class InstallController extends Controller
         // For now, using 'Admin' as per UserSeeder.
         $user->assignRole('Admin');
 
+        // Create the installed lock file
+        file_put_contents(storage_path('installed'), 'JSPOS INSTALLED ON ' . date('Y-m-d H:i:s'));
+
         // Mark as installed
         $this->writeEnv(['APP_INSTALLED' => 'true']);
 

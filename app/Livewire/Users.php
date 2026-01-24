@@ -16,7 +16,8 @@ class Users extends Component
     use WithPagination;
 
     public User $user;
-    public $user_id, $editing, $search, $pagination = 5, $pwd,  $temppwd;
+    public $user_id, $editing, $search, $pagination = 5, $pwd, $confirm_pwd, $temppwd;
+    public $tab = 1; // Tab navigation for sidebar form
     public  $role, $roleSelectedId,  $permissionId, $roles = [];
     public $commission_percent = 0, $freight_percent = 0, $exchange_diff_percent = 0, $current_batch = '1';
     public $sellerCommission1Threshold, $sellerCommission1Percentage, $sellerCommission2Threshold, $sellerCommission2Percentage;
@@ -80,30 +81,8 @@ class Users extends Component
 
         session(['map' => 'Usuarios', 'child' => ' Componente ']);
 
-        // Role Hierarchy Logic (Level-based)
-        $currentUserRole = auth()->user()->roles->first(); // Get the role object to access 'level'
-        
-        if ($currentUserRole) {
-            // Show only roles with level strictly lower than current user's level
-            // Admin (100) sees < 100 (50, 30, 10)
-            // Dueño (50) sees < 50 (30, 10)
-            // Administrador (30) sees < 30 (10)
-            
-            // Special case: Admin (100) should be able to see all roles except maybe other Admins?
-            // Or strictly follow the rule: Admin can assign anything <= 100?
-            // Usually Admin can assign anything. Let's say Admin (100) can assign anything < 100.
-            // But wait, Admin needs to be able to create other Admins?
-            // User said: "el unico que puede crear roles es el admin" and "yo siempre tendre el control".
-            // Let's assume Admin (100) can see ALL roles.
-            
-            if ($currentUserRole->level >= 100) {
-                 $this->roles = Role::with('permissions')->orderBy('name')->get();
-            } else {
-                 $this->roles = Role::where('level', '<', $currentUserRole->level)->orderBy('name')->get();
-            }
-        } else {
-            $this->roles = [];
-        }
+        // Simplemente cargar TODOS los roles disponibles
+        $this->roles = Role::orderBy('name')->get();
 
         if (count($this->roles) > 0) {
             $this->role = Role::find($this->roles[0]->id);
@@ -131,13 +110,22 @@ class Users extends Component
     {
         $this->resetValidation();
         $this->resetExcept('user');
-        $this->user = new User();
+        $this->user->status = 'Active'; // Default to Active
+        $this->user->profile = 0;
         $this->user->commission_percentage = 0;
         $this->commission_percent = 0;
         $this->freight_percent = 0;
         $this->exchange_diff_percent = 0;
         $this->resetCommissionFields();
-        $this->editing = false;
+        $this->editing = true;
+        // Review: Reset passwords
+        $this->pwd = '';
+        $this->confirm_pwd = '';
+        $this->tab = 1; // Reset to first tab
+        
+        // CRITICAL: Reload roles because resetExcept cleared them
+        $this->roles = Role::orderBy('name')->get();
+        
         $this->dispatch('init-new');
     }
 
@@ -151,7 +139,8 @@ class Users extends Component
 
         $this->user = $user;
         $this->editing = true;
-        $this->pwd = '';
+        $this->tab = 1; // Reset to first tab
+        $this->pwd = '********'; // Show dummy mask
         $this->temppwd = $user->password;
         $this->roleSelectedId = $this->getRoleId($user->profile);
         $this->role = Role::find($this->roleSelectedId);
@@ -190,6 +179,9 @@ class Users extends Component
             $this->current_batch = '1';
         }
 
+        // CRITICAL: Reload roles for the dropdown
+        $this->roles = Role::orderBy('name')->get();
+
         $this->dispatch('init-new');
     }
 
@@ -207,67 +199,213 @@ class Users extends Component
         $this->printerShare = null;
         $this->resetCommissionFields();
         $this->editing = false;
+        $this->tab = 1;
     }
 
     public function Store()
     {
-        $this->rules['user.name'] = $this->user->id > 0 ? "required|max:85|unique:users,name,{$this->user->id}" : 'required|max:85|unique:users,name';
-        
-        // Add manual validation for host/share if network
-        if ($this->isNetwork) {
-             if (empty($this->printerHost)) $this->addError('printerHost', 'Ingresa la IP o Host');
-             if (empty($this->printerShare)) $this->addError('printerShare', 'Ingresa el nombre compartido');
+        // 1. Basic Validation
+        $rules = [
+            'user.name' => $this->user->id > 0 ? "required|max:85|unique:users,name,{$this->user->id}" : 'required|max:85|unique:users,name',
+            'user.email' => $this->user->id > 0 ? "required|email|max:75|unique:users,email,{$this->user->id}" : 'required|email|max:75|unique:users,email',
+            'user.status' => 'required|in:Active,Locked',
+            'user.profile' => 'required|not_in:0', 
+        ];
+
+        // Password validation: required for new users, optional for existing users
+        // If editing and password is empty or is the dummy mask, don't validate
+        if (!$this->user->id) {
+            // New user: password required and must match confirmation
+            $rules['pwd'] = 'required|same:confirm_pwd';
         } else {
-             // Non-network printer validation if needed, or just standard printer_name rule applies
+            // Editing: only validate if user is changing password (not empty and not the mask)
+            if (!empty($this->pwd) && $this->pwd !== '********') {
+                $rules['pwd'] = 'same:confirm_pwd';
+            }
         }
 
-        $this->validate($this->rules, $this->messages);
-        
+        $messages = [
+            'user.name.required' => 'Nombre requerido',
+            'user.name.unique' => 'El nombre ya existe',
+            'user.email.required' => 'Email requerido',
+            'user.email.unique' => 'El email ya existe',
+            'user.profile.required' => 'Selecciona un perfil',
+            'user.profile.not_in' => 'Selecciona un perfil válido',
+            'pwd.required' => 'El password es requerido',
+            'pwd.same' => 'Los passwords no coinciden',
+        ];
+
+        \Illuminate\Support\Facades\Log::info('Store: Start', ['user' => $this->user->toArray()]);
+
+        try {
+            $this->validate($rules, $messages);
+            \Illuminate\Support\Facades\Log::info('Store: Validation Passed');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Illuminate\Support\Facades\Log::error('Store: Validation Failed', ['errors' => $e->errors()]);
+            // Dispatch notification for first error
+            $firstError = collect($e->errors())->flatten()->first();
+            $this->dispatch('noty', msg: 'ERROR: ' . $firstError);
+            throw $e;
+        }
+
+        try {
+            DB::beginTransaction(); // Start transaction
+
+            // Password Logic
+            if (!$this->user->id) { // New User
+                $this->user->password = bcrypt($this->pwd);
+            } else { // Edit
+                // Only update if password is not empty AND not the dummy mask
+                if (!empty($this->pwd) && $this->pwd !== '********') {
+                    $this->user->password = bcrypt($this->pwd);
+                } else {
+                     // Ensure password is not overriden with null due to Livewire hydration of hidden fields
+                     // We can reload it from DB or simply unset it if it was null, but let's be explicit:
+                     if (!$this->user->password) {
+                         $original = User::find($this->user->id);
+                         $this->user->password = $original->password;
+                     }
+                }
+            }
+
+            // Defaults for new user if not set
+            if(!$this->user->exists) {
+                // $this->user->profile passed validation, so it has a value (e.g., 'Admin')
+                // validation rules for commission_percentage handled?
+                if($this->user->commission_percentage == null) $this->user->commission_percentage = 0;
+                if($this->user->is_network == null) $this->user->is_network = 0;
+            }
+            
+            \Illuminate\Support\Facades\Log::info('Store: Saving User...');
+            $this->user->save();
+            \Illuminate\Support\Facades\Log::info('Store: User Saved', ['id' => $this->user->id]);
+
+            // Assign/Sync Role
+            if ($this->user->profile) {
+                $roleId = $this->getRoleId($this->user->profile);
+                if ($roleId > 0) {
+                     $this->assignRole($this->user->id, $roleId, false); // Silently assign
+                }
+            }
+
+            // Sync Commission Fields to User Model
+            $this->user->seller_commission_1_threshold = $this->sellerCommission1Threshold;
+            $this->user->seller_commission_1_percentage = $this->sellerCommission1Percentage;
+            $this->user->seller_commission_2_threshold = $this->sellerCommission2Threshold;
+            $this->user->seller_commission_2_percentage = $this->sellerCommission2Percentage;
+
+            $this->user->save(); // Save again to persistence commission changes
+
+            // Create History Record (SellerConfig)
+            if ($this->user->profile == 'Vendedor') {
+                // Ensure values are not null
+                $commPercent = $this->commission_percent ?? 0;
+                $freightPercent = $this->freight_percent ?? 0;
+                $diffPercent = $this->exchange_diff_percent ?? 0;
+                $batch = $this->current_batch ?? '1';
+
+                // Check if it's different from the last one to avoid spamming history? 
+                // Or just save every time "Update" is clicked? User request implies they want history when they update.
+                // We'll create it every time they save a Vendedor.
+                
+                \App\Models\SellerConfig::create([
+                    'user_id' => $this->user->id,
+                    'commission_percent' => $commPercent,
+                    'freight_percent' => $freightPercent,
+                    'exchange_diff_percent' => $diffPercent,
+                    'current_batch' => $batch
+                ]);
+            }
+
+            DB::commit();
+            
+            $msg = $this->user->wasRecentlyCreated ? 'USUARIO CREADO CORRECTAMENTE' : 'DATOS ACTUALIZADOS';
+            $this->dispatch('noty', msg: $msg);
+            
+            // Switch to Edit Mode triggers automatically in UI if we refresh user or set editing
+            $this->editing = true;
+            // No tab dispatch needed
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Illuminate\Support\Facades\Log::error('User Store Error: ' . $e->getMessage());
+            $this->dispatch('noty', msg: 'ERROR AL GUARDAR: ' . $e->getMessage());
+        }
+    }
+
+    public function UpdateRole()
+    {
+        $this->validate([
+            'user.profile' => 'required|not_in:0'
+        ], ['user.profile.required' => 'Selecciona un perfil', 'user.profile.not_in' => 'Selecciona un perfil válido']);
+
+         // Validate Role Assignment Permission
+        $targetRoleName = $this->user->profile;
+        $currentUserRole = auth()->user()->roles->first();
+        $targetRole = Role::where('name', $targetRoleName)->first();
+
+        // Extra check
+        if (!$targetRole) {
+             $this->dispatch('noty', msg: 'Perfil no válido');
+             return;
+        }
+
+        $allowed = false;
+        if (auth()->user()->email === 'jhosagid77@gmail.com') {
+             $allowed = true;
+        } elseif ($currentUserRole && $targetRole) {
+            if ($currentUserRole->level >= 100) {
+                $allowed = true; 
+            } else {
+                $allowed = $targetRole->level <= $currentUserRole->level;
+            }
+        }
+
+        if (!$allowed) {
+             $this->dispatch('noty', msg: 'NO TIENES PERMISO PARA ASIGNAR ESTE ROL');
+             return;
+        }
+
+        $this->assignRole($this->user->id, $this->getRoleId($this->user->profile));
+        // Force update of model
+        $this->user->save();
+        $this->dispatch('noty', msg: 'ROL ASIGNADO CORRECTAMENTE');
+    }
+
+    public function UpdatePrinter()
+    {
+        // Manual validation for network
         if ($this->isNetwork) {
              if (empty($this->printerHost) || empty($this->printerShare)) {
-                 return; // Stop if manual validation failed
+                 $this->dispatch('noty', msg: 'FALTAN DATOS DE IMPRESORA DE RED');
+                 return;
              }
         }
 
-        if ($this->user->id == null) {
-            if (empty($this->pwd)) {
-                $this->addError('pwd', 'Ingresa el password');
-                return;
-            } else {
-                $this->user->password = bcrypt($this->pwd);
-            }
-        } else {
-            if (!empty($this->pwd))
-                $this->user->password = bcrypt($this->pwd);
-            else
-                $this->user->password = $this->temppwd;
-        }
-        
-        $this->user->seller_commission_1_threshold = $this->sellerCommission1Threshold;
-        $this->user->seller_commission_1_percentage = $this->sellerCommission1Percentage;
-        $this->user->seller_commission_2_threshold = $this->sellerCommission2Threshold;
-        $this->user->seller_commission_2_percentage = $this->sellerCommission2Percentage;
-        
-        // Printer Logic
         $this->user->is_network = $this->isNetwork;
         
         if ($this->isNetwork) {
             $host = trim($this->printerHost, '\\'); 
             $share = trim($this->printerShare, '\\');
             $this->user->printer_name = "\\\\{$host}\\{$share}";
-            // printer_user and printer_password are bound directly to user, but let's trim them if needed
-            // Actually nice to trim
             if($this->user->printer_user) $this->user->printer_user = trim($this->user->printer_user);
             if($this->user->printer_password) $this->user->printer_password = trim($this->user->printer_password);
         } else {
-            // printer_name is bound directly to user for non-network case, valid layout?
-            // Wait, in non-network mode, user inputs into user.printer_name directly.
-            // But we should clear auth fields if switching off network?
             $this->user->printer_user = null;
             $this->user->printer_password = null;
         }
+        
+        $this->user->save();
+        $this->dispatch('noty', msg: 'CONFIGURACIÓN DE IMPRESORA GUARDADA');
+    }
 
-        // save model
+    public function UpdateCommissions()
+    {
+        $this->user->seller_commission_1_threshold = $this->sellerCommission1Threshold;
+        $this->user->seller_commission_1_percentage = $this->sellerCommission1Percentage;
+        $this->user->seller_commission_2_threshold = $this->sellerCommission2Threshold;
+        $this->user->seller_commission_2_percentage = $this->sellerCommission2Percentage;
+        
         $this->user->save();
 
         if($this->user->profile == 'Vendedor') {
@@ -279,46 +417,7 @@ class Users extends Component
                 'current_batch' => $this->current_batch ?? '1'
             ]);
         }
-
-
-        $this->dispatch('noty', msg: $this->user->id != null ? 'USUARIO ACTUALIZADO CORRECTAMENTE' : 'USUARIO REGISTRADO CON ÉXITO');
-        
-        // Validate Role Assignment Permission (Level-based)
-        $targetRoleName = $this->user->profile;
-        $currentUserRole = auth()->user()->roles->first();
-        $targetRole = Role::where('name', $targetRoleName)->first();
-
-        $allowed = false;
-        
-        if ($currentUserRole && $targetRole) {
-            if ($currentUserRole->level >= 100) {
-                $allowed = true; // Admin can do anything
-            } else {
-                // Strictly lower level
-                $allowed = $targetRole->level < $currentUserRole->level;
-            }
-        }
-
-        if (!$allowed) {
-             $this->dispatch('noty', msg: 'NO TIENES PERMISO PARA ASIGNAR ESTE ROL (NIVEL INSUFICIENTE)');
-             return;
-        }
-
-        $this->assignRole($this->user->id, $this->getRoleId($this->user->profile));
-
-        $this->resetExcept('user');
-        $this->user = new User();
-        $this->user->status = 'Active';
-        $this->user->profile = 0;
-        $this->user->commission_percentage = 0;
-        $this->commission_percent = 0;
-        $this->freight_percent = 0;
-        $this->freight_percent = 0;
-        $this->exchange_diff_percent = 0;
-        $this->isNetwork = false;
-        $this->printerHost = null;
-        $this->printerShare = null;
-        $this->resetCommissionFields();
+        $this->dispatch('noty', msg: 'COMISIONES ACTUALIZADAS');
     }
 
     public function resetCommissionFields()
@@ -329,13 +428,12 @@ class Users extends Component
         $this->sellerCommission2Percentage = null;
     }
 
-    public function getRoleId($role)
+    public function getRoleId($roleName)
     {
-        if ($role) {
-            $role = Role::where('name', $role)->first();
-            return $role->id;
+        if ($roleName && $roleName !== '0' && $roleName !== 0) {
+            $role = Role::where('name', $roleName)->first();
+            return $role ? $role->id : 0;
         }
-
         return 0;
     }
     #[On('destroyUser')]
@@ -365,7 +463,7 @@ class Users extends Component
         $this->dispatch('noty', msg: 'USUARIO ELIMINADO CON ÉXITO');
     }
 
-    public function assignRole($userId, $roleId)
+    public function assignRole($userId, $roleId, $notify = true)
     {
         // dd($this->editing);
         try {
@@ -380,10 +478,12 @@ class Users extends Component
                 $user->syncRoles([$role]); //asignar role
             }
 
-            if ($roleId == 0) {
-                $this->dispatch('noty', msg: "Se eliminaron los roles al usuario $user->name");
-            } else {
-                $this->dispatch('noty', msg: 'Se asignó el rol ' . $role->name . ' al usuario ' . $user->name);
+            if ($notify) {
+                if ($roleId == 0) {
+                    $this->dispatch('noty', msg: "Se eliminaron los roles al usuario $user->name");
+                } else {
+                    $this->dispatch('noty', msg: 'Se asignó el rol ' . $role->name . ' al usuario ' . $user->name);
+                }
             }
 
             // $this->UpdateProfileRoleUser($userId, $role->name);
