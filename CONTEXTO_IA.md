@@ -15,6 +15,54 @@ La IA debe leer este archivo para entender cómo trabajar en este proyecto espec
     -   Crear el Release / Tag.
 3.  **Orden del Changelog**: Las versiones más recientes siempre deben ir arriba en `CHANGELOG.md`.
 
+### Procedimiento de Release (OBLIGATORIO)
+
+#### Paso 0: Actualizar CHANGELOG.md (CRÍTICO - SIEMPRE PRIMERO)
+ANTES de hacer cualquier commit de release, SIEMPRE actualizar `CHANGELOG.md`:
+- Agregar la nueva versión al INICIO del archivo
+- Formato: `## [1.x.x] - YYYY-MM-DD`
+- Secciones: `### Added`, `### Fixed`, `### Changed`, `### Database`
+- Si el usuario reporta que no ve las notas, verificar que CHANGELOG.md esté actualizado
+
+#### Paso 1: Formato de Commits
+```
+feat: [Título breve]
+
+- Punto detallado 1
+- Punto detallado 2
+```
+
+#### Paso 2: Crear Tag con Notas
+```bash
+git tag -a v1.x.x -m "Release v1.x.x: [Título]
+
+New Features:
+- Feature 1
+
+Improvements:
+- Improvement 1
+
+Bug Fixes:
+- Fix 1
+
+Database Changes:
+- Migration 1"
+```
+
+#### Paso 3: Archivo release_notes_v1.x.x.md
+Crear archivo markdown con las notas para que el usuario las copie a GitHub Release.
+
+#### Paso 4: Secuencia Completa
+```bash
+# 0. Actualizar CHANGELOG.md (OBLIGATORIO)
+# 1. git add .
+# 2. git commit -m "feat: [mensaje]"
+# 3. git push origin feature/nombre-rama
+# 4. git tag -a v1.x.x -m "[notas]"
+# 5. git push origin v1.x.x
+# 6. Crear release_notes_v1.x.x.md
+```
+
 ## Decisiones de Diseño
 ...
 
