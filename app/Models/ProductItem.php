@@ -5,26 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class ProductionDetail extends Model
+class ProductItem extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
-        'production_id',
         'product_id',
         'warehouse_id',
-        'material_type',
         'quantity',
-        'weight',
-        'metadata'
+        'original_quantity',
+        'status',
+        'batch',
+        'color',
+        'location'
     ];
-
-    protected $casts = [
-        'metadata' => 'array'
-    ];
-
-    public function production()
-    {
-        return $this->belongsTo(Production::class);
-    }
 
     public function product()
     {
@@ -34,5 +28,11 @@ class ProductionDetail extends Model
     public function warehouse()
     {
         return $this->belongsTo(Warehouse::class);
+    }
+
+    // Scopes
+    public function scopeAvailable($query)
+    {
+        return $query->where('status', 'available');
     }
 }

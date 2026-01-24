@@ -80,38 +80,79 @@ class CreateCargo extends Component
         }
     }
 
+    // Variable Item Inputs
+    public $vw_weight, $vw_color, $vw_batch, $current_product_id;
+
     public function addToCart($productId)
     {
         $product = \App\Models\Product::find($productId);
         if (!$product) return;
 
         if (isset($this->cart[$productId])) {
-            $this->cart[$productId]['quantity']++;
+            if (!$product->is_variable_quantity) {
+                 $this->cart[$productId]['quantity']++;
+            }
         } else {
             $this->cart[$productId] = [
                 'id' => $product->id,
                 'name' => $product->name,
                 'sku' => $product->sku,
-                'cost' => $product->cost, // Add cost
-                'quantity' => 1
+                'cost' => $product->cost,
+                'quantity' => $product->is_variable_quantity ? 0 : 1,
+                'is_variable' => (bool)$product->is_variable_quantity,
+                'items' => [] 
             ];
         }
         
         $this->search = '';
         $this->searchResults = [];
     }
-
-    public function updateQuantity($productId, $qty)
+    
+    public function openVariableModal($productId)
     {
-        if (isset($this->cart[$productId])) {
-            $this->cart[$productId]['quantity'] = $qty;
+        $this->current_product_id = $productId;
+        $this->vw_weight = '';
+        $this->vw_color = '';
+        $this->vw_batch = '';
+        $this->dispatch('show-variable-modal');
+    }
+
+    public function addVariableItem()
+    {
+        $this->validate([
+            'vw_weight' => 'required|numeric|min:0.01',
+            'vw_color' => 'nullable|string|max:50',
+            'vw_batch' => 'nullable|string|max:50'
+        ]);
+
+        if (isset($this->cart[$this->current_product_id])) {
+            $this->cart[$this->current_product_id]['items'][] = [
+                'weight' => $this->vw_weight,
+                'color' => $this->vw_color,
+                'batch' => $this->vw_batch
+            ];
+            
+            // Recalculate total weight/quantity
+            $totalWeight = collect($this->cart[$this->current_product_id]['items'])->sum('weight');
+            $this->cart[$this->current_product_id]['quantity'] = $totalWeight;
+        }
+
+        $this->reset(['vw_weight', 'vw_color', 'vw_batch']);
+        $this->dispatch('noty', msg: 'Item agregado a la lista');
+        $this->dispatch('focus-weight');
+    }
+
+    public function removeVariableItem($productId, $index)
+    {
+        if (isset($this->cart[$productId]['items'][$index])) {
+            unset($this->cart[$productId]['items'][$index]);
+            $this->cart[$productId]['items'] = array_values($this->cart[$productId]['items']);
+            
+            $totalWeight = collect($this->cart[$productId]['items'])->sum('weight');
+            $this->cart[$productId]['quantity'] = $totalWeight;
         }
     }
 
-    public function removeFromCart($productId)
-    {
-        unset($this->cart[$productId]);
-    }
 
     public function save()
     {
@@ -123,6 +164,27 @@ class CreateCargo extends Component
             'cart' => 'required|array|min:1'
         ]);
 
+        // Validate Variable Items
+        foreach ($this->cart as $item) {
+            $product = \App\Models\Product::find($item['id']);
+            
+            // Validate Decimals
+            if ($product && !$product->allow_decimal) {
+                if (floor($item['quantity']) != $item['quantity']) {
+                    $this->addError("cart.{$item['id']}.quantity", "El producto {$product->name} no permite decimales.");
+                    $this->dispatch('noty', msg: "El producto {$product->name} no permite cantidades decimales.", type: 'error');
+                    return;
+                }
+            }
+
+            // Validate Missing Items
+            if ($item['is_variable'] && empty($item['items'])) {
+                $this->addError("cart", "El producto {$item['name']} requiere items.");
+                $this->dispatch('noty', msg: "Faltan items en producto {$item['name']}", type: 'error');
+                return;
+            }
+        }
+
         try {
             \Illuminate\Support\Facades\DB::beginTransaction();
 
@@ -133,7 +195,7 @@ class CreateCargo extends Component
                 'motive' => $this->motive,
                 'date' => $this->date,
                 'comments' => $this->comments,
-                'status' => 'pending',
+                'status' => 'pending', // Pending approval or specific status? Using 'pending' as default.
             ]);
 
             foreach ($this->cart as $item) {
@@ -141,12 +203,26 @@ class CreateCargo extends Component
                     'cargo_id' => $cargo->id,
                     'product_id' => $item['id'],
                     'quantity' => $item['quantity'],
-                    'cost' => $item['cost'] // Save cost
+                    'cost' => $item['cost'] 
                 ]);
+
+                // Create Product Items if variable
+                if ($item['is_variable'] && !empty($item['items'])) {
+                    foreach ($item['items'] as $bobina) {
+                        \App\Models\ProductItem::create([
+                            'product_id' => $item['id'],
+                            'warehouse_id' => $this->warehouse_id,
+                            'quantity' => $bobina['weight'],
+                            'original_quantity' => $bobina['weight'],
+                            'color' => $bobina['color'] ?? null,
+                            'batch' => $bobina['batch'] ?? null,
+                            'status' => 'available'
+                        ]);
+                    }
+                }
 
                 // Update Stock
                 $product = \App\Models\Product::find($item['id']);
-                $warehouse = \App\Models\Warehouse::find($this->warehouse_id);
                 
                 // Check if pivot exists
                 $pivot = $product->warehouses()->where('warehouse_id', $this->warehouse_id)->first();
@@ -158,7 +234,7 @@ class CreateCargo extends Component
                     $product->warehouses()->attach($this->warehouse_id, ['stock_qty' => $item['quantity']]);
                 }
                 
-                // Update global stock if needed (optional, depending on logic)
+                // Update global stock
                 $product->stock_qty += $item['quantity'];
                 $product->save();
             }

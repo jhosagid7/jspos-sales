@@ -50,11 +50,59 @@
         </div>
     </div>
 
+    <div class="modal fade" id="modalVariableItem" tabindex="-1" role="dialog" wire:ignore.self>
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title">Agregar Item / Bobina</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-sm-12 mb-3">
+                            <label>Peso (Kg)</label>
+                            <input type="number" id="vw_weight" wire:model="vw_weight" wire:keydown.enter="addVariableItem" class="form-control" placeholder="0.00" autofocus>
+                            @error('vw_weight') <span class="text-danger">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-sm-12 mb-3">
+                            <label>Color (Opcional)</label>
+                            <input type="text" wire:model="vw_color" wire:keydown.enter="addVariableItem" class="form-control" placeholder="Ej: Rojo">
+                        </div>
+                        <div class="col-sm-12 mb-3">
+                            <label>Lote (Opcional)</label>
+                            <input type="text" wire:model="vw_batch" wire:keydown.enter="addVariableItem" class="form-control" placeholder="Lote #">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" wire:click="addVariableItem">Agregar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('livewire:init', function() {
             Livewire.on('close-modal-supplier', event => {
                 $('#modalSupplier').modal('hide');
-            })
+            });
+            
+            Livewire.on('show-variable-modal', () => {
+                 $('#modalVariableItem').modal('show');
+                 setTimeout(() => {
+                     $('#vw_weight').focus();
+                 }, 500);
+            });
+
+            Livewire.on('focus-weight', () => {
+                 setTimeout(() => {
+                     $('#vw_weight').val(''); 
+                     $('#vw_weight').focus();
+                 }, 300);
+            });
         })
     </script>
 </div>

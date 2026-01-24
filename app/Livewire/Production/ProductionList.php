@@ -23,7 +23,7 @@ class ProductionList extends Component
     {
         $productions = \App\Models\Production::join('users', 'users.id', '=', 'productions.user_id')
             ->select('productions.*', 'users.name as user_name')
-            ->orderBy('productions.production_date', 'desc')
+            ->orderBy('productions.id', 'desc')
             ->paginate(10);
 
         return view('livewire.production.production-list', [
@@ -54,52 +54,72 @@ class ProductionList extends Component
             return;
         }
 
-        // Get default warehouse (first active one)
-        $warehouse = \App\Models\Warehouse::where('is_active', 1)->first();
-        if (!$warehouse) {
-            $this->dispatch('noty', msg: 'No hay depósitos activos', type: 'error');
-            return;
-        }
+        // Group details by warehouse
+        $groupedDetails = $production->details->groupBy('warehouse_id');
 
         try {
             \Illuminate\Support\Facades\DB::beginTransaction();
 
-            // Create Cargo
-            $cargo = \App\Models\Cargo::create([
-                'warehouse_id' => $warehouse->id,
-                'user_id' => auth()->id(),
-                'authorized_by' => auth()->user()->name,
-                'motive' => 'Producción del ' . $production->production_date->format('d-m-Y'),
-                'date' => now(),
-                'comments' => 'Generado desde Módulo de Producción #' . $production->id,
-                'status' => 'pending'
-            ]);
+            foreach ($groupedDetails as $warehouseId => $details) {
+                // If warehouse_id is null, fallback to default (should not happen if enforced, but safety check)
+                if (!$warehouseId) {
+                    $warehouse = \App\Models\Warehouse::where('is_active', 1)->first();
+                    $warehouseId = $warehouse->id ?? null;
+                    if (!$warehouseId) continue; // Skip if no warehouse
+                }
 
-            foreach ($production->details as $detail) {
-                // Create Cargo Detail
-                \App\Models\CargoDetail::create([
-                    'cargo_id' => $cargo->id,
-                    'product_id' => $detail->product_id,
-                    'quantity' => $detail->quantity,
-                    'cost' => $detail->product->cost ?? 0
+                // Create Cargo for this warehouse
+                $cargo = \App\Models\Cargo::create([
+                    'warehouse_id' => $warehouseId,
+                    'user_id' => auth()->id(),
+                    'authorized_by' => auth()->user()->name,
+                    'motive' => 'Producción del ' . $production->production_date->format('d-m-Y'),
+                    'date' => now(),
+                    'comments' => 'Generado desde Módulo de Producción #' . $production->id,
+                    'status' => 'pending'
                 ]);
 
-                // Update Stock
-                $product = \App\Models\Product::find($detail->product_id);
-                
-                // Check if pivot exists
-                $pivot = $product->warehouses()->where('warehouse_id', $warehouse->id)->first();
-                
-                if ($pivot) {
-                    $newQty = $pivot->pivot->stock_qty + $detail->quantity;
-                    $product->warehouses()->updateExistingPivot($warehouse->id, ['stock_qty' => $newQty]);
-                } else {
-                    $product->warehouses()->attach($warehouse->id, ['stock_qty' => $detail->quantity]);
+                foreach ($details as $detail) {
+                    // Create Cargo Detail
+                    \App\Models\CargoDetail::create([
+                        'cargo_id' => $cargo->id,
+                        'product_id' => $detail->product_id,
+                        'quantity' => $detail->quantity,
+                        'cost' => $detail->product->cost ?? 0
+                    ]);
+
+                    // Update Stock
+                    $product = \App\Models\Product::find($detail->product_id);
+
+                    // Create Product Items (Bobinas) from Metadata
+                    if ($product->is_variable_quantity && !empty($detail->metadata)) {
+                        foreach ($detail->metadata as $bobina) {
+                            \App\Models\ProductItem::create([
+                                'product_id' => $detail->product_id,
+                                'warehouse_id' => $warehouseId,
+                                'quantity' => $bobina['weight'],
+                                'original_quantity' => $bobina['weight'],
+                                'color' => $bobina['color'] ?? null,
+                                'batch' => $bobina['batch'] ?? null,
+                                'status' => 'available'
+                            ]);
+                        }
+                    }
+                    
+                    // Check if pivot exists
+                    $pivot = $product->warehouses()->where('warehouse_id', $warehouseId)->first();
+                    
+                    if ($pivot) {
+                        $newQty = $pivot->pivot->stock_qty + $detail->quantity;
+                        $product->warehouses()->updateExistingPivot($warehouseId, ['stock_qty' => $newQty]);
+                    } else {
+                        $product->warehouses()->attach($warehouseId, ['stock_qty' => $detail->quantity]);
+                    }
+                    
+                    // Update global stock
+                    $product->stock_qty += $detail->quantity;
+                    $product->save();
                 }
-                
-                // Update global stock
-                $product->stock_qty += $detail->quantity;
-                $product->save();
             }
 
             // Update Production Status
@@ -107,7 +127,7 @@ class ProductionList extends Component
             $production->save();
 
             \Illuminate\Support\Facades\DB::commit();
-            $this->dispatch('noty', msg: 'Enviado a Cargo e Inventario actualizado correctamente');
+            $this->dispatch('noty', msg: 'Enviado a Cargo(s) e Inventario actualizado correctamente');
             
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\DB::rollBack();

@@ -106,6 +106,12 @@
         Livewire.on('refresh', event => {
             document.getElementById('inputSearch').value = ''
             document.getElementById('inputSearch').focus()
+            
+            // Clear Customer Input (TomSelect)
+            var inputTom = document.getElementById('inputCustomer');
+            if(inputTom && inputTom.tomselect) {
+                inputTom.tomselect.clear();
+            }
         })
 
 

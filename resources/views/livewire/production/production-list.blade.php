@@ -114,6 +114,7 @@
                             <thead class="text-white" style="background: #3B3F5C">
                                 <tr>
                                     <th class="table-th text-white">PRODUCTO</th>
+                                    <th class="table-th text-white">DEPÓSITO</th>
                                     <th class="table-th text-white text-center">TIPO (TM)</th>
                                     <th class="table-th text-white text-center">CANTIDAD</th>
                                     <th class="table-th text-white text-center">PESO</th>
@@ -122,7 +123,29 @@
                             <tbody>
                                 @foreach($details as $detail)
                                 <tr>
-                                    <td>{{ $detail->product->name }}</td>
+                                    <td>
+                                        {{ $detail->product->name }}
+                                        @if($detail->product->is_variable_quantity && !empty($detail->metadata))
+                                            <div class="mt-2 ml-3">
+                                                <small class="text-info font-weight-bold">Detalle de Bobinas:</small>
+                                                <ul class="list-unstyled pl-2 border-left border-info">
+                                                    @foreach($detail->metadata as $item)
+                                                        <li class="mb-1">
+                                                            <small>
+                                                                Peso: <b>{{ $item['weight'] }} kg</b>
+                                                                @if(!empty($item['color'])) | Color: {{ $item['color'] }} @endif
+                                                                @if(!empty($item['batch'])) | Lote: {{ $item['batch'] }} @endif
+                                                            </small>
+                                                        </li>
+                                                    @endforeach
+                                                </ul>
+                                            </div>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        {{ $detail->warehouse->name ?? 'N/A' }} 
+                                        <!-- Assumes Warehouse relationship exists in ProductionDetail model, if not I need add it -->
+                                    </td>
                                     <td class="text-center">{{ $detail->material_type }}</td>
                                     <td class="text-center">{{ number_format($detail->quantity, 2) }}</td>
                                     <td class="text-center">{{ number_format($detail->weight, 2) }}</td>

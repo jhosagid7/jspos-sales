@@ -29,10 +29,17 @@ class Product extends Model
         'brand',
         'presentation',
         'is_pre_assembled',
-        'additional_cost'
+        'additional_cost',
+        'allow_decimal',
+        'is_variable_quantity'
     ];
 
     //relationships
+
+    public function items()
+    {
+        return $this->hasMany(ProductItem::class);
+    }
 
     public function priceList(): HasMany
     {
