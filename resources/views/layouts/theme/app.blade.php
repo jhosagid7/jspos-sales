@@ -58,6 +58,7 @@
         @include('layouts.theme.footer')
     </div>
 
+
     <!-- scripts -->
     @include('layouts.theme.scripts')
 

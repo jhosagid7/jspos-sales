@@ -23,7 +23,17 @@
                             @error('production_date') <span class="text-danger">{{ $message }}</span> @enderror
                         </div>
                     </div>
-                    <div class="col-sm-12 col-md-8">
+                    <div class="col-sm-12 col-md-4">
+                         <div class="form-group">
+                             <label>Depósito Destino</label>
+                             <select wire:model="warehouse_id" class="form-control">
+                                 @foreach($warehouses as $w)
+                                     <option value="{{ $w->id }}">{{ $w->name }}</option>
+                                 @endforeach
+                             </select>
+                         </div>
+                    </div>
+                    <div class="col-sm-12 col-md-4">
                         <div class="form-group">
                             <label>Nota / Observación</label>
                             <input type="text" wire:model="note" class="form-control" placeholder="Opcional...">
@@ -99,6 +109,7 @@
                                 <thead class="text-white" style="background: #3B3F5C">
                                     <tr>
                                         <th class="table-th text-white">PRODUCTO</th>
+                                        <th class="table-th text-white">DEPÓSITO</th>
                                         <th class="table-th text-white text-center">TM (TIPO)</th>
                                         <th class="table-th text-white text-center">CANTIDAD</th>
                                         <th class="table-th text-white text-center">PESO</th>
@@ -111,6 +122,40 @@
                                         <td>
                                             <h6>{{ $item['name'] }}</h6>
                                             <small>{{ $item['sku'] }}</small>
+                                            @if($item['is_variable'])
+                                                <div class="mt-1">
+                                                    <span class="badge badge-info">Variable</span>
+                                                    <button wire:click="openVariableModal({{ $productId }})" class="btn btn-sm btn-primary ml-2">
+                                                        <i class="fas fa-plus"></i> Agregar Item
+                                                    </button>
+                                                    @if(count($item['items']) > 0)
+                                                        <ul class="list-unstyled mt-2 pl-2 border-left">
+                                                            @foreach($item['items'] as $idx => $vItem)
+                                                                <li class="d-flex justify-content-between align-items-center mb-1">
+                                                                    <small>
+                                                                        <b>{{ $vItem['weight'] }} kg</b> 
+                                                                        @if($vItem['color']) | {{ $vItem['color'] }} @endif
+                                                                        @if($vItem['batch']) | Lote: {{ $vItem['batch'] }} @endif
+                                                                    </small>
+                                                                    <a href="javascript:void(0)" wire:click="removeVariableItem({{ $productId }}, {{ $idx }})" class="text-danger ml-2">
+                                                                        <i class="fas fa-times"></i>
+                                                                    </a>
+                                                                </li>
+                                                            @endforeach
+                                                        </ul>
+                                                    @endif
+                                                </div>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <select class="form-control" 
+                                                    onchange="Livewire.dispatch('updateRow', [{{ $productId }}, 'warehouse_id', this.value])">
+                                                @foreach($warehouses as $w)
+                                                    <option value="{{ $w->id }}" {{ ($item['warehouse_id'] ?? $warehouse_id) == $w->id ? 'selected' : '' }}>
+                                                        {{ $w->name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
                                         </td>
                                         <td class="text-center">
                                             <input type="text" 
@@ -120,20 +165,29 @@
                                                    style="max-width: 100px; margin: 0 auto;">
                                         </td>
                                         <td class="text-center">
-                                            <input type="number" 
-                                                   value="{{ $item['quantity'] }}" 
-                                                   onchange="Livewire.dispatch('updateRow', [{{ $productId }}, 'quantity', this.value])"
-                                                   class="form-control text-center"
-                                                   step="any"
-                                                   style="max-width: 120px; margin: 0 auto;">
+                                            @if($item['is_variable'])
+                                                <input type="text" class="form-control text-center" value="{{ $item['quantity'] }}" disabled>
+                                                <small class="text-muted">Auto</small>
+                                            @else
+                                                <input type="number" 
+                                                       value="{{ $item['quantity'] }}" 
+                                                       onchange="Livewire.dispatch('updateRow', [{{ $productId }}, 'quantity', this.value])"
+                                                       class="form-control text-center"
+                                                       step="any"
+                                                       style="max-width: 120px; margin: 0 auto;">
+                                            @endif
                                         </td>
                                         <td class="text-center">
-                                            <input type="number" 
-                                                   value="{{ $item['weight'] }}" 
-                                                   onchange="Livewire.dispatch('updateRow', [{{ $productId }}, 'weight', this.value])"
-                                                   class="form-control text-center"
-                                                   step="any"
-                                                   style="max-width: 120px; margin: 0 auto;">
+                                            @if($item['is_variable'])
+                                                 <input type="text" class="form-control text-center" value="{{ $item['weight'] }}" disabled>
+                                            @else
+                                                <input type="number" 
+                                                       value="{{ $item['weight'] }}" 
+                                                       onchange="Livewire.dispatch('updateRow', [{{ $productId }}, 'weight', this.value])"
+                                                       class="form-control text-center"
+                                                       step="any"
+                                                       style="max-width: 120px; margin: 0 auto;">
+                                            @endif
                                         </td>
                                         <td class="text-center">
                                             <button wire:click="removeFromCart({{ $productId }})" class="btn btn-dark">
@@ -184,6 +238,41 @@
         </div>
     </div>
 
+    <!-- Modal Variable Item -->
+    <div class="modal fade" id="modalVariableItem" tabindex="-1" role="dialog" wire:ignore.self>
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title">Agregar Item / Bobina</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-sm-12 mb-3">
+                            <label>Peso (Kg)</label>
+                            <input type="number" id="vw_weight" wire:model="vw_weight" wire:keydown.enter="addVariableItem" class="form-control" placeholder="0.00" autofocus>
+                            @error('vw_weight') <span class="text-danger">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-sm-12 mb-3">
+                            <label>Color (Opcional)</label>
+                            <input type="text" wire:model="vw_color" wire:keydown.enter="addVariableItem" class="form-control" placeholder="Ej: Rojo">
+                        </div>
+                        <div class="col-sm-12 mb-3">
+                            <label>Lote (Opcional)</label>
+                            <input type="text" wire:model="vw_batch" wire:keydown.enter="addVariableItem" class="form-control" placeholder="Lote #">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" wire:click="addVariableItem">Agregar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="{{ asset('assets/js/keypress.js') }}"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <script>
@@ -191,7 +280,21 @@
              Livewire.on('updateRow', (data) => {
                  @this.updateRow(data[0], data[1], data[2]);
              });
-        });
+
+             Livewire.on('show-variable-modal', () => {
+                 $('#modalVariableItem').modal('show');
+                 setTimeout(() => {
+                     $('#vw_weight').focus();
+                 }, 500);
+             });
+
+             Livewire.on('focus-weight', () => {
+                 setTimeout(() => {
+                     $('#vw_weight').val(''); 
+                     $('#vw_weight').focus();
+                 }, 300);
+             });
+         });
 
         document.addEventListener('DOMContentLoaded', function() {
             let html5QrcodeScanner = null;

@@ -106,7 +106,19 @@
                             </div>
                         </a>
                     </li>
-
+                    {{-- Variable Items Tab --}}
+                    @if($form->is_variable_quantity)
+                    <li class="nav-item mb-2">
+                        <a class="nav-link {{ $tab == 9 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                           wire:click.prevent="$set('tab',9)" href="#">
+                            <i class="fa fa-cubes fa-2x"></i>
+                            <div>
+                                <h6 class="mb-0">Items / Bobinas</h6>
+                                <small class="{{ $tab == 9 ? 'text-white' : 'text-muted' }}">Gestión Individual</small>
+                            </div>
+                        </a>
+                    </li>
+                    @endif
                 </ul>
             </div>
             <div class="col-xxl-9 col-xl-8 box-col-8 position-relative">
@@ -230,6 +242,21 @@
 
                                 {{-- stock fields moved to Inventory tab --}}
 
+
+                                <div class="col-sm-12 mt-2 mb-2">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="decimalSwitch" wire:model="form.allow_decimal">
+                                        <label class="form-check-label" for="decimalSwitch">Permite Cantidades Decimales (Fraccionable)</label>
+                                    </div>
+                                    <div class="form-check form-switch mt-2">
+                                        <input class="form-check-input" type="checkbox" id="variableSwitch" wire:model="form.is_variable_quantity">
+                                        <label class="form-check-label text-primary font-weight-bold" for="variableSwitch">Venta por Peso/Separado (Bobinas)</label>
+                                        <small class="form-text text-muted d-block">
+                                            Activa esta opción para manejar stock por items individuales (ej. Bobinas con peso único). 
+                                            Al vender, deberás seleccionar el item específico.
+                                        </small>
+                                    </div>
+                                </div>
                             </form>
                             <div class="mt-3">
 
@@ -648,6 +675,25 @@
                             </div>
                         </div>
                     </div>
+
+
+
+                    {{-- Variable Items Content --}}
+                    @if($form->is_variable_quantity && $form->product_id > 0)
+                        <div class="tab-pane fade {{ $tab == 9 ? 'active show' : '' }}" id="variable-items" role="tabpanel">
+                            <div class="sidebar-body">
+                                <livewire:product-items-manager :productId="$form->product_id" wire:key="items-manager-{{ $form->product_id }}" />
+                            </div>
+                        </div>
+                    @elseif($form->is_variable_quantity)
+                        <div class="tab-pane fade {{ $tab == 9 ? 'active show' : '' }}" id="variable-items" role="tabpanel">
+                            <div class="sidebar-body">
+                                <div class="alert alert-warning">
+                                    <i class="fa fa-info-circle"></i> Debes guardar el producto primero para gestionar los items/bobinas.
+                                </div>
+                            </div>
+                        </div>
+                    @endif
 
                     {{-- Statistics Tab --}}
                     <div class="tab-pane fade {{ $tab == 8 ? 'active show' : '' }}" id="statistics" role="tabpanel">

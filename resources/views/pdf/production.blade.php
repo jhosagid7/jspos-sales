@@ -174,6 +174,7 @@
         <thead>
             <tr>
                 <th>Producto</th>
+                <th class="text-center">Depósito</th>
                 <th class="text-center">Tipo (TM)</th>
                 <th class="text-center">Cantidad</th>
                 <th class="text-center">Peso</th>
@@ -182,7 +183,23 @@
         <tbody>
             @foreach($production->details as $detail)
             <tr>
-                <td>{{ $detail->product->name }}</td>
+                <td>
+                    {{ $detail->product->name }}
+                    @if($detail->product->is_variable_quantity && !empty($detail->metadata))
+                        <br>
+                        <small style="margin-left: 10px; color: #555;">Detalle de Bobinas:</small>
+                        <ul style="list-style-type: none; margin: 0; padding-left: 15px; font-size: 9px; color: #555;">
+                            @foreach($detail->metadata as $item)
+                                <li>
+                                    - Peso: <b>{{ $item['weight'] }}</b>
+                                    @if(!empty($item['color'])) | Color: {{ $item['color'] }} @endif
+                                    @if(!empty($item['batch'])) | Lote: {{ $item['batch'] }} @endif
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </td>
+                <td class="text-center">{{ $detail->warehouse->name ?? 'N/A' }}</td>
                 <td class="text-center">{{ $detail->material_type }}</td>
                 <td class="text-center">{{ number_format($detail->quantity, 2) }}</td>
                 <td class="text-center">{{ number_format($detail->weight, 2) }}</td>
