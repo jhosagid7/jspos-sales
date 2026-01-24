@@ -16,32 +16,49 @@
             <div class="mt-4 space-y-6">
                 <!-- Other Browser Sessions -->
                 @foreach ($this->sessions as $session)
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="mr-3">
-                            @if ($session->agent['is_desktop'])
-                                <i class="fas fa-desktop fa-2x text-muted"></i>
-                            @else
-                                <i class="fas fa-mobile-alt fa-2x text-muted"></i>
-                            @endif
-                        </div>
-
-                        <div>
-                            <div class="text-sm text-gray-600">
-                                {{ $session->agent['platform'] ? $session->agent['platform'] : 'Unknown' }} - {{ $session->agent['browser'] ? $session->agent['browser'] : 'Unknown' }}
+                    <div class="d-flex align-items-center justify-content-between mb-3 p-2 border rounded">
+                        <div class="d-flex align-items-center">
+                            <div class="mr-3">
+                                @if ($session->agent['is_desktop'])
+                                    <i class="fas fa-desktop fa-2x text-muted"></i>
+                                @else
+                                    <i class="fas fa-mobile-alt fa-2x text-muted"></i>
+                                @endif
                             </div>
 
                             <div>
-                                <div class="text-xs text-muted">
-                                    {{ $session->ip_address }},
+                                <div class="text-sm text-gray-600">
+                                    {{ $session->agent['platform'] ? $session->agent['platform'] : 'Unknown' }} - {{ $session->agent['browser'] ? $session->agent['browser'] : 'Unknown' }}
+                                </div>
 
-                                    @if ($session->is_current_device)
-                                        <span class="text-success font-weight-bold">{{ __('This device') }}</span>
-                                    @else
-                                        {{ __('Last active') }} {{ $session->last_active }}
-                                    @endif
+                                <div>
+                                    <div class="text-xs text-muted">
+                                        {{ $session->ip_address }},
+
+                                        @if ($session->is_current_device)
+                                            <span class="text-success font-weight-bold">{{ __('This device') }}</span>
+                                        @else
+                                            {{ __('Last active') }} {{ $session->last_active }}
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Individual Logout Button -->
+                        @if (!$session->is_current_device)
+                            <div>
+                                <button 
+                                    type="button" 
+                                    class="btn btn-sm btn-danger" 
+                                    wire:click="logoutSpecificSession('{{ $session->session_id }}')"
+                                    wire:loading.attr="disabled"
+                                    title="Cerrar esta sesión"
+                                >
+                                    <i class="fas fa-sign-out-alt"></i> Cerrar
+                                </button>
+                            </div>
+                        @endif
                     </div>
                 @endforeach
             </div>

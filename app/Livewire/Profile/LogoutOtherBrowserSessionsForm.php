@@ -39,6 +39,27 @@ class LogoutOtherBrowserSessionsForm extends Component
         $this->dispatch('logged-out');
     }
 
+    public function logoutSpecificSession($sessionId)
+    {
+        if (config('session.driver') !== 'database') {
+            return;
+        }
+
+        // Prevent logging out the current session
+        if ($sessionId === request()->session()->getId()) {
+            $this->dispatch('noty', msg: 'No puedes cerrar la sesión actual');
+            return;
+        }
+
+        // Delete the specific session from database
+        DB::connection(config('session.connection'))->table(config('session.table', 'sessions'))
+            ->where('id', $sessionId)
+            ->where('user_id', Auth::user()->getAuthIdentifier())
+            ->delete();
+
+        $this->dispatch('noty', msg: 'Sesión cerrada exitosamente');
+    }
+
     public function getSessionsProperty()
     {
         if (config('session.driver') !== 'database') {
@@ -54,6 +75,7 @@ class LogoutOtherBrowserSessionsForm extends Component
             $agent = $this->createAgent($session);
 
             return (object) [
+                'session_id' => $session->id,
                 'agent' => [
                     'is_desktop' => $agent->isDesktop(),
                     'platform' => $agent->platform(),
