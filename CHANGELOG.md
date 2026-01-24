@@ -7,7 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.8.0] - 2026-01-24
 
+### Added
+- **Decimal Quantity Support**:
+  - Added `allow_decimal` column to products table for products sold by weight/length (bobinas/rolls).
+  - Modified quantity columns to `DECIMAL(10,4)` in all detail tables (sales, purchases, orders, production).
+- **Variable Product Items Management**:
+  - Created `ProductItem` model and `product_items` table for tracking individual units.
+  - Implemented `ProductItemsManager` Livewire component for managing variable product inventory.
+  - Added metadata columns to production_details, purchase_details, and order_details for tracking specific items.
+  - Added warehouse_id to production_details for multi-warehouse support.
+- **Super Admin Role System**:
+  - Implemented robust Super Admin role using `laravel-permission` Gate::before.
+  - Added Super Admin role to RoleSeeder with level 1000 (highest priority).
+  - Created migration to assign Super Admin role to system owner.
+  - Enhanced user creation/edit with proper role management.
+
+### Fixed
+- **User Management**:
+  - Fixed empty roles dropdown in user creation/edit forms (roles were being cleared by resetExcept).
+  - Fixed password validation to be conditional (only validates when actually changing password).
+  - Fixed role loading in Add() and Edit() methods.
+  - Removed hardcoded email checks in favor of role-based permissions.
+- **Sales Module**:
+  - Fixed customer selection issue in sales module.
+  - Added error handling and notifications for user operations.
+- **Notifications**:
+  - Removed duplicate notification listeners (Livewire.on vs window.addEventListener).
+
+### Changed
+- **User Defaults**: New users now default to 'Active' status.
+- **Password Confirmation**: Added password confirmation field with proper validation.
+- **Role Hierarchy**: Users can now only see and assign roles with a level lower than or equal to their own.
+
+### Database
+- Migration: `2026_01_22_142446_add_allow_decimal_to_products_table.php`
+- Migration: `2026_01_22_172000_modify_quantity_to_decimal_in_details_tables.php`
+- Migration: `2026_01_23_090000_create_product_items_table.php`
+- Migration: `2026_01_23_091042_add_metadata_to_production_details_table.php`
+- Migration: `2026_01_23_105843_add_warehouse_id_to_production_details_table.php`
+- Migration: `2026_01_23_134810_add_metadata_to_purchase_details_table.php`
+- Migration: `2026_01_23_162000_add_metadata_to_order_details_table.php`
+- Migration: `2026_01_24_125000_assign_super_admin_role.php`
 
 ## [1.7.3] - 2026-01-22
 
