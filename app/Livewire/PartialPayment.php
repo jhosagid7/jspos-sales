@@ -202,6 +202,29 @@ class PartialPayment extends Component
                     Log::info("Not a Zelle payment: " . $payment['method']);
                 }
 
+                $bankRecordId = null;
+                $createdBankRecord = null;
+
+                // Create BankRecord if VED details are present (Abonos) - Create FIRST to link to Payment
+                if ($payment['method'] == 'bank' && !empty($payment['bank_reference'])) {
+                     try {
+                        $createdBankRecord = \App\Models\BankRecord::create([
+                            'bank_id' => $payment['bank_id'],
+                            'amount' => $payment['amount'],
+                            'reference' => $payment['bank_reference'],
+                            'payment_date' => $payment['bank_date'] ?? now(),
+                            'image_path' => $payment['bank_image'] ?? null,
+                            'note' => $payment['bank_note'] ?? null,
+                            'customer_id' => $sale->customer_id,
+                            'sale_id' => $sale->id,
+                            // payment_id will be updated after Payment creation
+                        ]);
+                        $bankRecordId = $createdBankRecord->id;
+                     } catch (\Exception $e) {
+                          Log::error("Error creating BankRecord for Abono: " . $e->getMessage());
+                     }
+                }
+
                 // Create Payment Record
                 $pay = Payment::create([
                     'user_id' => Auth()->user()->id,
@@ -217,13 +240,14 @@ class PartialPayment extends Component
                     'deposit_number' => $payment['reference'] ?? null,
                     'phone_number' => $payment['phone'] ?? null,
                     'payment_date' => \Carbon\Carbon::now(),
-                    'zelle_record_id' => $zelleRecordId
-                    // We need to add zelle_record_id to payments table if we want to link it directly
-                    // But wait, the payments table doesn't have zelle_record_id column yet?
-                    // Sales.php uses SalePaymentDetail which has it.
-                    // PartialPayment uses Payment model.
-                    // We should check if Payment model has zelle_record_id.
+                    'zelle_record_id' => $zelleRecordId,
+                    'bank_record_id' => $bankRecordId // Correctly link to BankRecord
                 ]);
+
+                // Update BankRecord with payment_id
+                if ($createdBankRecord) {
+                    $createdBankRecord->update(['payment_id' => $pay->id]);
+                }
                 
                 // Calculate USD amount for this payment
                 $amountUSD = $amount / $exchangeRate;
@@ -231,16 +255,24 @@ class PartialPayment extends Component
             }
 
             // Check if settled
-            // Re-calculate total debt in USD
-            $previousPaidUSD = $sale->payments->sum(function($p) {
+            // Force refresh to get all payments including new ones
+            $sale->refresh();
+            
+            $currentTotalPaidUSD = $sale->payments->sum(function($p) {
                 $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
                 return $p->amount / $rate;
             });
             
-            $newTotalPaidUSD = $previousPaidUSD + $totalPaidUSD;
+             // Also include initial payment details
+            $initialPaidUSD = $sale->paymentDetails->sum(function($detail) {
+                $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
+                return $detail->amount / $rate;
+            });
+            
+            $grandTotalPaidUSD = $currentTotalPaidUSD + $initialPaidUSD;
             
             // Tolerance for floating point
-            if ($newTotalPaidUSD >= ($sale->total_usd - 0.01)) {
+            if ($grandTotalPaidUSD >= ($sale->total_usd - 0.01)) {
                 // Mark sale as paid
                 $sale->update(['status' => 'paid']);
                 

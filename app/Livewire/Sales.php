@@ -91,6 +91,13 @@ class Sales extends Component
     public $bankDepositNumber;
     public $bankAmount;
     
+    // VED Bank Details
+    public $bankReference;
+    public $bankDate;
+    public $bankNote;
+    public $bankImage;
+    public $isVedBankSelected = false;
+
     public $pagoMovilBank, $pagoMovilPhoneNumber, $pagoMovilReference, $pagoMovilAmount;
 
     // Zelle Properties
@@ -112,10 +119,17 @@ class Sales extends Component
     public function updatedBankId($value)
     {
         $this->isZelleSelected = false;
+        $this->isVedBankSelected = false;
+        
         if($value) {
             $bank = collect($this->banks)->firstWhere('id', $value);
-            if($bank && stripos($bank->name, 'zelle') !== false) {
-                $this->isZelleSelected = true;
+            if($bank) {
+                if(stripos($bank->name, 'zelle') !== false) {
+                    $this->isZelleSelected = true;
+                }
+                if($bank->currency_code === 'VED' || $bank->currency_code === 'VES') {
+                    $this->isVedBankSelected = true;
+                }
             }
         }
     }
@@ -247,12 +261,22 @@ class Sales extends Component
 
     public function addBankPayment()
     {
-        $this->validate([
-            'bankId' => 'required',
-            'bankAccountNumber' => 'required',
-            'bankDepositNumber' => 'required',
-            'bankAmount' => 'required|numeric|min:0.01',
-        ]);
+        if ($this->isVedBankSelected) {
+             $this->validate([
+                'bankId' => 'required',
+                'bankReference' => 'required',
+                'bankDate' => 'required|date',
+                'bankAmount' => 'required|numeric|min:0.01',
+                'bankImage' => 'required|image|max:2048', 
+            ]);
+        } else {   
+             $this->validate([
+                'bankId' => 'required',
+                'bankAccountNumber' => 'required',
+                'bankDepositNumber' => 'required',
+                'bankAmount' => 'required|numeric|min:0.01',
+            ]);
+        }
 
         $bank = Bank::find($this->bankId);
         if (!$bank) {
@@ -271,19 +295,64 @@ class Sales extends Component
         $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
         $amountInUSD = $this->bankAmount / $currency->exchange_rate;
         $amountInPrimaryCurrency = $amountInUSD * $primaryCurrency->exchange_rate;
+        
+        $imagePath = null;
+        $details = "";
+        
+        if ($this->isVedBankSelected) {
+             // Handle Image Upload
+             try {
+                if ($this->bankImage) {
+                    $imagePath = $this->bankImage->store('bank_receipts', 'public');
+                }
+             } catch (\Exception $e) {
+                 $this->dispatch('noty', msg: 'Error al subir la imagen: ' . $e->getMessage());
+                 return;
+             }
+
+             // Check for Duplicate Reference in Database
+             // Assuming validation logic exists in BankRecord model or similar, but simplified here:
+             $exists = \App\Models\BankRecord::where('bank_id', $this->bankId)
+                        ->where('reference', $this->bankReference)
+                         ->exists();
+                         
+             if($exists) {
+                  $this->dispatch('noty', msg: 'Esta referencia bancaria ya ha sido registrada previamente.');
+                  return;
+             }
+
+             // Check for Duplicate in Session
+             $duplicateInSession = collect($this->payments)->contains(function ($payment) {
+                return $payment['method'] === 'bank' &&
+                       ($payment['bank_reference'] ?? '') === $this->bankReference;
+             });
+
+             if ($duplicateInSession) {
+                 $this->dispatch('noty', msg: 'Esta referencia ya está agregada en esta venta.');
+                 return;
+             }
+
+             $details = "Banco: {$bank->name}, Ref: {$this->bankReference}, Fecha: {$this->bankDate}";
+        } else {
+             $details = "Banco: {$bank->name}, Cta: {$this->bankAccountNumber}, Ref: {$this->bankDepositNumber}";
+        }
 
         $this->payments[] = [
             'method' => 'bank',
             'bank_id' => $bank->id,
             'bank_name' => $bank->name,
-            'account_number' => $this->bankAccountNumber,
-            'deposit_number' => $this->bankDepositNumber,
+            'account_number' => $this->isVedBankSelected ? null : $this->bankAccountNumber,
+            'deposit_number' => $this->isVedBankSelected ? null : $this->bankDepositNumber,
+            'bank_reference' => $this->isVedBankSelected ? $this->bankReference : $this->bankDepositNumber, // Unified reference key
+            'bank_date' => $this->isVedBankSelected ? $this->bankDate : null,
+            'bank_image' => $imagePath,
+            'bank_note' => $this->isVedBankSelected ? $this->bankNote : null,
             'amount' => $this->bankAmount,
             'currency' => $currency->code,
             'symbol' => $currency->symbol,
             'exchange_rate' => $currency->exchange_rate,
             'amount_in_primary_currency' => $amountInPrimaryCurrency,
-            'details' => "Banco: {$bank->name}, Cta: {$this->bankAccountNumber}, Ref: {$this->bankDepositNumber}",
+            'details' => $details,
         ];
 
         $this->calculateRemainingAndChange();
@@ -291,7 +360,9 @@ class Sales extends Component
         session(['remainingAmount' => $this->remainingAmount]);
         session(['change' => $this->change]);
         
-        $this->reset(['bankId', 'bankAccountNumber', 'bankDepositNumber', 'bankAmount']);
+        $this->reset(['bankId', 'bankAccountNumber', 'bankDepositNumber', 'bankAmount', 'bankReference', 'bankDate', 'bankNote', 'bankImage']);
+        // Restore default properties
+        $this->bankDate = date('Y-m-d');
     }
 
 
@@ -631,6 +702,8 @@ class Sales extends Component
         
         // Initialize Zelle Date
         $this->zelleDate = date('Y-m-d');
+        // Initialize Bank Date
+        $this->bankDate = date('Y-m-d');
         
         // Load Drivers
         $this->drivers = \App\Models\User::role('Driver')->get();
@@ -1391,7 +1464,6 @@ class Sales extends Component
                 return $item['qty'];
             }
         }
-        return 0; // Si no se encuentra el producto, retornar 0
     }
 
     function Calculator($price, $qty)
@@ -1942,19 +2014,16 @@ class Sales extends Component
 
         //type:  1 = efectivo, 2 = crédito, 3 = depósito
         if (floatval($this->totalCart) <= 0) {
-            echo "DEBUG: Returning because totalCart <= 0\n";
             $this->dispatch('noty', msg: 'AGREGA PRODUCTOS AL CARRITO');
             return;
         }
         if ($this->customer == null) {
-            echo "DEBUG: Returning because customer is null\n";
             $this->dispatch('noty', msg: 'SELECCIONA EL CLIENTE');
             return;
         }
 
         // Validar que si se seleccionó Banco/Zelle, se haya agregado el pago a la lista
         if ($this->selectedPaymentMethod === 'bank' && empty($this->payments)) {
-            echo "DEBUG: Returning because bank payment missing\n";
             $this->dispatch('noty', msg: 'POR FAVOR AGREGUE EL PAGO (BOTÓN "+") ANTES DE GUARDAR');
             return;
         }
@@ -1964,7 +2033,6 @@ class Sales extends Component
         if ($type == 1) {
 
             if (!$this->validateCash()) {
-                echo "DEBUG: Returning because validateCash failed\n";
                 $this->dispatch('noty', msg: 'EL MONTO PAGADO ES MENOR AL TOTAL DE LA VENTA');
                 return;
             }
@@ -2253,8 +2321,27 @@ class Sales extends Component
                         }
                         
                         Log::info("Zelle Record processed", ['id' => $zelleRecordId, 'created_new' => !$zelleRecord->wasRecentlyCreated]);
-                    } else {
-                        Log::info("Not a Zelle payment", ['method' => $payment['method']]);
+                    }
+                    
+                    if ($payment['method'] == 'bank') {
+                        // Create BankRecord if detailed info is present (VED logic)
+                        if (!empty($payment['bank_reference'])) {
+                             try {
+                                $bankRecord = \App\Models\BankRecord::create([
+                                    'bank_id' => $payment['bank_id'],
+                                    'amount' => $payment['amount'],
+                                    'reference' => $payment['bank_reference'],
+                                    'payment_date' => $payment['bank_date'] ?? now(),
+                                    'image_path' => $payment['bank_image'] ?? null,
+                                    'note' => $payment['bank_note'] ?? null,
+                                    'customer_id' => $sale->customer_id,
+                                    'sale_id' => $sale->id,
+                                ]);
+                                $bankRecordId = $bankRecord->id;
+                             } catch (\Exception $e) {
+                                  Log::error("Error creating BankRecord: " . $e->getMessage());
+                             }
+                        }
                     }
 
                     SalePaymentDetail::create([
@@ -2266,9 +2353,10 @@ class Sales extends Component
                         'amount_in_primary_currency' => $payment['amount_in_primary_currency'],
                         'bank_name' => $payment['bank_name'] ?? null,
                         'account_number' => $payment['account_number'] ?? null,
-                        'reference_number' => $payment['reference'] ?? ($payment['deposit_number'] ?? null),
+                        'reference_number' => $payment['reference'] ?? $payment['bank_reference'] ?? $payment['deposit_number'] ?? null,
                         'phone_number' => $payment['phone_number'] ?? null,
-                        'zelle_record_id' => $zelleRecordId
+                        'zelle_record_id' => $zelleRecordId,
+                        'bank_record_id' => $bankRecordId ?? null // Link BankRecord
                     ]);
                 }
             } elseif ($type == 1) {

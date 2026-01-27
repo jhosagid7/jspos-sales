@@ -79,13 +79,29 @@
                                                     $payWay = $pay->pay_way ?? $pay->payment_method;
                                                 @endphp
                                                 @if ($payWay == 'deposit' || $payWay == 'bank')
-                                                    <div>
-                                                        <small>
-                                                            @if($pay->account_number) Cta:{{ $pay->account_number }} @endif
-                                                            @if($pay->account_number && ($pay->deposit_number || $pay->reference_number)) / @endif
-                                                            @if($pay->deposit_number || $pay->reference_number) Ref:{{ $pay->reference_number ?? $pay->deposit_number }} @endif
-                                                        </small>
-                                                    </div>
+                                                    @if($pay->bankRecord)
+                                                        <div class="small text-left">
+                                                            <div><b>Banco:</b> {{ $pay->bankRecord->bank->name ?? ($pay->bank ?? ($pay->bank_name ?? 'N/A')) }}</div>
+                                                            <div><b>Fecha:</b> {{ \Carbon\Carbon::parse($pay->bankRecord->payment_date)->format('d/m/Y') }}</div>
+                                                            <div><b>Monto:</b> {{ number_format($pay->bankRecord->amount, 2) }}</div>
+                                                            <div><b>Ref:</b> {{ $pay->bankRecord->reference }}</div>
+                                                            @if($pay->bankRecord->image_path)
+                                                                <div class="mt-1">
+                                                                    <a href="{{ asset('storage/' . $pay->bankRecord->image_path) }}" target="_blank" class="text-primary">
+                                                                        <i class="fas fa-image"></i> Ver Comprobante
+                                                                    </a>
+                                                                </div>
+                                                            @endif
+                                                        </div>
+                                                    @else
+                                                        <div>
+                                                            <small>
+                                                                @if($pay->account_number) Cta:{{ $pay->account_number }} @endif
+                                                                @if($pay->account_number && ($pay->deposit_number || $pay->reference_number)) / @endif
+                                                                @if($pay->deposit_number || $pay->reference_number) Ref:{{ $pay->reference_number ?? $pay->deposit_number }} @endif
+                                                            </small>
+                                                        </div>
+                                                    @endif
                                                 @elseif ($payWay == 'zelle' && $pay->zelleRecord)
                                                     <div class="small text-left">
                                                         <div><b>Emisor:</b> {{ $pay->zelleRecord->sender_name }}</div>
