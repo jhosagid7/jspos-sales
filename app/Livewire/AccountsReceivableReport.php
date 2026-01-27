@@ -455,6 +455,28 @@ class AccountsReceivableReport extends Component
                     }
                 }
 
+                // Handle Bank Record (Abonos)
+                $bankRecordId = null;
+                $createdBankRecord = null;
+                
+                if ($payment['method'] == 'bank' && !empty($payment['bank_reference'])) {
+                     try {
+                        $createdBankRecord = \App\Models\BankRecord::create([
+                            'bank_id' => $payment['bank_id'],
+                            'amount' => $payment['amount'],
+                            'reference' => $payment['bank_reference'],
+                            'payment_date' => $payment['bank_date'] ?? now(),
+                            'image_path' => $payment['bank_image'] ?? null,
+                            'note' => $payment['bank_note'] ?? null,
+                            'customer_id' => $sale->customer_id,
+                            'sale_id' => $sale->id,
+                        ]);
+                        $bankRecordId = $createdBankRecord->id;
+                     } catch (\Exception $e) {
+                          // Log error but continue
+                     }
+                }
+
                 // Handle Collection Sheet (Global Daily Sheet)
                 $today = \Carbon\Carbon::now()->format('Y-m-d');
                 
@@ -498,8 +520,14 @@ class AccountsReceivableReport extends Component
                     'phone_number' => $payment['phone'] ?? null,
                     'payment_date' => \Carbon\Carbon::now(),
                     'zelle_record_id' => $zelleRecordId,
+                    'bank_record_id' => $bankRecordId, // Linked Bank Record
                     'collection_sheet_id' => $sheet->id
                 ]);
+
+                // Update BankRecord with payment_id
+                if ($createdBankRecord) {
+                    $createdBankRecord->update(['payment_id' => $pay->id]);
+                }
 
                 // Update Sheet Total (Convert to Base Currency USD if needed, or keep original? 
                 // Usually sheets track total collected value. For simplicity let's track USD equivalent or just sum amounts if single currency.
@@ -512,14 +540,23 @@ class AccountsReceivableReport extends Component
             }
 
             // Check if settled
-            $previousPaidUSD = $sale->payments->sum(function($p) {
+            // Force refresh of payments relationship to get ALL payments (including just created ones)
+            $sale->refresh(); 
+            
+            $currentTotalPaidUSD = $sale->payments->sum(function($p) {
                 $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
                 return $p->amount / $rate;
             });
             
-            $newTotalPaidUSD = $previousPaidUSD + $totalPaidUSD;
+            // Also include initial payment details if any (mixed sales)
+            $initialPaidUSD = $sale->paymentDetails->sum(function($detail) {
+                $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
+                return $detail->amount / $rate;
+            });
             
-            if ($newTotalPaidUSD >= ($sale->total_usd - 0.01)) {
+            $grandTotalPaidUSD = $currentTotalPaidUSD + $initialPaidUSD;
+            
+            if ($grandTotalPaidUSD >= ($sale->total_usd - 0.01)) {
                 $sale->update(['status' => 'paid']);
                 
                 Payment::where('sale_id', $sale->id)

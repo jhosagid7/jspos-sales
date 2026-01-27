@@ -143,9 +143,10 @@
                                         'amount' => $detail->amount,
                                         'rate' => $detail->exchange_rate,
                                         'amount_primary' => $detail->amount_in_primary_currency,
-                                        'reference' => $detail->reference_number,
+                                        'reference' => $detail->reference_number ?? ($detail->bankRecord ? $detail->bankRecord->reference : null),
                                         'account' => $detail->account_number,
-                                        'zelle_record' => $detail->zelleRecord
+                                        'zelle_record' => $detail->zelleRecord,
+                                        'bank_record' => $detail->bankRecord // Link BankRecord
                                     ]);
                                 }
                             }
@@ -192,9 +193,10 @@
                                         'amount' => $pay->amount,
                                         'rate' => $displayRate,
                                         'amount_primary' => $amountInPrimary,
-                                        'reference' => $pay->deposit_number ?? $pay->reference, // Adaptar según modelo
+                                        'reference' => $pay->deposit_number ?? $pay->reference ?? ($pay->bankRecord ? $pay->bankRecord->reference : null),
                                         'account' => $pay->account_number,
-                                        'zelle_record' => $pay->zelleRecord
+                                        'zelle_record' => $pay->zelleRecord,
+                                        'bank_record' => $pay->bankRecord // Link BankRecord
                                     ]);
                                 }
                             }
@@ -266,6 +268,23 @@
                                                             <small>
                                                                 @if($payment->account) <div><b>Cta:</b> {{ $payment->account }}</div> @endif
                                                                 @if($payment->reference) <div><b>Ref:</b> {{ $payment->reference }}</div> @endif
+                                                                
+                                                                {{-- Bank Record Details (Date, Note, Image) --}}
+                                                                @if($payment->bank_record)
+                                                                    <div><b>Fecha:</b> {{ \Carbon\Carbon::parse($payment->bank_record->payment_date)->format('d/m/Y') }}</div>
+                                                                    <div><b>Monto:</b> {{ number_format($payment->bank_record->amount, 2) }}</div>
+                                                                    @if(!empty($payment->bank_record->note))
+                                                                       <div><small class="text-muted">{{ $payment->bank_record->note }}</small></div>
+                                                                    @endif
+                                                                    
+                                                                    @if(!empty($payment->bank_record->image_path))
+                                                                        <div class="mt-1">
+                                                                            <a href="{{ asset('storage/' . $payment->bank_record->image_path) }}" target="_blank" class="text-info">
+                                                                                <i class="fas fa-image"></i> Ver Comprobante
+                                                                            </a>
+                                                                        </div>
+                                                                    @endif
+                                                                @endif
                                                             </small>
                                                         @elseif ($payment->method == 'zelle' && $payment->zelle_record)
                                                             <div class="small">

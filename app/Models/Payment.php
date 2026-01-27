@@ -9,7 +9,7 @@ class Payment extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'sale_id', 'amount', 'currency', 'exchange_rate', 'primary_exchange_rate', 'pay_way', 'type', 'bank', 'account_number', 'deposit_number', 'phone_number', 'payment_date', 'zelle_record_id', 'collection_sheet_id'];
+    protected $fillable = ['user_id', 'sale_id', 'amount', 'currency', 'exchange_rate', 'primary_exchange_rate', 'pay_way', 'type', 'bank', 'account_number', 'deposit_number', 'phone_number', 'payment_date', 'zelle_record_id', 'bank_record_id', 'collection_sheet_id'];
 
     function sale()
     {
@@ -24,6 +24,11 @@ class Payment extends Model
     public function zelleRecord()
     {
         return $this->belongsTo(ZelleRecord::class);
+    }
+
+    public function bankRecord()
+    {
+        return $this->belongsTo(BankRecord::class);
     }
 
     public function user()

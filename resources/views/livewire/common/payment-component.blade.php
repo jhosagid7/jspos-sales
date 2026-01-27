@@ -44,16 +44,18 @@
                                     <div class="row g-2">
                                         <div class="col-6">
                                             <button type="button" wire:click="$set('paymentMethod', 'cash')"
-                                                class="btn w-100 {{ $paymentMethod === 'cash' ? 'btn-success' : 'btn-outline-success' }}">
+                                                class="btn w-100 {{ $paymentMethod === 'cash' ? 'btn-success' : 'btn-outline-success' }}"
+                                                style="padding: 15px 10px;">
                                                 <i class="fa fa-money-bill-wave fa-2x d-block mb-2"></i>
-                                                <small>Efectivo</small>
+                                                <small class="d-block">Efectivo</small>
                                             </button>
                                         </div>
                                         <div class="col-6">
                                             <button type="button" wire:click="$set('paymentMethod', 'bank')"
-                                                class="btn w-100 {{ $paymentMethod === 'bank' ? 'btn-primary' : 'btn-outline-primary' }}">
+                                                class="btn w-100 {{ $paymentMethod === 'bank' ? 'btn-primary' : 'btn-outline-primary' }}"
+                                                style="padding: 15px 10px;">
                                                 <i class="fa fa-university fa-2x d-block mb-2"></i>
-                                                <small>Banco / Zelle</small>
+                                                <small class="d-block">Banco / Zelle</small>
                                             </button>
                                         </div>
 
@@ -185,25 +187,92 @@
                                                 </div>
 
                                             @else
-                                                {{-- STANDARD BANK FIELDS --}}
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Monto</label>
-                                                    <input class="form-control" type="number" wire:model="amount" placeholder="0.00">
-                                                    @error('amount') <span class="text-danger small">{{ $message }}</span> @enderror
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label">N° Cuenta</label>
-                                                    <input class="form-control" type="text" wire:model="accountNumber">
-                                                    @error('accountNumber') <span class="text-danger small">{{ $message }}</span> @enderror
-                                                </div>
-                                                <div class="col-12">
-                                                    <label class="form-label">Referencia</label>
-                                                    <input class="form-control" type="text" wire:model="depositNumber">
-                                                    @error('depositNumber') <span class="text-danger small">{{ $message }}</span> @enderror
-                                                </div>
-                                                <div class="col-12">
-                                                    <button class="btn btn-primary w-100" wire:click="addPayment">Agregar Pago</button>
-                                                </div>
+                                                @if($isVedBankSelected)
+                                                    {{-- VED BANK FIELDS (Detailed) --}}
+                                                    <div class="col-12">
+                                                        <div class="alert alert-info py-2 mb-0">
+                                                            <small><i class="fa fa-info-circle me-1"></i> Se requieren detalles para pagos en Bolívares.</small>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Monto</label>
+                                                        <input 
+                                                            class="form-control" 
+                                                            oninput="validarInputNumber(this)"
+                                                            wire:model.live="amount" 
+                                                            type="number"
+                                                            placeholder="0.00">
+                                                        @error('amount') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                    </div>
+
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Referencia (Últimos 5 dígitos)</label>
+                                                        <div class="input-group">
+                                                            <span class="input-group-text"><i class="fas fa-hashtag"></i></span>
+                                                            <input 
+                                                                class="form-control" 
+                                                                wire:model.live="bankReference" 
+                                                                type="text"
+                                                                placeholder="Ej: 12345">
+                                                        </div>
+                                                        @error('bankReference') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                    </div>
+
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Fecha de Pago</label>
+                                                        <div class="input-group">
+                                                            <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                                                            <input type="date" wire:model.live="bankDate" class="form-control">
+                                                        </div>
+                                                        @error('bankDate') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                    </div>
+
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Comprobante (Foto) <span class="text-danger">*</span></label>
+                                                        <div class="input-group">
+                                                            <span class="input-group-text"><i class="fas fa-camera"></i></span>
+                                                            <input type="file" wire:model="bankImage" class="form-control" accept="image/*">
+                                                        </div>
+                                                        @error('bankImage') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                        @if ($bankImage)
+                                                            <div class="mt-2">
+                                                                <img src="{{ $bankImage->temporaryUrl() }}" class="img-thumbnail" style="max-height: 100px;">
+                                                            </div>
+                                                        @endif
+                                                    </div>
+
+                                                    <div class="col-12">
+                                                        <label class="form-label">Nota (Opcional)</label>
+                                                        <input class="form-control" wire:model.live="bankNote" type="text" placeholder="Observaciones...">
+                                                    </div>
+
+                                                    <div class="col-12">
+                                                        <button class="btn btn-primary w-100" wire:click="addPayment" type="button">
+                                                            <i class="fa fa-plus-circle me-2"></i>Agregar Pago Detallado
+                                                        </button>
+                                                    </div>
+                                                @else
+                                                    {{-- STANDARD BANK FIELDS --}}
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Monto</label>
+                                                        <input class="form-control" type="number" wire:model="amount" placeholder="0.00">
+                                                        @error('amount') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">N° Cuenta</label>
+                                                        <input class="form-control" type="text" wire:model="accountNumber">
+                                                        @error('accountNumber') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <label class="form-label">Referencia</label>
+                                                        <input class="form-control" type="text" wire:model="depositNumber">
+                                                        @error('depositNumber') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <button class="btn btn-primary w-100" wire:click="addPayment">Agregar Pago</button>
+                                                    </div>
+                                                @endif
                                             @endif
                                         </div>
                                     @endif

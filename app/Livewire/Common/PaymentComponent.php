@@ -56,6 +56,13 @@ class PaymentComponent extends Component
     public $selectedChangeAmount;
     public $allowPartialPayment = false;
     public $isZelleSelected = false;
+    public $isVedBankSelected = false;
+    
+    // VED Bank Details
+    public $bankReference;
+    public $bankDate;
+    public $bankNote;
+    public $bankImage;
 
     protected $listeners = ['initPayment'];
 
@@ -94,6 +101,7 @@ class PaymentComponent extends Component
         $this->depositNumber = '';
         $this->phoneNumber = '';
         $this->isZelleSelected = false;
+        $this->isVedBankSelected = false;
         
         // Reset Zelle
         $this->zelleSender = '';
@@ -101,6 +109,12 @@ class PaymentComponent extends Component
         $this->zelleAmount = null;
         $this->zelleReference = '';
         $this->zelleImage = null;
+        
+        // Reset VED Bank
+        $this->bankReference = '';
+        $this->bankDate = date('Y-m-d');
+        $this->bankNote = '';
+        $this->bankImage = null;
         
         // Keep paymentCurrency and paymentMethod as is for better UX
     }
@@ -113,10 +127,17 @@ class PaymentComponent extends Component
     public function updatedBankId($value)
     {
         $this->isZelleSelected = false;
+        $this->isVedBankSelected = false;
+        
         if($value) {
             $bank = $this->banks->find($value);
-            if($bank && stripos($bank->name, 'zelle') !== false) {
-                $this->isZelleSelected = true;
+            if ($bank) {
+                if (stripos($bank->name, 'zelle') !== false) {
+                    $this->isZelleSelected = true;
+                }
+                if ($bank->currency_code === 'VED' || $bank->currency_code === 'VES') {
+                    $this->isVedBankSelected = true;
+                }
             }
         }
     }
@@ -201,6 +222,36 @@ class PaymentComponent extends Component
                     $this->dispatch('noty', msg: "El monto a usar ($" . number_format($this->amount, 2) . ") excede el saldo restante del Zelle ($" . number_format($this->zelleRemainingBalance, 2) . ")");
                     return;
                 }
+            } elseif ($this->isVedBankSelected) {
+                 $this->validate([
+                    'bankId' => 'required',
+                    'bankReference' => 'required',
+                    'bankDate' => 'required|date',
+                    'amount' => 'required|numeric|min:0.01', // Main amount field
+                    'bankImage' => 'required|image|max:2048', 
+                ]);
+
+                // Check for Duplicate Reference in Database
+                $exists = \App\Models\BankRecord::where('bank_id', $this->bankId)
+                        ->where('reference', $this->bankReference)
+                         ->exists();
+                         
+                 if($exists) {
+                      $this->dispatch('noty', msg: 'Esta referencia bancaria ya ha sido registrada previamente.');
+                      return;
+                 }
+
+                 // Check for Duplicate in Session
+                 $duplicateInSession = collect($this->payments)->contains(function ($payment) {
+                    return $payment['method'] === 'bank' &&
+                           ($payment['bank_reference'] ?? '') === $this->bankReference;
+                 });
+
+                 if ($duplicateInSession) {
+                     $this->dispatch('noty', msg: 'Esta referencia ya está agregada en esta lista.');
+                     return;
+                 }
+
             } else {
                 $this->validate([
                     'bankId' => 'required',
@@ -246,6 +297,12 @@ class PaymentComponent extends Component
         if ($this->zelleImage) {
             $imagePath = $this->zelleImage->store('zelle_receipts', 'public');
         }
+        
+        // Handle Bank Image Upload
+        $bankImagePath = null;
+        if ($this->bankImage) {
+            $bankImagePath = $this->bankImage->store('bank_receipts', 'public');
+        }
 
         $this->payments[] = [
             'method' => $this->isZelleSelected ? 'zelle' : $this->paymentMethod,
@@ -254,16 +311,23 @@ class PaymentComponent extends Component
             'symbol' => $symbol,
             'exchange_rate' => $exchangeRate,
             'amount_in_primary' => $amountInPrimary,
+            'bank_id' => $this->bankId, // Ensure bank_id is passed
             'bank_name' => $bankName,
-            'account_number' => $this->accountNumber,
-            'reference' => $this->isZelleSelected ? $this->zelleReference : $this->depositNumber,
+            'account_number' => $this->isVedBankSelected ? null : $this->accountNumber,
+            'reference' => $this->isZelleSelected ? $this->zelleReference : ($this->isVedBankSelected ? $this->bankReference : $this->depositNumber),
             'phone' => $this->phoneNumber,
             // Zelle specific
             'zelle_sender' => $this->zelleSender,
             'zelle_date' => $this->zelleDate,
             'zelle_amount' => $this->zelleAmount,
             'zelle_image' => $imagePath,
-            'zelle_file_url' => $imagePath ? asset('storage/' . $imagePath) : null
+            'zelle_file_url' => $imagePath ? asset('storage/' . $imagePath) : null,
+            // VED Bank specific
+            'bank_reference' => $this->bankReference,
+            'bank_date' => $this->bankDate,
+            'bank_note' => $this->bankNote,
+            'bank_image' => $bankImagePath,
+            'bank_file_url' => $bankImagePath ? asset('storage/' . $bankImagePath) : null
         ];
 
         $this->calculateTotals();
