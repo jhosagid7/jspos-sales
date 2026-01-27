@@ -26,3 +26,10 @@ generate_keys.php
 
 LPT1
 public/LPT1
+
+# Temporary maintenance scripts
+debug_payment_link.php
+fill_test_data.php
+fix_bank_links_v2.php
+reset_products.php
+reset_system.php
