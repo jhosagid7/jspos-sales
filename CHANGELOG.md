@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.8.1] - 2026-01-27
+
+### Fixed
+- **Sales**:
+  - **Registration Hang**: Fixed a critical issue where the "Registrar Venta" process would hang indefinitely when validation failed (e.g., missing customer), due to debug output corrupting the Livewire response.
+- **Payments**:
+  - **Bank History**: Fixed incomplete data display for Bank/Transfer payments in the history modal. Implemented proper `BankRecord` creation and linking in both "Abonos" (Partial Payments) and "Accounts Receivable" modules.
+  - **Double Counting**: Resolved a calculation error where new payments were being double-counted (Database + Memory) during the "Paid" status check, causing some invoices to be marked as paid prematurely.
+- **Data Integrity**:
+  - **Repairs**: Included scripts to retroactively fix missing database links for recent bank payments.
+- **Maintenance**:
+  - **Clean**: Removed temporary debug scripts and updated `.gitignore`.
+
 ## [1.7.3] - 2026-01-22
 
 ### Added
