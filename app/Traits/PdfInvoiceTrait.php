@@ -2,6 +2,8 @@
 
 namespace App\Traits;
 
+use App\Services\ConfigurationService;
+
 use Carbon\Carbon;
 use App\Models\Sale;
 use App\Models\Payment;
@@ -14,6 +16,7 @@ use Jhosagid\Invoices\Classes\Buyer;
 use Jhosagid\Invoices\Classes\Party;
 use Jhosagid\Invoices\Classes\Seller;
 use Jhosagid\Invoices\Classes\InvoiceItem;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 
 trait PdfInvoiceTrait
@@ -140,7 +143,7 @@ trait PdfInvoiceTrait
                     ->payUntilDays($credit_days)
                     ->currencySymbol($currencySymbol)
                     ->currencyCode($currencyCode)
-                    ->currencyDecimals(0)
+                    ->currencyDecimals(ConfigurationService::getDecimalPlaces())
                     ->currencyFormat('{SYMBOL}{VALUE}')
                     ->currencyThousandsSeparator('.')
                     ->currencyDecimalPoint(',')
@@ -244,7 +247,7 @@ trait PdfInvoiceTrait
                     ->payUntilDays($credit_days)
                     ->currencySymbol($currencySymbol)
                     ->currencyCode($currencyCode)
-                    ->currencyDecimals(0)
+                    ->currencyDecimals(ConfigurationService::getDecimalPlaces())
                     ->currencyFormat('{SYMBOL}{VALUE}')
                     ->currencyThousandsSeparator('.')
                     ->currencyDecimalPoint(',')
@@ -492,4 +495,81 @@ trait PdfInvoiceTrait
     //         Log::info("Error al intentar imprimir el corte de caja \n {$th->getMessage()} ");
     //     }
     // }
+    public function generatePdfInternalInvoice(Sale $sale)
+    {
+        try {
+            Log::info("Generating INTERNAL PDF invoice for Sale ID: {$sale->id}");
+            
+            $config = Configuration::first();
+            if (!$config) {
+                return response()->json(['error' => 'No hay configuración del sistema.'], 500);
+            }
+
+            // Calculate percentages
+            $commPercent = $sale->applied_commission_percent ?? 0;
+            $freightPercent = $sale->applied_freight_percent ?? 0;
+            $diffPercent = $sale->applied_exchange_diff_percent ?? 0;
+            $totalPercent = ($commPercent + $freightPercent + $diffPercent) / 100;
+            $factor = 1 + $totalPercent;
+
+            $items = [];
+            $totalBase = 0;
+            $currencySymbol = '$';
+            
+            // Logic for Currency Symbol
+            if ($sale->primary_currency_code) {
+                $currencySymbol = \App\Helpers\CurrencyHelper::getSymbol($sale->primary_currency_code);
+            } else {
+                $primary = \App\Helpers\CurrencyHelper::getPrimaryCurrency();
+                if ($primary) {
+                    $currencySymbol = $primary->symbol;
+                }
+            }
+
+            foreach ($sale->details as $detail) {
+                // Base Price Calculation logic (same as ticket)
+                $price = $detail->sale_price;
+                if ($factor > 1) {
+                    $basePrice = $price / $factor;
+                } else {
+                    $basePrice = $price;
+                }
+                
+                $itemTotalBase = $basePrice * $detail->quantity;
+                $totalBase += $itemTotalBase;
+
+                $items[] = [
+                    'quantity' => number_format($detail->quantity, 2),
+                    'name' => $detail->product->name,
+                    'base_price' => $basePrice,
+                    'total_base' => $itemTotalBase
+                ];
+            }
+
+            $commAmount = $commPercent > 0 ? $totalBase * ($commPercent / 100) : 0;
+            $freightAmount = $freightPercent > 0 ? $totalBase * ($freightPercent / 100) : 0;
+            $diffAmount = $diffPercent > 0 ? $totalBase * ($diffPercent / 100) : 0;
+
+            $data = [
+                'company' => $config,
+                'sale' => $sale,
+                'items' => $items,
+                'subtotalBase' => $totalBase,
+                'currencySymbol' => $currencySymbol,
+                'commPercent' => $commPercent,
+                'commAmount' => $commAmount,
+                'freightPercent' => $freightPercent,
+                'freightAmount' => $freightAmount,
+                'diffPercent' => $diffPercent,
+                'diffAmount' => $diffAmount
+            ];
+
+            $pdf = Pdf::loadView('pdf.internal-invoice', $data);
+            return $pdf->stream('comprobante_interno_' . $sale->id . '.pdf');
+
+        } catch (\Exception $th) {
+            Log::error("Error generating INTERNAL PDF for Sale ID: {$sale->id}: " . $th->getMessage());
+            return response()->json(['error' => 'Error generating PDF: ' . $th->getMessage()], 500);
+        }
+    }
 }

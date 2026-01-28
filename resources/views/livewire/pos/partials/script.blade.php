@@ -154,11 +154,15 @@
                 },
                 onChange: function(value) {
                     var customer = this.options[value]
-                    console.log('customer ' + value)
                     if (customer !== null && typeof customer !== 'undefined') {
                         Livewire.dispatch('sale_customer', {
                             customer: customer
                         })
+                         
+                        // Load credit configuration for the selected customer
+                        setTimeout(() => {
+                            @this.call('loadCreditConfig');
+                        }, 100);
                     }
 
                 },

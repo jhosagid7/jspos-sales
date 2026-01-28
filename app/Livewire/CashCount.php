@@ -29,6 +29,7 @@ class CashCount extends Component
     public $currencies;
     public $totalCashDetails = [];
     public $totalBankDetails = [];
+    public $totalZelleDetails = [];
 
 
     function mount()
@@ -341,6 +342,7 @@ class CashCount extends Component
             'cash' => [],
             'nequi' => [],
             'deposit' => [],
+            'zelle' => [],
         ];
 
         // Get primary currency for default
@@ -372,6 +374,7 @@ class CashCount extends Component
                         'cash' => 'cash',
                         'nequi' => 'nequi',
                         'bank' => 'deposit',
+                        'zelle' => 'zelle',
                         default => 'cash'
                     };
                     
@@ -384,6 +387,15 @@ class CashCount extends Component
                             $aggregated['deposit'][$bankName][$currency] = 0;
                         }
                         $aggregated['deposit'][$bankName][$currency] += $paymentDetail->amount;
+                    } elseif ($category == 'zelle') {
+                         $sender = 'Desconocido';
+                         if ($paymentDetail->zelleRecord) {
+                             $sender = $paymentDetail->zelleRecord->sender_name . ' (Ref: ' . $paymentDetail->zelleRecord->reference . ')';
+                         }
+                         if (!isset($aggregated['zelle'][$sender])) {
+                             $aggregated['zelle'][$sender] = 0;
+                         }
+                         $aggregated['zelle'][$sender] += $paymentDetail->amount;
                     } else {
                         // Standard grouping by Currency
                         if (!isset($aggregated[$category][$currency])) {
@@ -431,6 +443,7 @@ class CashCount extends Component
             'cash' => [],
             'nequi' => [],
             'deposit' => [],
+            'zelle' => [],
         ];
 
         // Get primary currency for default
@@ -454,6 +467,15 @@ class CashCount extends Component
                     $aggregated['deposit'][$bankName][$currency] = 0;
                 }
                 $aggregated['deposit'][$bankName][$currency] += $payment->amount;
+            } elseif ($payWay == 'zelle') {
+                 $sender = 'Desconocido';
+                 if ($payment->zelleRecord) {
+                     $sender = $payment->zelleRecord->sender_name . ' (Ref: ' . $payment->zelleRecord->reference . ')';
+                 }
+                 if (!isset($aggregated['zelle'][$sender])) {
+                     $aggregated['zelle'][$sender] = 0;
+                 }
+                 $aggregated['zelle'][$sender] += $payment->amount;
             } else {
                 // Standard grouping
                 if (!isset($aggregated[$payWay][$currency])) {
@@ -540,7 +562,26 @@ class CashCount extends Component
                 }
             }
         }
-    }
 
+        
+        // 3. Total Zelle Breakdown
+        $this->totalZelleDetails = [];
+        if (isset($this->salesByCurrency['zelle'])) {
+            foreach ($this->salesByCurrency['zelle'] as $sender => $amount) {
+                if (!isset($this->totalZelleDetails[$sender])) {
+                    $this->totalZelleDetails[$sender] = 0;
+                }
+                $this->totalZelleDetails[$sender] += $amount;
+            }
+        }
+        if (isset($this->paymentsByCurrency['zelle'])) {
+             foreach ($this->paymentsByCurrency['zelle'] as $sender => $amount) {
+                if (!isset($this->totalZelleDetails[$sender])) {
+                    $this->totalZelleDetails[$sender] = 0;
+                }
+                $this->totalZelleDetails[$sender] += $amount;
+            }
+        }
+    }
 }
 

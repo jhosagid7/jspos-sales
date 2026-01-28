@@ -770,5 +770,154 @@ trait PrintTrait
             $this->dispatch('noty', msg: 'ERROR IMPRIMIENDO HISTORIAL: ' . $th->getMessage());
         }
     }
+    function printInternalTicket($saleId)
+    {
+        try {
+            $printConfig = $this->getPrinterConfig();
+
+            if ($printConfig) {
+                $config = $printConfig['config'];
+                $printerName = $printConfig['printerName'];
+                $printerWidth = $printConfig['printerWidth'];
+
+                $sale = Sale::with(['customer', 'user', 'details', 'details.product'])->find($saleId);
+
+                $connector = new CustomWindowsPrintConnector($printerName);
+                $printer = new Printer($connector);
+
+                $printer->setJustification(Printer::JUSTIFY_CENTER);
+                $printer->setTextSize(1, 1);
+
+                // Header
+                $printer->text("*** COMPROBANTE CONTABLE INTERNO ***\n");
+                $printer->text("(NO ENTREGAR AL CLIENTE)\n\n");
+                
+                $printer->setJustification(Printer::JUSTIFY_LEFT);
+                $printer->text("Folio: " . ($sale->invoice_number ?? $sale->id) . "\n");
+                $printer->text("Fecha: " . Carbon::parse($sale->created_at)->format('d/m/Y h:i A') . "\n");
+                $printer->text("Vendedor: " . $sale->user->name . "\n");
+                $printer->text("Cliente: " . $sale->customer->name . "\n");
+                
+                // Calculate percentages
+                $commPercent = $sale->applied_commission_percent ?? 0;
+                $freightPercent = $sale->applied_freight_percent ?? 0;
+                $diffPercent = $sale->applied_exchange_diff_percent ?? 0;
+                $totalPercent = ($commPercent + $freightPercent + $diffPercent) / 100;
+                $factor = 1 + $totalPercent;
+
+                // Separator
+                $widthConfig = $printerWidth;
+                $is58mm = $widthConfig === '58mm';
+                $separator = $is58mm ? "--------------------------------" : "=============================================";
+                
+                $printer->text($separator . "\n");
+                
+                // Table Header
+                if ($is58mm) {
+                    $maskHead = "%-16.16s %-5.5s %-9.9s"; 
+                } else {
+                    $maskHead = "%-30s %-5s %-8s";
+                }
+                $printer->text(sprintf($maskHead, 'DESCRIPCION', 'CANT', 'IMPORTE') . "\n");
+                $printer->text($separator . "\n");
+
+                $totalBase = 0;
+                $currencySymbol = '$'; // Assuming USD mainly
+                
+                // Only use USD calculation if is_foreign_sale is true, otherwise standard
+                // But the requirement implies this IS for foreign/commission sales.
+                // We'll calculate base from price_usd or total_usd if available.
+                
+                foreach ($sale->details as $item) {
+                     // Calculate Base Price for Item
+                     // Using price_usd if available as base, or back-calculating from sale_price
+                     
+                     // If sale was saved with the surcharge applied to unit prices, we divide.
+                     // The logic in Sales.php: 'total' => round($this->totalCart, $decimals) where totalCart includes surcharges?
+                     // Actually, usually in this system, 'total' is final.
+                     
+                     $itemTotalFinal = $item->quantity * $item->sale_price; // Or price_usd?
+                     // Let's rely on the global factor to reverse-calc base from the stored price.
+                     
+                     // If price_usd is "Base" usage:
+                     // The image shows "Laptop Pro 15" $1,200.00. 
+                     // The total charged is 2,088. 
+                     // 1200 * 1.74 = 2088. 
+                     // So we need the BASE price here.
+                     
+                     $finalPrice = $item->sale_price; // This might be the inflated price or base?
+                     // In Sales.php store: 'sale_price' => round($item['sale_price'], $decimals).
+                     // If the cart items HAD the commission applied, then sale_price is inflated.
+                     // If commissions are applied at TOTAL level, then item prices might be clean.
+                     // Image implies item price is 1200.
+                     
+                     // Let's use back-calculation to be safe.
+                     $price = $item->sale_price;
+                     if ($factor > 1) {
+                         $basePrice = $price / $factor;
+                     } else {
+                         $basePrice = $price;
+                     }
+                     
+                     $itemImporte = $basePrice * $item->quantity;
+                     $totalBase += $itemImporte;
+
+                     $descripcion_1 = $this->cortar($item->product->name, $is58mm ? 16 : 30);
+                     $row_1 = sprintf($maskHead, $descripcion_1[0], number_format($item->quantity, 2), number_format($itemImporte, 2));
+                     $printer->text($row_1 . "\n");
+                     
+                     if (isset($descripcion_1[1])) {
+                        $printer->text(sprintf($maskHead, $descripcion_1[1], '', '') . "\n");
+                     }
+                }
+
+                $printer->text($separator . "\n");
+                
+                // Subtotal Base
+                $printer->text("SUBTOTAL BASE (REAL): " . $currencySymbol . number_format($totalBase, 2) . "\n");
+                $printer->text($separator . "\n");
+
+                // Cargos Adicionales
+                $printer->text("CARGOS ADICIONALES:\n");
+                
+                if ($commPercent > 0) {
+                     $amt = $totalBase * ($commPercent / 100);
+                     $printer->text("(+) Comision (" . number_format($commPercent, 2) . "%): " . $currencySymbol . number_format($amt, 2) . "\n");
+                }
+                if ($freightPercent > 0) {
+                     $amt = $totalBase * ($freightPercent / 100);
+                     $printer->text("(+) Flete (" . number_format($freightPercent, 2) . "%): " . $currencySymbol . number_format($amt, 2) . "\n");
+                }
+                if ($diffPercent > 0) {
+                     $amt = $totalBase * ($diffPercent / 100);
+                     $printer->text("(+) Dif. Cambiaria (" . number_format($diffPercent, 2) . "%): " . $currencySymbol . number_format($amt, 2) . "\n");
+                }
+
+                $printer->text($separator . "\n");
+                
+                // Total Facturado
+                // Use actual max total to avoid rounding diffs, or recalc?
+                // Using sale->total (or total_usd) is safer for "Total Facturado"
+                $totalFacturado = $sale->total_usd > 0 ? $sale->total_usd : $sale->total; 
+                
+                // Verify if total matches sum. 
+                // Just print the Sale Total from DB to match invoice.
+                $printer->setJustification(Printer::JUSTIFY_RIGHT);
+                $printer->setTextSize(1, 2); // Larger font for total
+                $printer->text("TOTAL FACTURADO: " . $currencySymbol . number_format($totalFacturado, 2) . "\n");
+                $printer->setTextSize(1, 1);
+                $printer->setJustification(Printer::JUSTIFY_LEFT);
+
+                $printer->feed(3);
+                $printer->cut();
+                $printer->close();
+            } else {
+                Log::info("Configuración de impresora no encontrada");
+            }
+        } catch (\Exception $th) {
+            Log::error("Error printing internal ticket: " . $th->getMessage());
+            $this->dispatch('noty', msg: 'ERROR IMPRIMIENDO TICKET INTERNO: ' . $th->getMessage());
+        }
+    }
 }
 

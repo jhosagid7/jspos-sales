@@ -6,7 +6,7 @@
                 <div class="modal-header bg-primary">
                     <h5 class="modal-title text-white">
                         <i class="fa fa-cash-register me-2"></i>
-                        PAGO DE VENTA
+                        {{ $payType == 2 ? 'GESTIÓN DE CRÉDITO' : 'PAGO DE VENTA' }}
                     </h5>
                     <button class="btn-close btn-close-white" type="button" data-dismiss="modal" aria-label="Close" onclick="$('#modalCash').modal('hide')"></button>
                 </div>
@@ -33,15 +33,15 @@
                                     </div>
                                     <div class="d-flex justify-content-between mb-2">
                                         <span class="text-muted">Subtotal:</span>
-                                        <span class="fw-bold">{{ $symbol }}{{ number_format($subtotalCart, 2) }}</span>
+                                        <span class="fw-bold">{{ $symbol }}{{ formatMoney($subtotalCart) }}</span>
                                     </div>
                                     <div class="d-flex justify-content-between mb-3 pb-3 border-bottom">
                                         <span class="text-muted">I.V.A.:</span>
-                                        <span class="fw-bold">{{ $symbol }}{{ number_format($ivaCart, 2) }}</span>
+                                        <span class="fw-bold">{{ $symbol }}{{ formatMoney($ivaCart) }}</span>
                                     </div>
                                     <div class="d-flex justify-content-between">
                                         <span class="fs-5 fw-bold text-primary">TOTAL:</span>
-                                        <span class="fs-5 fw-bold text-primary">{{ $symbol }}{{ number_format($totalCart, 2) }}</span>
+                                        <span class="fs-5 fw-bold text-primary">{{ $symbol }}{{ formatMoney($totalCart) }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -52,9 +52,9 @@
                                     <h6 class="mb-0"><i class="fa fa-credit-card me-2"></i>Método de Pago</h6>
                                 </div>
                                 <div class="card-body">
-                                    <div class="row g-2">
-                                        {{-- Efectivo --}}
-                                        <div class="col-6">
+                                    <div class="row g-2 justify-content-center">
+                                        {{-- Efectivo (siempre activo) --}}
+                                        <div class="col-4">
                                             <button 
                                                 type="button"
                                                 wire:click="$set('selectedPaymentMethod', 'cash')"
@@ -66,7 +66,7 @@
                                         </div>
 
                                         {{-- Banco / Zelle --}}
-                                        <div class="col-6">
+                                        <div class="col-4">
                                             <button 
                                                 type="button"
                                                 wire:click="$set('selectedPaymentMethod', 'bank')"
@@ -74,6 +74,24 @@
                                                 style="padding: 15px 10px;">
                                                 <i class="fa fa-university fa-2x d-block mb-2"></i>
                                                 <small class="d-block">Banco / Zelle</small>
+                                            </button>
+                                        </div>
+
+                                        {{-- Crédito (deshabilitado si no hay cliente o no tiene crédito) --}}
+                                        <div class="col-4">
+                                            @php
+                                                $creditEnabled = !empty($customer->id) && 
+                                                                 !empty($creditConfig['allow_credit']) && 
+                                                                 $creditConfig['allow_credit'] === true;
+                                            @endphp
+                                            <button 
+                                                type="button"
+                                                wire:click="$set('selectedPaymentMethod', 'credit')"
+                                                class="btn w-100 {{ $selectedPaymentMethod === 'credit' ? 'btn-info' : 'btn-outline-info' }}"
+                                                style="padding: 15px 10px;"
+                                                {{ !$creditEnabled ? 'disabled' : '' }}>
+                                                <i class="fa fa-credit-card fa-2x d-block mb-2"></i>
+                                                <small class="d-block">Crédito</small>
                                             </button>
                                         </div>
                                     </div>
@@ -118,6 +136,38 @@
                                             <div class="col-12">
                                                 <button class="btn btn-success w-100" wire:click="addPayment" type="button">
                                                     <i class="fa fa-plus-circle me-2"></i>Agregar Pago en Efectivo
+                                                </button>
+                                            </div>
+                                        </div>
+                                    @endif
+
+                                    {{-- CRÉDITO --}}
+                                    @if($selectedPaymentMethod === 'credit')
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <div class="alert alert-info mb-3">
+                                                    <h6 class="mb-2"><i class="fa fa-info-circle"></i> Información de Crédito</h6>
+                                                    <ul class="mb-0 small">
+                                                        <li><strong>Días de crédito:</strong> {{ $creditConfig['credit_days'] ?? 'N/A' }} días</li>
+                                                        <li><strong>Límite de crédito:</strong> {{ $symbol }}{{ formatMoney($creditConfig['credit_limit'] ?? 0) }}</li>
+                                                        <li><strong>Origen configuración:</strong> {{ ucfirst($creditConfig['source'] ?? 'N/A') }}</li>
+                                                        @if(isset($creditConfig['source_name']))
+                                                            <li><strong>Configurado por:</strong> {{ $creditConfig['source_name'] }}</li>
+                                                        @endif
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="col-12">
+                                                <div class="alert alert-warning">
+                                                    <i class="fa fa-exclamation-triangle"></i> 
+                                                    <strong>Nota:</strong> Al registrar esta venta a crédito, el estado será PENDIENTE hasta que se realice el pago completo.
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="col-12">
+                                                <button class="btn btn-info w-100" wire:click="addPayment" type="button">
+                                                    <i class="fa fa-credit-card me-2"></i>REGISTRAR CRÉDITO
                                                 </button>
                                             </div>
                                         </div>
@@ -376,11 +426,11 @@
 
                                                             </td>
                                                             <td>
-                                                                <strong>{{ $payment['symbol'] }}{{ number_format($payment['amount'], 2) }}</strong>
+                                                                <strong>{{ $payment['symbol'] }}{{ formatMoney($payment['amount']) }}</strong>
                                                                 <br><small class="text-muted">{{ $payment['currency'] }}</small>
                                                             </td>
                                                             <td>
-                                                                <strong>{{ $symbol }}{{ number_format($payment['amount_in_primary_currency'], 2) }}</strong>
+                                                                <strong>{{ $symbol }}{{ formatMoney($payment['amount_in_primary_currency']) }}</strong>
                                                             </td>
                                                             <td>
                                                                 <button class="btn btn-danger btn-sm" wire:click="removePayment({{ $index }})" title="Eliminar">
@@ -407,12 +457,12 @@
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between mb-2 pb-2 border-bottom">
                                         <span class="text-muted">Total Pagado:</span>
-                                        <span class="fs-5 fw-bold text-success">{{ $symbol }}{{ number_format($totalInPrimaryCurrency, 2) }}</span>
+                                        <span class="fs-5 fw-bold text-success">{{ $symbol }}{{ formatMoney($totalInPrimaryCurrency) }}</span>
                                     </div>
                                     <div class="d-flex justify-content-between">
                                         <span class="text-muted">Monto Restante:</span>
                                         <span class="fs-5 fw-bold {{ $remainingAmount > 0 ? 'text-danger' : 'text-success' }}">
-                                            {{ $symbol }}{{ number_format($remainingAmount, 2) }}
+                                            {{ $symbol }}{{ formatMoney($remainingAmount) }}
                                         </span>
                                     </div>
                                 </div>
@@ -426,7 +476,7 @@
                                     </div>
                                     <div class="card-body">
                                         <div class="alert alert-warning mb-3">
-                                            <strong>Vuelto Total: {{ $symbol }}{{ number_format($change, 2) }}</strong>
+                                            <strong>Vuelto Total: {{ $symbol }}{{ formatMoney($change) }}</strong>
                                         </div>
 
                                         {{-- Distribuir Vuelto --}}
@@ -470,8 +520,8 @@
                                                         @foreach ($changeDistribution as $index => $changeItem)
                                                             <tr>
                                                                 <td>{{ $changeItem['currency'] }}</td>
-                                                                <td>{{ $changeItem['symbol'] }}{{ number_format($changeItem['amount'], 2) }}</td>
-                                                                <td>{{ $symbol }}{{ number_format($changeItem['amount_in_primary_currency'], 2) }}</td>
+                                                                <td>{{ $changeItem['symbol'] }}{{ formatMoney($changeItem['amount']) }}</td>
+                                                                <td>{{ $symbol }}{{ formatMoney($changeItem['amount_in_primary_currency']) }}</td>
                                                                 <td>
                                                                     <button class="btn btn-danger btn-sm" wire:click="removeChangeDistribution({{ $index }})">
                                                                         <i class="fa fa-trash"></i>
@@ -492,7 +542,7 @@
                                             <div class="alert alert-warning py-2 mb-0">
                                                 <small>
                                                     <i class="fa fa-exclamation-triangle"></i>
-                                                    Vuelto pendiente: {{ $symbol }}{{ number_format($remainingChange, 2) }}
+                                                    Vuelto pendiente: {{ $symbol }}{{ formatMoney($remainingChange) }}
                                                 </small>
                                             </div>
                                         @endif
@@ -504,14 +554,16 @@
                 </div>
 
                 {{-- Footer --}}
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" type="button" data-dismiss="modal" onclick="$('#modalCash').modal('hide')">
+                <div class="modal-footer bg-light">
+                    <button class="btn btn-secondary fs-6" type="button" data-dismiss="modal" wire:click="closeModal" style="background-color: #6c757d; border-color: #6c757d;">
                         <i class="fa fa-times me-2"></i>Cerrar
                     </button>
-                    <button class="btn btn-primary" wire:click.prevent='Store' type="button"
+                    
+                    <button class="btn btn-primary fs-6" wire:click.prevent='Store' type="button" 
+                        style="background-color: #007bff; border-color: #007bff;"
                         wire:loading.attr="disabled" {{ floatval($totalCart) == 0 ? 'disabled' : '' }}>
                         <span wire:loading.remove wire:target="Store">
-                            <i class="fa fa-check me-2"></i>Registrar Venta
+                            <i class="fa fa-check me-2"></i>{{ $payType == 2 ? 'Registrar Crédito' : 'Registrar Venta' }}
                         </span>
                         <span wire:loading wire:target="Store">
                             <i class="fa fa-spinner fa-spin me-2"></i>Registrando...

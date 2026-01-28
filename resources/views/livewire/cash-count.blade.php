@@ -166,6 +166,29 @@
                                                 </div>
                                             </div>
                                         </div>
+
+                                        {{-- Zelle --}}
+                                        <div class="col-md-4 mb-3">
+                                            <div class="card h-100 border-primary">
+                                                <div class="card-header bg-light-primary p-2">
+                                                    <h6 class="mb-0 text-primary">
+                                                        <i class="icofont icofont-brand-zelle"></i> Zelle
+                                                    </h6>
+                                                </div>
+                                                <div class="card-body p-2">
+                                                    @if (!empty($salesByCurrency['zelle']))
+                                                        @foreach ($salesByCurrency['zelle'] as $sender => $amount)
+                                                            <div class="d-flex justify-content-between border-bottom pb-1 mb-1">
+                                                                <span class="text-muted small text-truncate" style="max-width: 65%;" title="{{ $sender }}">{{ $sender }}</span>
+                                                                <span class="fw-bold text-end" style="min-width: 30%;">${{ number_format($amount, 2) }}</span>
+                                                            </div>
+                                                        @endforeach
+                                                    @else
+                                                        <p class="text-muted mb-0 text-center">Sin movimientos</p>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     {{-- Sales Totals --}}
@@ -262,6 +285,29 @@
                                                 </div>
                                             </div>
                                         </div>
+
+                                        {{-- Zelle --}}
+                                        <div class="col-md-4 mb-3">
+                                            <div class="card h-100 border-warning">
+                                                <div class="card-header bg-light-warning p-2">
+                                                    <h6 class="mb-0 text-warning">
+                                                        <i class="icofont icofont-brand-zelle"></i> Zelle
+                                                    </h6>
+                                                </div>
+                                                <div class="card-body p-2">
+                                                    @if (!empty($paymentsByCurrency['zelle']))
+                                                        @foreach ($paymentsByCurrency['zelle'] as $sender => $amount)
+                                                            <div class="d-flex justify-content-between border-bottom pb-1 mb-1">
+                                                                <span class="text-muted small text-truncate" style="max-width: 65%;" title="{{ $sender }}">{{ $sender }}</span>
+                                                                <span class="fw-bold text-end" style="min-width: 30%;">${{ number_format($amount, 2) }}</span>
+                                                            </div>
+                                                        @endforeach
+                                                    @else
+                                                        <p class="text-muted mb-0 text-center">Sin movimientos</p>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
 
 
@@ -286,7 +332,7 @@
                                 </div>
                                 <div class="card-body">
                                     <div class="row">
-                                        <div class="col-md-6">
+                                        <div class="col-md-4">
                                             <div class="text-center p-3 bg-light rounded h-100">
                                                 <h6 class="text-muted mb-2">Total en Efectivo</h6>
                                                 @if (!empty($totalCashDetails))
@@ -304,7 +350,7 @@
                                                 @endif
                                             </div>
                                         </div>
-                                        <div class="col-md-6">
+                                        <div class="col-md-4">
                                             <div class="text-center p-3 bg-light rounded h-100">
                                                 <h6 class="text-muted mb-2">Total en Banco</h6>
                                                 @if (!empty($totalBankDetails))
@@ -323,6 +369,24 @@
                                                             @endforeach
                                                         </div>
                                                     @endforeach
+                                                @else
+                                                    <h4 class="text-success mb-0">{{ $symbol }}0.00</h4>
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="text-center p-3 bg-light rounded h-100">
+                                                <h6 class="text-muted mb-2">Total en Zelle</h6>
+                                                @if (!empty($totalZelleDetails))
+                                                    @foreach ($totalZelleDetails as $sender => $amount)
+                                                        <div class="d-flex justify-content-between px-3">
+                                                            <span class="text-muted small text-truncate" style="max-width: 60%;" title="{{ $sender }}">{{ $sender }}</span>
+                                                            <span class="text-success fw-bold small">${{ number_format($amount, 2) }}</span>
+                                                        </div>
+                                                    @endforeach
+                                                    <div class="border-top mt-2 pt-1">
+                                                        <h5 class="text-success mb-0">${{ number_format(array_sum($totalZelleDetails), 2) }}</h5>
+                                                    </div>
                                                 @else
                                                     <h4 class="text-success mb-0">{{ $symbol }}0.00</h4>
                                                 @endif

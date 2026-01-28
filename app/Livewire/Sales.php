@@ -51,6 +51,7 @@ class Sales extends Component
 
     public $config, $customer, $iva = 0;
     public $sellerConfig = null; // Store active seller config
+    public $creditConfig = []; // Store customer credit configuration (Cliente > Vendedor > Global)
     //register customer
     public $cname, $caddress, $ccity, $cemail, $cphone, $ctaxpayerId, $ctype = 'Consumidor Final';
 
@@ -132,6 +133,17 @@ class Sales extends Component
                 }
             }
         }
+    }
+
+    /**
+     * Livewire lifecycle hook - called when customer property is updated
+     * Reload credit configuration for the newly selected customer
+     */
+    public function updatedCustomer($value)
+    {
+        // Dispatch event to trigger credit config reload from JavaScript
+        // This ensures proper timing after customer property is fully updated
+        $this->dispatch('customer-updated');
     }
 
     public function updatedZelleSender() { $this->checkZelleStatus(); }
@@ -222,8 +234,64 @@ class Sales extends Component
 
 
 
+
     public function addPayment()
     {
+        // PAGO A CRÉDITO
+        if ($this->selectedPaymentMethod === 'credit') {
+            // Validar que el cliente tenga crédito habilitado
+            if (!isset($this->creditConfig['allow_credit']) || !$this->creditConfig['allow_credit']) {
+                $this->dispatch('noty', msg: 'El cliente no tiene crédito habilitado');
+                return;
+            }
+            
+            // Validar que haya un cliente seleccionado
+            if (!$this->customer || !isset($this->customer->id)) {
+                $this->dispatch('noty', msg: 'Debe seleccionar un cliente para venta a crédito');
+                return;
+            }
+            
+            // Validar límite de crédito
+            $validation = \App\Services\CreditConfigService::validateCreditLimit(
+                \App\Models\Customer::find($this->customer->id),
+                $this->totalCart
+            );
+            
+            if (!$validation['allowed']) {
+                $this->dispatch('noty', msg: $validation['message']);
+                return;
+            }
+            
+            // Obtener moneda principal
+            $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
+            
+            // Agregar pago a crédito (monto completo del carrito)
+            $this->payments[] = [
+                'method' => 'CREDITO',
+                'amount' => $this->totalCart,
+                'currency' => $primaryCurrency->code ?? 'COP',
+                'symbol' => $primaryCurrency->symbol ?? '$',
+                'exchange_rate' => 1,
+                'amount_in_primary_currency' => $this->totalCart,
+                'details' => 'Crédito ' . ($this->creditConfig['credit_days'] ?? 30) . ' días',
+            ];
+            
+            $this->calculateRemainingAndChange();
+            session(['payments' => $this->payments]);
+            session(['remainingAmount' => $this->remainingAmount]);
+            session(['change' => $this->change]);
+            
+            $this->dispatch('noty', msg: 'Pago a crédito agregado correctamente');
+            
+            // Cerrar modal si el pago está completo
+            if ($this->remainingAmount <= 0) {
+                $this->dispatch('close-modal-cash');
+            }
+            
+            return;
+        }
+        
+        // PAGO EN EFECTIVO (lógica existente)
         $this->validate([
             'paymentAmount' => 'required|numeric|min:0.01',
             'paymentCurrency' => 'required',
@@ -744,6 +812,9 @@ class Sales extends Component
         if (session()->has('totalCartAtPayment')) {
             $this->totalCartAtPayment = session('totalCartAtPayment');
         }
+        
+        // Cargar configuración de crédito del cliente
+        $this->loadCreditConfig();
         
         Log::info('HYDRATE - Final:', [
             'change' => $this->change,
@@ -1986,13 +2057,16 @@ class Sales extends Component
         $this->save(); // Save cart to session
     }
 
-    function initPayment($type)
+    public function initPayment($type)
     {
         // Redirigir Banco (3) y Nequi (4) al modal unificado (1)
         if ($type == 3) {
             $this->selectedPaymentMethod = 'bank';
             $type = 1; 
+        } elseif ($type == 2) {
+            $this->selectedPaymentMethod = 'credit';
         } else {
+            // Por defecto efectivo
             $this->selectedPaymentMethod = 'cash';
         }
 
@@ -2127,11 +2201,11 @@ class Sales extends Component
             }
 
             $sale = Sale::create([
-                'seller_config_id' => $this->sellerConfig ? $this->sellerConfig->id : null,
-                'applied_commission_percent' => $this->sellerConfig ? $this->sellerConfig->commission_percent : null,
-                'applied_freight_percent' => $this->sellerConfig ? $this->sellerConfig->freight_percent : null,
-                'applied_exchange_diff_percent' => $this->sellerConfig ? $this->sellerConfig->exchange_diff_percent : null,
-                'is_foreign_sale' => $this->sellerConfig ? true : false,
+                'seller_config_id' => ($this->sellerConfig && $this->applyCommissions) ? $this->sellerConfig->id : null,
+                'applied_commission_percent' => ($this->sellerConfig && $this->applyCommissions) ? $this->sellerConfig->commission_percent : null,
+                'applied_freight_percent' => ($this->sellerConfig && $this->applyCommissions) ? $this->sellerConfig->freight_percent : null,
+                'applied_exchange_diff_percent' => ($this->sellerConfig && $this->applyCommissions) ? $this->sellerConfig->exchange_diff_percent : null,
+                'is_foreign_sale' => ($this->sellerConfig && $this->applyCommissions) ? true : false,
                 'total' => round($this->totalCart, $decimals),
                 'total_usd' => round($totalUSD, $decimals),
                 'discount' => 0,
@@ -2862,6 +2936,42 @@ class Sales extends Component
     {
         $this->search3 = '';
         $this->products = [];
+    }
+
+    /**
+     * Load credit configuration for the current customer
+     * Uses hierarchical resolution: Customer > Seller > Global
+     */
+    public function loadCreditConfig()
+    {
+        // If no customer selected, set default config
+        if (!$this->customer || !isset($this->customer['id'])) {
+            $this->creditConfig = [
+                'allow_credit' => false,
+                'credit_days' => 0,
+                'credit_limit' => 0,
+                'usd_payment_discount' => 0,
+                'discount_rules' => collect([]),
+                'source' => 'none'
+            ];
+            return;
+        }
+
+        $customer = \App\Models\Customer::find($this->customer['id']);
+        if (!$customer) {
+            $this->creditConfig = [
+                'allow_credit' => false,
+                'credit_days' => 0,
+                'credit_limit' => 0,
+                'usd_payment_discount' => 0,
+                'discount_rules' => collect([]),
+                'source' => 'none'
+            ];
+            return;
+        }
+
+        $seller = $customer->seller;
+        $this->creditConfig = \App\Services\CreditConfigService::getCreditConfig($customer, $seller);
     }
 
 
