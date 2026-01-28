@@ -33,3 +33,6 @@ fill_test_data.php
 fix_bank_links_v2.php
 reset_products.php
 reset_system.php
+
+# Agent configuration
+.agent/workflows/release_process.md
