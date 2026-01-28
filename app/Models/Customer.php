@@ -24,7 +24,19 @@ class Customer extends Model
         'customer_commission_1_percentage',
         'customer_commission_2_threshold',
         'customer_commission_2_percentage',
-        'zone'
+        'zone',
+        // Credit configuration fields
+        'allow_credit',
+        'credit_days',
+        'credit_limit',
+        'usd_payment_discount',
+    ];
+
+    protected $casts = [
+        'allow_credit' => 'boolean',
+        'credit_days' => 'integer',
+        'credit_limit' => 'decimal:2',
+        'usd_payment_discount' => 'decimal:2',
     ];
 
     function sales()

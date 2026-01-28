@@ -48,7 +48,7 @@
                         </div>
 
                         {{-- Additional Charges Breakdown --}}
-                        @if ($totalPercent > 0)
+                        @if ($totalPercent > 0 && $salesObt->is_foreign_sale)
                             <div class="row mb-3">
                                 <div class="col-12">
                                     <div class="alert alert-light border">
@@ -409,6 +409,22 @@
 
                 <div class="modal-footer">
                     @if (!is_null($sale_id))
+                        <button class="btn btn-sm btn-outline-dark" wire:click="printSale({{ $sale_id }})" title="Imprimir Ticket Cliente">
+                            Ticket Venta
+                            <i class="text-info icofont icofont-ticket fa-2x"></i>
+                        </button>
+
+                        <button class="btn btn-sm btn-outline-dark" wire:click="printInternalTicket({{ $sale_id }})" title="Imprimir Ticket Interno Contable">
+                            Ticket Interno
+                            <i class="text-warning icofont icofont-ticket fa-2x"></i>
+                        </button>
+
+                        <a class="btn btn-sm btn-outline-dark" 
+                           href="{{ route('pos.sales.generatePdfInternal', $sale_id) }}" target="_blank" title="Imprimir Comprobante Contable">
+                            PDF Interno
+                            <i class="text-danger icofont icofont-file-pdf fa-2x"></i>
+                        </a>
+
                         <a class="btn btn-sm btn-outline-dark {{ $sale_status == 'returned' ? 'disabled' : '' }}"
                             href="{{ route('pos.sales.generatePdfInvoice', $sale_id) }}" target="_blank">
                             Imprimir Factura

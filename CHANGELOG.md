@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.8.2] - 2026-01-28
+
+### Changed
+- UI: Payment Modal now displays "GESTIÓN DE CRÉDITO" and "REGISTRAR CRÉDITO" dynamically when credit payment is selected.
+- Logic: Reverted direct credit processing to use the confirmation modal workflow with improved UI context.
+
+### Fixed
+- Logs: Fixed UTF-16 LE encoding issue for Laravel logs on Windows environments.
+- Credit: Fixed `validateCreditLimit` to correctly calculate current debt by including partial payments.
+- System: Updated `reset_system.php` to truncate `credit_discount_rules` table.
+
 ## [1.8.1] - 2026-01-27
 
 ### Fixed

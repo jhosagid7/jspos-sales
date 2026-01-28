@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 class SalesReport extends Component
 {
     use  WithPagination;
+    use \App\Traits\PrintTrait;
 
     public $pagination = 10, $users = [], $user_id, $dateFrom, $dateTo, $showReport = false, $type = 0;
     public $totales = 0, $sale_id, $sale_status, $details = [];

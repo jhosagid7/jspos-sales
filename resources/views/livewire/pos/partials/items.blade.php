@@ -124,7 +124,7 @@
                                                             <small class="text-muted">{{ $product->sku }}</small> - {{ Str::limit($product->name, 40) }}
                                                         </h6>
                                                         <span class="badge badge-light text-dark border" style="font-size: 0.85rem;">
-                                                            {{ $primarySymbol }}{{ number_format($priceInPrimary, 2) }} 
+                                                            {{ $primarySymbol }}{{ formatMoney($priceInPrimary) }} 
                                                             <span class="text-muted ml-1">| Stock: {{ $product->productWarehouses->sum('stock_qty') }}</span>
                                                         </span>
                                                     </div>
@@ -238,7 +238,7 @@
                                                                                 @php
                                                                                     $convertedPrice = ($item['sale_price'] / $primaryRate) * $currency->exchange_rate;
                                                                                 @endphp
-                                                                                <div>{{ $currency->symbol }}{{ number_format($convertedPrice, 2) }} {{ $currency->code }}</div>
+                                                                                <div>{{ $currency->symbol }}{{ formatMoney($convertedPrice) }} {{ $currency->code }}</div>
                                                                             @endif
                                                                         @endforeach
                                                                     </div>
@@ -280,7 +280,7 @@
                                                                                     @php
                                                                                         $convertedPrice = ($price['price'] / $primaryRate) * $currency->exchange_rate;
                                                                                     @endphp
-                                                                                    <div>{{ $currency->symbol }}{{ number_format($convertedPrice, 2) }} {{ $currency->code }}</div>
+                                                                                    <div>{{ $currency->symbol }}{{ formatMoney($convertedPrice) }} {{ $currency->code }}</div>
                                                                                 @endif
                                                                             @endforeach
                                                                         </div>
@@ -321,7 +321,7 @@
 
 
                                 </td>
-                                <td>{{ $primarySymbol }}{{ $item['total'] }}</td>
+                                <td>{{ $primarySymbol }}{{ formatMoney($item['total']) }}</td>
                                 <td>
 
                                     <button wire:click.prevent="removeItem({{ $item['pid'] }})"

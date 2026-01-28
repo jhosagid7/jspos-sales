@@ -146,15 +146,15 @@
                             </tr>
                             <tr>
                                 <td class="text-muted">Subtotal:</td>
-                                <td class="text-right font-weight-bold">{{ $symbol }}{{ $subtotalCart }}</td>
+                                <td class="text-right font-weight-bold">{{ $symbol }}{{ formatMoney($subtotalCart) }}</td>
                             </tr>
                             <tr class="border-bottom">
                                 <td class="text-muted">I.V.A.:</td>
-                                <td class="text-right font-weight-bold">{{ $symbol }}{{ $ivaCart }}</td>
+                                <td class="text-right font-weight-bold">{{ $symbol }}{{ formatMoney($ivaCart) }}</td>
                             </tr>
                             <tr>
                                 <td class="h5 font-weight-bold">TOTAL:</td>
-                                <td class="h5 font-weight-bold text-primary text-right">{{ $symbol }}{{ $totalCart }}</td>
+                                <td class="h5 font-weight-bold text-primary text-right">{{ $symbol }}{{ formatMoney($totalCart) }}</td>
                             </tr>
                         </table>
                     </div>
@@ -175,7 +175,7 @@
                                     @endphp
                                     <div class="d-flex justify-content-between text-muted small">
                                         <span>{{ $currency->code }}:</span>
-                                        <span>{{ $currency->symbol }}{{ number_format($convertedAmount, 2) }}</span>
+                                        <span>{{ $currency->symbol }}{{ formatMoney($convertedAmount) }}</span>
                                     </div>
                                 @endif
                             @endforeach
@@ -192,7 +192,7 @@
                     @can('metodos de pago')
                         <hr>
                         <h6 class="text-center font-weight-bold mb-3">Método de Pago</h6>
-                        <div class="row">
+                        <div class="row justify-content-center">
                             @can('pago con efectivo/nequi')
                                 <div class="col-4 text-center mb-2" wire:click="initPayment(1)" style="cursor: pointer;">
                                     <div class="btn btn-outline-success btn-block p-2">
@@ -201,14 +201,23 @@
                                     </div>
                                 </div>
                             @endcan
+                            
                             @can('pago con credito')
-                                <div class="col-4 text-center mb-2" wire:click="initPayment(2)" style="cursor: pointer;">
-                                    <div class="btn btn-outline-info btn-block p-2">
+                                @php
+                                    $creditEnabled = !empty($customer['id']) && 
+                                                     !empty($creditConfig['allow_credit']) && 
+                                                     $creditConfig['allow_credit'] === true;
+                                @endphp
+                                <div class="col-4 text-center mb-2" 
+                                     @if($creditEnabled) wire:click="initPayment(2)" style="cursor: pointer;" @else style="cursor: not-allowed; opacity: 0.5;" @endif>
+                                    <div class="btn btn-outline-info btn-block p-2 {{ !$creditEnabled ? 'disabled' : '' }}">
                                         <i class="fas fa-credit-card fa-2x mb-1"></i>
                                         <div style="font-size: 0.7rem;">Crédito</div>
                                     </div>
                                 </div>
                             @endcan
+                            
+                            {{-- Banco - OCULTO por solicitud del usuario
                             @can('pago con Banco')
                                 <div class="col-4 text-center mb-2" wire:click="initPayment(3)" style="cursor: pointer;">
                                     <div class="btn btn-outline-secondary btn-block p-2">
@@ -217,6 +226,7 @@
                                     </div>
                                 </div>
                             @endcan
+                            --}}
                         </div>
                     @endcan
                 </div>

@@ -37,6 +37,10 @@
                                 <i class="fa fa-plus"></i> Nuevo
                             </button>
 
+                            <a href="{{ route('products.import') }}" class="btn btn-success ms-2" title="Importar desde Excel">
+                                <i class="fa fa-file-excel-o"></i> Importar
+                            </a>
+
                             {{-- <button class="btn btn-info" type="button" data-bs-toggle="modal"
                                 data-bs-target="#modalProduct">Tooltips and popovers</button> --}}
 

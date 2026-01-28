@@ -85,6 +85,7 @@ Route::middleware('auth')->group(function () {
 
 
     Route::get('categories', Categories::class)->name('categories')->middleware('can:categorias');
+    Route::get('products/import', \App\Livewire\ProductImport::class)->name('products.import')->middleware('can:productos');
     Route::get('products', Products::class)->name('products')->middleware('can:productos');
     Route::get('suppliers', Suppliers::class)->name('suppliers')->middleware('can:proveedores');
     Route::get('customers', Customers::class)->name('customers')->middleware('can:clientes');
@@ -159,6 +160,7 @@ Route::middleware('auth')->group(function () {
 
     //generate pdf invoices
     Route::get('sales/{sale}', [Sales::class, 'generatePdfInvoice'])->name('pos.sales.generatePdfInvoice');
+    Route::get('sales/{sale}/internal', [Sales::class, 'generatePdfInternalInvoice'])->name('pos.sales.generatePdfInternal');
     //generate pdf orders invoices
     //generate pdf orders invoices
     Route::get('orders/{order}', [Sales::class, 'generatePdfOrderInvoice'])->name('pos.orders.generatePdfOrderInvoice');
