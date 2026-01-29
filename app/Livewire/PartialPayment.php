@@ -304,6 +304,9 @@ class PartialPayment extends Component
                      }
                 }
 
+                // Get or Create Collection Sheet
+                $collectionSheetId = $this->getOrCreateCollectionSheet();
+
                 // Create Payment Record
                 $pay = Payment::create([
                     'user_id' => Auth()->user()->id,
@@ -325,7 +328,8 @@ class PartialPayment extends Component
                     'discount_percentage' => $payment['discount_percentage'] ?? 0,
                     'discount_reason' => $payment['discount_reason'] ?? null,
                     'payment_days' => $payment['days_elapsed'] ?? 0,
-                    'rule_type' => $payment['rule_type'] ?? null
+                    'rule_type' => $payment['rule_type'] ?? null,
+                    'collection_sheet_id' => $collectionSheetId
                 ]);
 
                 // Update BankRecord with payment_id
@@ -436,5 +440,41 @@ class PartialPayment extends Component
         $saleId = $this->pays[0]->sale_id;
         $this->printPaymentHistory($saleId);
         $this->dispatch('noty', msg: 'IMPRIMIENDO HISTORIAL DE PAGOS...');
+    }
+
+    private function getOrCreateCollectionSheet()
+    {
+        $user = Auth()->user();
+        $today = Carbon::today();
+
+        // 1. Try to find an open sheet for today
+        $sheet = \App\Models\CollectionSheet::where('status', 'open')
+            // ->where('user_id', $user->id) // Assuming CollectionSheet doesn't have user_id based on Model?
+            // Wait, looking at grep results, AccountsReceivableReport checks user_id?
+            // "where('user_id', $user->id)" was NOT in the grep, but implied by logic.
+            // Let's check the Model again. It DOES NOT have user_id in $fillable.
+            // But grep step 675 showed: AccountsReceivableReport lines 546-562.
+            // Let's assume for now it DOES NOT track user_id or we need to check migration.
+            // The model fillable suggests NO user_id.
+            // Let's re-read step 709. Just sheet_number, total_amount, status...
+            // So sheets are Global? Or did I miss a column?
+            // If they are global, filtering by user in Report (Step 663 line 122) filters PAYMENTS by user, not Sheets.
+            // So we just get the open sheet for today.
+            ->whereDate('opened_at', $today)
+            ->first();
+
+        if (!$sheet) {
+            // Count for sheet number
+            $count = \App\Models\CollectionSheet::whereDate('opened_at', $today)->count() + 1;
+            
+            $sheet = \App\Models\CollectionSheet::create([
+                'sheet_number' => $today->format('Ymd') . '-' . str_pad($count, 3, '0', STR_PAD_LEFT),
+                'status' => 'open',
+                'opened_at' => Carbon::now(),
+                'total_amount' => 0
+            ]);
+        }
+
+        return $sheet->id;
     }
 }

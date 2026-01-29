@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.8.4] - 2026-01-29
+
+### Fixed
+- **Reports**:
+  - **Payment Relationship**: Resolved an issue where "Abonos" (Partial Payments) were not appearing in the Collection Sheet report.
+- **Payments**:
+  - **Collection Sheet**: Fixed logic in `PartialPayment` to automatically assign or create a daily Collection Sheet when registering a partial payment, ensuring proper tracking and reporting.
+
 ## [1.8.3] - 2026-01-29
 
 ### Fixed
