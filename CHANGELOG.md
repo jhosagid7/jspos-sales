@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.8.3] - 2026-01-29
+
+### Fixed
+- **Discounts**:
+  - **Mutual Exclusivity**: Enforced strict exclusivity between "USD Discount" and "Early Payment Discount".
+  - **Mixed Payments**: Fixed logic so that ANY payment in Bolívares (VED/VES) automatically invalidates the USD Discount and falls back to Early Payment rules.
+  - **UI Persistence**: Fixed bugs where checkboxes would re-enable themselves automatically or disappear incorrectly.
+  - **Visuals**:
+    - **Inactive State**: Unchecked discounts now remain visible but appear **greyed out and strikethrough**, ensuring user awareness of eligibility.
+    - **Styling**: Standardized the display of discount amounts (using red text) for consistent visual identity across both discount types.
+
 ## [1.8.2] - 2026-01-28
 
 ### Changed

@@ -11,7 +11,10 @@ use App\Traits\PrintTrait;
 use Livewire\Component;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\DB;
+
 use Illuminate\Support\Facades\Log;
+use App\Services\CreditConfigService;
+use Carbon\Carbon;
 
 class PartialPayment extends Component
 {
@@ -109,6 +112,72 @@ class PartialPayment extends Component
         
         $debtUSD = $sale->total_usd - $totalPaidUSD;
         
+        // Calcular los días transcurridos desde que se CREÓ la venta
+        $daysElapsed = Carbon::parse($sale->created_at)->diffInDays(Carbon::now());
+        
+        // Obtener configuración de crédito (usar Snapshot si existe)
+        $parsedSnapshot = CreditConfigService::parseCreditSnapshot($sale->credit_rules_snapshot);
+        $rules = $parsedSnapshot['discount_rules'];
+        $snapshotUsdDiscount = $parsedSnapshot['usd_payment_discount'];
+
+        // Si no hay snapshot (y tampoco se pudo parsear nada válido), fallback a configuración actual
+        // parseCreditSnapshot devuelve colección vacía y null si no hay snapshot, así que verificamos si el snapshot original estaba vacío
+        if (empty($sale->credit_rules_snapshot)) {
+             $creditConfig = CreditConfigService::getCreditConfig($sale->customer, $sale->customer->seller);
+             $rules = $creditConfig['discount_rules'];
+             $snapshotUsdDiscount = null; // Indicar que no hay snapshot
+        }
+        
+        // Calcular Descuento/Recargo
+        // MODIFICACIÓN: Validar si la venta tiene activo "Aplicar Comisiones" (is_foreign_sale)
+        
+        $adjustment = null;
+        $allowDiscounts = false;
+        $usdPaymentDiscountPercent = 0;
+        $fixedUsdDiscountAmount = 0;
+        
+        Log::info('PartialPayment::initPay Check', [
+            'sale_id' => $sale->id, 
+            'is_foreign_sale' => $sale->is_foreign_sale,
+            'total_usd' => $sale->total_usd
+        ]);
+
+        if ($sale->is_foreign_sale) {
+            
+            // Check History: If any VED/VES payment exists, USD Discount is VOID.
+            // We check 'payments' relation.
+            // Note: We need to check if ANY payment record linked to this sale has currency 'VED' or 'VES'.
+            $hasVedHistory = $sale->payments()->whereIn('currency', ['VED', 'VES'])->exists();
+            
+            Log::info('PartialPayment::initPay History Check', ['hasVedHistory' => $hasVedHistory]);
+            
+            if (!$hasVedHistory) {
+                $allowDiscounts = true;
+                
+                // Fetch USD Payment Discount %
+                if ($snapshotUsdDiscount !== null) {
+                    $usdPaymentDiscountPercent = $snapshotUsdDiscount;
+                } else {
+                    $config = CreditConfigService::getCreditConfig($sale->customer, $sale->customer->seller);
+                    $usdPaymentDiscountPercent = $config['usd_payment_discount'] ?? 0;
+                }
+                
+                Log::info('PartialPayment::initPay Config', ['percent' => $usdPaymentDiscountPercent]);
+                
+                // Calculate Fixed Discount Amount based on ORIGINAL Sale Total USD
+                // User: "siempre le mostrara el descuento de pago divisa por el monto original"
+                if ($usdPaymentDiscountPercent > 0) {
+                     $fixedUsdDiscountAmount = $sale->total_usd * ($usdPaymentDiscountPercent / 100);
+                     $fixedUsdDiscountAmount = round($fixedUsdDiscountAmount, 2);
+                }
+            }
+            
+            // Early Payment Adjustment always applies? 
+            // User says: "si hace un abono con bolivares ved pierde esa opcion de descuetno [USD] y solo se ajusta a pronto pago"
+            // So Early Payment is independent of VED history? logic suggests yes.
+            $adjustment = CreditConfigService::calculateDiscount($debtUSD, $daysElapsed, $rules);
+        }
+
         // Convertir deuda a moneda principal para mostrar al usuario
         $primaryCurrency = Currency::where('is_primary', true)->first();
         $debtInPrimary = $debtUSD * $primaryCurrency->exchange_rate;
@@ -118,12 +187,22 @@ class PartialPayment extends Component
         $this->debt = round($debtInPrimary, 2);
         $this->debt_usd = round($debtUSD, 2);
         
+        Log::info('PartialPayment::initPay Dispatching', [
+            'allowDiscounts' => $allowDiscounts,
+            'usdDiscountPercent' => $usdPaymentDiscountPercent,
+            'fixedAmount' => $fixedUsdDiscountAmount
+        ]);
+        
         // Open the Payment Component Modal
         $this->dispatch('initPayment', 
             total: $this->debt, 
             currency: 'USD', 
             customer: $this->customer_name, 
-            allowPartial: true
+            allowPartial: true,
+            adjustment: $adjustment, // Pass adjustment info to modal
+            allowDiscounts: $allowDiscounts, // Flag for eligibility (History check included)
+            usdDiscountPercent: $usdPaymentDiscountPercent,
+            fixedUsdDiscountAmount: $fixedUsdDiscountAmount // Pass fixed amount
         );
     }
 
@@ -241,7 +320,12 @@ class PartialPayment extends Component
                     'phone_number' => $payment['phone'] ?? null,
                     'payment_date' => \Carbon\Carbon::now(),
                     'zelle_record_id' => $zelleRecordId,
-                    'bank_record_id' => $bankRecordId // Correctly link to BankRecord
+                    'bank_record_id' => $bankRecordId,
+                    'discount_applied' => $payment['discount_amount'] ?? 0,
+                    'discount_percentage' => $payment['discount_percentage'] ?? 0,
+                    'discount_reason' => $payment['discount_reason'] ?? null,
+                    'payment_days' => $payment['days_elapsed'] ?? 0,
+                    'rule_type' => $payment['rule_type'] ?? null
                 ]);
 
                 // Update BankRecord with payment_id
@@ -260,7 +344,22 @@ class PartialPayment extends Component
             
             $currentTotalPaidUSD = $sale->payments->sum(function($p) {
                 $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
-                return $p->amount / $rate;
+                $amountUSD = $p->amount / $rate; // Raw payment in USD
+                
+                // Adjust for discounts/surcharges
+                // Adjust for discounts/surcharges
+                // discount_applied is stored in USD (calculated from debtUSD)
+                // NO need to divide by exchange rate.
+                $adjustmentUSD = $p->discount_applied ?? 0;
+                
+                if ($p->rule_type === 'overdue') {
+                    // Surcharge: The extra money paid is Interest.
+                    // Effective towards principal is Payment - Surcharge.
+                    return $amountUSD - $adjustmentUSD;
+                } else {
+                    // Discount: Effective towards principal is Payment + Discount.
+                    return $amountUSD + $adjustmentUSD;
+                }
             });
             
              // Also include initial payment details

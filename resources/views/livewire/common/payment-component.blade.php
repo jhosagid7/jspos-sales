@@ -28,10 +28,101 @@
                                     <h6 class="mb-0"><i class="fa fa-file-invoice-dollar me-2"></i>Resumen</h6>
                                 </div>
                                 <div class="card-body">
-                                    <div class="d-flex justify-content-between">
-                                        <span class="fs-5 fw-bold text-primary">TOTAL A PAGAR:</span>
-                                        <span class="fs-5 fw-bold text-primary">{{ $symbol }}{{ number_format($totalToPay, 2) }}</span>
-                                    </div>
+                                    {{-- Adjustment Alert (Early Payment) --}}
+                                    {{-- Show if Adjustment exists AND we are NOT eligible for USD Discount (e.g. mixed payments) --}}
+                                    @if($adjustment && !empty($payments) && !$usdAdjustment)
+                                        @php
+                                            $adjType = $adjustment['rule_type'] ?? 'early_payment';
+                                            // Dynamic color: Green/Warning if applied, Secondary if unchecked
+                                            $adjColor = $applyAdjustment ? ($adjType == 'early_payment' ? 'success' : 'warning') : 'secondary';
+                                            $adjTitle = $adjType == 'early_payment' ? 'Descuento' : 'Recargo';
+                                            $adjIcon = $adjType == 'early_payment' ? 'arrow-down' : 'arrow-up';
+                                        @endphp
+                                        <div class="alert alert-{{ $adjColor }} mb-3 p-2">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fa fa-{{ $adjIcon }} fa-2x me-3"></i>
+                                                    <div>
+                                                        <h6 class="alert-heading fw-bold mb-0" style="font-size: 0.9rem;">
+                                                            {{ "¡Aplica $adjTitle!" }}
+                                                        </h6>
+                                                        <div class="fw-bold">
+                                                            {{ $adjustment['percentage'] }}% ({{ $symbol }}{{ number_format($adjustment['amount'], 2) }})
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" wire:model.live="applyAdjustment" wire:click="toggleAdjustment" id="toggleAdjustment">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+
+                                    {{-- USD Discount Alert --}}
+                                    {{-- Show ONLY if Eligible for USD Discount (No VED payments, etc) --}}
+                                    @if($allowDiscounts && $usdAdjustment && !$applyAdjustment)
+                                        <div class="alert alert-{{ $applyUsdDiscount ? 'info' : 'secondary' }} mb-3 p-2">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fa fa-percentage fa-2x me-3"></i>
+                                                    <div>
+                                                        <h6 class="alert-heading fw-bold mb-0" style="font-size: 0.9rem;">
+                                                            Desc. Pago Divisa (Al Liquidar)
+                                                        </h6>
+                                                        <div class="fw-bold">
+                                                            {{ $usdPaymentDiscountPercent }}% ({{ $symbol }}{{ number_format($usdAdjustment['amount'] ?? $fixedUsdDiscountAmount, 2) }})
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" wire:model.live="applyUsdDiscount" wire:click="toggleUsdDiscount" id="toggleUsdDiscount">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+
+                                    {{-- Calculation Details --}}
+                                    <ul class="list-group list-group-flush mb-2">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-1">
+                                            <span>Deuda Actual:</span>
+                                            <span class="fw-bold">{{ $symbol }}{{ number_format($totalToPay, 2) }}</span>
+                                        </li>
+                                        
+                                        {{-- Only show Adjustment if explicitly applied by logic OR if it's the eligible discount (strikethrough if disabled) --}}
+                                        @if($adjustment && !$usdAdjustment)
+                                            <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-1 {{ $applyAdjustment ? 'text-muted' : 'text-muted text-decoration-line-through' }}">
+                                                <span>{{ $adjustment['rule_type'] == 'early_payment' ? 'Descuento' : 'Recargo' }} ({{ $adjustment['percentage'] }}%):</span>
+                                                <span class="fw-bold {{ $applyAdjustment ? 'text-danger' : '' }}">
+                                                    -{{ $symbol }}{{ number_format($adjustment['amount'], 2) }}
+                                                </span>
+                                            </li>
+                                        @endif
+                                        
+                                        @if($usdAdjustment)
+                                            <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-1 {{ $applyUsdDiscount ? 'text-muted' : 'text-muted text-decoration-line-through' }}">
+                                                <span>Desc. Divisa ({{ $usdAdjustment['percentage'] }}%):</span>
+                                                <span class="fw-bold {{ $applyUsdDiscount ? 'text-danger' : '' }}">
+                                                    -{{ $symbol }}{{ number_format($usdAdjustment['amount'], 2) }}
+                                                </span>
+                                            </li>
+                                        @endif
+                                        
+                                        <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-top">
+                                            <span class="fs-5 fw-bold text-primary">TOTAL A PAGAR:</span>
+                                            <span class="fs-5 fw-bold text-primary">
+                                                @php
+                                                    $finalTotal = $totalToPay;
+                                                    if ($adjustment && $applyAdjustment) {
+                                                        $finalTotal -= $adjustment['amount']; 
+                                                    }
+                                                    if ($usdAdjustment && $applyUsdDiscount) {
+                                                        $finalTotal -= $usdAdjustment['amount'];
+                                                    }
+                                                @endphp
+                                                {{ $symbol }}{{ number_format($finalTotal, 2) }}
+                                            </span>
+                                        </li>
+                                    </ul>
                                 </div>
                             </div>
 

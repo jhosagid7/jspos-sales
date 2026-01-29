@@ -2095,6 +2095,11 @@ class Sales extends Component
             $this->dispatch('noty', msg: 'SELECCIONA EL CLIENTE');
             return;
         }
+        
+        // Ensure credit config is loaded
+        if (empty($this->creditConfig)) {
+            $this->loadCreditConfig();
+        }
 
         // Validar que si se seleccionó Banco/Zelle, se haya agregado el pago a la lista
         if ($this->selectedPaymentMethod === 'bank' && empty($this->payments)) {
@@ -2224,9 +2229,10 @@ class Sales extends Component
                 'batch_name' => $batchName,
                 'batch_sequence' => $batchSequence,
 
-                'credit_days' => $this->calculateCreditDays(),
+                'credit_days' => $this->creditConfig['credit_days'] ?? $this->calculateCreditDays(),
                 'driver_id' => $this->driver_id ?: null,
-                'delivery_status' => $this->driver_id ? 'pending' : 'delivered'
+                'delivery_status' => $this->driver_id ? 'pending' : 'delivered',
+                'credit_rules_snapshot' => $this->prepareCreditSnapshot(),
             ]);
 
             // get cart session
@@ -2975,4 +2981,17 @@ class Sales extends Component
     }
 
 
+    public function prepareCreditSnapshot()
+    {
+        if (empty($this->creditConfig)) {
+            $this->loadCreditConfig();
+        }
+
+        return [
+            'usd_payment_discount' => $this->creditConfig['usd_payment_discount'] ?? 0,
+            'discount_rules' => isset($this->creditConfig['discount_rules']) ? $this->creditConfig['discount_rules']->toArray() : [],
+            'snapshot_at' => now(),
+            'source' => $this->creditConfig['source'] ?? 'unknown'
+        ];
+    }
 }

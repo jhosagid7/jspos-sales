@@ -49,6 +49,7 @@ class Sale extends Model
         'driver_id',
         'delivery_status',
         'delivered_at',
+        'credit_rules_snapshot',
     ];
 
     protected $casts = [
@@ -56,6 +57,7 @@ class Sale extends Model
         'applied_commission_percent' => 'decimal:2',
         'final_commission_amount' => 'decimal:2',
         'total' => 'decimal:2',
+        'credit_rules_snapshot' => 'array',
     ];
 
     function details()
@@ -65,7 +67,7 @@ class Sale extends Model
 
     function customer()
     {
-        return $this->belongsTo(Customer::class)->select('id', 'name', 'address', 'city', 'phone', 'taxpayer_id', 'email', 'seller_id');
+        return $this->belongsTo(Customer::class)->select('id', 'name', 'address', 'city', 'phone', 'taxpayer_id', 'email', 'seller_id', 'allow_credit', 'credit_days', 'credit_limit', 'usd_payment_discount');
     }
 
     function user()

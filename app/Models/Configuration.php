@@ -47,7 +47,12 @@ class Configuration extends Model
         'production_email_body',
         'is_network',
         'printer_user',
+        'printer_user',
         'printer_password',
+        'global_allow_credit',
+        'global_credit_days',
+        'global_credit_limit',
+        'global_usd_payment_discount',
     ];
 
     protected $casts = [

@@ -59,6 +59,20 @@
                         </a>
                     </li>
                     @endif
+                    
+                    {{-- Tab 5: Config. Crédito (Solo para vendedores) --}}
+                    @if($user->profile == 'Vendedor')
+                    <li class="nav-item mb-2">
+                        <a class="nav-link {{ $tab == 5 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                           wire:click.prevent="$set('tab',5)" href="#">
+                            <i class="fa fa-credit-card fa-2x"></i>
+                            <div>
+                                <h6 class="mb-0">Config. Crédito</h6>
+                                <small class="{{ $tab == 5 ? 'text-white' : 'text-muted' }}">Reglas de Crédito</small>
+                            </div>
+                        </a>
+                    </li>
+                    @endif
                 </ul>
             </div>
 
@@ -244,6 +258,145 @@
                         </div>
                     </div>
 
+                    {{-- Tab 5: Config. Crédito --}}
+                    <div class="tab-pane fade {{ $tab == 5 ? 'active show' : '' }}" role="tabpanel">
+                        <div class="sidebar-body">
+                            <div class="row g-2">
+                                {{-- Sección 1: Control de Crédito --}}
+                                <div class="col-sm-12">
+                                    <h6 class="text-info mb-3">
+                                        <i class="fa fa-credit-card"></i> Control de Crédito
+                                    </h6>
+                                </div>
+
+                                <div class="col-sm-12">
+                                    <div class="form-check form-switch">
+                                        <input wire:model="user.seller_allow_credit" class="form-check-input" type="checkbox" id="sellerAllowCreditSwitch">
+                                        <label class="form-check-label" for="sellerAllowCreditSwitch">
+                                            <strong>Permitir Crédito para sus Clientes</strong>
+                                            <small class="d-block text-muted">Habilitar compras a crédito para los clientes de este vendedor</small>
+                                        </label>
+                                    </div>
+                                    @error('user.seller_allow_credit') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+
+                                <div class="col-sm-6 mt-3">
+                                    <label class="form-label">Días de Crédito (Default)</label>
+                                    <input wire:model="user.seller_credit_days" type="number" class="form-control" 
+                                           placeholder="Ej: 15, 30, 60">
+                                    <small class="text-muted">Plazo máximo por defecto para sus clientes</small>
+                                    @error('user.seller_credit_days') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+
+                                <div class="col-sm-6 mt-3">
+                                    <label class="form-label">Límite de Crédito Default ($)</label>
+                                    <input wire:model="user.seller_credit_limit" type="number" step="0.01" class="form-control" 
+                                           placeholder="Ej: 10000.00">
+                                    <small class="text-muted">Monto máximo por defecto para sus clientes</small>
+                                    @error('user.seller_credit_limit') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+
+                                {{-- Sección 2: Reglas de Descuento/Recargo --}}
+                                <div class="col-sm-12 mt-4">
+                                    <h6 class="text-info mb-3">
+                                        <i class="fa fa-percentage"></i> Reglas de Descuento/Recargo (Default)
+                                    </h6>
+                                    <p class="text-muted small">Configure las reglas que se aplicarán por defecto a los clientes de este vendedor, si el cliente no tiene reglas propias.</p>
+                                </div>
+
+                                <div class="col-sm-12">
+                                    <button type="button" class="btn btn-sm btn-success mb-3" wire:click="addDiscountRule">
+                                        <i class="fa fa-plus"></i> Agregar Regla
+                                    </button>
+
+                                    @if(count($discountRules) > 0)
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Desde (días)</th>
+                                                    <th>Hasta (días)</th>
+                                                    <th>% Desc/Recargo</th>
+                                                    <th>Tipo</th>
+                                                    <th>Descripción</th>
+                                                    <th>Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($discountRules as $index => $rule)
+                                                <tr>
+                                                    <td>
+                                                        <input wire:model="discountRules.{{ $index }}.days_from" 
+                                                               type="number" class="form-control form-control-sm" min="0">
+                                                    </td>
+                                                    <td>
+                                                        <input wire:model="discountRules.{{ $index }}.days_to" 
+                                                               type="number" class="form-control form-control-sm" 
+                                                               placeholder="∞">
+                                                    </td>
+                                                    <td>
+                                                        <input wire:model="discountRules.{{ $index }}.discount_percentage" 
+                                                               type="number" step="0.01" class="form-control form-control-sm">
+                                                    </td>
+                                                    <td>
+                                                        <select wire:model="discountRules.{{ $index }}.rule_type" 
+                                                                class="form-select form-select-sm">
+                                                            <option value="early_payment">Pronto Pago</option>
+                                                            <option value="overdue">Mora</option>
+                                                        </select>
+                                                    </td>
+                                                    <td>
+                                                        <input wire:model="discountRules.{{ $index }}.description" 
+                                                               type="text" class="form-control form-control-sm" 
+                                                               placeholder="Ej: Pronto pago 0-5 días">
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <button type="button" class="btn btn-sm btn-danger" 
+                                                                wire:click="removeDiscountRule({{ $index }})">
+                                                            <i class="fa fa-trash"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    @else
+                                    <div class="alert alert-info">
+                                        <i class="fa fa-info-circle"></i> No hay reglas configuradas. Haga clic en "Agregar Regla".
+                                    </div>
+                                    @endif
+                                </div>
+
+                                {{-- Sección 3: Descuento por Divisa --}}
+                                <div class="col-sm-12 mt-4">
+                                    <h6 class="text-info mb-3">
+                                        <i class="fa fa-dollar-sign"></i> Descuento por Pago en USD
+                                    </h6>
+                                </div>
+
+                                <div class="col-sm-12">
+                                    <label class="form-label">% Descuento por Pago en USD (Zelle/Efectivo)</label>
+                                    <input wire:model="user.seller_usd_payment_discount" type="number" step="0.01" 
+                                           class="form-control" placeholder="Ej: 5.00">
+                                    <small class="text-muted">Descuento aplicado si el cliente paga con Zelle o Dólar en efectivo</small>
+                                    @error('user.seller_usd_payment_discount') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+
+                                {{-- Nota sobre jerarquía --}}
+                                <div class="col-sm-12 mt-4">
+                                    <div class="alert alert-warning">
+                                        <i class="fa fa-info-circle"></i> <strong>Nota de Jerarquía:</strong>
+                                        <ul>
+                                            <li>Estas reglas aplican a todos los clientes de este vendedor.</li>
+                                            <li>Si un Cliente tiene configuración específica, la configuración del Cliente TIENE PREFERENCIA sobre estas reglas.</li>
+                                            <li>Si ni el Cliente ni el Vendedor tienen reglas, se usarán las del Sistema Global.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

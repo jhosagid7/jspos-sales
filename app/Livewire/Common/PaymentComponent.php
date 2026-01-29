@@ -62,7 +62,20 @@ class PaymentComponent extends Component
     public $bankReference;
     public $bankDate;
     public $bankNote;
+
     public $bankImage;
+
+    // Credit Adjustment (Discount/Surcharge)
+    public $adjustment = null;
+    public $applyAdjustment = true; // Default to true
+    public $allowDiscounts = false; // Controlled by PartialPayment
+
+    // USD Payment Discount
+    public $usdPaymentDiscountPercent = 0; 
+    public $fixedUsdDiscountAmount = 0; // The fixed discount amount passed from PartialPayment
+    
+    public $usdAdjustment = null; // ['amount' => x, 'percentage' => y]
+    public $applyUsdDiscount = false;
 
     protected $listeners = ['initPayment'];
 
@@ -78,13 +91,33 @@ class PaymentComponent extends Component
         $this->resetPaymentForm();
     }
 
-    public function initPayment($total, $currency = 'COP', $customer = '', $allowPartial = false)
+    public function initPayment($total, $currency = 'COP', $customer = '', $allowPartial = false, $adjustment = null, $allowDiscounts = false, $usdDiscountPercent = 0, $fixedUsdDiscountAmount = 0)
     {
+        Log::info('PaymentComponent::initPayment Received', [
+            'total' => $total,
+            'allowDiscounts' => $allowDiscounts,
+            'percent' => $usdDiscountPercent,
+            'fixedAmount' => $fixedUsdDiscountAmount
+        ]);
+
         $this->totalToPay = floatval($total);
         $this->currencyCode = $currency;
         $this->customerName = $customer;
         $this->allowPartialPayment = $allowPartial;
+        $this->adjustment = $adjustment;
+        // $this->applyAdjustment = false; // logic already sets this inside calculateTotals or below
+        $this->allowDiscounts = $allowDiscounts;
+        $this->usdPaymentDiscountPercent = $usdDiscountPercent;
+        $this->fixedUsdDiscountAmount = $fixedUsdDiscountAmount;
         
+        $this->applyAdjustment = false; 
+        $this->applyUsdDiscount = false;
+        
+        // Default: If eligible for USD Discount, show it initially.
+        if ($this->allowDiscounts && $this->fixedUsdDiscountAmount > 0) {
+            $this->applyUsdDiscount = true;
+        }
+
         $this->payments = [];
         $this->changeDistribution = [];
         $this->calculateTotals();
@@ -93,6 +126,16 @@ class PaymentComponent extends Component
         $this->dispatch('show-payment-modal');
     }
 
+    public function toggleAdjustment()
+    {
+        $this->calculateTotals(); 
+    }
+
+    public function toggleUsdDiscount()
+    {
+        $this->calculateTotals();
+    }
+    
     public function resetPaymentForm()
     {
         $this->amount = null;
@@ -145,6 +188,11 @@ class PaymentComponent extends Component
     public function updatedZelleSender() { $this->checkZelleStatus(); }
     public function updatedZelleDate() { $this->checkZelleStatus(); }
     public function updatedZelleAmount() { $this->checkZelleStatus(); }
+    
+    public function updatedApplyUsdDiscount() 
+    { 
+        $this->calculateTotals(); 
+    }
 
     public function checkZelleStatus()
     {
@@ -201,63 +249,37 @@ class PaymentComponent extends Component
 
         if ($this->paymentMethod == 'bank') {
             if ($this->isZelleSelected) {
-                $this->validate([
+                 $this->validate([
                     'zelleSender' => 'required',
                     'zelleDate' => 'required|date',
                     'zelleAmount' => 'required|numeric|min:0.01',
-                    'zelleImage' => 'required|image|max:2048', // Required image
+                    'zelleImage' => 'required|image|max:2048', 
                 ]);
-                
-                // Check for duplicate Zelle
-                $this->checkZelleStatus();
-                
-                // Block if danger (Overused) OR warning (Session Duplicate)
-                if ($this->zelleStatusType === 'danger' || $this->zelleStatusType === 'warning') {
+                 $this->checkZelleStatus();
+                 if ($this->zelleStatusType === 'danger' || $this->zelleStatusType === 'warning') {
                      $this->dispatch('noty', msg: $this->zelleStatusMessage);
                      return;
                 }
-                
-                // Validate Amount vs Remaining Balance (Only for DB records)
                 if ($this->zelleRemainingBalance !== null && $this->amount > $this->zelleRemainingBalance) {
                     $this->dispatch('noty', msg: "El monto a usar ($" . number_format($this->amount, 2) . ") excede el saldo restante del Zelle ($" . number_format($this->zelleRemainingBalance, 2) . ")");
                     return;
                 }
             } elseif ($this->isVedBankSelected) {
-                 $this->validate([
+                $this->validate([
                     'bankId' => 'required',
                     'bankReference' => 'required',
                     'bankDate' => 'required|date',
-                    'amount' => 'required|numeric|min:0.01', // Main amount field
+                    'amount' => 'required|numeric|min:0.01', 
                     'bankImage' => 'required|image|max:2048', 
                 ]);
-
-                // Check for Duplicate Reference in Database
-                $exists = \App\Models\BankRecord::where('bank_id', $this->bankId)
-                        ->where('reference', $this->bankReference)
-                         ->exists();
-                         
-                 if($exists) {
-                      $this->dispatch('noty', msg: 'Esta referencia bancaria ya ha sido registrada previamente.');
-                      return;
-                 }
-
-                 // Check for Duplicate in Session
+                $exists = \App\Models\BankRecord::where('bank_id', $this->bankId)->where('reference', $this->bankReference)->exists();
+                 if($exists) { $this->dispatch('noty', msg: 'Esta referencia bancaria ya ha sido registrada previamente.'); return; }
                  $duplicateInSession = collect($this->payments)->contains(function ($payment) {
-                    return $payment['method'] === 'bank' &&
-                           ($payment['bank_reference'] ?? '') === $this->bankReference;
+                    return $payment['method'] === 'bank' && ($payment['bank_reference'] ?? '') === $this->bankReference;
                  });
-
-                 if ($duplicateInSession) {
-                     $this->dispatch('noty', msg: 'Esta referencia ya está agregada en esta lista.');
-                     return;
-                 }
-
+                 if ($duplicateInSession) { $this->dispatch('noty', msg: 'Esta referencia ya está agregada en esta lista.'); return; }
             } else {
-                $this->validate([
-                    'bankId' => 'required',
-                    'accountNumber' => 'required',
-                    'depositNumber' => 'required',
-                ]);
+                 $this->validate(['bankId' => 'required', 'accountNumber' => 'required', 'depositNumber' => 'required']);
             }
         }
 
@@ -269,66 +291,59 @@ class PaymentComponent extends Component
             $bank = $this->banks->find($this->bankId);
             $currencyCode = $bank ? $bank->currency_code : 'COP';
             $bankName = $bank ? $bank->name : '';
-            
-            if ($this->isZelleSelected) {
-                $currencyCode = 'USD'; // Zelle is always USD
-            }
+            if ($this->isZelleSelected) $currencyCode = 'USD';
         }
 
         $currency = $this->currencies->firstWhere('code', $currencyCode);
         $exchangeRate = $currency ? $currency->exchange_rate : 1;
         $symbol = $currency ? $currency->symbol : '$';
 
-        // Calculate amount in primary currency
         $primaryCurrency = $this->currencies->firstWhere('is_primary', 1);
         
         $amountInPrimary = 0;
         if ($currency && $currency->is_primary) {
             $amountInPrimary = $this->amount;
         } else {
-            // Convert to USD (Base)
             $amountInUSD = $this->amount / ($exchangeRate ?: 1);
-            // Convert to Primary
             $amountInPrimary = $amountInUSD * $primaryCurrency->exchange_rate;
         }
 
-        // Handle Zelle Image Upload
-        $imagePath = null;
-        if ($this->zelleImage) {
-            $imagePath = $this->zelleImage->store('zelle_receipts', 'public');
-        }
-        
-        // Handle Bank Image Upload
-        $bankImagePath = null;
-        if ($this->bankImage) {
-            $bankImagePath = $this->bankImage->store('bank_receipts', 'public');
-        }
+        // Handle Images
+        $imagePath = ($this->isZelleSelected && $this->zelleImage) ? $this->zelleImage->store('zelle_receipts', 'public') : null;
+        $bankImagePath = ($this->paymentMethod == 'bank' && $this->isVedBankSelected && $this->bankImage) ? $this->bankImage->store('bank_receipts', 'public') : null;
 
-        $this->payments[] = [
+        $newPayment = [
             'method' => $this->isZelleSelected ? 'zelle' : $this->paymentMethod,
             'amount' => $this->amount,
             'currency' => $currencyCode,
             'symbol' => $symbol,
             'exchange_rate' => $exchangeRate,
             'amount_in_primary' => $amountInPrimary,
-            'bank_id' => $this->bankId, // Ensure bank_id is passed
+            'bank_id' => $this->bankId,
             'bank_name' => $bankName,
             'account_number' => $this->isVedBankSelected ? null : $this->accountNumber,
             'reference' => $this->isZelleSelected ? $this->zelleReference : ($this->isVedBankSelected ? $this->bankReference : $this->depositNumber),
             'phone' => $this->phoneNumber,
-            // Zelle specific
             'zelle_sender' => $this->zelleSender,
             'zelle_date' => $this->zelleDate,
             'zelle_amount' => $this->zelleAmount,
             'zelle_image' => $imagePath,
             'zelle_file_url' => $imagePath ? asset('storage/' . $imagePath) : null,
-            // VED Bank specific
             'bank_reference' => $this->bankReference,
             'bank_date' => $this->bankDate,
             'bank_note' => $this->bankNote,
             'bank_image' => $bankImagePath,
             'bank_file_url' => $bankImagePath ? asset('storage/' . $bankImagePath) : null
         ];
+
+        
+        $this->payments[] = $newPayment;
+
+        // Auto-Enable Logic on Add Payment
+        if (in_array($currencyCode, ['VED', 'VES'])) {
+             $this->applyUsdDiscount = false;
+             $this->applyAdjustment = true;
+        }
 
         $this->calculateTotals();
         $this->resetPaymentForm();
@@ -340,39 +355,20 @@ class PaymentComponent extends Component
         $this->payments = array_values($this->payments);
         $this->calculateTotals();
     }
-
-    public function calculateTotals()
-    {
-        $this->totalPaid = array_sum(array_column($this->payments, 'amount_in_primary'));
-        
-        $this->remaining = max(0, $this->totalToPay - $this->totalPaid);
-        $this->change = max(0, $this->totalPaid - $this->totalToPay);
-    }
-
+    
     public function addChangeDistribution()
     {
-        if (!$this->selectedChangeAmount || !$this->selectedChangeCurrency) return;
-
-        $currency = $this->currencies->firstWhere('code', $this->selectedChangeCurrency);
-        $primaryCurrency = $this->currencies->firstWhere('is_primary', 1);
-
-        // Calculate amount in primary
-        $amountInPrimary = 0;
-        if ($currency->is_primary) {
-            $amountInPrimary = $this->selectedChangeAmount;
-        } else {
-            $amountInUSD = $this->selectedChangeAmount / $currency->exchange_rate;
-            $amountInPrimary = $amountInUSD * $primaryCurrency->exchange_rate;
+        if ($this->selectedChangeAmount > 0 && $this->selectedChangeCurrency) {
+            $currency = $this->currencies->firstWhere('code', $this->selectedChangeCurrency);
+            $symbol = $currency ? $currency->symbol : '$';
+             $this->changeDistribution[] = [
+                'currency' => $this->selectedChangeCurrency,
+                'amount' => $this->selectedChangeAmount,
+                'symbol' => $symbol
+            ];
+            $this->selectedChangeAmount = null;
+            $this->selectedChangeCurrency = null;
         }
-
-        $this->changeDistribution[] = [
-            'currency' => $this->selectedChangeCurrency,
-            'amount' => $this->selectedChangeAmount,
-            'symbol' => $currency->symbol,
-            'amount_in_primary' => $amountInPrimary
-        ];
-
-        $this->selectedChangeAmount = null;
     }
 
     public function removeChangeDistribution($index)
@@ -380,6 +376,103 @@ class PaymentComponent extends Component
         unset($this->changeDistribution[$index]);
         $this->changeDistribution = array_values($this->changeDistribution);
     }
+
+    public function calculateTotals()
+    {
+        $this->totalPaid = array_sum(array_column($this->payments, 'amount_in_primary'));
+        
+        // Analyze Payment Currencies
+        $hasPayments = !empty($this->payments);
+        $hasVed = false;
+        $onlyDivisa = false;
+
+        if ($hasPayments) {
+            $hasVed = collect($this->payments)->contains(function ($p) {
+                return in_array($p['currency'], ['VED', 'VES']);
+            });
+            
+            // Divisa = USD, Zelle, COP
+            $onlyDivisa = collect($this->payments)->every(function ($p) {
+                return in_array($p['currency'], ['USD', 'COP']); // Zelle is method, but currency is USD
+            });
+        }
+
+        // Auto-Switch Logic
+        if ($hasPayments) {
+            if ($onlyDivisa) {
+                // Scenario: Pure Divisa -> Prefer USD Discount
+                // Do NOT force applyUsdDiscount = true. Let user toggle it.
+                // Just ensure mutual exclusivity if USD discount IS active.
+                if ($this->applyUsdDiscount) {
+                     $this->applyAdjustment = false; 
+                } else {
+                     $this->applyAdjustment = false;
+                }
+            } elseif ($hasVed) {
+                // Scenario: VED Involved -> Strict Early Payment Only
+                // FORCE USD Discount OFF
+                $this->applyUsdDiscount = false;
+                // Scenario: VED Involved -> Strict Early Payment Only
+                // FORCE USD Discount OFF
+                $this->applyUsdDiscount = false;
+                // $this->applyAdjustment = true; // REMOVED: Allow user to toggle it off manually if they want.
+            }
+        } else {
+            // No payments -> Respect user toggle, but ensure exclusivity
+            if ($this->allowDiscounts && $this->fixedUsdDiscountAmount > 0) {
+                 if ($this->applyUsdDiscount) {
+                     $this->applyAdjustment = false;
+                 } else {
+                     $this->applyAdjustment = false;
+                 }
+            } else {
+                $this->applyUsdDiscount = false;
+                $this->applyAdjustment = false;
+            }
+        }
+
+        // Calculate Target to Pay based on Discount Toggle
+        $targetToPay = $this->totalToPay;
+        
+        // 1. Adjustment (Early Payment)
+        // Only apply if enabled AND (Implicitly) not overridden by USD Discount?
+        // Actually flags are mutually exclusive now by logic above.
+        if ($this->adjustment && $this->applyAdjustment) {
+            $targetToPay -= $this->adjustment['amount'];
+        }
+        
+        $this->usdAdjustment = null;
+        
+        if ($this->allowDiscounts && $this->fixedUsdDiscountAmount > 0 && !$hasVed) {
+             
+             $this->usdAdjustment = [
+                 'amount' => $this->fixedUsdDiscountAmount,
+                 'percentage' => $this->usdPaymentDiscountPercent,
+                 'reason' => 'Descuento Pago Divisa'
+             ];
+             
+             // Check if paying enough to settle
+             $effectiveTarget = $targetToPay - $this->fixedUsdDiscountAmount;
+             $canApply = $this->totalPaid >= ($effectiveTarget - 0.01); 
+             
+             if ($this->applyUsdDiscount) {
+                 if ($canApply) {
+                     $targetToPay -= $this->fixedUsdDiscountAmount;
+                 } else {
+                     $targetToPay -= $this->fixedUsdDiscountAmount;
+                 }
+             }
+        } else {
+             // If NOT eligible (e.g. has VE payments), then we disable and nullify
+             $this->applyUsdDiscount = false; 
+             $this->usdAdjustment = null;
+        }
+
+        $this->remaining = max(0, $targetToPay - $this->totalPaid);
+        $this->change = max(0, $this->totalPaid - $targetToPay);
+    }
+    
+    // ... addChangeDistribution ...
 
     public function submit()
     {
@@ -394,13 +487,70 @@ class PaymentComponent extends Component
             return;
         }
 
+        // Enforce Full Payment for Discount
+        // Check Early Payment Discount
+        if ($this->adjustment && $this->applyAdjustment) {
+             if ($this->remaining > 0.01) {
+                 $this->dispatch('noty', msg: 'El descuento solo aplica si paga la totalidad de la deuda.');
+                 return;
+             }
+        }
+        
+        // Check USD Discount
+        if ($this->usdAdjustment && $this->applyUsdDiscount) {
+             if ($this->remaining > 0.01) {
+                 $this->dispatch('noty', msg: 'El descuento por divisa solo aplica si liquida la deuda totalmente.');
+                 return;
+             }
+        }
+        
+        // Inject Discount into the LAST payment
+        $lastIndex = count($this->payments) - 1;
+        
+        if ($lastIndex >= 0) {
+             // ... logic same as before ...
+             // 1. Early Payment
+             
+             if ($this->adjustment && $this->applyAdjustment) {
+                 $this->payments[$lastIndex]['discount_amount'] = $this->adjustment['amount']; 
+                 $this->payments[$lastIndex]['discount_percentage'] = $this->adjustment['percentage'];
+                 $this->payments[$lastIndex]['discount_reason'] = $this->adjustment['reason'] ?? 'Pronto Pago';
+                 $this->payments[$lastIndex]['days_elapsed'] = $this->adjustment['days'] ?? 0;
+                 $this->payments[$lastIndex]['rule_type'] = $this->adjustment['rule_type'] ?? 'early_payment';
+             }
+             
+             // 2. USD Discount
+             if ($this->usdAdjustment && $this->applyUsdDiscount) {
+                 // Check if existing
+                 $existingAmount = $this->payments[$lastIndex]['discount_amount'] ?? 0;
+                 $existingPercent = $this->payments[$lastIndex]['discount_percentage'] ?? 0;
+                 $existingReason = $this->payments[$lastIndex]['discount_reason'] ?? '';
+                 
+                 $newAmount = $this->usdAdjustment['amount'];
+                 
+                 $this->payments[$lastIndex]['discount_amount'] = $existingAmount + $newAmount;
+                 $this->payments[$lastIndex]['discount_percentage'] = $existingPercent + $this->usdAdjustment['percentage'];
+                 
+                 $reason = $this->usdAdjustment['reason'];
+                 if ($existingReason) {
+                     $reason = $existingReason . " + " . $reason;
+                 }
+                 $this->payments[$lastIndex]['discount_reason'] = $reason;
+                 
+                 if (isset($this->payments[$lastIndex]['rule_type'])) {
+                     $this->payments[$lastIndex]['rule_type'] = 'combined'; 
+                 } else {
+                     $this->payments[$lastIndex]['rule_type'] = 'usd_payment';
+                 }
+             }
+        }
+
         Log::info("PaymentComponent: About to dispatch payment-completed", [
             'payments_count' => count($this->payments),
             'has_zelle' => collect($this->payments)->contains('method', 'zelle'),
             'payments_data' => $this->payments
         ]);
 
-        // Use browser event for reliable cross-component communication
         $this->dispatch('payment-completed', 
             payments: $this->payments, 
             change: $this->change, 

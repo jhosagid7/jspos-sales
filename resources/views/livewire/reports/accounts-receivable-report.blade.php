@@ -134,7 +134,14 @@
                                                     @php
                                                         $totalPaidUSD = $sale->payments->sum(function($payment) {
                                                             $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
-                                                            return $payment->amount / $rate;
+                                                            $amountUSD = $payment->amount / $rate;
+                                                            
+                                                            $discountVal = $payment->discount_applied ?? 0;
+                                                            if ($payment->rule_type === 'overdue') {
+                                                                return $amountUSD - $discountVal;
+                                                            } else {
+                                                                return $amountUSD + $discountVal;
+                                                            }
                                                         });
                                                         $initialPaidUSD = $sale->paymentDetails->sum(function($detail) {
                                                             $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
