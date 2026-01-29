@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.8.5] - 2026-01-29
+
+### Added
+- **Reports**:
+  - **Payment Relationship**: Added "Commissions to Pay" table in the Detailed View, mirroring the PDF layout for easier verification of commission amounts.
+
+### Fixed
+- **PDF Report**:
+  - **Payment Details**: Resolved an issue where the "Payment Details" row appeared empty for Cash payments. It now conditionally renders only for Zelle, Bank Transfer, or Deposit payments.
+
 ## [1.8.4] - 2026-01-29
 
 ### Fixed
