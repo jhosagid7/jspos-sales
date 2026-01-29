@@ -100,6 +100,18 @@
                                 </div>
                             </a>
                         </li>
+                        
+                        {{-- Tab 9: Configuración de Crédito Global --}}
+                        <li class="nav-item mb-2">
+                            <a class="nav-link {{ $tab == 9 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                               wire:click.prevent="$set('tab',9)" href="#">
+                                <i class="fa fa-credit-card fa-2x"></i>
+                                <div>
+                                    <h6 class="mb-0">Crédito Global</h6>
+                                    <small class="{{ $tab == 9 ? 'text-white' : 'text-muted' }}">Reglas por defecto</small>
+                                </div>
+                            </a>
+                        </li>
                     </ul>
                 </div>
 
@@ -627,6 +639,139 @@
                                     </div>
 
                                     <div class="col-12">
+                                        <button class="btn btn-primary" wire:click.prevent="saveConfig" wire:loading.attr="disabled">
+                                            <span wire:loading.remove wire:target="saveConfig">Guardar Configuración</span>
+                                            <span wire:loading wire:target="saveConfig">Guardando...</span>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        {{-- TAB 9: CONFIGURACIÓN DE CRÉDITO GLOBAL --}}
+                        <div class="tab-pane fade {{ $tab == 9 ? 'active show' : '' }}" id="credit-settings" role="tabpanel"
+                            aria-labelledby="credit-settings-tab">
+                            <div class="sidebar-body">
+                                <form class="row g-2">
+                                    {{-- Sección 1: Control de Crédito --}}
+                                    <div class="col-sm-12">
+                                        <h6 class="text-info mb-3">
+                                            <i class="fa fa-credit-card"></i> Control de Crédito (Global)
+                                        </h6>
+                                        <p class="text-muted small">Estos valores se aplicarán si el Cliente o Vendedor no tienen su propia configuración.</p>
+                                    </div>
+
+                                    <div class="col-sm-12">
+                                        <div class="form-check form-switch">
+                                            <input wire:model="globalAllowCredit" class="form-check-input" type="checkbox" id="globalAllowCreditSwitch">
+                                            <label class="form-check-label" for="globalAllowCreditSwitch">
+                                                <strong>Permitir Venta a Crédito por defecto</strong>
+                                            </label>
+                                        </div>
+                                        @error('globalAllowCredit') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <div class="col-sm-6 mt-3">
+                                        <label class="form-label">Días de Crédito (Base)</label>
+                                        <input wire:model="globalCreditDays" type="number" class="form-control" 
+                                               placeholder="Ej: 15">
+                                        @error('globalCreditDays') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <div class="col-sm-6 mt-3">
+                                        <label class="form-label">Límite de Crédito Base ($)</label>
+                                        <input wire:model="globalCreditLimit" type="number" step="0.01" class="form-control" 
+                                               placeholder="Ej: 1000.00">
+                                        @error('globalCreditLimit') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    {{-- Sección 2: Reglas de Descuento/Recargo --}}
+                                    <div class="col-sm-12 mt-4">
+                                        <h6 class="text-info mb-3">
+                                            <i class="fa fa-percentage"></i> Reglas de Descuento/Recargo (Globales)
+                                        </h6>
+                                    </div>
+
+                                    <div class="col-sm-12">
+                                        <button type="button" class="btn btn-sm btn-success mb-3" wire:click="addDiscountRule">
+                                            <i class="fa fa-plus"></i> Agregar Regla
+                                        </button>
+
+                                        @if(count($discountRules) > 0)
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-bordered">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>Desde (días)</th>
+                                                        <th>Hasta (días)</th>
+                                                        <th>% Desc/Recargo</th>
+                                                        <th>Tipo</th>
+                                                        <th>Descripción</th>
+                                                        <th>Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach($discountRules as $index => $rule)
+                                                    <tr>
+                                                        <td>
+                                                            <input wire:model="discountRules.{{ $index }}.days_from" 
+                                                                   type="number" class="form-control form-control-sm" min="0">
+                                                        </td>
+                                                        <td>
+                                                            <input wire:model="discountRules.{{ $index }}.days_to" 
+                                                                   type="number" class="form-control form-control-sm" 
+                                                                   placeholder="∞">
+                                                        </td>
+                                                        <td>
+                                                            <input wire:model="discountRules.{{ $index }}.discount_percentage" 
+                                                                   type="number" step="0.01" class="form-control form-control-sm">
+                                                        </td>
+                                                        <td>
+                                                            <select wire:model="discountRules.{{ $index }}.rule_type" 
+                                                                    class="form-select form-select-sm">
+                                                                <option value="early_payment">Pronto Pago</option>
+                                                                <option value="overdue">Mora</option>
+                                                            </select>
+                                                        </td>
+                                                        <td>
+                                                            <input wire:model="discountRules.{{ $index }}.description" 
+                                                                   type="text" class="form-control form-control-sm" 
+                                                                   placeholder="Ej: Pronto pago base">
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <button type="button" class="btn btn-sm btn-danger" 
+                                                                    wire:click="removeDiscountRule({{ $index }})">
+                                                                <i class="fa fa-trash"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        @else
+                                        <div class="alert alert-info">
+                                            <i class="fa fa-info-circle"></i> No hay reglas configuradas. Haga clic en "Agregar Regla".
+                                        </div>
+                                        @endif
+                                    </div>
+
+                                    {{-- Sección 3: Descuento por Divisa --}}
+                                    <div class="col-sm-12 mt-4">
+                                        <h6 class="text-info mb-3">
+                                            <i class="fa fa-dollar-sign"></i> Descuento por Pago en USD
+                                        </h6>
+                                    </div>
+
+                                    <div class="col-sm-12">
+                                        <label class="form-label">% Descuento por Pago en USD (Zelle/Efectivo)</label>
+                                        <input wire:model="globalUsdPaymentDiscount" type="number" step="0.01" 
+                                               class="form-control" placeholder="Ej: 5.00">
+                                        <small class="text-muted">Valor por defecto si no especifica el cliente/vendedor</small>
+                                        @error('globalUsdPaymentDiscount') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <div class="col-12 mt-4">
                                         <button class="btn btn-primary" wire:click.prevent="saveConfig" wire:loading.attr="disabled">
                                             <span wire:loading.remove wire:target="saveConfig">Guardar Configuración</span>
                                             <span wire:loading wire:target="saveConfig">Guardando...</span>

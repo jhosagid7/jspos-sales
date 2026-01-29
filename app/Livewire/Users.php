@@ -21,6 +21,7 @@ class Users extends Component
     public  $role, $roleSelectedId,  $permissionId, $roles = [];
     public $commission_percent = 0, $freight_percent = 0, $exchange_diff_percent = 0, $current_batch = '1';
     public $sellerCommission1Threshold, $sellerCommission1Percentage, $sellerCommission2Threshold, $sellerCommission2Percentage;
+    public $discountRules = []; // Array of discount rules for this user (seller)
     
     // Printer Auth
     public $isNetwork = false;
@@ -46,6 +47,12 @@ class Users extends Component
         'user.is_network' => 'boolean',
         'user.printer_user' => 'nullable|string',
         'user.printer_password' => 'nullable|string',
+        
+        // Seller Credit Config
+        'user.seller_allow_credit' => 'nullable|boolean',
+        'user.seller_credit_days' => 'nullable|integer|min:0',
+        'user.seller_credit_limit' => 'nullable|numeric|min:0',
+        'user.seller_usd_payment_discount' => 'nullable|numeric|min:0|max:100',
     ];
 
     protected $messages = [
@@ -126,6 +133,9 @@ class Users extends Component
         // CRITICAL: Reload roles because resetExcept cleared them
         $this->roles = Role::orderBy('name')->get();
         
+        // Reset discount rules
+        $this->discountRules = [];
+
         $this->dispatch('init-new');
     }
 
@@ -182,6 +192,9 @@ class Users extends Component
         // CRITICAL: Reload roles for the dropdown
         $this->roles = Role::orderBy('name')->get();
 
+        // Load discount rules
+        $this->loadDiscountRules();
+
         $this->dispatch('init-new');
     }
 
@@ -199,6 +212,7 @@ class Users extends Component
         $this->printerShare = null;
         $this->resetCommissionFields();
         $this->editing = false;
+        $this->discountRules = [];
         $this->tab = 1;
     }
 
@@ -303,10 +317,6 @@ class Users extends Component
                 $freightPercent = $this->freight_percent ?? 0;
                 $diffPercent = $this->exchange_diff_percent ?? 0;
                 $batch = $this->current_batch ?? '1';
-
-                // Check if it's different from the last one to avoid spamming history? 
-                // Or just save every time "Update" is clicked? User request implies they want history when they update.
-                // We'll create it every time they save a Vendedor.
                 
                 \App\Models\SellerConfig::create([
                     'user_id' => $this->user->id,
@@ -315,6 +325,9 @@ class Users extends Component
                     'exchange_diff_percent' => $diffPercent,
                     'current_batch' => $batch
                 ]);
+                
+                // Save discount rules within transaction (if seller)
+                $this->saveDiscountRules();
             }
 
             DB::commit();
@@ -532,5 +545,73 @@ class Users extends Component
     {
         $this->history = [];
         $this->dispatch('close-history-modal');
+    }
+
+    // Discount Rules Management
+    public function addDiscountRule()
+    {
+        $this->discountRules[] = [
+            'days_from' => 0,
+            'days_to' => null,
+            'discount_percentage' => 0,
+            'rule_type' => 'early_payment', // Default type
+            'description' => ''
+        ];
+    }
+
+    public function removeDiscountRule($index)
+    {
+        unset($this->discountRules[$index]);
+        $this->discountRules = array_values($this->discountRules); // Re-index array
+    }
+
+    public function loadDiscountRules()
+    {
+        if ($this->user->id) {
+            $rules = \App\Models\CreditDiscountRule::where('entity_type', 'seller')
+                ->where('entity_id', $this->user->id)
+                ->orderBy('days_from')
+                ->get();
+
+            $this->discountRules = $rules->map(function($rule) {
+                return [
+                    'id' => $rule->id,
+                    'days_from' => $rule->days_from,
+                    'days_to' => $rule->days_to,
+                    'discount_percentage' => $rule->discount_percentage,
+                    'rule_type' => $rule->rule_type,
+                    'description' => $rule->description
+                ];
+            })->toArray();
+        } else {
+            $this->discountRules = [];
+        }
+    }
+
+    public function saveDiscountRules()
+    {
+        if (!$this->user->id) {
+            return;
+        }
+
+        // Delete existing rules for this seller
+        \App\Models\CreditDiscountRule::where('entity_type', 'seller')
+            ->where('entity_id', $this->user->id)
+            ->delete();
+
+        // Save new rules
+        foreach ($this->discountRules as $rule) {
+            if (isset($rule['days_from']) && isset($rule['discount_percentage'])) {
+                \App\Models\CreditDiscountRule::create([
+                    'entity_type' => 'seller',
+                    'entity_id' => $this->user->id,
+                    'days_from' => $rule['days_from'],
+                    'days_to' => $rule['days_to'],
+                    'discount_percentage' => $rule['discount_percentage'],
+                    'rule_type' => $rule['rule_type'],
+                    'description' => $rule['description'] ?? ''
+                ]);
+            }
+        }
     }
 }

@@ -19,40 +19,69 @@ class CreditConfigService
      */
     public static function getCreditConfig(Customer $customer, ?User $seller = null): array
     {
-        // 1. Intentar obtener configuración del Cliente (Prioridad 1)
+        $globalConfig = Configuration::first();
+
+        // 1. Resolver Reglas de Descuento (Estrategia de Fallback: Cliente -> Vendedor -> Global)
+        // Si el cliente no tiene reglas específicas, hereda las del vendedor o globales.
+        $discountRules = self::getDiscountRules('customer', $customer->id);
+        
+        if ($discountRules->isEmpty()) {
+            if ($seller) {
+                $discountRules = self::getDiscountRules('seller', $seller->id);
+            }
+            if ($discountRules->isEmpty()) {
+                $discountRules = self::getDiscountRules('global', $globalConfig->id);
+            }
+        }
+
+        // 2. Resolver Descuento USD (Fallback similar)
+        // null significa "heredar", 0.00 es un valor explícito (si el usuario puso 0)
+        // Asumiendo que null es el default cuando no se ha configurado.
+        $usdPaymentDiscount = $customer->usd_payment_discount;
+        if ($usdPaymentDiscount === null) {
+            if ($seller && $seller->seller_usd_payment_discount !== null) {
+                $usdPaymentDiscount = $seller->seller_usd_payment_discount;
+            } else {
+                $usdPaymentDiscount = $globalConfig->global_usd_payment_discount;
+            }
+        }
+
+        // 3. Determinar Configuración de Crédito (Límites y Permisos)
+        // Aquí SÍ respetamos la jerarquía estricta para allow_credit y credit_limit
+        
+        // A. Configuración de Cliente
         if ($customer->allow_credit !== null && $customer->allow_credit !== false) {
             return [
                 'allow_credit' => $customer->allow_credit,
                 'credit_days' => $customer->credit_days,
                 'credit_limit' => $customer->credit_limit,
-                'usd_payment_discount' => $customer->usd_payment_discount,
-                'discount_rules' => self::getDiscountRules('customer', $customer->id),
+                'usd_payment_discount' => $usdPaymentDiscount, // Resolved value
+                'discount_rules' => $discountRules, // Resolved value
                 'source' => 'customer',
                 'source_name' => $customer->name
             ];
         }
 
-        // 2. Intentar obtener configuración del Vendedor (Prioridad 2)
+        // B. Configuración de Vendedor
         if ($seller && $seller->seller_allow_credit !== null && $seller->seller_allow_credit !== false) {
             return [
                 'allow_credit' => $seller->seller_allow_credit,
                 'credit_days' => $seller->seller_credit_days,
                 'credit_limit' => $seller->seller_credit_limit,
-                'usd_payment_discount' => $seller->seller_usd_payment_discount,
-                'discount_rules' => self::getDiscountRules('seller', $seller->id),
+                'usd_payment_discount' => $usdPaymentDiscount, // Resolved value
+                'discount_rules' => $discountRules, // Resolved value
                 'source' => 'seller',
                 'source_name' => $seller->name
             ];
         }
 
-        // 3. Usar configuración Global (Prioridad 3 - Fallback)
-        $config = Configuration::first();
+        // C. Configuración Global
         return [
-            'allow_credit' => $config->global_allow_credit ?? true,
-            'credit_days' => $config->global_credit_days ?? 30,
-            'credit_limit' => $config->global_credit_limit,
-            'usd_payment_discount' => $config->global_usd_payment_discount,
-            'discount_rules' => self::getDiscountRules('global', null),
+            'allow_credit' => $globalConfig->global_allow_credit ?? true,
+            'credit_days' => $globalConfig->global_credit_days ?? 30,
+            'credit_limit' => $globalConfig->global_credit_limit,
+            'usd_payment_discount' => $usdPaymentDiscount, // Resolved value
+            'discount_rules' => $discountRules, // Resolved value
             'source' => 'global',
             'source_name' => 'Sistema'
         ];
@@ -180,5 +209,44 @@ class CreditConfigService
         }
 
         return null;
+    }
+    /**
+     * Parsea el snapshot de reglas de crédito almacenado en la venta
+     * Maneja tanto la estructura antigua (solo reglas) como la nueva (reglas + usd_payment_discount)
+     *
+     * @param array|null $snapshot
+     * @return array ['discount_rules' => Collection, 'usd_payment_discount' => float|null]
+     */
+    public static function parseCreditSnapshot($snapshot): array
+    {
+        if (empty($snapshot)) {
+            return [
+                'discount_rules' => collect([]),
+                'usd_payment_discount' => null
+            ];
+        }
+
+        // Normalizar a array si viene como objeto
+        if (is_object($snapshot)) {
+            $snapshot = (array) $snapshot;
+        }
+
+        $rules = collect([]);
+        $usdPaymentDiscount = null;
+
+        if (isset($snapshot['discount_rules'])) {
+            // Estructura Nueva (con usd_payment_discount)
+            $rules = collect(json_decode(json_encode($snapshot['discount_rules'])))->map(function($item) { return (object)$item; });
+            $usdPaymentDiscount = $snapshot['usd_payment_discount'] ?? 0;
+        } else {
+            // Estructura Antigua (solo array de reglas o array de objetos)
+            $rules = collect(json_decode(json_encode($snapshot)))->map(function($item) { return (object)$item; });
+            $usdPaymentDiscount = 0; // Legacy snapshot didn't have USD discount
+        }
+
+        return [
+            'discount_rules' => $rules,
+            'usd_payment_discount' => $usdPaymentDiscount
+        ];
     }
 }

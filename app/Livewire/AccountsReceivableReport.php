@@ -113,9 +113,19 @@ class AccountsReceivableReport extends Component
 
             // Calculate total pending balance in USD
             $this->totales = $sales->getCollection()->sum(function($sale) {
-                $totalPaidUSD = $sale->payments->sum(function($payment) use ($sale) {
-                    $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : ($payment->currency == 'USD' ? 1 : ($sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1));
-                    return $payment->amount / $rate;
+                // Calculate Paid Amount from Payments
+                $totalPaidUSD = $sale->payments->sum(function($payment) {
+                    $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
+                    $amountUSD = $payment->amount / $rate;
+                    
+                    // Add Discount / Subtract Surcharge
+                    $discountVal = $payment->discount_applied ?? 0; // Already in USD
+                    
+                    if ($payment->rule_type === 'overdue') {
+                        return $amountUSD - $discountVal;
+                    } else {
+                        return $amountUSD + $discountVal;
+                    }
                 });
                 
                 // Also consider initial payment details if any (though usually for credit sales it's mostly abonos)
@@ -388,12 +398,64 @@ class AccountsReceivableReport extends Component
         $primaryCurrency = \App\Models\Currency::where('is_primary', true)->first();
         $debtInPrimary = $debtUSD * $primaryCurrency->exchange_rate;
         
+        // Obtener configuración de crédito (usar Snapshot si existe)
+        $allowDiscounts = false;
+        
+        $parsedSnapshot = \App\Services\CreditConfigService::parseCreditSnapshot($sale->credit_rules_snapshot);
+        $rules = $parsedSnapshot['discount_rules'];
+        $snapshotUsdDiscount = $parsedSnapshot['usd_payment_discount'];
+
+        if (empty($sale->credit_rules_snapshot)) {
+            $creditConfig = \App\Services\CreditConfigService::getCreditConfig($sale->customer, $sale->customer->seller);
+            $rules = $creditConfig['discount_rules'];
+            $snapshotUsdDiscount = null;
+        }
+
+        // Determine USD Discount
+        $usdPaymentDiscountPercent = 0;
+        $fixedUsdDiscountAmount = 0;
+
+        if ($sale->is_foreign_sale) {
+             // Check Ved History
+             $hasVedHistory = $sale->payments()->whereIn('currency', ['VED', 'VES'])->exists();
+             
+             if (!$hasVedHistory) {
+                 $allowDiscounts = true;
+                 
+                  if ($snapshotUsdDiscount !== null) {
+                    $usdPaymentDiscountPercent = $snapshotUsdDiscount;
+                } else {
+                    $config = \App\Services\CreditConfigService::getCreditConfig($sale->customer, $sale->customer->seller);
+                    $usdPaymentDiscountPercent = $config['usd_payment_discount'] ?? 0;
+                }
+
+                if ($usdPaymentDiscountPercent > 0) {
+                     $fixedUsdDiscountAmount = $sale->total_usd * ($usdPaymentDiscountPercent / 100);
+                     $fixedUsdDiscountAmount = round($fixedUsdDiscountAmount, 2);
+                }
+             }
+        }
+        
+        // Calcular los días transcurridos desde que se CREÓ la venta
+        $daysElapsed = \Carbon\Carbon::parse($sale->created_at)->diffInDays(\Carbon\Carbon::now());
+        
+        $adjustment = \App\Services\CreditConfigService::calculateDiscount($debtUSD, $daysElapsed, $rules);
+
         $this->sale_id = $sale_id;
         $this->customer_name = $customer;
         $this->debt = round($debtInPrimary, 2);
         $this->debt_usd = round($debtUSD, 2);
         
-        $this->dispatch('initPayment', total: $this->debt, currency: 'USD', customer: $this->customer_name, allowPartial: true);
+        $this->dispatch('initPayment', 
+            total: $this->debt, 
+            currency: 'USD', 
+            customer: $this->customer_name, 
+            allowPartial: true,
+            adjustment: $adjustment,
+            allowDiscounts: $allowDiscounts,
+            usdDiscountPercent: $usdPaymentDiscountPercent,
+            fixedUsdDiscountAmount: $fixedUsdDiscountAmount
+        );
     }
 
     #[On('payment-completed')]
@@ -521,7 +583,13 @@ class AccountsReceivableReport extends Component
                     'payment_date' => \Carbon\Carbon::now(),
                     'zelle_record_id' => $zelleRecordId,
                     'bank_record_id' => $bankRecordId, // Linked Bank Record
-                    'collection_sheet_id' => $sheet->id
+                    'collection_sheet_id' => $sheet->id,
+                    // Track Discount/Surcharge
+                    'discount_applied' => $payment['discount_amount'] ?? 0,
+                    'discount_percentage' => $payment['discount_percentage'] ?? 0,
+                    'discount_reason' => $payment['discount_reason'] ?? null,
+                    'payment_days' => $payment['days_elapsed'] ?? 0,
+                    'rule_type' => $payment['rule_type'] ?? null
                 ]);
 
                 // Update BankRecord with payment_id

@@ -35,7 +35,12 @@ class User extends Authenticatable
         'printer_width',
         'is_network',
         'printer_user',
+        'printer_user',
         'printer_password',
+        'seller_allow_credit',
+        'seller_credit_days',
+        'seller_credit_limit',
+        'seller_usd_payment_discount',
     ];
 
     public function warehouse()

@@ -13,6 +13,9 @@ class Settings extends Component
     public $setting_id = 0, $businessName, $phone, $taxpayerId, $vat, $printerName, $website, $leyend, $creditDays = 15, $address, $city, $creditPurchaseDays, $confirmationCode, $decimals;
     public $checkStockReservation;
     public $globalCommission1Threshold, $globalCommission1Percentage, $globalCommission2Threshold, $globalCommission2Percentage;
+    public $globalAllowCredit, $globalCreditDays, $globalCreditLimit, $globalUsdPaymentDiscount;
+    public $discountRules = [];
+
     public $logo, $logo_preview; // Logo properties
     public $backupEmails; // Backup Emails
     public $purchasingCalculationMode, $purchasingCoverageDays; // Purchasing Intelligence
@@ -108,6 +111,15 @@ class Settings extends Component
             $this->productionEmailRecipients = is_array($config->production_email_recipients) ? implode(', ', $config->production_email_recipients) : $config->production_email_recipients;
             $this->productionEmailSubject = $config->production_email_subject;
             $this->productionEmailBody = $config->production_email_body;
+
+            // Global Credit Config
+            $this->globalAllowCredit = (bool) $config->global_allow_credit;
+            $this->globalCreditDays = $config->global_credit_days;
+            $this->globalCreditLimit = $config->global_credit_limit;
+            $this->globalUsdPaymentDiscount = $config->global_usd_payment_discount;
+            
+            // Load Discount Rules
+            $this->loadDiscountRules();
         }
     }
 
@@ -253,6 +265,24 @@ class Settings extends Component
                 ['id' => $this->setting_id],
                 $data
             );
+
+            // Save Global Settings for Credit:
+            // Need to update specifically because updateOrCreate might not trigger if I missed adding them to $data array above.
+            // Wait, I should add them to $data array above. 
+            // Let's add them to $data array to be clean.
+            
+            // Re-fetch to ensure ID is correct if created
+            $conf = Configuration::find($this->setting_id);
+            if(!$conf) $conf = Configuration::first();
+            
+            $conf->update([
+                 'global_allow_credit' => $this->globalAllowCredit ? 1 : 0,
+                 'global_credit_days' => $this->globalCreditDays,
+                 'global_credit_limit' => $this->globalCreditLimit,
+                 'global_usd_payment_discount' => $this->globalUsdPaymentDiscount
+            ]);
+            
+            $this->saveDiscountRules();
 
             $this->loadConfig();
             $this->dispatch('noty', msg: "Configuración General Actualizada");
@@ -403,6 +433,74 @@ class Settings extends Component
             $this->dispatch('noty', msg: 'Banco eliminado con éxito.');
         } catch (\Throwable $th) {
             $this->dispatch('noty', msg: 'Error al eliminar banco: ' . $th->getMessage());
+        }
+    }
+
+    // Discount Rules Management (Global)
+    public function addDiscountRule()
+    {
+        $this->discountRules[] = [
+            'days_from' => 0,
+            'days_to' => null,
+            'discount_percentage' => 0,
+            'rule_type' => 'early_payment',
+            'description' => ''
+        ];
+    }
+
+    public function removeDiscountRule($index)
+    {
+        unset($this->discountRules[$index]);
+        $this->discountRules = array_values($this->discountRules);
+    }
+
+    public function loadDiscountRules()
+    {
+        if ($this->setting_id) {
+            $rules = \App\Models\CreditDiscountRule::where('entity_type', 'global')
+                ->where('entity_id', $this->setting_id)
+                ->orderBy('days_from')
+                ->get();
+
+            $this->discountRules = $rules->map(function($rule) {
+                return [
+                    'id' => $rule->id,
+                    'days_from' => $rule->days_from,
+                    'days_to' => $rule->days_to,
+                    'discount_percentage' => $rule->discount_percentage,
+                    'rule_type' => $rule->rule_type,
+                    'description' => $rule->description
+                ];
+            })->toArray();
+        } else {
+            $this->discountRules = [];
+        }
+    }
+
+    public function saveDiscountRules()
+    {
+        if (!$this->setting_id) {
+            return;
+        }
+
+        // Delete existing rules for global config
+        \App\Models\CreditDiscountRule::where('entity_type', 'global')
+            ->where('entity_id', $this->setting_id)
+            ->delete();
+
+        // Save new rules
+        foreach ($this->discountRules as $rule) {
+            if (isset($rule['days_from']) && isset($rule['discount_percentage'])) {
+                \App\Models\CreditDiscountRule::create([
+                    'entity_type' => 'global',
+                    'entity_id' => $this->setting_id,
+                    'days_from' => $rule['days_from'],
+                    'days_to' => $rule['days_to'],
+                    'discount_percentage' => $rule['discount_percentage'],
+                    'rule_type' => $rule['rule_type'],
+                    'description' => $rule['description'] ?? ''
+                ]);
+            }
         }
     }
 }

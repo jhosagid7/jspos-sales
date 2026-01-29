@@ -147,6 +147,43 @@
                                             $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
                                             $totalPaidUSD += ($payment->amount / $rate);
                                         }
+
+                                        // Sumar pagos posteriores (Abonos)
+                                        foreach($sale->payments as $payment) {
+                                            // Asignar a la moneda correspondiente
+                                            $curr = $payment->currency; // Payment model uses 'currency' column
+                                            
+                                            // Fallback for legacy data if needed, or if currency code matches
+                                            if(isset($paidPerCurrency[$curr])) {
+                                                $paidPerCurrency[$curr] += $payment->amount;
+                                            }
+                                            
+                                            // Add Discount to USD bucket (Value Settled)
+                                            // Only if NOT surcharge (overdue), because surcharge is already included in payment amount (extra money paid).
+                                            // Discount means we paid LESS cash, but settled MORE debt.
+                                            if(isset($payment->discount_applied) && $payment->discount_applied > 0 && $payment->rule_type !== 'overdue') {
+                                                if(isset($paidPerCurrency['USD'])) {
+                                                    $paidPerCurrency['USD'] += $payment->discount_applied;
+                                                }
+                                            }
+
+                                            // Sum totals for calculation
+                                            $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
+                                            $amountUSD = $payment->amount / $rate;
+                                            
+                                            // For Total Paid USD calculation (used for Credit calculation below)
+                                            // If Surcharge: Paid $110. Principal $100.
+                                            // Effective Principal Paid = $110 - $10 = $100.
+                                            // If Discount: Paid $90. Principal $100.
+                                            // Effective Principal Paid = $90 + $10 = $100.
+                                            
+                                            $adjustment = $payment->discount_applied ?? 0;
+                                            if($payment->rule_type === 'overdue') {
+                                                $totalPaidUSD += ($amountUSD - $adjustment);
+                                            } else {
+                                                $totalPaidUSD += ($amountUSD + $adjustment);
+                                            }
+                                        }
                                         
                                         // Si es venta de contado sin pagos registrados (legacy o simple cash), 
                                         // asumir que se pagó todo en la moneda principal o según 'cash' field?

@@ -196,7 +196,11 @@
                                         'reference' => $pay->deposit_number ?? $pay->reference ?? ($pay->bankRecord ? $pay->bankRecord->reference : null),
                                         'account' => $pay->account_number,
                                         'zelle_record' => $pay->zelleRecord,
-                                        'bank_record' => $pay->bankRecord // Link BankRecord
+                                        'bank_record' => $pay->bankRecord, // Link BankRecord
+                                        // Discount info
+                                        'discount_amount' => $pay->discount_applied,
+                                        'discount_percentage' => $pay->discount_percentage,
+                                        'discount_reason' => $pay->discount_reason,
                                     ]);
                                 }
                             }
@@ -300,6 +304,14 @@
                                                                         </a>
                                                                     </div>
                                                                 @endif
+                                                            </div>
+                                                        @endif
+                                                        
+                                                        @if(isset($payment->discount_amount) && $payment->discount_amount > 0)
+                                                            <div class="mt-1 text-success">
+                                                                <i class="fas fa-arrow-down"></i> 
+                                                                <b>{{ $payment->discount_reason ?? 'Descuento' }} ({{ $payment->discount_percentage }}%):</b> 
+                                                                {{ $currencySymbol }}{{ number_format($payment->discount_amount, 2) }}
                                                             </div>
                                                         @endif
                                                     </td>
