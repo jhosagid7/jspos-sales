@@ -27,6 +27,71 @@
             </div>
 
             <div class="widget-content">
+                <!-- Summary and Commissions Row -->
+                <div class="row mb-4">
+                    <!-- Summary Table (Left) -->
+                    <div class="col-md-5">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm">
+                                <thead style="background: #3B3F5C; color: white;">
+                                    <tr>
+                                        <th>MÉTODO / BANCO</th>
+                                        <th>MONTO ORIGINAL</th>
+                                        <th>TOTAL (USD)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($summary as $row)
+                                        <tr>
+                                            <td>{{ $row['name'] }}</td>
+                                            <td>
+                                                ${{ number_format($row['original'], 2) }}
+                                                <small>{{ $row['currency'] }}</small>
+                                            </td>
+                                            <td>${{ number_format($row['equivalent'], 2) }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Commissions Table (Right) -->
+                    <div class="col-md-7">
+                        @if(count($commissions) > 0)
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-sm">
+                                    <thead style="background: #e0e6ed; color: #3b3f5c;">
+                                        <tr>
+                                            <th colspan="6" class="text-center font-weight-bold">COMISIONES POR PAGAR</th>
+                                        </tr>
+                                        <tr>
+                                            <th>FACTURA</th>
+                                            <th>CLIENTE</th>
+                                            <th>BASE</th>
+                                            <th>TOTAL</th>
+                                            <th>%</th>
+                                            <th>A PAGAR (USD)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($commissions as $comm)
+                                            <tr>
+                                                <td>{{ $comm['invoice'] }}</td>
+                                                <td>{{ Str::limit($comm['client'], 15) }}</td>
+                                                <td>${{ number_format($comm['base'], 2) }}</td>
+                                                <td>${{ number_format($comm['total_with_surcharges'], 2) }}</td>
+                                                <td>{{ number_format($comm['percentage'], 2) }}%</td>
+                                                <td class="font-weight-bold text-success">${{ number_format($comm['commission_usd'], 2) }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped mt-1">
                         <thead class="text-white" style="background: #3B3F5C">

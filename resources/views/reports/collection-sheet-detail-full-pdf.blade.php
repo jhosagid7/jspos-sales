@@ -247,18 +247,26 @@
                     </tr>
                     
                     <!-- Details Row -->
-                    <tr class="details-row">
-                        <td colspan="{{ $colSpan }}">
-                            <strong>Detalles de Pagos:</strong><br>
-                            @foreach($salePayments as $p)
-                                @if($p->pay_way == 'zelle')
-                                    - Zelle: {{ optional($p->zelleRecord)->sender_name ?? 'N/A' }} | Ref: {{ optional($p->zelleRecord)->reference ?? 'N/A' }} | Fecha: {{ optional($p->zelleRecord)->zelle_date ?? 'N/A' }} | Monto: ${{ number_format($p->amount, 2) }}<br>
-                                @elseif($p->pay_way == 'bank' || $p->pay_way == 'deposit')
-                                    - Banco: {{ $p->bank }} | Cta: {{ $p->account_number }} | Ref: {{ $p->deposit_number }} | Fecha: {{ $p->payment_date }} | Monto: {{ number_format($p->amount, 2) }}<br>
-                                @endif
-                            @endforeach
-                        </td>
-                    </tr>
+                    @php
+                        $hasDetails = $salePayments->contains(function($p) {
+                            return in_array($p->pay_way, ['zelle', 'bank', 'deposit']);
+                        });
+                    @endphp
+                    
+                    @if($hasDetails)
+                        <tr class="details-row">
+                            <td colspan="{{ $colSpan }}">
+                                <strong>Detalles de Pagos:</strong><br>
+                                @foreach($salePayments as $p)
+                                    @if($p->pay_way == 'zelle')
+                                        - Zelle: {{ optional($p->zelleRecord)->sender_name ?? 'N/A' }} | Ref: {{ optional($p->zelleRecord)->reference ?? 'N/A' }} | Fecha: {{ optional($p->zelleRecord)->zelle_date ?? 'N/A' }} | Monto: ${{ number_format($p->amount, 2) }}<br>
+                                    @elseif($p->pay_way == 'bank' || $p->pay_way == 'deposit')
+                                        - Banco: {{ $p->bank }} | Cta: {{ $p->account_number }} | Ref: {{ $p->deposit_number }} | Fecha: {{ $p->payment_date }} | Monto: {{ number_format($p->amount, 2) }}<br>
+                                    @endif
+                                @endforeach
+                            </td>
+                        </tr>
+                    @endif
                 @endforeach
             </tbody>
             <tfoot>
