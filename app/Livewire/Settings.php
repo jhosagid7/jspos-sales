@@ -26,6 +26,8 @@ class Settings extends Component
     public $printerHost, $printerShare;
     public $printerUser, $printerPassword;
 
+    public $licenseNotificationEmail, $licenseRequestEmail;
+
     public $tab = 1; // Control de pestañas
     
     // ... items ...
@@ -111,6 +113,10 @@ class Settings extends Component
             $this->productionEmailRecipients = is_array($config->production_email_recipients) ? implode(', ', $config->production_email_recipients) : $config->production_email_recipients;
             $this->productionEmailSubject = $config->production_email_subject;
             $this->productionEmailBody = $config->production_email_body;
+
+            // License Emails
+            $this->licenseNotificationEmail = $config->license_notification_email;
+            $this->licenseRequestEmail = $config->license_request_email;
 
             // Global Credit Config
             $this->globalAllowCredit = (bool) $config->global_allow_credit;
@@ -251,6 +257,8 @@ class Settings extends Component
                 'is_network' => $this->isNetwork ? 1 : 0,
                 'printer_user' => $this->isNetwork ? trim($this->printerUser) : null,
                 'printer_password' => $this->isNetwork ? trim($this->printerPassword) : null,
+                'license_notification_email' => trim($this->licenseNotificationEmail),
+                'license_request_email' => trim($this->licenseRequestEmail),
             ];
 
             // Handle Logo Upload

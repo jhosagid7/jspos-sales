@@ -226,6 +226,18 @@
                                     </div>
 
                                     <div class="col-sm-12 col-md-6">
+                                        <label class="form-label">EMAIL ALERTAS VENCIMIENTO</label>
+                                        <input wire:model="licenseNotificationEmail" type="email" class="form-control" placeholder="alertas@empresa.com">
+                                        @error('licenseNotificationEmail') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <div class="col-sm-12 col-md-6">
+                                        <label class="form-label">EMAIL SOLICITUD RENOVACIÓN</label>
+                                        <input wire:model="licenseRequestEmail" type="email" class="form-control" placeholder="ventas@empresa.com">
+                                        @error('licenseRequestEmail') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <div class="col-sm-12 col-md-6">
                                         <label class="form-label">LOGO DE LA EMPRESA</label>
                                         <input type="file" wire:model="logo" accept="image/png, image/jpeg, image/jpg" class="form-control">
                                         @error('logo') <span class="text-danger">{{ $message }}</span> @enderror

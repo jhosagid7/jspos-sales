@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## v1.8.6 - 2026-01-29
+### Added
+- **License Renewal System:**
+    - Interactive modal in header to check expiration and renew license.
+    - Permanent "License" option in the User Profile menu.
+    - Automated email notifications for upcoming expiration (requires configuration in Settings).
+    - Email request feature for license renewal directly from the application.
+- `license:check-expiration` console command for automated monitoring.
+
 ## [1.8.5] - 2026-01-29
 
 ### Added

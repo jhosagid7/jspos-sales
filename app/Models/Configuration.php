@@ -53,6 +53,8 @@ class Configuration extends Model
         'global_credit_days',
         'global_credit_limit',
         'global_usd_payment_discount',
+        'license_notification_email',
+        'license_request_email',
     ];
 
     protected $casts = [

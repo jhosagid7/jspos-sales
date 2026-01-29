@@ -46,7 +46,7 @@
         <!-- License Warning -->
         @if(isset($license_days_remaining) && $license_days_remaining <= 5)
         <li class="nav-item">
-            <a class="nav-link text-danger font-weight-bold" href="#" title="Su licencia vence pronto">
+            <a class="nav-link text-danger font-weight-bold" href="javascript:void(0)" onclick="Livewire.dispatch('trigger-license-modal')" title="Clic para renovar">
                 <i class="fas fa-exclamation-triangle"></i>
                 Licencia vence en {{ $license_days_remaining }} días
             </a>
@@ -172,9 +172,15 @@
                     <i class="fas fa-user mr-2"></i> Perfil
                 </a>
                 <div class="dropdown-divider"></div>
+                <a href="javascript:void(0)" onclick="Livewire.dispatch('trigger-license-modal')" class="dropdown-item">
+                    <i class="fas fa-key mr-2"></i> Licencia
+                </a>
+                <div class="dropdown-divider"></div>
                 <a href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();" class="dropdown-item">
                     <i class="fas fa-sign-out-alt mr-2"></i> Salir
                 </a>
+                
+
                 <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
                     @csrf
                 </form>
@@ -188,3 +194,6 @@
         </li>
     </ul>
 </nav>
+
+{{-- Permanent License Renewer Component --}}
+@livewire('header.license-renewer', key('permanent-license-renewer'))
