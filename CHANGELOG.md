@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## v1.8.7 - 2026-01-30
+### Added
+- **Sale Deletion Workflow:**
+    - **Approval Process:** Implemented a secure Request-Approval workflow for deleting sales. Operators request deletion with a reason; Supervisors (Admin/Owner) approve or reject.
+    - **Financial Integrity:** Pending deletions remain valid in financial reports until explicitly approved. Approval triggers strict cleanup of payments, Zelle/Bank records, and inventory.
+    - **Notifications:** Automated email notifications to supervisors when a deletion is requested.
+    - **UI:** Added visual indicators (yellow row, "Solicitud Borrado" badge) for sales pending deletion.
+- **Login Page Customization:**
+    - **Dynamic Branding:** Displays the configured "Business Name" and System Logo (Shopping Cart) on the login screen.
+    - **Dynamic Version:** Shows the actual system version (from `version.txt`) instead of a hardcoded value.
+
 ## v1.8.6 - 2026-01-29
 ### Added
 - **License Renewal System:**
