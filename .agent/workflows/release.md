@@ -12,7 +12,8 @@ Follow these steps to release a new version of the application.
 
 2. **Update Changelog**
    - Edit `c:\laragon\www\jspos-sales\CHANGELOG.md`.
-   - Add a new header with the version and date (e.g., `## v1.8.7 - 2026-01-29`).
+   - Add a new header with the version and date.
+   - **IMPORTANT:** Use the format `## [X.X.X] - YYYY-MM-DD`. Do NOT use `v1.8.7` or plain `1.8.7`. The System Updater regex requires brackets `[]` to detect the notes.
    - List all `Added`, `Changed`, and `Fixed` items since the last release.
 
 3. **Commit Changes**

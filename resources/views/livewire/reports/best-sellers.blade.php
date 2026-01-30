@@ -194,17 +194,26 @@
                     };
                 }
 
+                // Dark Mode Logic for Initial Render
+                const isDarkMode = document.body.classList.contains('dark-mode');
+                const textColor = isDarkMode ? '#e4e4e4' : '#333333';
+                const axisColor = isDarkMode ? '#6c757d' : '#666666';
+                const chartBg = isDarkMode ? 'transparent' : '#ffffff';
+
                 Highcharts.chart('container1', {
                     chart: {
-                        type: chartType
+                        type: chartType,
+                        backgroundColor: chartBg
                     },
                     title: {
                         align: 'left',
-                        text: 'Top Productos Más Vendidos'
+                        text: 'Top Productos Más Vendidos',
+                        style: { color: textColor }
                     },
                     subtitle: {
                         align: 'left',
-                        text: 'Haz click aqui si para ver perfil del desarrollador. Source: <a href="https://github.com/jhosagid7" target="_blank">jhonnypirela.dev</a>'
+                        text: 'Haz click aqui si para ver perfil del desarrollador. Source: <a href="https://github.com/jhosagid7" target="_blank">jhonnypirela.dev</a>',
+                        style: { color: textColor }
                     },
                     accessibility: {
                         announceNewData: {
@@ -212,12 +221,17 @@
                         }
                     },
                     xAxis: {
-                        type: 'category'
+                        type: 'category',
+                        labels: { style: { color: textColor } },
+                        lineColor: axisColor
                     },
                     yAxis: {
                         title: {
-                            text: 'Total percent market share'
-                        }
+                            text: 'Total percent market share',
+                            style: { color: textColor }
+                        },
+                        labels: { style: { color: textColor } },
+                        gridLineColor: isDarkMode ? '#454d55' : '#e6e6e6'
                     },
                     legend: {
                         enabled: false
@@ -227,14 +241,21 @@
                             borderWidth: 0,
                             dataLabels: {
                                 enabled: true,
-                                format: '<b style="font-size:10px">{point.name}: {point.y:.1f}%</b>'
+                                format: '<b style="font-size:10px">{point.name}: {point.y:.1f}%</b>',
+                                style: { 
+                                    color: textColor,
+                                    textOutline: isDarkMode ? 'none' : '1px contrast' 
+                                }
                             }
                         },
                         ...extraPlotOptions
                     },
                     tooltip: {
                         headerFormat: '<span style="font-size:18px">{series.name}</span><br>',
-                        pointFormat: '<span style="color:{point.color}; font-size:12px">{point.name}</span>: <b style="font-size:18px">{point.y:.2f}%</b><br /><br />'
+                        pointFormat: '<span style="color:{point.color}; font-size:12px">{point.name}</span>: <b style="font-size:18px">{point.y:.2f}%</b><br /><br />',
+                        backgroundColor: isDarkMode ? '#343a40' : '#ffffff',
+                        style: { color: textColor },
+                        borderColor: axisColor
                     },
                     series: [{
                         name: 'CATEGORIA',
@@ -245,7 +266,8 @@
                         breadcrumbs: {
                             position: {
                                 align: 'right'
-                            }
+                            },
+                            style: { color: textColor }
                         },
                         series: drilldownData
                     }
@@ -260,5 +282,67 @@
                 renderChart(data, type);
             });
         });
+
+        // Live Dark Mode Observer
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'class') {
+                    const isDarkMode = document.body.classList.contains('dark-mode');
+                    updateChartsTheme(isDarkMode);
+                }
+            });
+        });
+
+        observer.observe(document.body, { attributes: true });
+
+        function updateChartsTheme(isDarkMode) {
+            const textColor = isDarkMode ? '#e4e4e4' : '#333333';
+            const axisColor = isDarkMode ? '#6c757d' : '#666666';
+            const chartBg = isDarkMode ? 'transparent' : '#ffffff';
+            const gridColor = isDarkMode ? '#454d55' : '#e6e6e6';
+            
+            const commonUpdate = {
+                chart: { backgroundColor: chartBg },
+                title: { style: { color: textColor } },
+                subtitle: { style: { color: textColor } },
+                xAxis: {
+                    labels: { style: { color: textColor } },
+                    lineColor: axisColor
+                },
+                yAxis: {
+                    title: { style: { color: textColor } },
+                    labels: { style: { color: textColor } },
+                    gridLineColor: gridColor
+                },
+                tooltip: {
+                    backgroundColor: isDarkMode ? '#343a40' : '#ffffff',
+                    style: { color: textColor },
+                    borderColor: axisColor
+                },
+                drilldown: {
+                    breadcrumbs: {
+                        style: { color: textColor }
+                    }
+                }
+            };
+
+            Highcharts.charts.forEach(chart => {
+                if(chart) {
+                    chart.update(commonUpdate);
+                     chart.update({
+                        plotOptions: {
+                            series: {
+                                dataLabels: {
+                                    style: { 
+                                        color: textColor,
+                                        textOutline: isDarkMode ? 'none' : '1px contrast'
+                                    }
+                                }
+                            }
+                        }
+                     });
+                }
+            });
+        }
     </script>
 </div>

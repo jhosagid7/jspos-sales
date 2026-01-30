@@ -1,11 +1,39 @@
-<aside class="main-sidebar sidebar-dark-primary elevation-4">
+@php
+    $theme = auth()->user()->theme ?? [];
+    
+    // Aside Classes
+    $asideClasses = ['main-sidebar', 'elevation-4'];
+    if(!empty($theme['sidebar_variant'])) {
+        $asideClasses[] = $theme['sidebar_variant'];
+    } else {
+        $asideClasses[] = 'sidebar-dark-primary';
+    }
+    if(!empty($theme['sidebar_no_expand']) && filter_var($theme['sidebar_no_expand'], FILTER_VALIDATE_BOOLEAN)) $asideClasses[] = 'sidebar-no-expand';
+    $asideClassString = implode(' ', $asideClasses);
+
+    // Brand Link Classes
+    $brandClasses = ['brand-link'];
+    if(!empty($theme['brand_text_sm']) && filter_var($theme['brand_text_sm'], FILTER_VALIDATE_BOOLEAN)) $brandClasses[] = 'text-sm';
+    $brandClassString = implode(' ', $brandClasses);
+
+    // Nav Sidebar Classes
+    $navClasses = ['nav', 'nav-pills', 'nav-sidebar', 'flex-column'];
+    if(!empty($theme['sidebar_nav_flat']) && filter_var($theme['sidebar_nav_flat'], FILTER_VALIDATE_BOOLEAN)) $navClasses[] = 'nav-flat';
+    if(!empty($theme['sidebar_nav_legacy']) && filter_var($theme['sidebar_nav_legacy'], FILTER_VALIDATE_BOOLEAN)) $navClasses[] = 'nav-legacy';
+    if(!empty($theme['sidebar_nav_compact']) && filter_var($theme['sidebar_nav_compact'], FILTER_VALIDATE_BOOLEAN)) $navClasses[] = 'nav-compact';
+    if(!empty($theme['sidebar_nav_child_indent']) && filter_var($theme['sidebar_nav_child_indent'], FILTER_VALIDATE_BOOLEAN)) $navClasses[] = 'nav-child-indent';
+    if(!empty($theme['sidebar_nav_child_hide']) && filter_var($theme['sidebar_nav_child_hide'], FILTER_VALIDATE_BOOLEAN)) $navClasses[] = 'nav-collapse-hide-child';
+    if(!empty($theme['sidebar_nav_text_sm']) && filter_var($theme['sidebar_nav_text_sm'], FILTER_VALIDATE_BOOLEAN)) $navClasses[] = 'text-sm';
+    $navClassString = implode(' ', $navClasses);
+@endphp
+<aside class="{{ $asideClassString }}">
     <!-- Brand Logo -->
     @php
         $config = \App\Models\Configuration::first();
         $logo = $config && $config->logo ? asset('storage/' . $config->logo) : asset('assets/images/logo/logo-icon.png');
         $appName = $config && $config->business_name ? iconv('UTF-8', 'UTF-8//IGNORE', $config->business_name) : 'JSPOS v1.7';
     @endphp
-    <a href="{{ route('sales') }}" class="brand-link">
+    <a href="{{ route('sales') }}" class="{{ $brandClassString }}">
         <img src="{{ $logo }}" alt="Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
         <span class="brand-text font-weight-light">{{ $appName }}</span>
     </a>
@@ -30,7 +58,7 @@
 
         <!-- Sidebar Menu -->
         <nav class="mt-2">
-            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+            <ul class="{{ $navClassString }}" data-widget="treeview" role="menu" data-accordion="false">
                 
                 @unlessrole('Driver')
                 <li class="nav-item">

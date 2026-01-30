@@ -174,4 +174,153 @@
             position: static; /* Reset sticky on mobile if needed, or keep it */
         }
     }
+
+    /* DARK MODE FIXES */
+    body.dark-mode .card {
+        background-color: #343a40 !important;
+        color: #fff !important;
+        border: 1px solid #6c757d;
+    }
+    body.dark-mode .card-header {
+        border-bottom-color: #6c757d;
+    }
+    body.dark-mode .content-wrapper, 
+    body.dark-mode .main-footer {
+        background-color: #454d55 !important;
+        color: #fff;
+    }
+    
+    /* Mobile Table Dark Fix */
+    body.dark-mode .table-mobile-cards tbody tr {
+        background-color: #343a40 !important;
+        border-color: #6c757d !important;
+        color: #fff !important;
+    }
+    body.dark-mode .table-mobile-cards tbody td {
+        color: #fff !important;
+    }
+    body.dark-mode .table-mobile-cards .badge {
+        color: #fff;
+    }
+
+    /* TomSelect Dark Fix */
+    body.dark-mode .ts-control, 
+    body.dark-mode .ts-input {
+        background-color: #343a40 !important;
+        color: #fff !important;
+        border-color: #6c757d !important;
+    }
+    body.dark-mode .ts-dropdown, 
+    body.dark-mode .ts-dropdown .option {
+        background-color: #343a40 !important;
+        color: #fff !important;
+    }
+    body.dark-mode .ts-dropdown .option:hover,
+    body.dark-mode .ts-dropdown .active {
+        background-color: #3f474e !important;
+    }
+
+    /* SweetAlert Dark Fix */
+    body.dark-mode .swal-modal {
+        background-color: #343a40 !important;
+        border: 1px solid #6c757d;
+    }
+    body.dark-mode .swal-title {
+        color: #fff !important;
+    }
+    body.dark-mode .swal-text {
+        background-color: transparent !important;
+        color: #e4e4e4 !important;
+        border: none !important;
+    }
+    body.dark-mode .swal-button {
+        background-color: #007bff;
+    }
+
+    /* Inputs Dark Fix */
+    body.dark-mode .form-control {
+        background-color: #343a40 !important;
+        color: #fff !important;
+        border-color: #6c757d !important;
+    }
+    body.dark-mode .input-group-text {
+        background-color: #3f474e !important;
+        color: #fff !important;
+        border-color: #6c757d !important;
+    }
+
+    /* Modal Dark Fix */
+    body.dark-mode .modal-content {
+        background-color: #343a40 !important;
+        color: #fff !important;
+    }
+    body.dark-mode .modal-header,
+    body.dark-mode .modal-footer {
+        border-color: #6c757d !important;
+    }
+    body.dark-mode .close {
+        color: #fff !important;
+        text-shadow: none;
+        opacity: 0.8;
+    }
+    
+    /* Select2 / General Selects */
+    body.dark-mode select.form-control {
+        background-color: #343a40 !important;
+        color: #fff !important;
+    }
+    
+    /* Breadcrumb Fix */
+    body.dark-mode .breadcrumb {
+        background-color: transparent !important;
+    }
+
+    /* Navbar Dark Fix */
+    body.dark-mode .main-header {
+        background-color: #343a40 !important;
+        border-color: #6c757d !important;
+    }
+    body.dark-mode .main-header .nav-link {
+        color: rgba(255,255,255,0.8) !important;
+    }
+    body.dark-mode .main-header .nav-link:hover {
+        color: #fff !important;
+    }
+    
+    /* Table Dark Fix Globally */
+    body.dark-mode .table {
+        color: #fff !important;
+        background-color: transparent !important;
+    }
+    body.dark-mode .table thead th {
+        color: #fff !important;
+        border-bottom-color: #6c757d !important;
+    }
+    body.dark-mode .table td,
+    body.dark-mode .table th {
+        border-color: #6c757d !important;
+    }
+    body.dark-mode .table-striped tbody tr:nth-of-type(odd) {
+        background-color: rgba(255,255,255,.05) !important;
+    }
+    
+    /* Input Placeholder & Focus */
+    body.dark-mode .form-control::placeholder {
+        color: #ced4da !important;
+        opacity: 0.7;
+    }
+    body.dark-mode .form-control:focus {
+        background-color: #3f474e !important;
+        color: #fff !important;
+        border-color: #80bdff !important;
+    }
+
+    /* Fix POS Buttons (Ordenes, Cancelar, etc) */
+    body.dark-mode .btn.txt-dark {
+        color: #fff !important;
+        border-color: rgba(255,255,255,0.2) !important;
+    }
+    body.dark-mode .btn.txt-dark:hover {
+        background-color: rgba(255,255,255,0.1) !important;
+    }
 </style>

@@ -161,4 +161,4 @@
 
 </script>
 
-<script src="{{ asset('assets/js/demo.js') }}"></script>
+<script src="{{ asset('assets/js/demo.js?v=2.1') }}"></script>

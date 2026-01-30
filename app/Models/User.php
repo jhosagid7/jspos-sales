@@ -41,6 +41,7 @@ class User extends Authenticatable
         'seller_credit_days',
         'seller_credit_limit',
         'seller_usd_payment_discount',
+        'theme',
     ];
 
     public function warehouse()
@@ -68,6 +69,26 @@ class User extends Authenticatable
         'password' => 'hashed',
         'is_network' => 'boolean',
     ];
+
+    public function getThemeAttribute($value)
+    {
+        if (is_null($value)) return [];
+        
+        // Attempt to decode
+        $decoded = json_decode($value, true);
+        
+        // Handle double encoding (string inside string)
+        if (is_string($decoded)) {
+            $decoded = json_decode($decoded, true);
+        }
+        
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    public function setThemeAttribute($value)
+    {
+        $this->attributes['theme'] = is_array($value) ? json_encode($value) : $value;
+    }
 
 
     function sales()

@@ -1,4 +1,22 @@
-<nav class="main-header navbar navbar-expand navbar-white navbar-light">
+@php
+    $theme = auth()->user()->theme ?? [];
+    $headerClasses = ['main-header', 'navbar', 'navbar-expand'];
+    
+    // Navbar Variant (Color/Light/Dark)
+    if(!empty($theme['navbar_variant'])) {
+        $headerClasses[] = $theme['navbar_variant'];
+    } else {
+        $headerClasses[] = 'navbar-white';
+        $headerClasses[] = 'navbar-light';
+    }
+
+    // Options
+    if(!empty($theme['navbar_no_border']) && filter_var($theme['navbar_no_border'], FILTER_VALIDATE_BOOLEAN)) $headerClasses[] = 'border-bottom-0';
+    if(!empty($theme['navbar_text_sm']) && filter_var($theme['navbar_text_sm'], FILTER_VALIDATE_BOOLEAN)) $headerClasses[] = 'text-sm';
+
+    $headerClassString = implode(' ', $headerClasses);
+@endphp
+<nav class="{{ $headerClassString }}">
     <!-- Left navbar links -->
     <ul class="navbar-nav">
         <li class="nav-item">

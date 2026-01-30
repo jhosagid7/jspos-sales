@@ -238,22 +238,38 @@
 
         document.addEventListener('livewire:init', () => {
             
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            const textColor = isDarkMode ? '#e4e4e4' : '#333333';
+            const axisColor = isDarkMode ? '#6c757d' : '#666666';
+            const chartBg = isDarkMode ? 'transparent' : '#ffffff';
+
             Highcharts.chart('salesChart', {
                 chart: {
-                    type: 'spline'
+                    type: 'spline',
+                    backgroundColor: chartBg
                 },
                 title: {
-                    text: ''
+                    text: '',
+                    style: { color: textColor }
                 },
                 xAxis: {
                     categories: @json($salesChartData['labels']),
-                    crosshair: true
+                    crosshair: true,
+                    labels: { style: { color: textColor } },
+                    lineColor: axisColor
                 },
                 yAxis: {
                     min: 0,
                     title: {
-                        text: 'Monto ($)'
-                    }
+                        text: 'Monto ($)',
+                        style: { color: textColor }
+                    },
+                    labels: { style: { color: textColor } },
+                    gridLineColor: isDarkMode ? '#454d55' : '#e6e6e6'
+                },
+                legend: {
+                    itemStyle: { color: textColor },
+                    itemHoverStyle: { color: '#FFF' }
                 },
                 tooltip: {
                     headerFormat: '<span style="font-size:10px">{point.key}</span><table>',
@@ -261,7 +277,10 @@
                         '<td style="padding:0"><b>${point.y:.2f}</b></td></tr>',
                     footerFormat: '</table>',
                     shared: true,
-                    useHTML: true
+                    useHTML: true,
+                    backgroundColor: isDarkMode ? '#343a40' : '#ffffff',
+                    style: { color: textColor },
+                    borderColor: axisColor
                 },
                 plotOptions: {
                     column: {
@@ -289,29 +308,46 @@
             // Initialize Top Sellers Chart
             topSellersChart = Highcharts.chart('topSellersChart', {
                 chart: {
-                    type: 'bar'
+                    type: 'bar',
+                    backgroundColor: chartBg
                 },
                 title: {
-                    text: ''
+                    text: '',
+                    style: { color: textColor }
                 },
                 xAxis: {
-                    type: 'category'
+                    type: 'category',
+                    labels: { style: { color: textColor } },
+                    lineColor: axisColor
                 },
                 yAxis: {
                     min: 0,
                     title: {
-                        text: 'Ganancia ($)'
-                    }
+                        text: 'Ganancia ($)',
+                        style: { color: textColor }
+                    },
+                    labels: { style: { color: textColor } },
+                    gridLineColor: isDarkMode ? '#454d55' : '#e6e6e6'
+                },
+                legend: {
+                    itemStyle: { color: textColor }
                 },
                 tooltip: {
-                    pointFormat: '<b>${point.y:.2f}</b>'
+                    pointFormat: '<b>${point.y:.2f}</b>',
+                    backgroundColor: isDarkMode ? '#343a40' : '#ffffff',
+                    style: { color: textColor },
+                    borderColor: axisColor
                 },
                 plotOptions: {
                     series: {
                         borderWidth: 0,
                         dataLabels: {
                             enabled: true,
-                            format: '${point.y:.1f}'
+                            format: '${point.y:.1f}',
+                            style: { 
+                                color: textColor,
+                                textOutline: isDarkMode ? 'none' : '1px contrast' 
+                            }
                         }
                     },
                     pie: {
@@ -319,8 +355,10 @@
                         cursor: 'pointer',
                         dataLabels: {
                             enabled: true,
-                            format: '<b>{point.name}</b>: {point.percentage:.1f} %'
-                        }
+                            format: '<b>{point.name}</b>: {point.percentage:.1f} %',
+                            style: { color: textColor }
+                        },
+                        borderColor: isDarkMode ? '#343a40' : '#ffffff'
                     }
                 },
                 series: [{
@@ -355,6 +393,75 @@
                 },
                 plotOptions: {
                     pie: options
+                }
+            });
+        }
+
+        // Live Dark Mode Observer
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'class') {
+                    const isDarkMode = document.body.classList.contains('dark-mode');
+                    updateChartsTheme(isDarkMode);
+                }
+            });
+        });
+
+        observer.observe(document.body, { attributes: true });
+
+        function updateChartsTheme(isDarkMode) {
+            const textColor = isDarkMode ? '#e4e4e4' : '#333333';
+            const axisColor = isDarkMode ? '#6c757d' : '#666666';
+            const chartBg = isDarkMode ? 'transparent' : '#ffffff';
+            const gridColor = isDarkMode ? '#454d55' : '#e6e6e6';
+            
+            const commonUpdate = {
+                chart: { backgroundColor: chartBg },
+                title: { style: { color: textColor } },
+                xAxis: {
+                    labels: { style: { color: textColor } },
+                    lineColor: axisColor
+                },
+                yAxis: {
+                    title: { style: { color: textColor } },
+                    labels: { style: { color: textColor } },
+                    gridLineColor: gridColor
+                },
+                legend: {
+                    itemStyle: { color: textColor }
+                },
+                tooltip: {
+                    backgroundColor: isDarkMode ? '#343a40' : '#ffffff',
+                    style: { color: textColor },
+                    borderColor: axisColor
+                }
+            };
+
+            Highcharts.charts.forEach(chart => {
+                if(chart) {
+                    chart.update(commonUpdate);
+                    
+                    // Update PlotOptions specific to Pie/Bar if needed, 
+                    // or just let them inherit text colors if possible.
+                    // Data labels need specific update
+                     chart.update({
+                        plotOptions: {
+                            series: {
+                                dataLabels: {
+                                    style: { 
+                                        color: textColor,
+                                        textOutline: isDarkMode ? 'none' : '1px contrast'
+                                    }
+                                }
+                            },
+                            pie: {
+                                dataLabels: {
+                                   style: { color: textColor } 
+                                },
+                                borderColor: isDarkMode ? '#343a40' : '#ffffff'
+                            }
+                        }
+                     });
                 }
             });
         }
