@@ -196,32 +196,122 @@ class SalesReport extends Component
     }
 
     #[On('DestroySale')]
-    public function DestroySale($saleId)
+    public function DestroySale($saleId, $reason = null)
     {
-        // dd($saleId);
         try {
-            DB::beginTransaction();
-
+            $user = auth()->user();
             $sale = Sale::findOrFail($saleId);
-            $sale->update([
-                'status' => 'returned', // o 'deleted'
-                'deleted_at' => Carbon::now(),
-            ]);
 
-            $saleDetails = SaleDetail::where('sale_id', $saleId)->get();
+            // Check if user has permission to approve/force delete
+            if ($user->can('sales.approve_deletion')) {
+                // APPROVE / DELETE FLOW
+                DB::beginTransaction();
 
-            foreach ($saleDetails as $detail) {
-                Product::find($detail->product_id)->increment('stock_qty', $detail->quantity);
+                // Log approval if it was a request, or just self-deletion
+                $sale->update([
+                    'status' => 'returned',
+                    'deleted_at' => Carbon::now(),
+                    'deletion_approved_by' => $user->id,
+                    'deletion_approved_at' => Carbon::now(),
+                ]);
+
+                $saleDetails = SaleDetail::where('sale_id', $saleId)->get();
+
+                foreach ($saleDetails as $detail) {
+                    Product::find($detail->product_id)->increment('stock_qty', $detail->quantity);
+                }
+
+                // Restore Balances and Delete Payments
+                foreach ($sale->payments as $payment) {
+                    // Restore Zelle Balance
+                    if ($payment->zelle_record_id) {
+                        $zelle = \App\Models\ZelleRecord::find($payment->zelle_record_id);
+                        if ($zelle) {
+                            $zelle->remaining_balance += $payment->amount;
+                            if (abs($zelle->amount - $zelle->remaining_balance) < 0.01) {
+                                $zelle->remaining_balance = $zelle->amount;
+                                $zelle->status = 'unused';
+                            } else {
+                                $zelle->status = 'partial';
+                            }
+                            $zelle->save();
+                        }
+                    }
+
+                    // Restore Bank Balance
+                    if ($payment->bank_record_id) {
+                        $bankRec = \App\Models\BankRecord::find($payment->bank_record_id);
+                        if ($bankRec) {
+                            $bankRec->remaining_balance += $payment->amount;
+                            if (abs($bankRec->amount - $bankRec->remaining_balance) < 0.01) {
+                                $bankRec->remaining_balance = $bankRec->amount;
+                                $bankRec->status = 'unused';
+                            } else {
+                                $bankRec->status = 'partial';
+                            }
+                            $bankRec->save();
+                        }
+                    }
+
+                    $payment->delete();
+                }
+
+                $sale->paymentDetails()->delete();
+                $sale->changeDetails()->delete();
+
+                DB::commit();
+
+                $this->dispatch('noty', msg: 'Venta eliminada correctamente');
+
+            } else {
+                // REQUEST FLOW
+                if (empty($reason)) {
+                    $this->dispatch('noty', msg: 'Debes ingresar un motivo para solicitar la eliminación');
+                    return;
+                }
+
+                $sale->update([
+                    'deletion_requested_at' => Carbon::now(),
+                    'deletion_reason' => $reason,
+                    'deletion_requested_by' => $user->id
+                ]);
+
+                // Notify Supervisors
+                try {
+                    $supervisors = User::permission('sales.approve_deletion')->get();
+                    foreach ($supervisors as $supervisor) {
+                        \Illuminate\Support\Facades\Mail::to($supervisor->email)->send(new \App\Mail\SaleDeletionRequested($sale, $user));
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Error enviando correo de solicitud de eliminación: ' . $e->getMessage());
+                }
+
+                $this->dispatch('noty', msg: 'Solicitud enviada al supervisor');
             }
 
-            DB::commit();
-
-            $this->dispatch('noty', msg: 'Venta eliminada correctamente');
             return;
+
         } catch (\Exception $th) {
             DB::rollBack();
-            $this->dispatch('noty', msg: "Error al intentar eliminar la venta \n {$th->getMessage()}");
+            $this->dispatch('noty', msg: "Error al intentar procesar la solicitud \n {$th->getMessage()}");
             return;
         }
+    }
+
+    public function RejectDeletion($saleId)
+    {
+        if (!auth()->user()->can('sales.approve_deletion')) {
+            $this->dispatch('noty', msg: 'No tienes permiso para realizar esta acción');
+            return;
+        }
+
+        $sale = Sale::findOrFail($saleId);
+        $sale->update([
+            'deletion_requested_at' => null,
+            'deletion_reason' => null,
+            'deletion_requested_by' => null
+        ]);
+
+        $this->dispatch('noty', msg: 'Solicitud de eliminación rechazada');
     }
 }

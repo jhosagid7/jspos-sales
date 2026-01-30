@@ -27,8 +27,17 @@
                 <div class="form-container">
                     <div class="form-content">
 
+                        @php
+                            $config = \App\Models\Configuration::first();
+                            $version = file_exists(base_path('version.txt')) ? file_get_contents(base_path('version.txt')) : 'v1.0';
+                        @endphp
+                        <div class="text-center mb-3">
+                            <img src="{{ asset('assets/login/img/favicon-card.ico') }}" alt="System Logo" style="height: 80px;">
+                        </div>
                         <h1 class="text-center"><span class="brand-name"><b>JSPOS</b></span></h1>
-                        <h1 class="text-center"><span class="brand-name">Sistema de Ventas</span></h1>
+                        <h2 class="text-center" style="font-size: 1.8rem; font-weight: 500; line-height: 1.2;">
+                            <span class="brand-name">{{ $config->business_name ?? 'Sistema de Ventas' }}</span>
+                        </h2>
                         <form class="text-left mt-5" action="{{ route('login') }}" method="POST">
                             @csrf
                             <div class="form">
@@ -102,8 +111,7 @@
                             </div>
                         </form>
                         <p class="terms-conditions text-center">© 2021 All Rights Reserved. <a
-                                href="https://github.com/jhosagid7" target="_blank">JHONNY PIRELA</a> <br>versión
-                            2.2.0 </p>
+                                href="https://github.com/jhosagid7" target="_blank">JHONNY PIRELA</a> <br>{{ $version }} </p>
 
                     </div>
                 </div>

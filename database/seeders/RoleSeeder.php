@@ -43,6 +43,7 @@ class RoleSeeder extends Seeder
             'gestionar_comisiones',
             'aprobar_cargos',
             'aprobar_descargos',
+            'sales.approve_deletion',
         ];
 
         foreach ($permissions as $permission) {

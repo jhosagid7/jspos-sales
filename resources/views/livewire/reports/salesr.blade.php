@@ -207,7 +207,7 @@
                                             $creditUSD = max(0, $sale->total_usd - $totalPaidUSD);
                                         }
                                     @endphp
-                                    <tr class="text-center">
+                                    <tr class="text-center {{ $sale->deletion_requested_at ? 'table-warning' : '' }}">
                                         <td>{{ $sale->invoice_number ?? $sale->id }}</td>
                                         <td>{{ $sale->customer->name }}</td>
                                         <td>${{ number_format($sale->total_usd, 2) }}</td>
@@ -231,8 +231,13 @@
                                         </td>
                                         
                                         <td>{{ $sale->items }}</td>
-                                        <td><span
-                                                class="badge f-12 {{ $sale->status == 'paid' ? 'badge-success' : ($sale->status == 'return' ? 'badge-warning' : ($sale->status == 'pending' ? 'badge-warning' : 'badge-danger')) }} ">{{ $sale->status }}</span>
+                                        <td>
+                                            @if($sale->deletion_requested_at)
+                                                <span class="badge badge-warning">Solicitud Borrado</span>
+                                            @else
+                                                <span
+                                                    class="badge f-12 {{ $sale->status == 'paid' ? 'badge-success' : ($sale->status == 'return' ? 'badge-warning' : ($sale->status == 'pending' ? 'badge-warning' : 'badge-danger')) }} ">{{ $sale->status }}</span>
+                                            @endif
                                         </td>
                                         <td>{{ $sale->type }}</td>
                                         <td>{{ $sale->created_at }}</td>
@@ -241,12 +246,28 @@
                                         <td data-container="body" data-bs-toggle="tooltip" data-bs-placement="top"
                                             data-bs-html="true" data-bs-title="<b>Ver los detalles de la venta</b>">
 
-
-                                            <button {{ $sale->status == 'returned' ? 'disabled' : '' }}
-                                                class="border-0 btn btn-outline-dark btn-xs"
-                                                onclick="Confirm({{ $sale->id }})" title="Eliminar">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                            @if($sale->deletion_requested_at)
+                                                {{-- PENDING APPROVAL STATE --}}
+                                                @can('sales.approve_deletion')
+                                                    <button wire:click="DestroySale({{ $sale->id }})"
+                                                        class="border-0 btn btn-outline-success btn-xs" title="Aprobar Eliminación">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                    <button wire:click="RejectDeletion({{ $sale->id }})"
+                                                        class="border-0 btn btn-outline-danger btn-xs" title="Rechazar Eliminación">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                @else
+                                                    <span class="badge badge-warning">Pendiente de Aprobación</span>
+                                                @endcan
+                                            @else
+                                                {{-- NORMAL STATE --}}
+                                                <button {{ $sale->status == 'returned' ? 'disabled' : '' }}
+                                                    class="border-0 btn btn-outline-dark btn-xs"
+                                                    onclick="ConfirmDelete({{ $sale->id }})" title="Eliminar">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            @endif
 
                                             <button
                                                 {{ $sale->status == 'returned' || $sale->status == 'paid' ? 'disabled' : '' }}
@@ -254,8 +275,6 @@
                                                 class="border-0 btn btn-outline-dark btn-xs" title="Editar Nota">
                                                 <i class="fas fa-edit"></i>
                                             </button>
-
-
 
                                             <button wire:click.prevent="getSaleDetail({{ $sale->id }})"
                                                 class="border-0 btn btn-outline-dark btn-xs" title="Ver Detalles">
@@ -318,6 +337,10 @@
         .rest {
             display: block !important;
         }
+        .swal-content__input {
+            border: 1px solid #dbdbdb;
+            color: #333;
+        } 
     </style>
 
     <script>
@@ -405,63 +428,47 @@
         })
 
 
-        function Confirm(rowId) {
-            // Genera un número aleatorio de 3 cifras
-            const randomNum = Math.floor(100 + Math.random() * 900); // Genera un número entre 100 y 999
-            const confirmationSum = rowId + randomNum; // Suma el número de factura y el número aleatorio
-            const confirCode = {{ session('settings.confirmation_code') }}
+        function ConfirmDelete(saleId) {
+            // Determine permission using Blade directive injected into JS variable
+            const canApprove = @json(auth()->user()->can('sales.approve_deletion'));
 
-            // Muestra el número que el operador debe proporcionar
-
-            swal({
-                title: `Número de Confirmación\n\n`,
-                text: `El número que debes proporcionar al administrador es:\n\n` + `${confirmationSum}\n\n` +
-                    `Por favor, ingresa el código de confirmación para eliminar la venta:`,
-                content: {
-                    element: "input",
-                    attributes: {
-                        placeholder: "Código de confirmación",
-                        type: "text",
-                    },
-                },
-                icon: "warning",
-                buttons: true,
-                dangerMode: true,
-                buttons: {
-                    cancel: "Cancelar",
-                    confirm: {
-                        text: "Aceptar",
-                        closeModal: false // No cerrar el modal automáticamente
+            if (canApprove) {
+                // Admin Flow: Simple Confirmation
+                swal({
+                    title: '¿Confirmar eliminación?',
+                    text: 'Esta acción eliminará la venta y restaurará el inventario/pagos permanentemente.',
+                    icon: 'warning',
+                    buttons: ["Cancelar", "Sí, eliminar"],
+                    dangerMode: true,
+                }).then((willDelete) => {
+                    if (willDelete) {
+                        Livewire.dispatch('DestroySale', { saleId: saleId });
                     }
-                },
-            }).then((value) => {
-                if (value === null) {
-                    // El usuario canceló
-                    return;
-                }
-
-                // Calcula el código de confirmación
-                const today = new Date();
-                const day = today.getDate();
-                const month = today.getMonth() + 1; // Los meses son 0-indexed
-                const confirmationCode = confirmationSum + day + month + confirCode;
-
-                // Verifica el código de confirmación
-                if (parseInt(value) === confirmationCode) {
-                    // Si el código es correcto, procede a eliminar la venta
-                    Livewire.dispatch('DestroySale', {
-                        saleId: rowId
-                    });
-                    swal("Venta eliminada exitosamente!", {
-                        icon: "success",
-                    });
-                } else {
-                    // Si el código es incorrecto, muestra un mensaje de error
-                    swal("Código incorrecto. Intenta de nuevo.", {
-                        icon: "error",
-                    });
-                }
-            });
+                });
+            } else {
+                 // Operator Flow: Request with Reason
+                 swal({
+                    title: 'Solicitar Eliminación',
+                    text: 'Por favor ingresa el motivo de la eliminación:',
+                    content: {
+                        element: "input",
+                        attributes: {
+                            placeholder: "Escribe la razón aquí...",
+                            type: "text",
+                        },
+                    },
+                    icon: 'info',
+                    buttons: ["Cancelar", "Enviar Solicitud"],
+                }).then((reason) => {
+                    if (reason === null) return; // Cancelled
+                    if (reason.trim() === "") {
+                        swal("Debes ingresar un motivo", { icon: "error" });
+                        return;
+                    }
+                    
+                    Livewire.dispatch('DestroySale', { saleId: saleId, reason: reason });
+                });
+            }
         }
     </script>
 

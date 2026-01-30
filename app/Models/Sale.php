@@ -50,6 +50,11 @@ class Sale extends Model
         'delivery_status',
         'delivered_at',
         'credit_rules_snapshot',
+        'deletion_requested_at',
+        'deletion_reason',
+        'deletion_requested_by',
+        'deletion_approved_by',
+        'deletion_approved_at',
     ];
 
     protected $casts = [
@@ -58,6 +63,8 @@ class Sale extends Model
         'final_commission_amount' => 'decimal:2',
         'total' => 'decimal:2',
         'credit_rules_snapshot' => 'array',
+        'deletion_requested_at' => 'datetime',
+        'deletion_approved_at' => 'datetime',
     ];
 
     function details()
