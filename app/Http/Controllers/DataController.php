@@ -15,10 +15,17 @@ class DataController extends Controller
     {
         $valueToSearch = $request->get('q');
 
-        $clients = Customer::where('name', 'like', "%{$valueToSearch}%")
-            ->orWhere('address', 'like', "%{$valueToSearch}%")
-            ->orWhere('email', 'like', "%{$valueToSearch}%")
-            ->get();
+        $query = Customer::where(function($q) use ($valueToSearch) {
+            $q->where('name', 'like', "%{$valueToSearch}%")
+              ->orWhere('address', 'like', "%{$valueToSearch}%")
+              ->orWhere('email', 'like', "%{$valueToSearch}%");
+        });
+
+        if (!auth()->user()->can('customers.view_all') && auth()->user()->can('customers.view_own')) {
+            $query->where('seller_id', auth()->user()->id);
+        }
+
+        $clients = $query->get();
 
         return response()->json($clients);
     }

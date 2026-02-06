@@ -76,6 +76,9 @@ class SalesReport extends Component
                 ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
                     $q->whereBetween('created_at', [$dFrom, $dTo]);
                 })
+                ->when(!auth()->user()->can('sales.view_all') && auth()->user()->can('sales.view_own'), function($q) {
+                    $q->where('user_id', auth()->id());
+                })
                 ->when($this->user_id != null, function ($query) {
                     $query->where('user_id', $this->user_id);
                 })
@@ -96,6 +99,9 @@ class SalesReport extends Component
             // Calcular totales globales (sin paginación)
             $salesQuery = Sale::when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
                     $q->whereBetween('created_at', [$dFrom, $dTo]);
+                })
+                ->when(!auth()->user()->can('sales.view_all') && auth()->user()->can('sales.view_own'), function($q) {
+                    $q->where('user_id', auth()->id());
                 })
                 ->when($this->user_id != null, function ($query) {
                     $query->where('user_id', $this->user_id);
@@ -122,6 +128,9 @@ class SalesReport extends Component
                 ->join('customers', 'sales.customer_id', '=', 'customers.id') 
                 ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
                     $q->whereBetween('sales.created_at', [$dFrom, $dTo]);
+                })
+                ->when(!auth()->user()->can('sales.view_all') && auth()->user()->can('sales.view_own'), function($q) {
+                    $q->where('sales.user_id', auth()->id());
                 })
                 ->when($this->user_id != null, function ($query) {
                     $query->where('sales.user_id', $this->user_id);

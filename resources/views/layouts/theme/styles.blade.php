@@ -323,4 +323,58 @@
     body.dark-mode .btn.txt-dark:hover {
         background-color: rgba(255,255,255,0.1) !important;
     }
+    /* Generic Mobile Table Card View (Flex Logic) */
+    @media (max-width: 768px) {
+        .table-mobile-details thead {
+            display: none;
+        }
+        .table-mobile-details tbody tr {
+            display: block;
+            margin-bottom: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            background: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .table-mobile-details td {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: none;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+            text-align: right;
+            width: 100% !important;
+        }
+        .table-mobile-details td:last-child {
+            border-bottom: none;
+            justify-content: flex-end;
+            margin-top: 5px;
+        }
+        .table-mobile-details td::before {
+            content: attr(data-label);
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            color: #777;
+            text-align: left;
+            flex: 0 0 40%;
+            margin-right: 10px;
+        }
+        
+        /* Dark Mode Support for table-mobile-details */
+        body.dark-mode .table-mobile-details tbody tr {
+            background-color: #343a40 !important;
+            border-color: #6c757d !important;
+        }
+        body.dark-mode .table-mobile-details td {
+             border-bottom-color: #6c757d !important;
+             color: #fff !important;
+        }
+        body.dark-mode .table-mobile-details td::before {
+            color: #ccc !important;
+        }
+    }
 </style>

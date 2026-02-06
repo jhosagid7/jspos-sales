@@ -44,7 +44,15 @@
                         wire:click="cancelEdit">Cancelar
                     </button>
 
-                    <button class="btn btn-info  save" wire:click="Store">Guardar</button>
+                    @if($editing)
+                        @can('categories.edit')
+                        <button class="btn btn-info  save" wire:click="Store">Actualizar</button>
+                        @endcan
+                    @else
+                        @can('categories.create')
+                        <button class="btn btn-info  save" wire:click="Store">Guardar</button>
+                        @endcan
+                    @endif
                 </div>
             </div>
         </div>
@@ -64,7 +72,9 @@
                                 </div>
                             </div>
                         </div>
+                        @can('categories.create')
                         <div class="contact-edit chat-alert" wire:click='Add'><i class="icon-plus"></i></div>
+                        @endcan
                     </div>
                 </div>
                 <div class="card-body">
@@ -99,15 +109,19 @@
 
 
                                         <div class="btn-group btn-group-pill" role="group" aria-label="Basic example">
+                                            @can('categories.edit')
                                             <button class="btn btn-light btn-sm" wire:click="Edit({{ $item->id }})"><i
                                                     class="fa fa-edit fa-2x"></i>
 
                                             </button>
+                                            @endcan
+                                            @can('categories.delete')
                                             @if(!$item->products()->exists())
                                             <button class="btn btn-light btn-sm" onclick="Confirm({{ $item->id }})">
                                                 <i class="fa fa-trash fa-2x"></i>
                                             </button>
                                             @endif
+                                            @endcan
                                         </div>
 
                                     </td>

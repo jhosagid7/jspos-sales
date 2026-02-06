@@ -23,9 +23,11 @@
                                 </div>
                             </div>
                         </div>
+                        @can('customers.create')
                         <div class="contact-edit chat-alert" wire:click='Add'>
                             <button class="btn btn-primary btn-sm"><i class="icon-plus"></i> Nuevo</button>
                         </div>
+                        @endcan
                     </div>
                 </div>
                 <div class="card-body">
@@ -58,16 +60,20 @@
 
                                             <div class="btn-group btn-group-pill" role="group"
                                                 aria-label="Basic example">
+                                                @can('customers.edit')
                                                 <button class="btn btn-light btn-sm"
                                                     wire:click="Edit({{ $item->id }})"><i
                                                         class="fa fa-edit fa-2x"></i>
 
                                                 </button>
+                                                @endcan
                                                 {{-- @if (!$item->sales()->exists()) --}}
+                                                @can('customers.delete')
                                                 <button class="btn btn-light btn-sm"
                                                     onclick="Confirm('customers',{{ $item->id }})">
                                                     <i class="fa fa-trash fa-2x"></i>
                                                 </button>
+                                                @endcan
                                                 {{-- @endif --}}
                                             </div>
 

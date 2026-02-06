@@ -1165,7 +1165,10 @@ class Sales extends Component
     {
         if (empty(trim($this->search))) {
             return Order::with('customer')
-                ->whereHas('customer')
+            ->when(!auth()->user()->can('orders.view_all') && auth()->user()->can('orders.view_own'), function($q) {
+                $q->where('user_id', auth()->id());
+            })
+            ->whereHas('customer')
                 ->where('status', 'pending')
                 ->orderBy('orders.id', 'desc')
                 ->paginate($this->pagination);
@@ -1173,7 +1176,10 @@ class Sales extends Component
             $search = strtolower(trim($this->search));
 
             return Order::with('customer')
-                ->where(function ($query) use ($search) {
+             ->when(!auth()->user()->can('orders.view_all') && auth()->user()->can('orders.view_own'), function($q) {
+                $q->where('user_id', auth()->id());
+            })
+            ->where(function ($query) use ($search) {
                     // Búsqueda por el nombre del cliente
                     $query->whereHas('customer', function ($subQuery) use ($search) {
                         $subQuery->whereRaw("LOWER(name) LIKE ?", ["%{$search}%"]);

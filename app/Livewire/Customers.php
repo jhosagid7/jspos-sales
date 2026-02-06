@@ -77,15 +77,22 @@ class Customers extends Component
 
     public function loadCustomers()
     {
-        if (strlen($this->search) > 0) {
-            return Customer::where('name', 'like', "%{$this->search}%")
-                ->orWhere('taxpayer_id', 'like', "%{$this->search}%")
-                ->orWhere('phone', 'like', "%{$this->search}%")
-                ->orderBy('name', 'asc')
-                ->paginate(10);
-        } else {
-            return Customer::orderBy('name', 'asc')->paginate(10);
-        }
+            $query = Customer::orderBy('name', 'asc');
+
+            if (strlen($this->search) > 0) {
+                $query->where(function($q) {
+                    $q->where('name', 'like', "%{$this->search}%")
+                      ->orWhere('taxpayer_id', 'like', "%{$this->search}%")
+                      ->orWhere('phone', 'like', "%{$this->search}%");
+                });
+            }
+
+            // Permission Check: View Own vs View All
+            if (!auth()->user()->can('customers.view_all') && auth()->user()->can('customers.view_own')) {
+                $query->where('seller_id', auth()->user()->id);
+            }
+
+            return $query->paginate(10);
     }
 
     // ... (searching and loadCustomers methods remain unchanged)

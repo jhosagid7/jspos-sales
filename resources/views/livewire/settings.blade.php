@@ -326,6 +326,33 @@
                         <div class="tab-pane fade {{ $tab == 3 ? 'active show' : '' }}" id="currencies-settings" role="tabpanel"
                             aria-labelledby="currencies-settings-tab">
                             <div class="sidebar-body">
+                                {{-- Global Rates Section --}}
+                                <div class="card bg-light border-0 mb-4">
+                                    <div class="card-body">
+                                        <h6 class="mb-3 text-primary"><i class="fa fa-globe me-2"></i>Tasas Globales de Referencia</h6>
+                                        <div class="row g-3 align-items-end">
+                                            <div class="col-md-4">
+                                                <label class="form-label">Tasa BCV (Bs.)</label>
+                                                <input wire:model="bcvRate" type="number" step="0.000001" class="form-control" placeholder="0.00">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Tasa Binance (Bs.)</label>
+                                                <input wire:model="binanceRate" type="number" step="0.000001" class="form-control" placeholder="0.00">
+                                            </div>
+                                            <div class="col-md-4 d-flex gap-2">
+                                                <button wire:click="saveGlobalRates" class="btn btn-success flex-grow-1">
+                                                    <i class="fa fa-save me-1"></i> Guardar Tasas
+                                                </button>
+                                                <button wire:click="viewRateHistory" class="btn btn-info text-white">
+                                                    <i class="fa fa-history"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <small class="text-muted mt-2 d-block">
+                                            <i class="fa fa-info-circle"></i> Estas tasas se usarán como referencia precargada al registrar pagos en Bolívares.
+                                        </small>
+                                    </div>
+                                </div>
                                 <div class="row g-3">
                                     <div class="col-12">
                                         <h6 class="mb-3">Moneda Principal</h6>
@@ -798,4 +825,57 @@
             </div>
         </div>
     </div>
+
+    {{-- History Modal --}}
+    <div wire:ignore.self class="modal fade" id="modalRateHistory" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fa fa-history me-2"></i>Historial de Tasas de Cambio</h5>
+                    <button class="btn-close btn-close-white" type="button" data-dismiss="modal" aria-label="Close" onclick="$('#modalRateHistory').modal('hide')"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Fecha y Hora</th>
+                                    <th>Tipo</th>
+                                    <th>Tasa</th>
+                                    <th>Usuario</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($historyRates as $h)
+                                    <tr>
+                                        <td>{{ \Carbon\Carbon::parse($h->created_at)->format('d/m/Y h:i A') }}</td>
+                                        <td>
+                                            <span class="badge {{ $h->rate_type == 'BCV' ? 'bg-info' : 'bg-warning text-dark' }}">
+                                                {{ $h->rate_type }}
+                                            </span>
+                                        </td>
+                                        <td class="fw-bold">{{ number_format($h->rate, 4) }}</td>
+                                        <td>{{ $h->user->name ?? 'Sistema' }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="4" class="text-center py-3">No hay historial registrado.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="$('#modalRateHistory').modal('hide')">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('show-history-modal', event => {
+            $('#modalRateHistory').modal('show');
+        });
+    </script>
 </div>

@@ -16,10 +16,8 @@ class Roles extends Component
 
     function mount()
     {
-        // Strict protection: Only Admin can access this component
-        // Strict protection: Only Admin can access this component
-        // Also allow the specific super admin email just in case they lost the role
-        if (!auth()->user()->hasRole('Admin') && auth()->user()->email !== 'jhosagid77@gmail.com') {
+        // Check granular permission
+        if (!auth()->user()->can('roles.index') && !auth()->user()->hasRole('Admin')) {
             abort(403, 'NO TIENES AUTORIZACIÓN PARA ACCEDER A ESTE MÓDULO');
         }
 

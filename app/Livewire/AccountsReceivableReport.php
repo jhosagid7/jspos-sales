@@ -377,7 +377,7 @@ class AccountsReceivableReport extends Component
         }, 'Cuentas_Por_Cobrar_' . Carbon::now()->format('YmdHis') . '.pdf');
     }
 
-    function initPayment($sale_id, $customer, $debt = null)
+    function initPayment($sale_id, $customer, $debt = null, $prefill = [])
     {
         $sale = Sale::find($sale_id);
         
@@ -445,6 +445,10 @@ class AccountsReceivableReport extends Component
         $this->customer_name = $customer;
         $this->debt = round($debtInPrimary, 2);
         $this->debt_usd = round($debtUSD, 2);
+
+        // Check Permissions
+        $canUpload = auth()->user()->can('payments.upload');
+        $canPay = auth()->user()->can('payments.register_direct');
         
         $this->dispatch('initPayment', 
             total: $this->debt, 
@@ -454,12 +458,26 @@ class AccountsReceivableReport extends Component
             adjustment: $adjustment,
             allowDiscounts: $allowDiscounts,
             usdDiscountPercent: $usdPaymentDiscountPercent,
-            fixedUsdDiscountAmount: $fixedUsdDiscountAmount
+            fixedUsdDiscountAmount: $fixedUsdDiscountAmount,
+            canUpload: $canUpload,
+            canPay: $canPay,
+            prefill: $prefill
         );
+    }
+    
+    #[On('payment-uploaded')]
+    public function handlePaymentUploaded($payments, $change, $changeDistribution) 
+    {
+         $this->processPayment($payments, 'pending');
     }
 
     #[On('payment-completed')]
     public function handlePaymentCompleted($payments, $change, $changeDistribution)
+    {
+        $this->processPayment($payments, 'approved');
+    }
+
+    public function processPayment($payments, $status)
     {
         if (!$this->sale_id) return;
 
@@ -468,8 +486,6 @@ class AccountsReceivableReport extends Component
             $sale = Sale::find($this->sale_id);
             $primaryCurrency = \App\Models\Currency::where('is_primary', true)->first();
             
-            $totalPaidUSD = 0;
-
             foreach ($payments as $payment) {
                 $amount = $payment['amount'];
                 $currencyCode = $payment['currency'];
@@ -576,6 +592,7 @@ class AccountsReceivableReport extends Component
                     'primary_exchange_rate' => $primaryCurrency->exchange_rate,
                     'pay_way' => $payment['method'] == 'bank' ? 'deposit' : $payment['method'],
                     'type' => 'pay',
+                    'status' => $status, // Add status
                     'bank' => $payment['bank_name'] ?? null,
                     'account_number' => $payment['account_number'] ?? null,
                     'deposit_number' => $payment['reference'] ?? null,
@@ -597,48 +614,34 @@ class AccountsReceivableReport extends Component
                     $createdBankRecord->update(['payment_id' => $pay->id]);
                 }
 
-                // Update Sheet Total (Convert to Base Currency USD if needed, or keep original? 
-                // Usually sheets track total collected value. For simplicity let's track USD equivalent or just sum amounts if single currency.
-                // Given multi-currency, tracking USD equivalent in total_amount is safer for aggregation)
+                // Update Sheet Total (Only if approved? Or track all? Usually collection tracks money received. 
+                // If pending, maybe not? But Zelle/Bank records were created. 
+                // Let's assume pending payments are NOT in collection sheet until approved? 
+                // Or maybe they are money received but waiting verification?
+                // logic in PartialPayment didn't prevent collection sheet entry. 
+                // But typically 'pending' means might be rejected.
+                // However, I will keep duplicate logic from PartialPayment for now.
+                // In PartialPayment I added collection_sheet_id to create.
+                
                 $amountUSD = $amount / $exchangeRate;
                 $sheet->increment('total_amount', $amountUSD);
-                
-                $amountUSD = $amount / $exchangeRate;
-                $totalPaidUSD += $amountUSD;
             }
 
-            // Check if settled
-            // Force refresh of payments relationship to get ALL payments (including just created ones)
-            $sale->refresh(); 
-            
-            $currentTotalPaidUSD = $sale->payments->sum(function($p) {
-                $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
-                return $p->amount / $rate;
-            });
-            
-            // Also include initial payment details if any (mixed sales)
-            $initialPaidUSD = $sale->paymentDetails->sum(function($detail) {
-                $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
-                return $detail->amount / $rate;
-            });
-            
-            $grandTotalPaidUSD = $currentTotalPaidUSD + $initialPaidUSD;
-            
-            if ($grandTotalPaidUSD >= ($sale->total_usd - 0.01)) {
-                $sale->update(['status' => 'paid']);
-                
-                Payment::where('sale_id', $sale->id)
-                    ->where('created_at', '>=', \Carbon\Carbon::now()->subMinute())
-                    ->update(['type' => 'settled']);
-                    
-                \App\Services\CommissionService::calculateCommission($sale);
+            // Only update sale totals if APPROVED
+            if ($status === 'approved') {
+                 $this->checkSaleSettlement($sale);
             }
 
             DB::commit();
 
-            $this->printPayment($pay->id); // Print last payment receipt
-            $this->dispatch('noty', msg: 'PAGO REGISTRADO CON ÉXITO');
-            $this->dispatch('hide-modal-payment'); // This might be redundant if component closes itself
+            if ($status === 'approved') {
+                $this->printPayment($pay->id ?? null); 
+                $this->dispatch('noty', msg: 'PAGO REGISTRADO CON ÉXITO');
+            } else {
+                 $this->dispatch('noty', msg: 'PAGO SUBIDO. PENDIENTE DE APROBACIÓN.');
+            }
+
+            $this->dispatch('hide-modal-payment'); 
             
             $this->sale_id = null;
             $this->customer_name = null;
@@ -650,6 +653,149 @@ class AccountsReceivableReport extends Component
             $this->dispatch('noty', msg: "Error al registrar el pago: {$th->getMessage()}");
         }
     }
+    
+    public function approvePayment($paymentId)
+    {
+        if (!auth()->user()->can('payments.approve')) {
+             $this->dispatch('noty', msg: 'NO TIENES PERMISO PARA APROBAR PAGOS');
+             return;
+        }
+
+        try {
+            DB::beginTransaction();
+            $payment = Payment::find($paymentId);
+            if ($payment && $payment->status === 'pending') {
+                $payment->update(['status' => 'approved']);
+                
+                $sale = Sale::find($payment->sale_id);
+                $this->checkSaleSettlement($sale);
+                
+                DB::commit();
+                $this->dispatch('noty', msg: 'PAGO APROBADO CORRECTAMENTE');
+                
+                // Refresh list if viewing history
+                if ($this->pays && count($this->pays) > 0 && $this->pays[0]->sale_id == $sale->id) {
+                     $this->pays = $sale->payments; 
+                }
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->dispatch('noty', msg: 'Error al aprobar: ' . $e->getMessage());
+        }
+    }
+
+    public function rejectPayment($paymentId, $reason)
+    {
+        if (!auth()->user()->can('payments.approve')) {
+             $this->dispatch('noty', msg: 'NO TIENES PERMISO PARA RECHAZAR PAGOS');
+             return;
+        }
+
+        try {
+            $payment = Payment::find($paymentId);
+            if ($payment && $payment->status === 'pending') {
+                $payment->update([
+                    'status' => 'rejected',
+                    'rejection_reason' => $reason
+                ]);
+                
+                $this->dispatch('noty', msg: 'PAGO RECHAZADO CORRECTAMENTE');
+                
+                // Refresh list
+                $sale = Sale::find($payment->sale_id);
+                if ($this->pays && count($this->pays) > 0 && $this->pays[0]->sale_id == $sale->id) {
+                     $this->pays = $sale->payments; 
+                }
+            }
+        } catch (\Exception $e) {
+            $this->dispatch('noty', msg: 'Error al rechazar: ' . $e->getMessage());
+        }
+    }
+
+    public function deletePayment($paymentId)
+    {
+        if (!auth()->user()->can('payments.delete')) {
+            $this->dispatch('noty', msg: 'NO TIENES PERMISO PARA ELIMINAR PAGOS');
+            return;
+        }
+
+        try {
+            DB::beginTransaction();
+            $payment = Payment::find($paymentId);
+            
+            if ($payment && ($payment->status === 'pending' || $payment->status === 'rejected')) {
+                
+                // Revert Zelle Record if exists
+                if ($payment->zelle_record_id) {
+                    $zelle = \App\Models\ZelleRecord::find($payment->zelle_record_id);
+                    if ($zelle) {
+                         $amountToRestore = $payment->amount; 
+                         $zelle->remaining_balance += $amountToRestore;
+                         if ($zelle->remaining_balance > $zelle->amount) $zelle->remaining_balance = $zelle->amount;
+                         
+                         $zelle->status = 'partial'; 
+                         if($zelle->remaining_balance == $zelle->amount) $zelle->status = 'unused';
+                         $zelle->save();
+                    }
+                }
+                
+                if ($payment->bank_record_id) {
+                    \App\Models\BankRecord::destroy($payment->bank_record_id);
+                }
+
+                $payment->delete();
+                
+                DB::commit();
+                $this->dispatch('noty', msg: 'Pago eliminado correctamente');
+                
+                $sale = Sale::find($payment->sale_id);
+                if ($this->pays && count($this->pays) > 0 && $this->pays[0]->sale_id == $sale->id) {
+                     $this->pays = $sale->payments; 
+                }
+            } else {
+                 $this->dispatch('noty', msg: 'No se puede eliminar este pago (Estado incorrecto)');
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->dispatch('noty', msg: 'Error al eliminar: ' . $e->getMessage());
+        }
+    }
+
+
+
+    public function checkSaleSettlement($sale) {
+        $sale->refresh();
+        
+        $currentTotalPaidUSD = $sale->payments->where('status', 'approved')->sum(function($p) {
+            $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
+            $amountUSD = $p->amount / $rate;
+            
+            $adjustmentUSD = $p->discount_applied ?? 0;
+             if ($p->rule_type === 'overdue') {
+                return $amountUSD - $adjustmentUSD;
+            } else {
+                return $amountUSD + $adjustmentUSD;
+            }
+        });
+        
+        $initialPaidUSD = $sale->paymentDetails->sum(function($detail) {
+            $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
+            return $detail->amount / $rate;
+        });
+        
+        $grandTotalPaidUSD = $currentTotalPaidUSD + $initialPaidUSD;
+        
+        if ($grandTotalPaidUSD >= ($sale->total_usd - 0.01)) {
+            $sale->update(['status' => 'paid']);
+            
+            Payment::where('sale_id', $sale->id)
+                ->where('status', 'approved')
+                ->where('created_at', '>=', \Carbon\Carbon::now()->subMinute())
+                ->update(['type' => 'settled']);
+                
+            \App\Services\CommissionService::calculateCommission($sale);
+        }
+    }
 
     function cancelPay()
     {
@@ -659,10 +805,19 @@ class AccountsReceivableReport extends Component
         $this->debt_usd = null;
     }
 
-    function historyPayments(Sale $sale)
+    function historyPayments($sale_id) // Changed type hint to $sale_id for flexibility or keep object if using implicit binding
     {
-        $this->pays = $sale->payments;
-        $this->dispatch('show-payhistory');
+        // If passed as object from blade, Livewire handles it. But let's support ID too just in case.
+        // Actually the blade probably calls historyPayments({{ $sale->id }}) which passes int.
+        // The original code had Type Hint Sale $sale. 
+        // If blade passes ID, type hint fails unless implicit binding works?
+        // Let's check how it's called. Typically wire:click="historyPayments({{ $row->id }})".
+        // Use find to be safe.
+        $sale = Sale::find($sale_id);
+        if ($sale) {
+            $this->pays = $sale->payments;
+            $this->dispatch('show-payhistory');
+        }
     }
 
     function printHistory()
@@ -681,5 +836,21 @@ class AccountsReceivableReport extends Component
     {
         $this->printPayment($payment_id);
         $this->dispatch('noty', msg: 'IMPRIMIENDO RECIBO DE PAGO...');
+    }
+
+    public function generatePaymentHistoryPdf($saleId)
+    {
+        $sale = Sale::with(['customer', 'payments.zelleRecord', 'payments.bankRecord.bank', 'user'])->find($saleId);
+        if (!$sale) {
+             $this->dispatch('noty', msg: 'Venta no encontrada');
+             return;
+        }
+        
+        $config = \App\Models\Configuration::first();
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.payment-history-pdf', ['sale' => $sale, 'config' => $config]);
+        
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->output();
+        }, 'Historial_Pagos_Factura_' . $sale->id . '_' . date('YmdHis') . '.pdf');
     }
 }

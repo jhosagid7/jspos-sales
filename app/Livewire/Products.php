@@ -170,6 +170,13 @@ class Products extends Component
 
     function createCatalogue()
     {
+        // Simple check based on what is being created
+        if ($this->btnCreateSupplier) {
+             $this->authorize('suppliers.create');
+        } else {
+             $this->authorize('categories.create');
+        }
+
         if (empty($this->catalogueName)) {
             $this->dispatch('error', msg: 'Ingresa el nombre ' . $this->btnCreateSupplier ? ' del Proveedor' : ' de la Categoría');
             return;
@@ -358,6 +365,7 @@ class Products extends Component
 
     function Store()
     {
+        $this->authorize('products.create');
         try {
             $this->resetErrorBag();
             $product = $this->form->store();
@@ -374,6 +382,8 @@ class Products extends Component
 
     function Update()
     {
+        $this->authorize('products.edit');
+        // dd($this->form);
         // dd($this->form);
         try {
             $this->resetErrorBag();
@@ -401,6 +411,7 @@ class Products extends Component
     #[On('Destroy')]
     public function Destroy($id)
     {
+        $this->authorize('products.delete');
         try {
             $product = Product::find($id);
 

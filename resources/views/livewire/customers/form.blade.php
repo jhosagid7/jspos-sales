@@ -382,8 +382,18 @@
             <i class="fas fa-times mr-1"></i> Cancelar
         </button>
         
-        <button class="btn btn-primary" wire:click="Store">
-            <i class="fas fa-check mr-1"></i> {{ $customer->id ? 'Actualizar' : 'Crear Cliente' }}
-        </button>
+        @if($customer->id)
+            @can('customers.edit')
+            <button class="btn btn-primary" wire:click="Store">
+                <i class="fas fa-check mr-1"></i> Actualizar
+            </button>
+            @endcan
+        @else
+            @can('customers.create')
+            <button class="btn btn-primary" wire:click="Store">
+                <i class="fas fa-check mr-1"></i> Crear Cliente
+            </button>
+            @endcan
+        @endif
     </div>
 </div>

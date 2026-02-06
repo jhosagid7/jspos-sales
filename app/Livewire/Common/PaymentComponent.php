@@ -76,6 +76,15 @@ class PaymentComponent extends Component
     
     public $usdAdjustment = null; // ['amount' => x, 'percentage' => y]
     public $applyUsdDiscount = false;
+    
+    // Permission Flags
+    public $canUpload = false;
+    public $canPay = false;
+
+    // Custom Rate & History Logic (New)
+    public $customExchangeRate;
+    public $paymentDate; // Universal payment date field (mandatory for VED/Cash)
+
 
     protected $listeners = ['initPayment'];
 
@@ -91,13 +100,15 @@ class PaymentComponent extends Component
         $this->resetPaymentForm();
     }
 
-    public function initPayment($total, $currency = 'COP', $customer = '', $allowPartial = false, $adjustment = null, $allowDiscounts = false, $usdDiscountPercent = 0, $fixedUsdDiscountAmount = 0)
+    public function initPayment($total, $currency = 'COP', $customer = '', $allowPartial = false, $adjustment = null, $allowDiscounts = false, $usdDiscountPercent = 0, $fixedUsdDiscountAmount = 0, $canUpload = false, $canPay = false)
     {
         Log::info('PaymentComponent::initPayment Received', [
             'total' => $total,
             'allowDiscounts' => $allowDiscounts,
             'percent' => $usdDiscountPercent,
-            'fixedAmount' => $fixedUsdDiscountAmount
+            'fixedAmount' => $fixedUsdDiscountAmount,
+            'canUpload' => $canUpload,
+            'canPay' => $canPay
         ]);
 
         $this->totalToPay = floatval($total);
@@ -105,10 +116,12 @@ class PaymentComponent extends Component
         $this->customerName = $customer;
         $this->allowPartialPayment = $allowPartial;
         $this->adjustment = $adjustment;
-        // $this->applyAdjustment = false; // logic already sets this inside calculateTotals or below
         $this->allowDiscounts = $allowDiscounts;
         $this->usdPaymentDiscountPercent = $usdDiscountPercent;
         $this->fixedUsdDiscountAmount = $fixedUsdDiscountAmount;
+        
+        $this->canUpload = $canUpload;
+        $this->canPay = $canPay;
         
         $this->applyAdjustment = false; 
         $this->applyUsdDiscount = false;
@@ -159,6 +172,15 @@ class PaymentComponent extends Component
         $this->bankNote = '';
         $this->bankImage = null;
         
+        // Reset VED Bank
+        $this->bankReference = '';
+        $this->bankDate = date('Y-m-d');
+        $this->bankNote = '';
+        $this->bankImage = null;
+        
+        $this->customExchangeRate = null;
+        $this->paymentDate = date('Y-m-d');
+        
         // Keep paymentCurrency and paymentMethod as is for better UX
     }
 
@@ -194,6 +216,66 @@ class PaymentComponent extends Component
         $this->calculateTotals(); 
     }
 
+
+
+    // REACTIVE RATE LOOKUP
+    public function updatedPaymentDate()
+    {
+        $this->lookupHistoricalRate();
+    }
+    
+    // Also trigger lookup if bank/method changes, as currency might change to VED
+    public function updatedPaymentCurrency() { $this->lookupHistoricalRate(); }
+
+    public function lookupHistoricalRate() 
+    {
+        // Identify if current context is VED
+        $isVED = false;
+        
+        // 1. Check Explicit Payment Currency (Cash)
+        if ($this->paymentMethod == 'cash' && in_array($this->paymentCurrency, ['VED', 'VES'])) {
+            $isVED = true;
+        }
+        
+        // 2. Check Bank Currency
+        if ($this->paymentMethod == 'bank' && $this->bankId) {
+             $bank = $this->banks->find($this->bankId);
+             if ($bank && in_array($bank->currency_code, ['VED', 'VES'])) {
+                 $isVED = true;
+             }
+        }
+        
+        if ($isVED) {
+             $dateToSearch = $this->paymentDate ?: ($this->bankDate ?: date('Y-m-d'));
+             
+             // If date is empty, default to today
+             if(empty($dateToSearch)) $dateToSearch = date('Y-m-d');
+             
+             // Look up history: Last rate recorded <= end of that day
+             $history = \App\Models\ExchangeRateHistory::where('rate_type', 'BCV') // Assume BCV for now as standard official
+                 ->where('created_at', '<=', \Carbon\Carbon::parse($dateToSearch)->endOfDay())
+                 ->orderBy('created_at', 'desc')
+                 ->first();
+                 
+             if ($history) {
+                 $this->customExchangeRate = $history->rate;
+                 // Optional: Flash message? No, too noisy.
+             } else {
+                 // Fallback to current config rate if no history found?
+                 // Or keep empty? 
+                 // Requirement: "PRECARGADA LA TASA BCV QUE CORRESPONDA... SI EL HISTORIAL TIENE REGISTRADO"
+                 // If not found in history for that date, maybe load current Config BCV as fallback?
+                 // Or fallback to current rate.
+                 $config = \App\Models\Configuration::first();
+                 if ($config && $config->bcv_rate) {
+                      $this->customExchangeRate = $config->bcv_rate;
+                 }
+             }
+        } else {
+             $this->customExchangeRate = null; // Reset if not VED
+        }
+    }
+    
     public function checkZelleStatus()
     {
         if ($this->zelleSender && $this->zelleDate && $this->zelleAmount) {
@@ -246,6 +328,14 @@ class PaymentComponent extends Component
         $this->validate([
             'amount' => 'required|numeric|min:0.01',
         ]);
+        
+        // Validate Cash VED Date
+        if ($this->paymentMethod == 'cash' && in_array($this->paymentCurrency, ['VED', 'VES'])) {
+             $this->validate([
+                 'paymentDate' => 'required|date'
+             ]);
+        }
+
 
         if ($this->paymentMethod == 'bank') {
             if ($this->isZelleSelected) {
@@ -304,13 +394,36 @@ class PaymentComponent extends Component
         if ($currency && $currency->is_primary) {
             $amountInPrimary = $this->amount;
         } else {
-            $amountInUSD = $this->amount / ($exchangeRate ?: 1);
+            // Apply Custom Rate if set
+            $finalRate = $exchangeRate;
+            if ($this->customExchangeRate > 0) {
+                 // Logic check: Only apply if VED? 
+                 // Yes, addPayment logic above already verified context.
+                 // But wait, $exchangeRate var here is used for calculation.
+                 // We need to update it BEFORE calculation.
+                 if (($this->paymentMethod == 'cash' && in_array($currencyCode, ['VED', 'VES'])) ||
+                    ($this->paymentMethod == 'bank' && $this->isVedBankSelected)) {
+                        $finalRate = $this->customExchangeRate;
+                 }
+            }
+            
+            $amountInUSD = $this->amount / ($finalRate ?: 1);
             $amountInPrimary = $amountInUSD * $primaryCurrency->exchange_rate;
         }
 
         // Handle Images
         $imagePath = ($this->isZelleSelected && $this->zelleImage) ? $this->zelleImage->store('zelle_receipts', 'public') : null;
         $bankImagePath = ($this->paymentMethod == 'bank' && $this->isVedBankSelected && $this->bankImage) ? $this->bankImage->store('bank_receipts', 'public') : null;
+
+        // Check Custom Rate Logic
+        if (($this->paymentMethod == 'cash' && in_array($currencyCode, ['VED', 'VES'])) ||
+            ($this->paymentMethod == 'bank' && $this->isVedBankSelected)) {
+            
+             // Override exchange rate if custom rate provided
+             if ($this->customExchangeRate > 0) {
+                 $exchangeRate = $this->customExchangeRate;
+             }
+        }
 
         $newPayment = [
             'method' => $this->isZelleSelected ? 'zelle' : $this->paymentMethod,
@@ -333,7 +446,9 @@ class PaymentComponent extends Component
             'bank_date' => $this->bankDate,
             'bank_note' => $this->bankNote,
             'bank_image' => $bankImagePath,
-            'bank_file_url' => $bankImagePath ? asset('storage/' . $bankImagePath) : null
+            'bank_file_url' => $bankImagePath ? asset('storage/' . $bankImagePath) : null,
+            // Add Payment Date for History/Cash
+            'payment_date' => $this->paymentMethod == 'cash' ? ($this->paymentDate ?: now()) : ($this->bankDate ?: $this->zelleDate)
         ];
 
         
@@ -474,7 +589,7 @@ class PaymentComponent extends Component
     
     // ... addChangeDistribution ...
 
-    public function submit()
+    public function submit($action = 'pay')
     {
         if ($this->totalPaid <= 0) {
             $this->dispatch('noty', msg: 'Debe ingresar un monto mayor a cero');
@@ -545,19 +660,28 @@ class PaymentComponent extends Component
              }
         }
 
-        Log::info("PaymentComponent: About to dispatch payment-completed", [
+        Log::info("PaymentComponent: About to dispatch payment event", [
+            'action' => $action,
             'payments_count' => count($this->payments),
             'has_zelle' => collect($this->payments)->contains('method', 'zelle'),
             'payments_data' => $this->payments
         ]);
 
-        $this->dispatch('payment-completed', 
-            payments: $this->payments, 
-            change: $this->change, 
-            changeDistribution: $this->changeDistribution
-        );
+        if ($action === 'upload') {
+            $this->dispatch('payment-uploaded', 
+                payments: $this->payments, 
+                change: $this->change, 
+                changeDistribution: $this->changeDistribution
+            );
+        } else {
+            $this->dispatch('payment-completed', 
+                payments: $this->payments, 
+                change: $this->change, 
+                changeDistribution: $this->changeDistribution
+            );
+        }
         
-        Log::info("PaymentComponent: payment-completed event dispatched");
+        Log::info("PaymentComponent: Event dispatched for action: $action");
         
         $this->dispatch('close-payment-modal');
     }

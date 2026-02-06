@@ -1,246 +1,154 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <title>Historial de Pagos</title>
-        <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Historial de Pagos - Factura #{{ $sale->id }}</title>
+    <style>
+        body { font-family: sans-serif; font-size: 10px; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .company-name { font-size: 14px; font-weight: bold; }
+        .info-table { width: 100%; margin-bottom: 20px; }
+        .info-table td { padding: 3px; vertical-align: top; }
+        .payment-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .payment-table th, .payment-table td { border: 1px solid #ddd; padding: 5px; text-align: center; }
+        .payment-table th { background-color: #f2f2f2; font-weight: bold; }
+        .totals { margin-top: 20px; text-align: right; }
+        .totals-table { width: 40%; float: right; border-collapse: collapse; }
+        .totals-table td { padding: 3px; text-align: right; }
+        .totals-table .label { font-weight: bold; }
+        .status-badge { padding: 2px 5px; border-radius: 3px; color: white; font-size: 9px; }
+        .status-pending { background-color: #f39c12; }
+        .status-approved { background-color: #27ae60; }
+        .voided { text-decoration: line-through; color: #999; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="company-name">{{ $config->business_name }}</div>
+        <div>{{ $config->address }}</div>
+        <div>NIT: {{ $config->taxpayer_id }}</div>
+        <div>Tel: {{ $config->phone }}</div>
+    </div>
 
-        <style type="text/css" media="screen">
-            html {
-                font-family: sans-serif;
-                line-height: 1.15;
-                margin: 0;
-            }
+    <div style="clear: both; margin-bottom: 15px; border-bottom: 1px solid #000;"></div>
 
-            body {
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-                font-weight: 400;
-                line-height: 1.5;
-                color: #212529;
-                text-align: left;
-                background-color: #fff;
-                font-size: 11px;
-                margin: 36pt;
-            }
+    <table class="info-table">
+        <tr>
+            <td width="50%">
+                <strong>CLIENTE:</strong><br>
+                {{ $sale->customer->name }}<br>
+                {{ $sale->customer->phone }}<br>
+                {{ $sale->customer->address }}
+            </td>
+            <td width="50%" style="text-align: right;">
+                <strong>FOLIO VENTA:</strong> #{{ $sale->id }}<br>
+                <strong>FECHA EMISIÓN:</strong> {{ \Carbon\Carbon::parse($sale->created_at)->format('d/m/Y H:i') }}<br>
+                <strong>VENDEDOR:</strong> {{ $sale->user->name }}
+            </td>
+        </tr>
+    </table>
 
-            table {
-                border-collapse: collapse;
-                width: 100%;
-            }
+    <h3 style="text-align: center; margin-top: 5px; margin-bottom: 5px;">HISTORIAL DE PAGOS</h3>
 
-            th {
-                text-align: inherit;
-            }
+    <table class="payment-table">
+        <thead>
+            <tr>
+                <th>FECHA</th>
+                <th>MÉTODO</th>
+                <th>DETALLES</th>
+                <th>ESTADO</th>
+                <th>MONEDA</th>
+                <th>MONTO ORIG.</th>
+                <th>TASA</th>
+                <th>MONTO USD</th>
+            </tr>
+        </thead>
+        <tbody>
+            @php $totalPaidUSD = 0; @endphp
+            @foreach($sale->payments as $payment)
+                @php
+                    $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
+                    $amountUSD = $payment->amount / $rate;
+                    
+                    if($payment->status === 'approved') {
+                        $totalPaidUSD += $amountUSD;
+                    }
 
-            .table {
-                width: 100%;
-                margin-bottom: 1rem;
-                color: #212529;
-            }
+                    // Prepare Detail Strings
+                    $details = [];
+                    
+                    if ($payment->pay_way == 'zelle' && $payment->zelleRecord) {
+                        $details[] = "<b>Emisor:</b> " . $payment->zelleRecord->sender_name;
+                        $details[] = "<b>Fecha:</b> " . \Carbon\Carbon::parse($payment->zelleRecord->zelle_date)->format('d/m/Y');
+                        $details[] = "<b>Monto Orig.:</b> $" . number_format($payment->zelleRecord->amount, 2);
+                        $details[] = "<b>Ref:</b> " . ($payment->zelleRecord->reference ?? 'NA');
+                    } elseif ($payment->pay_way == 'deposit' || $payment->pay_way == 'bank') {
+                         if ($payment->bankRecord) {
+                             $bankName = $payment->bankRecord->bank->name ?? 'Banco';
+                             $details[] = "<b>Banco:</b> " . $bankName;
+                             $details[] = "<b>Fecha:</b> " . \Carbon\Carbon::parse($payment->bankRecord->payment_date)->format('d/m/Y');
+                             $details[] = "<b>Monto:</b> $" . number_format($payment->bankRecord->amount, 2);
+                             $details[] = "<b>Ref:</b> " . ($payment->bankRecord->reference ?? 'NA');
+                         } else {
+                             // Fallback for old records or no record linked
+                             if($payment->bank) $details[] = "<b>Banco:</b> " . $payment->bank;
+                             if($payment->deposit_number) $details[] = "<b>Ref:</b> " . $payment->deposit_number;
+                             if($payment->reference && empty($payment->deposit_number)) $details[] = "<b>Ref:</b> " . $payment->reference;
+                         }
+                    } else {
+                        // Cash or others
+                        if($payment->reference) $details[] = "Ref: " . $payment->reference;
+                    }
 
-            .table th,
-            .table td {
-                padding: 0.5rem;
-                vertical-align: top;
-                border: 1px solid #dee2e6;
-            }
-
-            .table thead th {
-                vertical-align: bottom;
-                border-bottom: 2px solid #dee2e6;
-                background-color: #f8f9fa;
-                font-weight: bold;
-            }
-
-            .text-right {
-                text-align: right !important;
-            }
-
-            .text-center {
-                text-align: center !important;
-            }
-
-            .text-green {
-                color: #28a745;
-            }
-
-            .text-red {
-                color: #dc3545;
-            }
-
-            .header-info {
-                margin-bottom: 20px;
-                border-bottom: 2px solid #ccc;
-                padding-bottom: 10px;
-            }
-            
-            .logo-container {
-                text-align: center;
-                margin-bottom: 10px;
-            }
-
-            .summary-box {
-                background-color: #f8f9fa;
-                padding: 15px;
-                margin-top: 20px;
-                border: 1px solid #dee2e6;
-            }
-
-            .summary-row {
-                display: flex;
-                justify-content: space-between;
-                padding: 5px 0;
-            }
-
-            .summary-label {
-                font-weight: bold;
-            }
-
-            .total-row {
-                border-top: 2px solid #000;
-                margin-top: 10px;
-                padding-top: 10px;
-                font-size: 1.2em;
-                font-weight: bold;
-            }
-        </style>
-    </head>
-
-            .invoice-title {
-                color: #0380b2;
-                font-weight: bold;
-                font-size: 20px;
-                margin: 0;
-            }
-            .report-title {
-                color: #0380b2;
-                font-size: 16px;
-                font-weight: bold;
-                margin: 0;
-            }
-            .box-details {
-                border: 1px solid #6B7280;
-                border-radius: 15px;
-                padding: 10px;
-                margin-bottom: 20px;
-            }
-            .text-blue {
-                color: #0380b2;
-            }
-        </style>
-    </head>
-
-    <body>
-        {{-- Header --}}
-        <table class="table mt-1" style="margin-bottom: 0;">
-            <tbody>
-                <tr>
-                    <td class="pl-0 border-0" width="25%" style="vertical-align: middle;">
-                       @if($config->logo)
-                            <img src="{{ public_path('storage/' . $config->logo) }}" alt="logo" height="60">
+                @endphp
+                <tr class="{{ $payment->status === 'cancelled' ? 'voided' : '' }}">
+                    <td>{{ \Carbon\Carbon::parse($payment->created_at)->format('d/m/Y') }}</td>
+                    <td>
+                        {{ ucfirst($payment->pay_way == 'cash' ? 'Efectivo' : ($payment->pay_way == 'deposit' ? 'Banco' : $payment->pay_way)) }}
+                    </td>
+                    <td style="text-align: left;">
+                        @foreach($details as $line)
+                            {!! $line !!}<br>
+                        @endforeach
+                    </td>
+                    <td>
+                        @if($payment->status == 'pending')
+                            <span class="status-badge status-pending">PENDIENTE</span>
+                        @elseif($payment->status == 'approved')
+                            <span class="status-badge status-approved">APROBADO</span>
+                        @else
+                            {{ ucfirst($payment->status) }}
                         @endif
                     </td>
-                    <td class="border-0 text-center" width="50%" style="vertical-align: middle;">
-                        <h4 class="text-uppercase invoice-title">
-                            {{ $config->business_name }}
-                        </h4>
-                    </td>
-                    <td class="border-0 text-right" width="25%" style="vertical-align: middle;">
-                        <h4 class="text-uppercase report-title">
-                            HISTORIAL DE PAGOS
-                        </h4>
-                        <span style="font-size: 10px; font-weight: bold;">REPORTE</span>
-                    </td>
+                    <td>{{ $payment->currency }}</td>
+                    <td>{{ number_format($payment->amount, 2) }}</td>
+                    <td>{{ number_format($rate, 2) }}</td>
+                    <td>$ {{ number_format($amountUSD, 2) }}</td>
                 </tr>
-            </tbody>
+            @endforeach
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <table class="totals-table">
+            <tr>
+                <td class="label">TOTAL VENTA (USD):</td>
+                <td>$ {{ number_format($sale->total_usd > 0 ? $sale->total_usd : ($sale->total / ($sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1)), 2) }}</td>
+            </tr>
+            <tr>
+                <td class="label">TOTAL PAGADO (USD):</td>
+                <td>$ {{ number_format($totalPaidUSD, 2) }}</td>
+            </tr>
+            <tr>
+                <td class="label">SALDO PENDIENTE (USD):</td>
+                <td>$ {{ number_format(max(0, ($sale->total_usd > 0 ? $sale->total_usd : ($sale->total / ($sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1))) - $totalPaidUSD), 2) }}</td>
+            </tr>
         </table>
-
-        {{-- Info Box --}}
-        <div class="box-details">
-            <table class="table border-0" style="margin: 0;">
-                <tbody>
-                    <tr>
-                        {{-- Business Info (Left) --}}
-                        <td class="border-0 pl-0" width="50%" style="vertical-align: top;">
-                            <strong class="text-uppercase" style="font-size: 14px;">{{ $config->business_name }}</strong><br>
-                            NIT: {{ $config->taxpayer_id }}<br>
-                            {{ $config->address }}
-                        </td>
-
-                        {{-- Sale/Client Info (Right) --}}
-                        <td class="border-0 text-right pr-0" width="50%" style="vertical-align: top;">
-                            Factura: <strong>{{ $sale->invoice_number ?? $sale->id }}</strong><br>
-                            Fecha Emisión: <strong>{{ $sale->created_at->format('d/m/Y') }}</strong><br>
-                            Cliente: <strong>{{ $sale->customer->name }}</strong>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <h3>Detalle de Pagos</h3>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Fecha</th>
-                    <th>Método</th>
-                    <th>Moneda</th>
-                    <th class="text-right">Monto Original</th>
-                    <th class="text-right">Tasa</th>
-                    <th class="text-right">Equiv. USD</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($payments as $payment)
-                    <tr>
-                        <td>{{ \Carbon\Carbon::parse($payment->created_at)->format('d/m/Y H:i') }}</td>
-                        <td>
-                            @if($payment->pay_way == 'cash') Efectivo
-                            @elseif($payment->pay_way == 'deposit') Banco
-                            @elseif($payment->pay_way == 'nequi') Nequi
-                            @else {{ ucfirst($payment->pay_way) }}
-                            @endif
-                            @if($payment->pay_way == 'deposit' && $payment->bank)
-                                <br><small>{{ $payment->bank }}</small>
-                            @endif
-                        </td>
-                        <td>{{ $payment->currency }}</td>
-                        <td class="text-right">{{ number_format($payment->amount, 2) }}</td>
-                        <td class="text-right">{{ number_format($payment->exchange_rate, 4) }}</td>
-                        <td class="text-right">${{ number_format($payment->amount / ($payment->exchange_rate > 0 ? $payment->exchange_rate : 1), 2) }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-
-        <div class="summary-box">
-            <div class="summary-row">
-                <span class="summary-label">Total Venta (USD):</span>
-                <span>${{ number_format($totalSaleUSD, 2) }}</span>
-            </div>
-            <div class="summary-row">
-                <span class="summary-label">Total Pagado (USD):</span>
-                <span class="text-green">${{ number_format($totalPaidUSD, 2) }}</span>
-            </div>
-            @if($primaryCurrency)
-            <div class="summary-row">
-                <span class="summary-label">Total Pagado ({{ $primaryCurrency->code }}):</span>
-                <span class="text-green">{{ $primaryCurrency->symbol }}{{ number_format($totalPaidPrimary, 2) }}</span>
-            </div>
-            @endif
-            <div class="summary-row total-row">
-                <span class="summary-label">Saldo Pendiente:</span>
-                <span class="{{ $balanceUSD > 0 ? 'text-red' : 'text-green' }}">
-                    @if($primaryCurrency)
-                        {{ $primaryCurrency->symbol }}{{ number_format($balancePrimary, 2) }}
-                    @else
-                        ${{ number_format($balanceUSD, 2) }}
-                    @endif
-                </span>
-            </div>
-        </div>
-
-        <div style="margin-top: 30px; text-align: center; font-size: 9px; color: #666;">
-            <p>Este reporte fue generado automáticamente el {{ \Carbon\Carbon::now()->format('d/m/Y H:i') }}</p>
-        </div>
-    </body>
+    </div>
+    
+    <div style="clear: both; margin-top: 50px; text-align: center; font-size: 9px; color: #555;">
+        Este documento es un reporte interno del historial de pagos.<br>
+        Generado el: {{ date('d/m/Y H:i') }} por {{ auth()->user()->name }}
+    </div>
+</body>
 </html>

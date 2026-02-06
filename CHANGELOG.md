@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.8.8] - 2026-02-06
+### Added
+- **Global Exchange Rates System:**
+    - **Configuration:** Added ability to set global reference rates for BCV and Binance in System Settings.
+    - **History Tracking:** Implemented automated history logging for every rate change.
+    - **Reactive Lookup (Smart Rates):**
+        - **Cash Payments (VED):** Added "Payment Date" field. Selecting a date automatically fetches the historical rate valid for that specific day.
+        - **Bank Payments (VED):** Bank payments in Bolívares now also support historical rate lookup based on the transaction date.
+    - **Custom Rate Override:** Users can manually override the suggested historical rate if necessary.
+
 ## [1.8.7] - 2026-01-30
 ### Added
 - **Sale Deletion Workflow:**

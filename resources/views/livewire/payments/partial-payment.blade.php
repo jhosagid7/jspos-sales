@@ -19,7 +19,7 @@
 
                         {{-- @json($sales) --}}
                         <div class="order-history table-responsive  mt-2">
-                            <table class="table table-bordered table-mobile-cards">
+                            <table class="table table-bordered table-mobile-details">
                                 <thead class="">
                                     <tr>
                                         <th class='p-2'> Cliente</th>
@@ -48,16 +48,20 @@
 
 
                                                 @if ($sale->total_paid_display > 0)
+                                                    @can('payments.history')
                                                     <button class="btn btn-default btn-sm"
                                                         wire:click="historyPayments({{ $sale->id }})" title="Ver Historial">
                                                         <i class="fas fa-receipt text-primary"></i>
                                                     </button>
+                                                    @endcan
                                                 @endif
 
+                                                @can('payments.pay')
                                                 <button class="btn btn-default btn-sm"
                                                     wire:click="initPay({{ $sale->id }},'{{ $sale->customer->name }}',{{ $sale->debt_display }})" title="Abonar">
                                                     <i class="fas fa-money-bill-wave text-success"></i>
                                                 </button>
+                                                @endcan
 
 
 

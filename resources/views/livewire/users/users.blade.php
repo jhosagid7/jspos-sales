@@ -23,9 +23,11 @@
                                 </div>
                             </div>
                         </div>
+                        @can('users.create')
                         <div class="contact-edit chat-alert" wire:click='Add'>
                             <button class="btn btn-primary btn-sm"><i class="icon-plus"></i> Nuevo</button>
                         </div>
+                        @endcan
                     </div>
                 </div>
                 <div class="card-body">
@@ -54,23 +56,31 @@
                                         <td class="text-center">
                                             @if (Auth::user()->hasRole('Admin'))
                                                 <div class="btn-group btn-group-pill" role="group">
+                                                    @can('users.edit')
                                                     <button class="btn btn-light btn-sm"
                                                         wire:click="Edit({{ $objUser->id }})"><i
                                                             class="fa fa-edit fa-2x"></i></button>
+                                                    @endcan
+                                                    @can('users.delete')
                                                     <button class="btn btn-light btn-sm"
                                                         onclick="confirmDestroy({{ $objUser->id }})"
                                                         {{ $objUser->sales->count() == 0 ? '' : 'disabled' }}><i
                                                             class="fa fa-trash fa-2x"></i></button>
+                                                    @endcan
                                                 </div>
                                             @elseif (!$objUser->hasRole('Admin'))
                                                 <div class="btn-group btn-group-pill" role="group">
+                                                    @can('users.edit')
                                                     <button class="btn btn-light btn-sm"
                                                         wire:click="Edit({{ $objUser->id }})"><i
                                                             class="fa fa-edit fa-2x"></i></button>
+                                                    @endcan
+                                                    @can('users.delete')
                                                     <button class="btn btn-light btn-sm"
                                                         onclick="confirmDestroy({{ $objUser->id }})"
                                                         {{ $objUser->sales->count() == 0 ? '' : 'disabled' }}><i
                                                             class="fa fa-trash fa-2x"></i></button>
+                                                    @endcan
                                                 </div>
                                             @endif
                                         </td>

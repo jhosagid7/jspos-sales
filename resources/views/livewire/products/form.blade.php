@@ -929,13 +929,17 @@
         </button>
 
         @if ($editing && $form->product_id == 0)
+            @can('products.create')
             <button wire:click.prevent="Store" class="btn btn-primary">
                 <i class="fa fa-save"></i> Registrar Producto
             </button>
+            @endcan
         @else
+            @can('products.edit')
             <button wire:click.prevent="Update" class="btn btn-dark">
                 Actualizar Producto
             </button>
+            @endcan
         @endif
     </div>
 </div>

@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             CurrencySeeder::class,
+            PermissionSeeder::class, // New dedicated permission seeder
             RoleSeeder::class,
             UserSeeder::class,
             CategorySeeder::class,

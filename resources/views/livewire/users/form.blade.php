@@ -406,8 +406,18 @@
             <i class="fas fa-times mr-1"></i> Cancelar
         </button>
         
-        <button class="btn btn-primary" wire:click.prevent="Store">
-            <i class="fas fa-check mr-1"></i> {{ $user->id > 0 ? 'Actualizar' : 'Crear Usuario' }}
-        </button>
+        @if($user->id > 0)
+            @can('users.edit')
+            <button class="btn btn-primary" wire:click.prevent="Store">
+                <i class="fas fa-check mr-1"></i> Actualizar
+            </button>
+            @endcan
+        @else
+            @can('users.create')
+            <button class="btn btn-primary" wire:click.prevent="Store">
+                <i class="fas fa-check mr-1"></i> Crear Usuario
+            </button>
+            @endcan
+        @endif
     </div>
 </div>

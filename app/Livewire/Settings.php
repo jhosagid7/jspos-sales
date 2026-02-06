@@ -44,6 +44,12 @@ class Settings extends Component
     public $defaultWarehouseId;
     public $warehouses = [];
 
+    // Global Rates
+    public $bcvRate;
+    public $binanceRate;
+    public $historyRates = [];
+    public $showHistoryModal = false;
+
     function mount()
     {
         session(['map' => 'Configuraciones', 'child' => ' Sistema ', 'pos' => 'Settings']);
@@ -123,6 +129,11 @@ class Settings extends Component
             $this->globalCreditDays = $config->global_credit_days;
             $this->globalCreditLimit = $config->global_credit_limit;
             $this->globalUsdPaymentDiscount = $config->global_usd_payment_discount;
+            
+            // Global Rates
+            $this->bcvRate = $config->bcv_rate;
+            $this->binanceRate = $config->binance_rate;
+
             
             // Load Discount Rules
             $this->loadDiscountRules();
@@ -511,4 +522,62 @@ class Settings extends Component
             }
         }
     }
+    public function saveGlobalRates()
+    {
+        try {
+            // Validate
+            $this->validate([
+                'bcvRate' => 'nullable|numeric|min:0',
+                'binanceRate' => 'nullable|numeric|min:0'
+            ]);
+
+            $config = Configuration::find($this->setting_id);
+            if (!$config) $config = Configuration::first();
+
+            // Check changes and save history
+            $userId = auth()->id();
+
+            if ($this->bcvRate != $config->bcv_rate) {
+                 if ($this->bcvRate > 0) {
+                     \App\Models\ExchangeRateHistory::create([
+                         'rate_type' => 'BCV',
+                         'rate' => $this->bcvRate,
+                         'user_id' => $userId
+                     ]);
+                 }
+            }
+
+            if ($this->binanceRate != $config->binance_rate) {
+                 if ($this->binanceRate > 0) {
+                     \App\Models\ExchangeRateHistory::create([
+                         'rate_type' => 'Binance',
+                         'rate' => $this->binanceRate,
+                         'user_id' => $userId
+                     ]);
+                 }
+            }
+
+            // Update Config
+            $config->update([
+                'bcv_rate' => $this->bcvRate,
+                'binance_rate' => $this->binanceRate
+            ]);
+
+            $this->dispatch('noty', msg: 'Tasas Globales actualizadas correctamente');
+
+        } catch (\Exception $e) {
+            $this->dispatch('noty', msg: 'Error al guardar tasas: ' . $e->getMessage());
+        }
+    }
+
+    public function viewRateHistory()
+    {
+        $this->historyRates = \App\Models\ExchangeRateHistory::with('user')
+            ->orderBy('created_at', 'desc')
+            ->take(50)
+            ->get();
+            
+        $this->dispatch('show-history-modal');
+    }
 }
+

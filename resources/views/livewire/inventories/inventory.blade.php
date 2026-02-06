@@ -38,6 +38,7 @@
                                 $item->price,2) }}
                             </td>
                             <td>
+                                @can('inventory.edit')
                                 <input type="text" class="form-control form-control-sm text-center"
                                     oninput="justNumber(this)" id="qty{{$item->id}}" placeholder="cant" maxlength="10">
                             </td>
@@ -64,6 +65,7 @@
                                             class="fas fa-calculator"></i>
                                     </button>
                                 </div>
+                                @endcan
                             </td>
                         </tr>
                         @empty

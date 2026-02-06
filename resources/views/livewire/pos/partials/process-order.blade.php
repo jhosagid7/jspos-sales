@@ -17,7 +17,7 @@
                         </div>
 
                         <div class="mt-3 table-responsive">
-                            <table class="table table-responsive-md table-hover table-mobile-cards" id="tblSalesRpt">
+                            <table class="table table-responsive-md table-hover table-mobile-details" id="tblSalesRpt">
                                 <thead class="thead-primary">
                                     <tr class="text-center">
                                         <th>Folio</th>
@@ -45,28 +45,38 @@
 
                                             <td data-label="Acciones" data-container="body" data-bs-toggle="tooltip" data-bs-placement="top"
                                                 data-bs-html="true" data-bs-title="<b>Ver los detalles de la orden</b>">
+                                                @can('orders.add_to_cart')
                                                 <button class="btn btn-primary"
                                                     wire:click.prevent="loadOrderToCart({{ $order->id }})">Agregar al
                                                     carrito</button>
+                                                @endcan
                                                 @if ($order->status != 'deleted')
+                                                    @can('orders.delete')
                                                     <button class="border-0 btn btn-outline-dark btn-xs"
                                                         onclick="DestroyOrder({{ $order->id }})">
                                                         <i class="icofont icofont-trash fa-2x"></i>
                                                     </button>
+                                                    @endcan
                                                 @endif
+                                                @can('orders.edit')
                                                 <button wire:click.prevent="getOrderDetailNote({{ $order->id }})"
                                                     class="border-0 btn btn-outline-dark btn-xs">
                                                     <i class="icofont icofont-edit-alt fa-2x"></i>
                                                 </button>
+                                                @endcan
+                                                @can('orders.details')
                                                 <button wire:click.prevent="getOrderDetail({{ $order->id }})"
                                                     class="border-0 btn btn-outline-dark btn-xs">
                                                     <i class="icofont icofont-list fa-2x"></i>
                                                 </button>
+                                                @endcan
+                                                @can('orders.pdf')
                                                 <a class="border-0 btn btn-outline-dark btn-xs link-offset-2 link-underline link-underline-opacity-0 {{ $order->status == 'returned' ? 'disabled' : '' }}"
                                                     href="{{ route('pos.orders.generatePdfOrderInvoice', $order->id) }}"
                                                     target="_blank"><i
                                                         class="text-danger icofont icofont-file-pdf fa-2x"></i>
                                                 </a>
+                                                @endcan
                                             </td>
                                         </tr>
                                     @empty

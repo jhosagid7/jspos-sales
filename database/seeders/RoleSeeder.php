@@ -13,46 +13,8 @@ class RoleSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create Permissions
-        $permissions = [
-            'asignacion',
-            'catalogos',
-            'categorias',
-            'clientes',
-            'compras',
-            'corte-de-caja',
-            'guardar ordenes de ventas',
-            'inventarios',
-            'metodos de pago',
-            'pago con Banco',
-            'pago con credito',
-            'pago con efectivo/nequi',
-            'pago con Nequi',
-            'personal',
-            'productos',
-            'proveedores',
-            'reporte-compras',
-            'reporte-cuentas-cobrar',
-            'reporte-cuentas-pagar',
-            'reporte-ventas',
-            'reportes',
-            'roles',
-            'settings',
-            'usuarios',
-            'ventas',
-            'gestionar_comisiones',
-            'aprobar_cargos',
-            'aprobar_descargos',
-            'sales.approve_deletion',
-        ];
-
-        foreach ($permissions as $permission) {
-            Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
-        }
-
-        // Create Roles
-        // Create Roles with Levels
-        $superAdminRole = Role::firstOrCreate(['name' => 'Super Admin'], ['level' => 1000]); // Max Level
+        // 1. Ensure Roles Exists
+        $superAdminRole = Role::firstOrCreate(['name' => 'Super Admin'], ['level' => 1000]); 
         $adminRole = Role::firstOrCreate(['name' => 'Admin'], ['level' => 100]);
         $ownerRole = Role::firstOrCreate(['name' => 'Dueño'], ['level' => 50]);
         $managerRole = Role::firstOrCreate(['name' => 'Administrador'], ['level' => 30]);
@@ -60,8 +22,9 @@ class RoleSeeder extends Seeder
         $cashierRole = Role::firstOrCreate(['name' => 'Cajero'], ['level' => 10]);
         $sellerRole = Role::firstOrCreate(['name' => 'Vendedor'], ['level' => 10]);
         $driverRole = Role::firstOrCreate(['name' => 'Driver'], ['level' => 10]);
-        
-        // Update levels if roles already exist
+
+        // Update levels just in case
+        $superAdminRole->update(['level' => 1000]);
         $adminRole->update(['level' => 100]);
         $ownerRole->update(['level' => 50]);
         $managerRole->update(['level' => 30]);
@@ -69,56 +32,68 @@ class RoleSeeder extends Seeder
         $cashierRole->update(['level' => 10]);
         $sellerRole->update(['level' => 10]);
 
-        // Assign all permissions to Admin
-        $adminRole->syncPermissions(Permission::all());
+        // 2. Assign Permissions
 
-        // Dueño: All permissions except 'roles', 'asignacion', 'settings'
-        // User explicitly stated Dueño cannot manage roles or permissions.
-        $ownerPermissions = Permission::whereNotIn('name', ['roles', 'asignacion', 'settings'])->get();
+        // Super Admin & Admin: Everything
+        $allPermissions = Permission::all();
+        $adminRole->syncPermissions($allPermissions);
+
+        // Dueño: Almost everything, except maybe technical system settings
+        $ownerPermissions = $allPermissions->reject(function ($permission) {
+             return in_array($permission->name, [
+                 'roles.index', 'roles.create', 'roles.edit', 'roles.delete', 'permissions.assign',
+                 'settings.backups', 'settings.logs', 'settings.update'
+             ]);
+        });
         $ownerRole->syncPermissions($ownerPermissions);
 
-        // Administrador: Manage users (limited), reports, products, inventory, sales
-        $managerPermissions = [
-            'usuarios',
-            'personal',
-            'clientes',
-            'proveedores',
-            'productos',
-            'categorias',
-            'inventarios',
-            'compras',
-            'ventas',
-            'guardar ordenes de ventas',
-            'corte-de-caja',
-            'reportes',
-            'reporte-ventas',
-            'reporte-compras',
-            'reporte-cuentas-cobrar',
-            'reporte-cuentas-pagar',
-            'pago con Banco',
-            'pago con credito',
-            'pago con efectivo/nequi',
-            'pago con Nequi',
-            'gestionar_comisiones'
-        ];
+        // Administrador: Manage Users, Customers, Inventory, etc.
+        $managerPermissions = Permission::whereIn('name', [
+            // Sales
+            'sales.index', 'sales.create', 'sales.edit', 'sales.pdf',
+            'cash_register.open', 'cash_register.close', 'cash_register.access',
+            // Products & Categories
+            'products.index', 'products.create', 'products.edit', 'products.import',
+            'categories.index', 'categories.create', 'categories.edit',
+            // People
+            'customers.index', 'customers.create', 'customers.edit',
+            'suppliers.index', 'suppliers.create', 'suppliers.edit',
+            'users.index', 'users.create', 'users.edit', 
+            // Operations
+            'purchases.index', 'purchases.create', 'purchases.edit',
+            'inventory.index', 'adjustments.create', 'transfers.create', 'warehouses.index',
+            // Reports
+            'reports.sales', 'reports.purchases', 'reports.stock', 'reports.financial', 'reports.commissions',
+            // View All
+            'sales.view_all', 'customers.view_all',
+            'orders.view_all', 'orders.add_to_cart', 'orders.delete', 'orders.edit', 'orders.details', 'orders.pdf',
+            'payments.view_all','payments.pay', 'payments.history', 'payments.print_receipt', 'payments.view_proof', 'payments.print_history',
+            'payments.approve', 'payments.register_direct',
+        ])->get();
         $managerRole->syncPermissions($managerPermissions);
 
-        // Operador / Cajero / Vendedor: Sales and basic operations
-        $operationalPermissions = [
-            'ventas',
-            'guardar ordenes de ventas',
-            'clientes',
-            'corte-de-caja',
-            'pago con Banco',
-            'pago con credito',
-            'pago con efectivo/nequi',
-            'pago con Nequi',
-            'productos', // To search
-            'inventarios', // To check stock
-        ];
+        // Operational Roles (Cajero, Vendedor, Operador)
+        $operationalPermissions = Permission::whereIn('name', [
+            'sales.index', 'sales.create', 'sales.pdf',
+            'cash_register.open', 'cash_register.close', 'cash_register.access',
+            'customers.index', 'customers.create', 'customers.edit',
+            'products.index', // Search products
+            'products.create', // Sometimes they need to create products? Let's check user intent. Usually no.
+            'inventory.index', // Check stock
+        ])->get();
 
         $operatorRole->syncPermissions($operationalPermissions);
         $cashierRole->syncPermissions($operationalPermissions);
-        $sellerRole->syncPermissions($operationalPermissions);
+        
+        // Seller specific (View Own)
+        $sellerPermissions = $operationalPermissions->merge(Permission::whereIn('name', [
+            'sales.view_own', 'customers.view_own',
+            'orders.view_own', 'orders.add_to_cart', 'orders.delete', 'orders.edit', 'orders.details', 'orders.pdf',
+            'payments.view_own', 'payments.pay', 'payments.history', 'payments.print_receipt', 'payments.view_proof', 'payments.print_history',
+            // Payment Workflow
+            'payments.upload', 
+        ])->get());
+        
+        $sellerRole->syncPermissions($sellerPermissions);
     }
 }

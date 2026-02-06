@@ -80,19 +80,23 @@
                 
                 @unlessrole('Driver')
                 
-                @can('ventas')
+                @can('sales.index')
                 <li class="nav-item">
                     <a href="{{ route('sales') }}" class="nav-link {{ Request::is('sales') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-shopping-cart"></i>
                         <p>VENTAS</p>
                     </a>
                 </li>
+                @endcan
+                @can('distribution.map')
                 <li class="nav-item">
                     <a href="{{ route('delivery.map') }}" class="nav-link {{ Request::is('delivery/map') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-map-marked-alt"></i>
                         <p>MAPA CHOFERES</p>
                     </a>
                 </li>
+                @endcan
+                @can('cash_register.close')
                 <li class="nav-item">
                     <a href="{{ route('cash-register.close') }}" class="nav-link {{ Request::is('cash-register/close') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-cash-register"></i>
@@ -101,7 +105,7 @@
                 </li>
                 @endcan
 
-                @can('compras')
+                @can('purchases.index')
                 <li class="nav-item">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-truck"></i>
@@ -127,7 +131,7 @@
                 </li>
                 @endcan
 
-                @can('personal')
+                @canany(['users.index', 'roles.index', 'permissions.assign'])
                 <li class="nav-item">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-users"></i>
@@ -137,7 +141,7 @@
                         </p>
                     </a>
                     <ul class="nav nav-treeview">
-                        @can('usuarios')
+                        @can('users.index')
                         <li class="nav-item">
                             <a href="{{ route('users') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
@@ -145,7 +149,7 @@
                             </a>
                         </li>
                         @endcan
-                        @can('roles')
+                        @can('roles.index')
                         <li class="nav-item">
                             <a href="{{ route('roles') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
@@ -153,7 +157,7 @@
                             </a>
                         </li>
                         @endcan
-                        @can('asignacion')
+                        @can('permissions.assign')
                         <li class="nav-item">
                             <a href="{{ route('asignar') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
@@ -165,7 +169,7 @@
                 </li>
                 @endcan
 
-                @can('catalogos')
+                @canany(['customers.index', 'categories.index', 'suppliers.index', 'products.index'])
                 <li class="nav-item">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-folder"></i>
@@ -175,7 +179,7 @@
                         </p>
                     </a>
                     <ul class="nav nav-treeview">
-                        @can('clientes')
+                        @can('customers.index')
                         <li class="nav-item">
                             <a href="{{ route('customers') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
@@ -183,7 +187,7 @@
                             </a>
                         </li>
                         @endcan
-                        @can('categorias')
+                        @can('categories.index')
                         <li class="nav-item">
                             <a href="{{ route('categories') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
@@ -191,7 +195,7 @@
                             </a>
                         </li>
                         @endcan
-                        @can('proveedores')
+                        @can('suppliers.index')
                         <li class="nav-item">
                             <a href="{{ route('suppliers') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
@@ -199,7 +203,7 @@
                             </a>
                         </li>
                         @endcan
-                        @can('productos')
+                        @can('products.index')
                         <li class="nav-item">
                             <a href="{{ route('products') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
@@ -211,7 +215,7 @@
                 </li>
                 @endcan
 
-                @can('reportes')
+                @canany(['reports.sales', 'reports.purchases', 'reports.financial', 'reports.stock'])
                 <li class="nav-item">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-chart-bar"></i>
@@ -221,7 +225,7 @@
                         </p>
                     </a>
                     <ul class="nav nav-treeview">
-                        @can('reporte-ventas')
+                        @can('reports.sales')
                         <li class="nav-item">
                             <a href="{{ route('reports.sales') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
@@ -235,7 +239,7 @@
                             </a>
                         </li>
                         @endcan
-                        @can('reporte-compras')
+                        @can('reports.purchases')
                         <li class="nav-item">
                             <a href="{{ route('reports.purchases') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
@@ -243,7 +247,7 @@
                             </a>
                         </li>
                         @endcan
-                        @can('reporte-cuentas-cobrar')
+                        @can('reports.financial')
                         <li class="nav-item">
                             <a href="{{ route('reports.accounts.receivable') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
@@ -251,7 +255,7 @@
                             </a>
                         </li>
                         @endcan
-                        @can('reporte-cuentas-pagar')
+                        @can('reports.financial')
                         <li class="nav-item">
                             <a href="{{ route('reports.accounts.payables') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
@@ -259,7 +263,7 @@
                             </a>
                         </li>
                         @endcan
-                        @can('reporte-cuentas-cobrar')
+                        @can('reports.sales')
                         <li class="nav-item">
                             <a href="{{ route('reports.payment.relationship') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
@@ -267,7 +271,7 @@
                             </a>
                         </li>
                         @endcan
-                        @can('corte-de-caja')
+                        @can('cash_register.close')
                         <li class="nav-item">
                             <a href="{{ route('cash.count') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
@@ -291,7 +295,7 @@
                 </li>
                 @endcan
 
-                @can('gestionar_comisiones')
+                @can('reports.commissions')
                 <li class="nav-item">
                     <a href="{{ route('commissions') }}" class="nav-link {{ Request::is('commissions') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-hand-holding-usd"></i>
@@ -300,14 +304,16 @@
                 </li>
                 @endcan
 
+                @can('products.labels')
                 <li class="nav-item">
                     <a href="{{ route('labels.index') }}" class="nav-link {{ Request::is('labels') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-tags"></i>
                         <p>ETIQUETAS</p>
                     </a>
                 </li>
+                @endcan
 
-                @can('manage_production')
+                @can('production.index')
                 <li class="nav-item">
                     <a href="{{ route('production.index') }}" class="nav-link {{ Request::is('production*') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-industry"></i>
@@ -316,7 +322,7 @@
                 </li>
                 @endcan
 
-                @can('inventarios')
+                @can('inventory.index')
                 <li class="nav-item">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-boxes"></i>
@@ -366,7 +372,7 @@
                 </li>
                 @endcan
 
-                @can('settings')
+                @can('settings.index')
                 <li class="nav-item">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-cogs"></i>

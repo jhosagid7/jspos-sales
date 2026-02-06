@@ -18,10 +18,21 @@
                         
                         <input class="form-control" wire:model='roleLevel' type="number" placeholder="Nivel (0-100)" min="0" max="100" style="max-width: 100px;">
 
-                        <span wire:click="{{$roleId == null ? 'createRole' : 'updateRole' }}" class="input-group-text"
-                            style="cursor: pointer" {{$roleName===null ? 'disabled' : '' }}>
-                            <i class="fas fa-save"></i>
-                        </span>
+                        @if($roleId == null)
+                            @can('roles.create')
+                            <span wire:click="createRole" class="input-group-text"
+                                style="cursor: pointer" {{$roleName===null ? 'disabled' : '' }}>
+                                <i class="fas fa-save"></i>
+                            </span>
+                            @endcan
+                        @else
+                            @can('roles.edit')
+                            <span wire:click="updateRole" class="input-group-text"
+                                style="cursor: pointer" {{$roleName===null ? 'disabled' : '' }}>
+                                <i class="fas fa-save"></i>
+                            </span>
+                            @endcan
+                        @endif
                         <span wire:click="cancelRoleEdit" class="input-group-text" style="cursor: pointer"
                             {{$roleId==null ? 'hidden' : '' }}>
                             <i class="fas fa-times"></i>
@@ -45,15 +56,19 @@
                                     <td><span class="badge badge-dark">{{ $rol->level }}</span></td>
                                     <td class="text-end">
                                         <div class="btn-group btn-group-pill" role="group" aria-label="Basic example">
+                                            @can('roles.edit')
                                             <button class="btn btn-light btn-sm" wire:click="Edit({{ $rol->id }})"><i
                                                     class="fas fa-edit"></i>
 
                                             </button>
+                                            @endcan
 
+                                            @can('roles.delete')
                                             <button class="btn btn-light btn-sm"
                                                 onclick="confirmDestroy(1,{{ $rol->id }})">
                                                 <i class="fas fa-trash"></i>
                                             </button>
+                                            @endcan
 
                                         </div>
                                     </td>

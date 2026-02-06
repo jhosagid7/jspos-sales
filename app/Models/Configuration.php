@@ -55,6 +55,8 @@ class Configuration extends Model
         'global_usd_payment_discount',
         'license_notification_email',
         'license_request_email',
+        'bcv_rate',
+        'binance_rate',
     ];
 
     protected $casts = [

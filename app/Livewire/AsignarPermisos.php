@@ -16,8 +16,8 @@ class AsignarPermisos extends Component
 
     function mount()
     {
-        // Strict protection: Only Admin can access this component
-        if (!auth()->user()->hasRole('Admin') && auth()->user()->email !== 'jhosagid77@gmail.com') {
+        // Check granular permission, fallback to Admin role for safety
+        if (!auth()->user()->can('permissions.assign') && !auth()->user()->hasRole('Admin')) {
             abort(403, 'NO TIENES AUTORIZACIÓN PARA ACCEDER A ESTE MÓDULO');
         }
 
@@ -62,17 +62,25 @@ class AsignarPermisos extends Component
     {
         $map = [
             'sales' => 'Ventas',
-            'warehouses' => 'Depósitos',
             'cash_register' => 'Caja',
-            'settings' => 'Configuración',
             'products' => 'Productos',
             'categories' => 'Categorías',
-            'users' => 'Usuarios',
-            'roles' => 'Roles',
-            'reports' => 'Reportes',
             'customers' => 'Clientes',
             'suppliers' => 'Proveedores',
             'purchases' => 'Compras',
+            'inventory' => 'Inventarios',
+            'adjustments' => 'Ajustes de Inventario',
+            'transfers' => 'Traspasos',
+            'warehouses' => 'Depósitos',
+            'users' => 'Usuarios',
+            'roles' => 'Roles',
+            'permissions' => 'Permisos',
+            'reports' => 'Reportes',
+            'settings' => 'Configuración',
+            'production' => 'Producción',
+            'distribution' => 'Distribución',
+            'orders' => 'Ordenes Guardadas',
+            'payments' => 'Abonos / Pagos',
         ];
         return $map[$key] ?? ucfirst($key);
     }
@@ -83,23 +91,59 @@ class AsignarPermisos extends Component
         $action = $parts[1] ?? $name;
 
         $map = [
+            'index' => 'Ver / Listar',
             'create' => 'Crear',
             'edit' => 'Editar',
             'delete' => 'Eliminar',
-            'view' => 'Ver',
-            'view_all' => 'Ver Todos',
-            'view_own' => 'Ver Propios',
-            'switch_warehouse' => 'Cambiar Depósito',
-            'mix_warehouses' => 'Mezclar Depósitos',
-            'close' => 'Cerrar',
+            'import' => 'Importar',
             'open' => 'Abrir',
-            'print' => 'Imprimir',
-            'download' => 'Descargar',
+            'close' => 'Cerrar',
+            'access' => 'Acceder', // For cash register access without opening
+            'pdf' => 'Generar PDF',
             'assign' => 'Asignar',
-            'revoke' => 'Revocar',
+            'sales.view_all' => 'Ver Todas',
+            'sales.view_own' => 'Ver Propias',
+            'customers.view_all' => 'Ver Todos',
+            'customers.view_own' => 'Ver Propios',
+            'orders.view_all' => 'Ver Todas',
+            'orders.view_own' => 'Ver Propias',
+            'orders.add_to_cart' => 'Cargar al Carrito',
+            'orders.delete' => 'Eliminar',
+            'orders.edit' => 'Editar',
+            'orders.details' => 'Ver Detalle',
+            'orders.pdf' => 'Generar PDF',
+            'payments.view_all' => 'Ver Todos',
+            'payments.view_own' => 'Ver Propios',
+            'payments.pay' => 'Abonar (Registrar Pago)',
+            'payments.history' => 'Ver Historial',
+            'payments.print_receipt' => 'Imprimir Recibo',
+            'payments.view_proof' => 'Ver Comprobante',
+            'payments.print_history' => 'Imprimir Historial (Ticket)',
+            'payments.print_pdf' => 'Imprimir Historial (PDF)',
+            'payments.upload' => 'Subir Pago (Pendiente)',
+            'payments.approve' => 'Aprobar Pagos',
+            'payments.register_direct' => 'Confirmar Pago Directamente',
+            'payments.delete' => 'Eliminar Pago (Restaurar)',
+            
+            // Reports specific actions
+            'sales' => 'Ventas',
+            'purchases' => 'Compras',
+            'stock' => 'Stock / Rotación',
+            'financial' => 'Financieros',
+            'commissions' => 'Comisiones',
+            
+            // Settings
+            'backups' => 'Respaldos',
+            'logs' => 'Logs del Sistema',
+            'update' => 'Actualizar Sistema',
+            
+            // Other
+            'labels' => 'Generar Etiquetas',
+            'map' => 'Ver Mapa',
         ];
 
-        return $map[$action] ?? ucfirst(str_replace('_', ' ', $action));
+        // Check full name first, then action
+        return $map[$name] ?? $map[$action] ?? ucfirst(str_replace('_', ' ', $action));
     }
 
     function updatedRoleSelectedId()

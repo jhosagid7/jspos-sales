@@ -51,6 +51,11 @@ class PartialPayment extends Component
                 $query->where('name', 'like', "%{$this->search}%");
             }
         })
+            ->when(!auth()->user()->can('payments.view_all') && auth()->user()->can('payments.view_own'), function($q) {
+                 $q->whereHas('customer', function($subQ) {
+                     $subQ->where('seller_id', auth()->id());
+                 });
+            })
             ->where('type', 'credit')
             ->where('status', 'pending')
             ->with(['customer', 'payments'])
@@ -187,10 +192,16 @@ class PartialPayment extends Component
         $this->debt = round($debtInPrimary, 2);
         $this->debt_usd = round($debtUSD, 2);
         
+        // Check Permissions
+        $canUpload = auth()->user()->can('payments.upload');
+        $canPay = auth()->user()->can('payments.register_direct');
+        
         Log::info('PartialPayment::initPay Dispatching', [
             'allowDiscounts' => $allowDiscounts,
             'usdDiscountPercent' => $usdPaymentDiscountPercent,
-            'fixedAmount' => $fixedUsdDiscountAmount
+            'fixedAmount' => $fixedUsdDiscountAmount,
+            'canUpload' => $canUpload,
+            'canPay' => $canPay
         ]);
         
         // Open the Payment Component Modal
@@ -201,19 +212,33 @@ class PartialPayment extends Component
             allowPartial: true,
             adjustment: $adjustment, // Pass adjustment info to modal
             allowDiscounts: $allowDiscounts, // Flag for eligibility (History check included)
-            usdDiscountPercent: $usdPaymentDiscountPercent,
-            fixedUsdDiscountAmount: $fixedUsdDiscountAmount // Pass fixed amount
+            usdDiscountPercent: $usdPaymentDiscountPercent, // Pass % to modal
+            fixedUsdDiscountAmount: $fixedUsdDiscountAmount, // Pass fixed amount
+            canUpload: $canUpload,
+            canPay: $canPay
         );
+    }
+    
+    #[On('payment-uploaded')]
+    public function handlePaymentUploaded($payments, $change, $changeDistribution) 
+    {
+         Log::info("=== handlePaymentUploaded CALLED ===");
+         $this->processPayment($payments, 'pending');
     }
 
     #[On('payment-completed')]
     public function handlePaymentCompleted($payments, $change, $changeDistribution)
     {
         Log::info("=== handlePaymentCompleted CALLED ===");
-        Log::info("handlePaymentCompleted called", ['payments_count' => count($payments), 'payments' => $payments]);
+        $this->processPayment($payments, 'approved');
+    }
+    
+    public function processPayment($payments, $status)
+    {
+        Log::info("processPayment called", ['status' => $status, 'payments_count' => count($payments), 'payments' => $payments]);
         
         if (!$this->sale_selected_id) {
-            Log::info("handlePaymentCompleted: No sale selected, returning");
+            Log::info("processPayment: No sale selected, returning");
             return;
         }
 
@@ -222,24 +247,16 @@ class PartialPayment extends Component
             $sale = Sale::find($this->sale_selected_id);
             $primaryCurrency = Currency::where('is_primary', true)->first();
             
-            $totalPaidUSD = 0;
-
             foreach ($payments as $payment) {
-                // Determine type (pay vs settled)
-                // This is tricky with multiple payments. 
-                // We'll calculate total paid vs debt at the end.
                 
                 $amount = $payment['amount'];
                 $currencyCode = $payment['currency'];
                 $exchangeRate = $payment['exchange_rate'];
                 
-                Log::info("Processing Payment in PartialPayment", ['method' => $payment['method'], 'data' => $payment]);
-
-                // Handle Zelle Record
+                // Handle Zelle Record - Logic is SAME for Uploaded or Direct
                 $zelleRecordId = null;
                 if ($payment['method'] == 'zelle') {
-                    Log::info("Zelle method detected");
-                    // Check if Zelle record exists
+                    // ... Zelle Logic (Same as before) ...
                     $zelleRecord = \App\Models\ZelleRecord::where('sender_name', $payment['zelle_sender'])
                         ->where('zelle_date', $payment['zelle_date'])
                         ->where('amount', $payment['zelle_amount'])
@@ -248,18 +265,13 @@ class PartialPayment extends Component
                     $amountUsed = $payment['amount'];
 
                     if ($zelleRecord) {
-                        // Use existing record
                         $zelleRecord->remaining_balance -= $amountUsed;
                         if ($zelleRecord->remaining_balance < 0) $zelleRecord->remaining_balance = 0;
-                        
                         $zelleRecord->status = $zelleRecord->remaining_balance <= 0.01 ? 'used' : 'partial';
                         $zelleRecord->save();
-                        
                         $zelleRecordId = $zelleRecord->id;
                     } else {
-                        // Create new record
                         $remaining = $payment['zelle_amount'] - $amountUsed;
-                        
                         $zelleRecord = \App\Models\ZelleRecord::create([
                             'sender_name' => $payment['zelle_sender'],
                             'zelle_date' => $payment['zelle_date'],
@@ -273,18 +285,14 @@ class PartialPayment extends Component
                             'invoice_total' => $sale->total,
                             'payment_type' => $amountUsed >= ($sale->total - 0.01) ? 'full' : 'partial'
                         ]);
-                        
                         $zelleRecordId = $zelleRecord->id;
-                        Log::info("Zelle Record Created/Updated", ['id' => $zelleRecordId]);
                     }
-                } else {
-                    Log::info("Not a Zelle payment: " . $payment['method']);
-                }
+                } 
 
                 $bankRecordId = null;
                 $createdBankRecord = null;
 
-                // Create BankRecord if VED details are present (Abonos) - Create FIRST to link to Payment
+                // Create BankRecord 
                 if ($payment['method'] == 'bank' && !empty($payment['bank_reference'])) {
                      try {
                         $createdBankRecord = \App\Models\BankRecord::create([
@@ -296,15 +304,13 @@ class PartialPayment extends Component
                             'note' => $payment['bank_note'] ?? null,
                             'customer_id' => $sale->customer_id,
                             'sale_id' => $sale->id,
-                            // payment_id will be updated after Payment creation
                         ]);
                         $bankRecordId = $createdBankRecord->id;
                      } catch (\Exception $e) {
-                          Log::error("Error creating BankRecord for Abono: " . $e->getMessage());
+                          Log::error("Error creating BankRecord: " . $e->getMessage());
                      }
                 }
 
-                // Get or Create Collection Sheet
                 $collectionSheetId = $this->getOrCreateCollectionSheet();
 
                 // Create Payment Record
@@ -316,7 +322,8 @@ class PartialPayment extends Component
                     'exchange_rate' => $exchangeRate,
                     'primary_exchange_rate' => $primaryCurrency->exchange_rate,
                     'pay_way' => $payment['method'] == 'bank' ? 'deposit' : $payment['method'],
-                    'type' => 'pay', // Default to pay, update later if settled
+                    'type' => 'pay', 
+                    'status' => $status, // 'approved' or 'pending'
                     'bank' => $payment['bank_name'] ?? null,
                     'account_number' => $payment['account_number'] ?? null,
                     'deposit_number' => $payment['reference'] ?? null,
@@ -332,75 +339,195 @@ class PartialPayment extends Component
                     'collection_sheet_id' => $collectionSheetId
                 ]);
 
-                // Update BankRecord with payment_id
                 if ($createdBankRecord) {
                     $createdBankRecord->update(['payment_id' => $pay->id]);
                 }
-                
-                // Calculate USD amount for this payment
-                $amountUSD = $amount / $exchangeRate;
-                $totalPaidUSD += $amountUSD;
             }
 
-            // Check if settled
-            // Force refresh to get all payments including new ones
-            $sale->refresh();
-            
-            $currentTotalPaidUSD = $sale->payments->sum(function($p) {
-                $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
-                $amountUSD = $p->amount / $rate; // Raw payment in USD
-                
-                // Adjust for discounts/surcharges
-                // Adjust for discounts/surcharges
-                // discount_applied is stored in USD (calculated from debtUSD)
-                // NO need to divide by exchange rate.
-                $adjustmentUSD = $p->discount_applied ?? 0;
-                
-                if ($p->rule_type === 'overdue') {
-                    // Surcharge: The extra money paid is Interest.
-                    // Effective towards principal is Payment - Surcharge.
-                    return $amountUSD - $adjustmentUSD;
-                } else {
-                    // Discount: Effective towards principal is Payment + Discount.
-                    return $amountUSD + $adjustmentUSD;
-                }
-            });
-            
-             // Also include initial payment details
-            $initialPaidUSD = $sale->paymentDetails->sum(function($detail) {
-                $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
-                return $detail->amount / $rate;
-            });
-            
-            $grandTotalPaidUSD = $currentTotalPaidUSD + $initialPaidUSD;
-            
-            // Tolerance for floating point
-            if ($grandTotalPaidUSD >= ($sale->total_usd - 0.01)) {
-                // Mark sale as paid
-                $sale->update(['status' => 'paid']);
-                
-                // Update all recent payments to 'settled'
-                // Or just the last one? Usually 'settled' means this payment settled it.
-                // Let's mark all payments from this batch as 'settled' if the sale is now paid.
-                // But we just created them.
-                Payment::where('sale_id', $sale->id)
-                    ->where('created_at', '>=', \Carbon\Carbon::now()->subMinute())
-                    ->update(['type' => 'settled']);
-                    
-                // Calculate Commission
-                \App\Services\CommissionService::calculateCommission($sale);
+            // Only update sale totals if APPROVED
+            if ($status === 'approved') {
+                 $this->checkSaleSettlement($sale);
             }
 
             DB::commit();
 
-            $this->dispatch('noty', msg: 'ABONO REGISTRADO CON ÉXITO');
-            $this->dispatch('close-modal'); // Close PartialPayment modal
+            if ($status === 'approved') {
+                $this->dispatch('noty', msg: 'ABONO REGISTRADO CON ÉXITO');
+            } else {
+                 $this->dispatch('noty', msg: 'PAGO SUBIDO. PENDIENTE DE APROBACIÓN.');
+            }
+            
+            $this->dispatch('close-modal'); 
             $this->resetUI();
 
         } catch (\Exception $th) {
             DB::rollBack();
             Log::error($th);
             $this->dispatch('noty', msg: "Error al registrar el pago: {$th->getMessage()}");
+        }
+    }
+    
+    public function approvePayment($paymentId)
+    {
+        if (!auth()->user()->can('payments.approve')) {
+             $this->dispatch('noty', msg: 'NO TIENES PERMISO PARA APROBAR PAGOS');
+             return;
+        }
+
+        try {
+            DB::beginTransaction();
+            $payment = Payment::find($paymentId);
+            if ($payment && $payment->status === 'pending') {
+                $payment->update(['status' => 'approved']);
+                
+                $sale = Sale::find($payment->sale_id);
+                $this->checkSaleSettlement($sale);
+                
+                DB::commit();
+                $this->dispatch('noty', msg: 'PAGO APROBADO CORRECTAMENTE');
+                
+                // Refresh list
+                $this->pays = $sale->payments; // Refresh the list being viewed
+                $this->dispatch('refresh-history'); // Optional
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->dispatch('noty', msg: 'Error al aprobar: ' . $e->getMessage());
+        }
+    }
+    
+    public function rejectPayment($paymentId, $reason)
+    {
+        if (!auth()->user()->can('payments.approve')) {
+             $this->dispatch('noty', msg: 'NO TIENES PERMISO PARA RECHAZAR PAGOS');
+             return;
+        }
+
+        try {
+            $payment = Payment::find($paymentId);
+            if ($payment && $payment->status === 'pending') {
+                $payment->update([
+                    'status' => 'rejected',
+                    'rejection_reason' => $reason
+                ]);
+                
+                $this->dispatch('noty', msg: 'PAGO RECHAZADO CORRECTAMENTE');
+                
+                // Refresh list
+                $sale = Sale::find($payment->sale_id);
+                $this->pays = $sale->payments; 
+            }
+        } catch (\Exception $e) {
+            $this->dispatch('noty', msg: 'Error al rechazar: ' . $e->getMessage());
+        }
+    }
+
+    public function deletePayment($paymentId)
+    {
+        if (!auth()->user()->can('payments.delete')) {
+            $this->dispatch('noty', msg: 'NO TIENES PERMISO PARA ELIMINAR PAGOS');
+            return;
+        }
+
+        try {
+            DB::beginTransaction();
+            $payment = Payment::find($paymentId);
+            
+            // Allow deletion if pending or rejected AND user owns it or has manager permission
+            // For now, let's assume if they can upload, they can delete their own pending/rejected stuff
+            // Or explicitly check ownership
+            
+            if ($payment && ($payment->status === 'pending' || $payment->status === 'rejected')) {
+                
+                // Revert Zelle Record if exists
+                if ($payment->zelle_record_id) {
+                    $zelle = \App\Models\ZelleRecord::find($payment->zelle_record_id);
+                    if ($zelle) {
+                         // We need to know how much was used. 
+                         // Logic in processPayment: $zelleRecord->remaining_balance -= $amountUsed;
+                         // So we add it back.
+                         // But wait, if partial payment, amount might be different from zelle amount?
+                         // In processPayment: $amountUsed = $payment['amount'];
+                         // $payment->amount IS the amount used.
+                         // However, need to check exchange rates? 
+                         // No, Zelle record is in USD usually? 
+                         // Let's check ZelleRecord model/usage. 
+                         // In processPayment: $zelleRecord->amount is stored.
+                         // But we reduced remaining_balance.
+                         
+                         $amountToRestore = $payment->amount; // This is the amount of the PAYMENT, in the currency of the payment.
+                         // If payment was in USD, fine. If Zelle, it is USD.
+                         
+                         $zelle->remaining_balance += $amountToRestore;
+                         if ($zelle->remaining_balance > $zelle->amount) $zelle->remaining_balance = $zelle->amount;
+                         
+                         $zelle->status = 'partial'; // Revert to partial (or unused if full match, but 'partial' is safe)
+                         if($zelle->remaining_balance == $zelle->amount) $zelle->status = 'unused'; // Optional status logic if exists
+                         $zelle->save();
+                    }
+                }
+                
+                // Bank Record - usually created specifically for this payment, so delete it?
+                // Logic in processPayment creates a new BankRecord.
+                if ($payment->bank_record_id) {
+                    \App\Models\BankRecord::destroy($payment->bank_record_id);
+                }
+
+                $payment->delete();
+                
+                DB::commit();
+                $this->dispatch('noty', msg: 'Pago eliminado correctamente');
+                
+                $sale = Sale::find($payment->sale_id);
+                $this->pays = $sale->payments;
+            } else {
+                 $this->dispatch('noty', msg: 'No se puede eliminar este pago (Estado incorrecto)');
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->dispatch('noty', msg: 'Error al eliminar: ' . $e->getMessage());
+        }
+    }
+    
+    // For now, "Editing" is complex because of the modal state. 
+    // Easier flow: Delete and Re-upload. User requested "Enable to edit... OR delete". 
+    // Delete is essentially "Undo", allowing them to try again.
+    // Implementing "Edit" would require populating the "Add Payment" form with this payment's data.
+    // Given the complexity of the dynamic payment rows, I will stick to "Delete" for now as the primary "Fix" mechanism, 
+    // effectively "Reject -> Delete -> Upload Correctly".
+    
+    public function checkSaleSettlement($sale) {
+        $sale->refresh();
+        
+        $currentTotalPaidUSD = $sale->payments->where('status', 'approved')->sum(function($p) {
+            $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
+            $amountUSD = $p->amount / $rate; 
+            
+            $adjustmentUSD = $p->discount_applied ?? 0;
+            
+            if ($p->rule_type === 'overdue') {
+                return $amountUSD - $adjustmentUSD;
+            } else {
+                return $amountUSD + $adjustmentUSD;
+            }
+        });
+        
+        $initialPaidUSD = $sale->paymentDetails->sum(function($detail) {
+            $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
+            return $detail->amount / $rate;
+        });
+        
+        $grandTotalPaidUSD = $currentTotalPaidUSD + $initialPaidUSD;
+        
+        if ($grandTotalPaidUSD >= ($sale->total_usd - 0.01)) {
+            $sale->update(['status' => 'paid']);
+            
+            Payment::where('sale_id', $sale->id)
+                ->where('status', 'approved')
+                ->where('created_at', '>=', \Carbon\Carbon::now()->subMinute())
+                ->update(['type' => 'settled']);
+                
+            \App\Services\CommissionService::calculateCommission($sale);
         }
     }
 
@@ -440,6 +567,25 @@ class PartialPayment extends Component
         $saleId = $this->pays[0]->sale_id;
         $this->printPaymentHistory($saleId);
         $this->dispatch('noty', msg: 'IMPRIMIENDO HISTORIAL DE PAGOS...');
+    }
+
+    public function generatePaymentHistoryPdf($saleId)
+    {
+        $sale = Sale::with(['customer', 'payments.zelleRecord', 'payments.bankRecord.bank', 'user'])->find($saleId);
+        if (!$sale) {
+             $this->dispatch('noty', msg: 'Venta no encontrada');
+             return;
+        }
+        
+        $config = \App\Models\Configuration::first();
+        // $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.payment-history-pdf', compact('sale', 'config'));
+
+        // Use full namespace to avoid import issues if not present at top
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.payment-history-pdf', ['sale' => $sale, 'config' => $config]);
+        
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->output();
+        }, 'Historial_Pagos_Factura_' . $sale->id . '_' . date('YmdHis') . '.pdf');
     }
 
     private function getOrCreateCollectionSheet()

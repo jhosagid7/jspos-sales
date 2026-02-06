@@ -167,12 +167,29 @@
                                             </div>
                                             <div class="col-md-6">
                                                 <label class="form-label">Moneda</label>
-                                                <select class="form-control" wire:model="paymentCurrency">
+                                                <select class="form-control" wire:model.live="paymentCurrency">
                                                     @foreach($currencies as $curr)
                                                         <option value="{{ $curr->code }}">{{ $curr->label }}</option>
                                                     @endforeach
                                                 </select>
                                             </div>
+
+                                            {{-- CASH VED EXTENDED FIELDS --}}
+                                            @if(in_array($paymentCurrency, ['VED', 'VES']))
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Fecha de Pago <small class="text-danger">(Requerido para VED)</small></label>
+                                                    <input type="date" class="form-control" wire:model.live="paymentDate">
+                                                    @error('paymentDate') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Tasa (Opcional)</label>
+                                                    <input type="number" step="0.000001" class="form-control" wire:model.live="customExchangeRate" placeholder="Usar del sistema">
+                                                    @if($customExchangeRate) 
+                                                        <small class="text-info">Tasa personalizada aplicada</small> 
+                                                    @endif
+                                                </div>
+                                            @endif
+
                                             <div class="col-12">
                                                 <button class="btn btn-success w-100" wire:click="addPayment">Agregar Pago</button>
                                             </div>
@@ -317,6 +334,17 @@
                                                             <input type="date" wire:model.live="bankDate" class="form-control">
                                                         </div>
                                                         @error('bankDate') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                    </div>
+
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Tasa (Opcional)</label>
+                                                        <div class="input-group">
+                                                            <span class="input-group-text"><i class="fas fa-coins"></i></span>
+                                                            <input type="number" step="0.000001" class="form-control" wire:model.live="customExchangeRate" placeholder="Usar del sistema">
+                                                        </div>
+                                                        @if($customExchangeRate) 
+                                                            <small class="text-info d-block mt-1">Tasa personalizada aplicada</small> 
+                                                        @endif
                                                     </div>
 
                                                     <div class="col-md-6">
@@ -480,9 +508,18 @@
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="$('#modalPayment').modal('hide')">Cancelar</button>
-                    <button type="button" class="btn btn-primary" wire:click="submit" {{ ($remaining > 0.01 && !$allowPartialPayment) ? 'disabled' : '' }}>
-                        <i class="fa fa-check me-2"></i>Confirmar Pago
-                    </button>
+                    
+                    @if($canPay)
+                        <button type="button" class="btn btn-primary" wire:click="submit('pay')" {{ ($remaining > 0.01 && !$allowPartialPayment) ? 'disabled' : '' }}>
+                            <i class="fa fa-check me-2"></i>Confirmar Pago
+                        </button>
+                    @endif
+
+                    @if($canUpload)
+                        <button type="button" class="btn btn-warning text-dark" wire:click="submit('upload')" {{ ($remaining > 0.01 && !$allowPartialPayment) ? 'disabled' : '' }}>
+                            <i class="fa fa-cloud-upload-alt me-2"></i>Subir Pago
+                        </button>
+                    @endif
                 </div>
             </div>
         </div>

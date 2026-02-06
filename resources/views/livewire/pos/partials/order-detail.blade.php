@@ -10,7 +10,7 @@
                 <div class="modal-body">
                     @if (count($details) > 0)
                         <div class="table-responsive">
-                            <table class="table table-responsive-md table-hover" id="tblPermissions">
+                            <table class="table table-responsive-md table-hover table-mobile-details" id="tblPermissions">
                                 <thead class="thead-primary">
                                     <tr class="text-center">
                                         <th>Folio</th>
@@ -24,11 +24,11 @@
                                 <tbody>
                                     @forelse ($details as $detail)
                                         <tr class="text-center">
-                                            <td>{{ $detail->id }}</td>
-                                            <td>{{ $detail->product->name }}</td>
-                                            <td>{{ $detail->quantity }}</td>
-                                            <td>${{ $detail->sale_price }}</td>
-                                            <td>${{ round($detail->sale_price * $detail->quantity, 2) }}</td>
+                                            <td data-label="Folio">{{ $detail->id }}</td>
+                                            <td data-label="Descripción">{{ $detail->product->name }}</td>
+                                            <td data-label="Cantidad">{{ $detail->quantity }}</td>
+                                            <td data-label="Precio">${{ $detail->sale_price }}</td>
+                                            <td data-label="Importe">${{ round($detail->sale_price * $detail->quantity, 2) }}</td>
 
                                         </tr>
                                     @empty
