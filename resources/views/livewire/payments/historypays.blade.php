@@ -82,6 +82,7 @@
                                         <th class='p-2'>Moneda</th>
                                         <th class='p-2'>Monto</th>
                                         <th class='p-2'>Tasa</th>
+                                        <th class='p-2'>Equiv. $</th>
                                         <th class='p-2'>Detalles</th>
                                         <th class='p-2'>Fecha</th>
                                         <th class='p-2'></th>
@@ -153,6 +154,22 @@
                                                 <div> <b>{{ number_format($pay->amount, 2) }}</b></div>
                                             </td>
                                             <td data-label="Tasa">{{ number_format($pay->exchange_rate, 2) }}</td>
+                                            <td data-label="Equiv. $">
+                                                @php
+                                                    $equivUsd = 0;
+                                                    // Logic: If VED/COP, divide by rate. If USD/Zelle, use amount.
+                                                    // $pay->currency is reliable? 
+                                                    // Let's use the same logic we used for $amountInUSD above (line 123)
+                                                    $rateSafe = $pay->exchange_rate > 0 ? $pay->exchange_rate : 1;
+                                                    
+                                                    if (in_array($pay->currency, ['VED', 'VES', 'COP'])) {
+                                                        $equivUsd = $pay->amount / $rateSafe;
+                                                    } else {
+                                                        $equivUsd = $pay->amount;
+                                                    }
+                                                @endphp
+                                                <b>${{ number_format($equivUsd, 2) }}</b>
+                                            </td>
                                             <td data-label="Detalles">
                                                 @php
                                                     $payWay = $pay->pay_way ?? $pay->payment_method;
