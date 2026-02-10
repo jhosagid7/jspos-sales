@@ -88,11 +88,49 @@ trait PdfInvoiceTrait
                     ],
                 ]);
 
+                $totalFreight = 0;
+                $totalTax = 0;
+                $totalBaseAccumulator = 0;
+                $isBrokenDown = $sale->is_freight_broken_down;
+
+                // Calculate combined tax/diff percentage
+                $commPercent = $sale->applied_commission_percent ?? 0;
+                $diffPercent = $sale->applied_exchange_diff_percent ?? 0;
+                $combinedPercent = ($commPercent + $diffPercent) / 100;
+
                 foreach ($sale->details as $detail) {
+                    
+                    if ($isBrokenDown) {
+                        // Breakdown ON: sale_price is ALREADY the base price (without freight)
+                        // freight_amount is stored separately
+                        // So we use sale_price directly, no need to subtract anything
+                        
+                        $unitPrice = $detail->sale_price;
+                        
+                        // Create Item with base price (no freight)
+                        $items[] = InvoiceItem::make($detail->product->name)
+                            ->reference($detail->product->sku ? $detail->product->sku : '')
+                            ->pricePerUnit($unitPrice)
+                            ->quantity($detail->quantity);
+                        
+                        // Accumulators
+                        $totalFreight += $detail->freight_amount;
+                        $totalBaseAccumulator += ($unitPrice * $detail->quantity);
+                        
+                    } else {
+                        // Breakdown OFF: sale_price INCLUDES freight
+                        // Show full price
+                        $unitPrice = $detail->sale_price;
+                        
+                        $items[] = InvoiceItem::make($detail->product->name)
+                            ->reference($detail->product->sku ? $detail->product->sku : '')
+                            ->pricePerUnit($unitPrice)
+                            ->quantity($detail->quantity);
 
-                    $items[] = InvoiceItem::make($detail->product->name)->reference($detail->product->sku ? $detail->product->sku : '')->pricePerUnit($detail->sale_price)->quantity($detail->quantity);
+                        $totalBaseAccumulator += ($unitPrice * $detail->quantity);
+                    }
                 }
-
+                
                 $notes = [
                     $sale->notes
                 ];
@@ -150,9 +188,25 @@ trait PdfInvoiceTrait
                     // ->filename($seller->name . ' ' . $customer->name)
                     ->addItems($items)
                     ->notes($notes)
-                    ->logo($logoPath ?? '')
-                    // You can additionally save generated invoice to configured disk
-                    ->save('public');
+                    ->logo($logoPath ?? '');
+
+                // Set Taxable Amount (Subtotal) - Must be called after invoice creation but before save
+                if ($totalBaseAccumulator > 0) {
+                    $invoice->taxableAmount($totalBaseAccumulator);
+                }
+
+                // Set freight and taxes if breakdown is enabled - Must be before save()
+                if ($isBrokenDown) {
+                    if ($totalFreight > 0) {
+                        $invoice->shipping($totalFreight); 
+                    }
+                    if ($totalTax > 0) {
+                        $invoice->totalTaxes($totalTax);
+                    }
+                }
+
+                // Save after all properties are set
+                $invoice->save('public');
 
                 $link = $invoice->url();
                 // Then send email to party with link
@@ -200,8 +254,64 @@ trait PdfInvoiceTrait
                 ]);
 
                 $items = [];
+                $totalFreight = 0;
+                $totalTax = 0;
+                $isBrokenDown = $sale->is_freight_broken_down;
+
+                // Calculate combined tax/diff percentage for reverse calc
+                $commPercent = $sale->applied_commission_percent ?? 0;
+                $diffPercent = $sale->applied_exchange_diff_percent ?? 0;
+                $combinedPercent = ($commPercent + $diffPercent) / 100;
+
                 foreach ($sale->details as $detail) {
-                    $items[] = InvoiceItem::make($detail->product->name)->reference($detail->product->sku ? $detail->product->sku : '')->pricePerUnit($detail->sale_price)->quantity($detail->quantity);
+                    
+                    if ($isBrokenDown) {
+                        // Breakdown Logic: Reverse Calculate Base Price
+                        $lineTotal = $detail->quantity * $detail->sale_price;
+                        $lineFreight = $detail->freight_amount; 
+                        
+                        // Clean Total (remove freight)
+                        $cleanTotal = max(0, $lineTotal - $lineFreight);
+                        
+                        // Base Total (remove tax/comm)
+                        $baseTotal = $cleanTotal / (1 + $combinedPercent);
+                        
+                        // Base Unit Price
+                        $unitPrice = ($detail->quantity > 0) ? ($baseTotal / $detail->quantity) : 0;
+                        
+                        // Tax for this item
+                        $taxAmountLine = $baseTotal * $combinedPercent;
+                        $taxAmountUnit = ($detail->quantity > 0) ? ($taxAmountLine / $detail->quantity) : 0;
+
+                        // Create Item with Base Price (No per-item tax set)
+                        $item = InvoiceItem::make($detail->product->name)
+                            ->reference($detail->product->sku ? $detail->product->sku : '')
+                            ->pricePerUnit($unitPrice)
+                            ->quantity($detail->quantity);
+                        
+                        $items[] = $item;
+                         
+                        $totalFreight += $lineFreight;
+                        $totalTax += $taxAmountLine;
+
+                    } else {
+                        // Standard Logic: Full Price, No Breakdown
+                        $items[] = InvoiceItem::make($detail->product->name)
+                            ->reference($detail->product->sku ? $detail->product->sku : '')
+                            ->pricePerUnit($detail->sale_price)
+                            ->quantity($detail->quantity);
+                    }
+                }
+                
+                // Calculate implicit global freight (Difference between Sale Total and Sum of Line Items)
+                // We use calculate totals from items we just built vs Expected Total
+                // Actually, let's use the DB values as source of truth for global freight
+                // sum(details.quantity * details.sale_price) should equal sale.total IF there is no global freight.
+                $sumDetailsTotal = $sale->details->sum(function($d) { return $d->quantity * $d->sale_price; });
+                $globalFreight = max(0, $sale->total - $sumDetailsTotal);
+                
+                if ($globalFreight > 0) {
+                     $totalFreight += $globalFreight;
                 }
 
                 $notes = [$sale->notes];
@@ -507,15 +617,15 @@ trait PdfInvoiceTrait
 
             // Calculate percentages
             $commPercent = $sale->applied_commission_percent ?? 0;
-            $freightPercent = $sale->applied_freight_percent ?? 0;
             $diffPercent = $sale->applied_exchange_diff_percent ?? 0;
-            $totalPercent = ($commPercent + $freightPercent + $diffPercent) / 100;
-            $factor = 1 + $totalPercent;
-
+            $freightPercent = $sale->applied_freight_percent ?? 0;
+            
+            $combinedPercent = ($commPercent + $diffPercent) / 100;
+            
             $items = [];
             $totalBase = 0;
-            $currencySymbol = '$';
             
+            $currencySymbol = '$';
             // Logic for Currency Symbol
             if ($sale->primary_currency_code) {
                 $currencySymbol = \App\Helpers\CurrencyHelper::getSymbol($sale->primary_currency_code);
@@ -526,30 +636,82 @@ trait PdfInvoiceTrait
                 }
             }
 
+            // Calculations
+            // 1. Detect if Freight is Additive
+            $rawItemsTotal = $sale->details->sum(function($d) { return $d->quantity * $d->sale_price; });
+            $isAdditive = ($sale->total - $rawItemsTotal) > 0.01;
+            
+            // Calculate Implicit Freight (Difference between Sale Total and Sum of Line Items)
+            $implicitFreight = max(0, $sale->total - $rawItemsTotal);
+            
+            $datasetFreightSum = $sale->details->sum('freight_amount');
+            
+            // True Global Freight is the part of Implicit that is NOT in the dataset details
+            // If Implicit is 1.00 and Dataset is 1.00, then True Global is 0.
+            // If Implicit is 1.00 and Dataset is 0, True Global is 1.00.
+            $trueGlobalFreight = max(0, $implicitFreight - $datasetFreightSum);
+            
+            $totalFreightAmount = $datasetFreightSum;
+            
+            // Split Freight Logic matches sales-detail
+            $configFreightTotal = $sale->details->filter(function($d) {
+                return in_array($d->product->freight_type, ['global', 'none']);
+            })->sum('freight_amount');
+
+            $productFreightTotal = $sale->details->filter(function($d) {
+                return !in_array($d->product->freight_type, ['global', 'none']);
+            })->sum('freight_amount');
+            
+            // Add True Global Freight to Product Freight Total if it exists
+            if ($trueGlobalFreight > 0) {
+                 $productFreightTotal += $trueGlobalFreight;
+                 $totalFreightAmount += $trueGlobalFreight;
+            }
+
             foreach ($sale->details as $detail) {
-                // Base Price Calculation logic (same as ticket)
-                $price = $detail->sale_price;
-                if ($factor > 1) {
-                    $basePrice = $price / $factor;
+                $qty = $detail->quantity;
+                $finalUnitSalePrice = $detail->sale_price;
+                $lineFreight = $detail->freight_amount;
+                $finalImporte = $finalUnitSalePrice * $qty;
+                
+                // 1. Calculate Base Total (Importe Base)
+                if ($isAdditive) {
+                    $cleanTotal = $finalImporte; 
+                    
+                    // If isAdditive, the Price ($1.00) is the Base.
+                    // We assume it does NOT include Commission/Diff yet, because they are calculated in the footer.
+                    // "Flete (Productos)" is added in the footer.
+                    // "Comision" is added in the footer.
+                    // So Base IS $1.00.
+                    
+                    $itemTotalBase = $cleanTotal;
+                     
                 } else {
-                    $basePrice = $price;
+                    // Inclusive Logic (Old)
+                    // Formula: (FinalImporte - Freight) / (1 + Combined%)
+                    $cleanTotal = max(0, $finalImporte - $lineFreight);
+                    $itemTotalBase = $cleanTotal / (1 + $combinedPercent);
                 }
                 
-                $itemTotalBase = $basePrice * $detail->quantity;
+                // 2. Calculate Base Unit Price
+                $baseUnit = ($qty > 0) ? ($itemTotalBase / $qty) : 0;
+
                 $totalBase += $itemTotalBase;
 
                 $items[] = [
                     'quantity' => number_format($detail->quantity, 2),
                     'name' => $detail->product->name,
-                    'base_price' => $basePrice,
-                    'total_base' => $itemTotalBase
+                    'base_price' => $baseUnit, // Base Unit
+                    'total_base' => $itemTotalBase // Base Total
                 ];
             }
 
-            $commAmount = $commPercent > 0 ? $totalBase * ($commPercent / 100) : 0;
-            $freightAmount = $freightPercent > 0 ? $totalBase * ($freightPercent / 100) : 0;
-            $diffAmount = $diffPercent > 0 ? $totalBase * ($diffPercent / 100) : 0;
-
+            // Recalculate amounts based on Total Base
+            $commAmount = $totalBase * ($commPercent / 100);
+            $diffAmount = $totalBase * ($diffPercent / 100);
+            
+            // For Freight, we already have the exact sums
+            
             $data = [
                 'company' => $config,
                 'sale' => $sale,
@@ -558,10 +720,13 @@ trait PdfInvoiceTrait
                 'currencySymbol' => $currencySymbol,
                 'commPercent' => $commPercent,
                 'commAmount' => $commAmount,
-                'freightPercent' => $freightPercent,
-                'freightAmount' => $freightAmount,
                 'diffPercent' => $diffPercent,
-                'diffAmount' => $diffAmount
+                'diffAmount' => $diffAmount,
+                // Freight details
+                'freightPercent' => $freightPercent, // For display in Config line
+                'configFreightTotal' => $configFreightTotal,
+                'productFreightTotal' => $productFreightTotal,
+                'totalFreightAmount' => $totalFreightAmount
             ];
 
             $pdf = Pdf::loadView('pdf.internal-invoice', $data);

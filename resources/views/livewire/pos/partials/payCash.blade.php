@@ -555,7 +555,7 @@
 
                 {{-- Footer --}}
                 <div class="modal-footer bg-light">
-                    <button class="btn btn-secondary fs-6" type="button" data-dismiss="modal" wire:click="closeModal" style="background-color: #6c757d; border-color: #6c757d;">
+                    <button class="btn btn-secondary fs-6" type="button" data-dismiss="modal" style="background-color: #6c757d; border-color: #6c757d;">
                         <i class="fa fa-times me-2"></i>Cerrar
                     </button>
                     

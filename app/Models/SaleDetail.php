@@ -17,6 +17,7 @@ class SaleDetail extends Model
         'quantity', 
         'sale_price', 
         'discount',
+        'freight_amount',
         'exchange_rate'
     ];
 

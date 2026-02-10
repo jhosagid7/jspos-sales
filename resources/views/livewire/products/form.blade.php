@@ -106,6 +106,16 @@
                             </div>
                         </a>
                     </li>
+                    <li class="nav-item mb-2">
+                        <a class="nav-link {{ $tab == 10 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                           wire:click.prevent="$set('tab',10)" href="#">
+                            <i class="fa fa-gavel fa-2x"></i>
+                            <div>
+                                <h6 class="mb-0">Reglas de Precio</h6>
+                                <small class="{{ $tab == 10 ? 'text-white' : 'text-muted' }}">Fletes y Mayorista</small>
+                            </div>
+                        </a>
+                    </li>
                     {{-- Variable Items Tab --}}
                     @if($form->is_variable_quantity)
                     <li class="nav-item mb-2">
@@ -677,6 +687,105 @@
                     </div>
 
 
+
+                    {{-- Pricing Rules Tab (Freight & Tiers) --}}
+                    <div class="tab-pane fade {{ $tab == 10 ? 'active show' : '' }}" id="pricing-rules" role="tabpanel">
+                        <div class="sidebar-body">
+                            <h6 class="mb-3">Configuración de Flete</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-sm-12 col-md-4">
+                                    <label class="form-label">Tipo de Flete <span class="text-danger">*</span></label>
+                                    <select wire:model="form.freight_type" class="form-control form-select">
+                                        <option value="none">Ninguno (Usa General)</option>
+                                        <option value="percentage">Porcentaje (%)</option>
+                                        <option value="fixed">Monto Fijo ($)</option>
+                                    </select>
+                                    <small class="text-muted">
+                                        Si seleccionas "Ninguno", se usará la configuración del vendedor (si aplica).
+                                        Si seleccionas otro, este valor <strong>reemplaza</strong> al general.
+                                    </small>
+                                </div>
+                                <div class="col-sm-12 col-md-4">
+                                    <label class="form-label">Valor del Flete</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            @if($form->freight_type == 'percentage') % @else $ @endif
+                                        </span>
+                                        <input wire:model="form.freight_value" class="form-control" type="number" min="0" step="0.01">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <hr>
+
+                            <h6 class="mb-3">Precios por Volumen (Mayorista)</h6>
+                            <div class="alert alert-light border">
+                                <i class="fa fa-info-circle text-info"></i> 
+                                Define precios especiales que se activan automáticamente al vender cierta cantidad.
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Cantidad Mínima</label>
+                                    <input type="number" id="tierMinQty" class="form-control" placeholder="Ej: 100">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Precio Unitario Especial</label>
+                                    <input type="number" id="tierPrice" class="form-control" placeholder="Ej: 3.50">
+                                </div>
+                                <div class="col-md-4 d-flex align-items-end">
+                                    <button type="button" class="btn btn-primary w-100" onclick="addPriceTier()">
+                                        <i class="fa fa-plus me-2"></i> Agregar Regla
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Cantidad Mínima</th>
+                                            <th>Precio Unitario</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tiersTableBody">
+                                        @forelse($form->pricing_tiers as $index => $tier)
+                                            <tr>
+                                                <td>Mayor a <strong>{{ $tier['min_qty'] }}</strong> unidades</td>
+                                                <td><span class="text-success fw-bold">${{ number_format($tier['price'], 2) }}</span></td>
+                                                <td>
+                                                    <button type="button" class="btn btn-danger btn-sm" wire:click="removePriceTier({{ $index }})">
+                                                        <i class="fa fa-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="3" class="text-center text-muted">No hay reglas de volumen definidas.</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {{-- Alpine/JS Helper for Tiers --}}
+                            <script>
+                                function addPriceTier() {
+                                    let qty = document.getElementById('tierMinQty').value;
+                                    let price = document.getElementById('tierPrice').value;
+
+                                    if(qty > 0 && price > 0) {
+                                        @this.call('addPriceTier', qty, price);
+                                        document.getElementById('tierMinQty').value = '';
+                                        document.getElementById('tierPrice').value = '';
+                                    } else {
+                                        alert('Ingresa cantidad y precio válidos');
+                                    }
+                                }
+                            </script>
+                        </div>
+                    </div>
 
                     {{-- Variable Items Content --}}
                     @if($form->is_variable_quantity && $form->product_id > 0)

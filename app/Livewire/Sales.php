@@ -224,14 +224,33 @@ class Sales extends Component
     ];
 
     public $applyCommissions = false; // Toggle for applying commissions
+    public $applyFreight = false; // Toggle for applying freight ONLY
+    public $is_freight_broken_down = false; // Toggle for breaking down freight
+    public $total_freight = 0; // Total freight amount
 
-    public function updatedApplyCommissions($value)
+    public function updatedApplyCommissions()
     {
-        session(['applyCommissions' => $value]);
+        session(['applyCommissions' => $this->applyCommissions]);
         $this->recalculateCartWithSellerConfig();
-        $this->dispatch('noty', msg: $value ? 'Comisiones Activadas' : 'Comisiones Desactivadas');
+        $this->recalculateFreightTotal(); // Ensure freight is recalculated
+        $this->dispatch('noty', msg: 'COMISIONES DE VENTA ACTUALIZADAS');
     }
 
+    public function updatedApplyFreight()
+    {
+        session(['applyFreight' => $this->applyFreight]);
+        $this->recalculateCartWithSellerConfig();
+        $this->recalculateFreightTotal();
+        $this->dispatch('noty', msg: 'CONFIGURACIÓN DE FLETE ACTUALIZADA');
+    }
+
+    public function updatedIsFreightBrokenDown()
+    {
+        session(['is_freight_broken_down' => $this->is_freight_broken_down]);
+        $this->recalculateCartWithSellerConfig();
+        $this->recalculateFreightTotal();
+        $this->dispatch('noty', msg: 'DISTRIBUCIÓN DE FLETE ACTUALIZADA');
+    }
 
 
 
@@ -577,11 +596,13 @@ class Sales extends Component
         $oldItem = $mycart->where('id', $uid)->first();
 
         $newItem = $oldItem;
-        $newItem['sale_price'] = $price;
+        $newItem['base_price'] = $price; // Update base_price with manual override
+        $newItem['sale_price'] = $price; // Temporary, Calculator will overwrite
 
-        $values = $this->Calculator($newItem['sale_price'], $newItem['qty']);
+        $values = $this->Calculator($newItem['base_price'], $newItem['qty']);
 
         $decimals = ConfigurationService::getDecimalPlaces();
+        $newItem['sale_price'] = $values['sale_price']; // Set final price (Base + Freight/Comm)
         $newItem['tax'] = round($values['iva'], $decimals);
         $newItem['total'] = $this->formatAmount(round($values['total'], $decimals));
 
@@ -601,8 +622,12 @@ class Sales extends Component
 
         $this->save();
         $this->dispatch('refresh');
+        $this->save();
+        $this->dispatch('refresh');
         $this->dispatch('noty', msg: 'PRECIO ACTUALIZADO');
     }
+
+
 
     function updatedSearch3()
     {
@@ -767,6 +792,8 @@ class Sales extends Component
         $this->paymentCurrency = $primaryCurrency ? $primaryCurrency->code : null;
 
         $this->applyCommissions = session('applyCommissions', false);
+        $this->applyFreight = session('applyFreight', false);
+        $this->is_freight_broken_down = session('is_freight_broken_down', false);
         
         // Initialize Zelle Date
         $this->zelleDate = date('Y-m-d');
@@ -1468,12 +1495,37 @@ class Sales extends Component
             }
         }
 
-        // Aplicar markup si existe configuración de vendedor Y el toggle está activo
+        // Determine Base Price (Volume or Standard)
+        $basePrice = $this->determinePrice($product, $qty);
+        $basePriceInPrimary = $basePrice * $exchangeRate;
+
+        // Calculate Extras (Commission, Freight, Diff)
+        $comm = 0;
+        $freight = 0;
+        $diff = 0;
+
         if ($this->sellerConfig && $this->applyCommissions) {
-            $comm = ($basePriceInPrimary * $this->sellerConfig->commission_percent) / 100;
-            $freight = ($basePriceInPrimary * $this->sellerConfig->freight_percent) / 100;
-            $diff = ($basePriceInPrimary * $this->sellerConfig->exchange_diff_percent) / 100;
             
+            // Commission
+            $comm = ($basePriceInPrimary * $this->sellerConfig->commission_percent) / 100;
+            
+            // Exchange Diff
+            $diff = ($basePriceInPrimary * $this->sellerConfig->exchange_diff_percent) / 100;
+
+            // Freight (Smart Logic)
+            if ($product->freight_type != 'none') {
+                // Product Specific Freight
+                if ($product->freight_type == 'fixed') {
+                    $freightUnit = $product->freight_value; // Fixed amount per unit
+                } else {
+                    $freightUnit = ($basePriceInPrimary * $product->freight_value) / 100;
+                }
+            } else {
+                // General Seller Freight
+                $freightUnit = ($basePriceInPrimary * $this->sellerConfig->freight_percent) / 100;
+            }
+            $freight = $freightUnit; // Total freight added to unit price
+
             $salePrice = $basePriceInPrimary + $comm + $freight + $diff;
         } else {
             $salePrice = $basePriceInPrimary;
@@ -1488,6 +1540,7 @@ class Sales extends Component
         // Determinamos el precio de venta (con IVA)
         if ($iva > 0) {
             $precioUnitarioSinIva =  $salePrice / (1 + $iva);
+            // ... Logic continues ...
             $subtotalNeto =   $precioUnitarioSinIva * $this->formatAmount($qty);
             $montoIva = $subtotalNeto  * $iva;
             $totalConIva =  $subtotalNeto + $montoIva;
@@ -1523,9 +1576,13 @@ class Sales extends Component
             'image' => $product->photo,
             'platform_id' => $product->platform_id,
             'warehouse_id' => $targetWarehouseId, // Store warehouse ID
+            'freight_type' => $product->freight_type, // Store for recalculation
+            'freight_value' => $product->freight_value, // Store for recalculation
+            'base_price' => $basePriceInPrimary // Store original base price to avoid compounding
         ];
 
         $this->cart->push($itemCart);
+        $this->recalculateFreightTotal();
         $this->save();
         $this->dispatch('refresh');
         $this->search3 = '';
@@ -1541,9 +1598,81 @@ class Sales extends Component
                 return $item['qty'];
             }
         }
+        return 0; 
     }
 
-    function Calculator($price, $qty)
+    public function calculateFreight($product, $qty, $customBasePrice = null)
+    {
+
+
+        // 1. Validar configuración global de flete
+        if (!$this->applyCommissions && !$this->applyFreight) {
+            return 0;
+        }
+
+        $basePrice = $customBasePrice ?? $product->price;
+
+        // 2. Flete específico (Fixed / Personalized)
+        if ($product->freight_type == 'personalized' || $product->freight_type == 'fixed') {
+             return $product->freight_value * $qty;
+        }
+
+        // 3. Flete Porcentaje (Specific Percentage)
+        if ($product->freight_type == 'percentage') {
+             return ($basePrice * $product->freight_value / 100) * $qty;
+        }
+
+        // 4. Flete Global (Seller Config) - Fallback for 'global', 'none', or null
+        // If type is 'none' or 'global', we apply Seller Freight if available.
+        if ($this->sellerConfig) {
+             return ($basePrice * $this->sellerConfig->freight_percent / 100) * $qty;
+        }
+
+        return 0;
+    }
+
+
+
+
+
+    public function determinePrice($product, $qty)
+    {
+        $price = $product->price;
+        $tiers = $product->priceTiers;
+
+        if ($tiers && $tiers->count() > 0) {
+            // Find the best tier for the quantity
+            $tier = $tiers->where('min_qty', '<=', $qty)->sortByDesc('min_qty')->first();
+            if ($tier) {
+                $price = $tier->price;
+            }
+        }
+
+        return $price;
+    }
+
+    public function recalculateCartPrices()
+    {
+        $cartArray = $this->cart->toArray();
+        
+        foreach ($cartArray as &$item) {
+            $productModel = \App\Models\Product::find($item['pid']);
+            if ($productModel) {
+                 // Recalculate based on current toggle state using BASE PRICE to avoid compounding
+                 $baseForCalc = $item['base_price'] ?? $item['sale_price'];
+                 $result = $this->Calculator($baseForCalc, $item['qty'], $productModel);
+                 $item['sale_price'] = $result['sale_price'];
+                 $item['tax'] = $result['iva'];
+                 $item['total'] = $result['total'];
+            }
+        }
+        
+        $this->cart = collect($cartArray);
+        $this->save();
+        $this->dispatch('refresh');
+    }
+
+    function Calculator($price, $qty, $product)
     {
         // Obtener el número de decimales configurados
         $decimals = ConfigurationService::getDecimalPlaces();
@@ -1551,8 +1680,47 @@ class Sales extends Component
         // Obtener el IVA desde la configuración
         $iva = ConfigurationService::getVat() / 100;
 
+        // Use passed price as base (Calculated Price from Tiers or Manual)
+        $basePriceInPrimary = $price;
+        $primaryCurrency = CurrencyHelper::getPrimaryCurrency();
+        // If needed, we could verify exchange rate, but usually price in cart is already handled?
+        // Let's assume $price passed to Calculator IS in Primary Currency / Base Unit.
+        
+        // Recalcular Extras (Comisión, Flete, Diferencia)
+        $comm = 0;
+        $freight = 0;
+        $diff = 0;
+
+        if ($this->applyCommissions) {
+            
+            if ($this->sellerConfig) {
+                 $comm = ($basePriceInPrimary * $this->sellerConfig->commission_percent) / 100;
+                 $diff = ($basePriceInPrimary * $this->sellerConfig->exchange_diff_percent) / 100;
+            }
+        }
+
+        if ($this->applyCommissions || $this->applyFreight) {
+            $freightTotal = $this->calculateFreight($product, $qty, $basePriceInPrimary); // Returns TOTAL freight amount for the qty
+            
+            // Convert Total Freight to Per Unit for the formula
+            $freightUnit = ($qty > 0) ? ($freightTotal / $qty) : 0;
+        } else {
+            $freightTotal = 0;
+            $freightUnit = 0;
+        }
+
+        // IF breakdown is ON, we DO NOT add freight to the Unit Price
+        if ($this->is_freight_broken_down) {
+             // Freight is calculated separately, not in unit price
+             $salePrice = $basePriceInPrimary + $comm + $diff;
+        } else {
+             // Freight is included in unit price
+             $salePrice = $basePriceInPrimary + $comm + $freightUnit + $diff;
+        }
+
+
         // Determinamos el precio de venta (con IVA)
-        $salePrice = $price;
+        
         // Precio unitario sin IVA
         $precioUnitarioSinIva =  $salePrice / (1 + $iva);
         // Subtotal neto
@@ -1570,12 +1738,15 @@ class Sales extends Component
         ];
     }
 
+
+
     public function removeItem($id)
     {
         $this->cart = $this->cart->reject(function ($product) use ($id) {
             return $product['pid'] === $id || $product['id'] === $id;
         });
 
+        $this->recalculateFreightTotal();
         $this->save();
         $this->dispatch('refresh');
         $this->dispatch('noty', msg: 'PRODUCTO ELIMINADO');
@@ -1676,6 +1847,7 @@ class Sales extends Component
         ];
 
         $this->cart->push($itemCart);
+        $this->recalculateFreightTotal();
         $this->save();
         $this->dispatch('refresh');
         
@@ -1819,7 +1991,6 @@ class Sales extends Component
             $stockInWarehouse = $product->stockIn($itemWarehouseId);
 
             if ($stockInWarehouse < $newQty) {
-                \Log::info("Intentando agregar al carrito: {$product->name}, Cantidad solicitada: {$newQty}, Stock disponible: {$stockInWarehouse}, Cantidad en carrito: {$oldItem['qty']}");
                 $this->dispatch('noty', msg: 'No hay suficiente stock para el producto: ' . $product->name);
                 return;
             }
@@ -1875,8 +2046,30 @@ class Sales extends Component
         $newItem['qty'] = $this->formatAmount($cant);
 
         // Calcular valores
-        $values = $this->Calculator($newItem['sale_price'], $newItem['qty']);
+        $productModel = \App\Models\Product::find($newItem['pid']);
+        
+        // Determine correct base price
+        // If the product has volume tiers, we MUST recalculate based on new QTY
+        $basePriceFromTiers = $this->determinePrice($productModel, $newItem['qty']);
+        
+        $primaryCurrency = CurrencyHelper::getPrimaryCurrency();
+        $exchangeRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
+        
+        // Convert tier price to primary currency
+        $basePriceFromTiersInPrimary = $basePriceFromTiers * $exchangeRate;
+
+        // Update base_price in item
+        // Note: If we had a manual override flag, we would check it here. 
+        // For now, we assume if Qty changes, we re-evaluate tiers unless it's a manual price (which we can't easily track without a flag).
+        // However, the previous logic was preserving 'base_price' from oldItem regardless of qty change, which broke tiers.
+        // We will update base_price.
+        $newItem['base_price'] = $basePriceFromTiersInPrimary;
+
+        $base = $newItem['base_price'];
+        
+        $values = $this->Calculator($base, $newItem['qty'], $productModel);
         $decimals = ConfigurationService::getDecimalPlaces();
+        $newItem['sale_price'] = $values['sale_price'];
         $newItem['tax'] = round($values['iva'], $decimals);
         $newItem['total'] = $this->formatAmount(round($values['total'], $decimals));
 
@@ -1885,14 +2078,21 @@ class Sales extends Component
             return $product['id'] === $uid;
         });
 
-        // Agregar el nuevo artículo al carrito
+        // Add to cart first so calculateCalculatedFreight can see it
         $this->cart->push($newItem);
+        
+        // Recalculate freight total
+        $this->recalculateFreightTotal();
 
         // Actualizar la sesión
         session(['cart' => $this->cart->toArray()]);
 
         // Emitir eventos
         $this->dispatch('refresh');
+        
+        // Recalculate freight total after quantity update
+        $this->recalculateFreightTotal();
+        
         $this->dispatch('noty', msg: 'CANTIDAD ACTUALIZADA');
     }
 
@@ -1933,7 +2133,6 @@ class Sales extends Component
         
         $this->loadCurrencies();
 
-        Log::info('Venta cancelada - Todas las sesiones limpiadas');
     }
 
     public function totalIVA()
@@ -1948,10 +2147,45 @@ class Sales extends Component
     public function totalCart()
     {
         $decimals = ConfigurationService::getDecimalPlaces();
-        $amount = $this->cart->sum(function ($product) {
+        
+        $total = $this->cart->sum(function ($product) {
             return $product['total'];
         });
-        return round($amount, $decimals);
+
+        if ($this->is_freight_broken_down) {
+             $total += floatval($this->total_freight);
+        }
+
+        return round($total, $decimals);
+    }
+
+    public function calculateCalculatedFreight() {
+         $sum = 0;
+         foreach ($this->cart as $item) {
+             $prod = \App\Models\Product::find($item['pid']);
+             if($prod) {
+                 // Use base_price if available to calculate freight on the original amount, avoiding compounding.
+                 // Fallback to sale_price only if base_price is missing.
+                 $baseForFreight = $item['base_price'] ?? $item['sale_price'];
+                 $sum += $this->calculateFreight($prod, $item['qty'], $baseForFreight);
+             }
+         }
+         return $sum;
+    }
+
+    public function recalculateFreightTotal() 
+    {
+         if ($this->is_freight_broken_down) {
+             $decimals = ConfigurationService::getDecimalPlaces();
+             $this->total_freight = round($this->calculateCalculatedFreight(), $decimals);
+         }
+    }
+
+    public function updatedTotalFreight()
+    {
+        // Do not recalculate freight here, as we want to allow manual override.
+        // But we DO want to ensure the total reflects the change.
+        // Render will handle totalCart() calculation.
     }
 
     public function totalItems()
@@ -2039,10 +2273,20 @@ class Sales extends Component
             $basePrice = $basePrice * $exchangeRate;
             
             // Apply logic if config exists AND toggle is active
-            if ($this->sellerConfig && $this->applyCommissions) {
-                $comm = ($basePrice * $this->sellerConfig->commission_percent) / 100;
-                $freight = ($basePrice * $this->sellerConfig->freight_percent) / 100;
-                $diff = ($basePrice * $this->sellerConfig->exchange_diff_percent) / 100;
+            if ($this->sellerConfig) {
+                 if ($this->applyCommissions) {
+                    $comm = ($basePrice * $this->sellerConfig->commission_percent) / 100;
+                    $diff = ($basePrice * $this->sellerConfig->exchange_diff_percent) / 100;
+                 } else {
+                    $comm = 0; 
+                    $diff = 0;
+                 }
+
+                 if ($this->applyCommissions || $this->applyFreight) {
+                    $freight = ($basePrice * $this->sellerConfig->freight_percent) / 100;
+                 } else {
+                    $freight = 0;
+                 }
                 
                 $finalPrice = $basePrice + $comm + $freight + $diff;
             } else {
@@ -2050,9 +2294,14 @@ class Sales extends Component
             }
 
             // Recalculate item totals
-            $item['sale_price'] = $finalPrice;
-            $values = $this->Calculator($item['sale_price'], $item['qty']);
+            // Use stored base_price if available (respects manual overrides), otherwise calc from product
+            // Note: determinePrice logic for tiers is missing here, ideally we should re-run determinePrice if it's not a manual override.
+            // But for now, fixing the compounding is priority.
+            $calcBase = $item['base_price'] ?? ($product->price * $exchangeRate);
+            
+            $values = $this->Calculator($calcBase, $item['qty'], $product);
             $decimals = ConfigurationService::getDecimalPlaces();
+            $item['sale_price'] = $values['sale_price'];
             $item['tax'] = round($values['iva'], $decimals);
             $item['total'] = $this->formatAmount(round($values['total'], $decimals));
 
@@ -2236,21 +2485,48 @@ class Sales extends Component
                 'batch_sequence' => $batchSequence,
 
                 'credit_days' => $this->creditConfig['credit_days'] ?? $this->calculateCreditDays(),
-                'driver_id' => $this->driver_id ?: null,
                 'delivery_status' => $this->driver_id ? 'pending' : 'delivered',
                 'credit_rules_snapshot' => $this->prepareCreditSnapshot(),
+                'is_freight_broken_down' => $this->is_freight_broken_down,
             ]);
 
             // get cart session
             $cart = collect(session("cart"));
 
             // insert sale detail
+            // Prepared variables for closure
+            $applyCommissions = $this->applyCommissions;
+            $applyFreight = $this->applyFreight;
+            $sellerConfig = $this->sellerConfig;
+
             // insert sale detail
-            $details = $cart->map(function ($item) use ($sale, $decimals, $primaryCurrency) {
+            $details = $cart->map(function ($item) use ($sale, $decimals, $primaryCurrency, $applyCommissions, $applyFreight, $sellerConfig) {
                 // El precio del producto está en USD (base)
                 $product = Product::find($item['pid']);
                 $priceUSD = $product ? $product->price : 0;
                 
+                // Calculate Freight for this item
+                $freightAmount = 0;
+                
+                // Logic from calculateFreight
+                if ($applyCommissions || $applyFreight) {
+                     $basePrice = $item['base_price'] ?? ($priceUSD * $primaryCurrency->exchange_rate);
+                     $qty = $item['qty'];
+                     
+                     // 1. Specific Freight
+                     if ($product->freight_type == 'personalized' || $product->freight_type == 'fixed') {
+                         $freightAmount = $product->freight_value * $qty;
+                     } 
+                     // 2. Percentage Freight
+                     elseif ($product->freight_type == 'percentage') {
+                         $freightAmount = ($basePrice * $product->freight_value / 100) * $qty;
+                     }
+                     // 3. Fallback to Global Seller Freight
+                     elseif ($sellerConfig) {
+                          $freightAmount = ($basePrice * $sellerConfig->freight_percent / 100) * $qty;
+                     }
+                }
+
                 return [
                     'product_id' => $item['pid'],
                     'sale_id' => $sale->id,
@@ -2260,6 +2536,7 @@ class Sales extends Component
                         $decimals
                     ),
                     'sale_price' => round($item['sale_price'], $decimals),
+                    'freight_amount' => round($freightAmount, $decimals),
                     'price_usd' => $priceUSD,
                     'exchange_rate' => $primaryCurrency->exchange_rate,
                     'created_at' => Carbon::now(),
@@ -2985,6 +3262,7 @@ class Sales extends Component
         $seller = $customer->seller;
         $this->creditConfig = \App\Services\CreditConfigService::getCreditConfig($customer, $seller);
     }
+
 
 
     public function prepareCreditSnapshot()

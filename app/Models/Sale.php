@@ -55,10 +55,12 @@ class Sale extends Model
         'deletion_requested_by',
         'deletion_approved_by',
         'deletion_approved_at',
+        'is_freight_broken_down',
     ];
 
     protected $casts = [
         'is_foreign_sale' => 'boolean',
+        'is_freight_broken_down' => 'boolean',
         'applied_commission_percent' => 'decimal:2',
         'final_commission_amount' => 'decimal:2',
         'total' => 'decimal:2',

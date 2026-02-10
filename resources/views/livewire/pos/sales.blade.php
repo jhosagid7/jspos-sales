@@ -85,9 +85,34 @@
                                 @endif
                             </label>
                             
-                            <div class="custom-control custom-switch">
-                                <input type="checkbox" class="custom-control-input" id="customSwitch1" wire:model.live="applyCommissions">
-                                <label class="custom-control-label" for="customSwitch1" style="font-size: 0.8rem;">Aplicar Comisiones</label>
+                            <div class="custom-control custom-switch" title="{{ $sellerConfig ? '' : 'Seleccione un cliente con conf. de vendedor para habilitar' }}">
+                                <input type="checkbox" class="custom-control-input" id="customSwitch1" wire:model.live="applyCommissions" {{ $sellerConfig ? '' : 'disabled' }}>
+                                <label class="custom-control-label" for="customSwitch1" style="font-size: 0.8rem;">
+                                    Aplicar Comisiones 
+                                    @if(!$sellerConfig) <i class="fas fa-lock text-muted" style="font-size: 0.7em;"></i> @endif
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="mb-0"></label>
+                            <div class="custom-control custom-switch" title="{{ $sellerConfig ? '' : 'Seleccione un cliente con conf. de vendedor para habilitar' }}">
+                                <input type="checkbox" class="custom-control-input" id="switchApplyFreight" wire:model.live="applyFreight" {{ $sellerConfig ? '' : 'disabled' }}>
+                                <label class="custom-control-label" for="switchApplyFreight" style="font-size: 0.8rem;">
+                                    Aplicar Solo Flete
+                                     @if(!$sellerConfig) <i class="fas fa-lock text-muted" style="font-size: 0.7em;"></i> @endif
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="mb-0"></label>
+                            <div class="custom-control custom-switch" title="{{ $sellerConfig ? '' : 'Seleccione un cliente con conf. de vendedor para habilitar' }}">
+                                <input type="checkbox" class="custom-control-input" id="switchFreight" wire:model.live="is_freight_broken_down" {{ $sellerConfig ? '' : 'disabled' }}>
+                                <label class="custom-control-label" for="switchFreight" style="font-size: 0.8rem;">
+                                    Desglosar Flete
+                                    @if(!$sellerConfig) <i class="fas fa-lock text-muted" style="font-size: 0.7em;"></i> @endif
+                                </label>
                             </div>
                         </div>
                         
@@ -152,6 +177,21 @@
                                 <td class="text-muted">I.V.A.:</td>
                                 <td class="text-right font-weight-bold">{{ $symbol }}{{ formatMoney($ivaCart) }}</td>
                             </tr>
+                            @if($is_freight_broken_down)
+                            <tr class="border-bottom">
+                                <td class="text-muted">Flete Total:</td>
+                                <td class="text-right">
+                                    <div class="input-group input-group-sm justify-content-end">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text p-1">{{ $symbol }}</span>
+                                        </div>
+                                        <input type="number" class="form-control form-control-sm text-right" 
+                                            wire:model.lazy="total_freight" 
+                                            style="max-width: 100px;">
+                                    </div>
+                                </td>
+                            </tr>
+                            @endif
                             <tr>
                                 <td class="h5 font-weight-bold">TOTAL:</td>
                                 <td class="h5 font-weight-bold text-primary text-right">{{ $symbol }}{{ formatMoney($totalCart) }}</td>

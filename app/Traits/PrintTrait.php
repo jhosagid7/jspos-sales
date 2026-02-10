@@ -800,10 +800,10 @@ trait PrintTrait
                 
                 // Calculate percentages
                 $commPercent = $sale->applied_commission_percent ?? 0;
-                $freightPercent = $sale->applied_freight_percent ?? 0;
                 $diffPercent = $sale->applied_exchange_diff_percent ?? 0;
-                $totalPercent = ($commPercent + $freightPercent + $diffPercent) / 100;
-                $factor = 1 + $totalPercent;
+                $freightPercent = $sale->applied_freight_percent ?? 0;
+                
+                $combinedPercent = ($commPercent + $diffPercent) / 100;
 
                 // Separator
                 $widthConfig = $printerWidth;
@@ -814,97 +814,107 @@ trait PrintTrait
                 
                 // Table Header
                 if ($is58mm) {
-                    $maskHead = "%-16.16s %-5.5s %-9.9s"; 
+                    // 58mm: Desc line, then details
+                    $printer->text("DESCRIPCION\n");
+                    $printer->text("CANT   P.BASE    T.BASE\n");
                 } else {
-                    $maskHead = "%-30s %-5s %-8s";
+                    // 80mm: Desc(18) Cant(5) Unit(9) Total(9) ~ 41 chars
+                    $maskHead = "%-18.18s %-5.5s %-9.9s %-9.9s"; 
+                    $printer->text(sprintf($maskHead, 'DESCRIPCION', 'CANT', 'P.BASE', 'T.BASE') . "\n");
                 }
-                $printer->text(sprintf($maskHead, 'DESCRIPCION', 'CANT', 'IMPORTE') . "\n");
                 $printer->text($separator . "\n");
 
                 $totalBase = 0;
-                $currencySymbol = '$'; // Assuming USD mainly
+                $currencySymbol = '$'; 
+                if ($sale->primary_currency_code) {
+                    $currencySymbol = \App\Helpers\CurrencyHelper::getSymbol($sale->primary_currency_code);
+                }
+
+                // Calculations
+                $totalFreightAmount = $sale->details->sum('freight_amount');
                 
-                // Only use USD calculation if is_foreign_sale is true, otherwise standard
-                // But the requirement implies this IS for foreign/commission sales.
-                // We'll calculate base from price_usd or total_usd if available.
+                // Split Freight Logic
+                $configFreightTotal = $sale->details->filter(function($d) {
+                    return in_array($d->product->freight_type, ['global', 'none']);
+                })->sum('freight_amount');
+
+                $productFreightTotal = $sale->details->filter(function($d) {
+                    return !in_array($d->product->freight_type, ['global', 'none']);
+                })->sum('freight_amount');
                 
                 foreach ($sale->details as $item) {
-                     // Calculate Base Price for Item
-                     // Using price_usd if available as base, or back-calculating from sale_price
+                     $qty = $item->quantity;
+                     $finalImporte = $item->quantity * $item->sale_price;
+                     $itemFreight = $item->freight_amount;
                      
-                     // If sale was saved with the surcharge applied to unit prices, we divide.
-                     // The logic in Sales.php: 'total' => round($this->totalCart, $decimals) where totalCart includes surcharges?
-                     // Actually, usually in this system, 'total' is final.
+                     // Reverse Calculation
+                     $cleanTotal = max(0, $finalImporte - $itemFreight);
+                     $itemTotalBase = $cleanTotal / (1 + $combinedPercent);
+                     $baseUnit = ($qty > 0) ? ($itemTotalBase / $qty) : 0;
                      
-                     $itemTotalFinal = $item->quantity * $item->sale_price; // Or price_usd?
-                     // Let's rely on the global factor to reverse-calc base from the stored price.
-                     
-                     // If price_usd is "Base" usage:
-                     // The image shows "Laptop Pro 15" $1,200.00. 
-                     // The total charged is 2,088. 
-                     // 1200 * 1.74 = 2088. 
-                     // So we need the BASE price here.
-                     
-                     $finalPrice = $item->sale_price; // This might be the inflated price or base?
-                     // In Sales.php store: 'sale_price' => round($item['sale_price'], $decimals).
-                     // If the cart items HAD the commission applied, then sale_price is inflated.
-                     // If commissions are applied at TOTAL level, then item prices might be clean.
-                     // Image implies item price is 1200.
-                     
-                     // Let's use back-calculation to be safe.
-                     $price = $item->sale_price;
-                     if ($factor > 1) {
-                         $basePrice = $price / $factor;
-                     } else {
-                         $basePrice = $price;
-                     }
-                     
-                     $itemImporte = $basePrice * $item->quantity;
-                     $totalBase += $itemImporte;
+                     $totalBase += $itemTotalBase;
 
-                     $descripcion_1 = $this->cortar($item->product->name, $is58mm ? 16 : 30);
-                     $row_1 = sprintf($maskHead, $descripcion_1[0], number_format($item->quantity, 2), number_format($itemImporte, 2));
-                     $printer->text($row_1 . "\n");
-                     
-                     if (isset($descripcion_1[1])) {
-                        $printer->text(sprintf($maskHead, $descripcion_1[1], '', '') . "\n");
+                     // Print Item
+                     $pName = $item->product->name;
+                     $pQty = number_format($qty, 2);
+                     $pBase = number_format($baseUnit, 2);
+                     $pTotal = number_format($itemTotalBase, 2);
+
+                     if ($is58mm) {
+                         $printer->text($pName . "\n");
+                         $printer->setJustification(Printer::JUSTIFY_RIGHT);
+                         $printer->text("$pQty x $pBase = $pTotal\n");
+                         $printer->setJustification(Printer::JUSTIFY_LEFT);
+                     } else {
+                         // 80mm
+                         // If name is long, split it?
+                         $maskRow = "%-18.18s %-5.5s %-9.9s %-9.9s";
+                         $descParts = $this->cortar($pName, 18);
+                         
+                         $row = sprintf($maskRow, $descParts[0], $pQty, $pBase, $pTotal);
+                         $printer->text($row . "\n");
+                         
+                         if (isset($descParts[1])) {
+                             $printer->text(sprintf("%-18.18s", $descParts[1]) . "\n");
+                         }
                      }
                 }
 
                 $printer->text($separator . "\n");
                 
                 // Subtotal Base
-                $printer->text("SUBTOTAL BASE (REAL): " . $currencySymbol . number_format($totalBase, 2) . "\n");
+                $printer->setJustification(Printer::JUSTIFY_RIGHT);
+                $printer->text("SUBTOTAL BASE: " . $currencySymbol . number_format($totalBase, 2) . "\n");
                 $printer->text($separator . "\n");
 
                 // Cargos Adicionales
-                $printer->text("CARGOS ADICIONALES:\n");
+                $printer->setJustification(Printer::JUSTIFY_LEFT);
+                $printer->text("DESGLOSE CARGOS:\n");
+                $printer->setJustification(Printer::JUSTIFY_RIGHT);
                 
                 if ($commPercent > 0) {
                      $amt = $totalBase * ($commPercent / 100);
-                     $printer->text("(+) Comision (" . number_format($commPercent, 2) . "%): " . $currencySymbol . number_format($amt, 2) . "\n");
+                     $printer->text("Comision (" . number_format($commPercent, 2) . "%): " . $currencySymbol . number_format($amt, 2) . "\n");
                 }
-                if ($freightPercent > 0) {
-                     $amt = $totalBase * ($freightPercent / 100);
-                     $printer->text("(+) Flete (" . number_format($freightPercent, 2) . "%): " . $currencySymbol . number_format($amt, 2) . "\n");
+                
+                if ($configFreightTotal > 0) {
+                     $printer->text("Flete (Config " . number_format($freightPercent, 2) . "%): " . $currencySymbol . number_format($configFreightTotal, 2) . "\n");
                 }
+
+                if ($productFreightTotal > 0) {
+                     $printer->text("Flete (Productos): " . $currencySymbol . number_format($productFreightTotal, 2) . "\n");
+                }
+
                 if ($diffPercent > 0) {
                      $amt = $totalBase * ($diffPercent / 100);
-                     $printer->text("(+) Dif. Cambiaria (" . number_format($diffPercent, 2) . "%): " . $currencySymbol . number_format($amt, 2) . "\n");
+                     $printer->text("Dif. Cambiaria (" . number_format($diffPercent, 2) . "%): " . $currencySymbol . number_format($amt, 2) . "\n");
                 }
 
                 $printer->text($separator . "\n");
                 
                 // Total Facturado
-                // Use actual max total to avoid rounding diffs, or recalc?
-                // Using sale->total (or total_usd) is safer for "Total Facturado"
-                $totalFacturado = $sale->total_usd > 0 ? $sale->total_usd : $sale->total; 
-                
-                // Verify if total matches sum. 
-                // Just print the Sale Total from DB to match invoice.
-                $printer->setJustification(Printer::JUSTIFY_RIGHT);
                 $printer->setTextSize(1, 2); // Larger font for total
-                $printer->text("TOTAL FACTURADO: " . $currencySymbol . number_format($totalFacturado, 2) . "\n");
+                $printer->text("TOTAL: " . $currencySymbol . number_format($sale->total, 2) . "\n");
                 $printer->setTextSize(1, 1);
                 $printer->setJustification(Printer::JUSTIFY_LEFT);
 

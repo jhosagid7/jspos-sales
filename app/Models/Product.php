@@ -31,10 +31,17 @@ class Product extends Model
         'is_pre_assembled',
         'additional_cost',
         'allow_decimal',
-        'is_variable_quantity'
+        'is_variable_quantity',
+        'freight_type',
+        'freight_value'
     ];
 
     //relationships
+
+    public function priceTiers()
+    {
+        return $this->hasMany(ProductPriceTier::class);
+    }
 
     public function items()
     {

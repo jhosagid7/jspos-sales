@@ -17,21 +17,41 @@
 
                             // Calculate Charges
                             $commPercent = $salesObt->applied_commission_percent ?? 0;
+                            // For display, we use the stored percent, but for amount we sum details
                             $freightPercent = $salesObt->applied_freight_percent ?? 0;
                             $diffPercent = $salesObt->applied_exchange_diff_percent ?? 0;
-                            $totalPercent = ($commPercent + $freightPercent + $diffPercent) / 100;
+                            
+                            $totalFreightAmount = $details->sum('freight_amount');
 
-                            $baseAmount = $salesObt->total;
+                            // Split Freight Logic
+                            // Config Freight: Products with 'global' or 'none' (using seller config)
+                            $configFreightTotal = $details->filter(function($d) {
+                                return in_array($d->product->freight_type, ['global', 'none']);
+                            })->sum('freight_amount');
+
+                            // Product Freight: Products with 'personalized', 'fixed', 'percentage'
+                            $productFreightTotal = $details->filter(function($d) {
+                                return !in_array($d->product->freight_type, ['global', 'none']);
+                            })->sum('freight_amount');
+                            
+                            // Simplified reverse calc for Comm/Diff
                             $commAmount = 0;
-                            $freightAmount = 0;
                             $diffAmount = 0;
-
-                            if ($totalPercent > 0) {
-                                $baseAmount = $salesObt->total / (1 + $totalPercent);
-                                $commAmount = $baseAmount * ($commPercent / 100);
-                                $freightAmount = $baseAmount * ($freightPercent / 100);
-                                $diffAmount = $baseAmount * ($diffPercent / 100);
+                            
+                            // Only calculate if we have percentages enabled
+                            if ($salesObt->is_foreign_sale) { 
+                                // Re-calculate base excluding TOTAL freight
+                                $totalWithoutFreight = $salesObt->total - $totalFreightAmount;
+                                $combinedPercent = ($commPercent + $diffPercent) / 100;
+                                
+                                if ($combinedPercent >= 0) { 
+                                     $baseAmount = $totalWithoutFreight / (1 + $combinedPercent);
+                                     $commAmount = $baseAmount * ($commPercent / 100);
+                                     $diffAmount = $baseAmount * ($diffPercent / 100);
+                                }
                             }
+                            
+                            $hasExtraCharges = ($commPercent > 0 || $diffPercent > 0 || $totalFreightAmount > 0);
                         @endphp
 
                         {{-- Header Information --}}
@@ -48,28 +68,37 @@
                         </div>
 
                         {{-- Additional Charges Breakdown --}}
-                        @if ($totalPercent > 0 && $salesObt->is_foreign_sale)
+                        @if ($hasExtraCharges && $salesObt->is_foreign_sale)
                             <div class="row mb-3">
                                 <div class="col-12">
                                     <div class="alert alert-light border">
                                         <h6 class="text-info"><i class="fa fa-calculator"></i> Desglose de Cargos Adicionales</h6>
                                         <div class="row">
                                             @if($commPercent > 0)
-                                                <div class="col-md-4">
-                                                    <small>Comisión ({{ number_format($commPercent, 2) }}%):</small>
-                                                    <strong>{{ $currencySymbol }}{{ number_format($commAmount, 2) }}</strong>
+                                                <div class="col-md-3">
+                                                    <small class="text-muted d-block">Comisión ({{ number_format($commPercent, 2) }}%)</small>
+                                                    <strong class="text-dark">{{ $currencySymbol }}{{ number_format($commAmount, 2) }}</strong>
                                                 </div>
                                             @endif
-                                            @if($freightPercent > 0)
-                                                <div class="col-md-4">
-                                                    <small>Flete ({{ number_format($freightPercent, 2) }}%):</small>
-                                                    <strong>{{ $currencySymbol }}{{ number_format($freightAmount, 2) }}</strong>
+
+                                            @if($configFreightTotal > 0)
+                                                <div class="col-md-3">
+                                                    <small class="text-muted d-block">Flete (Config: {{ number_format($freightPercent, 2) }}%)</small>
+                                                    <strong class="text-dark">{{ $currencySymbol }}{{ number_format($configFreightTotal, 2) }}</strong>
                                                 </div>
                                             @endif
+
+                                            @if($productFreightTotal > 0)
+                                                <div class="col-md-3">
+                                                    <small class="text-muted d-block">Flete (Productos)</small>
+                                                    <strong class="text-dark">{{ $currencySymbol }}{{ number_format($productFreightTotal, 2) }}</strong>
+                                                </div>
+                                            @endif
+
                                             @if($diffPercent > 0)
-                                                <div class="col-md-4">
-                                                    <small>Dif. Cambiaria ({{ number_format($diffPercent, 2) }}%):</small>
-                                                    <strong>{{ $currencySymbol }}{{ number_format($diffAmount, 2) }}</strong>
+                                                <div class="col-md-3">
+                                                    <small class="text-muted d-block">Dif. Cambiaria ({{ number_format($diffPercent, 2) }}%)</small>
+                                                    <strong class="text-dark">{{ $currencySymbol }}{{ number_format($diffAmount, 2) }}</strong>
                                                 </div>
                                             @endif
                                         </div>
@@ -85,27 +114,107 @@
                                         <th>Folio</th>
                                         <th>Descripción</th>
                                         <th>Cantidad</th>
-                                        <th>Precio</th>
-                                        <th>Importe</th>
+                                        <th>Precio Unit.</th>
+                                        <th>Subtotal</th>
+                                        <th>Cargos Flete</th>
+                                        <th>Cargos Adic.</th>
+                                        <th>Importe Total</th>
 
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @forelse ($details as $detail)
+                                        @php
+                                            // Data from DB
+                                            $qty = $detail->quantity;
+                                            $finalUnitSalePrice = $detail->sale_price;
+                                            $totalFreight = $detail->freight_amount;
+                                            $finalImporte = $finalUnitSalePrice * $qty; // Total Final (with everything)
+                                            
+                                            // Percentages
+                                            $commPct = $salesObt->applied_commission_percent ?? 0;
+                                            $diffPct = $salesObt->applied_exchange_diff_percent ?? 0;
+                                            $combinedPct = ($commPct + $diffPct) / 100;
+
+                                            // Detect Additive Freight (Global Check or Per Item?)
+                                            // Ideally we pass this from controller, but here we can check:
+                                            // If SaleTotal > Sum(Items), it's additive.
+                                            // Only calculate once using the parent object if possible, but inside loop we can use a flag?
+                                            // Let's assume consistent behavior for the sale.
+                                            // We can check if we haven't already.
+                                            
+                                            // Actually, let's just do the check here. 
+                                            // Need to be careful about scope. 
+                                            // $details is a collection.
+                                            $rawItemsSum = $details->sum(function($d) { return $d->quantity * $d->sale_price; });
+                                            $isAdditive = ($salesObt->total - $rawItemsSum) > 0.01;
+                                            
+                                            // 1. Calculate Base Total (Importe Base)
+                                            if ($isAdditive) {
+                                                // If Additive, Price IS Base (User says "Base 10" for $1 item).
+                                                // And User says "Base includes comission".
+                                                // So we do NOT strip anything.
+                                                $baseTotal = $finalImporte;
+                                                
+                                                // Unit Price is just sale_price
+                                                $baseUnit = $finalUnitSalePrice;
+                                                
+                                                // Additional Charges?
+                                                // If Base includes them, do we show them separately?
+                                                // View has a column "Cargos Adic.".
+                                                // If we show 0 here, it implies no commission?
+                                                // But User said "Base includes...".
+                                                // Maybe we should calculate what the commission WOULD be?
+                                                // If Base $10 includes commission... wait.
+                                                // If Commission is 8% ON TOP of Base.
+                                                // And Base is $10. Total $10.8.
+                                                // If User says "Base includes commission", maybe they mean "The Price I set ($1) includes it".
+                                                // If so, $1 is the Base.
+                                                
+                                                // Let's set Additional Charges to 0 for now if Additive, 
+                                                // OR calculate them if they are supposed to be informational?
+                                                // "Cargos Adic" column usually adds to the total?
+                                                // Row: Unit | Subtotal | Freight | Adic | Total.
+                                                // $1 | $10 | $1 | $0 | $11.
+                                                // This matches 10+1=11.
+                                                // If we put $0.8 in Adic...
+                                                // $1 | $10 | $1 | $0.8 | $11.8. 
+                                                // Total would be wrong.
+                                                // So Adic MUST be 0 if it's included in Base.
+                                                
+                                                $additionalCharges = 0;
+
+                                            } else {
+                                                // Inclusive Logic (Old)
+                                                // Formula: (FinalImporte - Freight) / (1 + Combined%)
+                                                $cleanTotal = max(0, $finalImporte - $totalFreight);
+                                                $baseTotal = $cleanTotal / (1 + $combinedPct);
+                                                
+                                                // 2. Calculate Base Unit Price
+                                                $baseUnit = ($qty > 0) ? ($baseTotal / $qty) : 0;
+                                                
+                                                // 3. Calculate Additional Charges Amount
+                                                $additionalCharges = $baseTotal * $combinedPct;
+                                            }
+                                        @endphp
                                         <tr class="text-center">
                                             <td>{{ $detail->id }}</td>
                                             <td>
                                                 {{ $detail->product->name }}
 
                                             </td>
-                                            <td>{{ $detail->quantity }}</td>
-                                            <td>{{ $currencySymbol }}{{ $detail->sale_price }}</td>
-                                            <td>{{ $currencySymbol }}{{ round($detail->sale_price * $detail->quantity, 2) }}</td>
+                                            <td>{{ $qty }}</td>
+                                            <td>{{ $currencySymbol }}{{ number_format($baseUnit, 2) }}</td>
+                                            <td>{{ $currencySymbol }}{{ number_format($baseTotal, 2) }}</td>
+                                            <td>{{ $currencySymbol }}{{ number_format($totalFreight, 2) }}</td>
+                                            <td>{{ $currencySymbol }}{{ number_format($additionalCharges, 2) }}</td>
+                                            
+                                            <td>{{ $currencySymbol }}{{ number_format($baseTotal + $totalFreight + $additionalCharges, 2) }}</td>
 
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="5" class="text-center">Sin detalles</td>
+                                            <td colspan="6" class="text-center">Sin detalles</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
@@ -116,9 +225,58 @@
                                         <td></td>
                                         <td class="text-center">
                                             @php
-                                                $sumTotalDetail = $details->sum(function ($item) {
-                                                    return $item->quantity * $item->sale_price;
+                                                $commPct = $salesObt->applied_commission_percent ?? 0;
+                                                $diffPct = $salesObt->applied_exchange_diff_percent ?? 0;
+                                                $combinedPct = ($commPct + $diffPct) / 100;
+
+                                                // Calculate Additive on the fly using the collection
+                                                $rawItemsSum = $details->sum(function($d) { return $d->quantity * $d->sale_price; });
+                                                // Assuming salesObt is available (it is, from lines above)
+                                                // We need to access $salesObt from the outer scope? Yes, it's available in the view.
+                                                $isAdditive = ($salesObt->total - $rawItemsSum) > 0.01;
+
+                                                $sumBaseTotal = $details->sum(function ($item) use ($combinedPct, $isAdditive) {
+                                                    $totalSale = $item->sale_price * $item->quantity;
+                                                    
+                                                    if ($isAdditive) {
+                                                        // Base is just Price * Qty
+                                                        return $totalSale;
+                                                    } else {
+                                                        $totalFreight = $item->freight_amount;
+                                                        $cleanTotal = max(0, $totalSale - $totalFreight);
+                                                        return $cleanTotal / (1 + $combinedPct);
+                                                    }
                                                 });
+                                            @endphp
+                                            {{ $currencySymbol }}{{ number_format($sumBaseTotal, 2) }}
+                                        </td>
+                                        <td class="text-center">
+                                            {{ $currencySymbol }}{{ number_format($details->sum('freight_amount'), 2) }}
+                                        </td>
+                                        <td class="text-center">
+                                            @php
+                                                $sumAdditional = $details->sum(function ($item) use ($combinedPct, $isAdditive) {
+                                                    
+                                                    if ($isAdditive) {
+                                                        // If Base includes commission, then Additional is 0 (or included).
+                                                        // We display 0 to avoid double counting in the total.
+                                                        return 0;
+                                                    } else {
+                                                        $totalSale = $item->sale_price * $item->quantity;
+                                                        $totalFreight = $item->freight_amount;
+                                                        $cleanTotal = max(0, $totalSale - $totalFreight);
+                                                        $baseTotal = $cleanTotal / (1 + $combinedPct);
+                                                        return $baseTotal * $combinedPct;
+                                                    }
+                                                });
+                                            @endphp
+                                            {{ $currencySymbol }}{{ number_format($sumAdditional, 2) }}
+                                        </td>
+                                        <td class="text-center">
+                                            @php
+                                                // Calculate Total Row Sum
+                                                // Base + Freight + Additional
+                                                $sumTotalDetail = $sumBaseTotal + $details->sum('freight_amount') + $sumAdditional;
                                             @endphp
                                             {{ $currencySymbol }}{{ round($sumTotalDetail, 2) }}
                                         </td>

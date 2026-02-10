@@ -101,6 +101,16 @@ class Products extends Component
         $this->form->allow_decimal = (bool) $product->allow_decimal;
         $this->form->tags = $product->tags->pluck('name')->implode(',');
         $this->form->values = $product->priceList->toArray();
+        
+        // Load Freight & Tiers
+        $this->form->freight_type = $product->freight_type;
+        $this->form->freight_value = $product->freight_value;
+        $this->form->pricing_tiers = $product->priceTiers()->orderBy('min_qty')->get()->map(function($tier) {
+            return [
+                'min_qty' => $tier->min_qty,
+                'price' => $tier->price
+            ];
+        })->toArray();
 
         // Load suppliers
         $this->form->product_suppliers = $product->productSuppliers->map(function($ps) {
@@ -437,5 +447,16 @@ class Products extends Component
         } catch (\Exception $th) {
             $this->dispatch('noty', msg: "Error al intentar eliminar el producto \n {$th->getMessage()}");
         }
+    }
+
+
+    public function addPriceTier($qty, $price)
+    {
+        $this->form->addPriceTier($qty, $price);
+    }
+
+    public function removePriceTier($index)
+    {
+        $this->form->removePriceTier($index);
     }
 }

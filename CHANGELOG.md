@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+
+## [1.8.9] - 2026-02-10
+### Fixed
+- **Freight Calculation**:
+  - **Breakdown Logic**: Fixed incorrect compounding of freight when "Breakdown Freight" (Desglosar Flete) is enabled.
+  - **Commission Calculation**: Resolved issues where commissions were being calculated on inflated prices.
+  - **UX/UI**: Added security lock to Commission/Freight switches when no customer is selected to prevent user error.
+
 ## [1.8.8] - 2026-02-06
 ### Added
 - **Global Exchange Rates System:**

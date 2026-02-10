@@ -414,6 +414,16 @@
 
         <hr>
         <table class="table table-items">
+            @php
+                $columns = 5; // #, Description, Quantity, Price, Subtotal
+                if($invoice->hasItemReference) $columns++;
+                if($invoice->hasItemCode) $columns++;
+                if($invoice->hasItemUnits) $columns++;
+                if($invoice->hasItemDiscount) $columns++;
+                if($invoice->hasItemTax) $columns++;
+                
+                $colspan = $columns - 2;
+            @endphp
 
             <thead>
                 <tr>
@@ -493,7 +503,7 @@
                 {{-- Summary --}}
                 @if($invoice->hasItemOrInvoiceDiscount())
                     <tr>
-                        <td colspan="{{ $invoice->table_columns - 2 }}" class="border-0"></td>
+                        <td colspan="{{ $colspan }}" class="border-0"></td>
                         <td class="pl-0 text-right">{{ __('invoices::invoice.total_discount') }}</td>
                         <td class="pr-0 text-right">
                             {{ $invoice->formatCurrency($invoice->total_discount) }}
@@ -502,7 +512,7 @@
                 @endif
                 @if($invoice->taxable_amount)
                     <tr>
-                        <td colspan="{{ $invoice->table_columns - 2 }}" class="border-0"></td>
+                        <td colspan="{{ $colspan }}" class="border-0"></td>
                         <td class="pl-0 text-right">{{ __('invoices::invoice.taxable_amount') }}</td>
                         <td class="pr-0 text-right">
                             {{ $invoice->formatCurrency($invoice->taxable_amount) }}
@@ -511,7 +521,7 @@
                 @endif
                 @if($invoice->tax_rate)
                     <tr>
-                        <td colspan="{{ $invoice->table_columns - 2 }}" class="border-0"></td>
+                        <td colspan="{{ $colspan }}" class="border-0"></td>
                         <td class="pl-0 text-right">{{ __('invoices::invoice.tax_rate') }}</td>
                         <td class="pr-0 text-right">
                             {{ $invoice->tax_rate }}%
@@ -520,7 +530,7 @@
                 @endif
                 @if($invoice->hasItemOrInvoiceTax())
                     <tr>
-                        <td colspan="{{ $invoice->table_columns - 2 }}" class="border-0"></td>
+                        <td colspan="{{ $colspan }}" class="border-0"></td>
                         <td class="pl-0 text-right">{{ __('invoices::invoice.total_taxes') }}</td>
                         <td class="pr-0 text-right">
                             {{ $invoice->formatCurrency($invoice->total_taxes) }}
@@ -529,7 +539,7 @@
                 @endif
                 @if($invoice->shipping_amount)
                     <tr>
-                        <td colspan="{{ $invoice->table_columns - 2 }}" class="border-0"></td>
+                        <td colspan="{{ $colspan }}" class="border-0"></td>
                         <td class="pl-0 text-right">{{ __('invoices::invoice.shipping') }}</td>
                         <td class="pr-0 text-right">
                             {{ $invoice->formatCurrency($invoice->shipping_amount) }}
@@ -537,7 +547,7 @@
                     </tr>
                 @endif
                     <tr>
-                        <td colspan="{{ $invoice->table_columns - 2 }}" class="border-0"></td>
+                        <td colspan="{{ $colspan }}" class="border-0"></td>
                         <td class="pl-0 title-data text-right"><strong>{{ __('invoices::invoice.total_amount') }}</strong></td>
                         <td class="pr-0 text-right total-amount">
                             {{ $invoice->formatCurrency($invoice->total_amount) }}
@@ -549,7 +559,7 @@
         <table class="table">
             <thead>
                 <th>
-                    <td colspan="{{ $invoice->table_columns - 2 }}" width="60%" class="border-0" text-center><hr class="hr"></td>
+                    <td colspan="{{ $colspan }}" width="60%" class="border-0" text-center><hr class="hr"></td>
                 </th>
             </thead>
             <tbody>

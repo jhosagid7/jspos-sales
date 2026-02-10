@@ -84,10 +84,17 @@
                     </tr>
                     @endif
                     
-                    @if($freightPercent > 0)
+                    @if($configFreightTotal > 0)
                     <tr>
-                        <td class="text-right">Flete ({{ number_format($freightPercent, 2) }}%):</td>
-                        <td class="text-right">{{ $currencySymbol }}{{ number_format($freightAmount, 2) }}</td>
+                        <td class="text-right">Flete (Config {{ number_format($freightPercent, 2) }}%):</td>
+                        <td class="text-right">{{ $currencySymbol }}{{ number_format($configFreightTotal, 2) }}</td>
+                    </tr>
+                    @endif
+
+                    @if($productFreightTotal > 0)
+                    <tr>
+                        <td class="text-right">Flete (Productos):</td>
+                        <td class="text-right">{{ $currencySymbol }}{{ number_format($productFreightTotal, 2) }}</td>
                     </tr>
                     @endif
                     

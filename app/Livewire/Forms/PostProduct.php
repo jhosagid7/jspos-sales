@@ -21,6 +21,11 @@ class PostProduct extends Form
     public $name, $sku, $description, $type = 'physical', $status = 'available', $cost = 0, $price = 0, $manage_stock = 1, $stock_qty = 0, $low_stock = 0, $category_id = 0, $supplier_id = 0, $product_id = 0, $gallery;
     public $max_stock = 0, $brand, $presentation, $is_pre_assembled = false, $additional_cost = 0, $stock_details = [], $tags = '', $allow_decimal = false;
     public $is_variable_quantity = false;
+    
+    // Freight & Pricing Rules
+    public $freight_type = 'none'; // none, percentage, fixed
+    public $freight_value = 0;
+    public $pricing_tiers = []; // [[min_qty => 10, price => 5.00], ...]
 
     //properties priceList
     public $value;
@@ -81,7 +86,12 @@ class PostProduct extends Form
             'additional_cost' => 'nullable|numeric|min:0',
             'tags' => 'nullable|string',
             'allow_decimal' => 'boolean',
-            'is_variable_quantity' => 'boolean'
+            'is_variable_quantity' => 'boolean',
+            'freight_type' => 'in:none,percentage,fixed',
+            'freight_value' => 'numeric|min:0',
+            'pricing_tiers' => 'array',
+            'pricing_tiers.*.min_qty' => 'required|numeric|min:0',
+            'pricing_tiers.*.price' => 'required|numeric|min:0'
         ];
         return $rules;
     }
@@ -147,7 +157,9 @@ class PostProduct extends Form
             'is_pre_assembled' => $this->is_pre_assembled ? 1 : 0,
             'additional_cost' => $this->additional_cost,
             'allow_decimal' => $this->allow_decimal ? 1 : 0,
-            'is_variable_quantity' => $this->is_variable_quantity ? 1 : 0
+            'is_variable_quantity' => $this->is_variable_quantity ? 1 : 0,
+            'freight_type' => $this->freight_type,
+            'freight_value' => $this->freight_value
         ]);
 
 
@@ -250,6 +262,20 @@ class PostProduct extends Form
             $product->tags()->sync($tagIds);
         }
 
+        // Save Pricing Tiers
+        if (!empty($this->pricing_tiers)) {
+            $tiers = array_map(function ($tier) use ($product) {
+                return [
+                    'product_id' => $product->id,
+                    'min_qty' => $tier['min_qty'],
+                    'price' => $tier['price'],
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+            }, $this->pricing_tiers);
+            \App\Models\ProductPriceTier::insert($tiers);
+        }
+
         return $product;
     }
 
@@ -293,7 +319,9 @@ class PostProduct extends Form
             'is_pre_assembled' => $this->is_pre_assembled ? 1 : 0,
             'additional_cost' => $this->additional_cost,
             'allow_decimal' => $this->allow_decimal ? 1 : 0,
-            'is_variable_quantity' => $this->is_variable_quantity ? 1 : 0
+            'is_variable_quantity' => $this->is_variable_quantity ? 1 : 0,
+            'freight_type' => $this->freight_type,
+            'freight_value' => $this->freight_value
         ]);
 
 
@@ -418,6 +446,22 @@ class PostProduct extends Form
             $product->tags()->detach();
         }
 
+        // Sync Pricing Tiers
+        \App\Models\ProductPriceTier::where('product_id', $this->product_id)->delete();
+        if (!empty($this->pricing_tiers)) {
+            $tiers = array_map(function ($tier) {
+                return [
+                    'product_id' => $this->product_id,
+                    'min_qty' => $tier['min_qty'],
+                    'price' => $tier['price'],
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+            }, $this->pricing_tiers);
+            \App\Models\ProductPriceTier::insert($tiers);
+        }
+
+
     }
 
     function cancel()
@@ -425,5 +469,25 @@ class PostProduct extends Form
         session(['values' => []]);
         $this->values = session('values', []);
         $this->reset();
+    }
+
+    // Helper methods for Pricing Tiers override
+    public function addPriceTier($qty, $price)
+    {
+        $this->pricing_tiers[] = [
+            'min_qty' => $qty,
+            'price' => $price
+        ];
+        // Sort by quantity desc to prevent conflicts? Or Asc?
+        // Usually logical to sort ASC for display
+        usort($this->pricing_tiers, function($a, $b) {
+            return $a['min_qty'] <=> $b['min_qty'];
+        });
+    }
+
+    public function removePriceTier($index)
+    {
+        unset($this->pricing_tiers[$index]);
+        $this->pricing_tiers = array_values($this->pricing_tiers);
     }
 }
