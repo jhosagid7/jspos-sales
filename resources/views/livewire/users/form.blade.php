@@ -112,6 +112,15 @@
                                     </select>
                                     @error('user.status') <span class="text-danger">{{ $message }}</span> @enderror
                                 </div>
+                                <div class="col-sm-12 mt-3">
+                                    <label class="form-label">Modo de Vista de Ventas</label>
+                                    <select wire:model="user.sales_view_mode" class="form-control">
+                                        <option value="">Predeterminado del Sistema</option>
+                                        <option value="grid">Cuadrícula</option>
+                                        <option value="list">Lista</option>
+                                    </select>
+                                    @error('user.sales_view_mode') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
                             </div>
                         </div>
                     </div>

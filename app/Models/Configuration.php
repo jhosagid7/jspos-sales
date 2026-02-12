@@ -57,6 +57,7 @@ class Configuration extends Model
         'license_request_email',
         'bcv_rate',
         'binance_rate',
+        'sales_view_mode',
     ];
 
     protected $casts = [

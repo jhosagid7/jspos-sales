@@ -296,6 +296,15 @@
                                     </div>
 
                                     <div class="col-sm-12 col-md-6">
+                                        <label class="form-label">MODO DE VISTA DE VENTAS (PREDETERMINADO)</label>
+                                        <select wire:model="salesViewMode" class="form-control">
+                                            <option value="grid">Cuadrícula (Imágenes Grandes)</option>
+                                            <option value="list">Lista (Compacta)</option>
+                                        </select>
+                                        @error('salesViewMode') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <div class="col-sm-12 col-md-6">
                                         <label class="form-label">VALIDAR STOCK RESERVADO</label>
                                         <div class="form-check form-switch pl-0">
                                             <div class="custom-control custom-switch">

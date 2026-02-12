@@ -72,6 +72,7 @@ class Sales extends Component
     public $order_id, $ordersObt, $order_note, $details = [];
     public $pagination = 5, $status;
     public $confirmation_code = null;
+    public $salesViewMode = 'grid'; // 'grid' or 'list'
 
     public $search = '';
 
@@ -794,6 +795,11 @@ class Sales extends Component
         $this->applyCommissions = session('applyCommissions', false);
         $this->applyFreight = session('applyFreight', false);
         $this->is_freight_broken_down = session('is_freight_broken_down', false);
+        
+        // Determine Sales View Mode
+        // Priority: User Preference > Global Config > Default 'grid'
+        $this->salesViewMode = $user->sales_view_mode ?? $this->config->sales_view_mode ?? 'grid';
+
         
         // Initialize Zelle Date
         $this->zelleDate = date('Y-m-d');

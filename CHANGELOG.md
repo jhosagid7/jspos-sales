@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.8.10] - 2026-02-12
+### Added
+- **Configurable Sales View**:
+  - Implemented a toggle between **Grid View** (Large Images) and **List View** (Compact) for product search results.
+  - Added global default configuration in *Settings > Sales*.
+  - Added individual user override in *Users > Edit Profile*.
+- **Freight Logic**:
+  - Decoupled "Apply Freight" and "Breakdown Freight" toggles from Seller Commissions. Now they can be used even if the customer has no specific seller assigned (reads from Product settings).
+  - Kept "Apply Commissions" locked to Seller Config for security.
+
 ## [1.8.9] - 2026-02-10
 ### Fixed
 - **Freight Calculation**:

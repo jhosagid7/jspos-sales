@@ -42,6 +42,7 @@ class User extends Authenticatable
         'seller_credit_limit',
         'seller_usd_payment_discount',
         'theme',
+        'sales_view_mode',
     ];
 
     public function warehouse()
