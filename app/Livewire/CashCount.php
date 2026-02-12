@@ -139,6 +139,7 @@ class CashCount extends Component
                 ->when($this->user_id != 0, function ($qry) {
                     $qry->where('user_id', $this->user_id);
                 })
+                ->where('status', 'approved')
                 ->select('id', 'pay_way', 'amount', 'type', 'bank', 'currency', 'exchange_rate', 'primary_exchange_rate')
                 ->get();
             // dd($payments);
@@ -261,6 +262,7 @@ class CashCount extends Component
                 ->when($this->user_id != 0, function ($qry) {
                     $qry->where('user_id', $this->user_id);
                 })
+                ->where('status', 'approved')
                 ->select('id', 'pay_way', 'amount', 'bank', 'currency', 'exchange_rate', 'primary_exchange_rate')
                 ->get();
 
