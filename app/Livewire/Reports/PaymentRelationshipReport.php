@@ -38,11 +38,15 @@ class PaymentRelationshipReport extends Component
     {
         if ($this->selectedSheet) {
             $payments = $this->getSheetDetails($this->selectedSheet);
+            $banks = \App\Models\Bank::orderBy('sort')->get();
+            $knownBanks = $banks->pluck('name')->toArray();
+
             return view('livewire.reports.payment-relationship-detail', [
                 'sheet' => $this->selectedSheet,
                 'payments' => $payments,
                 'currencies' => \App\Models\Currency::all(),
-                'banks' => \App\Models\Bank::orderBy('sort')->get(),
+                'banks' => $banks,
+                'knownBanks' => $knownBanks,
                 'summary' => $this->calculateSummary($payments),
                 'commissions' => $this->calculateCommissions($payments)
             ]);
@@ -78,7 +82,9 @@ class PaymentRelationshipReport extends Component
             });
         }
 
-            $sheets = $query->with('payments')->orderBy('opened_at', 'desc')->paginate($this->pagination);
+            $sheets = $query->with(['payments' => function($q) {
+                $this->applyPaymentFilters($q);
+            }])->orderBy('opened_at', 'desc')->paginate($this->pagination);
 
         // Calculate Totals
         $totalAmount = 0;
@@ -149,6 +155,9 @@ class PaymentRelationshipReport extends Component
                 }
             });
         }
+        
+        // Configured Rule: Only show APPROVED payments in this report
+        $query->where('status', 'approved');
     }
 
     function viewDetails($sheetId)
@@ -232,7 +241,9 @@ class PaymentRelationshipReport extends Component
                 });
             }
 
-            $sheets = $query->with('payments')->orderBy('opened_at', 'desc')->get();
+            $sheets = $query->with(['payments' => function($q) {
+                $this->applyPaymentFilters($q);
+            }])->orderBy('opened_at', 'desc')->get();
             
             // Calculate Global Summary
             $allPayments = \App\Models\Payment::whereHas('sale', function($q) {

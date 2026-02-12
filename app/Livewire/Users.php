@@ -289,6 +289,9 @@ class Users extends Component
                 // validation rules for commission_percentage handled?
                 if($this->user->commission_percentage == null) $this->user->commission_percentage = 0;
                 if($this->user->is_network == null) $this->user->is_network = 0;
+                
+                // Fix: Initialize seller fields for new user
+                if($this->user->seller_allow_credit == null) $this->user->seller_allow_credit = 0;
             }
             
             \Illuminate\Support\Facades\Log::info('Store: Saving User...');
@@ -312,7 +315,8 @@ class Users extends Component
             $this->user->save(); // Save again to persistence commission changes
 
             // Create History Record (SellerConfig)
-            if ($this->user->profile == 'Vendedor') {
+            // Use permission check instead of hardcoded role name
+            if ($this->isSeller($this->user->profile)) {
                 // Ensure values are not null
                 $commPercent = $this->commission_percent ?? 0;
                 $freightPercent = $this->freight_percent ?? 0;
@@ -422,7 +426,7 @@ class Users extends Component
         
         $this->user->save();
 
-        if($this->user->profile == 'Vendedor') {
+        if($this->isSeller($this->user->profile)) {
             \App\Models\SellerConfig::create([
                 'user_id' => $this->user->id,
                 'commission_percent' => $this->commission_percent ?? 0,
@@ -450,6 +454,21 @@ class Users extends Component
         }
         return 0;
     }
+
+    // Helper to check if a ROLE name has the Seller permission
+    public function isSeller($roleName)
+    {
+        if(!$roleName) return false;
+        
+        // Caching optimization strictly within request if needed, 
+        // but for now simple query is fine since it's not high frequency loop
+        $role = Role::where('name', $roleName)->first();
+        if($role) {
+            return $role->hasPermissionTo('system.is_seller');
+        }
+        return false;
+    }
+
     #[On('destroyUser')]
     public function Destroy($id)
     {

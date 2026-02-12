@@ -293,13 +293,42 @@
                                                     <div class="small text-muted mb-2 font-weight-bold">{{ $product->sku }}</div>
                                                     
                                                     <div class="d-flex justify-content-between align-items-end mt-auto">
-                                                        <div class="price-tag">
-                                                            {{ $primarySymbol }}{{ formatMoney($priceInPrimary) }}
-                                                        </div>
-                                                        
-                                                        <button class="btn btn-sm btn-primary rounded-circle shadow-sm" style="width: 32px; height: 32px; padding: 0;">
-                                                            <i class="fas fa-plus" style="font-size: 0.8rem;"></i>
-                                                        </button>
+                                                        @if(Auth::user()->can('sales.manage_adjustments') || $customer)
+                                                            <div class="price-tag">
+                                                                @if(Auth::user()->can('sales.manage_adjustments'))
+                                                                    {{ $primarySymbol }}{{ formatMoney($priceInPrimary) }}
+                                                                @else
+                                                                    {{-- Vendedor Foráneo: Mostrar precio con comisiones/flete aplicados --}}
+                                                                    @php
+                                                                        // Calcular precio final simulado usando la configuración del vendedor si existe
+                                                                        $finalPrice = $priceInPrimary;
+                                                                        if($sellerConfig) {
+                                                                            // Aplicar lógica simplificada de comisión (la real está en el carrito, esto es visual)
+                                                                            $commission = ($sellerConfig->commission_percent / 100) * $finalPrice;
+                                                                            $finalPrice += $commission;
+                                                                            
+                                                                            // Flete (si aplica)
+                                                                            if($sellerConfig->apply_freight && $sellerConfig->freight_percent > 0) {
+                                                                                 $freight = ($sellerConfig->freight_percent / 100) * $finalPrice;
+                                                                                 $finalPrice += $freight;
+                                                                            }
+                                                                        }
+                                                                    @endphp
+                                                                    {{ $primarySymbol }}{{ formatMoney($finalPrice) }}
+                                                                    <small class="text-muted d-block" style="font-size: 0.6rem;">Precio Final</small>
+                                                                @endif
+                                                            </div>
+                                                            
+                                                            <button class="btn btn-sm btn-primary rounded-circle shadow-sm" style="width: 32px; height: 32px; padding: 0;">
+                                                                <i class="fas fa-plus" style="font-size: 0.8rem;"></i>
+                                                            </button>
+                                                        @else
+                                                            <div class="w-100 text-center">
+                                                                <span class="badge badge-warning p-2 w-100" style="font-size: 0.75rem;">
+                                                                    <i class="fas fa-user-clock mr-1"></i> Seleccione Cliente
+                                                                </span>
+                                                            </div>
+                                                        @endif
                                                     </div>
 
                                                     @if($product->productWarehouses->count() > 0)
@@ -391,8 +420,10 @@
                                                 <input class="form-control form-control-sm"
                                                     wire:keydown.enter.prevent="setCustomPrice('{{ $item['id'] }}', $event.target.value )"
                                                     type="text" oninput="justNumber(this)" 
-                                                    value="{{ $item['sale_price'] }}">
+                                                    value="{{ $item['sale_price'] }}"
+                                                    @cannot('sales.manage_adjustments') readonly @endcannot>
                                                 
+                                                @can('sales.manage_adjustments')
                                                 <div class="input-group-append">
                                                     <button class="btn btn-warning btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                                         <i class="fa fa-info"></i>
@@ -417,6 +448,7 @@
                                                         </a>
                                                     </div>
                                                 </div>
+                                                @endcan
                                             </div>
                                         </div>
                                     @else
@@ -426,8 +458,10 @@
                                                     wire:keydown.enter.prevent="setCustomPrice('{{ $item['id'] }}', $event.target.value )"
                                                     oninput="justNumber(this)" type="text"
                                                     placeholder="{{ $item['sale_price'] }}"
-                                                    value="{{ $item['sale_price'] }}">
+                                                    value="{{ $item['sale_price'] }}"
+                                                    @cannot('sales.manage_adjustments') readonly @endcannot>
                                                 
+                                                @can('sales.manage_adjustments')
                                                 <div class="input-group-append">
                                                     <button class="btn btn-warning btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                                         <i class="fa fa-list"></i>
@@ -463,6 +497,7 @@
                                                         @endforeach
                                                     </div>
                                                 </div>
+                                                @endcan
                                             </div>
                                         </div>
                                     @endif

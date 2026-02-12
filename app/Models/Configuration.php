@@ -58,12 +58,14 @@ class Configuration extends Model
         'bcv_rate',
         'binance_rate',
         'sales_view_mode',
+        'enable_shared_cash_register',
     ];
 
     protected $casts = [
         'backup_emails' => 'array',
         'production_email_recipients' => 'array',
         'is_network' => 'boolean',
+        'enable_shared_cash_register' => 'boolean',
     ];
 
     public function defaultWarehouse()

@@ -104,9 +104,13 @@
                                 <li class="p-1 list-group-item list-group-item-action d-flex justify-content-between align-items-center"
                                     data-id="{{ $product->id }}"
                                     :class="{ 'bg-light': selectedIndex === {{ $index }} }"
-                                    @click="@this.AddProduct({{ $product->id }}); reset()"
-                                    @mouseenter="selectedIndex = {{ $index }}"
-                                    style="cursor: pointer; border-bottom: 1px solid #f0f0f0;">
+                                    @if(Auth::user()->can('sales.manage_adjustments') || $customer)
+                                        @click="@this.AddProduct({{ $product->id }}); reset()"
+                                        style="cursor: pointer; border-bottom: 1px solid #f0f0f0;"
+                                    @else
+                                        style="cursor: not-allowed; border-bottom: 1px solid #f0f0f0; opacity: 0.8;"
+                                    @endif
+                                    @mouseenter="selectedIndex = {{ $index }}">
                                     <div class="w-100">
                                         <div class="d-flex justify-content-between align-items-center">
                                             <div class="d-flex align-items-center w-100">
@@ -117,23 +121,46 @@
                                                             <small class="text-muted">{{ $product->sku }}</small> - {{ Str::limit($product->name, 40) }}
                                                         </h6>
                                                         <span class="badge badge-light text-dark border" style="font-size: 0.85rem;">
-                                                            {{ $primarySymbol }}{{ formatMoney($priceInPrimary) }} 
-                                                            <span class="text-muted ml-1">| Stock: {{ $product->productWarehouses->sum('stock_qty') }}</span>
+                                                            @if(Auth::user()->can('sales.manage_adjustments') || $customer)
+                                                                @if(Auth::user()->can('sales.manage_adjustments'))
+                                                                    {{ $primarySymbol }}{{ formatMoney($priceInPrimary) }} 
+                                                                @else
+                                                                    {{-- Vendedor Foráneo: Mostrar precio calculado --}}
+                                                                    @php
+                                                                        $finalPrice = $priceInPrimary;
+                                                                        if($sellerConfig) {
+                                                                            $commission = ($sellerConfig->commission_percent / 100) * $finalPrice;
+                                                                            $finalPrice += $commission;
+                                                                            
+                                                                            if($sellerConfig->apply_freight && $sellerConfig->freight_percent > 0) {
+                                                                                 $freight = ($sellerConfig->freight_percent / 100) * $finalPrice;
+                                                                                 $finalPrice += $freight;
+                                                                            }
+                                                                        }
+                                                                    @endphp
+                                                                    {{ $primarySymbol }}{{ formatMoney($finalPrice) }}
+                                                                @endif
+                                                                <span class="text-muted ml-1">| Stock: {{ $product->productWarehouses->sum('stock_qty') }}</span>
+                                                            @else
+                                                                <span class="text-warning"><i class="fas fa-exclamation-circle"></i> Seleccione Cliente</span>
+                                                            @endif
                                                         </span>
                                                     </div>
                                                     
                                                     @if($product->productWarehouses->count() > 0)
                                                         @can('sales.switch_warehouse')
-                                                            <div class="d-flex flex-wrap mt-1 align-items-center">
-                                                                @foreach($product->productWarehouses as $pw)
-                                                                    @if($pw->stock_qty > 0)
-                                                                        <button type="button" class="btn btn-xs btn-outline-secondary mr-1 p-0 px-1" style="font-size: 0.75rem;"
-                                                                            wire:click.stop="AddProduct({{ $product->id }}, 1, {{ $pw->warehouse_id }})">
-                                                                            {{ $pw->warehouse->name }}: {{ $pw->stock_qty }}
-                                                                        </button>
-                                                                    @endif
-                                                                @endforeach
-                                                            </div>
+                                                            @if(Auth::user()->can('sales.manage_adjustments') || $customer)
+                                                                <div class="d-flex flex-wrap mt-1 align-items-center">
+                                                                    @foreach($product->productWarehouses as $pw)
+                                                                        @if($pw->stock_qty > 0)
+                                                                            <button type="button" class="btn btn-xs btn-outline-secondary mr-1 p-0 px-1" style="font-size: 0.75rem;"
+                                                                                wire:click.stop="AddProduct({{ $product->id }}, 1, {{ $pw->warehouse_id }})">
+                                                                                {{ $pw->warehouse->name }}: {{ $pw->stock_qty }}
+                                                                            </button>
+                                                                        @endif
+                                                                    @endforeach
+                                                                </div>
+                                                            @endif
                                                         @endcan
                                                     @endif
                                                 </div>
@@ -192,7 +219,10 @@
                                                 <input class="form-control form-control-sm"
                                                     wire:keydown.enter.prevent="setCustomPrice('{{ $item['id'] }}', $event.target.value )"
                                                     type="text" oninput="justNumber(this)" 
-                                                    value="{{ $item['sale_price'] }}">
+                                                    value="{{ $item['sale_price'] }}"
+                                                    @cannot('sales.manage_adjustments') readonly @endcannot>
+                                                
+                                                @can('sales.manage_adjustments')
                                                 <div class="input-group-append">
                                                     <button class="btn btn-warning btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                                         <i class="fa fa-info"></i>
@@ -215,6 +245,7 @@
                                                         </a>
                                                     </div>
                                                 </div>
+                                                @endcan
                                             </div>
                                         </div>
                                     @else
@@ -224,7 +255,10 @@
                                                     wire:keydown.enter.prevent="setCustomPrice('{{ $item['id'] }}', $event.target.value )"
                                                     oninput="justNumber(this)" type="text"
                                                     placeholder="{{ $item['sale_price'] }}"
-                                                    value="{{ $item['sale_price'] }}">
+                                                    value="{{ $item['sale_price'] }}"
+                                                    @cannot('sales.manage_adjustments') readonly @endcannot>
+                                                
+                                                @can('sales.manage_adjustments')
                                                 <div class="input-group-append">
                                                     <button class="btn btn-warning btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                                         <i class="fa fa-list"></i>
@@ -241,6 +275,7 @@
                                                         @endforeach
                                                     </div>
                                                 </div>
+                                                @endcan
                                             </div>
                                         </div>
                                     @endif

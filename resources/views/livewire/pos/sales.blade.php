@@ -76,6 +76,7 @@
 
                 <div class="card-body p-3">
                     <div class="form-group">
+                        @can('sales.manage_adjustments')
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <label class="mb-0">
                                 @if ($customer != null)
@@ -113,6 +114,24 @@
                                 </label>
                             </div>
                         </div>
+                        @else
+                        {{-- VISTA PARA VENDEDORES FORÁNEOS (SIN PERMISO DE AJUSTES) --}}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="mb-0 font-weight-bold">
+                                @if ($customer != null)
+                                    {{ $customer['name'] ?? '' }} <i class="fas fa-check-circle text-success"></i>
+                                @else
+                                    Cliente
+                                @endif
+                            </label>
+                            {{-- Solo mostramos indicador visual discreto, sin controles --}}
+                            @if($sellerConfig)
+                                <span class="badge badge-light text-muted" style="font-size: 0.75rem;" title="Comisiones Aplicadas Automáticamente">
+                                    <i class="fas fa-check-double"></i> Tarifa Foránea
+                                </span>
+                            @endif
+                        </div>
+                        @endcan
                         
                         @if($sellerConfig)
                             <div class="alert alert-info p-2" style="font-size: 0.85rem;">

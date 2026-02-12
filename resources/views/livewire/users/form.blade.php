@@ -47,7 +47,7 @@
                         </a>
                     </li>
                     {{-- Tab 4: Comisiones (Solo para vendedores) --}}
-                    @if($user->profile == 'Vendedor')
+                    @if($this->isSeller($user->profile))
                     <li class="nav-item mb-2">
                         <a class="nav-link {{ $tab == 4 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                            wire:click.prevent="$set('tab',4)" href="#">
@@ -61,7 +61,7 @@
                     @endif
                     
                     {{-- Tab 5: Config. Crédito (Solo para vendedores) --}}
-                    @if($user->profile == 'Vendedor')
+                    @if($this->isSeller($user->profile))
                     <li class="nav-item mb-2">
                         <a class="nav-link {{ $tab == 5 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                            wire:click.prevent="$set('tab',5)" href="#">

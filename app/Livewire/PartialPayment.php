@@ -328,7 +328,7 @@ class PartialPayment extends Component
                     'account_number' => $payment['account_number'] ?? null,
                     'deposit_number' => $payment['reference'] ?? null,
                     'phone_number' => $payment['phone'] ?? null,
-                    'payment_date' => \Carbon\Carbon::now(),
+                    'payment_date' => $payment['bank_date'] ?? $payment['zelle_date'] ?? \Carbon\Carbon::now(),
                     'zelle_record_id' => $zelleRecordId,
                     'bank_record_id' => $bankRecordId,
                     'discount_applied' => $payment['discount_amount'] ?? 0,
@@ -367,7 +367,7 @@ class PartialPayment extends Component
         }
     }
     
-    public function approvePayment($paymentId)
+    public function approvePayment(\App\Services\CashRegisterService $cashRegisterService, $paymentId)
     {
         if (!auth()->user()->can('payments.approve')) {
              $this->dispatch('noty', msg: 'NO TIENES PERMISO PARA APROBAR PAGOS');
@@ -378,23 +378,65 @@ class PartialPayment extends Component
             DB::beginTransaction();
             $payment = Payment::find($paymentId);
             if ($payment && $payment->status === 'pending') {
-                $payment->update(['status' => 'approved']);
+                
+                // 1. Determine Target Cash Register
+                $cashRegisterId = null;
+                $userRegister = $cashRegisterService->getActiveCashRegister(Auth::id());
+                
+                if ($userRegister) {
+                    $cashRegisterId = $userRegister->id;
+                } else {
+                    $config = \App\Models\Configuration::first();
+                    if ($config && $config->enable_shared_cash_register) {
+                        $lastOpenRegister = \App\Models\CashRegister::where('status', 'open')->latest()->first();
+                        if ($lastOpenRegister) {
+                            $cashRegisterId = $lastOpenRegister->id;
+                        }
+                    }
+                }
+
+                // 2. Validate Cash Register Availability
+                if (!$cashRegisterId) {
+                    throw new \Exception("NO HAY CAJA ABIERTA para recibir este pago. Abra una caja o active el modo compartido.");
+                }
+
+                // 3. Record Cash Movement
+                $cashRegisterService->recordSaleMovement(
+                    $cashRegisterId,
+                    $payment->sale_id,
+                    'sale_payment', // Type
+                    $payment->currency,
+                    $payment->amount,
+                    "Aprobación de pago #{$payment->id} (Ref: {$payment->deposit_number})"
+                );
+
+                // 4. Update Payment & Sale
+                // CRITICAL: Update collection_sheet_id to the CURRENT sheet of the approver (or shared).
+                // This ensures the payment appears in TODAY's report, not the upload day's report.
+                $currentSheetId = $this->getOrCreateCollectionSheet();
+
+                $payment->update([
+                    'status' => 'approved',
+                    'collection_sheet_id' => $currentSheetId
+                ]);
                 
                 $sale = Sale::find($payment->sale_id);
                 $this->checkSaleSettlement($sale);
                 
                 DB::commit();
-                $this->dispatch('noty', msg: 'PAGO APROBADO CORRECTAMENTE');
+                $this->dispatch('noty', msg: 'PAGO APROBADO Y REGISTRADO EN CAJA');
                 
                 // Refresh list
-                $this->pays = $sale->payments; // Refresh the list being viewed
-                $this->dispatch('refresh-history'); // Optional
+                $this->pays = $sale->payments; 
+                $this->dispatch('refresh-history'); 
             }
         } catch (\Exception $e) {
             DB::rollBack();
             $this->dispatch('noty', msg: 'Error al aprobar: ' . $e->getMessage());
         }
     }
+    
+
     
     public function rejectPayment($paymentId, $reason)
     {
@@ -496,7 +538,8 @@ class PartialPayment extends Component
     // Given the complexity of the dynamic payment rows, I will stick to "Delete" for now as the primary "Fix" mechanism, 
     // effectively "Reject -> Delete -> Upload Correctly".
     
-    public function checkSaleSettlement($sale) {
+    public function checkSaleSettlement(Sale $sale)
+    {
         $sale->refresh();
         
         $currentTotalPaidUSD = $sale->payments->where('status', 'approved')->sum(function($p) {
@@ -526,8 +569,12 @@ class PartialPayment extends Component
                 ->where('status', 'approved')
                 ->where('created_at', '>=', \Carbon\Carbon::now()->subMinute())
                 ->update(['type' => 'settled']);
+            
+            // COMMISSION CALCULATION (Fix: Use Payment Date)
+            $lastPaymentDate = $sale->payments->where('status', 'approved')->max('payment_date');
+            if (!$lastPaymentDate) $lastPaymentDate = now();
                 
-            \App\Services\CommissionService::calculateCommission($sale);
+            \App\Services\CommissionService::calculateCommission($sale, $lastPaymentDate);
         }
     }
 

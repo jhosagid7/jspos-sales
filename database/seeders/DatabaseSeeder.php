@@ -31,8 +31,12 @@ class DatabaseSeeder extends Seeder
             CustomerSeeder::class,
             BankSeeder::class,
             ProductSeeder::class,
-            WarehouseSeeder::class,
+            SellerPermissionSeeder::class,
+            // ForeignSellerCashRegisterSeeder::class, // Replaced by Bypass
+            CashRegisterBypassSeeder::class,
+            CreatePermissionsSeeder::class,
             ConfigurationSeeder::class,
+            WarehouseSeeder::class,
             SaleSeeder::class,
         ]);
     }

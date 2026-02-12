@@ -44,6 +44,7 @@ class PermissionSeeder extends Seeder
             'payments.register_direct', // New: Register approved payment directly
             'payments.delete',          // New: Delete payment
             'sales.approve_deletion', // Special permission for approving deletions
+            'sales.manage_adjustments', // New: Manage Price Adjustments (Commissions/Freight)
             
             // Cash Register
             'cash_register.open',

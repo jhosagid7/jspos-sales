@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.8.11] - 2026-02-12
+### Added
+- **Foreign Seller Payments**:
+  - **Shared Cash Register**: Implemented logic to strictly exclude Foreign Sellers from the "Shared Cash Register" pool. Their sales now correctly remain "Pending" until approved.
+  - **Payment Approval**: Updated `PartialPayment` to require an open cash register (Personal or Shared) when approving a payment, ensuring strict financial reconciliation.
+  - **Date Refinement**:
+    - **Commissions**: "On Time" calculation now uses the *actual transaction date* (Bank/Zelle date) provided by the seller, not the system approval date.
+    - **Reporting**: Approved payments are now assigned to the *approver's* daily Collection Sheet, ensuring they appear in the day's Cash Report (Cierre de Caja).
+  - **Reports**: Updated "Relación de Cobro General" to strictly filter out Pending/Rejected payments.
+
 ## [1.8.10] - 2026-02-12
 ### Added
 - **Configurable Sales View**:

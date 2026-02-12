@@ -796,6 +796,19 @@ class Sales extends Component
         $this->applyFreight = session('applyFreight', false);
         $this->is_freight_broken_down = session('is_freight_broken_down', false);
         
+        // Foreign Seller Enforce Logic (Override Session)
+        if (!Auth::user()->can('sales.manage_adjustments')) {
+            // We need seller config to know if we can apply commissions
+            // But in mount, we might not have customer/seller loaded yet?
+            // If customer is loaded from session, setCustomer might not be called?
+            // Actually, if session('sale_customer') exists, we should probably check it.
+            // For now, let's just force defaults off if no customer, 
+            // commissions will be re-evaluated when customer is set.
+             $this->applyFreight = false;
+             $this->is_freight_broken_down = false;
+             // applyCommissions depends on seller presence, handled in setCustomer/init
+        }
+
         // Determine Sales View Mode
         // Priority: User Preference > Global Config > Default 'grid'
         $this->salesViewMode = $user->sales_view_mode ?? $this->config->sales_view_mode ?? 'grid';
@@ -1150,7 +1163,7 @@ class Sales extends Component
     {
         //limpiamos el carrito
 
-        $this->resetExcept('config', 'banks', 'bank', 'currencies', 'warehouses');
+        $this->resetExcept('config', 'banks', 'currencies', 'warehouses');
         $this->clear();
         session()->forget('sale_customer');
 
@@ -1162,6 +1175,12 @@ class Sales extends Component
 
         $this->setCustomer($customer);
         $this->order_id = $orderId;
+        
+        // Restore configuration from order
+        $this->applyCommissions = (bool) $order->apply_commissions;
+        $this->applyFreight = (bool) $order->apply_freight;
+        $this->is_freight_broken_down = (bool) $order->is_freight_broken_down;
+        
         // session(['sale_customer' => $order->customer->name]);
 
         // Obtener los detalles de la orden
@@ -1276,6 +1295,12 @@ class Sales extends Component
 
     function AddProduct(Product $product, $qty = 1, $warehouseId = null)
     {
+        // Guard Clause: Foreign Sellers MUST select a customer first
+        if (!Auth::user()->can('sales.manage_adjustments') && !$this->customer) {
+            $this->dispatch('noty', msg: 'ACCION DENEGADA: Debe seleccionar un cliente primero.', type: 'error');
+            return;
+        }
+
         // Determine which warehouse to use
         // If specific warehouse passed, use it. Otherwise use global selection.
         $targetWarehouseId = $warehouseId ?? $this->warehouse_id;
@@ -2021,9 +2046,6 @@ class Sales extends Component
                     // To support "Continue Anyway" for updateQty, we would need a separate forceUpdateQty method or adapt forceAddProduct.
                     // For now, let's just block/warn.
                     
-                    // If we want to allow admins to bypass, we need a way to handle the confirmation.
-                    // Let's use the same modal but we need to handle the "Continue" action.
-                    
                     // Ideally, we should refactor to have a common "checkStock" method.
                     
                     // For this fix, let's just show the warning and block the update if not confirmed.
@@ -2246,7 +2268,14 @@ class Sales extends Component
                     }
                 }
             }
-            
+
+            // Foreign Seller Enforce Logic
+            if (!auth()->user()->can('sales.manage_adjustments')) {
+                $this->applyCommissions = $this->sellerConfig ? true : false;
+                $this->applyFreight = false;
+                $this->is_freight_broken_down = false;
+            }
+        
             $this->recalculateCartWithSellerConfig();
             
             // Success notification (Debug - remove later if annoying)
@@ -2469,9 +2498,6 @@ class Sales extends Component
             $sale = Sale::create([
                 'seller_config_id' => ($this->sellerConfig && $this->applyCommissions) ? $this->sellerConfig->id : null,
                 'applied_commission_percent' => ($this->sellerConfig && $this->applyCommissions) ? $this->sellerConfig->commission_percent : null,
-                'applied_freight_percent' => ($this->sellerConfig && $this->applyCommissions) ? $this->sellerConfig->freight_percent : null,
-                'applied_exchange_diff_percent' => ($this->sellerConfig && $this->applyCommissions) ? $this->sellerConfig->exchange_diff_percent : null,
-                'is_foreign_sale' => ($this->sellerConfig && $this->applyCommissions) ? true : false,
                 'total' => round($this->totalCart, $decimals),
                 'total_usd' => round($totalUSD, $decimals),
                 'discount' => 0,
@@ -2489,7 +2515,11 @@ class Sales extends Component
                 'order_number' => $orderNumber,
                 'batch_name' => $batchName,
                 'batch_sequence' => $batchSequence,
-
+                'cash_register_id' => $cashRegisterId,
+                'applied_commission_percent' => ($this->sellerConfig && $this->applyCommissions) ? $this->sellerConfig->commission_percent : null,
+                'applied_freight_percent' => ($this->sellerConfig && $this->applyCommissions) ? $this->sellerConfig->freight_percent : null,
+                'applied_exchange_diff_percent' => ($this->sellerConfig && $this->applyCommissions) ? $this->sellerConfig->exchange_diff_percent : null,
+                'is_foreign_sale' => ($this->sellerConfig && $this->applyCommissions) ? true : false,
                 'credit_days' => $this->creditConfig['credit_days'] ?? $this->calculateCreditDays(),
                 'delivery_status' => $this->driver_id ? 'pending' : 'delivered',
                 'credit_rules_snapshot' => $this->prepareCreditSnapshot(),
@@ -2893,7 +2923,10 @@ class Sales extends Component
                         'items' => $this->itemsCart,
                         'customer_id' => $this->customer['id'],
                         'user_id' => Auth()->user()->id,
-                        'status' => 'pending'
+                        'status' => 'pending',
+                        'apply_commissions' => $this->applyCommissions,
+                        'apply_freight' => $this->applyFreight,
+                        'is_freight_broken_down' => $this->is_freight_broken_down
                     ]);
 
                     // Actualiza los detalles de la orden
@@ -2931,7 +2964,10 @@ class Sales extends Component
                     'items' => $this->itemsCart,
                     'customer_id' => $this->customer['id'],
                     'user_id' => Auth()->user()->id,
-                    'status' => 'pending'
+                    'status' => 'pending',
+                    'apply_commissions' => $this->applyCommissions,
+                    'apply_freight' => $this->applyFreight,
+                    'is_freight_broken_down' => $this->is_freight_broken_down
                 ]);
 
                 // Obtiene el carrito de la sesión

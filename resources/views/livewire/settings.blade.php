@@ -315,6 +315,18 @@
                                         </div>
                                     </div>
 
+                                    <div class="col-sm-12 col-md-6">
+                                        <label class="form-label">MODO CAJA COMPARTIDA (Oficina)</label>
+                                        <div class="form-check form-switch pl-0">
+                                            <div class="custom-control custom-switch">
+                                                <input type="checkbox" class="custom-control-input" id="enableSharedCashRegister" wire:model="enableSharedCashRegister">
+                                                <label class="custom-control-label" for="enableSharedCashRegister">Permitir venta sin caja propia</label>
+                                            </div>
+                                            <small class="text-muted">Si se activa, los vendedores sin caja abierta podrán vender usando la última caja abierta disponible.</small>
+                                            @error('enableSharedCashRegister') <span class="text-danger">{{ $message }}</span> @enderror
+                                        </div>
+                                    </div>
+
                                     <div class="col-sm-12">
                                         <label class="form-label">CODIGO DE CONFIRMACION</label>
                                         <textarea wire:model="confirmationCode" class="form-control" cols="30" rows="2"></textarea>
