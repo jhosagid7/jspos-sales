@@ -414,6 +414,12 @@
                                 <p>Dispositivos</p>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="javascript:void(0)" onclick="Livewire.dispatch('trigger-license-modal')" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Licencia</p>
+                            </a>
+                        </li>
                     </ul>
                 </li>
                 @endcan
