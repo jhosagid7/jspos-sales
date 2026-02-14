@@ -140,7 +140,7 @@
                                                                     @endphp
                                                                     {{ $primarySymbol }}{{ formatMoney($finalPrice) }}
                                                                 @endif
-                                                                <span class="text-muted ml-1">| Stock: {{ $product->productWarehouses->sum('stock_qty') }}</span>
+                                                                <span class="text-muted ml-1">| Stock: {{ Auth::user()->can('sales.switch_warehouse') ? $product->productWarehouses->sum('stock_qty') : $product->productWarehouses->where('warehouse_id', $this->warehouse_id)->sum('stock_qty') }}</span>
                                                             @else
                                                                 <span class="text-warning"><i class="fas fa-exclamation-circle"></i> Seleccione Cliente</span>
                                                             @endif

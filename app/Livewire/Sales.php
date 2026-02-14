@@ -600,7 +600,8 @@ class Sales extends Component
         $newItem['base_price'] = $price; // Update base_price with manual override
         $newItem['sale_price'] = $price; // Temporary, Calculator will overwrite
 
-        $values = $this->Calculator($newItem['base_price'], $newItem['qty']);
+        $productModel = \App\Models\Product::find($newItem['pid']);
+        $values = $this->Calculator($newItem['base_price'], $newItem['qty'], $productModel);
 
         $decimals = ConfigurationService::getDecimalPlaces();
         $newItem['sale_price'] = $values['sale_price']; // Set final price (Base + Freight/Comm)
@@ -657,7 +658,18 @@ class Sales extends Component
             
             // Limit results for performance
             // Limit results for performance
-            $this->products = $query->with(['productWarehouses.warehouse', 'units'])->take(25)->get();
+            // Prioritize results: 1. SKU starts with search, 2. Name starts with search, 3. Name contains search, 4. Others (Tags/Categories)
+            $query->orderByRaw("CASE 
+                WHEN sku LIKE ? THEN 1 
+                WHEN name LIKE ? THEN 2 
+                WHEN name LIKE ? THEN 3 
+                ELSE 4 END", 
+                ["{$search}%", "{$search}%", "%{$search}%"]
+            )
+            ->orderBy('name');
+
+            // Limit results for performance
+            $this->products = $query->with(['productWarehouses.warehouse', 'units'])->take(50)->get();
 
             if ($this->products->count() == 0) {
                 $this->dispatch('noty', msg: 'NO EXISTE EL CÓDIGO ESCANEADO PERO PREGUNTELE');
@@ -2495,6 +2507,29 @@ class Sales extends Component
                 $batchSequence = $lastSequence ? $lastSequence + 1 : 1;
             }
 
+            // Determine Cash Register
+            $cashRegisterId = null;
+            $userRegister = $cashRegisterService->getActiveCashRegister(Auth::id());
+
+            if ($userRegister) {
+                $cashRegisterId = $userRegister->id;
+            } else {
+                $config = Configuration::first();
+                if ($config && $config->enable_shared_cash_register) {
+                    $lastOpenRegister = \App\Models\CashRegister::where('status', 'open')->latest()->first();
+                    if ($lastOpenRegister) {
+                        $cashRegisterId = $lastOpenRegister->id;
+                    }
+                }
+            }
+            
+            // For Cash payments, require a register. For Credit, it might be optional but good to track.
+            if ($saleType == 'cash' && !$cashRegisterId) {
+                 // Throw error or handle? 
+                 // Matches PartialPayment logic: "NO HAY CAJA ABIERTA"
+                 throw new \Exception("NO HAY CAJA ABIERTA para registrar esta venta. Abra una caja o active el modo compartido.");
+            }
+
             $sale = Sale::create([
                 'seller_config_id' => ($this->sellerConfig && $this->applyCommissions) ? $this->sellerConfig->id : null,
                 'applied_commission_percent' => ($this->sellerConfig && $this->applyCommissions) ? $this->sellerConfig->commission_percent : null,
@@ -2917,17 +2952,22 @@ class Sales extends Component
                 $order = Order::find($this->order_id);
 
                 if ($order) {
-                    $order->update([
+                    $updateData = [
                         'total' => round($this->totalCart, $decimals),
                         'discount' => 0,
                         'items' => $this->itemsCart,
                         'customer_id' => $this->customer['id'],
-                        'user_id' => Auth()->user()->id,
+                        // 'user_id' => Auth()->user()->id, // DO NOT OVERWRITE OWNER
                         'status' => 'pending',
                         'apply_commissions' => $this->applyCommissions,
                         'apply_freight' => $this->applyFreight,
                         'is_freight_broken_down' => $this->is_freight_broken_down
-                    ]);
+                    ];
+                    
+                    // Only set user_id if it's missing (unlikely for update) or if we explicitly want to change it (we don't)
+                    // So we just don't include it in updateData.
+                    
+                    $order->update($updateData);
 
                     // Actualiza los detalles de la orden
                     $cart = collect(session("cart"));
@@ -3083,7 +3123,10 @@ class Sales extends Component
             'email' => $this->cemail,
             'phone' => $this->cphone,
             'taxpayer_id' => $this->ctaxpayerId,
-            'type' => $this->ctype
+            'type' => $this->ctype,
+            'seller_id' => auth()->user()->can('system.is_foreign_seller') 
+                ? auth()->id() 
+                : (\App\Models\User::where('name', 'OFICINA')->value('id') ?? 0)
         ]);
 
         session(['sale_customer' => $customer->toArray()]);

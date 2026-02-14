@@ -558,6 +558,10 @@
                 </th>
             <tbody>
         </table>
+        
+        <p class="text-center" style="font-size: 9px; color: #555; margin-top: 5px;">
+            {{ $invoice->seller->custom_fields['footer_code'] ?? '' }}
+        </p>
 
         <p class="clase_table text-uppercase">
             <b>{{ __('invoices::invoice.amount_in_words') }}:</b> {{ $invoice->getTotalAmountInWords() }}
@@ -565,31 +569,100 @@
 
 
 
-            <p class="box-disclaimer">
-                ESTIMADO CLIENTE DESPUES DE OCHO DIAS CALENDARIO NO SE ACEPTAN RECLAMOS NI
-                DEVOLUCIONES
-            </p>
+            {{-- Conditions Block - Compact & Professional --}}
+            @php
+                $footerData = $invoice->seller->custom_fields['footer_data'] ?? [];
+                $usdDiscount = $footerData['usd_discount'] ?? 0;
+                $discountRules = $footerData['discount_rules'] ?? [];
+                $creditDays = $footerData['credit_days'] ?? 0;
+            @endphp
+    
+            {{-- Top Box: Conditions (No bottom border/radius) --}}
+            <div style="margin-bottom: 0px; font-size: 9px; line-height: 1.2; border: 1px solid #6B7280; border-bottom: none; background-color: #f9fafb; padding: 10px; border-top-left-radius: 15px; border-top-right-radius: 15px;">
+                <table width="100%" style="border-collapse: collapse;">
+                    <tr>
+                        <td width="60%" valign="top" style="padding-right: 10px;">
+                            <strong style="color: #0380b2; font-size: 10px; text-transform: uppercase; display: block; margin-bottom: 4px;">Condiciones de Pagos</strong>
+                            
+                            @if($usdDiscount > 0)
+                                <div style="margin-bottom: 3px;">
+                                    <span style="color: #0380b2;">•</span> <strong>Descuento Base:</strong> {{ number_format($usdDiscount, 0) }}% de descuento en divisas.
+                                </div>
+                            @endif
+                
+                            @if(count($discountRules) > 0)
+                                @foreach($discountRules as $rule)
+                                @php
+                                    $dPercent = is_array($rule) ? ($rule['percent'] ?? 0) : ($rule->discount_percentage ?? 0);
+                                    $dDaysTo = is_array($rule) ? ($rule['days'] ?? 0) : ($rule->days_to ?? 0);
+                                    $dDaysFrom = is_array($rule) ? 0 : ($rule->days_from ?? 0);
+                                @endphp
+                
+                                    @if($dDaysFrom == 0)
+                                         <div style="margin-bottom: 3px;">
+                                            <span style="color: #0380b2;">•</span> <strong>{{ number_format($dPercent, 0) }}% Pronto Pago:</strong> primeros <strong>{{ $dDaysTo }}</strong> días.
+                                         </div>
+                                    @else
+                                         <div style="margin-bottom: 3px;">
+                                            <span style="color: #0380b2;">•</span> <strong>{{ number_format($dPercent, 0) }}% Pronto Pago:</strong> días <strong>{{ $dDaysFrom }}</strong> a <strong>{{ $dDaysTo ?? '+' }}</strong>.
+                                         </div>
+                                    @endif
+                                @endforeach
+                            @endif
+                        </td>
+                        
+                        <td width="40%" valign="top" style="border-left: 1px solid #e5e7eb; padding-left: 10px;">
+                            <div style="margin-bottom: 5px;">
+                                <strong>Vencimiento:</strong> {{ $creditDays }} días tras entrega.
+                            </div>
+                            <div>
+                                <strong>Mora:</strong> Aplica después de {{ $creditDays }} días.
+                                <br><span style="color: #6b7280; font-style: italic;">Agradecemos su puntualidad.</span>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
 
+            {{-- Bottom Box: Disclaimer (Attached to top box) --}}
+            <div style="border: 1px solid #6B7280; border-top: 1px solid #6B7280; margin-top: 0px; background: #ADD8E6; padding: 5px 10px; font-size: 14px; text-transform: uppercase; font-weight: bold; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px; color: #000;">
+                ESTIMADO CLIENTE DESPUES DE OCHO DIAS CALENDARIO NO SE ACEPTAN RECLAMOS NI DEVOLUCIONES
+            </div>
+        
         @if($invoice->notes)
             <p class="clase_table text-uppercase">
                 <b>{{ __('invoices::invoice.notes') }}:</b> {!! $invoice->notes !!}
             </p>
         @endif
 
-
         <p>
             {{ __('invoices::invoice.pay_until') }}: {{ $invoice->getPayUntilDate() }}
         </p>
 
         <script type="text/php">
-            if (isset($pdf) && $PAGE_COUNT > 1) {
-                $text = "{{ __('invoices::invoice.page') }} {PAGE_NUM} / {PAGE_COUNT}";
-                $size = 10;
-                $font = $fontMetrics->getFont("Verdana");
-                $width = $fontMetrics->get_text_width($text, $font, $size) / 2;
-                $x = ($pdf->get_width() - $width);
-                $y = $pdf->get_height() - 35;
-                $pdf->page_text($x, $y, $text, $font, $size);
+            if (isset($pdf)) {
+                /*
+                // Footer Code (Moved to body)
+                $code = "{{ $invoice->seller->custom_fields['footer_code'] ?? '' }}";
+                if (!empty($code)) {
+                    $size = 9;
+                    $font = $fontMetrics->getFont("Verdana");
+                    $x = 36;
+                    $y = $pdf->get_height() - 25;
+                    $color = array(0.5, 0.5, 0.5);
+                    $pdf->page_text($x, $y, $code, $font, $size, $color);
+                }
+                */
+
+                if ($PAGE_COUNT > 1) {
+                    $text = "{{ __('invoices::invoice.page') }} {PAGE_NUM} / {PAGE_COUNT}";
+                    $size = 10;
+                    $font = $fontMetrics->getFont("Verdana");
+                    $width = $fontMetrics->get_text_width($text, $font, $size) / 2;
+                    $x = ($pdf->get_width() - $width);
+                    $y = $pdf->get_height() - 35;
+                    $pdf->page_text($x, $y, $text, $font, $size);
+                }
             }
         </script>
     </body>

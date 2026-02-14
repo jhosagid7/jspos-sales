@@ -279,7 +279,7 @@
                                                     @endif
                                                     
                                                     <span class="stock-badge {{ $stockStatus }}">
-                                                        Stock: {{ $product->productWarehouses->sum('stock_qty') }}
+                                                        Stock: {{ Auth::user()->can('sales.switch_warehouse') ? $product->productWarehouses->sum('stock_qty') : $product->productWarehouses->where('warehouse_id', $this->warehouse_id)->sum('stock_qty') }}
                                                     </span>
                                                 </div>
 

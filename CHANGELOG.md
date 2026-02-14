@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.8.12] - 2026-02-14
+### Changed
+- **Invoices**:
+  - **Visual Unification**: Aligned "Payment Conditions" and "Disclaimer" blocks in `invoice-credit-short`, `invoice-paid-short`, and `invoice-order-pending` templates to match the width and style of the "Amount in Words" block.
+  - **Formatting**: Removed extra spacing and standardized borders for a cleaner, more professional look.
+
 
 ## [1.8.11] - 2026-02-12
 ### Added

@@ -11,6 +11,7 @@ use App\Traits\PrintTrait;
 use Livewire\Component;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 use Illuminate\Support\Facades\Log;
 use App\Services\CreditConfigService;

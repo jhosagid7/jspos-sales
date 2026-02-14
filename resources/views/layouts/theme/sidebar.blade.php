@@ -88,6 +88,14 @@
                     </a>
                 </li>
                 @endcan
+                @can('sales.generate_price_list')
+                <li class="nav-item">
+                    <a href="{{ route('price-list.index') }}" class="nav-link {{ Request::is('price-list') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-file-invoice-dollar"></i>
+                        <p>LISTA DE PRECIOS</p>
+                    </a>
+                </li>
+                @endcan
                 @can('distribution.map')
                 <li class="nav-item">
                     <a href="{{ route('delivery.map') }}" class="nav-link {{ Request::is('delivery/map') ? 'active' : '' }}">

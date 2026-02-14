@@ -67,7 +67,7 @@ Route::get('/dashboard', function () {
     if (auth()->user()->hasRole('Driver')) {
         return redirect()->route('driver.dashboard');
     }
-    return view('dashboard');
+    return redirect()->route('welcome');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 
@@ -164,6 +164,9 @@ Route::middleware('auth')->group(function () {
     //generate pdf orders invoices
     //generate pdf orders invoices
     Route::get('orders/{order}', [Sales::class, 'generatePdfOrderInvoice'])->name('pos.orders.generatePdfOrderInvoice')->middleware('can:sales.pdf');
+
+    // Price List Generator
+    Route::get('price-list', \App\Livewire\PriceListGenerator::class)->name('price-list.index')->middleware(['auth', 'can:sales.generate_price_list']);
 
     // Cash Register Routes
     Route::get('cash-register/open', \App\Livewire\CashRegisterOpen::class)->name('cash-register.open')->middleware('can:cash_register.open');
