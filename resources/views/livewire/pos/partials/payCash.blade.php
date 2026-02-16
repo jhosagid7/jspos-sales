@@ -14,8 +14,9 @@
                 <div class="modal-body">
                     {{-- Obtener el símbolo de la moneda principal --}}
                     @php
-                        $primaryCurrency = collect($currencies)->firstWhere('is_primary', 1);
-                        $symbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
+                        // Use displayCurrency if available (for Invoice Currency view), otherwise Primary
+                        $targetCurrency = $displayCurrency ?? collect($currencies)->firstWhere('is_primary', 1);
+                        $symbol = $targetCurrency ? $targetCurrency->symbol : '$';
                     @endphp
 
                     <div class="row">
@@ -33,15 +34,15 @@
                                     </div>
                                     <div class="d-flex justify-content-between mb-2">
                                         <span class="text-muted">Subtotal:</span>
-                                        <span class="fw-bold">{{ $symbol }}{{ formatMoney($subtotalCart) }}</span>
+                                        <span class="fw-bold">{{ $symbol }}{{ formatMoney($this->displaySubtotalCart) }}</span>
                                     </div>
                                     <div class="d-flex justify-content-between mb-3 pb-3 border-bottom">
                                         <span class="text-muted">I.V.A.:</span>
-                                        <span class="fw-bold">{{ $symbol }}{{ formatMoney($ivaCart) }}</span>
+                                        <span class="fw-bold">{{ $symbol }}{{ formatMoney($this->displayIvaCart) }}</span>
                                     </div>
                                     <div class="d-flex justify-content-between">
                                         <span class="fs-5 fw-bold text-primary">TOTAL:</span>
-                                        <span class="fs-5 fw-bold text-primary">{{ $symbol }}{{ formatMoney($totalCart) }}</span>
+                                        <span class="fs-5 fw-bold text-primary">{{ $symbol }}{{ formatMoney($this->displayTotalCart) }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -430,7 +431,7 @@
                                                                 <br><small class="text-muted">{{ $payment['currency'] }}</small>
                                                             </td>
                                                             <td>
-                                                                <strong>{{ $symbol }}{{ formatMoney($payment['amount_in_primary_currency']) }}</strong>
+                                                                <strong>{{ $primaryCurrency->symbol }}{{ formatMoney($payment['amount_in_primary_currency']) }}</strong>
                                                             </td>
                                                             <td>
                                                                 <button class="btn btn-danger btn-sm" wire:click="removePayment({{ $index }})" title="Eliminar">
@@ -457,7 +458,7 @@
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between mb-2 pb-2 border-bottom">
                                         <span class="text-muted">Total Pagado:</span>
-                                        <span class="fs-5 fw-bold text-success">{{ $symbol }}{{ formatMoney($totalInPrimaryCurrency) }}</span>
+                                        <span class="fs-5 fw-bold text-success">{{ $symbol }}{{ formatMoney($this->totalPaidDisplay) }}</span>
                                     </div>
                                     <div class="d-flex justify-content-between">
                                         <span class="text-muted">Monto Restante:</span>

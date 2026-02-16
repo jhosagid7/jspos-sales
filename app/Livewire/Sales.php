@@ -116,7 +116,12 @@ class Sales extends Component
     public $zelleRemainingBalance = null;
     
     public $drivers = []; // List of users with Driver role
+
     public $driver_id = null; // Selected driver
+
+    public $invoiceCurrency_id = null;
+    public $invoiceExchangeRate = 1;
+
 
     public function updatedBankId($value)
     {
@@ -135,6 +140,24 @@ class Sales extends Component
             }
         }
     }
+
+    // Helper property to pass the full currency object to views
+    public $displayCurrency = null;
+    public $totalPaidDisplay = 0;
+
+    public function updatedInvoiceCurrencyId($value)
+    {
+        if ($value) {
+            $currency = collect($this->currencies)->firstWhere('id', $value);
+            if ($currency) {
+                $this->invoiceExchangeRate = $currency->exchange_rate;
+                $this->displayCurrency = $currency;
+                session(['invoiceCurrency_id' => $value]);
+            }
+        }
+    }
+
+
 
     /**
      * Livewire lifecycle hook - called when customer property is updated
@@ -564,32 +587,46 @@ class Sales extends Component
 
     public function calculateRemainingAndChange()
     {
-        $totalPaid = array_sum(array_column($this->payments, 'amount_in_primary_currency'));
+        $conversionFactor = $this->getConversionFactor();
+        $decimals = ConfigurationService::getDecimalPlaces();
+
+        // Calculate Total Paid in Primary Currency first
+        $totalPaidInPrimary = array_sum(array_column($this->payments, 'amount_in_primary_currency'));
         
-        // Usar totalCartAtPayment si existe, sino usar totalCart actual
-        $cartTotal = $this->totalCartAtPayment ?? $this->totalCart;
+        // Convert Total Paid to Invoice/Display Currency
+        $totalPaidInInvoice = $totalPaidInPrimary * $conversionFactor;
+        
+        // Use totalCartAtPayment (Invoice Currency) if exists, else convert current totalCart
+        $cartTotal = $this->totalCartAtPayment ?? ($this->totalCart * $conversionFactor);
 
-        $this->remainingAmount = max(0, $cartTotal - $totalPaid);
-        $this->change = max(0, $totalPaid - $cartTotal);
+        $this->remainingAmount = round(max(0, $cartTotal - $totalPaidInInvoice), $decimals);
+        $this->change = round(max(0, $totalPaidInInvoice - $cartTotal), $decimals);
+        $this->totalPaidDisplay = round($totalPaidInInvoice, $decimals);
 
-        Log::info('Cálculo de montos:', [
-            'totalCart' => $this->totalCart,
-            'totalCartAtPayment' => $this->totalCartAtPayment,
-            'cartTotal_used' => $cartTotal,
-            'totalPaid' => $totalPaid,
+        Log::info('Cálculo de montos (Invoice Currency):', [
+            'totalCart (Primary)' => $this->totalCart,
+            'factor' => $conversionFactor,
+            'cartTotal (Invoice)' => $cartTotal,
+            'totalPaid (Invoice)' => $totalPaidInInvoice,
             'remainingAmount' => $this->remainingAmount,
             'change' => $this->change,
         ]);
         $this->calculateTotalInPrimaryCurrency();
     }
 
-    function setCustomPrice($uid, $price)
+    public function setCustomPrice($uid, $price)
     {
-        $price = trim(str_replace('$', '', $price));
-
+        $price = trim(str_replace(['$', ','], '', $price));
+        
         if (!is_numeric($price)) {
             $this->dispatch('noty', msg: 'EL VALOR DEL PRECIO ES INCORRECTO');
             return;
+        }
+
+        // Convert the input price (which is in Invoice/Display Currency) back to Primary Currency
+        $conversionFactor = $this->getConversionFactor();
+        if ($conversionFactor > 0) {
+             $price = $price / $conversionFactor;
         }
 
         $mycart = $this->cart;
@@ -795,8 +832,32 @@ class Sales extends Component
         $this->change = session()->has('change') ? session('change') : 0;
 
         $this->calculateTotalInPrimaryCurrency();
-
-
+    
+    // Initialize Invoice Currency
+    // Priority: Session > Primary Currency > First Available
+    $sessionCurrencyId = session('invoiceCurrency_id');
+    if ($sessionCurrencyId) {
+        $currency = collect($this->currencies)->firstWhere('id', $sessionCurrencyId);
+        if ($currency) {
+            $this->invoiceCurrency_id = $currency->id;
+            $this->invoiceExchangeRate = $currency->exchange_rate;
+            $this->displayCurrency = $currency;
+        }
+    } 
+    
+    if (!$this->invoiceCurrency_id) {
+        $primary = collect($this->currencies)->firstWhere('is_primary', true);
+        if ($primary) {
+            $this->invoiceCurrency_id = $primary->id;
+            $this->invoiceExchangeRate = $primary->exchange_rate;
+            $this->displayCurrency = $primary;
+        } elseif ($this->currencies->isNotEmpty()) {
+             $first = $this->currencies->first();
+             $this->invoiceCurrency_id = $first->id;
+             $this->invoiceExchangeRate = $first->exchange_rate;
+             $this->displayCurrency = $first;
+        }
+    }
 
 
 
@@ -1160,15 +1221,16 @@ class Sales extends Component
 
     public function getRemainingChangeToAssign()
     {
-        $totalPaidInPrimaryCurrency = array_sum(array_column($this->payments, 'amount_in_primary_currency'));
+        $conversionFactor = $this->getConversionFactor();
         
-        // Usar totalCartAtPayment si existe, sino usar totalCart actual
-        $cartTotal = $this->totalCartAtPayment ?? $this->totalCart;
+        // Use the total change already calculated in Invoice Currency
+        $totalChangeInInvoice = $this->change;
         
-        $totalChangeAvailable = $totalPaidInPrimaryCurrency - $cartTotal;
-        $totalAssignedChange = array_sum(array_column($this->changeDistribution, 'amount_in_primary_currency'));
+        // Sum assigned change in Primary, then convert to Invoice Currency
+        $totalAssignedChangeInPrimary = array_sum(array_column($this->changeDistribution, 'amount_in_primary_currency'));
+        $totalAssignedChangeInInvoice = $totalAssignedChangeInPrimary * $conversionFactor;
         
-        return max(0, $totalChangeAvailable - $totalAssignedChange);
+        return max(0, $totalChangeInInvoice - $totalAssignedChangeInInvoice);
     }
 
     public function loadOrderToCart($orderId)
@@ -1190,10 +1252,16 @@ class Sales extends Component
         
         // Restore configuration from order
         $this->applyCommissions = (bool) $order->apply_commissions;
-        $this->applyFreight = (bool) $order->apply_freight;
-        $this->is_freight_broken_down = (bool) $order->is_freight_broken_down;
-        
-        // session(['sale_customer' => $order->customer->name]);
+    $this->applyFreight = (bool) $order->apply_freight;
+    $this->is_freight_broken_down = (bool) $order->is_freight_broken_down;
+
+    // Restore Invoice Currency
+    if($order->invoice_currency_id) {
+        $this->invoiceCurrency_id = $order->invoice_currency_id;
+        $this->updatedInvoiceCurrencyId($order->invoice_currency_id);
+    }
+    
+    // session(['sale_customer' => $order->customer->name]);
 
         // Obtener los detalles de la orden
         $orderDetails = OrderDetail::where('order_id', $orderId)->get();
@@ -2270,6 +2338,7 @@ class Sales extends Component
             $this->customer = $customer;
 
             // Check for Foreign Seller Config
+
             $this->sellerConfig = null;
             if(isset($customer['seller_id']) && $customer['seller_id']) {
                 $seller = \App\Models\User::find($customer['seller_id']);
@@ -2377,10 +2446,63 @@ class Sales extends Component
         if ($type == 1) $this->payTypeName = 'PAGO / ABONOS';
         if ($type == 2) $this->payTypeName = 'PAGO A CRÉDITO';
 
+        
+        
+        // Calculate totals for payment modal based on selected invoice currency
+        $conversionFactor = $this->getConversionFactor();
+        $decimals = ConfigurationService::getDecimalPlaces();
+
+        $this->totalCartAtPayment = round($this->totalCart * $conversionFactor, $decimals);
+        
+        // Since we are starting payment, the remaining amount is the total
+        // We will manage amounts in the selected currency for the payment modal
+        // Note: The system stores payments in their original currency, but we need a reference 'remaining' amount.
+        // Usually `remainingAmount` is in Primary Currency.
+        // But for the View ID 174 request, the user wants to see everything in the selected currency.
+        
+        // Let's set remainingAmount in the DISPLAY currency for the UI interactions.
+        $this->remainingAmount = $this->totalCartAtPayment; 
+        
         $this->dispatch('initPay', payType: $type);
+    }
+    
+    // Helpers for Display Logic
+    public function getConversionFactor()
+    {
+        $primary = collect($this->currencies)->firstWhere('is_primary', true);
+        if(!$primary) return 1;
+        
+        // Target: invoiceExchangeRate
+        // Source: primary->exchange_rate
+        
+        // If Primary (Source) is 50, and Target is 1. Factor = 1/50 = 0.02
+        // If Primary (Source) is 1, and Target is 50. Factor = 50.
+        
+        if ($primary->exchange_rate == 0) return 1;
+        
+        return (1 / $primary->exchange_rate) * $this->invoiceExchangeRate;
+    }
+
+    public function getDisplayTotalCartProperty()
+    {
+        $decimals = ConfigurationService::getDecimalPlaces();
+        return round($this->totalCart * $this->getConversionFactor(), $decimals);
+    }
+
+    public function getDisplaySubtotalCartProperty()
+    {
+        $decimals = ConfigurationService::getDecimalPlaces();
+        return round($this->subtotalCart() * $this->getConversionFactor(), $decimals);
+    }
+    
+    public function getDisplayIvaCartProperty()
+    {
+        $decimals = ConfigurationService::getDecimalPlaces();
+        return round($this->totalIVA() * $this->getConversionFactor(), $decimals);
     }
 
     function Store(CashRegisterService $cashRegisterService)
+
     {
         // dd($this);
 
@@ -2530,13 +2652,42 @@ class Sales extends Component
                  throw new \Exception("NO HAY CAJA ABIERTA para registrar esta venta. Abra una caja o active el modo compartido.");
             }
 
+            // Determine Invoice Currency
+            $currencyCodeForInvoice = $primaryCurrency->code; // Default
+            $exchangeRateForInvoice = $primaryCurrency->exchange_rate; // Default
+
+            if ($this->invoiceCurrency_id) {
+                $selectedCurrency = collect($this->currencies)->firstWhere('id', $this->invoiceCurrency_id);
+                if ($selectedCurrency) {
+                    $currencyCodeForInvoice = $selectedCurrency->code;
+                    $exchangeRateForInvoice = $selectedCurrency->exchange_rate;
+                }
+            }
+
+
+            // Calculate conversion factor: System Primary -> USD -> Invoice Currency
+            // Note: $this->totalCart is in System Primary.
+            // $primaryCurrency (from line 2478) is the System Primary.
+            
+            $conversionFactor = 1;
+            if ($primaryCurrency->code != $currencyCodeForInvoice) {
+                 // Convert to USD then to Invoice Currency
+                 // Factor = (1 / PrimaryRate) * InvoiceRate
+                 if ($primaryCurrency->exchange_rate != 0) {
+                     $conversionFactor = (1 / $primaryCurrency->exchange_rate) * $exchangeRateForInvoice;
+                 }
+            }
+            
+            $totalInInvoiceCurrency = round($this->totalCart * $conversionFactor, $decimals);
+
             $sale = Sale::create([
                 'seller_config_id' => ($this->sellerConfig && $this->applyCommissions) ? $this->sellerConfig->id : null,
                 'applied_commission_percent' => ($this->sellerConfig && $this->applyCommissions) ? $this->sellerConfig->commission_percent : null,
-                'total' => round($this->totalCart, $decimals),
+                'total' => $totalInInvoiceCurrency,
                 'total_usd' => round($totalUSD, $decimals),
                 'discount' => 0,
                 'items' => $this->itemsCart,
+
                 'customer_id' => $this->customer['id'],
                 'user_id' => Auth()->user()->id,
                 'type' => $saleType,
@@ -2544,9 +2695,11 @@ class Sales extends Component
                 'cash' => $totalPaidInPrimaryCurrency,
                 'change' => $changeAmount,
                 'notes' => $notes,
-                'primary_currency_code' => $primaryCurrency->code,
-                'primary_exchange_rate' => $primaryCurrency->exchange_rate,
+                'notes' => $notes,
+                'primary_currency_code' => $currencyCodeForInvoice,
+                'primary_exchange_rate' => $exchangeRateForInvoice,
                 'invoice_number' => $invoiceNumber,
+
                 'order_number' => $orderNumber,
                 'batch_name' => $batchName,
                 'batch_sequence' => $batchSequence,
@@ -2569,9 +2722,12 @@ class Sales extends Component
             $applyCommissions = $this->applyCommissions;
             $applyFreight = $this->applyFreight;
             $sellerConfig = $this->sellerConfig;
+            $conversionFactorForDetails = $conversionFactor;
+
 
             // insert sale detail
-            $details = $cart->map(function ($item) use ($sale, $decimals, $primaryCurrency, $applyCommissions, $applyFreight, $sellerConfig) {
+            $details = $cart->map(function ($item) use ($sale, $decimals, $primaryCurrency, $applyCommissions, $applyFreight, $sellerConfig, $conversionFactorForDetails) {
+
                 // El precio del producto está en USD (base)
                 $product = Product::find($item['pid']);
                 $priceUSD = $product ? $product->price : 0;
@@ -2603,11 +2759,12 @@ class Sales extends Component
                     'sale_id' => $sale->id,
                     'quantity' => round($item['qty'], $decimals),
                     'regular_price' => round(
-                        $item['price2'] ?? 0,
+                        ($item['price2'] ?? 0) * $conversionFactorForDetails,
                         $decimals
                     ),
-                    'sale_price' => round($item['sale_price'], $decimals),
-                    'freight_amount' => round($freightAmount, $decimals),
+                    'sale_price' => round($item['sale_price'] * $conversionFactorForDetails, $decimals),
+                    'freight_amount' => round($freightAmount * $conversionFactorForDetails, $decimals),
+
                     'price_usd' => $priceUSD,
                     'exchange_rate' => $primaryCurrency->exchange_rate,
                     'created_at' => Carbon::now(),
@@ -2961,7 +3118,8 @@ class Sales extends Component
                         'status' => 'pending',
                         'apply_commissions' => $this->applyCommissions,
                         'apply_freight' => $this->applyFreight,
-                        'is_freight_broken_down' => $this->is_freight_broken_down
+                        'is_freight_broken_down' => $this->is_freight_broken_down,
+                        'invoice_currency_id' => $this->invoiceCurrency_id
                     ];
                     
                     // Only set user_id if it's missing (unlikely for update) or if we explicitly want to change it (we don't)
@@ -3007,7 +3165,8 @@ class Sales extends Component
                     'status' => 'pending',
                     'apply_commissions' => $this->applyCommissions,
                     'apply_freight' => $this->applyFreight,
-                    'is_freight_broken_down' => $this->is_freight_broken_down
+                    'is_freight_broken_down' => $this->is_freight_broken_down,
+                    'invoice_currency_id' => $this->invoiceCurrency_id
                 ]);
 
                 // Obtiene el carrito de la sesión

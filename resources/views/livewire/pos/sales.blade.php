@@ -75,6 +75,26 @@
                 </div>
 
                 <div class="card-body p-3">
+                    {{-- Invoice Currency Selector --}}
+                    <div class="form-group mb-3 border-bottom pb-3">
+                        <label class="font-weight-bold mb-1">Moneda Factura / Ticket:</label>
+                        <select wire:model.live="invoiceCurrency_id" class="form-control form-control-sm">
+                             @if($currencies)
+                                 @foreach($currencies as $c)
+                                     <option value="{{ $c->id }}">{{ $c->name }} ({{ $c->code }})</option>
+                                 @endforeach
+                             @endif
+                        </select>
+                        
+                        @if($invoiceExchangeRate != 1)
+                            <div class="mt-1 text-right">
+                                <span class="badge badge-info" style="font-size: 0.9em;">
+                                    Tasa: {{ number_format($invoiceExchangeRate, 2) }}
+                                </span>
+                            </div>
+                        @endif
+                    </div>
+
                     <div class="form-group">
                         @can('sales.manage_adjustments')
                         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -188,11 +208,11 @@
                             </tr>
                             <tr>
                                 <td class="text-muted">Subtotal:</td>
-                                <td class="text-right font-weight-bold">{{ $symbol }}{{ formatMoney($subtotalCart) }}</td>
+                                <td class="text-right font-weight-bold">{{ $displayCurrency ? $displayCurrency->symbol : '$' }}{{ formatMoney($this->displaySubtotalCart) }}</td>
                             </tr>
                             <tr class="border-bottom">
                                 <td class="text-muted">I.V.A.:</td>
-                                <td class="text-right font-weight-bold">{{ $symbol }}{{ formatMoney($ivaCart) }}</td>
+                                <td class="text-right font-weight-bold">{{ $displayCurrency ? $displayCurrency->symbol : '$' }}{{ formatMoney($this->displayIvaCart) }}</td>
                             </tr>
                             @if($is_freight_broken_down)
                             <tr class="border-bottom">
@@ -200,7 +220,7 @@
                                 <td class="text-right">
                                     <div class="input-group input-group-sm justify-content-end">
                                         <div class="input-group-prepend">
-                                            <span class="input-group-text p-1">{{ $symbol }}</span>
+                                            <span class="input-group-text p-1">{{ $displayCurrency ? $displayCurrency->symbol : '$' }}</span>
                                         </div>
                                         <input type="number" class="form-control form-control-sm text-right" 
                                             wire:model.lazy="total_freight" 
@@ -211,24 +231,40 @@
                             @endif
                             <tr>
                                 <td class="h5 font-weight-bold">TOTAL:</td>
-                                <td class="h5 font-weight-bold text-primary text-right">{{ $symbol }}{{ formatMoney($totalCart) }}</td>
+                                <td class="h5 font-weight-bold text-primary text-right">
+                                    {{ $displayCurrency ? $displayCurrency->symbol : '$' }}
+                                    {{ formatMoney($this->displayTotalCart) }}
+                                </td>
                             </tr>
                         </table>
                     </div>
 
                     {{-- Multi-currency display --}}
                     @if($currencies && $currencies->count() > 1)
-                        @php
-                            $primaryCurrency = $currencies->firstWhere('is_primary', true);
-                            $primaryRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
-                        @endphp
                         <div class="mt-2 p-2 bg-light rounded">
+                            <h6 class="font-weight-bold text-muted small mb-2 border-bottom pb-1">Referencias:</h6>
                             @foreach($currencies as $currency)
-                                @if(!$currency->is_primary)
+                                @if($currency->id !== $invoiceCurrency_id)
                                     @php
-                                        // Convertir: Primaria -> USD -> Moneda Objetivo
-                                        $amountInUSD = $totalCart / $primaryRate;
-                                        $convertedAmount = $amountInUSD * $currency->exchange_rate;
+                                        // Calculate converted amount
+                                        // Base total is $totalCart (in Primary Currency / USD)
+                                        // Target Amount = TotalCart * CurrencyRate
+                                        // Assuming TotalCart IS in Primary Currency (USD)
+                                        
+                                        // If primary currency rate is not 1, we might need to normalize.
+                                        // But typically storeOrder logic suggests totalCart is in primary currency.
+                                        
+                                        $rate = $currency->exchange_rate;
+                                        $convertedAmount = $totalCart * $rate;
+                                        
+                                        // If Primary Currency is NOT USD (e.g. rate != 1), and we want to convert from Primary to Target.
+                                        // Amount = (Total / PrimaryRate) * TargetRate?
+                                        // Verify Primary Currency
+                                        $primary = collect($currencies)->firstWhere('is_primary', true);
+                                        if($primary && $primary->exchange_rate != 0) {
+                                             $amountInBase = $totalCart / $primary->exchange_rate; // Normalized to Base 1
+                                             $convertedAmount = $amountInBase * $rate;
+                                        }
                                     @endphp
                                     <div class="d-flex justify-content-between text-muted small">
                                         <span>{{ $currency->code }}:</span>
@@ -236,6 +272,39 @@
                                     </div>
                                 @endif
                             @endforeach
+                            
+                            {{-- USD/BCV Display --}}
+                            {{-- Show this if we are NOT in USD (or NOT in primary?) --}}
+                            {{-- User wants "USD/BCV" reference. usually useful when paying in Bolivares --}}
+                            @if($config && $config->bcv_rate > 0)
+                                 @php
+                                    // Logic: What is the USD equivalent of the VED Total at BCV Rate?
+                                    // 1. Get VED Total
+                                    $vedCurrency = collect($currencies)->firstWhere('code', 'VED') ?? collect($currencies)->firstWhere('code', 'VES');
+                                    
+                                    if($vedCurrency) {
+                                        // Calculate VED Total
+                                        $primary = collect($currencies)->firstWhere('is_primary', true);
+                                        $vedRate = $vedCurrency->exchange_rate;
+                                        
+                                        if($primary && $primary->exchange_rate > 0) {
+                                             $amountInBase = $totalCart / $primary->exchange_rate; 
+                                             $vedTotal = $amountInBase * $vedRate;
+                                        } else {
+                                             $vedTotal = $totalCart * $vedRate;
+                                        }
+                                        
+                                        $usdBcv = $vedTotal / $config->bcv_rate;
+                                    }
+                                 @endphp
+                                 
+                                 @if(isset($usdBcv))
+                                    <div class="d-flex justify-content-between text-danger font-weight-bold small mt-1 pt-1 border-top">
+                                        <span>USD/BCV:</span>
+                                        <span>${{ formatMoney($usdBcv) }}</span>
+                                    </div>
+                                 @endif
+                            @endif
                         </div>
                     @endif
 

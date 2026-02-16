@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.8.13] - 2026-02-16
+### Added
+- **Sales**:
+  - **Currency Persistence**:
+    - **Session & Orders**: The selected "Invoice Currency" is now remembered across page reloads and correctly saved/restored when parking (pending) and retrieving orders.
+    - **Database**: Updated `Order` model to support `invoice_currency_id`.
+  - **Total Display**:
+    - **Contextual Total**: The main "Total" amount now dynamically displays in the *selected currency* (e.g., Bolívares), matching the user's preference.
+    - **Reference Values**: Added a summary section below the total showing equivalents in other currencies (USD, COP).
+    - **USD/BCV**: Explicitly added "USD/BCV" reference calculation (Total VED / BCV Rate) in red for easier verification during payment.
+  - **Visuals**:
+    - **Product Grid/List**: When Bolívares is the active currency, prices in USD are now highlighted as "USD/BCV" in red to indicate they are calculated at the configured rate.
+
 ## [1.8.12] - 2026-02-14
 ### Changed
 - **Invoices**:

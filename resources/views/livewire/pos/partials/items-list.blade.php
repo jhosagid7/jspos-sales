@@ -88,9 +88,19 @@
 
                     @if (!empty($products))
                         @php
-                            $primaryCurrency = $currencies->firstWhere('is_primary', true);
-                            $primaryRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
-                            $primarySymbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
+                            // Use displayCurrency if available (for Invoice Currency view), otherwise Primary
+                            $targetCurrency = $displayCurrency ?? $currencies->firstWhere('is_primary', true);
+                            $targetRate = ($targetCurrency && $targetCurrency->exchange_rate > 0) ? $targetCurrency->exchange_rate : 1;
+                            $targetSymbol = $targetCurrency ? $targetCurrency->symbol : '$';
+                            
+                            // Conversion Factor from Base (USD) to Target
+                            // Product Price is in USD.
+                            // If Target is VED (Rate 50), Price * 50.
+                            // If Target is USD (Rate 1), Price * 1.
+                            
+                            // NOTE: $invoiceExchangeRate in Sales.php roughly tracks the selected currency rate (or primary).
+                            // But here we might be in a separate scope. 
+                            // Fortunately, $displayCurrency is passed from the component.
                         @endphp
                         <div x-init="itemCount = {{ count($products) }}"></div>
 
@@ -99,7 +109,7 @@
                             style="z-index: 1000; max-height: 300px; overflow-y: auto;">
                             @foreach ($products as $index => $product)
                                 @php
-                                    $priceInPrimary = $product->price * $primaryRate;
+                                    $priceInTarget = $product->price * $targetRate;
                                 @endphp
                                 <li class="p-1 list-group-item list-group-item-action d-flex justify-content-between align-items-center"
                                     data-id="{{ $product->id }}"
@@ -123,11 +133,42 @@
                                                         <span class="badge badge-light text-dark border" style="font-size: 0.85rem;">
                                                             @if(Auth::user()->can('sales.manage_adjustments') || $customer)
                                                                 @if(Auth::user()->can('sales.manage_adjustments'))
-                                                                    {{ $primarySymbol }}{{ formatMoney($priceInPrimary) }} 
+                                                                    {{ $targetSymbol }}{{ formatMoney($priceInTarget) }} 
+                                                                    
+                                                                    @php
+                                                                        $bcvPriceList = 0;
+                                                                        $bsCurrencyList = $currencies->first(function($curr) {
+                                                                            return in_array($curr->code, ['VES', 'VED']) || Str::contains($curr->symbol, 'Bs');
+                                                                        });
+
+                                                                        if($bsCurrencyList && isset($config->bcv_rate) && $config->bcv_rate > 0) {
+                                                                            $priceInBsList = $product->price * $bsCurrencyList->exchange_rate;
+                                                                            $bcvPriceList = $priceInBsList / $config->bcv_rate;
+                                                                        }
+                                                                    @endphp
+
+                                                                    @if($bcvPriceList > 0)
+                                                                        <span class="d-block text-danger font-weight-bold" style="font-size: 0.75rem;">
+                                                                            ${{ formatMoney($bcvPriceList) }} USD/BCV
+                                                                        </span>
+                                                                    @endif 
+                                                                    
+                                                                    @if(isset($currencies) && $currencies->count() > 1 && $targetCurrency)
+                                                                        <div class="text-muted mt-1 d-flex flex-wrap" style="font-size: 0.75rem; gap: 8px;">
+                                                                            @foreach($currencies as $currency)
+                                                                                @if($currency->id !== $targetCurrency->id)
+                                                                                    @php
+                                                                                        $refPrice = $product->price * $currency->exchange_rate;
+                                                                                    @endphp
+                                                                                    <span>{{ $currency->symbol }}{{ formatMoney($refPrice) }} <span style="font-size: 0.65rem;">{{ $currency->code }}</span></span>
+                                                                                @endif
+                                                                            @endforeach
+                                                                        </div>
+                                                                    @endif 
                                                                 @else
                                                                     {{-- Vendedor Foráneo: Mostrar precio calculado --}}
                                                                     @php
-                                                                        $finalPrice = $priceInPrimary;
+                                                                        $finalPrice = $priceInTarget;
                                                                         if($sellerConfig) {
                                                                             $commission = ($sellerConfig->commission_percent / 100) * $finalPrice;
                                                                             $finalPrice += $commission;
@@ -138,7 +179,46 @@
                                                                             }
                                                                         }
                                                                     @endphp
-                                                                    {{ $primarySymbol }}{{ formatMoney($finalPrice) }}
+                                                                    {{ $targetSymbol }}{{ formatMoney($finalPrice) }}
+
+                                                                    @php
+                                                                        $bcvPriceList = 0;
+                                                                        $bsCurrencyList = $currencies->first(function($curr) {
+                                                                            return in_array($curr->code, ['VES', 'VED']) || Str::contains($curr->symbol, 'Bs');
+                                                                        });
+
+                                                                        if($bsCurrencyList && isset($config->bcv_rate) && $config->bcv_rate > 0) {
+                                                                            // Calculate Price in Bs from Final Price
+                                                                            $priceInBsList = 0;
+                                                                            if($targetRate > 0) {
+                                                                                $priceInBsList = ($finalPrice / $targetRate) * $bsCurrencyList->exchange_rate;
+                                                                            }
+                                                                            $bcvPriceList = $priceInBsList / $config->bcv_rate;
+                                                                        }
+                                                                    @endphp
+
+                                                                    @if($bcvPriceList > 0)
+                                                                        <span class="d-block text-danger font-weight-bold" style="font-size: 0.75rem;">
+                                                                            ${{ formatMoney($bcvPriceList) }} USD/BCV
+                                                                        </span>
+                                                                    @endif
+                                                                    
+                                                                    @if(isset($currencies) && $currencies->count() > 1 && $targetCurrency)
+                                                                        <div class="text-muted mt-1 d-flex flex-wrap" style="font-size: 0.75rem; gap: 8px;">
+                                                                            @foreach($currencies as $currency)
+                                                                                @if($currency->id !== $targetCurrency->id)
+                                                                                    @php
+                                                                                        // Derived from finalPrice
+                                                                                        $refPrice = 0;
+                                                                                        if($targetRate > 0) {
+                                                                                            $refPrice = ($finalPrice / $targetRate) * $currency->exchange_rate;
+                                                                                        }
+                                                                                    @endphp
+                                                                                    <span>{{ $currency->symbol }}{{ formatMoney($refPrice) }} <span style="font-size: 0.65rem;">{{ $currency->code }}</span></span>
+                                                                                @endif
+                                                                            @endforeach
+                                                                        </div>
+                                                                    @endif
                                                                 @endif
                                                                 <span class="text-muted ml-1">| Stock: {{ Auth::user()->can('sales.switch_warehouse') ? $product->productWarehouses->sum('stock_qty') : $product->productWarehouses->where('warehouse_id', $this->warehouse_id)->sum('stock_qty') }}</span>
                                                             @else
@@ -204,7 +284,7 @@
                         @forelse($cart as $item)
                             @php
                                 $primaryCurrency = $currencies->firstWhere('is_primary', true);
-                                $primaryRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
+                                $primaryRate = ($primaryCurrency && $primaryCurrency->exchange_rate > 0) ? $primaryCurrency->exchange_rate : 1;
                                 $primarySymbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
                             @endphp
                             <tr wire:key="cart-item-{{ $item['id'] }}">
