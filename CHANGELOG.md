@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.8.16] - 2026-02-17
+### Fixed
+- **Customer Import**:
+  - **Data Truncated Error**: Resolved an issue where importing customers with type "Minorista" failed due to database enum restrictions. Added "Minorista" to `customers` table and manual creation form.
+- **Backup System**:
+  - **Mysqldump Path**: Made `mysqldump` binary path configurable via `.env` (`DB_DUMP_PATH`) to support different development environments and prevent "Path not found" errors on client machines.
+
 ## [1.8.15] - 2026-02-17
 ### Added
 - **Customers**:

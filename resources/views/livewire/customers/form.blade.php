@@ -104,6 +104,7 @@
                                     <label class="form-label">Tipo <span class="txt-danger">*</span></label>
                                     <select class="form-control" wire:model="customer.type">
                                         <option value="0" selected disabled>Seleccionar</option>
+                                        <option value="Minorista">Minorista</option>
                                         <option value="Mayoristas">Mayoristas</option>
                                         <option value="Consumidor Final">Consumidor Final</option>
                                         <option value="Descuento1">Descuento1</option>
