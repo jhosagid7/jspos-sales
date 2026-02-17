@@ -68,7 +68,7 @@ class Customers extends Component
 
     public function render()
     {
-        $this->sellers = \App\Models\User::role('Vendedor')->get();
+        $this->sellers = \App\Models\User::permission('system.is_seller')->get();
         
         return view('livewire.customers.customers', [
             'customers' => $this->loadCustomers()
@@ -105,6 +105,7 @@ class Customers extends Component
         $this->customer->seller_id = 0;
         $this->tab = 1; // Reset to first tab
         $this->resetCommissionFields();
+        $this->editing = true;
         $this->dispatch('init-new');
     }
 

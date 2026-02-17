@@ -310,19 +310,24 @@
                             }
 
                             // 2. Agregar abonos (Payment)
+                            $totalPaidUSD = 0; // Initialize USD Total
+                            $pendingPayments = collect(); // Separated collection for pending
+
                             if($salesObt && $salesObt->payments) {
                                 foreach($salesObt->payments as $pay) {
+                                    
                                     // Determinar si el pago está en la moneda principal
                                     $isPaymentInPrimaryCurrency = ($pay->currency == $primaryCurrency->code);
                                     
-                                    // Si el pago está en la moneda principal, usar el monto directamente
+                                    // Calculos comunes de conversión
                                     if ($isPaymentInPrimaryCurrency) {
                                         $amountInPrimary = $pay->amount;
-                                        // Para pagos en moneda principal, la tasa a mostrar es la tasa de la moneda principal
-                                        // que estaba vigente (cuántos VED vale 1 USD)
                                         $displayRate = $pay->primary_exchange_rate;
+                                        
+                                        $rateForUSD = ($pay->primary_exchange_rate > 0) ? $pay->primary_exchange_rate : 1;
+                                        $thisAmountUSD = $pay->amount / $rateForUSD;
+
                                     } else {
-                                        // Si no, convertir a USD y luego a moneda principal
                                         $rate = $pay->exchange_rate > 0 ? $pay->exchange_rate : 1;
                                         $primaryRate = ($pay->primary_exchange_rate && $pay->primary_exchange_rate > 1) 
                                             ? $pay->primary_exchange_rate 
@@ -330,12 +335,10 @@
                                         
                                         $amountInUSD = $pay->amount / $rate;
                                         $amountInPrimary = $amountInUSD * $primaryRate;
-                                        
-                                        // La tasa a mostrar es la de conversión a moneda principal
-                                        // (ej: cuántos VED vale 1 USD = primary_exchange_rate)
                                         $displayRate = $primaryRate;
+                                        $thisAmountUSD = $amountInUSD;
                                     }
-
+                                    
                                     // Normalizar método
                                     $method = match($pay->pay_way) {
                                         'deposit' => 'bank',
@@ -343,7 +346,9 @@
                                         default => 'cash'
                                     };
 
-                                    $allPayments->push((object)[
+                                    $paymentObj = (object)[
+                                        'id' => $pay->id,
+                                        'status' => $pay->status, // Add status
                                         'type' => 'abono',
                                         'method' => $method,
                                         'bank_name' => $pay->bank,
@@ -351,6 +356,7 @@
                                         'amount' => $pay->amount,
                                         'rate' => $displayRate,
                                         'amount_primary' => $amountInPrimary,
+                                        'amount_usd' => $thisAmountUSD, // Store USD Amount
                                         'reference' => $pay->deposit_number ?? $pay->reference ?? ($pay->bankRecord ? $pay->bankRecord->reference : null),
                                         'account' => $pay->account_number,
                                         'zelle_record' => $pay->zelleRecord,
@@ -359,14 +365,95 @@
                                         'discount_amount' => $pay->discount_applied,
                                         'discount_percentage' => $pay->discount_percentage,
                                         'discount_reason' => $pay->discount_reason,
-                                    ]);
+                                        'created_at' => $pay->created_at,
+                                    ];
+
+                                    // Logic Separation: Pending vs Approved
+                                    if($pay->status == 'pending') {
+                                        $pendingPayments->push($paymentObj);
+                                    } else {
+                                        // Only add to Total Paid if NOT pending
+                                        $totalPaidUSD += $thisAmountUSD;
+                                        $allPayments->push($paymentObj);
+                                    }
                                 }
                             }
                         @endphp
 
+                        {{-- Section: Pending Payments (New) --}}
+                        @if($pendingPayments->count() > 0)
+                            <div class="mt-4">
+                                <h6 class="text-danger">
+                                    <i class="fa fa-clock-o"></i> Pagos Pendientes de Aprobación 
+                                    <span class="badge bg-danger">{{ $pendingPayments->count() }}</span>
+                                </h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered border-danger">
+                                        <thead class="bg-light-danger text-danger">
+                                            <tr class="text-center">
+                                                <th>Fecha</th>
+                                                <th>Método</th>
+                                                <th>Moneda</th>
+                                                <th>Monto</th>
+                                                <th>Ref. / Detalles</th>
+                                                <th>Estado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($pendingPayments as $pending)
+                                                @php
+                                                    $currencyName = match($pending->currency) {
+                                                        'USD' => 'Dólar',
+                                                        'COP' => 'Pesos',
+                                                        'VES' => 'Bolívares',
+                                                        'VED' => 'Bolívares',
+                                                        default => $pending->currency
+                                                    };
+                                                @endphp
+                                                <tr class="text-center">
+                                                    <td>{{ $pending->created_at->format('d/m/Y h:i A') }}</td>
+                                                    <td>{{ ucfirst($pending->method) }}</td>
+                                                    <td>
+                                                        <span class="badge badge-light-primary">
+                                                            {{ $currencyName }} ({{ $pending->currency }})
+                                                        </span>
+                                                    </td>
+                                                    <td class="fw-bold">{{ number_format($pending->amount, 2) }}</td>
+                                                    <td class="text-start">
+                                                        @if($pending->reference) 
+                                                            <div><b>Ref:</b> {{ $pending->reference }}</div> 
+                                                        @endif
+                                                        @if($pending->bank_name)
+                                                            <div>{{ $pending->bank_name }}</div>
+                                                        @endif
+                                                        @if($pending->bank_record && $pending->bank_record->image_path)
+                                                             <a href="{{ asset('storage/' . $pending->bank_record->image_path) }}" target="_blank" class="text-danger small"><i class="fa fa-image"></i> Ver Comprobante</a>
+                                                        @elseif($pending->zelle_record && $pending->zelle_record->image_path)
+                                                             <a href="{{ asset('storage/' . $pending->zelle_record->image_path) }}" target="_blank" class="text-danger small"><i class="fa fa-image"></i> Ver Comprobante</a>
+                                                        @endif
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-warning text-dark">Pendiente</span>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="bg-light-danger">
+                                                <td colspan="6" class="text-start text-danger small">
+                                                    <i class="fa fa-info-circle"></i> Estos pagos <b>NO</b> se han descontado de la deuda todavía. Deben ser aprobados en la sección de Pagos.
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        @endif
+
+                        {{-- Section: Approved Payments (Existing) --}}
                         @if($allPayments->count() > 0)
                             <div class="mt-4">
-                                <h6 class="text-info"><i class="fa fa-money"></i> Pagos Recibidos</h6>
+                                <h6 class="text-info"><i class="fa fa-money"></i> Pagos Recibidos (Verificados)</h6>
                                 <div class="table-responsive">
                                     <table class="table table-sm table-bordered">
                                         <thead class="table-light">
@@ -476,13 +563,83 @@
                                                 </tr>
                                             @endforeach
                                         </tbody>
-                                        <tfoot class="table-light">
-                                            <tr>
-                                                <td colspan="5" class="text-end"><b>Total Pagado:</b></td>
-                                                <td class="text-center"><b>{{ number_format($allPayments->sum('amount_primary'), 2) }}</b></td>
-                                                <td></td>
+                                    </table>
+                                </div>
+
+                                {{-- Summary Section --}}
+                                <div class="row mt-2">
+                                    {{-- Right Aligned Summary --}}
+                                    <div class="col-md-12">
+                                        <div class="row justify-content-end">
+                                            <div class="col-md-8">
+                                                <table class="table table-sm table-bordered">
+                                                    <thead>
+                                                        <tr class="bg-light text-center">
+                                                            <th>Concepto</th>
+                                                            <th>Moneda Factura ({{ $currencySymbol }})</th>
+                                                            <th>Equivalente (USD)</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr>
+                                                            <td class="text-end bg-light"><b>Monto Total:</b></td>
+                                                            <td class="text-end fw-bold">{{ $currencySymbol }}{{ number_format($salesObt->total, 2) }}</td>
+                                                            <td class="text-end fw-bold">${{ number_format($salesObt->total_usd, 2) }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="text-end bg-light"><b>Total Abonado:</b></td>
+                                                            <td class="text-end text-success fw-bold">{{ $currencySymbol }}{{ number_format($allPayments->sum('amount_primary'), 2) }}</td>
+                                                            <td class="text-end text-success fw-bold">${{ number_format($totalPaidUSD, 2) }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="text-end bg-light"><b>Saldo Pendiente:</b></td>
+                                                            <td class="text-end text-danger fw-bold h5">
+                                                                {{ $currencySymbol }}{{ number_format($salesObt->total - $allPayments->sum('amount_primary'), 2) }}
+                                                            </td>
+                                                            <td class="text-end text-danger fw-bold h5">
+                                                                ${{ number_format($salesObt->total_usd - $totalPaidUSD, 2) }}
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @else
+                             {{-- Even if no payments, show Summary --}}
+                             <div class="row justify-content-end mt-4">
+                                <div class="col-md-8">
+                                    <table class="table table-sm table-bordered">
+                                        <thead>
+                                            <tr class="bg-light text-center">
+                                                <th>Concepto</th>
+                                                <th>Moneda Factura ({{ $currencySymbol }})</th>
+                                                <th>Equivalente (USD)</th>
                                             </tr>
-                                        </tfoot>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td class="text-end bg-light"><b>Monto Total:</b></td>
+                                                <td class="text-end fw-bold">{{ $currencySymbol }}{{ number_format($salesObt->total, 2) }}</td>
+                                                <td class="text-end fw-bold">${{ number_format($salesObt->total_usd, 2) }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-end bg-light"><b>Total Abonado:</b></td>
+                                                <td class="text-end text-success fw-bold">{{ $currencySymbol }}0.00</td>
+                                                <td class="text-end text-success fw-bold">$0.00</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-end bg-light"><b>Saldo Pendiente:</b></td>
+                                                <td class="text-end text-danger fw-bold h5">
+                                                    {{ $currencySymbol }}{{ number_format($salesObt->total, 2) }}
+                                                </td>
+                                                <td class="text-end text-danger fw-bold h5">
+                                                    ${{ number_format($salesObt->total_usd, 2) }}
+                                                </td>
+                                            </tr>
+                                        </tbody>
                                     </table>
                                 </div>
                             </div>

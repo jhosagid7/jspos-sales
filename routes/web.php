@@ -128,6 +128,7 @@ Route::middleware('auth')->group(function () {
     Route::get('data/customers', [DataController::class, 'autocomplete_customers'])->name('data.customers');
     Route::get('data/suppliers', [DataController::class, 'autocomplete_suppliers'])->name('data.suppliers');
     Route::get('data/products', [DataController::class, 'autocomplete_products'])->name('data.products');
+    Route::get('customer/{id}/debt-pdf', [DataController::class, 'customerDebtPdf'])->name('customer.debt.pdf');
 
 
     //reports

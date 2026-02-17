@@ -15,8 +15,14 @@
 
                 <div class="modal-body">
                     @php
-                        $primaryCurrency = collect($currencies)->firstWhere('is_primary', 1);
-                        $symbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
+                        // First try to find currency matching the Debt Currency Code
+                        $currentCurrency = collect($currencies)->firstWhere('code', $currencyCode);
+                        if (!$currentCurrency) {
+                             $primaryCurrency = collect($currencies)->firstWhere('is_primary', 1);
+                             $symbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
+                        } else {
+                             $symbol = $currentCurrency->symbol;
+                        }
                     @endphp
 
                     <div class="row">

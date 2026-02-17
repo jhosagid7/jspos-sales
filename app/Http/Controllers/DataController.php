@@ -53,4 +53,49 @@ class DataController extends Controller
 
         return response()->json($suppliers);
     }
+
+    public function customerDebtPdf($customerId)
+    {
+        $customer = Customer::with('seller')->findOrFail($customerId);
+        
+        // Load outstanding invoices
+        $outstandingSales = \App\Models\Sale::where('customer_id', $customerId)
+            ->where('credit_days', '>', 0)
+            ->with(['payments' => function($q) {
+                $q->where('status', 'approved');
+            }])
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        $invoices = [];
+        $totalDebt = 0;
+        
+        foreach($outstandingSales as $sale) {
+            $approvedPayments = $sale->payments->sum('amount');
+            $pending = $sale->total - $approvedPayments;
+            
+            if($pending > 0.01) { // Has pending balance
+                $dueDate = \Carbon\Carbon::parse($sale->created_at)->addDays($sale->credit_days);
+                $invoices[] = [
+                    'invoice_number' => $sale->invoice_number,
+                    'created_at' => $sale->created_at->format('d/m/Y'),
+                    'due_date' => $dueDate->format('d/m/Y'),
+                    'total' => $sale->total,
+                    'paid' => $approvedPayments,
+                    'pending' => $pending,
+                    'is_overdue' => now()->gt($dueDate),
+                ];
+                $totalDebt += $pending;
+            }
+        }
+        
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.customer-debt', [
+            'customer' => $customer,
+            'invoices' => $invoices,
+            'totalDebt' => $totalDebt,
+            'generatedAt' => now()->format('d/m/Y H:i:s'),
+        ]);
+        
+        return $pdf->stream('estado-cuenta-' . $customer->name . '.pdf');
+    }
 }

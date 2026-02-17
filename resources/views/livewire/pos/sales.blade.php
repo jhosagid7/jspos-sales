@@ -77,22 +77,21 @@
                 <div class="card-body p-3">
                     {{-- Invoice Currency Selector --}}
                     <div class="form-group mb-3 border-bottom pb-3">
-                        <label class="font-weight-bold mb-1">Moneda Factura / Ticket:</label>
-                        <select wire:model.live="invoiceCurrency_id" class="form-control form-control-sm">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="font-weight-bold mb-0">Moneda Factura / Ticket:</label>
+                            @if($invoiceExchangeRate != 1)
+                                <span class="badge badge-info" style="font-size: 0.9em;">
+                                    Tasa: {{ number_format($invoiceExchangeRate, 2) }}
+                                </span>
+                            @endif
+                        </div>
+                        <select wire:model.live="invoiceCurrency_id" class="form-control form-control-sm" {{ (auth()->user()->can('sales.change_invoice_currency') && !auth()->user()->can('system.is_foreign_seller')) ? '' : 'disabled' }}>
                              @if($currencies)
                                  @foreach($currencies as $c)
                                      <option value="{{ $c->id }}">{{ $c->name }} ({{ $c->code }})</option>
                                  @endforeach
                              @endif
                         </select>
-                        
-                        @if($invoiceExchangeRate != 1)
-                            <div class="mt-1 text-right">
-                                <span class="badge badge-info" style="font-size: 0.9em;">
-                                    Tasa: {{ number_format($invoiceExchangeRate, 2) }}
-                                </span>
-                            </div>
-                        @endif
                     </div>
 
                     <div class="form-group">
@@ -153,13 +152,67 @@
                         </div>
                         @endcan
                         
+                        
                         @if($sellerConfig)
-                            <div class="alert alert-info p-2" style="font-size: 0.85rem;">
-                                <i class="fas fa-info-circle"></i> Precios Foráneos
-                                <br>
-                                <small>
-                                    (Com: {{ $sellerConfig->commission_percent }}% | Flete: {{ $sellerConfig->freight_percent }}% | Dif: {{ $sellerConfig->exchange_diff_percent }}%)
+                            @php
+                                $alertClass = 'alert-success'; // Default: no debt or all current
+                                if(isset($customer['total_debt']) && $customer['total_debt'] > 0) {
+                                    $alertClass = $customer['has_overdue'] ? 'alert-danger' : 'alert-warning';
+                                }
+                            @endphp
+                            
+                            <div class="alert {{ $alertClass }} p-2" style="font-size: 0.85rem;">
+                                <strong><i class="fas fa-info-circle"></i> Precios Foráneos</strong>
+                                
+                                @if(isset($customer['seller_name']))
+                                    <br><small><strong>Vendedor:</strong> {{ $customer['seller_name'] }}</small>
+                                @endif
+                                
+                                <br><small>
+                                    Com: {{ $sellerConfig->commission_percent ?? 0 }}%
+                                    @cannot('system.is_foreign_seller')
+                                     | Flete: {{ $sellerConfig->freight_percent ?? 0 }}% | Dif: {{ $sellerConfig->exchange_diff_percent ?? 0 }}%
+                                    @endcannot
                                 </small>
+                                
+                                @if(isset($customer['allow_credit']) && $customer['allow_credit'])
+                                    <hr class="my-1">
+                                    <small><strong>Crédito:</strong> {{ $customer['credit_days'] ?? 0 }} días | Límite: ${{ number_format($customer['credit_limit'] ?? 0, 2) }}</small>
+                                @endif
+                                
+                                @if(isset($customer['usd_payment_discount']) && $customer['usd_payment_discount'] > 0)
+                                    <br><small><strong>Pago Divisa:</strong> {{ $customer['usd_payment_discount'] }}% desc.</small>
+                                @endif
+                                
+                                
+                                {{-- Outstanding Invoices --}}
+                                @if(isset($customer['outstanding_invoices']) && count($customer['outstanding_invoices']) > 0)
+                                    <hr class="my-1">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small><strong>Facturas Pendientes: {{ count($customer['outstanding_invoices']) }}</strong></small>
+                                        <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" data-toggle="modal" data-target="#modalOutstandingInvoices" style="font-size: 0.75rem;">
+                                            <i class="fas fa-eye"></i> Ver Detalle
+                                        </button>
+                                    </div>
+                                    <small><strong>Total Deuda: ${{ number_format($customer['total_debt'], 2) }}</strong></small>
+                                @endif
+                                
+                                {{-- Discount Rules --}}
+                                @if(isset($customer['seller_discount_rules']) && count($customer['seller_discount_rules']) > 0)
+                                    <hr class="my-1">
+                                    <small><strong>Pronto Pago/Mora (Vendedor):</strong></small>
+                                    @foreach($customer['seller_discount_rules'] as $rule)
+                                        <br><small class="ml-2">{{ $rule['days_from'] }}-{{ $rule['days_to'] }} días: {{ $rule['discount_percentage'] > 0 ? '+' : '' }}{{ $rule['discount_percentage'] }}%</small>
+                                    @endforeach
+                                @endif
+                                
+                                @if(isset($customer['customer_discount_rules']) && count($customer['customer_discount_rules']) > 0)
+                                    <hr class="my-1">
+                                    <small><strong>Pronto Pago/Mora (Cliente):</strong></small>
+                                    @foreach($customer['customer_discount_rules'] as $rule)
+                                        <br><small class="ml-2">{{ $rule['days_from'] }}-{{ $rule['days_to'] }} días: {{ $rule['discount_percentage'] > 0 ? '+' : '' }}{{ $rule['discount_percentage'] }}%</small>
+                                    @endforeach
+                                @endif
                             </div>
                         @endif
 
@@ -215,19 +268,21 @@
                                 <td class="text-right font-weight-bold">{{ $displayCurrency ? $displayCurrency->symbol : '$' }}{{ formatMoney($this->displayIvaCart) }}</td>
                             </tr>
                             @if($is_freight_broken_down)
-                            <tr class="border-bottom">
-                                <td class="text-muted">Flete Total:</td>
-                                <td class="text-right">
-                                    <div class="input-group input-group-sm justify-content-end">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text p-1">{{ $displayCurrency ? $displayCurrency->symbol : '$' }}</span>
+                                @cannot('system.is_foreign_seller')
+                                <tr class="border-bottom">
+                                    <td class="text-muted">Flete Total:</td>
+                                    <td class="text-right">
+                                        <div class="input-group input-group-sm justify-content-end">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text p-1">{{ $displayCurrency ? $displayCurrency->symbol : '$' }}</span>
+                                            </div>
+                                            <input type="number" class="form-control form-control-sm text-right" 
+                                                wire:model.lazy="total_freight" 
+                                                style="max-width: 100px;">
                                         </div>
-                                        <input type="number" class="form-control form-control-sm text-right" 
-                                            wire:model.lazy="total_freight" 
-                                            style="max-width: 100px;">
-                                    </div>
-                                </td>
-                            </tr>
+                                    </td>
+                                </tr>
+                                @endcannot
                             @endif
                             <tr>
                                 <td class="h5 font-weight-bold">TOTAL:</td>
@@ -406,5 +461,91 @@
             });
         });
     </script>
+    </script>
     <script src="{{ asset('assets/js/keypress.js') }}"></script>
+
+    {{-- Modal: Outstanding Invoices Details --}}
+    <div wire:ignore.self class="modal fade" id="modalOutstandingInvoices" tabindex="-1" aria-labelledby="modalOutstandingInvoicesLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary">
+                    <h5 class="modal-title text-white" id="modalOutstandingInvoicesLabel">
+                        <i class="fas fa-file-invoice-dollar"></i> Facturas Pendientes
+                        @if(isset($customer['name']))
+                            - {{ $customer['name'] }}
+                        @endif
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    @if(isset($customer['outstanding_invoices']) && count($customer['outstanding_invoices']) > 0)
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>#Factura</th>
+                                        <th>Emisión</th>
+                                        <th>Vencimiento</th>
+                                        <th class="text-right">Original</th>
+                                        <th class="text-right">Abonos</th>
+                                        <th class="text-right">Saldo</th>
+                                        <th class="text-center">Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($customer['outstanding_invoices'] as $inv)
+                                        <tr class="{{ $inv['is_overdue'] ? 'table-danger' : '' }}">
+                                            <td><strong>{{ $inv['invoice_number'] }}</strong></td>
+                                            <td>{{ $inv['created_at'] }}</td>
+                                            <td>{{ $inv['due_date'] }}</td>
+                                            <td class="text-right">{{ $inv['currency_symbol'] ?? '$' }} {{ number_format($inv['total'], 2) }}</td>
+                                            <td class="text-right">{{ $inv['currency_symbol'] ?? '$' }} {{ number_format($inv['paid'], 2) }}</td>
+                                            <td class="text-right"><strong>{{ $inv['currency_symbol'] ?? '$' }} {{ number_format($inv['pending'], 2) }}</strong></td>
+                                            <td class="text-center">
+                                                @if($inv['is_overdue'])
+                                                    <span class="badge badge-danger">VENCIDA</span>
+                                                @else
+                                                    <span class="badge badge-warning">PENDIENTE</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                                <tfoot class="font-weight-bold bg-light">
+                                    <tr>
+                                        <td colspan="5" class="text-right font-weight-bold">TOTAL DEUDA:</td>
+                                        <td class="text-right text-danger font-weight-bold">
+                                            @if(isset($customer['debt_totals']))
+                                                @foreach($customer['debt_totals'] as $currency => $data)
+                                                    <div>
+                                                        {{ $data['symbol'] }} {{ number_format($data['total'], 2) }} <small class="text-muted">({{ $currency }})</small>
+                                                    </div>
+                                                @endforeach
+                                            @else
+                                                ${{ number_format($customer['total_debt'], 2) }}
+                                            @endif
+                                        </td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    @else
+                        <p class="text-center text-muted">No hay facturas pendientes.</p>
+                    @endif
+                </div>
+                <div class="modal-footer">
+                    <a href="{{ route('customer.debt.pdf', $customer['id'] ?? 0) }}" 
+                       target="_blank" 
+                       class="btn btn-primary"
+                       @if(!isset($customer['id'])) disabled @endif>
+                        <i class="fas fa-file-pdf"></i> Generar PDF
+                    </a>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

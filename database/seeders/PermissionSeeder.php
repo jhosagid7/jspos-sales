@@ -45,6 +45,7 @@ class PermissionSeeder extends Seeder
             'payments.delete',          // New: Delete payment
             'sales.approve_deletion', // Special permission for approving deletions
             'sales.manage_adjustments', // New: Manage Price Adjustments (Commissions/Freight)
+            'sales.change_invoice_currency', // New: Change Invoice Currency in POS
             
             // Cash Register
             'cash_register.open',

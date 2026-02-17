@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.8.14] - 2026-02-17
+### Changed
+- **Reports**:
+  - **Sale Detail**: Improved detailed view of sales, specifically handling of multi-currency payments and pending approvals.
+  - **Payment Logic**: Adjustments to `PaymentComponent` and `PartialPayment` for better consistency.
+- **Sales**:
+  - **Refinements**: General improvements and fixes in the Sales module and product management.
+  - **Data Handling**: Updates to `DataController` and `PermissionSeeder`.
+### Added
+- **PDF**:
+  - **Customer Debt**: Added new template `customer-debt.blade.php`.
+
 ## [1.8.13] - 2026-02-16
 ### Added
 - **Sales**:

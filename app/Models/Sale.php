@@ -115,7 +115,8 @@ class Sale extends Model
     //accessors
     public function getDebtAttribute()
     {
-        $totalPays = $this->payments->sum('amount');
+        // Fix: Exclude 'pending' payments (only count approved/paid)
+        $totalPays = $this->payments->where('status', '!=', 'pending')->sum('amount');
 
         $debt = $this->total - $totalPays;
 

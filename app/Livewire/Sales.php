@@ -2344,11 +2344,93 @@ class Sales extends Component
                 $seller = \App\Models\User::find($customer['seller_id']);
                 if($seller) {
                     $this->sellerConfig = $seller->latestSellerConfig;
+                    $customer['seller_name'] = $seller->name;
+                    
+                    // Load seller discount rules
+                    $customer['seller_discount_rules'] = \App\Models\CreditDiscountRule::where('entity_type', 'seller')
+                        ->where('entity_id', $seller->id)
+                        ->orderBy('days_from')
+                        ->get()
+                        ->toArray();
+                    
                     if (!$this->sellerConfig) {
                         // Log::info('No seller config found for seller ' . $seller->id);
                     }
                 }
             }
+            
+            // Load customer-specific discount rules and outstanding invoices
+            if(isset($customer['id'])) {
+                $customer['customer_discount_rules'] = \App\Models\CreditDiscountRule::where('entity_type', 'customer')
+                    ->where('entity_id', $customer['id'])
+                    ->orderBy('days_from')
+                    ->get()
+                    ->toArray();
+                
+                // Load outstanding invoices (credit sales with pending balance)
+                $outstandingSales = \App\Models\Sale::where('customer_id', $customer['id'])
+                    ->where('credit_days', '>', 0)
+                    ->with(['payments' => function($q) {
+                        $q->where('status', 'approved');
+                    }])
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+                
+                $customer['outstanding_invoices'] = [];
+                $customer['debt_totals'] = []; // Group totals by currency
+                $totalDebt = 0; // Legacy total (mixed currencies - to be deprecated or used as fallback)
+                $hasOverdue = false;
+                
+                foreach($outstandingSales as $sale) {
+                    $approvedPayments = $sale->payments->sum('amount');
+                    $pending = $sale->total - $approvedPayments;
+                    
+                    if($pending > 0.01) { // Has pending balance
+                        $dueDate = \Carbon\Carbon::parse($sale->created_at)->addDays($sale->credit_days);
+                        $isOverdue = now()->gt($dueDate);
+                        
+                        if($isOverdue) $hasOverdue = true;
+
+                        // Identify Currency
+                        $currencyCode = $sale->primary_currency_code ?? 'USD'; // Default to USD if missing
+                        $currencySymbol = '$'; // Default
+                        
+                        // Find symbol
+                        $currency = \App\Models\Currency::where('code', $currencyCode)->first();
+                        if($currency) $currencySymbol = $currency->symbol;
+                        
+                        $customer['outstanding_invoices'][] = [
+                            'invoice_number' => $sale->invoice_number,
+                            'created_at' => $sale->created_at->format('d/m/Y'),
+                            'due_date' => $dueDate->format('d/m/Y'),
+                            'total' => $sale->total,
+                            'paid' => $approvedPayments,
+                            'pending' => $pending,
+                            'is_overdue' => $isOverdue,
+                            'currency_code' => $currencyCode,
+                            'currency_symbol' => $currencySymbol
+                        ];
+                        
+                        // Accumulate by currency
+                        if(!isset($customer['debt_totals'][$currencyCode])) {
+                            $customer['debt_totals'][$currencyCode] = [
+                                'total' => 0,
+                                'symbol' => $currencySymbol
+                            ];
+                        }
+                        $customer['debt_totals'][$currencyCode]['total'] += $pending;
+                        
+                        $totalDebt += $pending;
+                    }
+                }
+                
+                $customer['total_debt'] = $totalDebt;
+                $customer['has_overdue'] = $hasOverdue;
+            }
+            
+            // Update session and component property with enriched customer data
+            session(['sale_customer' => $customer]);
+            $this->customer = $customer;
 
             // Foreign Seller Enforce Logic
             if (!auth()->user()->can('sales.manage_adjustments')) {

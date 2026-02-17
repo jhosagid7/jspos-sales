@@ -110,8 +110,13 @@ class PartialPayment extends Component
             return;
         }
         
+        // Define Invoice Currency Variables EARLY
+        $invoiceCurrency = $sale->primary_currency_code ?? 'USD'; 
+        $invoiceRate = $sale->primary_exchange_rate ?? 1;
+
         // Calcular deuda en USD (moneda base)
-        $totalPaidUSD = $sale->payments->sum(function($payment) {
+        // Fix: Exclude 'pending' payments so they don't reduce the debt until verified
+        $totalPaidUSD = $sale->payments->where('status', '!=', 'pending')->sum(function($payment) {
             $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
             return $payment->amount / $rate;
         });
@@ -127,32 +132,20 @@ class PartialPayment extends Component
         $snapshotUsdDiscount = $parsedSnapshot['usd_payment_discount'];
 
         // Si no hay snapshot (y tampoco se pudo parsear nada válido), fallback a configuración actual
-        // parseCreditSnapshot devuelve colección vacía y null si no hay snapshot, así que verificamos si el snapshot original estaba vacío
         if (empty($sale->credit_rules_snapshot)) {
              $creditConfig = CreditConfigService::getCreditConfig($sale->customer, $sale->customer->seller);
              $rules = $creditConfig['discount_rules'];
-             $snapshotUsdDiscount = null; // Indicar que no hay snapshot
+             $snapshotUsdDiscount = null; 
         }
-        
-        // Calcular Descuento/Recargo
-        // MODIFICACIÓN: Validar si la venta tiene activo "Aplicar Comisiones" (is_foreign_sale)
         
         $adjustment = null;
         $allowDiscounts = false;
         $usdPaymentDiscountPercent = 0;
         $fixedUsdDiscountAmount = 0;
         
-        Log::info('PartialPayment::initPay Check', [
-            'sale_id' => $sale->id, 
-            'is_foreign_sale' => $sale->is_foreign_sale,
-            'total_usd' => $sale->total_usd
-        ]);
-
         if ($sale->is_foreign_sale) {
             
             // Check History: If any VED/VES payment exists, USD Discount is VOID.
-            // We check 'payments' relation.
-            // Note: We need to check if ANY payment record linked to this sale has currency 'VED' or 'VES'.
             $hasVedHistory = $sale->payments()->whereIn('currency', ['VED', 'VES'])->exists();
             
             Log::info('PartialPayment::initPay History Check', ['hasVedHistory' => $hasVedHistory]);
@@ -175,46 +168,46 @@ class PartialPayment extends Component
                 if ($usdPaymentDiscountPercent > 0) {
                      $fixedUsdDiscountAmount = $sale->total_usd * ($usdPaymentDiscountPercent / 100);
                      $fixedUsdDiscountAmount = round($fixedUsdDiscountAmount, 2);
+                     
+                     // Convert to Invoice Currency if needed
+                     if ($invoiceCurrency !== 'USD') {
+                         $fixedUsdDiscountAmount = $fixedUsdDiscountAmount * $invoiceRate;
+                         $fixedUsdDiscountAmount = round($fixedUsdDiscountAmount, 2);
+                     }
                 }
             }
             
             // Early Payment Adjustment always applies? 
-            // User says: "si hace un abono con bolivares ved pierde esa opcion de descuetno [USD] y solo se ajusta a pronto pago"
-            // So Early Payment is independent of VED history? logic suggests yes.
             $adjustment = CreditConfigService::calculateDiscount($debtUSD, $daysElapsed, $rules);
+
+            // Convert Adjustment Amount to Invoice Currency if needed
+            if ($adjustment && $invoiceCurrency !== 'USD') {
+                $adjustment['amount'] = round($adjustment['amount'] * $invoiceRate, 2);
+            }
         }
 
-        // Convertir deuda a moneda principal para mostrar al usuario
-        $primaryCurrency = Currency::where('is_primary', true)->first();
-        $debtInPrimary = $debtUSD * $primaryCurrency->exchange_rate;
+        // Convert Debt to Invoice Currency
+        $debtInInvoiceCurrency = $debtUSD * $invoiceRate;
         
         $this->sale_selected_id = $sale_id;
         $this->customer_name = $customer;
-        $this->debt = round($debtInPrimary, 2);
+        $this->debt = round($debtInInvoiceCurrency, 2);
         $this->debt_usd = round($debtUSD, 2);
         
         // Check Permissions
         $canUpload = auth()->user()->can('payments.upload');
         $canPay = auth()->user()->can('payments.register_direct');
         
-        Log::info('PartialPayment::initPay Dispatching', [
-            'allowDiscounts' => $allowDiscounts,
-            'usdDiscountPercent' => $usdPaymentDiscountPercent,
-            'fixedAmount' => $fixedUsdDiscountAmount,
-            'canUpload' => $canUpload,
-            'canPay' => $canPay
-        ]);
-        
         // Open the Payment Component Modal
         $this->dispatch('initPayment', 
             total: $this->debt, 
-            currency: 'USD', 
+            currency: $invoiceCurrency, 
             customer: $this->customer_name, 
             allowPartial: true,
-            adjustment: $adjustment, // Pass adjustment info to modal
-            allowDiscounts: $allowDiscounts, // Flag for eligibility (History check included)
-            usdDiscountPercent: $usdPaymentDiscountPercent, // Pass % to modal
-            fixedUsdDiscountAmount: $fixedUsdDiscountAmount, // Pass fixed amount
+            adjustment: $adjustment, 
+            allowDiscounts: $allowDiscounts, 
+            usdDiscountPercent: $usdPaymentDiscountPercent, 
+            fixedUsdDiscountAmount: $fixedUsdDiscountAmount, 
             canUpload: $canUpload,
             canPay: $canPay
         );

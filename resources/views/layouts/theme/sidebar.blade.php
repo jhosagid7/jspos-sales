@@ -82,7 +82,7 @@
                 
                 @can('sales.index')
                 <li class="nav-item">
-                    <a href="{{ route('sales') }}" class="nav-link {{ Request::is('sales') ? 'active' : '' }}">
+                    <a href="{{ route('sales') }}" class="nav-link {{ Request::is('sales*') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-shopping-cart"></i>
                         <p>VENTAS</p>
                     </a>

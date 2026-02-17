@@ -113,6 +113,7 @@ class PaymentComponent extends Component
 
         $this->totalToPay = floatval($total);
         $this->currencyCode = $currency;
+        $this->paymentCurrency = $currency; // Set dropdown to match invoice currency
         $this->customerName = $customer;
         $this->allowPartialPayment = $allowPartial;
         $this->adjustment = $adjustment;

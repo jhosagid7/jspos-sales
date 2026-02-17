@@ -534,10 +534,19 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @forelse($form->stock_details as $detail)
+                                            @forelse($form->stock_details as $index => $detail)
                                                 <tr>
                                                     <td>{{ $detail['warehouse_name'] }}</td>
-                                                    <td class="text-center">{{ $detail['stock'] }}</td>
+                                                    <td class="text-center">
+                                                        <div class="input-group input-group-sm">
+                                                            <input type="number" 
+                                                                   class="form-control text-center text-primary fw-bold" 
+                                                                   value="{{ $detail['stock'] }}"
+                                                                   wire:change="updateStockDetail({{ $index }}, $event.target.value)"
+                                                                   step="any"
+                                                                   min="0">
+                                                        </div>
+                                                    </td>
                                                 </tr>
                                             @empty
                                                 <tr>

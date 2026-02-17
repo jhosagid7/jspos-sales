@@ -135,6 +135,7 @@ class Products extends Component
         $this->form->stock_details = $warehouses->map(function($warehouse) use ($product) {
             $stock = $product->warehouses()->where('warehouse_id', $warehouse->id)->first()->pivot->stock_qty ?? 0;
             return [
+                'warehouse_id' => $warehouse->id,
                 'warehouse_name' => $warehouse->name,
                 'stock' => $stock
             ];
@@ -458,5 +459,60 @@ class Products extends Component
     public function removePriceTier($index)
     {
         $this->form->removePriceTier($index);
+    }
+
+    public function updateStockDetail($index, $newQty)
+    {
+        try {
+            // Validate input
+            if (!is_numeric($newQty) || $newQty < 0) {
+                $this->dispatch('noty', msg: 'Cantidad inválida');
+                return;
+            }
+
+            $detail = $this->form->stock_details[$index] ?? null;
+
+            if (!$detail || !$this->form->product_id) {
+                return;
+            }
+
+            $warehouseId = $detail['warehouse_id'];
+            $productId = $this->form->product_id;
+
+            // Update DB
+            \App\Models\ProductWarehouse::updateOrCreate(
+                ['product_id' => $productId, 'warehouse_id' => $warehouseId],
+                ['stock_qty' => $newQty]
+            );
+
+            // Update local state
+            $this->form->stock_details[$index]['stock'] = $newQty;
+
+            // Update local total for reference (optional, or just removing the override)
+            // But we MUST check if this is the DEFAULT warehouse
+            $config = \App\Models\Configuration::first();
+            $defaultWarehouseId = $config->default_warehouse_id ?? \App\Models\Warehouse::first()->id;
+
+            // Only update the main product stock if we modified the DEFAULT warehouse
+            if ($warehouseId == $defaultWarehouseId) {
+                $this->form->stock_qty = $newQty;
+
+                // Update main product stock
+                $product = Product::find($productId);
+                if ($product) {
+                    $product->stock_qty = $newQty;
+                    $product->save();
+                }
+            }
+            
+            // Recalculate total for display in "TOTAL" row
+            // We do not overwrite $this->form->stock_qty with TOTAL anymore
+
+
+            $this->dispatch('noty', msg: 'Stock actualizado');
+
+        } catch (\Exception $e) {
+            $this->dispatch('noty', msg: 'Error al actualizar stock: ' . $e->getMessage());
+        }
     }
 }
