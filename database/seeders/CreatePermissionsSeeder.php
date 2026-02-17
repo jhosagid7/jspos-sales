@@ -57,6 +57,19 @@ class CreatePermissionsSeeder extends Seeder
             ['name' => 'settings', 'guard_name' => 'web'],
             ['name' => 'usuarios', 'guard_name' => 'web'],
             ['name' => 'ventas', 'guard_name' => 'web'],
+            
+            // Missing permissions from other seeders
+            ['name' => 'system.is_foreign_seller', 'guard_name' => 'web'],
+            ['name' => 'sales.switch_warehouse', 'guard_name' => 'web'],
+            ['name' => 'sales.mix_warehouses', 'guard_name' => 'web'],
+            ['name' => 'warehouses.create', 'guard_name' => 'web'],
+            ['name' => 'warehouses.edit', 'guard_name' => 'web'],
+            ['name' => 'warehouses.delete', 'guard_name' => 'web'],
+            ['name' => 'settings.stock_reservation', 'guard_name' => 'web'],
+            ['name' => 'system.is_seller', 'guard_name' => 'web'],
+            ['name' => 'sales.configure_price_list', 'guard_name' => 'web'],
+            ['name' => 'sales.generate_price_list', 'guard_name' => 'web'],
+            ['name' => 'cash_register.bypass', 'guard_name' => 'web'],
         ];
 
         foreach ($permissionsToCreate as $permission) {

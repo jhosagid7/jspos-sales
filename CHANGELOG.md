@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.8.17] - 2026-02-17
+### Fixed
+- **Permissions**:
+  - **Missing Permissions**: Resolved an issue where some permissions (e.g., `system.is_foreign_seller`, `sales.switch_warehouse`, `cash_register.bypass`) were missing in some environments because they were defined in separate seeders.
+  - **Consolidation**: Consolidated all 125 system permissions into the main `CreatePermissionsSeeder` to ensure consistency.
+  - **Auto-Repair**: Included a migration that automatically runs the permission seeder during the update process to restore any missing permissions on existing installations.
+
 ## [1.8.16] - 2026-02-17
 ### Fixed
 - **Customer Import**:
