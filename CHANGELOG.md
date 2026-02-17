@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.8.15] - 2026-02-17
+### Added
+- **Customers**:
+  - **Bulk Import**: Added `CustomerImport` module allowing bulk upload of customers via Excel/CSV.
+  - **Intelligent Mapping**: System automatically detects columns like Name, Phone, Email, TaxID, etc.
+  - **Seller Assignment**: Can assign sellers by name from the Excel file; creates new seller users if they don't exist.
+- **UX/UI**:
+  - **Error 419**: Created a custom "Session Expired" page that automatically redirects to Login after 3 seconds, improving user experience.
+
 ## [1.8.14] - 2026-02-17
 ### Changed
 - **Reports**:

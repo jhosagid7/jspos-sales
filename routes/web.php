@@ -89,6 +89,7 @@ Route::middleware('auth')->group(function () {
     Route::get('products/import', \App\Livewire\ProductImport::class)->name('products.import')->middleware('can:products.import');
     Route::get('products', Products::class)->name('products')->middleware('can:products.index');
     Route::get('suppliers', Suppliers::class)->name('suppliers')->middleware('can:suppliers.index');
+    Route::get('customers/import', \App\Livewire\CustomerImport::class)->name('customers.import')->middleware('can:customers.import');
     Route::get('customers', Customers::class)->name('customers')->middleware('can:customers.index');
     Route::get('sales', Sales::class)->name('sales')->middleware(['can:sales.index', \App\Http\Middleware\EnsureCashRegisterIsOpen::class]);
 

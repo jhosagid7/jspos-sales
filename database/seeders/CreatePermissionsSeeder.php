@@ -28,11 +28,7 @@ class CreatePermissionsSeeder extends Seeder
         }
 
         // test role
-        $adminRole = Role::where('name', 'Admin')->first();
-
-        if (!$adminRole) {
-            $adminRole = Role::create(['name' => 'Admin']);
-        }
+        $adminRole = Role::firstOrCreate(['name' => 'Admin', 'guard_name' => 'web']);
 
         // create permissions
         $permissionsToCreate = [
@@ -71,7 +67,8 @@ class CreatePermissionsSeeder extends Seeder
 
         // sync permissions to admin
         if ($adminRole && $permissionsToCreate) {
-            $adminRole->syncPermissions($permissionsToCreate);
+             $permissionNames = array_column($permissionsToCreate, 'name');
+             $adminRole->givePermissionTo($permissionNames);
         }
 
         // Asignar el rol de Admin al usuario creado

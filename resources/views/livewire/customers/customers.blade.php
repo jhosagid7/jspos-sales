@@ -28,6 +28,11 @@
                             <button class="btn btn-primary btn-sm"><i class="icon-plus"></i> Nuevo</button>
                         </div>
                         @endcan
+                        @can('customers.create') {{-- Or a specific permission for import --}}
+                        <div class="contact-edit chat-alert ml-2">
+                             <a href="{{ route('customers.import') }}" class="btn btn-secondary btn-sm"><i class="fas fa-file-import"></i> Importar</a>
+                        </div>
+                        @endcan
                     </div>
                 </div>
                 <div class="card-body">
