@@ -121,8 +121,11 @@
                                                     class="form-check-input" id="permi{{ $permiso->id }}"
                                                     type="checkbox"
                                                     @if ($role != null) {{ $role->hasPermissionTo($permiso->name) ? 'checked' : '' }} @endif>
-                                                <label class="form-check-label" for="permi{{ $permiso->id }}" style="cursor: pointer;">
+                                                <label class="form-check-label" for="permi{{ $permiso->id }}" style="cursor: pointer;" title="{{ $permiso->description }}">
                                                     {{ $permiso->display_name }}
+                                                    @if($permiso->description)
+                                                        <small class="text-muted ms-1"><i class="fas fa-info-circle" style="font-size: 0.7em"></i></small>
+                                                    @endif
                                                 </label>
                                             </div>
                                         </li>

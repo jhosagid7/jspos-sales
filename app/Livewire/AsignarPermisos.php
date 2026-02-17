@@ -47,6 +47,7 @@ class AsignarPermisos extends Component
                 'name' => $groupName,
                 'permissions' => $group->map(function ($perm) {
                     $perm->display_name = $this->translatePermission($perm->name);
+                    $perm->description = $this->getPermissionDescription($perm->name);
                     return $perm;
                 })
             ];
@@ -87,63 +88,42 @@ class AsignarPermisos extends Component
 
     private function translatePermission($name)
     {
-        $parts = explode('.', $name);
-        $action = $parts[1] ?? $name;
+        // Flatten key for translation check
+        $flatName = str_replace('.', '_', $name);
+        
+        // Try to get specific translation from lang file
+        $transName = __("permissions.{$flatName}.name");
+        
+        // If translation doesn't exist (returns key), fallback to logic
+        if ($transName === "permissions.{$flatName}.name") {
+             $parts = explode('.', $name);
+             $action = $parts[1] ?? $name;
 
-        $map = [
-            'index' => 'Ver / Listar',
-            'create' => 'Crear',
-            'edit' => 'Editar',
-            'delete' => 'Eliminar',
-            'import' => 'Importar',
-            'open' => 'Abrir',
-            'close' => 'Cerrar',
-            'access' => 'Acceder', // For cash register access without opening
-            'pdf' => 'Generar PDF',
-            'assign' => 'Asignar',
-            'sales.view_all' => 'Ver Todas',
-            'sales.view_own' => 'Ver Propias',
-            'customers.view_all' => 'Ver Todos',
-            'customers.view_own' => 'Ver Propios',
-            'orders.view_all' => 'Ver Todas',
-            'orders.view_own' => 'Ver Propias',
-            'orders.add_to_cart' => 'Cargar al Carrito',
-            'orders.delete' => 'Eliminar',
-            'orders.edit' => 'Editar',
-            'orders.details' => 'Ver Detalle',
-            'orders.pdf' => 'Generar PDF',
-            'payments.view_all' => 'Ver Todos',
-            'payments.view_own' => 'Ver Propios',
-            'payments.pay' => 'Abonar (Registrar Pago)',
-            'payments.history' => 'Ver Historial',
-            'payments.print_receipt' => 'Imprimir Recibo',
-            'payments.view_proof' => 'Ver Comprobante',
-            'payments.print_history' => 'Imprimir Historial (Ticket)',
-            'payments.print_pdf' => 'Imprimir Historial (PDF)',
-            'payments.upload' => 'Subir Pago (Pendiente)',
-            'payments.approve' => 'Aprobar Pagos',
-            'payments.register_direct' => 'Confirmar Pago Directamente',
-            'payments.delete' => 'Eliminar Pago (Restaurar)',
-            
-            // Reports specific actions
-            'sales' => 'Ventas',
-            'purchases' => 'Compras',
-            'stock' => 'Stock / Rotación',
-            'financial' => 'Financieros',
-            'commissions' => 'Comisiones',
-            
-            // Settings
-            'backups' => 'Respaldos',
-            'logs' => 'Logs del Sistema',
-            'update' => 'Actualizar Sistema',
-            
-            // Other
-            'labels' => 'Generar Etiquetas',
-            'map' => 'Ver Mapa',
-        ];
+             $map = [
+                'index' => 'Ver / Listar',
+                'create' => 'Crear',
+                'edit' => 'Editar',
+                'delete' => 'Eliminar',
+                'import' => 'Importar',
+                'open' => 'Abrir',
+                'close' => 'Cerrar',
+                'access' => 'Acceder',
+                'pdf' => 'Generar PDF',
+                'assign' => 'Asignar',
+                'map' => 'Ver Mapa',
+             ];
 
-        // Check full name first, then action
-        return $map[$name] ?? $map[$action] ?? ucfirst(str_replace('_', ' ', $action));
+             return $map[$name] ?? $map[$action] ?? ucfirst(str_replace('_', ' ', $action));
+        }
+
+        return $transName;
+    }
+
+    private function getPermissionDescription($name)
+    {
+         $flatName = str_replace('.', '_', $name);
+         $desc = __("permissions.{$flatName}.description");
+         return ($desc === "permissions.{$flatName}.description") ? '' : $desc;
     }
 
     function updatedRoleSelectedId()
