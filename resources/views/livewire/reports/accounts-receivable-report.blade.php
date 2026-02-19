@@ -53,7 +53,7 @@
 
                                     <div class="mt-3">
                                         <span class="f-14"><b>Usuario</b></span>
-                                        <select wire:model="user_id" class="form-control form-control-sm">
+                                        <select wire:model="user_id" class="form-control form-control-sm" {{ !auth()->user()->can('sales.view_all') ? 'disabled' : '' }}>
                                             <option value="0">Seleccionar</option>
                                             @foreach ($users as $user)
                                                 <option value="{{ $user->id }}">
@@ -76,7 +76,7 @@
 
                                     <div class="mt-3">
                                         <span class="f-14"><b>Vendedor</b></span>
-                                        <select wire:model="seller_id" class="form-control form-control-sm">
+                                        <select wire:model="seller_id" class="form-control form-control-sm" {{ !auth()->user()->can('sales.view_all') ? 'disabled' : '' }}>
                                             <option value="0">Seleccionar</option>
                                             @foreach ($sellers as $seller)
                                                 <option value="{{ $seller->id }}">
@@ -196,11 +196,13 @@
                                                                 <i class="fas fa-list"></i> Historial
                                                             </button>
                                                             @if($sale->status != 'paid' && $saldoUSD > 0.01)
+                                                            @can('payments.register_direct')
                                                                 <button
                                                                     wire:click.prevent="initPayment({{ $sale->id }}, '{{ $sale->customer->name }}')"
                                                                     class="btn btn-success btn-sm" title="Pagar">
                                                                     <i class="fas fa-hand-holding-usd"></i> Pagar
                                                                 </button>
+                                                            @endcan
                                                             @endif
 
                                                         </td>

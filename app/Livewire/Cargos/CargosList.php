@@ -38,7 +38,7 @@ class CargosList extends Component
 
     public function approve($id)
     {
-        if (!auth()->user()->can('aprobar_cargos')) {
+        if (!auth()->user()->can('adjustments.approve_cargo')) {
             $this->dispatch('msg-error', 'No tienes permisos para aprobar cargos.');
             return;
         }

@@ -38,7 +38,7 @@ class DescargosList extends Component
 
     public function approve($id)
     {
-        if (!auth()->user()->can('aprobar_descargos')) {
+        if (!auth()->user()->can('adjustments.approve_descargo')) {
             $this->dispatch('msg-error', 'No tienes permisos para aprobar descargos.');
             return;
         }

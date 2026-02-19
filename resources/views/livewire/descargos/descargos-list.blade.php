@@ -77,12 +77,14 @@
                                         <button wire:click="getDescargoDetail({{ $descargo->id }})" class="btn btn-dark btn-sm" title="Ver Detalles">
                                             <i class="fas fa-list"></i>
                                         </button>
-                                        @if($descargo->status == 'pending' && auth()->user()->can('aprobar_descargos'))
-                                            <button wire:click="approve({{ $descargo->id }})" class="btn btn-success btn-sm" title="Aprobar Descargo"
-                                                onclick="confirm('¿Confirmas aprobar este descargo?') || event.stopImmediatePropagation()">
-                                                <i class="fas fa-check"></i>
-                                            </button>
-                                        @endif
+                                        @can('adjustments.approve_descargo')
+                                            @if($descargo->status == 'pending')
+                                                <button wire:click="approve({{ $descargo->id }})" class="btn btn-dark btn-sm" title="Aprobar"
+                                                    onclick="confirm('¿Confirmas aprobar este descargo?') || event.stopImmediatePropagation()">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                            @endif
+                                        @endcan
                                         <a href="{{ route('descargos.pdf', $descargo->id) }}" class="btn btn-outline-danger btn-sm" target="_blank" title="PDF">
                                             <i class="fas fa-file-pdf"></i>
                                         </a>

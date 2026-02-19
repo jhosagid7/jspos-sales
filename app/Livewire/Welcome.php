@@ -48,7 +48,9 @@ class Welcome extends Component
         // KPIs
         $this->totalSalesToday = $this->getSalesQuery()->whereDate('created_at', \Carbon\Carbon::today())->sum('total');
         $this->totalSalesMonth = $this->getSalesQuery()->whereMonth('created_at', \Carbon\Carbon::now()->month)->sum('total');
-        $this->totalPurchasesMonth = \App\Models\Purchase::whereMonth('created_at', \Carbon\Carbon::now()->month)->sum('total');
+        if (auth()->user()->can('purchases.index')) {
+            $this->totalPurchasesMonth = \App\Models\Purchase::whereMonth('created_at', \Carbon\Carbon::now()->month)->sum('total');
+        }
         
         // Receivables
         $sales = $this->getSalesQuery()->where('status', '!=', 'paid')->get();
@@ -121,15 +123,37 @@ class Welcome extends Component
         // Actually, let's leave commission logic as is for now to avoid breaking specific commission rules, 
         // as "view_own" for dashboard implies sales data visibility.
 
-        $this->pendingCommissions = $commissionsQuery->sum('final_commission_amount');
+        if (auth()->user()->can('commissions.access')) {
+            $commissionsQuery = \App\Models\Sale::query() 
+                ->where('is_foreign_sale', true)
+                ->where('status', 'paid')
+                ->where('commission_status', '!=', 'paid')
+                ->where(function($q) {
+                    $q->where('final_commission_amount', '>', 0)
+                      ->orWhere('commission_status', 'pending_calculation')
+                      ->orWhereNull('final_commission_amount');
+                });
+
+            if (!auth()->user()->can('commissions.view_all')) {
+                  // If they can't view all, filter to their customers (or sales)
+                  // Consistent with Commissions component logic:
+                 $commissionsQuery->whereHas('customer', function($q) use ($user) {
+                    $q->where('seller_id', $user->id);
+                });
+            }
+
+            $this->pendingCommissions = $commissionsQuery->sum('final_commission_amount');
+        }
 
         // Top Suppliers (by Purchase Volume)
-        $this->topSuppliers = \App\Models\Purchase::select('supplier_id', \Illuminate\Support\Facades\DB::raw('sum(total) as total_purchased'))
-            ->groupBy('supplier_id')
-            ->orderByDesc('total_purchased')
-            ->take(5)
-            ->with('supplier')
-            ->get();
+        if (auth()->user()->can('purchases.index')) {
+            $this->topSuppliers = \App\Models\Purchase::select('supplier_id', \Illuminate\Support\Facades\DB::raw('sum(total) as total_purchased'))
+                ->groupBy('supplier_id')
+                ->orderByDesc('total_purchased')
+                ->take(5)
+                ->with('supplier')
+                ->get();
+        }
 
         // Charts Data (Last 7 Days)
         $dates = [];

@@ -703,7 +703,7 @@ class Sales extends Component
                 ELSE 4 END", 
                 ["{$search}%", "{$search}%", "%{$search}%"]
             )
-            ->orderBy('name');
+            ->orderByRaw("REPLACE(name, '  ', ' ') ASC");
 
             // Limit results for performance
             $this->products = $query->with(['productWarehouses.warehouse', 'units'])->take(50)->get();

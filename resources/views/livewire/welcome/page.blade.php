@@ -25,6 +25,7 @@
                 <a href="{{ route('reports.sales') }}" class="small-box-footer">Ver Reporte <i class="fas fa-arrow-circle-right"></i></a>
             </div>
         </div>
+        @can('purchases.index')
         <div class="col-lg col-6">
             <div class="small-box bg-warning">
                 <div class="inner">
@@ -37,6 +38,7 @@
                 <a href="{{ route('purchases') }}" class="small-box-footer">Ir a Compras <i class="fas fa-arrow-circle-right"></i></a>
             </div>
         </div>
+        @endcan
         <div class="col-lg col-6">
             <div class="small-box bg-danger">
                 <div class="inner">
@@ -49,6 +51,7 @@
                 <a href="{{ route('reports.accounts.receivable') }}" class="small-box-footer">Ver Cuentas <i class="fas fa-arrow-circle-right"></i></a>
             </div>
         </div>
+        @can('commissions.access')
         <div class="col-lg col-6">
             <div class="small-box bg-purple">
                 <div class="inner">
@@ -61,6 +64,7 @@
                 <a href="{{ route('commissions') }}" class="small-box-footer">Gestionar <i class="fas fa-arrow-circle-right"></i></a>
             </div>
         </div>
+        @endcan
     </div>
 
     <div class="row">
@@ -186,6 +190,7 @@
 
 
             <!-- Top Suppliers -->
+            @can('purchases.index')
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">Top Proveedores</h3>
@@ -206,6 +211,7 @@
                     </ul>
                 </div>
             </div>
+            @endcan
 
             <!-- Top Sellers Chart -->
             <div class="card">

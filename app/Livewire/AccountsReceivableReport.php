@@ -33,8 +33,18 @@ class AccountsReceivableReport extends Component
         $this->banks = Bank::orderBy('sort')->get();
         $this->currencies = \App\Models\Currency::orderBy('is_primary', 'desc')->orderBy('id', 'asc')->get();
         $this->paymentCurrency = $this->currencies->firstWhere('is_primary', 1)->code ?? 'COP';
-        $this->sellers = \App\Models\User::role('Vendedor')->orderBy('name')->get();
-        $this->users = \App\Models\User::orderBy('name')->get(); // Load users
+        
+        if (auth()->user()->can('sales.view_all')) {
+            $this->sellers = \App\Models\User::role('Vendedor')->orderBy('name')->get();
+            $this->users = \App\Models\User::orderBy('name')->get(); 
+        } else {
+            // Restricted view: only show themselves
+            $this->sellers = \App\Models\User::where('id', auth()->id())->get();
+            $this->users = \App\Models\User::where('id', auth()->id())->get();
+            $this->seller_id = auth()->id();
+            $this->user_id = auth()->id();
+        }
+
         session(['map' => "TOTAL COSTO $0.00", 'child' => 'TOTAL VENTA $0.00', 'rest' => 'GANANCIA: $0.00 / MARGEN: 0.00%', 'pos' => 'Reporte de Cuentas por Cobrar']);
 
         if (request()->has('c')) {
@@ -101,6 +111,11 @@ class AccountsReceivableReport extends Component
                 ->when($this->user_id != null, function ($query) {
                     $query->where('user_id', $this->user_id);
                 });
+
+            // Force restriction if user cannot view all
+            if (!auth()->user()->can('sales.view_all')) {
+                $query->where('user_id', auth()->id());
+            }
 
             // Apply date filter only if both dates are provided
             if ($this->dateFrom != null && $this->dateTo != null) {

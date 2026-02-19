@@ -27,7 +27,7 @@
                             <label>Lote</label>
                             <input type="text" wire:model.live="batch_filter" class="form-control" placeholder="Filtrar por lote...">
                         </div>
-                        @if($canManage)
+                        @if($canManage || auth()->user()->can('commissions.view_all'))
                         <div class="col-md-3">
                             <label>Vendedor</label>
                             <select wire:model.live="seller_id" class="form-control">

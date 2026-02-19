@@ -316,11 +316,13 @@
                                                                         }
                                                                     @endphp
 
+                                                                    @can('sales.show_exchange_rate')
                                                                     @if($bcvPrice > 0)
                                                                         <div class="text-danger font-weight-bold" style="font-size: 0.75rem;">
                                                                             ${{ formatMoney($bcvPrice) }} USD/BCV
                                                                         </div>
                                                                     @endif
+                                                                    @endcan
 
                                                                     @if(isset($currencies) && $currencies->count() > 1 && $targetCurrency)
                                                                         <div class="text-muted mt-1" style="font-size: 0.70rem; line-height: 1.1;">
@@ -373,11 +375,13 @@
                                                                         }
                                                                     @endphp
 
+                                                                    @can('sales.show_exchange_rate')
                                                                     @if($bcvPrice > 0)
                                                                         <div class="text-danger font-weight-bold" style="font-size: 0.75rem;">
                                                                             ${{ formatMoney($bcvPrice) }} USD/BCV
                                                                         </div>
                                                                     @endif
+                                                                    @endcan
 
                                                                     @if(isset($currencies) && $currencies->count() > 1 && $targetCurrency)
                                                                         <div class="text-muted mt-1" style="font-size: 0.70rem; line-height: 1.1;">

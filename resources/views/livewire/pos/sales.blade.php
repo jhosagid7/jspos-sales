@@ -8,9 +8,11 @@
                 <div class="card-header">
                     <h3 class="card-title">Resumen</h3>
                     <div class="card-tools">
+                        @can('sales.create_customer')
                         <button type="button" class="btn btn-tool" data-toggle="modal" data-target="#modalCustomerCreate">
                             <i class="fas fa-plus"></i> Crear Cliente
                         </button>
+                        @endcan
                     </div>
                     
                     <!-- Modal-->
@@ -85,7 +87,7 @@
                                 </span>
                             @endif
                         </div>
-                        <select wire:model.live="invoiceCurrency_id" class="form-control form-control-sm" {{ (auth()->user()->can('sales.change_invoice_currency') && !auth()->user()->can('system.is_foreign_seller')) ? '' : 'disabled' }}>
+                        <select wire:model.live="invoiceCurrency_id" class="form-control form-control-sm" {{ auth()->user()->can('sales.change_invoice_currency') ? '' : 'disabled' }}>
                              @if($currencies)
                                  @foreach($currencies as $c)
                                      <option value="{{ $c->id }}">{{ $c->name }} ({{ $c->code }})</option>
@@ -232,7 +234,7 @@
                             <div class="input-group-prepend">
                                 <span class="input-group-text"><i class="fas fa-truck"></i></span>
                             </div>
-                            <select wire:model="driver_id" class="form-control">
+                            <select wire:model="driver_id" class="form-control" @cannot('sales.select_driver') disabled @endcannot>
                                 <option value="">Seleccionar Chofer (Opcional)</option>
                                 @foreach($drivers as $driver)
                                     <option value="{{ $driver->id }}">{{ $driver->name }}</option>
@@ -331,6 +333,7 @@
                             {{-- USD/BCV Display --}}
                             {{-- Show this if we are NOT in USD (or NOT in primary?) --}}
                             {{-- User wants "USD/BCV" reference. usually useful when paying in Bolivares --}}
+                            @can('sales.show_exchange_rate')
                             @if($config && $config->bcv_rate > 0)
                                  @php
                                     // Logic: What is the USD equivalent of the VED Total at BCV Rate?
@@ -360,21 +363,22 @@
                                     </div>
                                  @endif
                             @endif
+                            @endcan
                         </div>
                     @endif
 
-                    @can('guardar ordenes de ventas')
+                    @can('orders.save')
                         <button wire:click.prevent="storeOrder" class="btn btn-outline-primary btn-block mt-3">
                             <i class="fas fa-save mr-2"></i> Guardar Orden
                             <small class="d-block text-muted" style="font-size: 0.7rem;">Shift + G</small>
                         </button>
                     @endcan
 
-                    @can('metodos de pago')
+                    @can('payments.methods')
                         <hr>
                         <h6 class="text-center font-weight-bold mb-3">Método de Pago</h6>
                         <div class="row justify-content-center">
-                            @can('pago con efectivo/nequi')
+                            @can('payments.method_cash')
                                 <div class="col-4 text-center mb-2" wire:click="initPayment(1)" style="cursor: pointer;">
                                     <div class="btn btn-outline-success btn-block p-2">
                                         <i class="fas fa-money-bill-wave fa-2x mb-1"></i>
@@ -383,7 +387,7 @@
                                 </div>
                             @endcan
                             
-                            @can('pago con credito')
+                            @can('payments.method_credit')
                                 @php
                                     $creditEnabled = !empty($customer['id']) && 
                                                      !empty($creditConfig['allow_credit']) && 
@@ -399,7 +403,7 @@
                             @endcan
                             
                             {{-- Banco - OCULTO por solicitud del usuario
-                            @can('pago con Banco')
+                            @can('payments.method_bank')
                                 <div class="col-4 text-center mb-2" wire:click="initPayment(3)" style="cursor: pointer;">
                                     <div class="btn btn-outline-secondary btn-block p-2">
                                         <i class="fas fa-university fa-2x mb-1"></i>

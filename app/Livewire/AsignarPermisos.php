@@ -82,6 +82,7 @@ class AsignarPermisos extends Component
             'distribution' => 'Distribución',
             'orders' => 'Ordenes Guardadas',
             'payments' => 'Abonos / Pagos',
+            'commissions' => 'Comisiones',
         ];
         return $map[$key] ?? ucfirst($key);
     }

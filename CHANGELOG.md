@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.8.19] - 2026-02-19
+### Fixed
+- **Permissions**:
+  - **Super Admin Paradox**: Resolved an issue where Super Admins were blocked from certain UI actions (like changing invoice currency) because they implicitly held conflicting permissions. Logic updated to rely on positive permissions only.
+  - **Legacy Cleanup**: Migrated old permissions (`aprobar_cargos`, `metodos de pago`) to new, standardized keys (`adjustments.approve_cargo`, `payments.methods`).
+  - **Orphans**: Removed unused legacy permissions (`compras`, `clientes`, etc.) to clean up the assignment UI.
+  - **Auto-Migration**: Added a DB migration to legally execute the permission cleanup and reassignment on client update.
+
 ## [1.8.17] - 2026-02-17
 ### Fixed
 - **Permissions**:

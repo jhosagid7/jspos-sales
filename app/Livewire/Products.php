@@ -17,6 +17,8 @@ class Products extends Component
     use WithFileUploads;
     use WithPagination;
 
+    protected $paginationTheme = 'bootstrap';
+
     // form validation
     public PostProduct $form;
 

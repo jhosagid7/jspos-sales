@@ -16,6 +16,7 @@ return [
     'sales_change_invoice_currency' => ['name' => 'Cambiar Divisa Factura', 'description' => 'Permite cambiar la moneda en la que se genera la factura (USD/BS).'],
     'sales_configure_price_list' => ['name' => 'Configurar Lista Precios', 'description' => 'Permite crear y modificar listas de precios.'],
     'sales_generate_price_list' => ['name' => 'Generar Lista Precios', 'description' => 'Permite descargar o visualizar las listas de precios configuradas.'],
+    'sales_show_exchange_rate' => ['name' => 'Ver Tasa USD/BCV', 'description' => 'Permite ver la referencia de tasa de cambio USD/BCV en ventas y productos.'],
 
     // Ordenes
     'orders_view_all' => ['name' => 'Ver Todas las Órdenes', 'description' => 'Permite ver órdenes guardadas por cualquier usuario.'],
@@ -110,6 +111,11 @@ return [
     'reports_financial' => ['name' => 'Rep. Financieros', 'description' => 'Acceso a cuentas por cobrar/pagar y balances.'],
     'reports_commissions' => ['name' => 'Rep. Comisiones', 'description' => 'Acceso a cálculos de comisiones por venta.'],
 
+    // Comisiones
+    'commissions_access' => ['name' => 'Acceder a Comisiones', 'description' => 'Permite ingresar al módulo de gestión de comisiones.'],
+    'commissions_view_all' => ['name' => 'Ver Todas Comisiones', 'description' => 'Permite ver las comisiones de todos los vendedores. Si no se tiene, solo ve las propias.'],
+    'commissions_manage' => ['name' => 'Gestionar Comisiones', 'description' => 'Permite procesar pagos, recalcular comisiones y descargar reportes.'],
+
     // Configuración
     'settings_index' => ['name' => 'Ver Configuración', 'description' => 'Acceso al panel principal de configuración.'],
     'settings_backups' => ['name' => 'Respaldos', 'description' => 'Permite gestionar y descargar copias de seguridad de la BD.'],
@@ -128,4 +134,14 @@ return [
     // Sistema
     'system_is_seller' => ['name' => 'Es Vendedor', 'description' => 'Marca al usuario como "Vendedor" en listados y filtros.'],
     'system_is_foreign_seller' => ['name' => 'Es Vendedor Foráneo', 'description' => 'Indica que es un vendedor externo/calle sin caja fija en sucursal.'],
+
+    // MIGRATED PERMISSIONS
+    'adjustments_approve_cargo' => ['name' => 'Aprobar Cargos', 'description' => 'Permite aprobar entradas de inventario pendientes.'],
+    'adjustments_approve_descargo' => ['name' => 'Aprobar Descargos', 'description' => 'Permite aprobar salidas de inventario pendientes.'],
+    'orders_save' => ['name' => 'Guardar Orden', 'description' => 'Permite guardar una venta como orden pendiente (SHIFT+G).'],
+    'payments_methods' => ['name' => 'Ver Métodos Pago', 'description' => 'Permite ver el bloque de botones de pago en el POS.'],
+    'payments_method_cash' => ['name' => 'Pago Efectivo/Nequi', 'description' => 'Habilita el botón de pago rápido en Efectivo.'],
+    'payments_method_credit' => ['name' => 'Pago Crédito', 'description' => 'Habilita el botón de pago a Crédito.'],
+    'payments_method_bank' => ['name' => 'Pago Banco', 'description' => 'Habilita el botón de pago Bancario.'],
+    'payments_method_nequi' => ['name' => 'Pago Nequi', 'description' => 'Habilita el botón de pago Nequi (si existe).'],
 ];

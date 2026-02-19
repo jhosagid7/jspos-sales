@@ -141,12 +141,23 @@ class Product extends Model
     //scope
     public function scopeSearch($query, $term)
     {
+        $term = trim($term);
+        $tokens = explode(' ', $term);
+
         return $query->with(['category', 'supplier', 'priceList'])
-            ->where('name', 'like', '%' . $term . '%')
-            ->orWhere('description', 'like', '%' . $term . '%')
-            ->orWhere('sku', 'like', '%' . $term . '%')
-            ->orWhereHas('category', function ($query) use ($term) {
-                $query->where('name', 'like', '%' . $term . '%');
+            ->where(function ($q) use ($tokens) {
+                foreach ($tokens as $token) {
+                    if (!empty($token)) {
+                        $q->where(function ($subQuery) use ($token) {
+                            $subQuery->where('name', 'like', '%' . $token . '%')
+                                ->orWhere('description', 'like', '%' . $token . '%')
+                                ->orWhere('sku', 'like', '%' . $token . '%')
+                                ->orWhereHas('category', function ($catQuery) use ($token) {
+                                    $catQuery->where('name', 'like', '%' . $token . '%');
+                                });
+                        });
+                    }
+                }
             });
     }
 

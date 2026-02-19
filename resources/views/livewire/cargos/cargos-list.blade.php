@@ -72,17 +72,19 @@
                                         <span class="badge badge-{{ $cargo->status == 'approved' ? 'success' : 'warning' }} text-uppercase">
                                             {{ $cargo->status == 'approved' ? 'Aprobado' : 'Pendiente' }}
                                         </span>
+                                        @can('adjustments.approve_cargo')
+                                            @if($cargo->status == 'pending')
+                                                <button wire:click="approve({{ $cargo->id }})" class="btn btn-dark btn-sm" title="Aprobar"
+                                                    onclick="confirm('¿Confirmas aprobar este cargo?') || event.stopImmediatePropagation()">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                            @endif
+                                        @endcan
                                     </td>
                                     <td class="text-center">
                                         <button wire:click="getCargoDetail({{ $cargo->id }})" class="btn btn-dark btn-sm" title="Ver Detalles">
                                             <i class="fas fa-list"></i>
                                         </button>
-                                        @if($cargo->status == 'pending' && auth()->user()->can('aprobar_cargos'))
-                                            <button wire:click="approve({{ $cargo->id }})" class="btn btn-success btn-sm" title="Aprobar Cargo"
-                                                onclick="confirm('¿Confirmas aprobar este cargo?') || event.stopImmediatePropagation()">
-                                                <i class="fas fa-check"></i>
-                                            </button>
-                                        @endif
                                         <a href="{{ route('cargos.pdf', $cargo->id) }}" class="btn btn-outline-danger btn-sm" target="_blank" title="PDF">
                                             <i class="fas fa-file-pdf"></i>
                                         </a>

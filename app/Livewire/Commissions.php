@@ -32,6 +32,10 @@ class Commissions extends Component
 
     public function mount()
     {
+        if (!Auth::user()->can('commissions.access')) {
+            abort(403, 'NO TIENES AUTORIZACIÓN PARA ACCEDER A ESTE MÓDULO');
+        }
+
         $this->dateFrom = Carbon::now()->startOfMonth()->format('Y-m-d');
         $this->dateTo = Carbon::now()->endOfMonth()->format('Y-m-d');
         $this->status_filter = 'all';
@@ -49,12 +53,18 @@ class Commissions extends Component
             $this->selectedCurrencyCode = 'USD';
             $this->selectedCurrencySymbol = '$';
         }
+        
+        // If user cannot view all, force seller_id to self
+        if (!Auth::user()->can('commissions.view_all')) {
+            $this->seller_id = Auth::id();
+        }
     }
 
     public function render()
     {
         $user = Auth::user();
-        $canManage = $user->can('gestionar_comisiones');
+        $canManage = $user->can('commissions.manage');
+        $canViewAll = $user->can('commissions.view_all');
         
         $query = Sale::query()
             ->with(['customer', 'user', 'payments'])
@@ -69,13 +79,14 @@ class Commissions extends Component
         $query->whereBetween('created_at', [$this->dateFrom . ' 00:00:00', $this->dateTo . ' 23:59:59']);
 
         // Filter by Seller
-        if ($canManage) {
+        if ($canViewAll) {
             if ($this->seller_id != 0) {
                 $query->whereHas('customer', function($q) {
                     $q->where('seller_id', $this->seller_id);
                 });
             }
         } else {
+            // Force filter by current user
             $query->whereHas('customer', function($q) use ($user) {
                 $q->where('seller_id', $user->id);
             });
@@ -108,7 +119,7 @@ class Commissions extends Component
 
     public function initPayment($saleId)
     {
-        if (!Auth::user()->can('gestionar_comisiones')) {
+        if (!Auth::user()->can('commissions.manage')) {
             $this->dispatch('noty', msg: 'NO TIENES PERMISOS PARA ESTA ACCIÓN');
             return;
         }
@@ -186,7 +197,7 @@ class Commissions extends Component
 
     public function savePayment()
     {
-        if (!Auth::user()->can('gestionar_comisiones')) {
+        if (!Auth::user()->can('commissions.manage')) {
             return;
         }
 
@@ -233,7 +244,7 @@ class Commissions extends Component
 
     public function recalculate($saleId)
     {
-        if (!Auth::user()->can('gestionar_comisiones')) {
+        if (!Auth::user()->can('commissions.manage')) {
             $this->dispatch('noty', msg: 'NO TIENES PERMISOS PARA ESTA ACCIÓN');
             return;
         }
@@ -252,7 +263,8 @@ class Commissions extends Component
     public function generatePdf()
     {
         $user = Auth::user();
-        $canManage = $user->can('gestionar_comisiones');
+        $canManage = $user->can('commissions.manage');
+        $canViewAll = $user->can('commissions.view_all');
 
         $query = Sale::query()
             ->with(['customer', 'user', 'payments'])
@@ -270,7 +282,7 @@ class Commissions extends Component
             // Otherwise apply standard filters
             $query->whereBetween('created_at', [$this->dateFrom . ' 00:00:00', $this->dateTo . ' 23:59:59']);
 
-            if ($canManage) {
+            if ($canViewAll) {
                 if ($this->seller_id != 0) {
                     $query->whereHas('customer', function($q) {
                         $q->where('seller_id', $this->seller_id);
@@ -299,7 +311,7 @@ class Commissions extends Component
         $commissions = $query->orderBy('created_at', 'desc')->get();
         
         $sellerName = 'Todos';
-        if ($canManage) {
+        if ($canViewAll) {
             if ($this->seller_id != 0) {
                 $seller = User::find($this->seller_id);
                 $sellerName = $seller ? $seller->name : 'Todos';
