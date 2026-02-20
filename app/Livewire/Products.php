@@ -52,16 +52,17 @@ class Products extends Component
     }
 
 
-    //methods
+    public function updatedSearch()
+    {
+        $this->resetPage();
+    }
+
     function getProducts()
     {
         //php artisan config:cache
 
         try {
             if (!empty($this->search)) {
-
-                $this->resetPage();
-
                 return Product::search(trim($this->search))->orderBy('id')->paginate($this->pagination);
             } else {
                 return Product::with(['category', 'supplier', 'priceList'])->orderBy('id')->paginate($this->pagination);

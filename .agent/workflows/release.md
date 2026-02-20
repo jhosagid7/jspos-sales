@@ -20,6 +20,7 @@ Follow these steps to correctly release a new version of the application.
 - List all `Added`, `Changed`, and `Fixed` items since the last release.
 
 ## 3. Commit Changes
+- **CRITICAL: Database Changes?** If your update includes database changes (new tables, columns, seeders), you MUST ensure an auto-migration script (e.g., in an `UpdateService` or a post-update hook) is configured so the client does NOT need to run commands manually.
 - Stage ALL changes (including code updates, version file, and changelog).
 - Commit with a standard message.
 ```powershell

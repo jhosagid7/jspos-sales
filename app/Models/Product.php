@@ -144,7 +144,7 @@ class Product extends Model
         $term = trim($term);
         $tokens = explode(' ', $term);
 
-        return $query->with(['category', 'supplier', 'priceList'])
+        $query->with(['category', 'supplier', 'priceList'])
             ->where(function ($q) use ($tokens) {
                 foreach ($tokens as $token) {
                     if (!empty($token)) {
@@ -159,6 +159,20 @@ class Product extends Model
                     }
                 }
             });
+
+        // Add relevance ordering
+        // 1. Exact SKU match
+        // 2. Name starts with term
+        // 3. Name contains term
+        // 4. Everything else (Category match, Description match)
+        return $query->orderByRaw("CASE 
+            WHEN sku LIKE ? THEN 1 
+            WHEN name LIKE ? THEN 2 
+            WHEN name LIKE ? THEN 3 
+            ELSE 4 END", 
+            ["{$term}%", "{$term}%", "%{$term}%"]
+        )
+        ->orderByRaw("REPLACE(name, '  ', ' ') ASC");
     }
 
 
