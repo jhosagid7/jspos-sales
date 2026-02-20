@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.8.21] - 2026-02-20
+### Fixed
+- **Products Module**:
+  - **Search Relevance**: Re-wrote the search algorithm to prioritize exact SKU matches and Name matches before considering Category matches, ensuring accurate results (e.g., searching "Tenedor" no longer shows "Contenedores" first).
+  - **Pagination Bug**: Fixed a persistent bug where clicking on page 2 or beyond while a search filter was active would instantly bounce the user back to page 1. Pagination now behaves correctly during filtered searches.
+- **System Internals**: Addressed a risk where clients might forget to manually run database commands after updating by enforcing auto-migrations in the internal release documentation.
+
 ## [1.8.20] - 2026-02-20
 ### Added
 - **Payments**:
