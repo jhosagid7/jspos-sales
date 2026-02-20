@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.8.20] - 2026-02-20
+### Added
+- **Payments**:
+  - **Consultation Modules**: Implemented full support for viewing "Cash Sales" (Ventas de Contado) within the Zelle and Bank consultation screens.
+  - **Database Links**: Added `salePaymentDetails` relationship to `ZelleRecord` and `BankRecord` models.
+  - **PDF Reports**: Updated Zelle and Bank exported PDF reports to include cash sale usages alongside regular credit payments.
+  - **UI/UX**: Cash sales are now clearly distinguished with a green "(Contado)" label in the UI, separating them from standard "(Abono)" credits.
 
 
 
