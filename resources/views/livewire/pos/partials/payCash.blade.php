@@ -283,8 +283,31 @@
                                                         </div>
                                                     </div>
 
+                                                    <div class="col-12 mt-2">
+                                                        @if($bankStatusMessage)
+                                                            <div class="alert alert-{{ $bankStatusType }} py-2 mb-3">
+                                                                <i class="fa fa-{{ $bankStatusType == 'danger' ? 'times-circle' : ($bankStatusType == 'warning' ? 'exclamation-triangle' : 'check-circle') }} me-1"></i>
+                                                                {{ $bankStatusMessage }}
+                                                            </div>
+                                                        @endif
+                                                    </div>
+
                                                     <div class="col-md-6">
-                                                        <label class="form-label">Monto</label>
+                                                        <label class="form-label">Monto del Depósito (Total)</label>
+                                                        <div class="input-group">
+                                                            <span class="input-group-text"><i class="fas fa-money-bill"></i></span>
+                                                            <input 
+                                                                class="form-control" 
+                                                                oninput="validarInputNumber(this)"
+                                                                wire:model.live.debounce.500ms="bankGlobalAmount" 
+                                                                type="number"
+                                                                placeholder="Monto total">
+                                                        </div>
+                                                        @error('bankGlobalAmount') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                    </div>
+
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Monto a Usar</label>
                                                         <input 
                                                             class="form-control" 
                                                             oninput="validarInputNumber(this)"
@@ -295,13 +318,15 @@
                                                     </div>
 
                                                     <div class="col-md-6">
-                                                        <label class="form-label">Referencia (Últimos 5 dígitos)</label>
+                                                        <label class="form-label">Referencia (Últimos 5 caracteres)</label>
                                                         <div class="input-group">
                                                             <span class="input-group-text"><i class="fas fa-hashtag"></i></span>
                                                             <input 
                                                                 class="form-control" 
                                                                 wire:model.live="bankReference" 
                                                                 type="text"
+                                                                maxlength="5"
+                                                                minlength="5"
                                                                 placeholder="Ej: 12345">
                                                         </div>
                                                         @error('bankReference') <span class="text-danger small">{{ $message }}</span> @enderror
@@ -361,13 +386,14 @@
                                                             placeholder="Número de cuenta">
                                                     </div>
                                                     <div class="col-12">
-                                                        <label class="form-label">N°. Depósito/Referencia</label>
+                                                        <label class="form-label">N°. Depósito/Referencia (Últimos 5 caracteres)</label>
                                                         <input 
                                                             class="form-control" 
-                                                            oninput="validarInputNumber(this)"
                                                             wire:model.live="bankDepositNumber" 
                                                             type="text"
-                                                            placeholder="Número de depósito o referencia">
+                                                            maxlength="5"
+                                                            minlength="5"
+                                                            placeholder="Ej: 12345">
                                                     </div>
                                                     <div class="col-12">
                                                         <button class="btn btn-primary w-100" wire:click="addBankPayment" type="button">
@@ -403,7 +429,7 @@
                                                 </thead>
                                                 <tbody>
                                                     @foreach ($payments as $index => $payment)
-                                                        <tr>
+                                                        <tr wire:key="payment-{{ $index }}">
                                                             <td>
                                                                 @if($payment['method'] === 'cash')
                                                                     <span class="badge bg-success">
@@ -415,6 +441,9 @@
                                                                         <i class="fa fa-university"></i> Banco
                                                                     </span>
                                                                     <br><small class="text-muted">{{ $payment['bank_name'] ?? 'N/A' }}</small>
+                                                                    @if(isset($payment['bank_file_url']) && $payment['bank_file_url'])
+                                                                        <br><a href="{{ $payment['bank_file_url'] }}" target="_blank"><i class="fa fa-image"></i> Ver</a>
+                                                                    @endif
                                                                 @elseif($payment['method'] === 'zelle')
                                                                     <span class="badge bg-info text-white" style="background-color: #6f42c1 !important;">
                                                                         <i class="fa fa-mobile-alt"></i> Zelle

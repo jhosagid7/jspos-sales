@@ -286,22 +286,46 @@ class PartialPayment extends Component
                 $bankRecordId = null;
                 $createdBankRecord = null;
 
-                // Create BankRecord 
+                // Create or Link BankRecord 
                 if ($payment['method'] == 'bank' && !empty($payment['bank_reference'])) {
                      try {
-                        $createdBankRecord = \App\Models\BankRecord::create([
-                            'bank_id' => $payment['bank_id'],
-                            'amount' => $payment['amount'],
-                            'reference' => $payment['bank_reference'],
-                            'payment_date' => $payment['bank_date'] ?? now(),
-                            'image_path' => $payment['bank_image'] ?? null,
-                            'note' => $payment['bank_note'] ?? null,
-                            'customer_id' => $sale->customer_id,
-                            'sale_id' => $sale->id,
-                        ]);
-                        $bankRecordId = $createdBankRecord->id;
+                        $bankGlobalAmount = $payment['bank_global_amount'] ?? $payment['amount']; // Fallback to used amount if not provided
+                        $amountUsed = $payment['amount'];
+                        
+                        // Check if exists (Logic similar to Zelle)
+                        $bankRecord = \App\Models\BankRecord::where('bank_id', $payment['bank_id'])
+                            ->where('reference', $payment['bank_reference'])
+                            ->where('amount', $bankGlobalAmount)
+                            ->first();
+
+                        if ($bankRecord) {
+                            $bankRecord->remaining_balance -= $amountUsed;
+                            if ($bankRecord->remaining_balance < 0) $bankRecord->remaining_balance = 0;
+                            $bankRecord->status = $bankRecord->remaining_balance <= 0.01 ? 'used' : 'partial';
+                            $bankRecord->customer_id = $sale->customer_id; // Update customer? Maybe last customer used it.
+                            $bankRecord->save();
+                            $createdBankRecord = $bankRecord;
+                            $bankRecordId = $bankRecord->id;
+                        } else {
+                            $remaining = $bankGlobalAmount - $amountUsed;
+                            
+                            $createdBankRecord = \App\Models\BankRecord::create([
+                                'bank_id' => $payment['bank_id'],
+                                'amount' => $bankGlobalAmount, // Save TOTAL amount
+                                'reference' => $payment['bank_reference'],
+                                'payment_date' => $payment['bank_date'] ?? now(),
+                                'image_path' => $payment['bank_image'] ?? null,
+                                'note' => $payment['bank_note'] ?? null,
+                                'status' => $remaining <= 0.01 ? 'used' : 'partial',
+                                'remaining_balance' => max(0, $remaining),
+                                'customer_id' => $sale->customer_id,
+                                'sale_id' => $sale->id,
+                            ]);
+                            $bankRecordId = $createdBankRecord->id;
+                        }
+
                      } catch (\Exception $e) {
-                          Log::error("Error creating BankRecord: " . $e->getMessage());
+                          Log::error("Error creating/linking BankRecord: " . $e->getMessage());
                      }
                 }
 

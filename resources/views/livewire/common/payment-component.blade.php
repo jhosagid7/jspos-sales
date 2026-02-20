@@ -310,7 +310,7 @@
                                                     </div>
 
                                                     <div class="col-md-6">
-                                                        <label class="form-label">Monto</label>
+                                                        <label class="form-label">Monto a Usar</label>
                                                         <input 
                                                             class="form-control" 
                                                             oninput="validarInputNumber(this)"
@@ -318,6 +318,29 @@
                                                             type="number"
                                                             placeholder="0.00">
                                                         @error('amount') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                    </div>
+
+                                                    <div class="col-12">
+                                                        @if($bankStatusMessage)
+                                                            <div class="alert alert-{{ $bankStatusType }} mb-2">
+                                                                <i class="fa fa-{{ $bankStatusType == 'danger' ? 'exclamation-circle' : 'info-circle' }} me-1"></i>
+                                                                {{ $bankStatusMessage }}
+                                                            </div>
+                                                        @endif
+                                                    </div>
+
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Monto del Depósito (Total)</label>
+                                                        <div class="input-group">
+                                                            <span class="input-group-text"><i class="fas fa-money-bill-wave"></i></span>
+                                                            <input 
+                                                                class="form-control" 
+                                                                oninput="validarInputNumber(this)"
+                                                                wire:model.live="bankGlobalAmount" 
+                                                                type="number"
+                                                                placeholder="Monto Original">
+                                                        </div>
+                                                        @error('bankGlobalAmount') <span class="text-danger small">{{ $message }}</span> @enderror
                                                     </div>
 
                                                     <div class="col-md-6">

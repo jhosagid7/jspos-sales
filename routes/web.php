@@ -145,6 +145,13 @@ Route::middleware('auth')->group(function () {
         Route::get('rotation', \App\Livewire\Reports\RotationReport::class)->name('reports.rotation')->middleware('can:reports.stock');
     });
 
+    // Consultas
+    Route::get('consultation/zelle', \App\Livewire\Consultation\ZelleConsultation::class)->name('consultation.zelle')->middleware('can:zelle_index');
+    Route::get('consultation/zelle/{id}/pdf', [\App\Http\Controllers\PaymentConsultationController::class, 'generateZellePdf'])->name('zelle.pdf')->middleware('can:zelle_print_pdf');
+    
+    Route::get('consultation/bank', \App\Livewire\Consultation\BankConsultation::class)->name('consultation.bank')->middleware('can:bank_index');
+    Route::get('consultation/bank/{id}/pdf', [\App\Http\Controllers\PaymentConsultationController::class, 'generateBankPdf'])->name('bank.pdf')->middleware('can:bank_print_pdf');
+
     //corte de caja
     Route::get('cash-count', CashCount::class)->name('cash.count')->middleware('can:cash_register.close');
 

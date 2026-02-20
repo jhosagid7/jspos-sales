@@ -222,6 +222,36 @@
                     </ul>
                 </li>
                 @endcan
+                
+                @canany(['zelle_index', 'bank_index'])
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-search-dollar"></i>
+                        <p>
+                            CONSULTAS
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        @can('zelle_index')
+                        <li class="nav-item">
+                            <a href="{{ route('consultation.zelle') }}" class="nav-link {{ Request::is('consultation/zelle*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Pagos Zelle</p>
+                            </a>
+                        </li>
+                        @endcan
+                        @can('bank_index')
+                        <li class="nav-item">
+                            <a href="{{ route('consultation.bank') }}" class="nav-link {{ Request::is('consultation/bank*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Pagos Bancarios</p>
+                            </a>
+                        </li>
+                        @endcan
+                    </ul>
+                </li>
+                @endcan
 
                 @canany(['reports.sales', 'reports.purchases', 'reports.financial', 'reports.stock'])
                 <li class="nav-item">

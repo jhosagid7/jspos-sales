@@ -561,6 +561,8 @@ class AccountsReceivableReport extends Component
                             'payment_date' => $payment['bank_date'] ?? now(),
                             'image_path' => $payment['bank_image'] ?? null,
                             'note' => $payment['bank_note'] ?? null,
+                            'status' => 'used',
+                            'remaining_balance' => 0,
                             'customer_id' => $sale->customer_id,
                             'sale_id' => $sale->id,
                         ]);

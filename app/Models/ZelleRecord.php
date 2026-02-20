@@ -33,4 +33,9 @@ class ZelleRecord extends Model
     {
         return $this->hasMany(Payment::class);
     }
+    
+    public function salePaymentDetails()
+    {
+        return $this->hasMany(SalePaymentDetail::class);
+    }
 }

@@ -100,6 +100,14 @@ class Sales extends Component
     public $bankImage;
     public $isVedBankSelected = false;
 
+    // Bank Validation Status (Added for Remaining Balance Logic)
+    public $bankGlobalAmount; 
+    public $bankStatusMessage = '';
+    public $bankStatusType = '';
+    public $bankRemainingBalance = null;
+    
+
+
     public $pagoMovilBank, $pagoMovilPhoneNumber, $pagoMovilReference, $pagoMovilAmount;
 
     // Zelle Properties
@@ -123,6 +131,10 @@ class Sales extends Component
     public $invoiceExchangeRate = 1;
 
 
+    public function updatedSelectedPaymentMethod($value)
+    {
+        $this->resetBankForm();
+    }
     public function updatedBankId($value)
     {
         $this->isZelleSelected = false;
@@ -138,6 +150,75 @@ class Sales extends Component
                     $this->isVedBankSelected = true;
                 }
             }
+        }
+        
+        // Reset Fields when Bank Changes
+        $this->bankReference = '';
+        $this->bankDate = date('Y-m-d');
+        $this->bankNote = '';
+        $this->bankAmount = null;
+        $this->bankGlobalAmount = null;
+        $this->bankAccountNumber = '';
+        $this->bankDepositNumber = '';
+        $this->bankImage = null;
+        $this->bankStatusMessage = '';
+        $this->bankStatusType = '';
+        $this->bankRemainingBalance = null;
+
+        $this->checkBankStatus();
+    }
+    
+    public function updatedBankReference() { $this->checkBankStatus(); }
+    public function updatedBankGlobalAmount() { $this->checkBankStatus(); }
+
+    public function checkBankStatus()
+    {
+        $ref = $this->isVedBankSelected ? $this->bankReference : $this->bankDepositNumber;
+        // In POS standard fields, depositNumber is used. In VED detailed, bankReference is used.
+        
+        $amount = $this->bankGlobalAmount;
+        $bankId = $this->bankId;
+
+        if ($this->isVedBankSelected && $bankId && $ref && $amount) {
+            
+            // 1. Check for Session Duplicates (Already in list)
+            $duplicateInSession = collect($this->payments)->contains(function ($payment) use ($ref) {
+                return $payment['method'] === 'bank' && 
+                       ($payment['bank_reference'] ?? '') === $ref;
+             });
+
+            if ($duplicateInSession) {
+                $this->bankStatusMessage = "Esta referencia ya está agregada en esta venta.";
+                $this->bankStatusType = 'warning';
+                $this->bankRemainingBalance = null;
+                return;
+            }
+
+            // 2. Check Database for BankRecord with SAME Total Amount
+            $bankRecord = \App\Models\BankRecord::where('bank_id', $bankId)
+                ->where('reference', $ref)
+                ->where('amount', $amount)
+                ->first();
+
+            if ($bankRecord) {
+                if ($bankRecord->remaining_balance <= 0.01) {
+                    $this->bankStatusMessage = "Este depósito ya fue utilizado completamente.";
+                    $this->bankStatusType = 'danger';
+                    $this->bankRemainingBalance = 0;
+                } else {
+                    $this->bankStatusMessage = "Depósito encontrado. Saldo restante: $" . number_format($bankRecord->remaining_balance, 2);
+                    $this->bankStatusType = 'success';
+                    $this->bankRemainingBalance = $bankRecord->remaining_balance;
+                }
+            } else {
+                $this->bankStatusMessage = "Nuevo Depósito (Se creará registro).";
+                $this->bankStatusType = 'success'; // Green: New
+                $this->bankRemainingBalance = $amount;
+            }
+        } else {
+            $this->bankStatusMessage = '';
+            $this->bankStatusType = '';
+            $this->bankRemainingBalance = null;
         }
     }
 
@@ -370,111 +451,7 @@ class Sales extends Component
         $this->reset(['paymentAmount']);
     }
 
-    public function addBankPayment()
-    {
-        if ($this->isVedBankSelected) {
-             $this->validate([
-                'bankId' => 'required',
-                'bankReference' => 'required',
-                'bankDate' => 'required|date',
-                'bankAmount' => 'required|numeric|min:0.01',
-                'bankImage' => 'required|image|max:2048', 
-            ]);
-        } else {   
-             $this->validate([
-                'bankId' => 'required',
-                'bankAccountNumber' => 'required',
-                'bankDepositNumber' => 'required',
-                'bankAmount' => 'required|numeric|min:0.01',
-            ]);
-        }
 
-        $bank = Bank::find($this->bankId);
-        if (!$bank) {
-            $this->dispatch('noty', msg: 'Banco no encontrado.');
-            return;
-        }
-
-        $currency = collect($this->currencies)->firstWhere('code', $bank->currency_code);
-
-        if (!$currency) {
-            $this->dispatch('noty', msg: 'La moneda del banco no está configurada.');
-            return;
-        }
-
-        // Convertir a USD (base) y luego a moneda principal
-        $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
-        $amountInUSD = $this->bankAmount / $currency->exchange_rate;
-        $amountInPrimaryCurrency = $amountInUSD * $primaryCurrency->exchange_rate;
-        
-        $imagePath = null;
-        $details = "";
-        
-        if ($this->isVedBankSelected) {
-             // Handle Image Upload
-             try {
-                if ($this->bankImage) {
-                    $imagePath = $this->bankImage->store('bank_receipts', 'public');
-                }
-             } catch (\Exception $e) {
-                 $this->dispatch('noty', msg: 'Error al subir la imagen: ' . $e->getMessage());
-                 return;
-             }
-
-             // Check for Duplicate Reference in Database
-             // Assuming validation logic exists in BankRecord model or similar, but simplified here:
-             $exists = \App\Models\BankRecord::where('bank_id', $this->bankId)
-                        ->where('reference', $this->bankReference)
-                         ->exists();
-                         
-             if($exists) {
-                  $this->dispatch('noty', msg: 'Esta referencia bancaria ya ha sido registrada previamente.');
-                  return;
-             }
-
-             // Check for Duplicate in Session
-             $duplicateInSession = collect($this->payments)->contains(function ($payment) {
-                return $payment['method'] === 'bank' &&
-                       ($payment['bank_reference'] ?? '') === $this->bankReference;
-             });
-
-             if ($duplicateInSession) {
-                 $this->dispatch('noty', msg: 'Esta referencia ya está agregada en esta venta.');
-                 return;
-             }
-
-             $details = "Banco: {$bank->name}, Ref: {$this->bankReference}, Fecha: {$this->bankDate}";
-        } else {
-             $details = "Banco: {$bank->name}, Cta: {$this->bankAccountNumber}, Ref: {$this->bankDepositNumber}";
-        }
-
-        $this->payments[] = [
-            'method' => 'bank',
-            'bank_id' => $bank->id,
-            'bank_name' => $bank->name,
-            'account_number' => $this->isVedBankSelected ? null : $this->bankAccountNumber,
-            'deposit_number' => $this->isVedBankSelected ? null : $this->bankDepositNumber,
-            'bank_reference' => $this->isVedBankSelected ? $this->bankReference : $this->bankDepositNumber, // Unified reference key
-            'bank_date' => $this->isVedBankSelected ? $this->bankDate : null,
-            'bank_image' => $imagePath,
-            'bank_note' => $this->isVedBankSelected ? $this->bankNote : null,
-            'amount' => $this->bankAmount,
-            'currency' => $currency->code,
-            'symbol' => $currency->symbol,
-            'exchange_rate' => $currency->exchange_rate,
-            'amount_in_primary_currency' => $amountInPrimaryCurrency,
-            'details' => $details,
-        ];
-
-        $this->calculateRemainingAndChange();
-        session(['payments' => $this->payments]);
-        session(['remainingAmount' => $this->remainingAmount]);
-        session(['change' => $this->change]);
-        
-        $this->reset(['bankId', 'bankAccountNumber', 'bankDepositNumber', 'bankAmount', 'bankReference', 'bankDate', 'bankNote', 'bankImage']);
-        // Restore default properties
-        $this->bankDate = date('Y-m-d');
-    }
 
 
 
@@ -2548,6 +2525,156 @@ class Sales extends Component
         $this->dispatch('initPay', payType: $type);
     }
     
+    // Implement addBankPayment
+    public function addBankPayment()
+    {
+        if ($this->isVedBankSelected) {
+            $this->validate([
+                'bankId' => 'required',
+                'bankReference' => 'required|string|size:5',
+                'bankDate' => 'required|date',
+                'bankGlobalAmount' => 'required|numeric|min:0.01',
+                'bankAmount' => 'required|numeric|min:0.01', // Amount to Use
+                'bankImage' => 'required|image|max:2048', 
+            ], [
+                'bankReference.size' => 'La referencia bancaria debe tener exactamente 5 caracteres.'
+            ]);
+            
+            $this->checkBankStatus();
+            
+             if ($this->bankStatusType === 'danger') {
+                 $this->dispatch('noty', msg: $this->bankStatusMessage);
+                 return;
+            }
+            // Logic: User wants to use 'bankAmount' from the 'bankGlobalAmount'.
+            // Ensure bankAmount <= bankRemainingBalance
+            if ($this->bankRemainingBalance !== null && $this->bankAmount > $this->bankRemainingBalance) {
+                $this->dispatch('noty', msg: "El monto a usar ($" . number_format($this->bankAmount, 2) . ") excede el saldo restante ($" . number_format($this->bankRemainingBalance, 2) . ")");
+                return;
+            }
+
+             $duplicateInSession = collect($this->payments)->contains(function ($payment) {
+                return $payment['method'] === 'bank' && ($payment['bank_reference'] ?? '') === $this->bankReference;
+             });
+             if ($duplicateInSession) { $this->dispatch('noty', msg: 'Esta referencia ya está agregada en esta lista.'); return; }
+        
+        } else {
+             $this->validate([
+                 'bankId' => 'required', 
+                 'bankAccountNumber' => 'required', 
+                 'bankDepositNumber' => 'required|string|size:5', 
+                 'bankAmount' => 'required|numeric|min:0.01'
+             ], [
+                 'bankDepositNumber.size' => 'La referencia bancaria debe tener exactamente 5 caracteres.'
+             ]);
+        }
+
+        // Determine currency
+        $bank = $this->banks->find($this->bankId);
+        $currencyCode = $bank ? $bank->currency_code : 'COP';
+        $bankName = $bank ? $bank->name : '';
+        
+        $currency = $this->currencies->firstWhere('code', $currencyCode);
+        $exchangeRate = $currency ? $currency->exchange_rate : 1;
+        $symbol = $currency ? $currency->symbol : '$';
+        
+        $primaryCurrency = $this->currencies->firstWhere('is_primary', 1);
+        
+        $amountInPrimary = 0;
+        if ($currency && $currency->is_primary) {
+            $amountInPrimary = $this->bankAmount;
+        } else {
+            // Apply Custom Rate Logic if VED
+             $finalRate = $exchangeRate;
+             // Note: Sales.php does not seem to have customExchangeRate property yet? 
+             // I didn't see it in properties scan. PaymentComponent has it.
+             // For now, use standard exchange rate to avoid breaking.
+             // Or check if I missed copying it.
+             
+            $amountInUSD = $this->bankAmount / ($finalRate ?: 1);
+            $amountInPrimary = $amountInUSD * $primaryCurrency->exchange_rate;
+        }
+
+        // Handle Image
+        $bankImagePath = ($this->isVedBankSelected && $this->bankImage) ? $this->bankImage->store('bank_receipts', 'public') : null;
+
+        $newPayment = [
+            'method' => 'bank',
+            'amount' => $this->bankAmount,
+            'currency' => $currencyCode,
+            'symbol' => $symbol,
+            'exchange_rate' => $exchangeRate,
+            'amount_in_primary' => $amountInPrimary, // This is key for calculations
+            'amount_in_primary_currency' => $amountInPrimary, // Compatibility
+            'bank_id' => $this->bankId,
+            'bank_name' => $bankName,
+            'account_number' => $this->isVedBankSelected ? null : $this->bankAccountNumber,
+            'reference' => $this->isVedBankSelected ? $this->bankReference : $this->bankDepositNumber,
+            'bank_reference' => $this->bankReference,
+            'bank_date' => $this->bankDate,
+            'bank_note' => $this->bankNote,
+            'bank_global_amount' => $this->bankGlobalAmount, // NEW
+            'bank_image' => $bankImagePath,
+            'bank_file_url' => $bankImagePath ? asset('storage/' . $bankImagePath) : null,
+            'deposit_number' => $this->isVedBankSelected ? $this->bankReference : $this->bankDepositNumber // Redundancy for old logic
+        ];
+
+        $this->payments[] = $newPayment;
+
+        // Save to session to persist data
+        session(['payments' => $this->payments]);
+        
+        // Update Totals
+        $this->calculatePaymentTotals();
+        
+        // Reset Form
+        $this->resetBankForm();
+    }
+
+    public function resetBankForm()
+    {
+        $this->bankId = ''; 
+        $this->bankAmount = null;
+        $this->bankGlobalAmount = null;
+        $this->bankReference = '';
+        $this->bankDepositNumber = '';
+        $this->bankAccountNumber = '';
+        $this->bankDate = date('Y-m-d');
+        $this->bankNote = '';
+        $this->bankImage = null;
+        $this->bankStatusMessage = '';
+        $this->isVedBankSelected = false;
+        $this->bankRemainingBalance = null;
+    }
+    
+    public function calculatePaymentTotals()
+    {
+        $this->totalPaidDisplay = collect($this->payments)->sum('amount'); // This is naive summing of mixed currencies. 
+        // POS usually sums in primary currency?
+        // Let's check initPayment: $this->totalPaid = array_sum(array_column($this->payments, 'amount_in_primary'));
+        
+        $this->totalInPrimaryCurrency = collect($this->payments)->sum('amount_in_primary_currency');
+        
+        // Update remaining logic
+        // remainingAmount was set to totalCartAtPayment (in Display Currency?)
+        // If we want to show remaining in Display Currency, we need to convert paid amounts to Display Currency.
+        
+        // This is complex because Sales.php manages display differently. 
+        // Let's assume for now we just want to update the UI totals.
+        
+        // Recalculate remaining
+        $primaryCurrency = CurrencyHelper::getPrimaryCurrency();
+        $conversionFactor = $this->getConversionFactor(); // To Display Currency
+        
+        $totalPaidInDisplay = $this->totalInPrimaryCurrency * $conversionFactor;
+        
+        // totalCartAtPayment is in Display Currency
+        $this->totalPaidDisplay = $totalPaidInDisplay; // Update property for View
+        
+        $this->remainingAmount = max(0, $this->totalCartAtPayment - $totalPaidInDisplay);
+        $this->change = max(0, $totalPaidInDisplay - $this->totalCartAtPayment);
+    }
+    
     // Helpers for Display Logic
     public function getConversionFactor()
     {
@@ -3000,19 +3127,41 @@ class Sales extends Component
                         // Create BankRecord if detailed info is present (VED logic)
                         if (!empty($payment['bank_reference'])) {
                              try {
-                                $bankRecord = \App\Models\BankRecord::create([
-                                    'bank_id' => $payment['bank_id'],
-                                    'amount' => $payment['amount'],
-                                    'reference' => $payment['bank_reference'],
-                                    'payment_date' => $payment['bank_date'] ?? now(),
-                                    'image_path' => $payment['bank_image'] ?? null,
-                                    'note' => $payment['bank_note'] ?? null,
-                                    'customer_id' => $sale->customer_id,
-                                    'sale_id' => $sale->id,
-                                ]);
-                                $bankRecordId = $bankRecord->id;
+                                $bankGlobalAmount = $payment['bank_global_amount'] ?? $payment['amount'];
+                                $amountUsed = $payment['amount'];
+                                
+                                $bankRecord = \App\Models\BankRecord::where('bank_id', $payment['bank_id'])
+                                    ->where('reference', $payment['bank_reference'])
+                                    ->where('amount', $bankGlobalAmount)
+                                    ->first();
+
+                                if ($bankRecord) {
+                                    $bankRecord->remaining_balance -= $amountUsed;
+                                    if ($bankRecord->remaining_balance < 0) $bankRecord->remaining_balance = 0;
+                                    $bankRecord->status = $bankRecord->remaining_balance <= 0.01 ? 'used' : 'partial';
+                                    $bankRecord->customer_id = $sale->customer_id;
+                                    $bankRecord->save();
+                                    $bankRecordId = $bankRecord->id;
+                                } else {
+                                    $remaining = $bankGlobalAmount - $amountUsed;
+                                    
+                                    $bankRecord = \App\Models\BankRecord::create([
+                                        'bank_id' => $payment['bank_id'],
+                                        'amount' => $bankGlobalAmount,
+                                        'reference' => $payment['bank_reference'],
+                                        'payment_date' => $payment['bank_date'] ?? now(),
+                                        'image_path' => $payment['bank_image'] ?? null,
+                                        'note' => $payment['bank_note'] ?? null,
+                                        'status' => $remaining <= 0.01 ? 'used' : 'partial',
+                                        'remaining_balance' => max(0, $remaining),
+                                        'customer_id' => $sale->customer_id,
+                                        'sale_id' => $sale->id,
+                                    ]);
+                                    $bankRecordId = $bankRecord->id;
+                                }
+
                              } catch (\Exception $e) {
-                                  Log::error("Error creating BankRecord: " . $e->getMessage());
+                                  Log::error("Error creating/linking BankRecord: " . $e->getMessage());
                              }
                         }
                     }

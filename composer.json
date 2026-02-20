@@ -28,6 +28,7 @@
         "barryvdh/laravel-ide-helper": "^3.1",
         "bennett-treptow/laravel-migration-generator": "^4.4",
         "fakerphp/faker": "^1.9.1",
+        "laravel-lang/common": "^6.7",
         "laravel/breeze": "^1.28",
         "laravel/pint": "^1.0",
         "laravel/sail": "^1.18",

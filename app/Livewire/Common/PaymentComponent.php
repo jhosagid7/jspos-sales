@@ -62,6 +62,12 @@ class PaymentComponent extends Component
     public $bankReference;
     public $bankDate;
     public $bankNote;
+    public $bankGlobalAmount; // Total Deposit Amount for Remaining Balance Logic
+
+    // Bank Validation Status
+    public $bankStatusMessage = '';
+    public $bankStatusType = '';
+    public $bankRemainingBalance = null;
 
     public $bankImage;
 
@@ -190,24 +196,6 @@ class PaymentComponent extends Component
         $this->resetPaymentForm();
     }
 
-    public function updatedBankId($value)
-    {
-        $this->isZelleSelected = false;
-        $this->isVedBankSelected = false;
-        
-        if($value) {
-            $bank = $this->banks->find($value);
-            if ($bank) {
-                if (stripos($bank->name, 'zelle') !== false) {
-                    $this->isZelleSelected = true;
-                }
-                if ($bank->currency_code === 'VED' || $bank->currency_code === 'VES') {
-                    $this->isVedBankSelected = true;
-                }
-            }
-        }
-    }
-
     public function updatedZelleSender() { $this->checkZelleStatus(); }
     public function updatedZelleDate() { $this->checkZelleStatus(); }
     public function updatedZelleAmount() { $this->checkZelleStatus(); }
@@ -324,6 +312,64 @@ class PaymentComponent extends Component
         }
     }
 
+    public function updatedBankId($value) 
+    { 
+        $this->isZelleSelected = false;
+        $this->isVedBankSelected = false;
+        
+        if($value) {
+            $bank = $this->banks->find($value);
+            if ($bank) {
+                if (stripos($bank->name, 'zelle') !== false) {
+                    $this->isZelleSelected = true;
+                }
+                if ($bank->currency_code === 'VED' || $bank->currency_code === 'VES') {
+                    $this->isVedBankSelected = true;
+                }
+            }
+        }
+        $this->checkBankStatus(); 
+        $this->lookupHistoricalRate(); 
+    }
+    public function updatedBankReference() { $this->checkBankStatus(); }
+    public function updatedBankGlobalAmount() { $this->checkBankStatus(); }
+
+    public function checkBankStatus()
+    {
+        $ref = $this->isVedBankSelected ? $this->bankReference : $this->depositNumber;
+        $amount = $this->bankGlobalAmount;
+        $bankId = $this->bankId;
+
+        if ($bankId && $ref && $amount) {
+            
+            // Check Database for BankRecord with SAME Total Amount
+            $bankRecord = \App\Models\BankRecord::where('bank_id', $bankId)
+                ->where('reference', $ref)
+                ->where('amount', $amount)
+                ->first();
+
+            if ($bankRecord) {
+                if ($bankRecord->remaining_balance <= 0.01) {
+                    $this->bankStatusMessage = "Este depósito ya fue utilizado completamente.";
+                    $this->bankStatusType = 'danger';
+                    $this->bankRemainingBalance = 0;
+                } else {
+                    $this->bankStatusMessage = "Depósito encontrado. Saldo restante: $" . number_format($bankRecord->remaining_balance, 2);
+                    $this->bankStatusType = 'success';
+                    $this->bankRemainingBalance = $bankRecord->remaining_balance;
+                }
+            } else {
+                $this->bankStatusMessage = "Nuevo Depósito (Se creará registro).";
+                $this->bankStatusType = 'success'; // Green: New
+                $this->bankRemainingBalance = $amount;
+            }
+        } else {
+            $this->bankStatusMessage = '';
+            $this->bankStatusType = '';
+            $this->bankRemainingBalance = null;
+        }
+    }
+
     public function addPayment()
     {
         $this->validate([
@@ -360,11 +406,22 @@ class PaymentComponent extends Component
                     'bankId' => 'required',
                     'bankReference' => 'required',
                     'bankDate' => 'required|date',
-                    'amount' => 'required|numeric|min:0.01', 
+                    'bankGlobalAmount' => 'required|numeric|min:0.01', // Total Deposit
+                    'amount' => 'required|numeric|min:0.01', // Amount to Use
                     'bankImage' => 'required|image|max:2048', 
                 ]);
-                $exists = \App\Models\BankRecord::where('bank_id', $this->bankId)->where('reference', $this->bankReference)->exists();
-                 if($exists) { $this->dispatch('noty', msg: 'Esta referencia bancaria ya ha sido registrada previamente.'); return; }
+                
+                $this->checkBankStatus();
+                
+                 if ($this->bankStatusType === 'danger') {
+                     $this->dispatch('noty', msg: $this->bankStatusMessage);
+                     return;
+                }
+                if ($this->bankRemainingBalance !== null && $this->amount > $this->bankRemainingBalance) {
+                    $this->dispatch('noty', msg: "El monto a usar ($" . number_format($this->amount, 2) . ") excede el saldo restante ($" . number_format($this->bankRemainingBalance, 2) . ")");
+                    return;
+                }
+
                  $duplicateInSession = collect($this->payments)->contains(function ($payment) {
                     return $payment['method'] === 'bank' && ($payment['bank_reference'] ?? '') === $this->bankReference;
                  });
@@ -428,7 +485,7 @@ class PaymentComponent extends Component
 
         $newPayment = [
             'method' => $this->isZelleSelected ? 'zelle' : $this->paymentMethod,
-            'amount' => $this->amount,
+            'amount' => $this->amount, // Amount Used
             'currency' => $currencyCode,
             'symbol' => $symbol,
             'exchange_rate' => $exchangeRate,
@@ -446,6 +503,7 @@ class PaymentComponent extends Component
             'bank_reference' => $this->bankReference,
             'bank_date' => $this->bankDate,
             'bank_note' => $this->bankNote,
+            'bank_global_amount' => $this->bankGlobalAmount, // NEW: Pass global amount
             'bank_image' => $bankImagePath,
             'bank_file_url' => $bankImagePath ? asset('storage/' . $bankImagePath) : null,
             // Add Payment Date for History/Cash

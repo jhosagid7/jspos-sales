@@ -32,4 +32,14 @@ class BankRecord extends Model
     {
         return $this->belongsTo(Bank::class);
     }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
+    
+    public function salePaymentDetails()
+    {
+        return $this->hasMany(SalePaymentDetail::class);
+    }
 }

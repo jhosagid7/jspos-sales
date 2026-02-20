@@ -144,4 +144,13 @@ return [
     'payments_method_credit' => ['name' => 'Pago Crédito', 'description' => 'Habilita el botón de pago a Crédito.'],
     'payments_method_bank' => ['name' => 'Pago Banco', 'description' => 'Habilita el botón de pago Bancario.'],
     'payments_method_nequi' => ['name' => 'Pago Nequi', 'description' => 'Habilita el botón de pago Nequi (si existe).'],
+
+    // CONSULTATION MODULES
+    'zelle_index' => ['name' => 'Ver Zelle', 'description' => 'Permite acceder al módulo de consulta de pagos Zelle.'],
+    'zelle_view_details' => ['name' => 'Ver Detalles Zelle', 'description' => 'Permite ver la foto y detalles completos del pago Zelle.'],
+    'zelle_print_pdf' => ['name' => 'Imprimir Zelle', 'description' => 'Permite generar el reporte PDF del pago Zelle.'],
+    
+    'bank_index' => ['name' => 'Ver Bancos', 'description' => 'Permite acceder al módulo de consulta de pagos Bancarios.'],
+    'bank_view_details' => ['name' => 'Ver Detalles Banco', 'description' => 'Permite ver la foto y detalles completos del pago Bancario.'],
+    'bank_print_pdf' => ['name' => 'Imprimir Banco', 'description' => 'Permite generar el reporte PDF del pago Bancario.'],
 ];
