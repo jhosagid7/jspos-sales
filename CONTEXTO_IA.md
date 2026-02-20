@@ -46,8 +46,9 @@ La IA debe leer este archivo para entender cómo trabajar en este proyecto espec
 - [Fecha]: decisión tomada...
 
 ## 6. Flujo de Trabajo y Control de Versiones (CRÍTICO)
+- **OBLIGATORIO: Revisar Workflow de Release**: Antes de ejecutar cualquier comando para "subir cambios" o hacer un "release" o "despliegue", el asistente DEBE leer el archivo `.agent/workflows/release.md` para seguir estrictamente los pasos definidos. Asumir los pasos ha llevado a omisiones (como faltar el archivo version.txt o el tag).
 - **CHANGELOG Obligatorio**: ANTES de hacer cualquier commit de release, tag, o `git push origin develop`, **SIEMPRE** se debe actualizar el archivo `CHANGELOG.md` con los cambios realizados.
-- **Recordatorio Constante**: Si el usuario pide "subir cambios" o "hacer release", el primer paso es verificar y actualizar el Changelog.
+- **Recordatorio Constante**: Si el usuario pide "subir cambios" o "hacer release", el primer paso es verificar y actualizar el Changelog de acuerdo al flujo definido.
 
 ## 7. Cambios Arquitectónicos Recientes (Protección y Optimización)
 ### 7.1. Protección contra Re-instalación Accidental
