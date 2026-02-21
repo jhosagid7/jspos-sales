@@ -59,6 +59,17 @@
                             </div>
                         </a>
                     </li>
+                    {{-- Tab 5: Notificaciones (WhatsApp) --}}
+                    <li class="nav-item mb-2">
+                        <a class="nav-link {{ $tab == 5 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                           wire:click.prevent="$set('tab',5)" href="#">
+                            <i class="fab fa-whatsapp fa-2x"></i>
+                            <div>
+                                <h6 class="mb-0">Notificaciones</h6>
+                                <small class="{{ $tab == 5 ? 'text-white' : 'text-muted' }}">Mensajes por WhatsApp</small>
+                            </div>
+                        </a>
+                    </li>
                 </ul>
             </div>
 
@@ -368,6 +379,48 @@
                                 <div class="col-sm-12 mt-4">
                                     <div class="alert alert-warning">
                                         <i class="fa fa-info-circle"></i> <strong>Nota:</strong> Si no configura estos valores, se usará la configuración del vendedor asignado. Si el vendedor tampoco tiene configuración, se usará la configuración global del sistema.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Tab 5: Notificaciones WhatsApp --}}
+                    <div class="tab-pane fade {{ $tab == 5 ? 'active show' : '' }}" role="tabpanel">
+                        <div class="sidebar-body">
+                            <div class="row g-2">
+                                <div class="col-sm-12">
+                                    <h6 class="text-success mb-3">
+                                        <i class="fab fa-whatsapp"></i> Ajustes de Notificaciones
+                                    </h6>
+                                    <p class="text-muted small">Seleccione qué notificaciones automáticas desea enviar a este cliente vía WhatsApp.</p>
+                                </div>
+
+                                <div class="col-sm-12 mt-3">
+                                    <div class="form-check form-switch form-switch-lg">
+                                        <input wire:model="customer.whatsapp_notify_sales" class="form-check-input form-check-input-success" type="checkbox" id="waNotifySales">
+                                        <label class="form-check-label" for="waNotifySales">
+                                            <strong>Notificar Ventas</strong>
+                                            <small class="d-block text-muted">Enviar recibo de venta cuando se crea un nuevo comprobante o pedido.</small>
+                                        </label>
+                                    </div>
+                                    @error('customer.whatsapp_notify_sales') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+
+                                <div class="col-sm-12 mt-4">
+                                    <div class="form-check form-switch form-switch-lg">
+                                        <input wire:model="customer.whatsapp_notify_payments" class="form-check-input form-check-input-success" type="checkbox" id="waNotifyPayments">
+                                        <label class="form-check-label" for="waNotifyPayments">
+                                            <strong>Notificar Abonos / Pagos</strong>
+                                            <small class="d-block text-muted">Enviar estado de cuenta cuando se registra o aprueba un nuevo pago.</small>
+                                        </label>
+                                    </div>
+                                    @error('customer.whatsapp_notify_payments') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+                                
+                                <div class="col-sm-12 mt-4">
+                                    <div class="alert alert-info">
+                                        <i class="fa fa-info-circle"></i> <strong>Importante:</strong> Si el cliente no tiene un número de teléfono válido registrado en la pestaña "Información General", los mensajes serán enviados al Vendedor asignado.
                                     </div>
                                 </div>
                             </div>

@@ -11,13 +11,19 @@ use Illuminate\Support\Facades\Event;
 class EventServiceProvider extends ServiceProvider
 {
     /**
-     * The event to listener mappings for the application.
+     * The event string[] / class[] mappings for the application.
      *
      * @var array<class-string, array<int, class-string>>
      */
     protected $listen = [
         Registered::class => [
             SendEmailVerificationNotification::class,
+        ],
+        \App\Events\SaleCreated::class => [
+            \App\Listeners\WhatsappNotificationListener::class,
+        ],
+        \App\Events\PaymentReceived::class => [
+            \App\Listeners\WhatsappNotificationListener::class,
         ],
         'Illuminate\Auth\Events\Login' => [
             'App\Listeners\LoginSuccess',

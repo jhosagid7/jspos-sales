@@ -161,6 +161,20 @@ Route::middleware('auth')->group(function () {
     Route::get('backups', \App\Livewire\Settings\Backups::class)->name('backups')->middleware('can:settings.backups');
     Route::get('backups/download/{fileName}', [\App\Http\Controllers\BackupController::class, 'download'])->name('backups.download')->middleware('can:settings.backups');
     Route::get('devices', \App\Livewire\Settings\DeviceManager::class)->name('devices')->middleware('can:settings.index');
+    
+    // WhatsApp
+    Route::get('settings/whatsapp', \App\Livewire\Settings\WhatsappSettings::class)->name('settings.whatsapp')->middleware('can:settings.index');
+    Route::get('settings/whatsapp-outbox', \App\Livewire\Settings\WhatsappOutbox::class)->name('settings.whatsapp_outbox')->middleware('can:settings.index');
+    
+    Route::get('whatsapp/download-pdf/{msgId}', function($msgId) {
+        $msg = \App\Models\WhatsappMessage::findOrFail($msgId);
+        
+        if ($msg->attachment_path && file_exists($msg->attachment_path)) {
+            return response()->file($msg->attachment_path);
+        }
+        
+        abort(404, 'PDF no encontrado o ya fue eliminado del servidor.');
+    })->name('whatsapp.download-pdf');
 
     // Delivery Routes
     Route::get('driver/dashboard', \App\Livewire\DriverDashboard::class)->name('driver.dashboard'); // Maybe add permission?

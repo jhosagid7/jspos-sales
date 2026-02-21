@@ -445,6 +445,18 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a href="{{ route('settings.whatsapp') }}" class="nav-link {{ Request::is('settings/whatsapp*') && !Request::is('settings/whatsapp-outbox*') ? 'active' : '' }}">
+                                <i class="fab fa-whatsapp nav-icon"></i>
+                                <p>WhatsApp Config</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('settings.whatsapp_outbox') }}" class="nav-link {{ Request::is('settings/whatsapp-outbox*') ? 'active' : '' }}">
+                                <i class="fas fa-inbox nav-icon"></i>
+                                <p>WhatsApp Bandeja</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a href="javascript:void(0)" onclick="Livewire.dispatch('trigger-license-modal')" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Licencia</p>

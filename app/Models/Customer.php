@@ -30,6 +30,9 @@ class Customer extends Model
         'credit_days',
         'credit_limit',
         'usd_payment_discount',
+        // WhatsApp configuration fields
+        'whatsapp_notify_sales',
+        'whatsapp_notify_payments',
     ];
 
     protected $casts = [
@@ -37,6 +40,8 @@ class Customer extends Model
         'credit_days' => 'integer',
         'credit_limit' => 'decimal:2',
         'usd_payment_discount' => 'decimal:2',
+        'whatsapp_notify_sales' => 'boolean',
+        'whatsapp_notify_payments' => 'boolean',
     ];
 
     function sales()

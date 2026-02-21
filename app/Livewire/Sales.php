@@ -3282,6 +3282,9 @@ class Sales extends Component
                 \App\Services\CommissionService::calculateCommission($sale);
             }
 
+            // Dispatch WhatsApp Notification Event
+            event(new \App\Events\SaleCreated($sale));
+
             // Limpiar la variable de sesión
             session()->forget('payments');
 

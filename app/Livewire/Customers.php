@@ -35,7 +35,10 @@ class Customers extends Component
         'customerCommission1Threshold' => 'nullable|numeric',
         'customerCommission1Percentage' => 'nullable|numeric',
         'customerCommission2Threshold' => 'nullable|numeric',
+        'customerCommission2Threshold' => 'nullable|numeric',
         'customerCommission2Percentage' => 'nullable|numeric',
+        'customer.whatsapp_notify_sales' => 'nullable|boolean',
+        'customer.whatsapp_notify_payments' => 'nullable|boolean',
     ];
 
     protected $messages = [
@@ -58,6 +61,8 @@ class Customers extends Component
         $this->customer = new Customer();
         $this->customer->type = 0;
         $this->customer->seller_id = 0;
+        $this->customer->whatsapp_notify_sales = true;
+        $this->customer->whatsapp_notify_payments = true;
         $this->resetCommissionFields();
         $this->editing = false;
 
@@ -103,6 +108,8 @@ class Customers extends Component
         $this->resetExcept('customer');
         $this->customer = new Customer();
         $this->customer->seller_id = 0;
+        $this->customer->whatsapp_notify_sales = true;
+        $this->customer->whatsapp_notify_payments = true;
         $this->tab = 1; // Reset to first tab
         $this->resetCommissionFields();
         $this->editing = true;
@@ -158,9 +165,15 @@ class Customers extends Component
         $this->customer->customer_commission_2_percentage = $this->customerCommission2Percentage;
 
         // Ensure credit fields are saved (checkboxes need explicit handling)
-        // If allow_credit is not set, it means checkbox is unchecked, so set to false
+        // Ensure boolean fields are saved correctly (checkboxes send false if unchecked or omit if disabled)
         if (!isset($this->customer->allow_credit)) {
             $this->customer->allow_credit = false;
+        }
+        if (!isset($this->customer->whatsapp_notify_sales)) {
+            $this->customer->whatsapp_notify_sales = false;
+        }
+        if (!isset($this->customer->whatsapp_notify_payments)) {
+            $this->customer->whatsapp_notify_payments = false;
         }
 
         // save model
@@ -197,6 +210,8 @@ class Customers extends Component
             $this->customer = new Customer();
             $this->customer->type = 0;
             $this->customer->seller_id = 0;
+            $this->customer->whatsapp_notify_sales = true;
+            $this->customer->whatsapp_notify_payments = true;
             $this->resetCommissionFields();
             $this->tab = 1;
         }
