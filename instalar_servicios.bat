@@ -9,7 +9,17 @@ set "PROYECTO_DIR=C:\laragon\www\jspos-sales"
 set "NSSM_EXE=%PROYECTO_DIR%\nssm\nssm.exe"
 
 set "NODE_EXE=node"
-set "PHP_EXE=php"
+
+:: Detectar automaticamente la ruta completa de php.exe (importante cuando Laragon no esta en el PATH global)
+for /f "delims=" %%i in ('where php 2^>nul') do set "PHP_EXE=%%i" & goto :php_found
+echo.
+echo [ERROR] No se encontro php.exe en el PATH del sistema.
+echo Por favor, corre este script desde el Laragon Terminal o agrega PHP al PATH de Windows.
+echo Ruta tipica de Laragon: C:\laragon\bin\php\phpX.X.X\php.exe
+pause
+exit /b 1
+:php_found
+echo PHP encontrado en: %PHP_EXE%
 
 echo Deteniendo servicios antiguos si existen...
 "%NSSM_EXE%" stop JSPOS_WhatsApp_API >nul 2>&1

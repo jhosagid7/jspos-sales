@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.8.23] - 2026-02-23
+### Fixed
+- **Service Installer**:
+  - **Queue Worker Stuck**: Fixed `instalar_servicios.bat` where the `JSPOS_Queue_Worker` Windows service would fail silently because `php` was referenced as a generic command. NSSM-managed services don't inherit Laragon's PATH, so `php.exe` was never found. The script now auto-detects the full path to `php.exe` using `where php` at install-time and passes the absolute path to NSSM.
+  - **Clear Error Message**: Added a user-friendly error message if PHP is not found in the PATH, with a suggestion to run the script from the Laragon Terminal.
+
 ## [1.8.22] - 2026-02-23
 ### Added
 - **User Management**:
