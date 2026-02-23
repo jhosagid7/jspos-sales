@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.8.25] - 2026-02-23
+### Fixed
+- **Auto-Updater**:
+  - **NSSM Locked File Error**: Fixed `copy(...nssm.exe) failed to open stream` error during system updates. The `nssm/` binary directory, `whatsapp-api/` Node service, and `instalar_servicios.bat` are now excluded from GitHub release ZIPs via `.gitattributes export-ignore`. These files are not needed during an app update and were causing Windows file lock errors because NSSM services were running.
+
 ## [1.8.24] - 2026-02-23
 ### Fixed
 - **Users Module**:

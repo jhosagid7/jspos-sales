@@ -9,3 +9,9 @@
 /.github export-ignore
 
 .styleci.yml export-ignore
+
+# Exclude binaries and Node services from release ZIPs
+# (nssm.exe is locked by Windows when services are running, causing copy errors during update)
+/nssm export-ignore
+/whatsapp-api export-ignore
+/instalar_servicios.bat export-ignore
