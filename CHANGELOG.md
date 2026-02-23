@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.8.24] - 2026-02-23
+### Fixed
+- **Users Module**:
+  - **Livewire Binding Error**: Fixed `CannotBindToModelDataWithoutValidationRuleException` for `user.phone`, `user.taxpayer_id`, and `user.address`. The fields were defined in the `Store()` method's local `$rules` variable but were missing from the class-level `$rules` property, which Livewire requires to allow `wire:model` binding on Eloquent model fields.
+
 ## [1.8.23] - 2026-02-23
 ### Fixed
 - **Service Installer**:
