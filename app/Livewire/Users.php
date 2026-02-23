@@ -54,6 +54,11 @@ class Users extends Component
         'user.seller_credit_limit' => 'nullable|numeric|min:0',
         'user.seller_usd_payment_discount' => 'nullable|numeric|min:0|max:100',
         'user.sales_view_mode' => 'nullable|in:grid,list',
+
+        // Contact Fields
+        'user.phone' => 'nullable|max:25',
+        'user.taxpayer_id' => 'nullable|max:45',
+        'user.address' => 'nullable|max:255',
     ];
 
     protected $messages = [
