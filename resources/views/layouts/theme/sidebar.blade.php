@@ -96,6 +96,7 @@
                     </a>
                 </li>
                 @endcan
+                @module('module_delivery')
                 @can('distribution.map')
                 <li class="nav-item">
                     <a href="{{ route('delivery.map') }}" class="nav-link {{ Request::is('delivery/map') ? 'active' : '' }}">
@@ -104,6 +105,7 @@
                     </a>
                 </li>
                 @endcan
+                @endmodule
                 @can('cash_register.close')
                 <li class="nav-item">
                     <a href="{{ route('cash-register.close') }}" class="nav-link {{ Request::is('cash-register/close') ? 'active' : '' }}">
@@ -113,6 +115,7 @@
                 </li>
                 @endcan
 
+                @module('module_purchases')
                 @can('purchases.index')
                 <li class="nav-item">
                     <a href="#" class="nav-link">
@@ -138,6 +141,7 @@
                     </ul>
                 </li>
                 @endcan
+                @endmodule
 
                 @canany(['users.index', 'roles.index', 'permissions.assign'])
                 <li class="nav-item">
@@ -157,6 +161,7 @@
                             </a>
                         </li>
                         @endcan
+                        @module('module_roles')
                         @can('roles.index')
                         <li class="nav-item">
                             <a href="{{ route('roles') }}" class="nav-link">
@@ -173,6 +178,7 @@
                             </a>
                         </li>
                         @endcan
+                        @endmodule
                     </ul>
                 </li>
                 @endcan
@@ -223,6 +229,7 @@
                 </li>
                 @endcan
                 
+                @module('module_advanced_payments')
                 @canany(['zelle_index', 'bank_index'])
                 <li class="nav-item">
                     <a href="#" class="nav-link">
@@ -252,6 +259,7 @@
                     </ul>
                 </li>
                 @endcan
+                @endmodule
 
                 @canany(['reports.sales', 'reports.purchases', 'reports.financial', 'reports.stock'])
                 <li class="nav-item">
@@ -277,6 +285,7 @@
                             </a>
                         </li>
                         @endcan
+                        @module('module_purchases')
                         @can('reports.purchases')
                         <li class="nav-item">
                             <a href="{{ route('reports.purchases') }}" class="nav-link">
@@ -285,6 +294,8 @@
                             </a>
                         </li>
                         @endcan
+                        @endmodule
+                        @module('module_credits')
                         @can('reports.financial')
                         <li class="nav-item">
                             <a href="{{ route('reports.accounts.receivable') }}" class="nav-link">
@@ -293,6 +304,8 @@
                             </a>
                         </li>
                         @endcan
+                        @endmodule
+                        @module('module_purchases')
                         @can('reports.financial')
                         <li class="nav-item">
                             <a href="{{ route('reports.accounts.payables') }}" class="nav-link">
@@ -301,6 +314,8 @@
                             </a>
                         </li>
                         @endcan
+                        @endmodule
+                        @module('module_credits')
                         @can('reports.sales')
                         <li class="nav-item">
                             <a href="{{ route('reports.payment.relationship') }}" class="nav-link">
@@ -309,6 +324,7 @@
                             </a>
                         </li>
                         @endcan
+                        @endmodule
                         @can('cash_register.close')
                         <li class="nav-item">
                             <a href="{{ route('cash.count') }}" class="nav-link">
@@ -323,16 +339,19 @@
                                 <p>Más Vendidos</p>
                             </a>
                         </li>
+                        @module('module_advanced_reports')
                         <li class="nav-item">
                             <a href="{{ route('reports.rotation') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Rotación</p>
                             </a>
                         </li>
+                        @endmodule
                     </ul>
                 </li>
                 @endcan
 
+                @module('module_commissions')
                 @can('reports.commissions')
                 <li class="nav-item">
                     <a href="{{ route('commissions') }}" class="nav-link {{ Request::is('commissions') ? 'active' : '' }}">
@@ -341,7 +360,9 @@
                     </a>
                 </li>
                 @endcan
+                @endmodule
 
+                @module('module_labels')
                 @can('products.labels')
                 <li class="nav-item">
                     <a href="{{ route('labels.index') }}" class="nav-link {{ Request::is('labels') ? 'active' : '' }}">
@@ -350,7 +371,9 @@
                     </a>
                 </li>
                 @endcan
+                @endmodule
 
+                @module('module_production')
                 @can('production.index')
                 <li class="nav-item">
                     <a href="{{ route('production.index') }}" class="nav-link {{ Request::is('production*') ? 'active' : '' }}">
@@ -359,6 +382,7 @@
                     </a>
                 </li>
                 @endcan
+                @endmodule
 
                 @can('inventory.index')
                 <li class="nav-item">
@@ -388,6 +412,7 @@
                                 <p>Descargos / Salidas</p>
                             </a>
                         </li>
+                        @module('module_multi_warehouse')
                         <li class="nav-item">
                             <a href="{{ route('warehouses') }}" class="nav-link {{ Request::is('warehouses') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
@@ -406,6 +431,7 @@
                                 <p>Requisición</p>
                             </a>
                         </li>
+                        @endmodule
                     </ul>
                 </li>
                 @endcan
@@ -426,30 +452,60 @@
                                 <p>Configuración</p>
                             </a>
                         </li>
+                        @module('module_updates')
+                        @can('settings.update')
                         <li class="nav-item">
                             <a href="{{ route('updates') }}" class="nav-link {{ Request::is('updates') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Actualizaciones</p>
                             </a>
                         </li>
+                        @endcan
+                        @endmodule
+                        @module('module_backups')
+                        @can('settings.backups')
                         <li class="nav-item">
                             <a href="{{ route('backups') }}" class="nav-link {{ Request::is('backups') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Copias de Seguridad</p>
                             </a>
                         </li>
+                        @endcan
+                        @endmodule
                         <li class="nav-item">
                             <a href="{{ route('devices') }}" class="nav-link {{ Request::is('devices') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Dispositivos</p>
                             </a>
                         </li>
+                        @module('module_whatsapp')
+                        <li class="nav-item">
+                            <a href="{{ route('settings.whatsapp') }}" class="nav-link {{ Request::is('settings/whatsapp*') && !Request::is('settings/whatsapp-outbox*') ? 'active' : '' }}">
+                                <i class="fab fa-whatsapp nav-icon"></i>
+                                <p>WhatsApp Config</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('settings.whatsapp_outbox') }}" class="nav-link {{ Request::is('settings/whatsapp-outbox*') ? 'active' : '' }}">
+                                <i class="fas fa-inbox nav-icon"></i>
+                                <p>WhatsApp Bandeja</p>
+                            </a>
+                        </li>
+                        @endmodule
                         <li class="nav-item">
                             <a href="javascript:void(0)" onclick="Livewire.dispatch('trigger-license-modal')" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Licencia</p>
                             </a>
                         </li>
+                        @role('Super Admin')
+                        <li class="nav-item">
+                            <a href="{{ route('settings.license_generator') }}" class="nav-link {{ Request::is('settings/license-generator*') ? 'active' : '' }}">
+                                <i class="fas fa-key nav-icon"></i>
+                                <p>SaaS Generador</p>
+                            </a>
+                        </li>
+                        @endrole
                     </ul>
                 </li>
                 @endcan

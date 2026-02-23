@@ -36,3 +36,9 @@ reset_system.php
 
 # Agent configuration
 .agent/workflows/release_process.md
+
+# WhatsApp API
+/whatsapp-api/node_modules
+/whatsapp-api/sessions
+/whatsapp-api/.puppeteer_cache*
+/whatsapp-api/storage/logs

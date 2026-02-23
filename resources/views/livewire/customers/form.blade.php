@@ -25,6 +25,7 @@
                         </a>
                     </li>
                     {{-- Tab 2: Configuración Comercial --}}
+                    @module('module_commissions')
                     <li class="nav-item mb-2">
                         <a class="nav-link {{ $tab == 2 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                            wire:click.prevent="$set('tab',2)" href="#">
@@ -35,6 +36,7 @@
                             </div>
                         </a>
                     </li>
+                    @endmodule
                     {{-- Tab 3: Historial de Ventas (Solo en edición) --}}
                     @if($editing && $customer->id > 0)
                     <li class="nav-item mb-2">
@@ -49,6 +51,7 @@
                     </li>
                     @endif
                     {{-- Tab 4: Configuración de Crédito --}}
+                    @module('module_credits')
                     <li class="nav-item mb-2">
                         <a class="nav-link {{ $tab == 4 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                            wire:click.prevent="$set('tab',4)" href="#">
@@ -59,6 +62,20 @@
                             </div>
                         </a>
                     </li>
+                    @endmodule
+                    {{-- Tab 5: Notificaciones (WhatsApp) --}}
+                    @module('module_whatsapp')
+                    <li class="nav-item mb-2">
+                        <a class="nav-link {{ $tab == 5 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                           wire:click.prevent="$set('tab',5)" href="#">
+                            <i class="fab fa-whatsapp fa-2x"></i>
+                            <div>
+                                <h6 class="mb-0">Notificaciones</h6>
+                                <small class="{{ $tab == 5 ? 'text-white' : 'text-muted' }}">Mensajes por WhatsApp</small>
+                            </div>
+                        </a>
+                    </li>
+                    @endmodule
                 </ul>
             </div>
 
@@ -100,24 +117,13 @@
                                     <input wire:model="customer.email" class="form-control" type="email" placeholder="correo@ejemplo.com">
                                     @error('customer.email') <span class="text-danger">{{ $message }}</span> @enderror
                                 </div>
-                                <div class="col-sm-6 mt-3">
-                                    <label class="form-label">Tipo <span class="txt-danger">*</span></label>
-                                    <select class="form-control" wire:model="customer.type">
-                                        <option value="0" selected disabled>Seleccionar</option>
-                                        <option value="Minorista">Minorista</option>
-                                        <option value="Mayoristas">Mayoristas</option>
-                                        <option value="Consumidor Final">Consumidor Final</option>
-                                        <option value="Descuento1">Descuento1</option>
-                                        <option value="Descuento2">Descuento2</option>
-                                        <option value="Otro">Otro</option>
-                                    </select>
-                                    @error('customer.type') <span class="text-danger">{{ $message }}</span> @enderror
-                                </div>
+
                             </div>
                         </div>
                     </div>
 
                     {{-- Tab 2: Configuración Comercial --}}
+                    @module('module_commissions')
                     <div class="tab-pane fade {{ $tab == 2 ? 'active show' : '' }}" role="tabpanel">
                         <div class="sidebar-body">
                             <div class="row g-2">
@@ -161,6 +167,7 @@
                             </div>
                         </div>
                     </div>
+                    @endmodule
 
                     {{-- Tab 3: Historial de Ventas --}}
                     @if($editing && $customer->id > 0)
@@ -240,6 +247,7 @@
                     @endif
 
                     {{-- Tab 4: Configuración de Crédito --}}
+                    @module('module_credits')
                     <div class="tab-pane fade {{ $tab == 4 ? 'active show' : '' }}" role="tabpanel">
                         <div class="sidebar-body">
                             <div class="row g-2">
@@ -373,6 +381,51 @@
                             </div>
                         </div>
                     </div>
+                    @endmodule
+
+                    {{-- Tab 5: Notificaciones WhatsApp --}}
+                    @module('module_whatsapp')
+                    <div class="tab-pane fade {{ $tab == 5 ? 'active show' : '' }}" role="tabpanel">
+                        <div class="sidebar-body">
+                            <div class="row g-2">
+                                <div class="col-sm-12">
+                                    <h6 class="text-success mb-3">
+                                        <i class="fab fa-whatsapp"></i> Ajustes de Notificaciones
+                                    </h6>
+                                    <p class="text-muted small">Seleccione qué notificaciones automáticas desea enviar a este cliente vía WhatsApp.</p>
+                                </div>
+
+                                <div class="col-sm-12 mt-3">
+                                    <div class="form-check form-switch form-switch-lg">
+                                        <input wire:model="customer.whatsapp_notify_sales" class="form-check-input form-check-input-success" type="checkbox" id="waNotifySales">
+                                        <label class="form-check-label" for="waNotifySales">
+                                            <strong>Notificar Ventas</strong>
+                                            <small class="d-block text-muted">Enviar recibo de venta cuando se crea un nuevo comprobante o pedido.</small>
+                                        </label>
+                                    </div>
+                                    @error('customer.whatsapp_notify_sales') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+
+                                <div class="col-sm-12 mt-4">
+                                    <div class="form-check form-switch form-switch-lg">
+                                        <input wire:model="customer.whatsapp_notify_payments" class="form-check-input form-check-input-success" type="checkbox" id="waNotifyPayments">
+                                        <label class="form-check-label" for="waNotifyPayments">
+                                            <strong>Notificar Abonos / Pagos</strong>
+                                            <small class="d-block text-muted">Enviar estado de cuenta cuando se registra o aprueba un nuevo pago.</small>
+                                        </label>
+                                    </div>
+                                    @error('customer.whatsapp_notify_payments') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+                                
+                                <div class="col-sm-12 mt-4">
+                                    <div class="alert alert-info">
+                                        <i class="fa fa-info-circle"></i> <strong>Importante:</strong> Si el cliente no tiene un número de teléfono válido registrado en la pestaña "Información General", los mensajes serán enviados al Vendedor asignado.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endmodule
 
                 </div>
             </div>

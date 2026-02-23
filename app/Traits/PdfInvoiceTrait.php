@@ -225,6 +225,124 @@ trait PdfInvoiceTrait
         }
     }
 
+    public function getSavedPdfInvoicePathPaid(Sale $sale, $customFilename)
+    {
+        try {
+            $config = Configuration::first();
+
+            if ($config) {
+                $seller = new Party([
+                    'name'          => $config->business_name,
+                    'CC/NIT'           => $config->taxpayer_id,
+                    'address'       => $config->address,
+                    'city'           => $config->city,
+                    'phone'         => $sale->customer->phone,
+
+                    'custom_fields' => [
+                        'email'         => $sale->customer->email,
+                        'vendedor'        => $sale->user->name,
+                        'footer_code'    => $this->getInvoiceFooterData($sale)['footer_code'],
+                        'footer_data'    => $this->getInvoiceFooterData($sale)
+                    ],
+                ]);
+
+                $customer = new Party([
+                    'name'          => $sale->customer->name,
+                    'custom_fields' => [
+                        'CC/NIT'           => $sale->customer->taxpayer_id,
+                        'address'       => $sale->customer->address,
+                        'city'           => $sale->customer->city,
+                        'phone'         => $sale->customer->phone,
+                        'email'         => $sale->customer->email,
+                    ],
+                ]);
+
+                $totalFreight = 0;
+                $totalTax = 0;
+                $totalBaseAccumulator = 0;
+                $isBrokenDown = $sale->is_freight_broken_down;
+
+                $commPercent = $sale->applied_commission_percent ?? 0;
+                $diffPercent = $sale->applied_exchange_diff_percent ?? 0;
+                $combinedPercent = ($commPercent + $diffPercent) / 100;
+
+                foreach ($sale->details as $detail) {
+                    if ($isBrokenDown) {
+                        $unitPrice = $detail->sale_price;
+                        $items[] = InvoiceItem::make($detail->product->name)
+                            ->reference($detail->product->sku ? $detail->product->sku : '')
+                            ->pricePerUnit($unitPrice)
+                            ->quantity($detail->quantity);
+                        $totalFreight += $detail->freight_amount;
+                        $totalBaseAccumulator += ($unitPrice * $detail->quantity);
+                    } else {
+                        $unitPrice = $detail->sale_price;
+                        $items[] = InvoiceItem::make($detail->product->name)
+                            ->reference($detail->product->sku ? $detail->product->sku : '')
+                            ->pricePerUnit($unitPrice)
+                            ->quantity($detail->quantity);
+                        $totalBaseAccumulator += ($unitPrice * $detail->quantity);
+                    }
+                }
+                
+                $notes = [$sale->notes];
+                $notes = implode("<br>", $notes);
+
+                $credit_days = $sale->type == 'credit' ? $config->credit_days : 0;
+
+                $currencySymbol = '$';
+                $currencyCode = 'USD';
+                
+                if ($sale->primary_currency_code) {
+                    $currencySymbol = \App\Helpers\CurrencyHelper::getSymbol($sale->primary_currency_code);
+                    $currencyCode = $sale->primary_currency_code;
+                } else {
+                    $primary = \App\Helpers\CurrencyHelper::getPrimaryCurrency();
+                    if ($primary) {
+                        $currencySymbol = $primary->symbol;
+                        $currencyCode = $primary->code;
+                    }
+                }
+
+                $logoPath = $config->logo ? public_path('storage/' . $config->logo) : public_path('logo/logo.jpg');
+                if (!file_exists($logoPath)) $logoPath = null;
+
+                $invoice = Invoice::make($config->business_name)->template('invoice-paid-short')
+                    ->series('remision_numero')
+                    ->status(__('invoices::invoice.paid'))
+                    ->sequence($sale->id)
+                    ->serialNumberFormat('{SEQUENCE}')
+                    ->seller($seller)
+                    ->buyer($customer)
+                    ->dateFormat('d-M-Y')
+                    ->payUntilDays($credit_days)
+                    ->currencySymbol($currencySymbol)
+                    ->currencyCode($currencyCode)
+                    ->currencyDecimals(ConfigurationService::getDecimalPlaces())
+                    ->currencyFormat('{SYMBOL}{VALUE}')
+                    ->currencyThousandsSeparator('.')
+                    ->currencyDecimalPoint(',')
+                    ->filename($customFilename)
+                    ->addItems($items)
+                    ->notes($notes)
+                    ->logo($logoPath ?? '');
+
+                if ($totalBaseAccumulator > 0) $invoice->taxableAmount($totalBaseAccumulator);
+                if ($isBrokenDown) {
+                    if ($totalFreight > 0) $invoice->shipping($totalFreight); 
+                    if ($totalTax > 0) $invoice->totalTaxes($totalTax);
+                }
+
+                $invoice->save('public');
+                return storage_path('app/public/' . $customFilename . '.pdf');
+            }
+        } catch (\Exception $th) {
+            Log::error("Error generating local PAID invoice for Sale ID: {$sale->id}: " . $th->getMessage());
+        }
+        return null;
+    }
+
+
     public function generatePdfInvoicePending($sale)
     {
         try {
@@ -380,6 +498,134 @@ trait PdfInvoiceTrait
             Log::error("Error generating PENDING invoice for Sale ID: {$sale->id}: " . $th->getMessage());
             return response()->json(['error' => 'Error generating PDF: ' . $th->getMessage()], 500);
         }
+    }
+
+    public function getSavedPdfInvoicePathPending(Sale $sale, $customFilename)
+    {
+        try {
+            $config = Configuration::first();
+
+            if ($config) {
+                $seller = new Party([
+                    'name'          => $config->business_name,
+                    'CC/NIT'           => $config->taxpayer_id,
+                    'address'       => $config->address,
+                    'city'           => $config->city,
+                    'phone'         => $sale->customer->phone,
+
+                    'custom_fields' => [
+                        'email'         => $sale->customer->email,
+                        'vendedor'        => $sale->user->name,
+                        'footer_code'    => $this->getInvoiceFooterData($sale)['footer_code'],
+                        'footer_data'    => $this->getInvoiceFooterData($sale)
+                    ],
+                ]);
+
+                $customer = new Party([
+                    'name'          => $sale->customer->name,
+                    'custom_fields' => [
+                        'CC/NIT'           => $sale->customer->taxpayer_id,
+                        'address'       => $sale->customer->address,
+                        'city'           => $sale->customer->city,
+                        'phone'         => $sale->customer->phone,
+                        'email'         => $sale->customer->email,
+                    ],
+                ]);
+
+                $items = [];
+                $totalFreight = 0;
+                $totalTax = 0;
+                $isBrokenDown = $sale->is_freight_broken_down;
+
+                $commPercent = $sale->applied_commission_percent ?? 0;
+                $diffPercent = $sale->applied_exchange_diff_percent ?? 0;
+                $combinedPercent = ($commPercent + $diffPercent) / 100;
+
+                foreach ($sale->details as $detail) {
+                    if ($isBrokenDown) {
+                        $lineTotal = $detail->quantity * $detail->sale_price;
+                        $lineFreight = $detail->freight_amount; 
+                        
+                        $cleanTotal = max(0, $lineTotal - $lineFreight);
+                        $baseTotal = $cleanTotal / (1 + $combinedPercent);
+                        $unitPrice = ($detail->quantity > 0) ? ($baseTotal / $detail->quantity) : 0;
+                        
+                        $taxAmountLine = $baseTotal * $combinedPercent;
+
+                        $item = InvoiceItem::make($detail->product->name)
+                            ->reference($detail->product->sku ? $detail->product->sku : '')
+                            ->pricePerUnit($unitPrice)
+                            ->quantity($detail->quantity);
+                        
+                        $items[] = $item;
+                         
+                        $totalFreight += $lineFreight;
+                        $totalTax += $taxAmountLine;
+
+                    } else {
+                        $items[] = InvoiceItem::make($detail->product->name)
+                            ->reference($detail->product->sku ? $detail->product->sku : '')
+                            ->pricePerUnit($detail->sale_price)
+                            ->quantity($detail->quantity);
+                    }
+                }
+                
+                $sumDetailsTotal = $sale->details->sum(function($d) { return $d->quantity * $d->sale_price; });
+                $globalFreight = max(0, $sale->total - $sumDetailsTotal);
+                
+                if ($globalFreight > 0) {
+                     $totalFreight += $globalFreight;
+                }
+
+                $notes = [$sale->notes];
+                $notes = implode("<br>", $notes);
+
+                $credit_days = $sale->type == 'credit' ? $config->credit_days : 0;
+
+                $currencySymbol = '$';
+                $currencyCode = 'USD';
+                
+                if ($sale->primary_currency_code) {
+                    $currencySymbol = \App\Helpers\CurrencyHelper::getSymbol($sale->primary_currency_code);
+                    $currencyCode = $sale->primary_currency_code;
+                } else {
+                    $primary = \App\Helpers\CurrencyHelper::getPrimaryCurrency();
+                    if ($primary) {
+                        $currencySymbol = $primary->symbol;
+                        $currencyCode = $primary->code;
+                    }
+                }
+
+                $logoPath = $config->logo ? public_path('storage/' . $config->logo) : public_path('logo/logo.jpg');
+                if (!file_exists($logoPath)) $logoPath = null;
+
+                $invoice = Invoice::make($config->business_name)->template('invoice-credit-short')
+                    ->series('remision_numero')
+                    ->status(__('invoices::invoice.credit'))
+                    ->sequence($sale->id)
+                    ->serialNumberFormat('{SEQUENCE}')
+                    ->seller($seller)
+                    ->buyer($customer)
+                    ->dateFormat('d-M-Y')
+                    ->payUntilDays($credit_days)
+                    ->currencySymbol($currencySymbol)
+                    ->currencyCode($currencyCode)
+                    ->currencyDecimals(ConfigurationService::getDecimalPlaces())
+                    ->currencyFormat('{SYMBOL}{VALUE}')
+                    ->currencyThousandsSeparator('.')
+                    ->currencyDecimalPoint(',')
+                    ->filename($customFilename)
+                    ->addItems($items)
+                    ->notes($notes)
+                    ->logo($logoPath ?? '')
+                    ->save('public');
+
+                return storage_path('app/public/' . $customFilename . '.pdf');
+            }
+        } catch (\Exception $th) {
+            Log::error("Error generating local PENDING invoice for Sale ID: {$sale->id}: " . $th->getMessage());
+        }
+        return null;
     }
 
 

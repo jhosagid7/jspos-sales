@@ -363,6 +363,11 @@ class Sales extends Component
     {
         // PAGO A CRÉDITO
         if ($this->selectedPaymentMethod === 'credit') {
+            if (!in_array('module_credits', session('tenant.modules', []))) {
+                $this->dispatch('noty', msg: 'ACCESO DENEGADO: Módulo de Créditos no activo.');
+                return;
+            }
+
             // Validar que el cliente tenga crédito habilitado
             if (!isset($this->creditConfig['allow_credit']) || !$this->creditConfig['allow_credit']) {
                 $this->dispatch('noty', msg: 'El cliente no tiene crédito habilitado');
@@ -458,6 +463,11 @@ class Sales extends Component
 
     public function addPagoMovilPayment()
     {
+        if (!in_array('module_advanced_payments', session('tenant.modules', []))) {
+            $this->dispatch('noty', msg: 'ACCESO DENEGADO: Módulo de pagos avanzados no activo.');
+            return;
+        }
+
         $this->payments[] = [
             'method' => 'pago_movil',
             'amount' => $this->pagoMovilAmount,
@@ -482,6 +492,11 @@ class Sales extends Component
 
     public function addZellePayment()
     {
+        if (!in_array('module_advanced_payments', session('tenant.modules', []))) {
+            $this->dispatch('noty', msg: 'ACCESO DENEGADO: Módulo de pagos avanzados no activo.');
+            return;
+        }
+
         $this->validate([
             'zelleAmount' => 'required|numeric|min:0.01',
             'zelleDate' => 'required|date',
@@ -3281,6 +3296,9 @@ class Sales extends Component
             if ($sale->status == 'paid') {
                 \App\Services\CommissionService::calculateCommission($sale);
             }
+
+            // Dispatch WhatsApp Notification Event
+            event(new \App\Events\SaleCreated($sale));
 
             // Limpiar la variable de sesión
             session()->forget('payments');

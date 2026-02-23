@@ -224,7 +224,7 @@
                                                                         </div>
                                                                     @endif
                                                                 @endif
-                                                                <span class="text-muted ml-1">| Stock: {{ Auth::user()->can('sales.switch_warehouse') ? $product->productWarehouses->sum('stock_qty') : $product->productWarehouses->where('warehouse_id', $this->warehouse_id)->sum('stock_qty') }}</span>
+                                                                <span class="text-muted ml-1">| Stock: {{ (Auth::user()->can('sales.switch_warehouse') && in_array('module_multi_warehouse', config('tenant.modules', []))) ? $product->productWarehouses->sum('stock_qty') : $product->productWarehouses->where('warehouse_id', $this->warehouse_id)->sum('stock_qty') }}</span>
                                                             @else
                                                                 <span class="text-warning"><i class="fas fa-exclamation-circle"></i> Seleccione Cliente</span>
                                                             @endif
@@ -232,6 +232,7 @@
                                                     </div>
                                                     
                                                     @if($product->productWarehouses->count() > 0)
+                                                        @module('module_multi_warehouse')
                                                         @can('sales.switch_warehouse')
                                                             @if(Auth::user()->can('sales.manage_adjustments') || $customer)
                                                                 <div class="d-flex flex-wrap mt-1 align-items-center">
@@ -246,6 +247,7 @@
                                                                 </div>
                                                             @endif
                                                         @endcan
+                                                        @endmodule
                                                     @endif
                                                 </div>
                                             </div>
@@ -263,7 +265,9 @@
                     <livewire:partial-payment key="partial-payment-component" />
                     <button onclick="processOrder()" type="button" class="btn btn-outline-light-2x txt-dark"><i class="icon-money"></i> Ordenes</button>
                     <button @if ($totalCart > 0) onclick="cancelSale()" @endif type="button" class="btn btn-outline-light-2x txt-dark"><i class="icon-trash"></i> Cancelar</button>
+                    @module('module_credits')
                     <button onclick="initPartialPay()" type="button" class="btn btn-outline-light-2x txt-dark"><i class="icon-money"></i> Abonos</button>
+                    @endmodule
                     <button wire:click.prevent="printLast" type="button" class="btn btn-outline-light-2x txt-dark"><i class="icon-printer"></i> Última</button>
                 </div>
             </div>

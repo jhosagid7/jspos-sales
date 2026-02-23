@@ -39,6 +39,7 @@
         <br>
         <strong>Nota Informativa de Pagos:</strong><br>
         
+        @module('module_credits')
         @if($headerData['usd_discount'] > 0)
         <strong>Descuento Base:</strong> Todas nuestras tarifas incluyen un <strong>{{ number_format($headerData['usd_discount'], 0) }}%</strong> de descuento al ser canceladas en divisas.<br>
         @endif
@@ -59,6 +60,7 @@
         <strong>Recargo por Mora:</strong> Agradecemos cumplir con sus compromisos a tiempo.<br>
         Los pagos realizados después de los <strong>{{ $headerData['credit_days'] }}</strong> días de la fecha de entrega generarán un recargo por mora.<br>
         <br>
+        @endmodule
         <strong style="text-decoration: underline;">LISTA DE PRECIOS SUJETA A CAMBIO SIN PREVIO AVISO.</strong>
     </div>
 

@@ -372,6 +372,11 @@ class PaymentComponent extends Component
 
     public function addPayment()
     {
+        if ($this->paymentMethod == 'bank' && !in_array('module_advanced_payments', session('tenant.modules', []))) {
+            $this->dispatch('noty', msg: 'ACCESO DENEGADO: Módulo de pagos avanzados no activo.');
+            return;
+        }
+
         $this->validate([
             'amount' => 'required|numeric|min:0.01',
         ]);

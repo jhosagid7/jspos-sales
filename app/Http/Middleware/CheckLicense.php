@@ -42,6 +42,10 @@ class CheckLicense
         // Share days remaining with views (for the header notification)
         view()->share('license_days_remaining', $status['days_remaining']);
 
+        // Guardar módulos y configuraciones en la memoria para acceso global en esta petición
+        config(['tenant.modules' => $status['modules'] ?? []]);
+        config(['tenant.max_devices' => $status['max_devices'] ?? 1]);
+
         return $next($request);
     }
 }

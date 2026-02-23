@@ -89,8 +89,8 @@ class Users extends Component
 
         session(['map' => 'Usuarios', 'child' => ' Componente ']);
 
-        // Simplemente cargar TODOS los roles disponibles
-        $this->roles = Role::orderBy('name')->get();
+        // Cargar los roles permitidos según módulos y permisos
+        $this->loadAllowedRoles();
 
         if (count($this->roles) > 0) {
             $this->role = Role::find($this->roles[0]->id);
@@ -108,10 +108,20 @@ class Users extends Component
 
     public function loadUsers()
     {
-        if (strlen($this->search) > 0)
-            return User::where('name', 'like', "%{$this->search}%")->paginate($this->pagination);
-        else
-            return User::orderBy('name', 'asc')->paginate($this->pagination);
+        $query = User::query();
+
+        // Protect Super Admins from being visible to non-Super Admins
+        if (!auth()->user()->hasRole('Super Admin')) {
+            $query->whereDoesntHave('roles', function($q) {
+                $q->where('name', 'Super Admin');
+            });
+        }
+
+        if (strlen($this->search) > 0) {
+            $query->where('name', 'like', "%{$this->search}%");
+        }
+
+        return $query->orderBy('name', 'asc')->paginate($this->pagination);
     }
 
     public function Add()
@@ -132,7 +142,7 @@ class Users extends Component
         $this->tab = 1; // Reset to first tab
         
         // CRITICAL: Reload roles because resetExcept cleared them
-        $this->roles = Role::orderBy('name')->get();
+        $this->loadAllowedRoles();
         
         // Reset discount rules
         $this->discountRules = [];
@@ -143,7 +153,7 @@ class Users extends Component
     public function Edit(User $user)
     {
         // Protect Super Admin
-        if ($user->email === 'jhosagid77@gmail.com' && auth()->user()->email !== 'jhosagid77@gmail.com') {
+        if ($user->hasRole('Super Admin') && !auth()->user()->hasRole('Super Admin')) {
             $this->dispatch('noty', msg: 'NO TIENES PERMISO PARA EDITAR AL SUPER ADMIN');
             return;
         }
@@ -191,7 +201,7 @@ class Users extends Component
         }
 
         // CRITICAL: Reload roles for the dropdown
-        $this->roles = Role::orderBy('name')->get();
+        $this->loadAllowedRoles();
 
         // Load discount rules
         $this->loadDiscountRules();
@@ -223,6 +233,9 @@ class Users extends Component
         $rules = [
             'user.name' => $this->user->id > 0 ? "required|max:85|unique:users,name,{$this->user->id}" : 'required|max:85|unique:users,name',
             'user.email' => $this->user->id > 0 ? "required|email|max:75|unique:users,email,{$this->user->id}" : 'required|email|max:75|unique:users,email',
+            'user.phone' => 'nullable|max:25',
+            'user.taxpayer_id' => 'nullable|max:45',
+            'user.address' => 'nullable|max:255',
             'user.status' => 'required|in:Active,Locked',
             'user.profile' => 'required|not_in:0', 
         ];
@@ -483,8 +496,8 @@ class Users extends Component
         }
 
         // Protect Super Admin
-        if ($user->email === 'jhosagid77@gmail.com') {
-            $this->dispatch('noty', msg: 'NO ES POSIBLE ELIMINAR AL SUPER ADMIN');
+        if ($user->hasRole('Super Admin') && !auth()->user()->hasRole('Super Admin')) {
+            $this->dispatch('noty', msg: 'NO ES POSIBLE ELIMINAR A UN SUPER ADMIN');
             return;
         }
 
@@ -633,5 +646,34 @@ class Users extends Component
                 ]);
             }
         }
+    }
+    public function loadAllowedRoles()
+    {
+        $modules = session('tenant.modules', []);
+        $allRoles = \Spatie\Permission\Models\Role::orderBy('name')->get();
+
+        $this->roles = $allRoles->filter(function ($role) use ($modules) {
+            $name = strtolower($role->name);
+            
+            // Driver/Chofer requiere module_delivery
+            if (in_array($name, ['driver', 'chofer', 'repartidor']) && !in_array('module_delivery', $modules)) {
+                return false;
+            }
+
+            // Vendedor: Permitido siempre. Aunque el negocio sea Básico, 
+            // siempre hay empleados que fungen como "Vendedor" en la caja.
+            
+            // Super Admin solo debe ser asignable por otro Super Admin
+            if ($name === 'super admin' && !auth()->user()->hasRole('Super Admin')) {
+                return false;
+            }
+
+            // Admin solo puede ser asignado por Admin o Super Admin
+            if ($name === 'admin' && !auth()->user()->hasRole('Super Admin') && !auth()->user()->hasRole('Admin')) {
+                return false;
+            }
+
+            return true;
+        })->values();
     }
 }

@@ -45,6 +45,7 @@
                         </li>
 
                         {{-- Tab 4: Configuración de Bancos --}}
+                        @module('module_advanced_payments')
                         <li class="nav-item mb-2">
                             <a class="nav-link {{ $tab == 4 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                                wire:click.prevent="$set('tab',4)" href="#">
@@ -55,8 +56,10 @@
                                 </div>
                             </a>
                         </li>
+                        @endmodule
 
                         {{-- Tab 5: Configuración de Comisiones --}}
+                        @module('module_commissions')
                         <li class="nav-item mb-2">
                             <a class="nav-link {{ $tab == 5 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                                wire:click.prevent="$set('tab',5)" href="#">
@@ -67,8 +70,10 @@
                                 </div>
                             </a>
                         </li>
+                        @endmodule
 
                         {{-- Tab 6: Configuración de Compras --}}
+                        @module('module_purchases')
                         <li class="nav-item mb-2">
                             <a class="nav-link {{ $tab == 6 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                                wire:click.prevent="$set('tab',6)" href="#">
@@ -79,6 +84,7 @@
                                 </div>
                             </a>
                         </li>
+                        @endmodule
                         {{-- Tab 7: Configuración Móvil --}}
                         <li class="nav-item mb-2">
                             <a class="nav-link {{ $tab == 7 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
@@ -89,7 +95,9 @@
                                     <small class="{{ $tab == 7 ? 'text-white' : 'text-muted' }}">Escáner y Cámara</small>
                                 </div>
                             </a>
+                        </li>
                         {{-- Tab 8: Configuración de Producción --}}
+                        @module('module_production')
                         <li class="nav-item mb-2">
                             <a class="nav-link {{ $tab == 8 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                                wire:click.prevent="$set('tab',8)" href="#">
@@ -100,8 +108,10 @@
                                 </div>
                             </a>
                         </li>
+                        @endmodule
                         
                         {{-- Tab 9: Configuración de Crédito Global --}}
+                        @module('module_credits')
                         <li class="nav-item mb-2">
                             <a class="nav-link {{ $tab == 9 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                                wire:click.prevent="$set('tab',9)" href="#">
@@ -112,6 +122,7 @@
                                 </div>
                             </a>
                         </li>
+                        @endmodule
                     </ul>
                 </div>
 
@@ -272,17 +283,21 @@
                             aria-labelledby="sales-settings-tab">
                             <div class="sidebar-body">
                                 <form class="row g-3">
+                                    @module('module_credits')
                                     <div class="col-sm-12 col-md-6">
                                         <label class="form-label">VENTAS CRÉDITO (DÍAS) <span class="txt-danger">*</span></label>
                                         <input wire:model="creditDays" type="number" class="form-control">
                                         @error('creditDays') <span class="text-danger">{{ $message }}</span> @enderror
                                     </div>
+                                    @endmodule
 
+                                    @module('module_purchases')
                                     <div class="col-sm-12 col-md-6">
                                         <label class="form-label">COMPRAS CRÉDITO (DÍAS)</label>
                                         <input wire:model="creditPurchaseDays" class="form-control" type="text" maxlength="255">
                                         @error('creditPurchaseDays') <span class="text-danger">{{ $message }}</span> @enderror
                                     </div>
+                                    @endmodule
 
                                     <div class="col-sm-12 col-md-6">
                                         <label class="form-label">DEPÓSITO PREDETERMINADO</label>
@@ -473,6 +488,7 @@
                         </div>
 
                         {{-- TAB 4: CONFIGURACIÓN DE BANCOS --}}
+                        @module('module_advanced_payments')
                         <div class="tab-pane fade {{ $tab == 4 ? 'active show' : '' }}" id="banks-settings" role="tabpanel"
                             aria-labelledby="banks-settings-tab">
                             <div class="sidebar-body">
@@ -531,8 +547,10 @@
                                 </div>
                             </div>
                         </div>
+                        @endmodule
 
                         {{-- TAB 5: CONFIGURACIÓN DE COMISIONES --}}
+                        @module('module_commissions')
                         <div class="tab-pane fade {{ $tab == 5 ? 'active show' : '' }}" id="commissions-settings" role="tabpanel"
                             aria-labelledby="commissions-settings-tab">
                             <div class="sidebar-body">
@@ -578,8 +596,10 @@
                                 </form>
                             </div>
                         </div>
+                        @endmodule
 
                         {{-- TAB 6: CONFIGURACIÓN DE COMPRAS --}}
+                        @module('module_purchases')
                         <div class="tab-pane fade {{ $tab == 6 ? 'active show' : '' }}" id="purchasing-settings" role="tabpanel"
                             aria-labelledby="purchasing-settings-tab">
                             <div class="sidebar-body">
@@ -622,6 +642,7 @@
                                 </form>
                             </div>
                         </div>
+                        @endmodule
 
                         {{-- TAB 7: CONFIGURACIÓN MÓVIL --}}
                         <div class="tab-pane fade {{ $tab == 7 ? 'active show' : '' }}" id="mobile-settings" role="tabpanel"
@@ -664,6 +685,7 @@
                         </div>
 
                         {{-- TAB 8: CONFIGURACIÓN DE PRODUCCIÓN --}}
+                        @module('module_production')
                         <div class="tab-pane fade {{ $tab == 8 ? 'active show' : '' }}" id="production-settings" role="tabpanel"
                             aria-labelledby="production-settings-tab">
                             <div class="sidebar-body">
@@ -707,8 +729,10 @@
                                 </form>
                             </div>
                         </div>
+                        @endmodule
 
                         {{-- TAB 9: CONFIGURACIÓN DE CRÉDITO GLOBAL --}}
+                        @module('module_credits')
                         <div class="tab-pane fade {{ $tab == 9 ? 'active show' : '' }}" id="credit-settings" role="tabpanel"
                             aria-labelledby="credit-settings-tab">
                             <div class="sidebar-body">
@@ -840,6 +864,7 @@
                                 </form>
                             </div>
                         </div>
+                        @endmodule
 
                     </div>
                 </div>

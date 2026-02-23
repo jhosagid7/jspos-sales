@@ -47,6 +47,7 @@
                         </a>
                     </li>
                     {{-- Tab 4: Comisiones (Solo para vendedores) --}}
+                    @module('module_commissions')
                     @if($this->isSeller($user->profile))
                     <li class="nav-item mb-2">
                         <a class="nav-link {{ $tab == 4 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
@@ -59,8 +60,10 @@
                         </a>
                     </li>
                     @endif
+                    @endmodule
                     
                     {{-- Tab 5: Config. Crédito (Solo para vendedores) --}}
+                    @module('module_credits')
                     @if($this->isSeller($user->profile))
                     <li class="nav-item mb-2">
                         <a class="nav-link {{ $tab == 5 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
@@ -73,6 +76,7 @@
                         </a>
                     </li>
                     @endif
+                    @endmodule
                 </ul>
             </div>
 
@@ -93,6 +97,21 @@
                                     <label class="form-label">Email <span class="txt-danger">*</span></label>
                                     <input wire:model="user.email" class="form-control" type="email" placeholder="correo@ejemplo.com">
                                     @error('user.email') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+                                <div class="col-sm-6 mt-3">
+                                    <label class="form-label">Teléfono</label>
+                                    <input wire:model="user.phone" class="form-control" type="text" placeholder="Teléfono" maxlength="25">
+                                    @error('user.phone') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+                                <div class="col-sm-6 mt-3">
+                                    <label class="form-label">CC/NIT/RIF</label>
+                                    <input wire:model="user.taxpayer_id" class="form-control" type="text" placeholder="Identificación" maxlength="45">
+                                    @error('user.taxpayer_id') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+                                <div class="col-sm-12 mt-3">
+                                    <label class="form-label">Dirección</label>
+                                    <input wire:model="user.address" class="form-control" type="text" placeholder="Dirección completa" maxlength="255">
+                                    @error('user.address') <span class="text-danger">{{ $message }}</span> @enderror
                                 </div>
                                 <div class="col-sm-12 mt-3">
                                     <label class="form-label">Password <span class="txt-danger">*</span></label>
@@ -131,27 +150,14 @@
                             <div class="row g-2">
                                 <div class="col-sm-12">
                                     <label class="form-label">Perfil / Rol <span class="txt-danger">*</span></label>
-                                    @if (Auth::user()->hasRole('Super Admin') || Auth::user()->hasRole('Admin'))
-                                        <select wire:model.live="user.profile" class="form-select">
-                                            <option value="0">Seleccionar </option>
-                                            @foreach ($roles as $rol)
-                                                <option value="{{ $rol->name }}">
-                                                    {{ $rol->name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    @else 
-                                        <select wire:model.live="user.profile" class="form-select">
-                                            <option value="0">Seleccionar</option>
-                                            @foreach ($roles as $rol)
-                                                @if ($rol->name != 'Admin')
-                                                    <option value="{{ $rol->name }}">
-                                                        {{ $rol->name }}
-                                                    </option>
-                                                @endif
-                                            @endforeach
-                                        </select>
-                                    @endif
+                                    <select wire:model.live="user.profile" class="form-select">
+                                        <option value="0">Seleccionar</option>
+                                        @foreach ($roles as $rol)
+                                            <option value="{{ $rol->name }}">
+                                                {{ $rol->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
                                     @error('user.profile') <span class="text-danger">{{ $message }}</span> @enderror
                                 </div>
                                 <div class="col-sm-12 mt-2">
@@ -213,6 +219,7 @@
                     </div>
 
                     {{-- Tab 4: Comisiones --}}
+                    @module('module_commissions')
                     <div class="tab-pane fade {{ $tab == 4 ? 'active show' : '' }}" role="tabpanel">
                         <div class="sidebar-body">
                              <div class="row mt-3">
@@ -266,8 +273,10 @@
                             </div>
                         </div>
                     </div>
+                    @endmodule
 
                     {{-- Tab 5: Config. Crédito --}}
+                    @module('module_credits')
                     <div class="tab-pane fade {{ $tab == 5 ? 'active show' : '' }}" role="tabpanel">
                         <div class="sidebar-body">
                             <div class="row g-2">
@@ -406,6 +415,7 @@
                             </div>
                         </div>
                     </div>
+                    @endmodule
                 </div>
             </div>
         </div>

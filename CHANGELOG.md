@@ -6,8 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [1.8.21] - 2026-02-20
+## [1.8.22] - 2026-02-23
+### Added
+- **User Management**:
+  - **Contact Information**: Added `phone`, `taxpayer_id` (RIF/CI), and `address` fields to the User profile to improve data completeness and support staff.
+  - **Database Migration**: Added a new migration to safely implement these fields without data loss.
+
+### Changed
+- **Roles & Permissions**:
+  - **SaaS Consistency**: The "Comisiones" and "Config. Crédito" tabs in the user profile are now strictly hidden if the active license plan does not include the `module_commissions` or `module_credits` modules, resulting in a cleaner interface for Basic plans.
+  - **Seller Role Availability**: Fixed a bug where the "Vendedor" and "Vendedor Foraneo" roles were incorrectly disabled when advanced modules were off. These roles are now always available for basic cashier/sales operations.
+- **Customers Module**:
+  - **Clean UI**: Removed the deprecated "Tipo" (Type) field from the customer creation and edit forms, as it was no longer used by the system.
+
 ### Fixed
+- **WhatsApp Integration**:
+  - **Fallback Logic Verification**: Ensured the system correctly falls back to using the Seller's phone number for notifications when the Customer does not have a registered phone number.
+
+## [1.8.21] - 2026-02-20
 - **Products Module**:
   - **Search Relevance**: Re-wrote the search algorithm to prioritize exact SKU matches and Name matches before considering Category matches, ensuring accurate results (e.g., searching "Tenedor" no longer shows "Contenedores" first).
   - **Pagination Bug**: Fixed a persistent bug where clicking on page 2 or beyond while a search filter was active would instantly bounce the user back to page 1. Pagination now behaves correctly during filtered searches.

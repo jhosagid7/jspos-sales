@@ -371,6 +371,9 @@ class PartialPayment extends Component
 
             if ($status === 'approved') {
                 $this->dispatch('noty', msg: 'ABONO REGISTRADO CON ÉXITO');
+                if (isset($pay) && $pay) {
+                    event(new \App\Events\PaymentReceived($pay, collect($payments)->sum('amount'), $sale));
+                }
             } else {
                  $this->dispatch('noty', msg: 'PAGO SUBIDO. PENDIENTE DE APROBACIÓN.');
             }
@@ -443,6 +446,7 @@ class PartialPayment extends Component
                 
                 DB::commit();
                 $this->dispatch('noty', msg: 'PAGO APROBADO Y REGISTRADO EN CAJA');
+                event(new \App\Events\PaymentReceived($payment, $payment->amount, $sale));
                 
                 // Refresh list
                 $this->pays = $sale->payments; 

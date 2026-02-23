@@ -67,6 +67,7 @@
                                         </div>
 
                                         {{-- Banco / Zelle --}}
+                                        @module('module_advanced_payments')
                                         <div class="col-4">
                                             <button 
                                                 type="button"
@@ -77,8 +78,10 @@
                                                 <small class="d-block">Banco / Zelle</small>
                                             </button>
                                         </div>
+                                        @endmodule
 
                                         {{-- Crédito (deshabilitado si no hay cliente o no tiene crédito) --}}
+                                        @module('module_credits')
                                         <div class="col-4">
                                             @php
                                                 $creditEnabled = !empty($customer->id) && 
@@ -95,6 +98,7 @@
                                                 <small class="d-block">Crédito</small>
                                             </button>
                                         </div>
+                                        @endmodule
                                     </div>
                                 </div>
                             </div>

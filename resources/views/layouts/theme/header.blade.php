@@ -73,6 +73,7 @@
 
         <!-- Notifications Dropdown Menu -->
         <!-- Purchases Notifications -->
+        @module('module_purchases')
         @if ($noty_purchases->count() > 0)
         <li class="nav-item dropdown">
             <a class="nav-link" data-toggle="dropdown" href="#">
@@ -104,8 +105,10 @@
             </div>
         </li>
         @endif
+        @endmodule
 
         <!-- Sales Notifications -->
+        @module('module_credits')
         @if ($noty_sales->count() > 0)
         <li class="nav-item dropdown">
             <a class="nav-link" data-toggle="dropdown" href="#">
@@ -137,8 +140,10 @@
             </div>
         </li>
         @endif
+        @endmodule
 
         <!-- Commissions Notifications -->
+        @module('module_commissions')
         @if (isset($noty_commissions) && $noty_commissions->count() > 0)
         <li class="nav-item dropdown">
             <a class="nav-link" data-toggle="dropdown" href="#">
@@ -175,6 +180,7 @@
             </div>
         </li>
         @endif
+        @endmodule
 
         <!-- User Dropdown Menu -->
         <li class="nav-item dropdown">

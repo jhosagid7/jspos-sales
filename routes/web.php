@@ -93,20 +93,20 @@ Route::middleware('auth')->group(function () {
     Route::get('customers', Customers::class)->name('customers')->middleware('can:customers.index');
     Route::get('sales', Sales::class)->name('sales')->middleware(['can:sales.index', \App\Http\Middleware\EnsureCashRegisterIsOpen::class]);
 
-    Route::get('purchases', Purchases::class)->name('purchases')->middleware('can:purchases.create'); // Usually create
-    Route::get('purchase-list', \App\Livewire\PurchaseList::class)->name('purchase.list')->middleware('can:purchases.index');
+    Route::get('purchases', Purchases::class)->name('purchases')->middleware(['can:purchases.create', 'module:module_purchases']); // Usually create
+    Route::get('purchase-list', \App\Livewire\PurchaseList::class)->name('purchase.list')->middleware(['can:purchases.index', 'module:module_purchases']);
     Route::get('inventories', Inventory::class)->name('inventories')->middleware('can:inventory.index');
     Route::get('warehouses', \App\Livewire\Warehouses::class)->name('warehouses')->middleware('can:warehouses.index');
-    Route::get('transfers', \App\Livewire\Transfers::class)->name('transfers')->middleware('can:transfers.create');
-    Route::get('requisition', \App\Livewire\Requisition::class)->name('requisition')->middleware('can:transfers.create'); // Or inventory.index?
+    Route::get('transfers', \App\Livewire\Transfers::class)->name('transfers')->middleware(['can:transfers.create', 'module:module_multi_warehouse']);
+    Route::get('requisition', \App\Livewire\Requisition::class)->name('requisition')->middleware(['can:transfers.create', 'module:module_multi_warehouse']); // Or inventory.index?
     Route::get('cargos', \App\Livewire\Cargos\CargosList::class)->name('cargos')->middleware('can:adjustments.create');
     Route::get('cargos/create', \App\Livewire\Cargos\CreateCargo::class)->name('cargos.create')->middleware('can:adjustments.create');
     Route::get('cargos/{cargo}/pdf', [\App\Http\Controllers\CargoController::class, 'pdf'])->name('cargos.pdf')->middleware('can:adjustments.create');
 
     // Production Routes
-    Route::get('production', \App\Livewire\Production\ProductionList::class)->name('production.index')->middleware('can:production.index');
-    Route::get('production/create/{production?}', \App\Livewire\Production\CreateProduction::class)->name('production.create')->middleware('can:production.create');
-    Route::get('production/{id}/pdf', [\App\Http\Controllers\ProductionController::class, 'pdf'])->name('production.pdf')->middleware('can:production.index');
+    Route::get('production', \App\Livewire\Production\ProductionList::class)->name('production.index')->middleware(['can:production.index', 'module:module_production']);
+    Route::get('production/create/{production?}', \App\Livewire\Production\CreateProduction::class)->name('production.create')->middleware(['can:production.create', 'module:module_production']);
+    Route::get('production/{id}/pdf', [\App\Http\Controllers\ProductionController::class, 'pdf'])->name('production.pdf')->middleware(['can:production.index', 'module:module_production']);
 
     Route::get('descargos', \App\Livewire\Descargos\DescargosList::class)->name('descargos')->middleware('can:adjustments.create');
     Route::get('descargos/create', \App\Livewire\Descargos\CreateDescargo::class)->name('descargos.create')->middleware('can:adjustments.create');
@@ -115,13 +115,13 @@ Route::middleware('auth')->group(function () {
 
     //personas / roles y permisos
     Route::get('users', Users::class)->name('users')->middleware('can:users.index');
-    Route::get('roles', Roles::class)->name('roles')->middleware('can:roles.index');
-    Route::get('asignar', AsignarPermisos::class)->name('asignar')->middleware('can:permissions.assign');
-    Route::get('commissions', \App\Livewire\Commissions::class)->name('commissions')->middleware('can:reports.commissions'); // Or a specific manage permission?
+    Route::get('roles', Roles::class)->name('roles')->middleware(['can:roles.index', 'module:module_roles']);
+    Route::get('asignar', AsignarPermisos::class)->name('asignar')->middleware(['can:permissions.assign', 'module:module_roles']);
+    Route::get('commissions', \App\Livewire\Commissions::class)->name('commissions')->middleware(['can:reports.commissions', 'module:module_commissions']); // Or a specific manage permission?
     
     // Label Generator
-    Route::get('labels', \App\Livewire\LabelGenerator::class)->name('labels.index')->middleware('can:products.index');
-    Route::get('labels/pdf', [\App\Http\Controllers\LabelController::class, 'generate'])->name('labels.pdf')->middleware('can:products.index');
+    Route::get('labels', \App\Livewire\LabelGenerator::class)->name('labels.index')->middleware(['can:products.labels', 'module:module_labels']);
+    Route::get('labels/pdf', [\App\Http\Controllers\LabelController::class, 'generate'])->name('labels.pdf')->middleware(['can:products.labels', 'module:module_labels']);
 
 
 
@@ -135,32 +135,47 @@ Route::middleware('auth')->group(function () {
     //reports
     Route::prefix('reports')->group(function () {
         Route::get('sales', SalesReport::class)->name('reports.sales')->middleware('can:reports.sales');
-        Route::get('purchases', PurchasesReport::class)->name('reports.purchases')->middleware('can:reports.purchases');
-        Route::get('accounts-receivable', AccountsReceivableReport::class)->name('reports.accounts.receivable')->middleware('can:reports.financial');
-        Route::get('accounts-payables', AccountsPayableReport::class)->name('reports.accounts.payables')->middleware('can:reports.financial');
-        Route::get('payment-relationship', \App\Livewire\Reports\PaymentRelationshipReport::class)->name('reports.payment.relationship')->middleware('can:reports.sales');
+        Route::get('purchases', PurchasesReport::class)->name('reports.purchases')->middleware(['can:reports.purchases', 'module:module_purchases']);
+        Route::get('accounts-receivable', AccountsReceivableReport::class)->name('reports.accounts.receivable')->middleware(['can:reports.financial', 'module:module_credits']);
+        Route::get('accounts-payables', AccountsPayableReport::class)->name('reports.accounts.payables')->middleware(['can:reports.financial', 'module:module_purchases']);
+        Route::get('payment-relationship', \App\Livewire\Reports\PaymentRelationshipReport::class)->name('reports.payment.relationship')->middleware(['can:reports.sales', 'module:module_credits']);
         Route::get('daily-sales', \App\Livewire\Reports\DailySalesReport::class)->name('reports.daily.sales')->middleware('can:reports.sales');
-        Route::get('commissions', \App\Livewire\CommissionReport::class)->name('reports.commissions')->middleware('can:reports.sales'); // reports.commissions?
+        Route::get('commissions', \App\Livewire\CommissionReport::class)->name('reports.commissions')->middleware(['can:reports.sales', 'module:module_commissions']); // reports.commissions?
         Route::get('best-sellers', \App\Livewire\Reports\BestSellers::class)->name('reports.best.sellers')->middleware('can:reports.sales');
-        Route::get('rotation', \App\Livewire\Reports\RotationReport::class)->name('reports.rotation')->middleware('can:reports.stock');
+        Route::get('rotation', \App\Livewire\Reports\RotationReport::class)->name('reports.rotation')->middleware(['can:reports.stock', 'module:module_advanced_reports']);
     });
 
     // Consultas
-    Route::get('consultation/zelle', \App\Livewire\Consultation\ZelleConsultation::class)->name('consultation.zelle')->middleware('can:zelle_index');
-    Route::get('consultation/zelle/{id}/pdf', [\App\Http\Controllers\PaymentConsultationController::class, 'generateZellePdf'])->name('zelle.pdf')->middleware('can:zelle_print_pdf');
+    Route::get('consultation/zelle', \App\Livewire\Consultation\ZelleConsultation::class)->name('consultation.zelle')->middleware(['can:zelle_index', 'module:module_advanced_payments']);
+    Route::get('consultation/zelle/{id}/pdf', [\App\Http\Controllers\PaymentConsultationController::class, 'generateZellePdf'])->name('zelle.pdf')->middleware(['can:zelle_print_pdf', 'module:module_advanced_payments']);
     
-    Route::get('consultation/bank', \App\Livewire\Consultation\BankConsultation::class)->name('consultation.bank')->middleware('can:bank_index');
-    Route::get('consultation/bank/{id}/pdf', [\App\Http\Controllers\PaymentConsultationController::class, 'generateBankPdf'])->name('bank.pdf')->middleware('can:bank_print_pdf');
+    Route::get('consultation/bank', \App\Livewire\Consultation\BankConsultation::class)->name('consultation.bank')->middleware(['can:bank_index', 'module:module_advanced_payments']);
+    Route::get('consultation/bank/{id}/pdf', [\App\Http\Controllers\PaymentConsultationController::class, 'generateBankPdf'])->name('bank.pdf')->middleware(['can:bank_print_pdf', 'module:module_advanced_payments']);
 
     //corte de caja
     Route::get('cash-count', CashCount::class)->name('cash.count')->middleware('can:cash_register.close');
 
     //settings
     Route::get('settings', Settings::class)->name('settings')->middleware('can:settings.index');
-    Route::get('updates', \App\Livewire\Settings\UpdateSystem::class)->name('updates')->middleware('can:settings.update');
-    Route::get('backups', \App\Livewire\Settings\Backups::class)->name('backups')->middleware('can:settings.backups');
-    Route::get('backups/download/{fileName}', [\App\Http\Controllers\BackupController::class, 'download'])->name('backups.download')->middleware('can:settings.backups');
+    Route::get('updates', \App\Livewire\Settings\UpdateSystem::class)->name('updates')->middleware(['can:settings.update', 'module:module_updates']);
+    Route::get('backups', \App\Livewire\Settings\Backups::class)->name('backups')->middleware(['can:settings.backups', 'module:module_backups']);
+    Route::get('backups/download/{fileName}', [\App\Http\Controllers\BackupController::class, 'download'])->name('backups.download')->middleware(['can:settings.backups', 'module:module_backups']);
     Route::get('devices', \App\Livewire\Settings\DeviceManager::class)->name('devices')->middleware('can:settings.index');
+    
+    // WhatsApp
+    Route::get('settings/whatsapp', \App\Livewire\Settings\WhatsappSettings::class)->name('settings.whatsapp')->middleware(['can:settings.index', 'module:module_whatsapp']);
+    Route::get('settings/whatsapp-outbox', \App\Livewire\Settings\WhatsappOutbox::class)->name('settings.whatsapp_outbox')->middleware(['can:settings.index', 'module:module_whatsapp']);
+    Route::get('settings/license-generator', \App\Livewire\Settings\LicenseGenerator::class)->name('settings.license_generator')->middleware('role:Super Admin');
+    
+    Route::get('whatsapp/download-pdf/{msgId}', function($msgId) {
+        $msg = \App\Models\WhatsappMessage::findOrFail($msgId);
+        
+        if ($msg->attachment_path && file_exists($msg->attachment_path)) {
+            return response()->file($msg->attachment_path);
+        }
+        
+        abort(404, 'PDF no encontrado o ya fue eliminado del servidor.');
+    })->name('whatsapp.download-pdf');
 
     // Delivery Routes
     Route::get('driver/dashboard', \App\Livewire\DriverDashboard::class)->name('driver.dashboard'); // Maybe add permission?
