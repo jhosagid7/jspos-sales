@@ -25,6 +25,7 @@
                 <a href="{{ route('reports.sales') }}" class="small-box-footer">Ver Reporte <i class="fas fa-arrow-circle-right"></i></a>
             </div>
         </div>
+        @module('module_purchases')
         @can('purchases.index')
         <div class="col-lg col-6">
             <div class="small-box bg-warning">
@@ -39,6 +40,8 @@
             </div>
         </div>
         @endcan
+        @endmodule
+        @module('module_credits')
         <div class="col-lg col-6">
             <div class="small-box bg-danger">
                 <div class="inner">
@@ -51,6 +54,8 @@
                 <a href="{{ route('reports.accounts.receivable') }}" class="small-box-footer">Ver Cuentas <i class="fas fa-arrow-circle-right"></i></a>
             </div>
         </div>
+        @endmodule
+        @module('module_commissions')
         @can('commissions.access')
         <div class="col-lg col-6">
             <div class="small-box bg-purple">
@@ -65,6 +70,7 @@
             </div>
         </div>
         @endcan
+        @endmodule
     </div>
 
     <div class="row">
@@ -190,6 +196,7 @@
 
 
             <!-- Top Suppliers -->
+            @module('module_purchases')
             @can('purchases.index')
             <div class="card">
                 <div class="card-header">
@@ -212,8 +219,10 @@
                 </div>
             </div>
             @endcan
+            @endmodule
 
             <!-- Top Sellers Chart -->
+            @module('module_commissions')
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h3 class="card-title">Top Vendedores (Ganancia)</h3>
@@ -230,6 +239,7 @@
                     <div id="topSellersChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></div>
                 </div>
             </div>
+            @endmodule
         </div>
     </div>
 
@@ -298,11 +308,15 @@
                     name: 'Ventas Contado',
                     data: @json($salesChartData['cash']),
                     color: '#28a745'
-                }, {
+                },
+                @module('module_credits')
+                {
                     name: 'Ventas Crédito',
                     data: @json($salesChartData['credit']),
                     color: '#ffc107'
-                }, {
+                }, 
+                @endmodule
+                {
                     name: 'Ganancias',
                     data: @json($profitChartData['data']),
                     color: '#3b8bba'

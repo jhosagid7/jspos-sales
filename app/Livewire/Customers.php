@@ -26,7 +26,6 @@ class Customers extends Component
         'customer.city' => 'required|max:100',
         'customer.phone' => 'nullable|max:15',
         'customer.email' => 'nullable|email|max:65',
-        'customer.type' => 'required|in:Mayoristas,Consumidor Final,Descuento1,Descuento2,Otro',
         'customer.seller_id' => 'nullable',
         'customer.allow_credit' => 'nullable|boolean',
         'customer.credit_days' => 'nullable|integer|min:1',
@@ -50,7 +49,6 @@ class Customers extends Component
         'customer.city.max' => 'La ciudad solo puede tener máximo 100 caracteres',
         'customer.city.required' => 'La ciudad del cliente es requerida',
         'customer.phone.max' => 'Ingresa el teléfono en máximo 15 caracteres',
-        'customer.type.in' => 'Elige una opción válida para el tipo de cliente',
         'customer.taxpayer_id.max' => 'La cc/nit solo puede tener máximo 45 caracteres',
         'customer.taxpayer_id.required' => 'La cc/nit del cliente es requerido',
     ];
@@ -59,7 +57,6 @@ class Customers extends Component
     public function mount()
     {
         $this->customer = new Customer();
-        $this->customer->type = 0;
         $this->customer->seller_id = 0;
         $this->customer->whatsapp_notify_sales = true;
         $this->customer->whatsapp_notify_payments = true;
@@ -208,7 +205,6 @@ class Customers extends Component
             // If creating new, reset everything
             $this->resetExcept('customer');
             $this->customer = new Customer();
-            $this->customer->type = 0;
             $this->customer->seller_id = 0;
             $this->customer->whatsapp_notify_sales = true;
             $this->customer->whatsapp_notify_payments = true;

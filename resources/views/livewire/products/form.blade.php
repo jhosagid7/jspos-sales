@@ -67,6 +67,7 @@
                             </div>
                         </a>
                     </li>
+                    @module('module_advanced_products')
                     <li class="nav-item mb-2">
                         <a class="nav-link {{ $tab == 4 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                            wire:click.prevent="$set('tab',4)" href="#">
@@ -77,6 +78,7 @@
                             </div>
                         </a>
                     </li>
+                    @endmodule
                     <li class="nav-item mb-2">
                         <a class="nav-link {{ $tab == 5 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                            wire:click.prevent="$set('tab',5)" href="#">
@@ -86,6 +88,7 @@
                                 <small class="{{ $tab == 5 ? 'text-white' : 'text-muted' }}">Stock y Alertas</small>
                             </div>
                         </a>
+                    @module('module_purchases')
                     <li class="nav-item mb-2">
                         <a class="nav-link {{ $tab == 6 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                            wire:click.prevent="$set('tab',6)" href="#">
@@ -96,6 +99,8 @@
                             </div>
                         </a>
                     </li>
+                    @endmodule
+                    @module('module_production')
                     <li class="nav-item mb-2">
                         <a class="nav-link {{ $tab == 7 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                            wire:click.prevent="$set('tab',7)" href="#">
@@ -106,6 +111,8 @@
                             </div>
                         </a>
                     </li>
+                    @endmodule
+                    @module('module_advanced_products')
                     <li class="nav-item mb-2">
                         <a class="nav-link {{ $tab == 10 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                            wire:click.prevent="$set('tab',10)" href="#">
@@ -116,6 +123,7 @@
                             </div>
                         </a>
                     </li>
+                    @endmodule
                     {{-- Variable Items Tab --}}
                     @if($form->is_variable_quantity)
                     <li class="nav-item mb-2">
@@ -254,10 +262,11 @@
 
 
                                 <div class="col-sm-12 mt-2 mb-2">
-                                    <div class="form-check form-switch">
+                                    <div class="form-check form-switch mt-2">
                                         <input class="form-check-input" type="checkbox" id="decimalSwitch" wire:model="form.allow_decimal">
                                         <label class="form-check-label" for="decimalSwitch">Permite Cantidades Decimales (Fraccionable)</label>
                                     </div>
+                                    @module('module_advanced_products')
                                     <div class="form-check form-switch mt-2">
                                         <input class="form-check-input" type="checkbox" id="variableSwitch" wire:model="form.is_variable_quantity">
                                         <label class="form-check-label text-primary font-weight-bold" for="variableSwitch">Venta por Peso/Separado (Bobinas)</label>
@@ -266,6 +275,7 @@
                                             Al vender, deberás seleccionar el item específico.
                                         </small>
                                     </div>
+                                    @endmodule
                                 </div>
                             </form>
                             <div class="mt-3">
@@ -358,6 +368,7 @@
                                     </div>
                                     <div class="col-12">
                                         <div class="row g-3">
+                                            @module('module_purchases')
                                             <div class="col-sm-6">
                                                 <div class="row g-2">
                                                     <div class="col-12">
@@ -392,6 +403,7 @@
                                                         </i>Nuevo Proveedor </a>
                                                 </div>
                                             </div>
+                                            @endmodule
 
                                             <div class="col-12">
                                                 <div class="row g-2">
@@ -523,6 +535,7 @@
                                 </div>
                             </form>
 
+                            @module('module_multi_warehouse')
                             <div class="col-sm-12 mt-4">
                                 <h6>Distribución de Stock por Depósito</h6>
                                 <div class="table-responsive">
@@ -561,10 +574,12 @@
                                     </table>
                                 </div>
                             </div>
+                            @endmodule
                         </div>
                     </div>
 
                     {{-- Suppliers Tab --}}
+                    @module('module_purchases')
                     <div class="tab-pane fade {{ $tab == 6 ? 'active show' : '' }}" id="suppliers" role="tabpanel">
                         <div class="sidebar-body">
                             <form class="row g-3">
@@ -617,6 +632,7 @@
                             </div>
                         </div>
                     </div>
+                    @endmodule
 
                     {{-- Components Tab --}}
                     <div class="tab-pane fade {{ $tab == 7 ? 'active show' : '' }}" id="components" role="tabpanel">

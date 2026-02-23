@@ -96,7 +96,8 @@ class LicenseService
             return [
                 'status' => 'invalid',
                 'message' => 'No license found',
-                'days_remaining' => 0
+                'days_remaining' => 0,
+                'modules' => []
             ];
         }
 
@@ -107,17 +108,36 @@ class LicenseService
             return [
                 'status' => 'expired',
                 'message' => 'License expired on ' . $expiresAt->format('d/m/Y'),
-                'days_remaining' => 0
+                'days_remaining' => 0,
+                'modules' => []
             ];
         }
 
         $daysRemaining = $now->diffInDays($expiresAt, false);
 
+        // Extraer módulos y configuraciones del payload
+        $modules = [];
+        $maxDevices = 1;
+        $type = 'DESCONOCIDO';
+        try {
+            $decoded = base64_decode($license->license_key);
+            $parts = explode('||', $decoded);
+            if(isset($parts[0])) {
+                $data = json_decode($parts[0], true);
+                $modules = $data['modules'] ?? [];
+                $maxDevices = $data['max_devices'] ?? 1;
+                $type = $data['type'] ?? 'DESCONOCIDO';
+            }
+        } catch (\Exception $e) {}
+
         return [
             'status' => 'active',
             'message' => 'License active',
             'days_remaining' => (int) $daysRemaining,
-            'expires_at' => $expiresAt
+            'expires_at' => $expiresAt,
+            'type' => $type,
+            'modules' => $modules,
+            'max_devices' => $maxDevices
         ];
     }
 }

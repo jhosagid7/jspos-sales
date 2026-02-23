@@ -284,7 +284,7 @@
                                                     @endif
                                                     
                                                     <span class="stock-badge {{ $stockStatus }}">
-                                                        Stock: {{ Auth::user()->can('sales.switch_warehouse') ? $product->productWarehouses->sum('stock_qty') : $product->productWarehouses->where('warehouse_id', $this->warehouse_id)->sum('stock_qty') }}
+                                                        Stock: {{ (Auth::user()->can('sales.switch_warehouse') && in_array('module_multi_warehouse', config('tenant.modules', []))) ? $product->productWarehouses->sum('stock_qty') : $product->productWarehouses->where('warehouse_id', $this->warehouse_id)->sum('stock_qty') }}
                                                     </span>
                                                 </div>
 
@@ -418,6 +418,7 @@
                                                     </div>
 
                                                     @if($product->productWarehouses->count() > 0)
+                                                        @module('module_multi_warehouse')
                                                         @can('sales.switch_warehouse')
                                                             <div class="mt-2 border-top pt-1 d-none d-md-block">
                                                                 <div class="d-flex flex-wrap" style="gap: 4px;">
@@ -433,6 +434,7 @@
                                                                 </div>
                                                             </div>
                                                         @endcan
+                                                        @endmodule
                                                     @endif
 
                                                 </div>
@@ -456,9 +458,11 @@
                     <button @if ($totalCart > 0) onclick="cancelSale()" @endif type="button"
                         class="btn btn-outline-light-2x txt-dark"><i class="icon-trash"></i>
                         Cancelar</button>
+                    @module('module_credits')
                     <button onclick="initPartialPay()" type="button" class="btn btn-outline-light-2x txt-dark"><i
                             class="icon-money"></i>
                         Abonos</button>
+                    @endmodule
                     <button wire:click.prevent="printLast" type="button" class="btn btn-outline-light-2x txt-dark"><i
                             class="icon-printer"></i>
                         Última</button>

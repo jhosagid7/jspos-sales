@@ -25,6 +25,12 @@ class AppServiceProvider extends ServiceProvider
     {
         \Illuminate\Support\Facades\View::composer('layouts.theme.header', \App\View\Composers\HeaderComposer::class);
 
+        // Registro de directiva Blade para Módulos SaaS
+        \Illuminate\Support\Facades\Blade::if('module', function ($moduleName) {
+            $modules = config('tenant.modules', []);
+            return in_array($moduleName, $modules);
+        });
+
         try {
             $config = \App\Models\Configuration::first();
             if ($config) {

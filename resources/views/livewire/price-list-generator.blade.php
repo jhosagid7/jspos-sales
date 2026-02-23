@@ -58,36 +58,45 @@
                                     <h6 class="font-weight-bold text-primary"><i class="fas fa-magic"></i> Configuración "Al Vuelo" (Opcional)</h6>
                                     <p class="text-muted small">Ingrese valores aquí para generar una lista con condiciones personalizadas, ignorando la configuración guardada.</p>
                                 </div>
+                                @module('module_commissions')
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label>Comisión (%)</label>
                                         <input type="number" step="0.01" wire:model="customCommission" class="form-control" placeholder="Ej: 10">
                                     </div>
                                 </div>
+                                @endmodule
+                                @module('module_commissions')
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label>Flete (%)</label>
                                         <input type="number" step="0.01" wire:model="customFreight" class="form-control" placeholder="Ej: 5">
                                     </div>
                                 </div>
+                                @endmodule
+                                @module('module_credits')
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label>Interés Mora % (IM)</label>
                                         <input type="number" step="0.01" class="form-control" wire:model.live="customMora" placeholder="E.g. 1">
                                     </div>
                                 </div>
+                                @endmodule
+                                @module('module_commissions')
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label>Dif. Cambiario (%)</label>
                                         <input type="number" step="0.01" wire:model="customExchangeDiff" class="form-control" placeholder="Ej: 2">
                                     </div>
                                 </div>
+                                @endmodule
                             </div>
 
                             {{-- Custom Commercial Conditions --}}
+                            @module('module_credits')
                             <div class="row mb-4 p-3 bg-white border rounded">
                                 <div class="col-12">
-                                    <h6 class="font-weight-bold text-success"><i class="fas fa-file-invoice-dollar"></i> Condiciones Comerciales (Al Vuelo)</h6>
+                                    <h6 class="font-weight-bold text-success"><i class="fas fa-file-invoice-dollar"></i> Condiciones Comerciales / Crédito (Al Vuelo)</h6>
                                     <p class="text-muted small">Defina condiciones específicas para el encabezado del PDF (ideal para prospectos).</p>
                                 </div>
                                 <div class="col-md-3">
@@ -127,6 +136,7 @@
                                     </button>
                                 </div>
                             </div>
+                            @endmodule
 
                             <div class="row">
                                 <div class="col-md-6">

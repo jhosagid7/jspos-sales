@@ -52,6 +52,15 @@ class PriceListGenerator extends Component
 
     public function mount()
     {
+        // Filter available columns based on active modules
+        $activeModules = config('tenant.modules', []);
+        
+        if (!in_array('module_commissions', $activeModules)) {
+            unset($this->availableColumns['commission']);
+            unset($this->availableColumns['freight']);
+            unset($this->availableColumns['exchange_diff']);
+        }
+
         $this->config = Configuration::first();
         
         // Load default columns from DB or fallback
@@ -67,6 +76,9 @@ class PriceListGenerator extends Component
             // Default columns if nothing saved
             $this->selectedColumns = ['sku', 'name', 'final_price'];
         }
+
+        // Sanitize selected columns to ensure they are actually available (respecting module conditions)
+        $this->selectedColumns = array_values(array_intersect($this->selectedColumns, array_keys($this->availableColumns)));
 
         // Load Customers and Sellers based on User Role
         $user = Auth::user();

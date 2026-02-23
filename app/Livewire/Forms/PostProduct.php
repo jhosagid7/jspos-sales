@@ -120,10 +120,29 @@ class PostProduct extends Form
         ];
     }
 
+    private function cleanUnauthorizedFeatures()
+    {
+        $modules = session('tenant.modules', []);
+
+        if (!in_array('module_advanced_products', $modules)) {
+            $this->values = [];
+            $this->pricing_tiers = [];
+            $this->freight_type = 'none';
+            $this->freight_value = 0;
+            $this->is_variable_quantity = false;
+            $this->allow_decimal = false;
+        }
+
+        if (!in_array('module_production', $modules)) {
+            $this->product_components = [];
+            $this->is_pre_assembled = false;
+            $this->additional_cost = 0;
+        }
+    }
+
     function store()
     {
-
-
+        $this->cleanUnauthorizedFeatures();
         $this->validate();
 
         // Validate Component Stock for Pre-assembled
@@ -282,6 +301,7 @@ class PostProduct extends Form
 
     function update()
     {
+        $this->cleanUnauthorizedFeatures();
         $this->validate();
         
         $product =  Product::find($this->product_id);

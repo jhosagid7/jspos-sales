@@ -107,6 +107,7 @@
                                 @endif
                             </label>
                             
+                            @module('module_commissions')
                             <div class="custom-control custom-switch" title="{{ $sellerConfig ? '' : 'Seleccione un cliente con conf. de vendedor para habilitar' }}">
                                 <input type="checkbox" class="custom-control-input" id="customSwitch1" wire:model.live="applyCommissions" {{ $sellerConfig ? '' : 'disabled' }}>
                                 <label class="custom-control-label" for="customSwitch1" style="font-size: 0.8rem;">
@@ -135,6 +136,7 @@
                                 </label>
                             </div>
                         </div>
+                        @endmodule
                         @else
                         {{-- VISTA PARA VENDEDORES FORÁNEOS (SIN PERMISO DE AJUSTES) --}}
                         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -187,6 +189,7 @@
                                 @endif
                                 
                                 
+                                @module('module_credits')
                                 {{-- Outstanding Invoices --}}
                                 @if(isset($customer['outstanding_invoices']) && count($customer['outstanding_invoices']) > 0)
                                     <hr class="my-1">
@@ -215,9 +218,11 @@
                                         <br><small class="ml-2">{{ $rule['days_from'] }}-{{ $rule['days_to'] }} días: {{ $rule['discount_percentage'] > 0 ? '+' : '' }}{{ $rule['discount_percentage'] }}%</small>
                                     @endforeach
                                 @endif
+                                @endmodule
                             </div>
                         @endif
 
+                        @module('module_multi_warehouse')
                         <div class="input-group mb-2">
                             <div class="input-group-prepend">
                                 <span class="input-group-text"><i class="fas fa-warehouse"></i></span>
@@ -227,9 +232,10 @@
                                     <option value="{{ $w->id }}">{{ $w->name }}</option>
                                 @endforeach
                             </select>
-                            </select>
                         </div>
+                        @endmodule
 
+                        @module('module_delivery')
                         <div class="input-group mb-2">
                             <div class="input-group-prepend">
                                 <span class="input-group-text"><i class="fas fa-truck"></i></span>
@@ -241,6 +247,7 @@
                                 @endforeach
                             </select>
                         </div>
+                        @endmodule
 
                         <div class="input-group" wire:ignore>
                             <input class="form-control" type="text" id="inputCustomer" placeholder="Buscar Cliente (Shift + C)">
@@ -387,6 +394,7 @@
                                 </div>
                             @endcan
                             
+                            @module('module_credits')
                             @can('payments.method_credit')
                                 @php
                                     $creditEnabled = !empty($customer['id']) && 
@@ -401,6 +409,7 @@
                                     </div>
                                 </div>
                             @endcan
+                            @endmodule
                             
                             {{-- Banco - OCULTO por solicitud del usuario
                             @can('payments.method_bank')

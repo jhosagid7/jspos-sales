@@ -23,8 +23,16 @@ class AsignarPermisos extends Component
 
         session(['map' => '', 'child' => '', 'pos' => 'Asignación de Roles y Permisos']);
 
-        $this->users = User::orderBy('id')->get();
-        $this->roles = Role::with('permissions')->orderBy('name')->get();
+        $this->users = User::when(!auth()->user()->hasRole('Super Admin'), function($q) {
+            $q->whereDoesntHave('roles', function($q2) {
+                $q2->where('name', 'Super Admin');
+            });
+        })->orderBy('id')->get();
+        $this->roles = Role::with('permissions')
+            ->when(!auth()->user()->hasRole('Super Admin'), function($q) {
+                $q->where('name', '!=', 'Super Admin');
+            })
+            ->orderBy('name')->get();
         if (count($this->roles) > 0) {
             $this->role = Role::find($this->roles[0]->id);
             $this->roleSelectedId = $this->role->id;
@@ -112,6 +120,7 @@ class AsignarPermisos extends Component
                 'pdf' => 'Generar PDF',
                 'assign' => 'Asignar',
                 'map' => 'Ver Mapa',
+                'labels' => 'Generar Etiquetas',
              ];
 
              return $map[$name] ?? $map[$action] ?? ucfirst(str_replace('_', ' ', $action));
@@ -134,11 +143,24 @@ class AsignarPermisos extends Component
 
     public function assignRole($userId, $roleId)
     {
-
         try {
-
             $user = User::find($userId);
-            $role = Role::find($roleId);
+            
+            // Protect Super Admin user
+            if ($user->hasRole('Super Admin') && !auth()->user()->hasRole('Super Admin')) {
+                $this->dispatch('noty', msg: "No tienes permiso para modificar los roles del Super Admin");
+                return;
+            }
+
+            $role = null;
+            if ($roleId != 0) {
+                $role = Role::find($roleId);
+                // Protect Super Admin role
+                if ($role->name === 'Super Admin' && !auth()->user()->hasRole('Super Admin')) {
+                    $this->dispatch('noty', msg: "No tienes permiso para asignar el rol Super Admin");
+                    return;
+                }
+            }
 
             // Asigna el rol al usuario
             if ($roleId == 0) {
@@ -168,6 +190,13 @@ class AsignarPermisos extends Component
             }
 
             $role = Role::find($this->roleSelectedId);
+            
+            // Protect Super Admin role
+            if ($role->name === 'Super Admin' && !auth()->user()->hasRole('Super Admin')) {
+                $this->dispatch('noty', msg: "No tienes permiso para modificar permisos del Super Admin");
+                return;
+            }
+
             $permission = Permission::find($permissionId);
 
             if ($checkState) {
@@ -192,6 +221,13 @@ class AsignarPermisos extends Component
     function assignRevokeAllPermissions($checkState)
     {
         $role = Role::find($this->roleSelectedId);
+
+        // Protect Super Admin role
+        if ($role && $role->name === 'Super Admin' && !auth()->user()->hasRole('Super Admin')) {
+            $this->dispatch('noty', msg: "No tienes permiso para modificar permisos del Super Admin");
+            return;
+        }
+
         $permissions = Permission::all();
 
         if ($role) {

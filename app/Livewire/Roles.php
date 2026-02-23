@@ -28,7 +28,9 @@ class Roles extends Component
     public function render()
     {
         return view('livewire.roles.roles', [
-            'roles' => Role::orderBy('level', 'desc')->orderBy('name')->get(), // Order by level first
+            'roles' => Role::when(!auth()->user()->hasRole('Super Admin'), function($q) {
+                $q->where('name', '!=', 'Super Admin');
+            })->orderBy('level', 'desc')->orderBy('name')->get(), // Order by level first
             'permisos' => Permission::when($this->search != null, function ($query) {
                 $query->where('name', 'like', "%{$this->search}%");
             })->orderBy('name')->get(),
@@ -63,6 +65,11 @@ class Roles extends Component
 
     function Edit(Role $role)
     {
+        if ($role->name === 'Super Admin' && !auth()->user()->hasRole('Super Admin')) {
+            $this->dispatch('noty', msg: 'No tienes permiso para editar este rol');
+            return;
+        }
+
         $this->roleName = $role->name;
         $this->roleId = $role->id;
         $this->roleLevel = $role->level;
@@ -100,6 +107,11 @@ class Roles extends Component
     function destroyRole($id)
     {
         $role = Role::find($id);
+
+        if ($role->name === 'Super Admin') {
+            $this->dispatch('noty', msg: 'No se puede eliminar el rol Super Admin');
+            return;
+        }
 
         if (User::role($role->name)->count() > 0) {
             $this->dispatch('noty', msg: 'No se puede eliminar el role ' . $role->name . ' porque hay usuarios asignados a este role');

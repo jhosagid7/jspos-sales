@@ -22,6 +22,9 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'phone',
+        'taxpayer_id',
+        'address',
         'password',
         'profile',
         'commission_percentage',

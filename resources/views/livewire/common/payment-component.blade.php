@@ -147,6 +147,7 @@
                                                 <small class="d-block">Efectivo</small>
                                             </button>
                                         </div>
+                                        @module('module_advanced_payments')
                                         <div class="col-6">
                                             <button type="button" wire:click="$set('paymentMethod', 'bank')"
                                                 class="btn w-100 {{ $paymentMethod === 'bank' ? 'btn-primary' : 'btn-outline-primary' }}"
@@ -155,6 +156,7 @@
                                                 <small class="d-block">Banco / Zelle</small>
                                             </button>
                                         </div>
+                                        @endmodule
 
                                     </div>
                                 </div>

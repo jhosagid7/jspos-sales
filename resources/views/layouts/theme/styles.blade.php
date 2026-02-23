@@ -92,6 +92,23 @@
         background: #333; /* Almost black on hover */
     }
 
+    /* Uniform Sidebar Active State (Grey shade instead of neon colors) */
+    [class*="sidebar-dark-"] .nav-sidebar > .nav-item > .nav-link.active,
+    [class*="sidebar-dark-"] .nav-treeview > .nav-item > .nav-link.active {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        color: #fff !important;
+        box-shadow: none !important;
+        border-radius: 0.25rem;
+    }
+
+    [class*="sidebar-light-"] .nav-sidebar > .nav-item > .nav-link.active,
+    [class*="sidebar-light-"] .nav-treeview > .nav-item > .nav-link.active {
+        background-color: rgba(0, 0, 0, 0.1) !important;
+        color: #212529 !important;
+        box-shadow: none !important;
+        border-radius: 0.25rem;
+    }
+
     /* Mobile POS Optimization */
     @media (max-width: 768px) {
         /* Hide Table Header */

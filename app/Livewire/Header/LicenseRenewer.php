@@ -12,6 +12,9 @@ class LicenseRenewer extends Component
 {
     public $daysRemaining;
     public $licenseKey;
+    public $clientId;
+    public $licenseType;
+    public $businessName;
     public $showModal = false;
 
     protected $listeners = ['trigger-license-modal' => 'openModal'];
@@ -22,6 +25,9 @@ class LicenseRenewer extends Component
             $service = app(LicenseService::class);
             $status = $service->checkLicense();
             $this->daysRemaining = $status['days_remaining'] ?? 0;
+            $this->clientId = $service->getClientId();
+            $this->licenseType = $status['type'] ?? 'NO ACTIVA';
+            $this->businessName = Configuration::first()->business_name ?? 'Empresa Genérica';
         } else {
             $this->daysRemaining = $daysRemaining;
         }
@@ -53,6 +59,7 @@ class LicenseRenewer extends Component
                 // Determine new days remaining
                 $status = $service->checkLicense();
                 $this->daysRemaining = $status['days_remaining'];
+                $this->licenseType = $status['type'] ?? 'NO ACTIVA';
                 
                 $this->dispatch('hide-license-modal');
                 $this->dispatch('noty', msg: 'Licencia activada con éxito.');

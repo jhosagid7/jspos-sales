@@ -25,6 +25,7 @@
                         </a>
                     </li>
                     {{-- Tab 2: Configuración Comercial --}}
+                    @module('module_commissions')
                     <li class="nav-item mb-2">
                         <a class="nav-link {{ $tab == 2 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                            wire:click.prevent="$set('tab',2)" href="#">
@@ -35,6 +36,7 @@
                             </div>
                         </a>
                     </li>
+                    @endmodule
                     {{-- Tab 3: Historial de Ventas (Solo en edición) --}}
                     @if($editing && $customer->id > 0)
                     <li class="nav-item mb-2">
@@ -49,6 +51,7 @@
                     </li>
                     @endif
                     {{-- Tab 4: Configuración de Crédito --}}
+                    @module('module_credits')
                     <li class="nav-item mb-2">
                         <a class="nav-link {{ $tab == 4 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                            wire:click.prevent="$set('tab',4)" href="#">
@@ -59,7 +62,9 @@
                             </div>
                         </a>
                     </li>
+                    @endmodule
                     {{-- Tab 5: Notificaciones (WhatsApp) --}}
+                    @module('module_whatsapp')
                     <li class="nav-item mb-2">
                         <a class="nav-link {{ $tab == 5 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                            wire:click.prevent="$set('tab',5)" href="#">
@@ -70,6 +75,7 @@
                             </div>
                         </a>
                     </li>
+                    @endmodule
                 </ul>
             </div>
 
@@ -111,24 +117,13 @@
                                     <input wire:model="customer.email" class="form-control" type="email" placeholder="correo@ejemplo.com">
                                     @error('customer.email') <span class="text-danger">{{ $message }}</span> @enderror
                                 </div>
-                                <div class="col-sm-6 mt-3">
-                                    <label class="form-label">Tipo <span class="txt-danger">*</span></label>
-                                    <select class="form-control" wire:model="customer.type">
-                                        <option value="0" selected disabled>Seleccionar</option>
-                                        <option value="Minorista">Minorista</option>
-                                        <option value="Mayoristas">Mayoristas</option>
-                                        <option value="Consumidor Final">Consumidor Final</option>
-                                        <option value="Descuento1">Descuento1</option>
-                                        <option value="Descuento2">Descuento2</option>
-                                        <option value="Otro">Otro</option>
-                                    </select>
-                                    @error('customer.type') <span class="text-danger">{{ $message }}</span> @enderror
-                                </div>
+
                             </div>
                         </div>
                     </div>
 
                     {{-- Tab 2: Configuración Comercial --}}
+                    @module('module_commissions')
                     <div class="tab-pane fade {{ $tab == 2 ? 'active show' : '' }}" role="tabpanel">
                         <div class="sidebar-body">
                             <div class="row g-2">
@@ -172,6 +167,7 @@
                             </div>
                         </div>
                     </div>
+                    @endmodule
 
                     {{-- Tab 3: Historial de Ventas --}}
                     @if($editing && $customer->id > 0)
@@ -251,6 +247,7 @@
                     @endif
 
                     {{-- Tab 4: Configuración de Crédito --}}
+                    @module('module_credits')
                     <div class="tab-pane fade {{ $tab == 4 ? 'active show' : '' }}" role="tabpanel">
                         <div class="sidebar-body">
                             <div class="row g-2">
@@ -384,8 +381,10 @@
                             </div>
                         </div>
                     </div>
+                    @endmodule
 
                     {{-- Tab 5: Notificaciones WhatsApp --}}
+                    @module('module_whatsapp')
                     <div class="tab-pane fade {{ $tab == 5 ? 'active show' : '' }}" role="tabpanel">
                         <div class="sidebar-body">
                             <div class="row g-2">
@@ -426,6 +425,7 @@
                             </div>
                         </div>
                     </div>
+                    @endmodule
 
                 </div>
             </div>
