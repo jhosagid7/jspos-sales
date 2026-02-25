@@ -129,8 +129,6 @@ class PostProduct extends Form
             $this->pricing_tiers = [];
             $this->freight_type = 'none';
             $this->freight_value = 0;
-            $this->is_variable_quantity = false;
-            $this->allow_decimal = false;
         }
 
         if (!in_array('module_production', $modules)) {

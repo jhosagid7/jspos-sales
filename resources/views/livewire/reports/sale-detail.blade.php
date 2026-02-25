@@ -34,21 +34,19 @@
                                 return !in_array($d->product->freight_type, ['global', 'none']);
                             })->sum('freight_amount');
                             
-                            // Simplified reverse calc for Comm/Diff
+                            // Calculate True Base Amount
+                            $baseAmount = $details->sum(function($d) {
+                                return ($d->regular_price ?? $d->sale_price) * $d->quantity;
+                            });
+                            
+                            // Calculate Comm/Diff amounts
                             $commAmount = 0;
                             $diffAmount = 0;
                             
                             // Only calculate if we have percentages enabled
                             if ($salesObt->is_foreign_sale) { 
-                                // Re-calculate base excluding TOTAL freight
-                                $totalWithoutFreight = $salesObt->total - $totalFreightAmount;
-                                $combinedPercent = ($commPercent + $diffPercent) / 100;
-                                
-                                if ($combinedPercent >= 0) { 
-                                     $baseAmount = $totalWithoutFreight / (1 + $combinedPercent);
-                                     $commAmount = $baseAmount * ($commPercent / 100);
-                                     $diffAmount = $baseAmount * ($diffPercent / 100);
-                                }
+                                $commAmount = $baseAmount * ($commPercent / 100);
+                                $diffAmount = $baseAmount * ($diffPercent / 100);
                             }
                             
                             $hasExtraCharges = ($commPercent > 0 || $diffPercent > 0 || $totalFreightAmount > 0);
@@ -131,69 +129,23 @@
                                             $totalFreight = $detail->freight_amount;
                                             $finalImporte = $finalUnitSalePrice * $qty; // Total Final (with everything)
                                             
-                                            // Percentages
+                                            // 1. Calculate Base Total from regular_price
+                                            $baseUnit = $detail->regular_price ?? $finalUnitSalePrice;
+                                            $baseTotal = $baseUnit * $qty;
+                                            
+                                            // Percentages stored on Sale
                                             $commPct = $salesObt->applied_commission_percent ?? 0;
                                             $diffPct = $salesObt->applied_exchange_diff_percent ?? 0;
                                             $combinedPct = ($commPct + $diffPct) / 100;
-
-                                            // Detect Additive Freight (Global Check or Per Item?)
-                                            // Ideally we pass this from controller, but here we can check:
-                                            // If SaleTotal > Sum(Items), it's additive.
-                                            // Only calculate once using the parent object if possible, but inside loop we can use a flag?
-                                            // Let's assume consistent behavior for the sale.
-                                            // We can check if we haven't already.
                                             
-                                            // Actually, let's just do the check here. 
-                                            // Need to be careful about scope. 
-                                            // $details is a collection.
+                                            // Detect Additive Freight Check
                                             $rawItemsSum = $details->sum(function($d) { return $d->quantity * $d->sale_price; });
                                             $isAdditive = ($salesObt->total - $rawItemsSum) > 0.01;
                                             
-                                            // 1. Calculate Base Total (Importe Base)
                                             if ($isAdditive) {
-                                                // If Additive, Price IS Base (User says "Base 10" for $1 item).
-                                                // And User says "Base includes comission".
-                                                // So we do NOT strip anything.
-                                                $baseTotal = $finalImporte;
-                                                
-                                                // Unit Price is just sale_price
-                                                $baseUnit = $finalUnitSalePrice;
-                                                
-                                                // Additional Charges?
-                                                // If Base includes them, do we show them separately?
-                                                // View has a column "Cargos Adic.".
-                                                // If we show 0 here, it implies no commission?
-                                                // But User said "Base includes...".
-                                                // Maybe we should calculate what the commission WOULD be?
-                                                // If Base $10 includes commission... wait.
-                                                // If Commission is 8% ON TOP of Base.
-                                                // And Base is $10. Total $10.8.
-                                                // If User says "Base includes commission", maybe they mean "The Price I set ($1) includes it".
-                                                // If so, $1 is the Base.
-                                                
-                                                // Let's set Additional Charges to 0 for now if Additive, 
-                                                // OR calculate them if they are supposed to be informational?
-                                                // "Cargos Adic" column usually adds to the total?
-                                                // Row: Unit | Subtotal | Freight | Adic | Total.
-                                                // $1 | $10 | $1 | $0 | $11.
-                                                // This matches 10+1=11.
-                                                // If we put $0.8 in Adic...
-                                                // $1 | $10 | $1 | $0.8 | $11.8. 
-                                                // Total would be wrong.
-                                                // So Adic MUST be 0 if it's included in Base.
-                                                
-                                                $additionalCharges = 0;
-
+                                                $additionalCharges = 0; // Info is hidden for additive
                                             } else {
-                                                // Inclusive Logic (Old)
-                                                // Formula: (FinalImporte - Freight) / (1 + Combined%)
-                                                $cleanTotal = max(0, $finalImporte - $totalFreight);
-                                                $baseTotal = $cleanTotal / (1 + $combinedPct);
-                                                
-                                                // 2. Calculate Base Unit Price
-                                                $baseUnit = ($qty > 0) ? ($baseTotal / $qty) : 0;
-                                                
-                                                // 3. Calculate Additional Charges Amount
+                                                // 3. Calculate Additional Charges Amount based on Pure Base Total
                                                 $additionalCharges = $baseTotal * $combinedPct;
                                             }
                                         @endphp
@@ -225,27 +177,9 @@
                                         <td></td>
                                         <td class="text-center">
                                             @php
-                                                $commPct = $salesObt->applied_commission_percent ?? 0;
-                                                $diffPct = $salesObt->applied_exchange_diff_percent ?? 0;
-                                                $combinedPct = ($commPct + $diffPct) / 100;
-
-                                                // Calculate Additive on the fly using the collection
-                                                $rawItemsSum = $details->sum(function($d) { return $d->quantity * $d->sale_price; });
-                                                // Assuming salesObt is available (it is, from lines above)
-                                                // We need to access $salesObt from the outer scope? Yes, it's available in the view.
-                                                $isAdditive = ($salesObt->total - $rawItemsSum) > 0.01;
-
-                                                $sumBaseTotal = $details->sum(function ($item) use ($combinedPct, $isAdditive) {
-                                                    $totalSale = $item->sale_price * $item->quantity;
-                                                    
-                                                    if ($isAdditive) {
-                                                        // Base is just Price * Qty
-                                                        return $totalSale;
-                                                    } else {
-                                                        $totalFreight = $item->freight_amount;
-                                                        $cleanTotal = max(0, $totalSale - $totalFreight);
-                                                        return $cleanTotal / (1 + $combinedPct);
-                                                    }
+                                                $sumBaseTotal = $details->sum(function ($item) {
+                                                    $baseUnit = $item->regular_price ?? $item->sale_price;
+                                                    return $baseUnit * $item->quantity;
                                                 });
                                             @endphp
                                             {{ $currencySymbol }}{{ number_format($sumBaseTotal, 2) }}
@@ -255,17 +189,19 @@
                                         </td>
                                         <td class="text-center">
                                             @php
+                                                $commPct = $salesObt->applied_commission_percent ?? 0;
+                                                $diffPct = $salesObt->applied_exchange_diff_percent ?? 0;
+                                                $combinedPct = ($commPct + $diffPct) / 100;
+                                                
+                                                $rawItemsSum = $details->sum(function($d) { return $d->quantity * $d->sale_price; });
+                                                $isAdditive = ($salesObt->total - $rawItemsSum) > 0.01;
+
                                                 $sumAdditional = $details->sum(function ($item) use ($combinedPct, $isAdditive) {
-                                                    
                                                     if ($isAdditive) {
-                                                        // If Base includes commission, then Additional is 0 (or included).
-                                                        // We display 0 to avoid double counting in the total.
                                                         return 0;
                                                     } else {
-                                                        $totalSale = $item->sale_price * $item->quantity;
-                                                        $totalFreight = $item->freight_amount;
-                                                        $cleanTotal = max(0, $totalSale - $totalFreight);
-                                                        $baseTotal = $cleanTotal / (1 + $combinedPct);
+                                                        $baseUnit = $item->regular_price ?? $item->sale_price;
+                                                        $baseTotal = $baseUnit * $item->quantity;
                                                         return $baseTotal * $combinedPct;
                                                     }
                                                 });

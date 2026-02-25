@@ -355,11 +355,19 @@ class PriceListGenerator extends Component
 
     private function generateFooterCode($seller, $customer, $sellerConfig, $headerData)
     {
+        // Check for Customer Config
+        $customerConfig = null;
+        if ($customer && $customer->latestCustomerConfig) {
+            $customerConfig = $customer->latestCustomerConfig;
+        }
+
         // Resolve Values
         // Freight
         $freightPercent = 0;
         if ($this->customFreight !== null && $this->customFreight !== '') {
             $freightPercent = floatval($this->customFreight);
+        } elseif ($customerConfig && $customerConfig->freight_percent > 0) {
+            $freightPercent = floatval($customerConfig->freight_percent);
         } elseif ($sellerConfig) {
             $freightPercent = floatval($sellerConfig->freight_percent ?? 0);
         }
@@ -368,6 +376,8 @@ class PriceListGenerator extends Component
         $commPercent = 0;
         if ($this->customCommission !== null && $this->customCommission !== '') {
             $commPercent = floatval($this->customCommission);
+        } elseif ($customerConfig && $customerConfig->commission_percent > 0) {
+            $commPercent = floatval($customerConfig->commission_percent);
         } elseif ($sellerConfig) {
             $commPercent = floatval($sellerConfig->commission_percent ?? 0);
         }
@@ -376,6 +386,8 @@ class PriceListGenerator extends Component
         $diffPercent = 0;
         if ($this->customExchangeDiff !== null && $this->customExchangeDiff !== '') {
             $diffPercent = floatval($this->customExchangeDiff);
+        } elseif ($customerConfig && $customerConfig->exchange_diff_percent > 0) {
+            $diffPercent = floatval($customerConfig->exchange_diff_percent);
         } elseif ($sellerConfig) {
             $diffPercent = floatval($sellerConfig->exchange_diff_percent ?? 0);
         }

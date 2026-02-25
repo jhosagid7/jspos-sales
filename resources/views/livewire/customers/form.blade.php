@@ -138,8 +138,36 @@
                                     @error('customer.seller_id') <span class="text-danger">{{ $message }}</span> @enderror
                                 </div>
 
+                                <div class="col-sm-12 mt-3 d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-info mb-0">Configuración Comercial Opcional</h6>
+                                        <small class="text-muted">Dejar en 0 o vacío para heredar del Vendedor o Global.</small>
+                                    </div>
+                                    @if($customer->id)
+                                    <button class="btn btn-info btn-sm" type="button" wire:click="viewHistory({{ $customer->id }})">
+                                        <i class="fas fa-history"></i> Ver Historial
+                                    </button>
+                                    @endif
+                                </div>
+                                <div class="col-sm-4 form-group mt-3">
+                                    <span class="form-label">Comisión (%)</span>
+                                    <input wire:model="commission_percent" class="form-control" type="number" step="0.01" min="0" max="100" placeholder="Heredado">
+                                </div>
+                                <div class="col-sm-4 form-group mt-3">
+                                    <span class="form-label">Flete (%)</span>
+                                    <input wire:model="freight_percent" class="form-control" type="number" step="0.01" min="0" max="100" placeholder="Heredado">
+                                </div>
+                                <div class="col-sm-4 form-group mt-3">
+                                    <span class="form-label">Dif. Cambiario (%)</span>
+                                    <input wire:model="exchange_diff_percent" class="form-control" type="number" step="0.01" min="0" max="1000" placeholder="Heredado">
+                                </div>
+                                <div class="col-sm-12 form-group mt-3">
+                                    <span class="form-label">Lote Actual</span>
+                                    <input wire:model="current_batch" class="form-control" type="text" placeholder="Heredado">
+                                </div>
+
                                 <div class="col-sm-12 mt-4">
-                                    <h6 class="text-info">Sobrescribir Comisiones (Opcional)</h6>
+                                    <h6 class="text-info">Sobrescribir Comisiones por Días (Opcional)</h6>
                                     <small class="text-muted">Dejar en blanco para usar la configuración del vendedor o global.</small>
                                 </div>
                                 

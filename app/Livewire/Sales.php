@@ -51,6 +51,7 @@ class Sales extends Component
 
     public $config, $customer, $iva = 0;
     public $sellerConfig = null; // Store active seller config
+    public $customerConfig = null; // Store active customer config
     public $creditConfig = []; // Store customer credit configuration (Cliente > Vendedor > Global)
     //register customer
     public $cname, $caddress, $ccity, $cemail, $cphone, $ctaxpayerId, $ctype = 'Consumidor Final';
@@ -971,6 +972,22 @@ class Sales extends Component
 
 
         $this->customer = session('sale_customer', null);
+        
+        // Re-hydrate config models if lost (e.g., F5 refresh loses untyped component properties)
+        if ($this->customer) {
+            if (!$this->sellerConfig && isset($this->customer['seller_id'])) {
+                $seller = \App\Models\User::find($this->customer['seller_id']);
+                if ($seller) {
+                    $this->sellerConfig = $seller->latestSellerConfig;
+                }
+            }
+            if (!$this->customerConfig && isset($this->customer['id'])) {
+                $customerDb = \App\Models\Customer::find($this->customer['id']);
+                if ($customerDb) {
+                    $this->customerConfig = $customerDb->latestCustomerConfig;
+                }
+            }
+        }
         $orders = $this->getOrdersWithDetails();
         return view(
             'livewire.pos.sales',
@@ -1607,13 +1624,20 @@ class Sales extends Component
         $freight = 0;
         $diff = 0;
 
-        if ($this->sellerConfig && $this->applyCommissions) {
+        $customerConfig = $this->customerConfig;
+
+        if (($this->sellerConfig || $customerConfig) && $this->applyCommissions) {
             
+            // Priority 1: Customer Config
+            $commissionPercent = $customerConfig && $customerConfig->commission_percent > 0 ? $customerConfig->commission_percent : ($this->sellerConfig ? $this->sellerConfig->commission_percent : 0);
+            $freightPercent = $customerConfig && $customerConfig->freight_percent > 0 ? $customerConfig->freight_percent : ($this->sellerConfig ? $this->sellerConfig->freight_percent : 0);
+            $exchangeDiffPercent = $customerConfig && $customerConfig->exchange_diff_percent > 0 ? $customerConfig->exchange_diff_percent : ($this->sellerConfig ? $this->sellerConfig->exchange_diff_percent : 0);
+
             // Commission
-            $comm = ($basePriceInPrimary * $this->sellerConfig->commission_percent) / 100;
+            $comm = ($basePriceInPrimary * $commissionPercent) / 100;
             
             // Exchange Diff
-            $diff = ($basePriceInPrimary * $this->sellerConfig->exchange_diff_percent) / 100;
+            $diff = ($basePriceInPrimary * $exchangeDiffPercent) / 100;
 
             // Freight (Smart Logic)
             if ($product->freight_type != 'none') {
@@ -1624,8 +1648,8 @@ class Sales extends Component
                     $freightUnit = ($basePriceInPrimary * $product->freight_value) / 100;
                 }
             } else {
-                // General Seller Freight
-                $freightUnit = ($basePriceInPrimary * $this->sellerConfig->freight_percent) / 100;
+                // General Freight
+                $freightUnit = ($basePriceInPrimary * $freightPercent) / 100;
             }
             $freight = $freightUnit; // Total freight added to unit price
 
@@ -1726,9 +1750,10 @@ class Sales extends Component
         }
 
         // 4. Flete Global (Seller Config) - Fallback for 'global', 'none', or null
-        // If type is 'none' or 'global', we apply Seller Freight if available.
-        if ($this->sellerConfig) {
-             return ($basePrice * $this->sellerConfig->freight_percent / 100) * $qty;
+        // If type is 'none' or 'global', we apply active Freight if available.
+        $activeFreight = ($this->customerConfig && $this->customerConfig->freight_percent > 0) ? $this->customerConfig->freight_percent : ($this->sellerConfig->freight_percent ?? 0);
+        if ($activeFreight > 0) {
+             return ($basePrice * $activeFreight / 100) * $qty;
         }
 
         return 0;
@@ -1796,9 +1821,12 @@ class Sales extends Component
 
         if ($this->applyCommissions) {
             
-            if ($this->sellerConfig) {
-                 $comm = ($basePriceInPrimary * $this->sellerConfig->commission_percent) / 100;
-                 $diff = ($basePriceInPrimary * $this->sellerConfig->exchange_diff_percent) / 100;
+            if ($this->sellerConfig || $this->customerConfig) {
+                 $activeComm = ($this->customerConfig && $this->customerConfig->commission_percent > 0) ? $this->customerConfig->commission_percent : ($this->sellerConfig->commission_percent ?? 0);
+                 $activeDiff = ($this->customerConfig && $this->customerConfig->exchange_diff_percent > 0) ? $this->customerConfig->exchange_diff_percent : ($this->sellerConfig->exchange_diff_percent ?? 0);
+                 
+                 $comm = ($basePriceInPrimary * $activeComm) / 100;
+                 $diff = ($basePriceInPrimary * $activeDiff) / 100;
             }
         }
 
@@ -2332,6 +2360,15 @@ class Sales extends Component
             // Check for Foreign Seller Config
 
             $this->sellerConfig = null;
+            $this->customerConfig = null;
+            
+            if(isset($customer['id']) && $customer['id']) {
+                $customerDb = \App\Models\Customer::find($customer['id']);
+                if($customerDb) {
+                    $this->customerConfig = $customerDb->latestCustomerConfig;
+                }
+            }
+
             if(isset($customer['seller_id']) && $customer['seller_id']) {
                 $seller = \App\Models\User::find($customer['seller_id']);
                 if($seller) {
@@ -2904,9 +2941,37 @@ class Sales extends Component
             
             $totalInInvoiceCurrency = round($this->totalCart * $conversionFactor, $decimals);
 
+            $appliedComm = null;
+            $appliedFreight = null;
+            $appliedDiff = null;
+            $sellerConfigId = null;
+
+            if ($this->applyCommissions) {
+                if ($this->sellerConfig) {
+                    $sellerConfigId = $this->sellerConfig->id;
+                }
+                
+                if ($this->customerConfig && $this->customerConfig->commission_percent > 0) {
+                    $appliedComm = $this->customerConfig->commission_percent;
+                } elseif ($this->sellerConfig) {
+                    $appliedComm = $this->sellerConfig->commission_percent;
+                }
+
+                if ($this->customerConfig && $this->customerConfig->freight_percent > 0) {
+                    $appliedFreight = $this->customerConfig->freight_percent;
+                } elseif ($this->sellerConfig) {
+                    $appliedFreight = $this->sellerConfig->freight_percent;
+                }
+
+                if ($this->customerConfig && $this->customerConfig->exchange_diff_percent > 0) {
+                    $appliedDiff = $this->customerConfig->exchange_diff_percent;
+                } elseif ($this->sellerConfig) {
+                    $appliedDiff = $this->sellerConfig->exchange_diff_percent;
+                }
+            }
+
             $sale = Sale::create([
-                'seller_config_id' => ($this->sellerConfig && $this->applyCommissions) ? $this->sellerConfig->id : null,
-                'applied_commission_percent' => ($this->sellerConfig && $this->applyCommissions) ? $this->sellerConfig->commission_percent : null,
+                'seller_config_id' => $sellerConfigId,
                 'total' => $totalInInvoiceCurrency,
                 'total_usd' => round($totalUSD, $decimals),
                 'discount' => 0,
@@ -2919,7 +2984,6 @@ class Sales extends Component
                 'cash' => $totalPaidInPrimaryCurrency,
                 'change' => $changeAmount,
                 'notes' => $notes,
-                'notes' => $notes,
                 'primary_currency_code' => $currencyCodeForInvoice,
                 'primary_exchange_rate' => $exchangeRateForInvoice,
                 'invoice_number' => $invoiceNumber,
@@ -2928,9 +2992,9 @@ class Sales extends Component
                 'batch_name' => $batchName,
                 'batch_sequence' => $batchSequence,
                 'cash_register_id' => $cashRegisterId,
-                'applied_commission_percent' => ($this->sellerConfig && $this->applyCommissions) ? $this->sellerConfig->commission_percent : null,
-                'applied_freight_percent' => ($this->sellerConfig && $this->applyCommissions) ? $this->sellerConfig->freight_percent : null,
-                'applied_exchange_diff_percent' => ($this->sellerConfig && $this->applyCommissions) ? $this->sellerConfig->exchange_diff_percent : null,
+                'applied_commission_percent' => $appliedComm,
+                'applied_freight_percent' => $appliedFreight,
+                'applied_exchange_diff_percent' => $appliedDiff,
                 'is_foreign_sale' => ($this->sellerConfig && $this->applyCommissions) ? true : false,
                 'credit_days' => $this->creditConfig['credit_days'] ?? $this->calculateCreditDays(),
                 'delivery_status' => $this->driver_id ? 'pending' : 'delivered',
@@ -2950,7 +3014,7 @@ class Sales extends Component
 
 
             // insert sale detail
-            $details = $cart->map(function ($item) use ($sale, $decimals, $primaryCurrency, $applyCommissions, $applyFreight, $sellerConfig, $conversionFactorForDetails) {
+            $details = $cart->map(function ($item) use ($sale, $decimals, $primaryCurrency, $applyCommissions, $applyFreight, $sellerConfig, $conversionFactorForDetails, $appliedFreight) {
 
                 // El precio del producto está en USD (base)
                 $product = Product::find($item['pid']);
@@ -2973,7 +3037,9 @@ class Sales extends Component
                          $freightAmount = ($basePrice * $product->freight_value / 100) * $qty;
                      }
                      // 3. Fallback to Global Seller Freight
-                     elseif ($sellerConfig) {
+                     elseif ($appliedFreight !== null && $appliedFreight > 0) {
+                          $freightAmount = ($basePrice * $appliedFreight / 100) * $qty;
+                     } elseif ($sellerConfig) {
                           $freightAmount = ($basePrice * $sellerConfig->freight_percent / 100) * $qty;
                      }
                 }
@@ -2983,7 +3049,7 @@ class Sales extends Component
                     'sale_id' => $sale->id,
                     'quantity' => round($item['qty'], $decimals),
                     'regular_price' => round(
-                        ($item['price2'] ?? 0) * $conversionFactorForDetails,
+                        ($item['base_price'] ?? $item['price1'] ?? 0) * $conversionFactorForDetails,
                         $decimals
                     ),
                     'sale_price' => round($item['sale_price'] * $conversionFactorForDetails, $decimals),
@@ -3383,7 +3449,7 @@ class Sales extends Component
                             'product_id' => $item['pid'],
                             'order_id' => $order->id,
                             'quantity' => round($item['qty'], $decimals),
-                            'regular_price' => round($item['price1'] ?? 0, $decimals),
+                            'regular_price' => round($item['base_price'] ?? $item['price1'] ?? 0, $decimals),
                             'sale_price' => round($item['sale_price'], $decimals),
                             'created_at' => Carbon::now(),
                             'discount' => 0,
@@ -3427,7 +3493,7 @@ class Sales extends Component
                         'product_id' => $item['pid'],
                         'order_id' => $order->id,
                         'quantity' => round($item['qty'], $decimals),
-                        'regular_price' => round($item['price1'] ?? 0, $decimals),
+                        'regular_price' => round($item['base_price'] ?? $item['price1'] ?? 0, $decimals),
                         'sale_price' => round($item['sale_price'], $decimals),
                         'created_at' => Carbon::now(),
                         'discount' => 0,

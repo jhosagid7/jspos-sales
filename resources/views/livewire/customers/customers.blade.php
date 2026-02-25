@@ -46,7 +46,7 @@
                                     <th width="25%">Teléfono</th>
                                     <th width="25%">CC/Nit</th>
                                     <th width="15%">Vendedor</th>
-                                    <th width="10%">Tipo</th>
+                                    
                                     <th class="text-center">Actions</th>
                                 </tr>
                             </thead>
@@ -59,7 +59,7 @@
                                         <td>{{ $item->phone }}</td>
                                         <td>{{ $item->taxpayerId }}</td>
                                         <td>{{ $item->seller ? $item->seller->name : 'N/A' }}</td>
-                                        <td>{{ $item->type }}</td>
+                                        
                                         <td class="text-center">
 
 
@@ -100,12 +100,66 @@
         </div>
 
     </div>
+
+    <!-- Modal History -->
+    <div class="modal fade" id="modalHistory" tabindex="-1" role="dialog" aria-labelledby="modalHistoryLabel" aria-hidden="true" wire:ignore.self>
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-primary">
+                    <h5 class="modal-title" id="modalHistoryLabel">Historial de Configuraciones (Cliente)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" wire:click="closeHistory"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Comisión %</th>
+                                    <th>Flete %</th>
+                                    <th>Diferencial %</th>
+                                    <th>Lote</th>
+                                </tr>
+                            </thead>
+                            <tbody wire:key="history-table-{{ $viewingCustomerId }}">
+                                @if($history)
+                                @forelse($history as $record)
+                                    <tr>
+                                        <td>{{ $record->created_at->format('d/m/Y H:i') }}</td>
+                                        <td>{{ number_format($record->commission_percent, 2) }}%</td>
+                                        <td>{{ number_format($record->freight_percent, 2) }}%</td>
+                                        <td>{{ number_format($record->exchange_diff_percent, 2) }}%</td>
+                                        <td>{{ $record->current_batch }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="text-center">No hay historial disponible</td>
+                                    </tr>
+                                @endforelse
+                                @endif
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" wire:click="closeHistory">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @push('my-scripts')
         <script>
             document.addEventListener('livewire:init', () => {
 
                 Livewire.on('init-new', (event) => {
                     document.getElementById('inputFocus').focus()
+                })
+                Livewire.on('show-history-modal', (event) => {
+                    $('#modalHistory').modal('show')
+                })
+                Livewire.on('close-history-modal', (event) => {
+                    $('#modalHistory').modal('hide')
                 })
             })
         </script>

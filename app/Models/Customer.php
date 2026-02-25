@@ -53,4 +53,14 @@ class Customer extends Model
     {
         return $this->belongsTo(User::class, 'seller_id');
     }
+
+    public function customerConfigs()
+    {
+        return $this->hasMany(CustomerConfig::class);
+    }
+
+    public function latestCustomerConfig()
+    {
+        return $this->hasOne(CustomerConfig::class)->latestOfMany();
+    }
 }

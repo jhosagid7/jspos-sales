@@ -17,6 +17,7 @@ class Customers extends Component
     public $editing;
     public $tab = 1; // Active tab (1=General, 2=Commercial, 3=Sales History, 4=Credit Config)
     public $customerCommission1Threshold, $customerCommission1Percentage, $customerCommission2Threshold, $customerCommission2Percentage;
+    public $commission_percent = 0, $freight_percent = 0, $exchange_diff_percent = 0, $current_batch = '1';
     public $discountRules = []; // Array of discount rules for this customer
 
     protected $rules = [
@@ -31,9 +32,11 @@ class Customers extends Component
         'customer.credit_days' => 'nullable|integer|min:1',
         'customer.credit_limit' => 'nullable|numeric|min:0',
         'customer.usd_payment_discount' => 'nullable|numeric|min:0|max:100',
+        'commission_percent' => 'nullable|numeric|min:0|max:100',
+        'freight_percent' => 'nullable|numeric|min:0|max:100',
+        'exchange_diff_percent' => 'nullable|numeric|min:0|max:1000',
         'customerCommission1Threshold' => 'nullable|numeric',
         'customerCommission1Percentage' => 'nullable|numeric',
-        'customerCommission2Threshold' => 'nullable|numeric',
         'customerCommission2Threshold' => 'nullable|numeric',
         'customerCommission2Percentage' => 'nullable|numeric',
         'customer.whatsapp_notify_sales' => 'nullable|boolean',
@@ -60,6 +63,10 @@ class Customers extends Component
         $this->customer->seller_id = 0;
         $this->customer->whatsapp_notify_sales = true;
         $this->customer->whatsapp_notify_payments = true;
+        $this->commission_percent = 0;
+        $this->freight_percent = 0;
+        $this->exchange_diff_percent = 0;
+        $this->current_batch = '1';
         $this->resetCommissionFields();
         $this->editing = false;
 
@@ -123,6 +130,19 @@ class Customers extends Component
         $this->customerCommission2Threshold = $customer->customer_commission_2_threshold;
         $this->customerCommission2Percentage = $customer->customer_commission_2_percentage;
 
+        $latestConfig = $customer->latestCustomerConfig;
+        if($latestConfig) {
+            $this->commission_percent = $latestConfig->commission_percent;
+            $this->freight_percent = $latestConfig->freight_percent;
+            $this->exchange_diff_percent = $latestConfig->exchange_diff_percent;
+            $this->current_batch = $latestConfig->current_batch;
+        } else {
+            $this->commission_percent = 0;
+            $this->freight_percent = 0;
+            $this->exchange_diff_percent = 0;
+            $this->current_batch = '1';
+        }
+
         // Load discount rules
         $this->loadDiscountRules();
 
@@ -136,6 +156,10 @@ class Customers extends Component
         $this->customer = new Customer();
         $this->editing = false;
         $this->search = null;
+        $this->commission_percent = 0;
+        $this->freight_percent = 0;
+        $this->exchange_diff_percent = 0;
+        $this->current_batch = '1';
         $this->resetCommissionFields();
         $this->dispatch('init-new');
     }
@@ -175,6 +199,25 @@ class Customers extends Component
 
         // save model
         $this->customer->save();
+
+        // Handle Customer Config History
+        $latestConfig = $this->customer->latestCustomerConfig;
+        
+        $hasConfigChanges = !$latestConfig || 
+            $latestConfig->commission_percent != $this->commission_percent ||
+            $latestConfig->freight_percent != $this->freight_percent ||
+            $latestConfig->exchange_diff_percent != $this->exchange_diff_percent ||
+            $latestConfig->current_batch != $this->current_batch;
+
+        if ($hasConfigChanges) {
+            \App\Models\CustomerConfig::create([
+                'customer_id' => $this->customer->id,
+                'commission_percent' => $this->commission_percent ?? 0,
+                'freight_percent' => $this->freight_percent ?? 0,
+                'exchange_diff_percent' => $this->exchange_diff_percent ?? 0,
+                'current_batch' => $this->current_batch ?? '1',
+            ]);
+        }
 
         // Save discount rules
         $this->saveDiscountRules();
@@ -219,6 +262,25 @@ class Customers extends Component
         $this->customerCommission1Percentage = null;
         $this->customerCommission2Threshold = null;
         $this->customerCommission2Percentage = null;
+    }
+
+    public $history = [];
+    public $viewingCustomerId;
+
+    public function viewHistory($customerId)
+    {
+        $this->viewingCustomerId = $customerId;
+        $this->history = \App\Models\CustomerConfig::where('customer_id', $customerId)
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        $this->dispatch('show-history-modal');
+    }
+
+    public function closeHistory()
+    {
+        $this->history = [];
+        $this->dispatch('close-history-modal');
     }
 
     // Discount Rules Management

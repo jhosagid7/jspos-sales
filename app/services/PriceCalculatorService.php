@@ -29,35 +29,39 @@ class PriceCalculatorService
         
         // 2. Determine Configuration to Use
         $applyCommissions = false;
-        $applyFreight = false;
         
+        $customerConfig = null;
         if ($customer) {
-             // Customer specific logic could go here if Customer model had specific overrides
-             // For now, we assume customer falls back to Seller Config unless specified
-             // But based on user request "cliente... tiene condiciones establecidas", 
-             // we should check if we need to implement customer-specific commission fields later.
-             // For now, we use the Seller Config of the user assigned to this customer.
+            if (is_object($customer)) {
+                $customerConfig = $customer->latestCustomerConfig;
+            } elseif (is_array($customer) && isset($customer['id'])) {
+                $customerModel = \App\Models\Customer::find($customer['id']);
+                if ($customerModel) {
+                    $customerConfig = $customerModel->latestCustomerConfig;
+                }
+            }
         }
 
-        if ($sellerConfig) {
+        if ($customerConfig || $sellerConfig) {
             $applyCommissions = true;
-             // Should we apply freight? Sales.php logic implies it's optional/configurable
-             // For a price list, we generally want to show the full price including overheads?
-             // Let's assume Yes for "Foreign Sellers" logic.
-            $applyFreight = true; 
         }
 
         $comm = 0;
         $freight = 0;
         $diff = 0;
 
-        if ($applyCommissions && $sellerConfig) {
+        if ($applyCommissions) {
+            
+            // Priority 1: Customer Config
+            $commissionPercent = $customerConfig && $customerConfig->commission_percent > 0 ? $customerConfig->commission_percent : ($sellerConfig ? $sellerConfig->commission_percent : 0);
+            $freightPercent = $customerConfig && $customerConfig->freight_percent > 0 ? $customerConfig->freight_percent : ($sellerConfig ? $sellerConfig->freight_percent : 0);
+            $exchangeDiffPercent = $customerConfig && $customerConfig->exchange_diff_percent > 0 ? $customerConfig->exchange_diff_percent : ($sellerConfig ? $sellerConfig->exchange_diff_percent : 0);
             
             // Commission
-            $comm = ($basePriceInPrimary * $sellerConfig->commission_percent) / 100;
+            $comm = ($basePriceInPrimary * $commissionPercent) / 100;
             
             // Exchange Diff
-            $diff = ($basePriceInPrimary * $sellerConfig->exchange_diff_percent) / 100;
+            $diff = ($basePriceInPrimary * $exchangeDiffPercent) / 100;
 
             // Freight (Smart Logic)
             if ($product->freight_type != 'none') {
@@ -67,8 +71,8 @@ class PriceCalculatorService
                     $freightUnit = ($basePriceInPrimary * $product->freight_value) / 100;
                 }
             } else {
-                // General Seller Freight
-                $freightUnit = ($basePriceInPrimary * $sellerConfig->freight_percent) / 100;
+                // General Freight
+                $freightUnit = ($basePriceInPrimary * $freightPercent) / 100;
             }
             $freight = $freightUnit;
             

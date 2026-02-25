@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.8.26] - 2026-02-25
+### Fixed
+- **Sales Module**:
+  - **Zero Price Bug**: Fixed a bug where `sale_price` and `regular_price` were saving as `0.00` in the database. The system now correctly maps the `base_price` from the cart.
+  - **Freight Calculation**: Fixed an issue where the seller's generic freight percentage was incorrectly overriding the customer's specific prioritized freight percentage during sale finalization.
+- **Products Module**:
+  - **Checkbox State Preservation**: Fixed an issue in the Product Edit Form where the checkboxes "Venta por Peso/Separado" (`is_variable_quantity`) and "Permite Cantidades Decimales" (`allow_decimal`) would automatically uncheck themselves upon saving if the advanced products module was not active.
+
 ## [1.8.25] - 2026-02-23
 ### Fixed
 - **Auto-Updater**:

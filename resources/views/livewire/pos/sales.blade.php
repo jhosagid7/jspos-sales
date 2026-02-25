@@ -108,11 +108,11 @@
                             </label>
                             
                             @module('module_commissions')
-                            <div class="custom-control custom-switch" title="{{ $sellerConfig ? '' : 'Seleccione un cliente con conf. de vendedor para habilitar' }}">
-                                <input type="checkbox" class="custom-control-input" id="customSwitch1" wire:model.live="applyCommissions" {{ $sellerConfig ? '' : 'disabled' }}>
+                            <div class="custom-control custom-switch" title="{{ ($sellerConfig || $customerConfig) ? '' : 'Seleccione un cliente con conf. comercial para habilitar' }}">
+                                <input type="checkbox" class="custom-control-input" id="customSwitch1" wire:model.live="applyCommissions" {{ ($sellerConfig || $customerConfig) ? '' : 'disabled' }}>
                                 <label class="custom-control-label" for="customSwitch1" style="font-size: 0.8rem;">
                                     Aplicar Comisiones 
-                                    @if(!$sellerConfig) <i class="fas fa-lock text-muted" style="font-size: 0.7em;"></i> @endif
+                                    @if(!$sellerConfig && !$customerConfig) <i class="fas fa-lock text-muted" style="font-size: 0.7em;"></i> @endif
                                 </label>
                             </div>
                         </div>
@@ -148,35 +148,39 @@
                                 @endif
                             </label>
                             {{-- Solo mostramos indicador visual discreto, sin controles --}}
-                            @if($sellerConfig)
+                            @if($sellerConfig || $customerConfig)
                                 <span class="badge badge-light text-muted" style="font-size: 0.75rem;" title="Comisiones Aplicadas Automáticamente">
-                                    <i class="fas fa-check-double"></i> Tarifa Foránea
+                                    <i class="fas fa-check-double"></i> Tarifa Comercial
                                 </span>
                             @endif
                         </div>
                         @endcan
                         
                         
-                        @if($sellerConfig)
+                        @if($sellerConfig || $customerConfig)
                             @php
                                 $alertClass = 'alert-success'; // Default: no debt or all current
                                 if(isset($customer['total_debt']) && $customer['total_debt'] > 0) {
                                     $alertClass = $customer['has_overdue'] ? 'alert-danger' : 'alert-warning';
                                 }
+                                
+                                $activeComm = ($customerConfig && $customerConfig->commission_percent > 0) ? $customerConfig->commission_percent : ($sellerConfig->commission_percent ?? 0);
+                                $activeFreight = ($customerConfig && $customerConfig->freight_percent > 0) ? $customerConfig->freight_percent : ($sellerConfig->freight_percent ?? 0);
+                                $activeDiff = ($customerConfig && $customerConfig->exchange_diff_percent > 0) ? $customerConfig->exchange_diff_percent : ($sellerConfig->exchange_diff_percent ?? 0);
                             @endphp
                             
                             <div class="alert {{ $alertClass }} p-2" style="font-size: 0.85rem;">
-                                <strong><i class="fas fa-info-circle"></i> Precios Foráneos</strong>
+                                <strong><i class="fas fa-info-circle"></i> Precios Comerciales</strong>
                                 
                                 @if(isset($customer['seller_name']))
                                     <br><small><strong>Vendedor:</strong> {{ $customer['seller_name'] }}</small>
                                 @endif
                                 
                                 <br><small>
-                                    Com: {{ $sellerConfig->commission_percent ?? 0 }}%
-                                    @cannot('system.is_foreign_seller')
-                                     | Flete: {{ $sellerConfig->freight_percent ?? 0 }}% | Dif: {{ $sellerConfig->exchange_diff_percent ?? 0 }}%
-                                    @endcannot
+                                    Com: {{ $activeComm }}%
+                                    @if(!auth()->user()->can('system.is_foreign_seller') || auth()->user()->hasRole('Admin') || auth()->user()->hasRole('Super Admin'))
+                                     | Flete: {{ $activeFreight }}% | Dif: {{ $activeDiff }}%
+                                    @endif
                                 </small>
                                 
                                 @if(isset($customer['allow_credit']) && $customer['allow_credit'])
@@ -277,7 +281,7 @@
                                 <td class="text-right font-weight-bold">{{ $displayCurrency ? $displayCurrency->symbol : '$' }}{{ formatMoney($this->displayIvaCart) }}</td>
                             </tr>
                             @if($is_freight_broken_down)
-                                @cannot('system.is_foreign_seller')
+                                @if(!auth()->user()->can('system.is_foreign_seller') || auth()->user()->hasRole('Admin') || auth()->user()->hasRole('Super Admin'))
                                 <tr class="border-bottom">
                                     <td class="text-muted">Flete Total:</td>
                                     <td class="text-right">
@@ -291,7 +295,7 @@
                                         </div>
                                     </td>
                                 </tr>
-                                @endcannot
+                                @endif
                             @endif
                             <tr>
                                 <td class="h5 font-weight-bold">TOTAL:</td>
