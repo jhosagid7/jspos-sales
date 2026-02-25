@@ -1769,8 +1769,26 @@ class Sales extends Component
         $tiers = $product->priceTiers;
 
         if ($tiers && $tiers->count() > 0) {
-            // Find the best tier for the quantity
-            $tier = $tiers->where('min_qty', '<=', $qty)->sortByDesc('min_qty')->first();
+            // If the product belongs to a price group, sum quantities of ALL group members in the cart
+            if ($product->price_group_id) {
+                $groupProductIds = \App\Models\Product::where('price_group_id', $product->price_group_id)
+                    ->pluck('id')
+                    ->toArray();
+
+                // Exclude the current product from cart sum (it may hold a stale qty)
+                // and replace it with the new $qty being evaluated
+                $otherGroupQtyInCart = $this->cart
+                    ->whereIn('pid', $groupProductIds)
+                    ->where('pid', '!=', $product->id)
+                    ->sum('qty');
+
+                $effectiveQty = $qty + $otherGroupQtyInCart;
+            } else {
+                $effectiveQty = $qty;
+            }
+
+            // Find the best tier for the effective quantity
+            $tier = $tiers->where('min_qty', '<=', $effectiveQty)->sortByDesc('min_qty')->first();
             if ($tier) {
                 $price = $tier->price;
             }
@@ -2201,14 +2219,52 @@ class Sales extends Component
         $newItem['tax'] = round($values['iva'], $decimals);
         $newItem['total'] = $this->formatAmount(round($values['total'], $decimals));
 
-        // Actualizar el carrito - SOLO eliminar el item específico por ID
-        $this->cart = $this->cart->reject(function ($product) use ($uid) {
-            return $product['id'] === $uid;
+        // Update item IN PLACE (preserves cart order)
+        $this->cart = $this->cart->map(function ($item) use ($uid, $newItem) {
+            return $item['id'] === $uid ? $newItem : $item;
         });
 
-        // Add to cart first so calculateCalculatedFreight can see it
-        $this->cart->push($newItem);
-        
+        // If this product belongs to a price group, recalculate ALL other group members' prices
+        // since the total group quantity has changed and may trigger a different tier for them too
+        if ($productModel->price_group_id) {
+            $groupProductIds = \App\Models\Product::where('price_group_id', $productModel->price_group_id)
+                ->pluck('id')
+                ->toArray();
+
+            // Recalculate every OTHER group member in the cart
+            $decimals = ConfigurationService::getDecimalPlaces();
+            $primaryCurrency = CurrencyHelper::getPrimaryCurrency();
+            $exchangeRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
+
+            $updatedCart = $this->cart->map(function ($cartItem) use ($newItem, $groupProductIds, $decimals, $exchangeRate) {
+                // Skip the item we just updated
+                if ($cartItem['id'] === $newItem['id']) {
+                    return $cartItem;
+                }
+
+                // Only touch group members
+                if (!in_array($cartItem['pid'], $groupProductIds)) {
+                    return $cartItem;
+                }
+
+                $siblingModel = \App\Models\Product::find($cartItem['pid']);
+                if (!$siblingModel) return $cartItem;
+
+                $newBasePrice       = $this->determinePrice($siblingModel, $cartItem['qty']);
+                $newBasePriceInPrim = $newBasePrice * $exchangeRate;
+
+                $cartItem['base_price'] = $newBasePriceInPrim;
+                $values = $this->Calculator($newBasePriceInPrim, $cartItem['qty'], $siblingModel);
+                $cartItem['sale_price'] = $values['sale_price'];
+                $cartItem['tax']        = round($values['iva'], $decimals);
+                $cartItem['total']      = $this->formatAmount(round($values['total'], $decimals));
+
+                return $cartItem;
+            });
+
+            $this->cart = $updatedCart;
+        }
+
         // Recalculate freight total
         $this->recalculateFreightTotal();
 

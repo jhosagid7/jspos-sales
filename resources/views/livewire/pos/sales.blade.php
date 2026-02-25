@@ -164,33 +164,47 @@
                                     $alertClass = $customer['has_overdue'] ? 'alert-danger' : 'alert-warning';
                                 }
                                 
-                                $activeComm = ($customerConfig && $customerConfig->commission_percent > 0) ? $customerConfig->commission_percent : ($sellerConfig->commission_percent ?? 0);
-                                $activeFreight = ($customerConfig && $customerConfig->freight_percent > 0) ? $customerConfig->freight_percent : ($sellerConfig->freight_percent ?? 0);
-                                $activeDiff = ($customerConfig && $customerConfig->exchange_diff_percent > 0) ? $customerConfig->exchange_diff_percent : ($sellerConfig->exchange_diff_percent ?? 0);
-                            @endphp
-                            
-                            <div class="alert {{ $alertClass }} p-2" style="font-size: 0.85rem;">
-                                <strong><i class="fas fa-info-circle"></i> Precios Comerciales</strong>
+                                    $hasCustomerComm = ($customerConfig && $customerConfig->commission_percent > 0);
+                                    $activeComm = $hasCustomerComm ? $customerConfig->commission_percent : ($sellerConfig->commission_percent ?? 0);
+                                    $commSource = $hasCustomerComm ? 'Cliente' : 'Vendedor/Global';
+
+                                    $hasCustomerFreight = ($customerConfig && $customerConfig->freight_percent > 0);
+                                    $activeFreight = $hasCustomerFreight ? $customerConfig->freight_percent : ($sellerConfig->freight_percent ?? 0);
+                                    $freightSource = $hasCustomerFreight ? 'Cliente' : 'Vendedor/Global';
+
+                                    $hasCustomerDiff = ($customerConfig && $customerConfig->exchange_diff_percent > 0);
+                                    $activeDiff = $hasCustomerDiff ? $customerConfig->exchange_diff_percent : ($sellerConfig->exchange_diff_percent ?? 0);
+                                    $diffSource = $hasCustomerDiff ? 'Cliente' : 'Vendedor/Global';
+                                @endphp
                                 
-                                @if(isset($customer['seller_name']))
-                                    <br><small><strong>Vendedor:</strong> {{ $customer['seller_name'] }}</small>
-                                @endif
-                                
-                                <br><small>
-                                    Com: {{ $activeComm }}%
-                                    @if(!auth()->user()->can('system.is_foreign_seller') || auth()->user()->hasRole('Admin') || auth()->user()->hasRole('Super Admin'))
-                                     | Flete: {{ $activeFreight }}% | Dif: {{ $activeDiff }}%
-                                    @endif
-                                </small>
-                                
-                                @if(isset($customer['allow_credit']) && $customer['allow_credit'])
-                                    <hr class="my-1">
-                                    <small><strong>Crédito:</strong> {{ $customer['credit_days'] ?? 0 }} días | Límite: ${{ number_format($customer['credit_limit'] ?? 0, 2) }}</small>
-                                @endif
-                                
-                                @if(isset($customer['usd_payment_discount']) && $customer['usd_payment_discount'] > 0)
-                                    <br><small><strong>Pago Divisa:</strong> {{ $customer['usd_payment_discount'] }}% desc.</small>
-                                @endif
+                                <div class="alert {{ $alertClass }} p-2" style="font-size: 0.85rem;">
+                                    <strong><i class="fas fa-info-circle"></i> Precios Comerciales</strong>
+                                    
+                                    <ul class="mb-0 mt-1 pl-3">
+                                        @if(isset($customer['seller_name']))
+                                            <li><strong>Vendedor:</strong> {{ $customer['seller_name'] }}</li>
+                                        @endif
+                                        
+                                        <li><strong>Com:</strong> {{ $activeComm }}% <i>({{ $commSource }})</i></li>
+                                        @if(!auth()->user()->can('system.is_foreign_seller') || auth()->user()->hasRole('Admin') || auth()->user()->hasRole('Super Admin'))
+                                            <li><strong>Flete:</strong> {{ $activeFreight }}% <i>({{ $freightSource }})</i></li>
+                                            <li><strong>Dif:</strong> {{ $activeDiff }}% <i>({{ $diffSource }})</i></li>
+                                        @endif
+                                        
+                                        @if(isset($customer['allow_credit']) && $customer['allow_credit'])
+                                            @php
+                                                $creditSource = isset($customer['customer_allow_credit']) && $customer['customer_allow_credit'] ? 'Cliente' : 'Vendedor/Global';
+                                            @endphp
+                                            <li><strong>Crédito:</strong> {{ $customer['credit_days'] ?? 0 }} días | Límite: ${{ number_format($customer['credit_limit'] ?? 0, 2) }} <i>({{ $creditSource }})</i></li>
+                                        @endif
+                                        
+                                        @if(isset($customer['usd_payment_discount']) && $customer['usd_payment_discount'] > 0)
+                                            @php
+                                                $usdSource = isset($customer['customer_usd_discount']) && $customer['customer_usd_discount'] > 0 ? 'Cliente' : 'Vendedor/Global';
+                                            @endphp
+                                            <li><strong>Pago Divisa:</strong> {{ $customer['usd_payment_discount'] }}% desc. <i>({{ $usdSource }})</i></li>
+                                        @endif
+                                    </ul>
                                 
                                 
                                 @module('module_credits')

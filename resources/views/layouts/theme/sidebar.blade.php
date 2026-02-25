@@ -224,6 +224,12 @@
                                 <p>Productos</p>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="{{ route('price-groups') }}" class="nav-link {{ Request::is('price-groups') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Grupos de Precio</p>
+                            </a>
+                        </li>
                         @endcan
                     </ul>
                 </li>

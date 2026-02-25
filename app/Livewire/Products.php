@@ -6,6 +6,7 @@ use App\Models\Product;
 use Livewire\Component;
 use App\Models\Category;
 use App\Models\Supplier;
+use App\Models\PriceGroup;
 use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 use Livewire\WithPagination;
@@ -46,8 +47,18 @@ class Products extends Component
     {
         $this->form->values = session('values', []);
 
+        // Always reload pricing tiers from DB when editing, to survive Livewire re-hydration
+        if ($this->form->product_id > 0) {
+            $this->form->pricing_tiers = \App\Models\ProductPriceTier::where('product_id', $this->form->product_id)
+                ->orderBy('min_qty')
+                ->get()
+                ->map(fn($t) => ['min_qty' => (float) $t->min_qty, 'price' => (float) $t->price])
+                ->toArray();
+        }
+
         return view('livewire.products.products', [
-            'products' => $this->getProducts()
+            'products'    => $this->getProducts(),
+            'priceGroups' => \App\Models\PriceGroup::orderBy('name')->get(),
         ]);
     }
 
@@ -114,6 +125,7 @@ class Products extends Component
                 'price' => $tier->price
             ];
         })->toArray();
+        $this->form->price_group_id = $product->price_group_id;
 
         // Load suppliers
         $this->form->product_suppliers = $product->productSuppliers->map(function($ps) {

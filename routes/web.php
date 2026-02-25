@@ -3,6 +3,7 @@
 use App\Livewire\Roles;
 use App\Livewire\Sales;
 use App\Livewire\Users;
+use App\Livewire\PriceGroups;
 
 
 use App\Livewire\Tester;
@@ -88,6 +89,7 @@ Route::middleware('auth')->group(function () {
     Route::get('categories', Categories::class)->name('categories')->middleware('can:categories.index');
     Route::get('products/import', \App\Livewire\ProductImport::class)->name('products.import')->middleware('can:products.import');
     Route::get('products', Products::class)->name('products')->middleware('can:products.index');
+    Route::get('price-groups', PriceGroups::class)->name('price-groups')->middleware('can:products.index');
     Route::get('suppliers', Suppliers::class)->name('suppliers')->middleware('can:suppliers.index');
     Route::get('customers/import', \App\Livewire\CustomerImport::class)->name('customers.import')->middleware('can:customers.import');
     Route::get('customers', Customers::class)->name('customers')->middleware('can:customers.index');

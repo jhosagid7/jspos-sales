@@ -743,6 +743,23 @@
                             
                             <hr>
 
+                            {{-- Price Group --}}
+                            <h6 class="mb-2">Grupo de Precio <i class="fa fa-info-circle text-muted" title="Si el producto pertenece a un grupo, su cantidad se sumará con la de otros productos del mismo grupo al evaluar precios por volumen."></i></h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label">Grupo</label>
+                                    <select wire:model="form.price_group_id" class="form-control form-select">
+                                        <option value="">-- Sin grupo --</option>
+                                        @foreach($priceGroups as $group)
+                                            <option value="{{ $group->id }}">{{ $group->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    <small class="text-muted">Agrupa productos para aplicar precios por volumen combinados. <a href="{{ route('price-groups') }}" target="_blank">Administrar grupos</a></small>
+                                </div>
+                            </div>
+
+                            <hr>
+
                             <h6 class="mb-3">Precios por Volumen (Mayorista)</h6>
                             <div class="alert alert-light border">
                                 <i class="fa fa-info-circle text-info"></i> 

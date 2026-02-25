@@ -33,7 +33,8 @@ class Product extends Model
         'allow_decimal',
         'is_variable_quantity',
         'freight_type',
-        'freight_value'
+        'freight_value',
+        'price_group_id'
     ];
 
     //relationships
@@ -41,6 +42,11 @@ class Product extends Model
     public function priceTiers()
     {
         return $this->hasMany(ProductPriceTier::class);
+    }
+
+    public function priceGroup()
+    {
+        return $this->belongsTo(PriceGroup::class);
     }
 
     public function items()

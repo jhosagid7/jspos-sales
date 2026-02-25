@@ -25,6 +25,7 @@ class PostProduct extends Form
     // Freight & Pricing Rules
     public $freight_type = 'none'; // none, percentage, fixed
     public $freight_value = 0;
+    public $price_group_id = null;
     public $pricing_tiers = []; // [[min_qty => 10, price => 5.00], ...]
 
     //properties priceList
@@ -176,7 +177,8 @@ class PostProduct extends Form
             'allow_decimal' => $this->allow_decimal ? 1 : 0,
             'is_variable_quantity' => $this->is_variable_quantity ? 1 : 0,
             'freight_type' => $this->freight_type,
-            'freight_value' => $this->freight_value
+            'freight_value' => $this->freight_value,
+            'price_group_id' => $this->price_group_id ?: null,
         ]);
 
 
@@ -339,7 +341,8 @@ class PostProduct extends Form
             'allow_decimal' => $this->allow_decimal ? 1 : 0,
             'is_variable_quantity' => $this->is_variable_quantity ? 1 : 0,
             'freight_type' => $this->freight_type,
-            'freight_value' => $this->freight_value
+            'freight_value' => $this->freight_value,
+            'price_group_id' => $this->price_group_id ?: null,
         ]);
 
 
@@ -464,18 +467,24 @@ class PostProduct extends Form
             $product->tags()->detach();
         }
 
-        // Sync Pricing Tiers
+        // Pricing Tiers - already managed directly in DB via addPriceTier()/removePriceTier()
+        // Re-sync from DB to ensure integrity (avoids stale in-memory state from Livewire snapshot)
+        $existingTiers = \App\Models\ProductPriceTier::where('product_id', $this->product_id)
+            ->orderBy('min_qty')
+            ->get();
+
         \App\Models\ProductPriceTier::where('product_id', $this->product_id)->delete();
-        if (!empty($this->pricing_tiers)) {
-            $tiers = array_map(function ($tier) {
+
+        if ($existingTiers->isNotEmpty()) {
+            $tiers = $existingTiers->map(function ($tier) {
                 return [
                     'product_id' => $this->product_id,
-                    'min_qty' => $tier['min_qty'],
-                    'price' => $tier['price'],
+                    'min_qty'    => $tier->min_qty,
+                    'price'      => $tier->price,
                     'created_at' => now(),
-                    'updated_at' => now()
+                    'updated_at' => now(),
                 ];
-            }, $this->pricing_tiers);
+            })->toArray();
             \App\Models\ProductPriceTier::insert($tiers);
         }
 
@@ -492,20 +501,55 @@ class PostProduct extends Form
     // Helper methods for Pricing Tiers override
     public function addPriceTier($qty, $price)
     {
-        $this->pricing_tiers[] = [
-            'min_qty' => $qty,
-            'price' => $price
-        ];
-        // Sort by quantity desc to prevent conflicts? Or Asc?
-        // Usually logical to sort ASC for display
-        usort($this->pricing_tiers, function($a, $b) {
-            return $a['min_qty'] <=> $b['min_qty'];
-        });
+        $qty   = (float) $qty;
+        $price = (float) $price;
+
+        if ($qty <= 0 || $price <= 0) {
+            return;
+        }
+
+        // If editing an existing product, persist directly to DB
+        if ($this->product_id > 0) {
+            \App\Models\ProductPriceTier::create([
+                'product_id' => $this->product_id,
+                'min_qty'    => $qty,
+                'price'      => $price,
+            ]);
+            // Reload in memory so the view re-renders correctly
+            $this->pricing_tiers = \App\Models\ProductPriceTier::where('product_id', $this->product_id)
+                ->orderBy('min_qty')
+                ->get()
+                ->map(fn($t) => ['min_qty' => (float) $t->min_qty, 'price' => (float) $t->price])
+                ->toArray();
+        } else {
+            // New product – keep in-memory until stored
+            $this->pricing_tiers[] = ['min_qty' => $qty, 'price' => $price];
+            usort($this->pricing_tiers, fn($a, $b) => $a['min_qty'] <=> $b['min_qty']);
+        }
     }
 
     public function removePriceTier($index)
     {
-        unset($this->pricing_tiers[$index]);
-        $this->pricing_tiers = array_values($this->pricing_tiers);
+        if ($this->product_id > 0) {
+            // Get ordered list from DB, then delete the one at position $index
+            $tier = \App\Models\ProductPriceTier::where('product_id', $this->product_id)
+                ->orderBy('min_qty')
+                ->get()
+                ->values()
+                ->get($index);
+
+            if ($tier) {
+                $tier->delete();
+            }
+
+            // Reload in memory
+            $this->pricing_tiers = \App\Models\ProductPriceTier::where('product_id', $this->product_id)
+                ->orderBy('min_qty')
+                ->get()
+                ->map(fn($t) => ['min_qty' => (float) $t->min_qty, 'price' => (float) $t->price])
+                ->toArray();
+        } else {
+            array_splice($this->pricing_tiers, $index, 1);
+        }
     }
 }

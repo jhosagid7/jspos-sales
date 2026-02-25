@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.8.29] - 2026-02-25
+### Added
+- **Price Groups**: Implemented a new feature that allows grouping multiple products for volume pricing. When products in the same group are added to the cart, their quantities are summed to determine which volume discount tier applies to all members of the group.
+- **Price Groups UI**: Added a new "Grupos de Precio" management screen under Catalogos and a dropdown in the Product Edit form (Price Rules tab) to assign products to groups.
+
+### Fixed
+- **Price Tiers Persistence**: Resolved a bug where price tiers added to a product would disappear after clicking "Update Product". The system now persists tiers directly to the database and reloads them correctly during Livewire re-hydration.
+- **Auto-Recalculate Group Prices**: Fixed an issue where changing the quantity of one product in a group wouldn't immediately update the prices of other group members in the cart. The system now automatically recalculates and updates the entire group whenever any member's quantity changes.
+- **Cart Order Stability**: Fixed a bug where updating a product's quantity would cause it to jump to the last position in the cart list. Items now maintain their original order during updates.
+
 ## [1.8.28] - 2026-02-25
 ### Fixed
 - **Order PDF**: Fixed an issue where the Customer's specific Credit Configuration (Base discounts, Early Payment Rules, Credit Days) was completely missing from the PDF for Pending and Processed Orders due to a trait naming collision.
