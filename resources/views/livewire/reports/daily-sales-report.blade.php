@@ -291,7 +291,7 @@
                     maxItems: 1,
                     valueField: 'id',
                     labelField: 'name',
-                    searchField: ['name', 'address'],
+                    searchField: ['name', 'address', 'taxpayer_id'],
                     load: function(query, callback) {
                         var url = "{{ route('data.customers') }}" + '?q=' + encodeURIComponent(
                             query)
@@ -312,13 +312,14 @@
                     },
                     render: {
                         option: function(item, escape) {
+                            var doc = item.taxpayer_id ? ' - ' + escape(item.taxpayer_id) : '';
                             return `<div class="py-1 d-flex">
             <div>
                 <div class="mb-0">
                     <span class="h5 text-info">
                         <b class="text-dark">${ escape(item.id) }
                     </span>
-                    <span class="text-warning">|${ escape(item.name.toUpperCase()) }</span>
+                    <span class="text-warning">| ${ escape(item.name.toUpperCase()) }${doc}</span>
                 </div>
             </div>
         </div>`;

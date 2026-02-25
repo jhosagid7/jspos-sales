@@ -17,6 +17,7 @@ class DataController extends Controller
 
         $query = Customer::where(function($q) use ($valueToSearch) {
             $q->where('name', 'like', "%{$valueToSearch}%")
+              ->orWhere('taxpayer_id', 'like', "%{$valueToSearch}%")
               ->orWhere('address', 'like', "%{$valueToSearch}%")
               ->orWhere('email', 'like', "%{$valueToSearch}%");
         });
