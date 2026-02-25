@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.8.28] - 2026-02-25
+### Fixed
+- **Order PDF**: Fixed an issue where the Customer's specific Credit Configuration (Base discounts, Early Payment Rules, Credit Days) was completely missing from the PDF for Pending and Processed Orders due to a trait naming collision.
+- **Order PDF**: Fixed missing currency decimals on Pending and Processed Orders to dynamically read from the system's global `getDecimalPlaces` setting instead of rounding to `0`.
+- **Advanced Payments (Zelle/Bank)**: Resolved an "Access Denied / Módulo de pagos avanzados no activo" bug occurring for users with Premium licenses. The payment module incorrectly validated `session('tenant.modules')` instead of the globally updated `config('tenant.modules')`.
+
 ## [1.8.27] - 2026-02-25
 ### Added
 - **Global Customer Search**: Added support for searching customers by their Taxpayer ID (RIF/Cedula) across all main modules including Point of Sale (POS), Sales Report, Daily Sales Report, and Accounts Receivable. The Taxpayer ID is now also displayed in the search result dropdown alongside the customer name.

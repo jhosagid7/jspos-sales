@@ -7,6 +7,9 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Configuration;
 use Illuminate\Support\Facades\Log;
+use App\Services\CreditConfigService;
+use App\Services\FooterCodeService;
+use App\Services\ConfigurationService;
 
 
 use Jhosagid\Invoices\Invoice;
@@ -58,7 +61,8 @@ trait PdfOrderInvoiceTrait
                     'custom_fields' => [
                         'email'         => $order->customer->email,
                         'vendedor'        => $order->user->name,
-
+                        'footer_code'    => $this->getOrderInvoiceFooterData($order)['footer_code'],
+                        'footer_data'    => $this->getOrderInvoiceFooterData($order)
                     ],
                 ]);
 
@@ -101,7 +105,7 @@ trait PdfOrderInvoiceTrait
                     ->payUntilDays($credit_days)
                     ->currencySymbol('$')
                     ->currencyCode('Peso(s)')
-                    ->currencyDecimals(0)
+                    ->currencyDecimals(ConfigurationService::getDecimalPlaces())
                     ->currencyFormat('{SYMBOL}{VALUE}')
                     ->currencyThousandsSeparator('.')
                     ->currencyDecimalPoint(',')
@@ -145,7 +149,8 @@ trait PdfOrderInvoiceTrait
                     'custom_fields' => [
                         'email'         => $order->customer->email,
                         'vendedor'        => $order->user->name,
-
+                        'footer_code'    => $this->getOrderInvoiceFooterData($order)['footer_code'],
+                        'footer_data'    => $this->getOrderInvoiceFooterData($order)
                     ],
                 ]);
 
@@ -188,7 +193,7 @@ trait PdfOrderInvoiceTrait
                     ->payUntilDays($credit_days)
                     ->currencySymbol('$')
                     ->currencyCode('Peso(s)')
-                    ->currencyDecimals(0)
+                    ->currencyDecimals(ConfigurationService::getDecimalPlaces())
                     ->currencyFormat('{SYMBOL}{VALUE}')
                     ->currencyThousandsSeparator('.')
                     ->currencyDecimalPoint(',')
@@ -437,4 +442,89 @@ trait PdfOrderInvoiceTrait
     //         Log::info("Error al intentar imprimir el corte de caja \n {$th->getMessage()} ");
     //     }
     // }
+
+    private function getOrderInvoiceFooterData(Order $order)
+    {
+        // Resolve Values
+        // Customer & Seller Config
+        $customer = $order->customer;
+        $customerConfig = $customer ? $customer->latestCustomerConfig : null;
+        
+        $seller = $order->user; // The user who made the order
+        $sellerConfig = $seller ? $seller->latestSellerConfig : null;
+
+        // Freight
+        if ($customerConfig && $customerConfig->freight_percent > 0) {
+            $freightPercent = floatval($customerConfig->freight_percent);
+        } else {
+            $freightPercent = $sellerConfig ? floatval($sellerConfig->freight_percent) : 0;
+        }
+
+        // Commission
+        if (isset($order->applied_commission_percent)) {
+            $commPercent = floatval($order->applied_commission_percent);
+        } elseif ($customerConfig && $customerConfig->commission_percent > 0) {
+            $commPercent = floatval($customerConfig->commission_percent);
+        } else {
+            $commPercent = $sellerConfig ? floatval($sellerConfig->commission_percent) : 0;
+        }
+
+        // Diff
+        if (isset($order->applied_exchange_diff_percent)) {
+            $diffPercent = floatval($order->applied_exchange_diff_percent);
+        } elseif ($customerConfig && $customerConfig->exchange_diff_percent > 0) {
+            $diffPercent = floatval($customerConfig->exchange_diff_percent);
+        } else {
+            $diffPercent = $sellerConfig ? floatval($sellerConfig->exchange_diff_percent) : 0;
+        }
+
+        // USD Discount
+        $creditConfig = CreditConfigService::getCreditConfig($customer, $seller);
+        $usdDiscount = $creditConfig['usd_payment_discount'];
+
+        // ES Code (Estimated/Base Order Price)
+        $totalBasePrice = 0;
+
+        foreach ($order->details as $detail) {
+            $totalBasePrice += ($detail->regular_price * $detail->quantity);
+        }
+
+        $orderBaseTotal = number_format($totalBasePrice, 2, '.', '');
+        $estimatedPriceBase = 'ES' . str_replace('.', 'C', $orderBaseTotal);
+
+        // Pronto Pago Rules
+        $discountRules = $creditConfig['discount_rules'];
+
+        // Mora
+        $moraPercent = 0; // Default 0 as requested if not configured
+
+        // Credit Days
+        $creditDays = $order->type == 'credit' ? ($creditConfig['credit_days'] ?? 0) : 0;
+
+        // Operator
+        $operator = \Illuminate\Support\Facades\Auth::user(); 
+        
+        $code = FooterCodeService::generate(
+            $seller ? $seller->name : '',
+            $customer ? $customer->name : '',
+            $freightPercent,
+            $commPercent,
+            $diffPercent,
+            'OC' . $order->id, // Order Placeholder
+            $estimatedPriceBase, // Estimated
+            $usdDiscount,
+            $discountRules,
+            $moraPercent,
+            intval($creditDays),
+            $operator ? $operator->name : ''
+        );
+
+        return [
+            'footer_code' => $code,
+            'usd_discount' => $usdDiscount,
+            'discount_rules' => $discountRules,
+            'credit_days' => $creditDays,
+            'mora_percent' => $moraPercent
+        ];
+    }
 }
