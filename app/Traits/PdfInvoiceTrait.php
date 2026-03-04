@@ -63,6 +63,8 @@ trait PdfInvoiceTrait
 
                 // $sale = Sale::with(['customer', 'user', 'details', 'details.product'])->find($sale->id);
 
+                $footerData = $this->getInvoiceFooterData($sale);
+
                 $seller = new Party([
                     'name'          => $config->business_name,
                     'CC/NIT'           => $config->taxpayer_id,
@@ -72,9 +74,10 @@ trait PdfInvoiceTrait
 
                     'custom_fields' => [
                         'email'         => $sale->customer->email,
-                        'vendedor'        => $sale->user->name,
-                        'footer_code'    => $this->getInvoiceFooterData($sale)['footer_code'],
-                        'footer_data'    => $this->getInvoiceFooterData($sale)
+                        'vendedor'        => $sale->customer->seller ? $sale->customer->seller->name : 'N/A',
+                        'operador'        => $sale->user->name,
+                        'footer_code'    => $footerData['footer_code'],
+                        'footer_data'    => $footerData
                     ],
                 ]);
 
@@ -139,7 +142,7 @@ trait PdfInvoiceTrait
                 ];
                 $notes = implode("<br>", $notes);
 
-                $credit_days = $sale->type == 'credit' ? $config->credit_days : 0;
+                $credit_days = $sale->type == 'credit' ? ($footerData['credit_days'] ?? 0) : 0;
 
                 $currencySymbol = '$';
                 $currencyCode = 'USD';
@@ -231,6 +234,8 @@ trait PdfInvoiceTrait
             $config = Configuration::first();
 
             if ($config) {
+                $footerData = $this->getInvoiceFooterData($sale);
+
                 $seller = new Party([
                     'name'          => $config->business_name,
                     'CC/NIT'           => $config->taxpayer_id,
@@ -240,9 +245,10 @@ trait PdfInvoiceTrait
 
                     'custom_fields' => [
                         'email'         => $sale->customer->email,
-                        'vendedor'        => $sale->user->name,
-                        'footer_code'    => $this->getInvoiceFooterData($sale)['footer_code'],
-                        'footer_data'    => $this->getInvoiceFooterData($sale)
+                        'vendedor'        => $sale->customer->seller ? $sale->customer->seller->name : 'N/A',
+                        'operador'        => $sale->user->name,
+                        'footer_code'    => $footerData['footer_code'],
+                        'footer_data'    => $footerData
                     ],
                 ]);
 
@@ -288,7 +294,7 @@ trait PdfInvoiceTrait
                 $notes = [$sale->notes];
                 $notes = implode("<br>", $notes);
 
-                $credit_days = $sale->type == 'credit' ? $config->credit_days : 0;
+                $credit_days = $sale->type == 'credit' ? ($footerData['credit_days'] ?? 0) : 0;
 
                 $currencySymbol = '$';
                 $currencyCode = 'USD';
@@ -350,6 +356,8 @@ trait PdfInvoiceTrait
             $config = Configuration::first();
 
             if ($config) {
+                $footerData = $this->getInvoiceFooterData($sale);
+
                 $seller = new Party([
                     'name'          => $config->business_name,
                     'CC/NIT'           => $config->taxpayer_id,
@@ -359,9 +367,10 @@ trait PdfInvoiceTrait
 
                     'custom_fields' => [
                         'email'         => $sale->customer->email,
-                        'vendedor'        => $sale->user->name,
-                        'footer_code'    => $this->getInvoiceFooterData($sale)['footer_code'],
-                        'footer_data'    => $this->getInvoiceFooterData($sale)
+                        'vendedor'        => $sale->customer->seller ? $sale->customer->seller->name : 'N/A',
+                        'operador'        => $sale->user->name,
+                        'footer_code'    => $footerData['footer_code'],
+                        'footer_data'    => $footerData
                     ],
                 ]);
 
@@ -440,7 +449,7 @@ trait PdfInvoiceTrait
                 $notes = [$sale->notes];
                 $notes = implode("<br>", $notes);
 
-                $credit_days = $sale->type == 'credit' ? $config->credit_days : 0;
+                $credit_days = $sale->type == 'credit' ? ($footerData['credit_days'] ?? 0) : 0;
 
                 $currencySymbol = '$';
                 $currencyCode = 'USD';
@@ -506,6 +515,8 @@ trait PdfInvoiceTrait
             $config = Configuration::first();
 
             if ($config) {
+                $footerData = $this->getInvoiceFooterData($sale);
+
                 $seller = new Party([
                     'name'          => $config->business_name,
                     'CC/NIT'           => $config->taxpayer_id,
@@ -515,9 +526,10 @@ trait PdfInvoiceTrait
 
                     'custom_fields' => [
                         'email'         => $sale->customer->email,
-                        'vendedor'        => $sale->user->name,
-                        'footer_code'    => $this->getInvoiceFooterData($sale)['footer_code'],
-                        'footer_data'    => $this->getInvoiceFooterData($sale)
+                        'vendedor'        => $sale->customer->seller ? $sale->customer->seller->name : 'N/A',
+                        'operador'        => $sale->user->name,
+                        'footer_code'    => $footerData['footer_code'],
+                        'footer_data'    => $footerData
                     ],
                 ]);
 
@@ -580,7 +592,7 @@ trait PdfInvoiceTrait
                 $notes = [$sale->notes];
                 $notes = implode("<br>", $notes);
 
-                $credit_days = $sale->type == 'credit' ? $config->credit_days : 0;
+                $credit_days = $sale->type == 'credit' ? ($footerData['credit_days'] ?? 0) : 0;
 
                 $currencySymbol = '$';
                 $currencyCode = 'USD';

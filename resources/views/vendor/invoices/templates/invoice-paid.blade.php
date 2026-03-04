@@ -380,10 +380,15 @@
                             @endif
                             
                             Fecha de remisión: <strong>{{ $invoice->getDate() }}</strong><br>
+                            @if(($invoice->seller->custom_fields['footer_data']['credit_days'] ?? 0) > 0)
                             Fecha de vencto: <strong>{{ $invoice->getPayUntilDate() }}</strong><br>
+                            @endif
                             
                             @if($invoice->seller->custom_fields['vendedor'] ?? false)
                                 Vendedor: <strong>{{ $invoice->seller->custom_fields['vendedor'] }}</strong><br>
+                            @endif
+                            @if($invoice->seller->custom_fields['operador'] ?? false)
+                                Operador: <strong>{{ $invoice->seller->custom_fields['operador'] }}</strong><br>
                             @endif
 
                             <div style="margin-top: 5px;">

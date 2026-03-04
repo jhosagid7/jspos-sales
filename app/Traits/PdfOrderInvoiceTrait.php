@@ -51,6 +51,8 @@ trait PdfOrderInvoiceTrait
 
             if ($config) {
 
+                $footerData = $this->getOrderInvoiceFooterData($order);
+
                 $seller = new Party([
                     'name'          => $config->business_name,
                     'CC/NIT'           => $config->taxpayer_id,
@@ -60,9 +62,10 @@ trait PdfOrderInvoiceTrait
 
                     'custom_fields' => [
                         'email'         => $order->customer->email,
-                        'vendedor'        => $order->user->name,
-                        'footer_code'    => $this->getOrderInvoiceFooterData($order)['footer_code'],
-                        'footer_data'    => $this->getOrderInvoiceFooterData($order)
+                        'vendedor'      => $order->customer->seller ? $order->customer->seller->name : 'N/A',
+                        'operador'      => $order->user->name,
+                        'footer_code'   => $footerData['footer_code'],
+                        'footer_data'   => $footerData
                     ],
                 ]);
 
@@ -89,7 +92,7 @@ trait PdfOrderInvoiceTrait
                 ];
                 $notes = implode("<br>", $notes);
 
-                $credit_days = $order->type == 'credit' ? $config->credit_days : 0;
+                $credit_days = $order->type == 'credit' ? ($footerData['credit_days'] ?? 0) : 0;
 
                 $invoice = Invoice::make($config->business_name)->template('invoice-order-processed')
                     ->series('orden-de-compra-numero')
@@ -139,6 +142,8 @@ trait PdfOrderInvoiceTrait
 
                 // $order = Sale::with(['customer', 'user', 'details', 'details.product'])->find($sale->id);
 
+                $footerData = $this->getOrderInvoiceFooterData($order);
+
                 $seller = new Party([
                     'name'          => $config->business_name,
                     'vat'           => $config->taxpayer_id,
@@ -148,9 +153,10 @@ trait PdfOrderInvoiceTrait
 
                     'custom_fields' => [
                         'email'         => $order->customer->email,
-                        'vendedor'        => $order->user->name,
-                        'footer_code'    => $this->getOrderInvoiceFooterData($order)['footer_code'],
-                        'footer_data'    => $this->getOrderInvoiceFooterData($order)
+                        'vendedor'      => $order->customer->seller ? $order->customer->seller->name : 'N/A',
+                        'operador'      => $order->user->name,
+                        'footer_code'   => $footerData['footer_code'],
+                        'footer_data'   => $footerData
                     ],
                 ]);
 
@@ -177,7 +183,7 @@ trait PdfOrderInvoiceTrait
                 ];
                 $notes = implode("<br>", $notes);
 
-                $credit_days = $order->type == 'credit' ? $config->credit_days : 0;
+                $credit_days = $order->type == 'credit' ? ($footerData['credit_days'] ?? 0) : 0;
 
                 $invoice = Invoice::make($config->business_name)->template('invoice-order-pending')
                     ->series('orden-de-compra-numero')

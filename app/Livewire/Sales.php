@@ -1709,6 +1709,50 @@ class Sales extends Component
         ];
 
         $this->cart->push($itemCart);
+
+        // If this product belongs to a price group, recalculate ALL other group members' prices
+        // since the total group quantity has changed and may trigger a different tier for them too
+        if ($product->price_group_id) {
+            $groupProductIds = \App\Models\Product::where('price_group_id', $product->price_group_id)
+                ->pluck('id')
+                ->toArray();
+
+            // Recalculate every OTHER group member in the cart
+            // Total sum of all group members in the cart (now includes the newly pushed item)
+            $totalGroupQtyInCart = $this->cart
+                ->whereIn('pid', $groupProductIds)
+                ->sum('qty');
+
+            $updatedCart = $this->cart->map(function ($cartItem) use ($groupProductIds, $decimals, $exchangeRate, $totalGroupQtyInCart, $uid) {
+
+                // Skip the item we just added (it already has the correct tier applied)
+                if ($cartItem['id'] === $uid) {
+                    return $cartItem;
+                }
+
+                // Only touch group members
+                if (!in_array($cartItem['pid'], $groupProductIds)) {
+                    return $cartItem;
+                }
+
+                $siblingModel = \App\Models\Product::find($cartItem['pid']);
+                if (!$siblingModel) return $cartItem;
+
+                $newBasePrice       = $this->determinePrice($siblingModel, $cartItem['qty']);
+                $newBasePriceInPrim = $newBasePrice * $exchangeRate;
+
+                $cartItem['base_price'] = $newBasePriceInPrim;
+                $values = $this->Calculator($newBasePriceInPrim, $cartItem['qty'], $siblingModel);
+                $cartItem['sale_price'] = $values['sale_price'];
+                $cartItem['tax']        = round($values['iva'], $decimals);
+                $cartItem['total']      = $this->formatAmount(round($values['total'], $decimals));
+
+                return $cartItem;
+            });
+
+            $this->cart = collect($updatedCart);
+        }
+
         $this->recalculateFreightTotal();
         $this->save();
         $this->dispatch('refresh');
@@ -2187,8 +2231,8 @@ class Sales extends Component
 
         // Crear un nuevo artículo con la cantidad actualizada
         $newItem = $oldItem;
-        // Force new ID to trigger DOM replacement and ensure input value updates
-        $newItem['id'] = uniqid() . $newItem['pid']; 
+        // Do NOT force new ID - it causes elements to be destroyed and recreated at the bottom of the cart in Livewire
+        // $newItem['id'] = uniqid() . $newItem['pid']; 
         $newItem['qty'] = $this->formatAmount($cant);
 
         // Calcular valores
@@ -2235,12 +2279,13 @@ class Sales extends Component
             $decimals = ConfigurationService::getDecimalPlaces();
             $primaryCurrency = CurrencyHelper::getPrimaryCurrency();
             $exchangeRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
+            
+            // Total sum of all group members in the cart
+            $totalGroupQtyInCart = $this->cart
+                ->whereIn('pid', $groupProductIds)
+                ->sum('qty');
 
-            $updatedCart = $this->cart->map(function ($cartItem) use ($newItem, $groupProductIds, $decimals, $exchangeRate) {
-                // Skip the item we just updated
-                if ($cartItem['id'] === $newItem['id']) {
-                    return $cartItem;
-                }
+            $updatedCart = $this->cart->map(function ($cartItem) use ($groupProductIds, $decimals, $exchangeRate, $totalGroupQtyInCart) {
 
                 // Only touch group members
                 if (!in_array($cartItem['pid'], $groupProductIds)) {
@@ -2250,6 +2295,11 @@ class Sales extends Component
                 $siblingModel = \App\Models\Product::find($cartItem['pid']);
                 if (!$siblingModel) return $cartItem;
 
+                // Pass the total group quantity so determinePrice finds the correct tier
+                // because determinePrice usually adds qty to existing cart. But here totalGroupQtyInCart is already the expected sum.
+                // NOTE: determinePrice() already does a sum in its body. But it sums cart qty.
+                // We should pass the individual item's cartQty, and let determinePrice add the rest.
+                // Wait, determinePrice takes ($product, $qty) where $qty is the new amount for THIS product.
                 $newBasePrice       = $this->determinePrice($siblingModel, $cartItem['qty']);
                 $newBasePriceInPrim = $newBasePrice * $exchangeRate;
 
@@ -2262,7 +2312,7 @@ class Sales extends Component
                 return $cartItem;
             });
 
-            $this->cart = $updatedCart;
+            $this->cart = collect($updatedCart);
         }
 
         // Recalculate freight total

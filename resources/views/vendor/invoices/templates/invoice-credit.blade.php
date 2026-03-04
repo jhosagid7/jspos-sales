@@ -323,7 +323,15 @@
                             </h4>
                         @endif
                             {{ __('invoices::invoice.date') }}: <br> <strong>{{ $invoice->getDate() }}</strong><br>
+                        @if(($invoice->seller->custom_fields['footer_data']['credit_days'] ?? 0) > 0)
                         {{ __('invoices::invoice.due_date') }}: <br> <strong>{{ $invoice->getPayUntilDate() }}</strong><br>
+                        @endif
+                        @if($invoice->seller->custom_fields['vendedor'] ?? false)
+                            Vendedor: <br> <strong>{{ $invoice->seller->custom_fields['vendedor'] }}</strong><br>
+                        @endif
+                        @if($invoice->seller->custom_fields['operador'] ?? false)
+                            Operador: <br> <strong>{{ $invoice->seller->custom_fields['operador'] }}</strong><br>
+                        @endif
                         {{ __('invoices::invoice.amount_due') }}: <br> <strong class="text-green title-data">{{ $invoice->formatCurrency($invoice->total_amount) }}</strong><br>
                     </td>
                 </tr>
@@ -373,10 +381,11 @@
                         @endif
 
                         @foreach($invoice->seller->custom_fields as $key => $value)
-
+                            @if(!in_array($key, ['footer_data', 'footer_code', 'vendedor', 'operador', 'email']))
                                 {{ ucfirst($key) }}: <b>{{ $value }}</b>
                                 <br>
-                                @endforeach
+                            @endif
+                        @endforeach
 
                     </td>
                     <td class="border-0"></td>
@@ -597,9 +606,11 @@
         @endif
 
 
+        @if(($invoice->seller->custom_fields['footer_data']['credit_days'] ?? 0) > 0)
         <p>
             {{ __('invoices::invoice.pay_until') }}: {{ $invoice->getPayUntilDate() }}
         </p>
+        @endif
 
         <script type="text/php">
             if (isset($pdf) && $PAGE_COUNT > 1) {

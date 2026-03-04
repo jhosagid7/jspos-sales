@@ -374,10 +374,15 @@
                             @endif
                             
                             {{ __('invoices::invoice.date') }}: <strong>{{ $invoice->getDate() }}</strong><br>
+                            @if(($invoice->seller->custom_fields['footer_data']['credit_days'] ?? 0) > 0)
                             {{ __('invoices::invoice.due_date') }}: <strong>{{ $invoice->getPayUntilDate() }}</strong><br>
+                            @endif
                             
                             @if($invoice->seller->custom_fields['vendedor'] ?? false)
                                 Vendedor: <strong>{{ $invoice->seller->custom_fields['vendedor'] }}</strong><br>
+                            @endif
+                            @if($invoice->seller->custom_fields['operador'] ?? false)
+                                Operador: <strong>{{ $invoice->seller->custom_fields['operador'] }}</strong><br>
                             @endif
 
                             <div style="margin-top: 5px;">

@@ -380,10 +380,15 @@
                             @endif
                             
                             {{ __('invoices::invoice.date') }}: <strong>{{ $invoice->getDate() }}</strong><br>
+                            @if(($invoice->seller->custom_fields['footer_data']['credit_days'] ?? 0) > 0)
                             {{ __('invoices::invoice.due_date') }}: <strong>{{ $invoice->getPayUntilDate() }}</strong><br>
+                            @endif
                             
                             @if($invoice->seller->custom_fields['vendedor'] ?? false)
                                 Vendedor: <strong>{{ $invoice->seller->custom_fields['vendedor'] }}</strong><br>
+                            @endif
+                            @if($invoice->seller->custom_fields['operador'] ?? false)
+                                Operador: <strong>{{ $invoice->seller->custom_fields['operador'] }}</strong><br>
                             @endif
 
                             <div style="margin-top: 5px;">
@@ -595,6 +600,7 @@
                         </td>
                         
                         <td width="40%" valign="top" style="border-left: 1px solid #e5e7eb; padding-left: 10px;">
+                            @if($creditDays > 0)
                             <div style="margin-bottom: 5px;">
                                 <strong>Vencimiento:</strong> {{ $creditDays }} días tras entrega.
                             </div>
@@ -602,6 +608,12 @@
                                 <strong>Mora:</strong> Aplica después de {{ $creditDays }} días.
                                 <br><span style="color: #6b7280; font-style: italic;">Agradecemos su puntualidad.</span>
                             </div>
+                            @else
+                            <div style="margin-top: 10px;">
+                                <strong>CONTADO</strong><br>
+                                <span style="color: #6b7280; font-style: italic;">Sin días de crédito.</span>
+                            </div>
+                            @endif
                         </td>
                     </tr>
                 </table>
@@ -619,9 +631,11 @@
         @endif
 
 
+        @if(($invoice->seller->custom_fields['footer_data']['credit_days'] ?? 0) > 0)
         <p>
             {{ __('invoices::invoice.pay_until') }}: {{ $invoice->getPayUntilDate() }}
         </p>
+        @endif
 
         <script type="text/php">
             if (isset($pdf)) {
