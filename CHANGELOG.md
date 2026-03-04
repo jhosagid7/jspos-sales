@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.8.30] - 2026-03-04
+### Fixed
+- **Cart Stability**: Fixed cart reordering when updating quantities. Cart items now stay in their appropriate position.
+- **Price Groups**: Fixed price group synchronization when modifying item quantities. Sibling items in a price group accurately update their discounted prices simultaneously without requiring a page reload.
+- **PDF Templates**: Fixed `invoice-credit-short.blade.php` and `invoice-paid-short.blade.php` PDF templates so the `Vendedor:` label isn't incorrectly grouped line-wrapped with the due date.
+
 ## [1.8.29] - 2026-02-25
 ### Added
 - **Price Groups**: Implemented a new feature that allows grouping multiple products for volume pricing. When products in the same group are added to the cart, their quantities are summed to determine which volume discount tier applies to all members of the group.
