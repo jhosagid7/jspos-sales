@@ -90,7 +90,8 @@
                                 </thead>
                                 <tbody>
                                     @php
-                                        $totalInPrimary = 0;
+                                        $totalApprovedInPrimary = 0;
+                                        $totalPendingInPrimary = 0;
                                         $primaryCurrency = \App\Models\Currency::where('is_primary', true)->first();
                                     @endphp
                                     @forelse ($pays as $pay)
@@ -124,7 +125,12 @@
                                             $rate = $pay->exchange_rate > 0 ? $pay->exchange_rate : 1;
                                             $amountInUSD = $pay->amount / $rate;
                                             $amountInPrimary = $amountInUSD * $primaryCurrency->exchange_rate;
-                                            $totalInPrimary += $amountInPrimary;
+                                            
+                                            if (isset($pay->status) && $pay->status == 'pending') {
+                                                $totalPendingInPrimary += $amountInPrimary;
+                                            } elseif (!isset($pay->status) || (isset($pay->status) && $pay->status != 'rejected')) {
+                                                $totalApprovedInPrimary += $amountInPrimary;
+                                            }
                                         @endphp
                                         <tr>
                                             <td data-label="Folio"> 
@@ -294,9 +300,15 @@
                                 </tbody>
                                 <tfoot>
                                     <tr>
-                                        <td colspan="3" class="text-end"><b>TOTAL PAGADO (Estimado en {{ $primaryCurrency->code }}):</b></td>
-                                        <td colspan="5"><b>${{ number_format($totalInPrimary, 2) }}</b></td>
+                                        <td colspan="3" class="text-end"><b>TOTAL APROBADO (Estimado en {{ $primaryCurrency->code }}):</b></td>
+                                        <td colspan="5"><b>${{ number_format($totalApprovedInPrimary, 2) }}</b></td>
                                     </tr>
+                                    @if($totalPendingInPrimary > 0)
+                                    <tr>
+                                        <td colspan="3" class="text-end text-warning"><b>TOTAL PENDIENTE (Estimado en {{ $primaryCurrency->code }}):</b></td>
+                                        <td colspan="5" class="text-warning"><b>${{ number_format($totalPendingInPrimary, 2) }}</b></td>
+                                    </tr>
+                                    @endif
                                 </tfoot>
                             </table>
                         </div>

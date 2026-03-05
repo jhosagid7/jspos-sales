@@ -71,7 +71,7 @@ class PartialPayment extends Component
         // Calcular totales correctos
         $sales->map(function($sale) use ($primaryCurrency) {
             // Calcular total pagado en USD
-            $totalPaidUSD = $sale->payments->sum(function($payment) {
+            $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected'])->sum(function($payment) {
                 $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
                 return $payment->amount / $rate;
             });
@@ -115,8 +115,8 @@ class PartialPayment extends Component
         $invoiceRate = $sale->primary_exchange_rate ?? 1;
 
         // Calcular deuda en USD (moneda base)
-        // Fix: Exclude 'pending' payments so they don't reduce the debt until verified
-        $totalPaidUSD = $sale->payments->where('status', '!=', 'pending')->sum(function($payment) {
+        // Fix: Exclude 'pending' and 'rejected' payments so they don't reduce the debt until verified
+        $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected'])->sum(function($payment) {
             $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
             return $payment->amount / $rate;
         });

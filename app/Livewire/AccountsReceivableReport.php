@@ -129,7 +129,7 @@ class AccountsReceivableReport extends Component
             // Calculate total pending balance in USD
             $this->totales = $sales->getCollection()->sum(function($sale) {
                 // Calculate Paid Amount from Payments
-                $totalPaidUSD = $sale->payments->sum(function($payment) {
+                $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected'])->sum(function($payment) {
                     $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
                     $amountUSD = $payment->amount / $rate;
                     
@@ -282,7 +282,7 @@ class AccountsReceivableReport extends Component
 
         foreach ($sales as $sale) {
             // Calculate balance in USD
-            $totalPaidUSD = $sale->payments->sum(function($payment) use ($sale) {
+            $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected'])->sum(function($payment) use ($sale) {
                 $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : ($payment->currency == 'USD' ? 1 : ($sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1));
                 return $payment->amount / $rate;
             });
@@ -402,7 +402,7 @@ class AccountsReceivableReport extends Component
         }
         
         // Calcular deuda en USD (moneda base)
-        $totalPaidUSD = $sale->payments->sum(function($payment) {
+        $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected'])->sum(function($payment) {
             $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
             return $payment->amount / $rate;
         });
