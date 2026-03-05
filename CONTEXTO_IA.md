@@ -67,7 +67,17 @@ La IA debe leer este archivo para entender cómo trabajar en este proyecto espec
     - Se implementó `scrollIntoView` para seguimiento automático de la selección.
     - El Backend (`Sales.php`) solo se encarga de filtrar la query, no de la navegación UI.
 
+
 ### 7.3. Lógica de Productos Variables (Bobinas)
 - **Reservas**: Al guardar una venta como "Pendiente" (`storeOrder`), los items variables se marcan como `reserved` en DB.
 - **Carga de Ordenes**: Al editar/cargar una orden guardada, se usa un flag `$bypassReservation` para permitir que la orden cargue sus propios items reservados (que normalmente estarían ocultos si la config `check_stock_reservation` está activa).
+
+## 8. Roadmap y Tareas Futuras Adjudicadas
+### 8.1. Sistema de Rollback para Actualizaciones (Planificado)
+- **Objetivo**: Permitir a los clientes y administradores revertir una actualización fácilmente si algo falla en producción.
+- **Estrategia Acordada (Método de Backup Local)**:
+  1. Al iniciar una actualización vía `UpdateService`, el sistema debe generar un ZIP completo de las carpetas críticas (`app`, `public`, `resources`, etc.) y un `.sql` completo de la BD.
+  2. Guardar estos respaldos en `storage/backups/antes_de_vX.X.X`.
+  3. Ejecutar la descarga, reemplazo de archivos y migraciones (`php artisan migrate`).
+  4. Proveer un botón de "Rollback" en el panel de SuperAdmin que restaure el ZIP y el SQL anterior de forma atómica.
 
