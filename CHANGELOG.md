@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.8.33] - 2026-03-10
+### Added
+- **Búsqueda Global**: Implementada la búsqueda por Número de Factura en los módulos Abonos a Cuenta, Reporte de Ventas, Cuentas por Cobrar, Relación de Pagos y Comisiones. 
+- **Búsqueda Global**: Activada la tecla `Enter` como disparador principal para ejecutar búsquedas sin necesidad de click en los reportes mencionados.
+
+### Fixed
+- **Filtro de Vendedores**: Modificadas las consultas de la barra superior en todos los reportes (Ventas Diarias, Cuentas por Cobrar, Comisiones, Relación de Pagos y Reporte de Ventas) para incluir correctamente al rol "Vendedor foraneo" junto con el "Vendedor" regular.
+- **Estatus Visuales**: Corregido un fallo en el componente de *Cuentas por Cobrar* donde las ventas "pendientes" compartían el característico color rojo de las "retornadas". Ahora las retornos conservan el color rojo (`badge-danger`), mientras que las pendientes usan un amarillo informativo (`badge-warning`).
+
 ## [1.8.32] - 2026-03-10
 ### Added
 - **Auditoría de Pagos**: Añadido campo "Comentario de Modificación" opcional al editar un pago pendiente. El comentario se guarda en base de datos y se muestra en azul en el historial general para justificar correcciones.
