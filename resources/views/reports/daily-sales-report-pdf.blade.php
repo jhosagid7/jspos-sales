@@ -287,7 +287,7 @@
                     <tr class="text-center">
                         <td>{{ $sale->invoice_number ?? $sale->id }}</td>
                         <td class="text-uppercase">{{ $sale->customer->name }}</td>
-                        <td>${{ number_format($sale->total, 2) }}</td>
+                        <td>${{ number_format($sale->total_usd, 2) }}</td>
                         
                         @foreach($currencies as $currency)
                             <td>

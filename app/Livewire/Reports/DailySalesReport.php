@@ -118,7 +118,7 @@ class DailySalesReport extends Component
                 })
                 ->where('status', '<>', 'returned');
 
-            $totalSale = $salesQuery->sum('total');
+            $totalSale = $salesQuery->sum('total_usd');
             $this->totales = $totalSale;
 
             // Calculate Total Cost
@@ -274,7 +274,7 @@ class DailySalesReport extends Component
         }
 
         foreach ($sales as $sale) {
-            $totalNeto += $sale->total;
+            $totalNeto += $sale->total_usd;
             
             $totalPaidUSD = 0;
             foreach($sale->paymentDetails as $payment) {
