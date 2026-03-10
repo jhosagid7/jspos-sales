@@ -200,7 +200,7 @@
                                                         </td>
                                                         <td>
                                                             <span
-                                                                class="badge f-12 {{ ($sale->status == 'paid' ? 'badge-success' : $sale->status == 'return') ? 'badge-warning' : 'badge-danger' }} ">{{ $sale->status }}</span>
+                                                                class="badge f-12 {{ $sale->status == 'paid' ? 'badge-success' : ($sale->status == 'returned' ? 'badge-danger' : 'badge-warning text-white') }} ">{{ $sale->status }}</span>
 
                                                         </td>
                                                         <td>{{ $sale->created_at }}</td>
