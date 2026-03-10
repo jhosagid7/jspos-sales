@@ -179,6 +179,19 @@ class SalesReport extends Component
         $this->dispatch('show-detail');
     }
 
+    #[On('refreshSales')]
+    public function refreshDetails()
+    {
+        if ($this->sale_id) {
+            $sale = Sale::find($this->sale_id);
+            if ($sale) {
+                $this->salesObt = $sale->load(['deliveryCollections.payments.currency', 'returns.details']);
+                $this->sale_status = $sale->status;
+                $this->details = $sale->details;
+            }
+        }
+    }
+
     function getSaleDetailNote(Sale $sale)
     {
         $this->salesObt = $sale;

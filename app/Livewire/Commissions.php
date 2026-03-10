@@ -67,7 +67,7 @@ class Commissions extends Component
         $canViewAll = $user->can('commissions.view_all');
         
         $query = Sale::query()
-            ->with(['customer', 'user', 'payments'])
+            ->with(['customer', 'user', 'payments', 'returns'])
             ->where('is_foreign_sale', true)
             ->where(function($q) {
                 $q->where('final_commission_amount', '>', 0)

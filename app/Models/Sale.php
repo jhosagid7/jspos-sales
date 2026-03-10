@@ -56,6 +56,10 @@ class Sale extends Model
         'deletion_approved_by',
         'deletion_approved_at',
         'is_freight_broken_down',
+        'seller_tier_1_days',
+        'seller_tier_1_percent',
+        'seller_tier_2_days',
+        'seller_tier_2_percent',
     ];
 
     protected $casts = [
@@ -104,6 +108,11 @@ class Sale extends Model
         return $this->hasMany(SalePaymentDetail::class);
     }
 
+    public function returns()
+    {
+        return $this->hasMany(SaleReturn::class);
+    }
+
     //scopes
     // public function scopeWithDebt($query)
     // {
@@ -115,12 +124,15 @@ class Sale extends Model
     //accessors
     public function getDebtAttribute()
     {
-        // Fix: Exclude 'pending' payments (only count approved/paid)
-        $totalPays = $this->payments->where('status', '!=', 'pending')->sum('amount');
+        // Exclude 'pending' or 'rejected' payments (only count approved/paid)
+        $totalPays = $this->payments->whereNotIn('status', ['pending', 'rejected'])->sum('amount');
+        
+        // Deduct returns that were applied directly to the debt
+        $totalReturns = $this->returns->where('refund_method', 'debt_reduction')->sum('total_returned');
 
-        $debt = $this->total - $totalPays;
+        $debt = $this->total - $totalPays - $totalReturns;
 
-        return $debt;
+        return $debt > 0 ? $debt : 0;
     }
 
     public function getDaysOverdueAttribute()

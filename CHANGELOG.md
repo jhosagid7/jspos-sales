@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.8.32] - 2026-03-10
+### Added
+- **Auditoría de Pagos**: Añadido campo "Comentario de Modificación" opcional al editar un pago pendiente. El comentario se guarda en base de datos y se muestra en azul en el historial general para justificar correcciones.
+- **Gestión de Descuentos**: Los administradores ahora pueden visualizar y alternar en tiempo real los descuentos por "Pronto Pago" y "Pago en Divisa" dentro del modal de edición de pagos.
+- **Contexto de Deuda**: Incorporado un nuevo panel superior en el modal de Edición de Pagos que resume "Monto Venta", "Abonado" y "Deuda Actual".
+- **Calculador Predictivo**: Añadido indicador dinámico "Saldo Restante Posterior a este Abono" que evalúa en vivo el equivalente en dólares del pago editado más los descuentos activados.
+
+### Changed
+- **Edición de Pagos**: La "Tasa de Cambio" ahora es editable por administradores, recalculando instantáneamente el equivalente en dólares antes de aprobar o denegar.
+- **Vendedores Foráneos**: Optimizada la vista de Abonos a Cuenta para mostrar dinámicamente el badge de "Pago por aprobar" y garantizar que el botón "Ver Historial" esté siempre visible si hay depósitos en proceso.
+
 ## [1.8.31] - 2026-03-05
 ### Fixed
 - **Abonos:** Excluidos los pagos con estado 'PENDIENTE' o 'RECHAZADO' del cálculo de la "Deuda Actual" en las tablas principales de Cuentas por Cobrar y Abonos.

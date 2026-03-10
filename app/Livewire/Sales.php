@@ -3076,6 +3076,46 @@ class Sales extends Component
                 }
             }
 
+            // --- COMISIÓN: CAPTURAR TIERS/PENALIZACIONES ---
+            $tier1Days = null;
+            $tier1Percent = null;
+            $tier2Days = null;
+            $tier2Percent = null;
+
+            if ($this->applyCommissions) {
+                $customerModel = \App\Models\Customer::find($this->customer['id']);
+                $sellerModel = $customerModel ? $customerModel->seller : null;
+                if (!$sellerModel) {
+                     $sellerModel = auth()->user();
+                }
+                $globalConfig = \App\Models\Configuration::first();
+
+                // 1. Customer config
+                $tier1Days = $customerModel->customer_commission_1_threshold ?? null;
+                $tier1Percent = $customerModel->customer_commission_1_percentage ?? null;
+                $tier2Days = $customerModel->customer_commission_2_threshold ?? null;
+                $tier2Percent = $customerModel->customer_commission_2_percentage ?? null;
+
+                // 2. Fallback to Seller
+                if (is_null($tier1Days) || is_null($tier1Percent)) {
+                    $tier1Days = $sellerModel->seller_commission_1_threshold ?? null;
+                    $tier1Percent = $sellerModel->seller_commission_1_percentage ?? null;
+                    $tier2Days = $sellerModel->seller_commission_2_threshold ?? null;
+                    $tier2Percent = $sellerModel->seller_commission_2_percentage ?? null;
+                }
+
+                // 3. Fallback to Global
+                if (is_null($tier1Days) || is_null($tier1Percent)) {
+                    if ($globalConfig) {
+                        $tier1Days = $globalConfig->global_commission_1_threshold ?? null;
+                        $tier1Percent = $globalConfig->global_commission_1_percentage ?? null;
+                        $tier2Days = $globalConfig->global_commission_2_threshold ?? null;
+                        $tier2Percent = $globalConfig->global_commission_2_percentage ?? null;
+                    }
+                }
+            }
+            // ---------------------------------------------
+
             $sale = Sale::create([
                 'seller_config_id' => $sellerConfigId,
                 'total' => $totalInInvoiceCurrency,
@@ -3106,6 +3146,10 @@ class Sales extends Component
                 'delivery_status' => $this->driver_id ? 'pending' : 'delivered',
                 'credit_rules_snapshot' => $this->prepareCreditSnapshot(),
                 'is_freight_broken_down' => $this->is_freight_broken_down,
+                'seller_tier_1_days' => $tier1Days,
+                'seller_tier_1_percent' => $tier1Percent,
+                'seller_tier_2_days' => $tier2Days,
+                'seller_tier_2_percent' => $tier2Percent,
             ]);
 
             // get cart session
@@ -3942,5 +3986,20 @@ class Sales extends Component
             'snapshot_at' => now(),
             'source' => $this->creditConfig['source'] ?? 'unknown'
         ];
+    }
+
+    public function generatePdfInvoiceOriginal(Sale $sale)
+    {
+        return $this->generatePdfInvoice($sale, true);
+    }
+
+    public function generatePdfInternalInvoiceOriginal(Sale $sale)
+    {
+        return $this->generatePdfInternalInvoice($sale, true);
+    }
+
+    public function generateCreditNotePdfEndpoint(\App\Models\SaleReturn $saleReturn)
+    {
+        return $this->generateCreditNotePdf($saleReturn);
     }
 }

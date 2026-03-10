@@ -20,6 +20,12 @@ class AccountsReceivableReport extends Component
 
     public $pagination = 10, $banks = [], $customer, $customer_name, $debt, $debt_usd, $dateFrom, $dateTo, $showReport = false, $status = 0;
     public $totales = 0, $sale_id, $details = [], $pays = [];
+    public $editingPaymentId, $editPaymentRef, $editPaymentAmount, $editPaymentDate, $editPaymentRate, $editPaymentComment;
+    public $editApplyEarlyDiscount = false, $editApplyUsdDiscount = false;
+    public $editEarlyDiscountAmount = 0, $editUsdDiscountAmount = 0;
+    public $editEarlyDiscountPercent = 0, $editUsdDiscountPercent = 0;
+    public $editEarlyDiscountReason = '', $editUsdDiscountReason = '';
+    public $editSaleTotal = 0, $editSalePaid = 0, $editSaleDebt = 0;
     public $amount, $acountNumber, $depositNumber, $bank, $phoneNumber;
     public $currencies, $paymentCurrency;
     public $paymentMethod = 'cash'; // cash, nequi, deposit
@@ -149,6 +155,11 @@ class AccountsReceivableReport extends Component
                     return $detail->amount / $rate;
                 });
 
+                // Calculate Returns applied to debt
+                $totalReturnsOrig = $sale->returns->where('refund_method', 'debt_reduction')->sum('total_returned');
+                $exchangeRateReturns = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                $totalReturnsUSD = $totalReturnsOrig / $exchangeRateReturns;
+
                 // Calculate total USD if missing
                 $totalUSD = $sale->total_usd;
                 if (!$totalUSD || $totalUSD == 0) {
@@ -156,7 +167,7 @@ class AccountsReceivableReport extends Component
                     $totalUSD = $sale->total / $exchangeRate;
                 }
 
-                return max(0, $totalUSD - ($totalPaidUSD + $initialPaidUSD));
+                return max(0, $totalUSD - ($totalPaidUSD + $initialPaidUSD + $totalReturnsUSD));
             });
 
             // Calculate Total Sale (Total Value of the sales, not just debt)
@@ -292,6 +303,11 @@ class AccountsReceivableReport extends Component
                 return $detail->amount / $rate;
             });
 
+            // Calculate Returns applied to debt
+            $totalReturnsOrig = $sale->returns->where('refund_method', 'debt_reduction')->sum('total_returned');
+            $exchangeRateReturns = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+            $totalReturnsUSD = $totalReturnsOrig / $exchangeRateReturns;
+
             // Calculate total USD if missing
             $totalUSD = $sale->total_usd;
             if (!$totalUSD || $totalUSD == 0) {
@@ -299,7 +315,7 @@ class AccountsReceivableReport extends Component
                 $totalUSD = $sale->total / $exchangeRate;
             }
 
-            $balance = max(0, $totalUSD - ($totalPaidUSD + $initialPaidUSD));
+            $balance = max(0, $totalUSD - ($totalPaidUSD + $initialPaidUSD + $totalReturnsUSD));
 
             // Only include if there is balance (debt)
             if ($balance < 0.01) continue;
@@ -407,7 +423,12 @@ class AccountsReceivableReport extends Component
             return $payment->amount / $rate;
         });
         
-        $debtUSD = $sale->total_usd - $totalPaidUSD;
+        // Calculate Returns applied to debt
+        $totalReturnsOrig = $sale->returns->where('refund_method', 'debt_reduction')->sum('total_returned');
+        $exchangeRateReturns = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+        $totalReturnsUSD = $totalReturnsOrig / $exchangeRateReturns;
+        
+        $debtUSD = $sale->total_usd - ($totalPaidUSD + $totalReturnsUSD);
         
         // Convertir deuda a moneda principal para mostrar al usuario
         $primaryCurrency = \App\Models\Currency::where('is_primary', true)->first();
@@ -814,14 +835,217 @@ class AccountsReceivableReport extends Component
         }
     }
 
+    public function editPayment($paymentId)
+    {
+        if (!auth()->user()->can('payments.approve')) {
+             $this->dispatch('noty', msg: 'NO TIENES PERMISO PARA EDITAR PAGOS');
+             return;
+        }
+        
+        $payment = Payment::find($paymentId);
+        if ($payment && $payment->status === 'pending') {
+            $this->editingPaymentId = $payment->id;
+            $this->editPaymentAmount = number_format($payment->amount, 2, '.', '');
+            $this->editPaymentRate = number_format($payment->exchange_rate, 4, '.', '');
+            // Strip trailing zeros after the decimal point to show neat numbers (e.g. 420.0000 -> 420)
+            if (strpos($this->editPaymentRate, '.') !== false) {
+                $this->editPaymentRate = rtrim(rtrim($this->editPaymentRate, '0'), '.');
+            }
+            $this->editPaymentComment = $payment->modification_comment ?? '';
+            $this->editPaymentRef = $payment->deposit_number ?? $payment->reference_number ?? ($payment->zelleRecord->reference ?? $payment->bankRecord->reference ?? '');
+            $this->editPaymentDate = $payment->payment_date ? \Carbon\Carbon::parse($payment->payment_date)->format('Y-m-d') : date('Y-m-d');
+            
+            // Re-calculate potential discounts 
+            $this->editApplyEarlyDiscount = false;
+            $this->editApplyUsdDiscount = false;
+            $this->editEarlyDiscountAmount = 0;
+            $this->editUsdDiscountAmount = 0;
+            $this->editEarlyDiscountPercent = 0;
+            $this->editUsdDiscountPercent = 0;
+            $this->editEarlyDiscountReason = '';
+            $this->editUsdDiscountReason = '';
+            $this->editSaleTotal = 0;
+            $this->editSalePaid = 0;
+            $this->editSaleDebt = 0;
+
+            $sale = Sale::find($payment->sale_id);
+            if ($sale) {
+                // Calculate debt overview
+                $this->editSaleTotal = $sale->total_usd > 0 ? $sale->total_usd : ($sale->total / ($sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1));
+                
+                $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected'])->sum(function($p) {
+                    $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
+                    return ($p->amount / $rate) + ($p->discount_applied ?? 0);
+                });
+                $initialPaidUSD = $sale->paymentDetails->sum(function($detail) {
+                    $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
+                    return $detail->amount / $rate;
+                });
+                $totalReturnsOrig = $sale->returns->where('refund_method', 'debt_reduction')->sum('total_returned');
+                $totalReturnsUSD = $totalReturnsOrig / ($sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1);
+                
+                $this->editSalePaid = $totalPaidUSD + $initialPaidUSD + $totalReturnsUSD;
+                $this->editSaleDebt = max(0, $this->editSaleTotal - $this->editSalePaid);
+
+                // Parse snapshot
+                $parsedSnapshot = \App\Services\CreditConfigService::parseCreditSnapshot($sale->credit_rules_snapshot);
+                $rules = $parsedSnapshot['discount_rules'];
+                $snapshotUsdDiscount = $parsedSnapshot['usd_payment_discount'];
+
+                if (empty($sale->credit_rules_snapshot)) {
+                    $creditConfig = \App\Services\CreditConfigService::getCreditConfig($sale->customer, $sale->customer->seller);
+                    $rules = $creditConfig['discount_rules'];
+                    $snapshotUsdDiscount = null;
+                }
+
+                $daysElapsed = \Carbon\Carbon::parse($sale->created_at)->diffInDays(\Carbon\Carbon::parse($payment->created_at));
+                $adjustment = \App\Services\CreditConfigService::calculateDiscount($sale->total_usd, $daysElapsed, $rules);
+
+                if ($adjustment) {
+                    $this->editEarlyDiscountAmount = $adjustment['amount'];
+                    $this->editEarlyDiscountPercent = $adjustment['percentage'];
+                    $this->editEarlyDiscountReason = $adjustment['reason'];
+                }
+
+                $usdPaymentDiscountPercent = 0;
+                if ($sale->is_foreign_sale) {
+                    if ($snapshotUsdDiscount !== null) {
+                        $usdPaymentDiscountPercent = $snapshotUsdDiscount;
+                    } else {
+                        $config = \App\Services\CreditConfigService::getCreditConfig($sale->customer, $sale->customer->seller);
+                        $usdPaymentDiscountPercent = $config['usd_payment_discount'] ?? 0;
+                    }
+
+                    if ($usdPaymentDiscountPercent > 0) {
+                        $this->editUsdDiscountAmount = round($sale->total_usd * ($usdPaymentDiscountPercent / 100), 2);
+                        $this->editUsdDiscountPercent = $usdPaymentDiscountPercent;
+                        $this->editUsdDiscountReason = 'Descuento Pago Divisa';
+                    }
+                }
+
+                // Check BD status
+                $ruleType = $payment->rule_type ?? '';
+                if (in_array($ruleType, ['early_payment', 'combined'])) {
+                    $this->editApplyEarlyDiscount = true;
+                }
+                if (in_array($ruleType, ['usd_payment', 'combined'])) {
+                    $this->editApplyUsdDiscount = true;
+                }
+                if (empty($ruleType) && $payment->discount_applied > 0) {
+                    $this->editApplyEarlyDiscount = true; // Fallback
+                }
+            }
+            
+            $this->dispatch('show-edit-payment-modal');
+        }
+    }
+
+    public function updatePayment()
+    {
+        if (!auth()->user()->can('payments.approve')) {
+             $this->dispatch('noty', msg: 'NO TIENES PERMISO PARA EDITAR PAGOS');
+             return;
+        }
+        
+        $this->validate([
+            'editPaymentAmount' => 'required|numeric|min:0.01',
+            'editPaymentRate' => 'required|numeric|min:0.01',
+            'editPaymentRef' => 'required|string',
+            'editPaymentDate' => 'required|date',
+            'editPaymentComment' => 'nullable|string',
+        ]);
+
+        try {
+            DB::beginTransaction();
+            $payment = Payment::find($this->editingPaymentId);
+            
+            if ($payment && $payment->status === 'pending') {
+                $payment->amount = $this->editPaymentAmount;
+                $payment->exchange_rate = $this->editPaymentRate;
+                $payment->deposit_number = $this->editPaymentRef;
+                $payment->payment_date = $this->editPaymentDate;
+                $payment->modification_comment = $this->editPaymentComment;
+                
+                // Recalculate and apply discount fields
+                $totalDiscount = 0;
+                $totalPercent = 0;
+                $reason = '';
+                $ruleType = '';
+                
+                if ($this->editApplyEarlyDiscount) {
+                     $totalDiscount += $this->editEarlyDiscountAmount;
+                     $totalPercent += $this->editEarlyDiscountPercent;
+                     $reason = $this->editEarlyDiscountReason;
+                     $ruleType = 'early_payment';
+                }
+                
+                if ($this->editApplyUsdDiscount) {
+                     $totalDiscount += $this->editUsdDiscountAmount;
+                     $totalPercent += $this->editUsdDiscountPercent;
+                     if ($reason) $reason .= ' + ';
+                     $reason .= $this->editUsdDiscountReason;
+                     $ruleType = $ruleType ? 'combined' : 'usd_payment';
+                }
+
+                $payment->discount_applied = $totalDiscount;
+                $payment->discount_percentage = $totalPercent;
+                $payment->discount_reason = $reason;
+                $payment->rule_type = $ruleType;
+                
+                $payment->save();
+
+                // Update underlying BankRecord or ZelleRecord
+                if ($payment->bank_record_id) {
+                    $bankRecord = \App\Models\BankRecord::find($payment->bank_record_id);
+                    if ($bankRecord) {
+                        $bankRecord->amount = $this->editPaymentAmount;
+                        $bankRecord->reference = $this->editPaymentRef;
+                        $bankRecord->payment_date = $this->editPaymentDate;
+                        $bankRecord->save();
+                    }
+                } elseif ($payment->zelle_record_id) {
+                    $zelleRecord = \App\Models\ZelleRecord::find($payment->zelle_record_id);
+                    if ($zelleRecord) {
+                        $zelleRecord->amount = $this->editPaymentAmount;
+                        $zelleRecord->reference = $this->editPaymentRef;
+                        $zelleRecord->zelle_date = $this->editPaymentDate;
+                        $zelleRecord->save();
+                    }
+                }
+
+                DB::commit();
+                $this->dispatch('noty', msg: 'Pago pendiente actualizado exitosamente');
+                $this->dispatch('hide-edit-payment-modal');
+                
+                // Refresh list
+                $sale = Sale::find($payment->sale_id);
+                if ($this->pays && count($this->pays) > 0 && $this->pays[0]->sale_id == $sale->id) {
+                     $this->pays = $sale->payments; 
+                }
+            } else {
+                $this->dispatch('noty', msg: 'No se puede editar este pago (debe estar pendiente)');
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->dispatch('noty', msg: 'Error al actualizar: ' . $e->getMessage());
+        }
+    }
+
     function cancelPay()
     {
         $this->sale_id = null;
         $this->customer_name = null;
         $this->debt = null;
         $this->debt_usd = null;
-    }
+        $this->seller_name = null;
 
+        $this->editingPaymentId = null;
+        $this->editPaymentRef = '';
+        $this->editPaymentAmount = 0;
+        $this->editPaymentDate = date('Y-m-d');
+        $this->editPaymentRate = 1;
+        $this->editPaymentComment = '';
+    }
     function historyPayments($sale_id) // Changed type hint to $sale_id for flexibility or keep object if using implicit binding
     {
         // If passed as object from blade, Livewire handles it. But let's support ID too just in case.

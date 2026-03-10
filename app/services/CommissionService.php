@@ -11,86 +11,68 @@ class CommissionService
 {
     public static function calculateCommission(Sale $sale, $referenceDate = null)
     {
-        $customer = $sale->customer;
-        // Use the customer's assigned seller if available, otherwise the user who made the sale
-        $seller = $customer->seller ?? $sale->user; 
-        $config = Configuration::first();
+        // Read persisted seller commission config from the sale itself
+        $threshold1 = $sale->seller_tier_1_days;
+        $percentage1 = $sale->seller_tier_1_percent;
+        $threshold2 = $sale->seller_tier_2_days;
+        $percentage2 = $sale->seller_tier_2_percent;
 
-        // 1. Check Customer Configuration
-        $threshold1 = $customer->customer_commission_1_threshold;
-        $percentage1 = $customer->customer_commission_1_percentage;
-        $threshold2 = $customer->customer_commission_2_threshold;
-        $percentage2 = $customer->customer_commission_2_percentage;
-
-        // 2. Fallback to Seller Configuration
+        // Fallback: If for some reason old sales don't have tiers, use applied_commission_percent
         if (is_null($threshold1) || is_null($percentage1)) {
-            $threshold1 = $seller->seller_commission_1_threshold;
-            $percentage1 = $seller->seller_commission_1_percentage;
-            $threshold2 = $seller->seller_commission_2_threshold;
-            $percentage2 = $seller->seller_commission_2_percentage;
-        }
-
-        // 3. Fallback to Global Configuration
-        if (is_null($threshold1) || is_null($percentage1)) {
-            if ($config) {
-                $threshold1 = $config->global_commission_1_threshold;
-                $percentage1 = $config->global_commission_1_percentage;
-                $threshold2 = $config->global_commission_2_threshold;
-                $percentage2 = $config->global_commission_2_percentage;
-            }
-        }
-
-        // Alert if no configuration found
-        if (is_null($threshold1) || is_null($percentage1)) {
-            Log::warning("No commission configuration found for Sale ID: {$sale->id}");
-            return 0;
+             $percentage1 = $sale->applied_commission_percent ?? 0;
+             $threshold1 = 9999; // Essentially no time limit
         }
 
         // Calculate Days Elapsed
         $reference = $referenceDate ? Carbon::parse($referenceDate) : now();
         $daysElapsed = Carbon::parse($sale->created_at)->diffInDays($reference);
 
-        // Calculate Base Amount (Reverse Surcharges)
+        // Calculate Effective Sale Total (deducting any returns)
+        $sale->loadMissing('returns');
+        $totalReturned = $sale->returns ? $sale->returns->sum('total_returned') : 0;
+        $effectiveSaleTotal = max(0, $sale->total - $totalReturned);
+
+        // Calculate Base Amount (Reverse Surcharges from effective total)
         $totalSurchargePercent = ($sale->applied_commission_percent ?? 0) + 
                                  ($sale->applied_freight_percent ?? 0) + 
                                  ($sale->applied_exchange_diff_percent ?? 0);
         
-        $baseAmount = $sale->total;
+        $baseAmount = $effectiveSaleTotal;
         if ($totalSurchargePercent > 0) {
-            $baseAmount = $sale->total / (1 + ($totalSurchargePercent / 100));
+            $baseAmount = $effectiveSaleTotal / (1 + ($totalSurchargePercent / 100));
         }
 
-        // Apply Logic
-        // If payment is within the first threshold (e.g., <= 15 days)
+        // Determine the achieved tier percentage based on days elapsed
+        $tierPercentage = 0;
+
+        // Note: percentage1 acts as the maximum/base effort tier
         if ($daysElapsed <= $threshold1) {
-            $commissionAmount = ($baseAmount * $percentage1) / 100;
-            $sale->final_commission_amount = $commissionAmount;
-            $sale->commission_status = 'pending_payment';
-            $sale->save();
-            return $percentage1;
-        }
-        
-        // If payment is within the second threshold (e.g., <= 22 days)
-        if (!is_null($threshold2)) {
-            if ($daysElapsed <= $threshold2) {
-                $commissionAmount = ($baseAmount * $percentage2) / 100;
-                $sale->final_commission_amount = $commissionAmount;
-                $sale->commission_status = 'pending_payment';
-                $sale->save();
-                return $percentage2;
-            }
-        } elseif (!is_null($percentage2)) {
-             $commissionAmount = ($baseAmount * $percentage2) / 100;
-             $sale->final_commission_amount = $commissionAmount;
-             $sale->commission_status = 'pending_payment';
-             $sale->save();
-             return $percentage2;
+            $tierPercentage = $percentage1;
+        } elseif (!is_null($threshold2) && $daysElapsed <= $threshold2) {
+            $tierPercentage = $percentage2;
+        } elseif (!is_null($percentage2) && is_null($threshold2)) {
+            // If it has a second percentage but no threshold logic (meaning "anything after tier 1")
+            $tierPercentage = $percentage2;
+        } else {
+            // Exceeded all thresholds (or no tier 2)
+            $tierPercentage = $percentage2 ?? 0;
         }
 
-        // If it exceeds all thresholds
-        $finalPercentage = $percentage2 ?? 0;
+        // Calculate the proportion/ratio of the seller's effort
+        $ratio = 1;
+        if ($percentage1 > 0) {
+            $ratio = $tierPercentage / $percentage1;
+        } else if ($percentage1 == 0 && $tierPercentage == 0) {
+            $ratio = 1;
+        } else {
+            $ratio = 0;
+        }
 
-        // Calculate Amount
+        // Apply ratio to the sale's actual markup commission
+        $saleMarkup = $sale->applied_commission_percent ?? 0;
+        $finalPercentage = $saleMarkup * $ratio;
+
+        // Calculate Commission Amount based on the scaled percentage
         $commissionAmount = ($baseAmount * $finalPercentage) / 100;
 
         // Save to Sale

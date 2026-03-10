@@ -15,7 +15,8 @@ class Payment extends Model
         'payment_date', 'zelle_record_id', 'bank_record_id', 'collection_sheet_id',
         'discount_applied', 'discount_percentage', 'discount_reason', 'payment_days', 'rule_type',
         'status',
-        'rejection_reason'
+        'rejection_reason',
+        'modification_comment'
     ];
 
     function sale()

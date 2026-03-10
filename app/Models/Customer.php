@@ -25,6 +25,7 @@ class Customer extends Model
         'customer_commission_2_threshold',
         'customer_commission_2_percentage',
         'zone',
+        'wallet_balance',
         // Credit configuration fields
         'allow_credit',
         'credit_days',

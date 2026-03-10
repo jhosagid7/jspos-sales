@@ -161,7 +161,15 @@
                                                         <td style="background-color: rgb(210, 243, 252)">
                                                             ${{ number_format($finalTotalUSD, 2) }}
                                                         </td>
-                                                        <td>${{ number_format($totalAbonadoUSD, 2) }}</td>
+                                                        <td>
+                                                            ${{ number_format($totalAbonadoUSD, 2) }}
+                                                            @if($sale->payments->where('status', 'pending')->count() > 0)
+                                                                <br>
+                                                                <span class="badge badge-warning text-white mt-1" title="Contiene pagos pendientes por aprobar">
+                                                                    <i class="fas fa-clock"></i> Pago por aprobar
+                                                                </span>
+                                                            @endif
+                                                        </td>
                                                         <td style="background-color: beige">
                                                             ${{ number_format($saldoUSD, 2) }}
                                                         </td>

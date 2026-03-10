@@ -321,6 +321,7 @@
             </div>
         </div>
         @include('livewire.reports.sale-detail')
+        @livewire('sales.returns-component')
         @include('livewire.reports.sale-detail-note')
     </div>
     

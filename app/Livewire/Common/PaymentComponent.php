@@ -348,7 +348,10 @@ class PaymentComponent extends Component
                 ->where('amount', $amount)
                 ->first();
 
-            if ($bankRecord) {
+            // Bypass check: If the reference is exactly the user's taxpayer_id (Cédula), treat it as a new deposit immediately.
+            $bypassedRef = auth()->user() && auth()->user()->taxpayer_id && trim($ref) === trim(auth()->user()->taxpayer_id);
+
+            if ($bankRecord && !$bypassedRef) {
                 if ($bankRecord->remaining_balance <= 0.01) {
                     $this->bankStatusMessage = "Este depósito ya fue utilizado completamente.";
                     $this->bankStatusType = 'danger';
@@ -359,8 +362,9 @@ class PaymentComponent extends Component
                     $this->bankRemainingBalance = $bankRecord->remaining_balance;
                 }
             } else {
-                $this->bankStatusMessage = "Nuevo Depósito (Se creará registro).";
-                $this->bankStatusType = 'success'; // Green: New
+                $msg = $bypassedRef ? "Referencia comodín (Cédula) aceptada." : "Nuevo Depósito (Se creará registro).";
+                $this->bankStatusMessage = $msg;
+                $this->bankStatusType = 'success'; // Green: New or Bypassed
                 $this->bankRemainingBalance = $amount;
             }
         } else {
@@ -430,7 +434,10 @@ class PaymentComponent extends Component
                  $duplicateInSession = collect($this->payments)->contains(function ($payment) {
                     return $payment['method'] === 'bank' && ($payment['bank_reference'] ?? '') === $this->bankReference;
                  });
-                 if ($duplicateInSession) { $this->dispatch('noty', msg: 'Esta referencia ya está agregada en esta lista.'); return; }
+                 // Bypass session duplicate check if it's their Cedula
+                 $bypassedRef = auth()->user() && auth()->user()->taxpayer_id && trim($this->bankReference) === trim(auth()->user()->taxpayer_id);
+                 
+                 if ($duplicateInSession && !$bypassedRef) { $this->dispatch('noty', msg: 'Esta referencia ya está agregada en esta lista.'); return; }
             } else {
                  $this->validate(['bankId' => 'required', 'accountNumber' => 'required', 'depositNumber' => 'required']);
             }

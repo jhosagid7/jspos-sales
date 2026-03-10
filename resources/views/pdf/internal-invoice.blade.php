@@ -110,7 +110,7 @@
                     </tr>
                     <tr>
                         <td class="text-right"><strong>TOTAL FACTURADO:</strong></td>
-                        <td class="text-right"><strong>{{ $currencySymbol }}{{ number_format($sale->total, 2) }}</strong></td>
+                        <td class="text-right"><strong>{{ $currencySymbol }}{{ number_format($computedTotal, 2) }}</strong></td>
                     </tr>
                 </table>
             </td>

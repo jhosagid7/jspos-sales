@@ -24,21 +24,24 @@ use App\Services\CreditConfigService;
 trait PdfInvoiceTrait
 {
 
-    public function generatePdfInvoice(Sale $sale)
+    public function generatePdfInvoice(Sale $sale, $originalOnly = false)
     {
         try {
             Log::info("PDF Generation requested for Sale ID: {$sale->id} | Status: {$sale->status}");
+            
+            // Load necessary relations including returns
+            $sale->loadMissing(['customer.seller', 'user', 'details.product', 'returns.details']);
             
             $config = Configuration::first();
 
             if ($config) {
                 if ($sale->status == 'paid') {
                     Log::info("Generating PAID invoice for Sale ID: {$sale->id}");
-                    return $this->generatePdfInvoicePaid($sale);
+                    return $this->generatePdfInvoicePaid($sale, $originalOnly);
                 }
                 if ($sale->status == 'pending') {
                     Log::info("Generating PENDING invoice for Sale ID: {$sale->id}");
-                    return $this->generatePdfInvoicePending($sale);
+                    return $this->generatePdfInvoicePending($sale, $originalOnly);
                 }
                 
                 Log::warning("Sale status '{$sale->status}' is not supported for PDF generation. Sale ID: {$sale->id}");
@@ -54,7 +57,7 @@ trait PdfInvoiceTrait
         }
     }
 
-    public function generatePdfInvoicePaid($sale)
+    public function generatePdfInvoicePaid($sale, $originalOnly = false)
     {
         try {
             $config = Configuration::first();
@@ -104,36 +107,44 @@ trait PdfInvoiceTrait
                 $diffPercent = $sale->applied_exchange_diff_percent ?? 0;
                 $combinedPercent = ($commPercent + $diffPercent) / 100;
 
+                // Pre-calculate returned quantities
+                $returnedQuantities = [];
+                if (!$originalOnly && $sale->returns) {
+                    foreach ($sale->returns as $return) {
+                        foreach ($return->details as $retDetail) {
+                            $returnedQuantities[$retDetail->sale_detail_id] = ($returnedQuantities[$retDetail->sale_detail_id] ?? 0) + $retDetail->quantity_returned;
+                        }
+                    }
+                }
+
                 foreach ($sale->details as $detail) {
+                    $effectiveQty = $detail->quantity - ($returnedQuantities[$detail->id] ?? 0);
                     
                     if ($isBrokenDown) {
-                        // Breakdown ON: sale_price is ALREADY the base price (without freight)
-                        // freight_amount is stored separately
-                        // So we use sale_price directly, no need to subtract anything
-                        
-                        $unitPrice = $detail->sale_price;
-                        
-                        // Create Item with base price (no freight)
-                        $items[] = InvoiceItem::make($detail->product->name)
-                            ->reference($detail->product->sku ? $detail->product->sku : '')
-                            ->pricePerUnit($unitPrice)
-                            ->quantity($detail->quantity);
-                        
-                        // Accumulators
                         $totalFreight += $detail->freight_amount;
-                        $totalBaseAccumulator += ($unitPrice * $detail->quantity);
                         
+                        if ($effectiveQty > 0) {
+                            $unitPrice = $detail->sale_price;
+                            
+                            $items[] = InvoiceItem::make($detail->product->name)
+                                ->reference($detail->product->sku ? $detail->product->sku : '')
+                                ->pricePerUnit($unitPrice)
+                                ->quantity($effectiveQty);
+                            
+                            $totalBaseAccumulator += ($unitPrice * $effectiveQty);
+                        }
                     } else {
                         // Breakdown OFF: sale_price INCLUDES freight
-                        // Show full price
-                        $unitPrice = $detail->sale_price;
-                        
-                        $items[] = InvoiceItem::make($detail->product->name)
-                            ->reference($detail->product->sku ? $detail->product->sku : '')
-                            ->pricePerUnit($unitPrice)
-                            ->quantity($detail->quantity);
+                        if ($effectiveQty > 0) {
+                            $unitPrice = $detail->sale_price;
+                            
+                            $items[] = InvoiceItem::make($detail->product->name)
+                                ->reference($detail->product->sku ? $detail->product->sku : '')
+                                ->pricePerUnit($unitPrice)
+                                ->quantity($effectiveQty);
 
-                        $totalBaseAccumulator += ($unitPrice * $detail->quantity);
+                            $totalBaseAccumulator += ($unitPrice * $effectiveQty);
+                        }
                     }
                 }
                 
@@ -234,6 +245,7 @@ trait PdfInvoiceTrait
             $config = Configuration::first();
 
             if ($config) {
+                $sale->loadMissing(['customer.seller', 'user', 'details.product', 'returns.details']);
                 $footerData = $this->getInvoiceFooterData($sale);
 
                 $seller = new Party([
@@ -272,22 +284,38 @@ trait PdfInvoiceTrait
                 $diffPercent = $sale->applied_exchange_diff_percent ?? 0;
                 $combinedPercent = ($commPercent + $diffPercent) / 100;
 
+                $returnedQuantities = [];
+                if (!$originalOnly && $sale->returns) {
+                    foreach ($sale->returns as $return) {
+                        foreach ($return->details as $retDetail) {
+                            $returnedQuantities[$retDetail->sale_detail_id] = ($returnedQuantities[$retDetail->sale_detail_id] ?? 0) + $retDetail->quantity_returned;
+                        }
+                    }
+                }
+
                 foreach ($sale->details as $detail) {
+                    $effectiveQty = $detail->quantity - ($returnedQuantities[$detail->id] ?? 0);
+
                     if ($isBrokenDown) {
-                        $unitPrice = $detail->sale_price;
-                        $items[] = InvoiceItem::make($detail->product->name)
-                            ->reference($detail->product->sku ? $detail->product->sku : '')
-                            ->pricePerUnit($unitPrice)
-                            ->quantity($detail->quantity);
                         $totalFreight += $detail->freight_amount;
-                        $totalBaseAccumulator += ($unitPrice * $detail->quantity);
+                        
+                        if ($effectiveQty > 0) {
+                            $unitPrice = $detail->sale_price;
+                            $items[] = InvoiceItem::make($detail->product->name)
+                                ->reference($detail->product->sku ? $detail->product->sku : '')
+                                ->pricePerUnit($unitPrice)
+                                ->quantity($effectiveQty);
+                            $totalBaseAccumulator += ($unitPrice * $effectiveQty);
+                        }
                     } else {
-                        $unitPrice = $detail->sale_price;
-                        $items[] = InvoiceItem::make($detail->product->name)
-                            ->reference($detail->product->sku ? $detail->product->sku : '')
-                            ->pricePerUnit($unitPrice)
-                            ->quantity($detail->quantity);
-                        $totalBaseAccumulator += ($unitPrice * $detail->quantity);
+                        if ($effectiveQty > 0) {
+                            $unitPrice = $detail->sale_price;
+                            $items[] = InvoiceItem::make($detail->product->name)
+                                ->reference($detail->product->sku ? $detail->product->sku : '')
+                                ->pricePerUnit($unitPrice)
+                                ->quantity($effectiveQty);
+                            $totalBaseAccumulator += ($unitPrice * $effectiveQty);
+                        }
                     }
                 }
                 
@@ -349,13 +377,14 @@ trait PdfInvoiceTrait
     }
 
 
-    public function generatePdfInvoicePending($sale)
+    public function generatePdfInvoicePending($sale, $originalOnly = false)
     {
         try {
             Log::info("Generating PENDING invoice logic for Sale ID: {$sale->id}");
             $config = Configuration::first();
 
             if ($config) {
+                $sale->loadMissing(['customer.seller', 'user', 'details.product', 'returns.details']);
                 $footerData = $this->getInvoiceFooterData($sale);
 
                 $seller = new Party([
@@ -390,48 +419,50 @@ trait PdfInvoiceTrait
                 $totalTax = 0;
                 $isBrokenDown = $sale->is_freight_broken_down;
 
-                // Calculate combined tax/diff percentage for reverse calc
                 $commPercent = $sale->applied_commission_percent ?? 0;
                 $diffPercent = $sale->applied_exchange_diff_percent ?? 0;
                 $combinedPercent = ($commPercent + $diffPercent) / 100;
 
+                // Pre-calculate returned quantities
+                $returnedQuantities = [];
+                if (!$originalOnly && $sale->returns) {
+                    foreach ($sale->returns as $return) {
+                        foreach ($return->details as $retDetail) {
+                            $returnedQuantities[$retDetail->sale_detail_id] = ($returnedQuantities[$retDetail->sale_detail_id] ?? 0) + $retDetail->quantity_returned;
+                        }
+                    }
+                }
+
                 foreach ($sale->details as $detail) {
+                    $effectiveQty = $detail->quantity - ($returnedQuantities[$detail->id] ?? 0);
                     
                     if ($isBrokenDown) {
-                        // Breakdown Logic: Reverse Calculate Base Price
-                        $lineTotal = $detail->quantity * $detail->sale_price;
                         $lineFreight = $detail->freight_amount; 
-                        
-                        // Clean Total (remove freight)
-                        $cleanTotal = max(0, $lineTotal - $lineFreight);
-                        
-                        // Base Total (remove tax/comm)
-                        $baseTotal = $cleanTotal / (1 + $combinedPercent);
-                        
-                        // Base Unit Price
-                        $unitPrice = ($detail->quantity > 0) ? ($baseTotal / $detail->quantity) : 0;
-                        
-                        // Tax for this item
-                        $taxAmountLine = $baseTotal * $combinedPercent;
-                        $taxAmountUnit = ($detail->quantity > 0) ? ($taxAmountLine / $detail->quantity) : 0;
-
-                        // Create Item with Base Price (No per-item tax set)
-                        $item = InvoiceItem::make($detail->product->name)
-                            ->reference($detail->product->sku ? $detail->product->sku : '')
-                            ->pricePerUnit($unitPrice)
-                            ->quantity($detail->quantity);
-                        
-                        $items[] = $item;
-                         
                         $totalFreight += $lineFreight;
-                        $totalTax += $taxAmountLine;
+                        
+                        if ($effectiveQty > 0) {
+                            $origLineTotal = $detail->quantity * $detail->sale_price;
+                            $origCleanTotal = max(0, $origLineTotal - $lineFreight);
+                            $origBaseTotal = $origCleanTotal / (1 + $combinedPercent);
+                            $unitPrice = ($detail->quantity > 0) ? ($origBaseTotal / $detail->quantity) : 0;
+                            
+                            $taxAmountLine = ($unitPrice * $effectiveQty) * $combinedPercent;
 
+                            $item = InvoiceItem::make($detail->product->name)
+                                ->reference($detail->product->sku ? $detail->product->sku : '')
+                                ->pricePerUnit($unitPrice)
+                                ->quantity($effectiveQty);
+                            
+                            $items[] = $item;
+                            $totalTax += $taxAmountLine;
+                        }
                     } else {
-                        // Standard Logic: Full Price, No Breakdown
-                        $items[] = InvoiceItem::make($detail->product->name)
-                            ->reference($detail->product->sku ? $detail->product->sku : '')
-                            ->pricePerUnit($detail->sale_price)
-                            ->quantity($detail->quantity);
+                        if ($effectiveQty > 0) {
+                            $items[] = InvoiceItem::make($detail->product->name)
+                                ->reference($detail->product->sku ? $detail->product->sku : '')
+                                ->pricePerUnit($detail->sale_price)
+                                ->quantity($effectiveQty);
+                        }
                     }
                 }
                 
@@ -515,6 +546,7 @@ trait PdfInvoiceTrait
             $config = Configuration::first();
 
             if ($config) {
+                $sale->loadMissing(['customer.seller', 'user', 'details.product', 'returns.details']);
                 $footerData = $this->getInvoiceFooterData($sale);
 
                 $seller = new Party([
@@ -553,32 +585,45 @@ trait PdfInvoiceTrait
                 $diffPercent = $sale->applied_exchange_diff_percent ?? 0;
                 $combinedPercent = ($commPercent + $diffPercent) / 100;
 
+                $returnedQuantities = [];
+                if (!$originalOnly && $sale->returns) {
+                    foreach ($sale->returns as $return) {
+                        foreach ($return->details as $retDetail) {
+                            $returnedQuantities[$retDetail->sale_detail_id] = ($returnedQuantities[$retDetail->sale_detail_id] ?? 0) + $retDetail->quantity_returned;
+                        }
+                    }
+                }
+
                 foreach ($sale->details as $detail) {
+                    $effectiveQty = $detail->quantity - ($returnedQuantities[$detail->id] ?? 0);
+
                     if ($isBrokenDown) {
-                        $lineTotal = $detail->quantity * $detail->sale_price;
                         $lineFreight = $detail->freight_amount; 
-                        
-                        $cleanTotal = max(0, $lineTotal - $lineFreight);
-                        $baseTotal = $cleanTotal / (1 + $combinedPercent);
-                        $unitPrice = ($detail->quantity > 0) ? ($baseTotal / $detail->quantity) : 0;
-                        
-                        $taxAmountLine = $baseTotal * $combinedPercent;
-
-                        $item = InvoiceItem::make($detail->product->name)
-                            ->reference($detail->product->sku ? $detail->product->sku : '')
-                            ->pricePerUnit($unitPrice)
-                            ->quantity($detail->quantity);
-                        
-                        $items[] = $item;
-                         
                         $totalFreight += $lineFreight;
-                        $totalTax += $taxAmountLine;
+                        
+                        if ($effectiveQty > 0) {
+                            $origLineTotal = $detail->quantity * $detail->sale_price;
+                            $origCleanTotal = max(0, $origLineTotal - $lineFreight);
+                            $origBaseTotal = $origCleanTotal / (1 + $combinedPercent);
+                            $unitPrice = ($detail->quantity > 0) ? ($origBaseTotal / $detail->quantity) : 0;
+                            
+                            $taxAmountLine = ($unitPrice * $effectiveQty) * $combinedPercent;
 
+                            $item = InvoiceItem::make($detail->product->name)
+                                ->reference($detail->product->sku ? $detail->product->sku : '')
+                                ->pricePerUnit($unitPrice)
+                                ->quantity($effectiveQty);
+                            
+                            $items[] = $item;
+                            $totalTax += $taxAmountLine;
+                        }
                     } else {
-                        $items[] = InvoiceItem::make($detail->product->name)
-                            ->reference($detail->product->sku ? $detail->product->sku : '')
-                            ->pricePerUnit($detail->sale_price)
-                            ->quantity($detail->quantity);
+                        if ($effectiveQty > 0) {
+                            $items[] = InvoiceItem::make($detail->product->name)
+                                ->reference($detail->product->sku ? $detail->product->sku : '')
+                                ->pricePerUnit($detail->sale_price)
+                                ->quantity($effectiveQty);
+                        }
                     }
                 }
                 
@@ -868,10 +913,10 @@ trait PdfInvoiceTrait
     //         Log::info("Error al intentar imprimir el corte de caja \n {$th->getMessage()} ");
     //     }
     // }
-    public function generatePdfInternalInvoice(Sale $sale)
+    public function generatePdfInternalInvoice(Sale $sale, $originalOnly = false)
     {
         try {
-            Log::info("Generating INTERNAL PDF invoice for Sale ID: {$sale->id}");
+            Log::info("Generating INTERNAL PDF invoice for Sale ID: {$sale->id}" . ($originalOnly ? ' (Original)' : ' (Actualizado)'));
             
             $config = Configuration::first();
             if (!$config) {
@@ -899,59 +944,67 @@ trait PdfInvoiceTrait
                 }
             }
 
-            // Calculations
-            // 1. Detect if Freight is Additive
-            $rawItemsTotal = $sale->details->sum(function($d) { return $d->quantity * $d->sale_price; });
-            $isAdditive = ($sale->total - $rawItemsTotal) > 0.01;
+            // Calculations based on Original Values to determine Freight ratios
+            $rawItemsTotalOriginal = $sale->details->sum(function($d) { return $d->quantity * $d->sale_price; });
+            $isAdditive = ($sale->total - $rawItemsTotalOriginal) > 0.01;
             
-            // Calculate Implicit Freight (Difference between Sale Total and Sum of Line Items)
-            $implicitFreight = max(0, $sale->total - $rawItemsTotal);
+            // Calculate Implicit Freight (Difference between Sale Original Total and Sum of Line Items)
+            $implicitFreightOriginal = max(0, $sale->total - $rawItemsTotalOriginal);
+            $datasetFreightSumOriginal = $sale->details->sum('freight_amount');
             
-            $datasetFreightSum = $sale->details->sum('freight_amount');
+            $trueGlobalFreightOriginal = max(0, $implicitFreightOriginal - $datasetFreightSumOriginal);
             
-            // True Global Freight is the part of Implicit that is NOT in the dataset details
-            // If Implicit is 1.00 and Dataset is 1.00, then True Global is 0.
-            // If Implicit is 1.00 and Dataset is 0, True Global is 1.00.
-            $trueGlobalFreight = max(0, $implicitFreight - $datasetFreightSum);
+            $totalFreightAmount = 0;
+            $configFreightTotal = 0;
+            $productFreightTotal = 0;
             
-            $totalFreightAmount = $datasetFreightSum;
-            
-            // Split Freight Logic matches sales-detail
-            $configFreightTotal = $sale->details->filter(function($d) {
-                return in_array($d->product->freight_type, ['global', 'none']);
-            })->sum('freight_amount');
-
-            $productFreightTotal = $sale->details->filter(function($d) {
-                return !in_array($d->product->freight_type, ['global', 'none']);
-            })->sum('freight_amount');
-            
-            // Add True Global Freight to Product Freight Total if it exists
-            if ($trueGlobalFreight > 0) {
-                 $productFreightTotal += $trueGlobalFreight;
-                 $totalFreightAmount += $trueGlobalFreight;
+            // Build a map of total quantity returned per sale_detail_id
+            $returnedQtyMap = [];
+            if (!$originalOnly) {
+                $returnedDetails = \App\Models\SaleReturnDetail::whereIn(
+                    'sale_detail_id',
+                    $sale->details->pluck('id')
+                )->get();
+                foreach ($returnedDetails as $rd) {
+                    $returnedQtyMap[$rd->sale_detail_id] = ($returnedQtyMap[$rd->sale_detail_id] ?? 0) + $rd->quantity_returned;
+                }
             }
 
+            // Calculate global freight ratio based on total effective vs original quantities
+            $totalOriginalQty = $sale->details->sum('quantity');
+            $totalEffectiveQty = $sale->details->sum(function($d) use ($originalOnly, $returnedQtyMap) {
+                $returned = $returnedQtyMap[$d->id] ?? 0;
+                return $originalOnly ? $d->quantity : max(0, $d->quantity - $returned);
+            });
+            $globalFreightRatio = $totalOriginalQty > 0 ? ($totalEffectiveQty / $totalOriginalQty) : 1;
+            
+            $trueGlobalFreightEffective = $trueGlobalFreightOriginal * $globalFreightRatio;
+
             foreach ($sale->details as $detail) {
-                $qty = $detail->quantity;
+                $returned = $returnedQtyMap[$detail->id] ?? 0;
+                $qty = $originalOnly ? $detail->quantity : max(0, $detail->quantity - $returned);
+                
+                if ($qty <= 0) continue; // Skip returned items completely
+                
+                $ratio = ($detail->quantity > 0) ? ($qty / $detail->quantity) : 1;
+                
                 $finalUnitSalePrice = $detail->sale_price;
-                $lineFreight = $detail->freight_amount;
+                $lineFreight = $detail->freight_amount * $ratio; // Scaled freight
                 $finalImporte = $finalUnitSalePrice * $qty;
+                
+                // Add to specific freight buckets
+                $totalFreightAmount += $lineFreight;
+                if (in_array($detail->product->freight_type, ['global', 'none'])) {
+                    $configFreightTotal += $lineFreight;
+                } else {
+                    $productFreightTotal += $lineFreight;
+                }
                 
                 // 1. Calculate Base Total (Importe Base)
                 if ($isAdditive) {
                     $cleanTotal = $finalImporte; 
-                    
-                    // If isAdditive, the Price ($1.00) is the Base.
-                    // We assume it does NOT include Commission/Diff yet, because they are calculated in the footer.
-                    // "Flete (Productos)" is added in the footer.
-                    // "Comision" is added in the footer.
-                    // So Base IS $1.00.
-                    
                     $itemTotalBase = $cleanTotal;
-                     
                 } else {
-                    // Inclusive Logic (Old)
-                    // Formula: (FinalImporte - Freight) / (1 + Combined%)
                     $cleanTotal = max(0, $finalImporte - $lineFreight);
                     $itemTotalBase = $cleanTotal / (1 + $combinedPercent);
                 }
@@ -962,18 +1015,25 @@ trait PdfInvoiceTrait
                 $totalBase += $itemTotalBase;
 
                 $items[] = [
-                    'quantity' => number_format($detail->quantity, 2),
+                    'quantity' => number_format($qty, 2),
                     'name' => $detail->product->name,
                     'base_price' => $baseUnit, // Base Unit
                     'total_base' => $itemTotalBase // Base Total
                 ];
+            }
+            
+            // Add Global freight back in
+            if ($trueGlobalFreightEffective > 0) {
+                 $productFreightTotal += $trueGlobalFreightEffective;
+                 $totalFreightAmount += $trueGlobalFreightEffective;
             }
 
             // Recalculate amounts based on Total Base
             $commAmount = $totalBase * ($commPercent / 100);
             $diffAmount = $totalBase * ($diffPercent / 100);
             
-            // For Freight, we already have the exact sums
+            // Computed total = subtotal + all surcharges
+            $computedTotal = $totalBase + $commAmount + $diffAmount + $totalFreightAmount;
             
             $data = [
                 'company' => $config,
@@ -989,7 +1049,8 @@ trait PdfInvoiceTrait
                 'freightPercent' => $freightPercent, // For display in Config line
                 'configFreightTotal' => $configFreightTotal,
                 'productFreightTotal' => $productFreightTotal,
-                'totalFreightAmount' => $totalFreightAmount
+                'totalFreightAmount' => $totalFreightAmount,
+                'computedTotal' => $computedTotal
             ];
 
             $pdf = Pdf::loadView('pdf.internal-invoice', $data);
@@ -1085,5 +1146,110 @@ trait PdfInvoiceTrait
             'credit_days' => $creditDays,
             'mora_percent' => $moraPercent
         ];
+    }
+
+    public function generateCreditNotePdf(\App\Models\SaleReturn $saleReturn)
+    {
+        try {
+            Log::info("Generating Credit Note PDF for Return ID: {$saleReturn->id}");
+            
+            $config = Configuration::first();
+            if (!$config) {
+                return response()->json(['error' => 'No hay configuración del sistema.'], 500);
+            }
+
+            $saleReturn->loadMissing(['sale.customer', 'sale.user', 'details.product']);
+            $sale = $saleReturn->sale;
+
+            $seller = new Party([
+                'name'          => $config->business_name,
+                'CC/NIT'           => $config->taxpayer_id,
+                'address'       => $config->address,
+                'city'           => $config->city,
+                'phone'         => $sale->customer->phone,
+
+                'custom_fields' => [
+                    'email'         => $sale->customer->email,
+                    'operador'        => $sale->user->name,
+                ],
+            ]);
+
+            $customer = new Party([
+                'name'          => $sale->customer->name,
+                'custom_fields' => [
+                    'CC/NIT'           => $sale->customer->taxpayer_id,
+                    'address'       => $sale->customer->address,
+                    'city'           => $sale->customer->city,
+                    'phone'         => $sale->customer->phone,
+                    'email'         => $sale->customer->email,
+                ],
+            ]);
+
+            $items = [];
+            foreach ($saleReturn->details as $detail) {
+                if ($detail->quantity_returned > 0) {
+                    $items[] = InvoiceItem::make($detail->product->name)
+                        ->reference($detail->product->sku ? $detail->product->sku : '')
+                        ->pricePerUnit($detail->unit_price)
+                        ->quantity($detail->quantity_returned);
+                }
+            }
+
+            $refundMethodTranslated = [
+                'cash' => 'Efectivo',
+                'bank' => 'Banco/Transferencia',
+                'wallet' => 'Saldo a Favor',
+                'debt_reduction' => 'Reducción de Deuda'
+            ][$saleReturn->refund_method] ?? $saleReturn->refund_method;
+
+            $notes = [
+                "<strong>Motivo:</strong> Devolución de mercancía",
+                "<strong>Método de Reembolso:</strong> " . $refundMethodTranslated,
+                "<strong>Factura Original:</strong> #" . $sale->id
+            ];
+            $notes = implode("<br>", $notes);
+
+            $currencySymbol = '$';
+            $currencyCode = 'USD';
+            if ($sale->primary_currency_code) {
+                $currencySymbol = \App\Helpers\CurrencyHelper::getSymbol($sale->primary_currency_code);
+                $currencyCode = $sale->primary_currency_code;
+            } else {
+                $primary = \App\Helpers\CurrencyHelper::getPrimaryCurrency();
+                if ($primary) {
+                    $currencySymbol = $primary->symbol;
+                    $currencyCode = $primary->code;
+                }
+            }
+
+            $logoPath = $config->logo ? public_path('storage/' . $config->logo) : public_path('logo/logo.jpg');
+            if (!file_exists($logoPath)) $logoPath = null;
+
+            $invoice = Invoice::make($config->business_name)->template('invoice-credit-short')
+                ->name('Nota de Crédito')
+                ->series('NC')
+                ->sequence($saleReturn->id)
+                ->serialNumberFormat('{SEQUENCE}')
+                ->seller($seller)
+                ->buyer($customer)
+                ->dateFormat('d-M-Y H:i:s')
+                ->date($saleReturn->created_at)
+                ->currencySymbol($currencySymbol)
+                ->currencyCode($currencyCode)
+                ->currencyDecimals(ConfigurationService::getDecimalPlaces())
+                ->currencyFormat('{SYMBOL}{VALUE}')
+                ->currencyThousandsSeparator('.')
+                ->currencyDecimalPoint(',')
+                ->addItems($items)
+                ->notes($notes)
+                ->logo($logoPath ?? '')
+                ->save('public');
+
+            return $invoice->stream();
+
+        } catch (\Exception $th) {
+            Log::error("Error generating Credit Note PDF for Return ID: {$saleReturn->id}: " . $th->getMessage());
+            return response()->json(['error' => 'Error generating Credit Note PDF: ' . $th->getMessage()], 500);
+        }
     }
 }

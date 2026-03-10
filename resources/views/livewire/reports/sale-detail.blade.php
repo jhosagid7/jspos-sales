@@ -502,9 +502,29 @@
                                     </table>
                                 </div>
 
-                                {{-- Summary Section --}}
-                                <div class="row mt-2">
-                                    {{-- Right Aligned Summary --}}
+                                {{-- Unified Summary Section --}}
+                                @php
+                                    $allPaymentsPrimary = isset($allPayments) ? $allPayments->sum('amount_primary') : 0;
+                                    $exchangeRate = $salesObt->primary_exchange_rate > 0 ? $salesObt->primary_exchange_rate : 1;
+                                    $allPaymentsUSD = $allPaymentsPrimary / $exchangeRate;
+                                    
+                                    $totalReturned = $salesObt->returns ? $salesObt->returns->sum('total_returned') : 0;
+                                    $totalReturnedUSD = $totalReturned / $exchangeRate;
+                                    
+                                    $debtReductionReturns = $salesObt->returns ? $salesObt->returns->where('refund_method', 'debt_reduction')->sum('total_returned') : 0;
+                                    $debtReductionReturnsUSD = $debtReductionReturns / $exchangeRate;
+                                    
+                                    $montoNeto = $salesObt->total - $totalReturned;
+                                    $montoNetoUSD = $salesObt->total_usd - $totalReturnedUSD;
+                                    
+                                    $pendingBalance = $salesObt->total - $allPaymentsPrimary - $debtReductionReturns;
+                                    $pendingBalanceUSD = $salesObt->total_usd - $allPaymentsUSD - $debtReductionReturnsUSD;
+                                    
+                                    if ($pendingBalance < 0) $pendingBalance = 0;
+                                    if ($pendingBalanceUSD < 0) $pendingBalanceUSD = 0;
+                                @endphp
+
+                                <div class="row mt-4">
                                     <div class="col-md-12">
                                         <div class="row justify-content-end">
                                             <div class="col-md-8">
@@ -518,22 +538,34 @@
                                                     </thead>
                                                     <tbody>
                                                         <tr>
-                                                            <td class="text-end bg-light"><b>Monto Total:</b></td>
-                                                            <td class="text-end fw-bold">{{ $currencySymbol }}{{ number_format($salesObt->total, 2) }}</td>
-                                                            <td class="text-end fw-bold">${{ number_format($salesObt->total_usd, 2) }}</td>
+                                                            <td class="text-end bg-light"><b>Monto Original (Bruto):</b></td>
+                                                            <td class="text-end text-muted">{{ $currencySymbol }}{{ number_format($salesObt->total, 2) }}</td>
+                                                            <td class="text-end text-muted">${{ number_format($salesObt->total_usd, 2) }}</td>
                                                         </tr>
+                                                        @if($totalReturned > 0)
+                                                            <tr>
+                                                                <td class="text-end bg-light"><b>(-) Devoluciones:</b></td>
+                                                                <td class="text-end text-danger">{{ $currencySymbol }}{{ number_format($totalReturned, 2) }}</td>
+                                                                <td class="text-end text-danger">${{ number_format($totalReturnedUSD, 2) }}</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td class="text-end bg-light"><b>Monto Neto (Actual):</b></td>
+                                                                <td class="text-end fw-bold">{{ $currencySymbol }}{{ number_format($montoNeto, 2) }}</td>
+                                                                <td class="text-end fw-bold">${{ number_format($montoNetoUSD, 2) }}</td>
+                                                            </tr>
+                                                        @endif
                                                         <tr>
-                                                            <td class="text-end bg-light"><b>Total Abonado:</b></td>
-                                                            <td class="text-end text-success fw-bold">{{ $currencySymbol }}{{ number_format($allPayments->sum('amount_primary'), 2) }}</td>
-                                                            <td class="text-end text-success fw-bold">${{ number_format($totalPaidUSD, 2) }}</td>
+                                                            <td class="text-end bg-light"><b>(-) Total Abonado:</b></td>
+                                                            <td class="text-end text-success fw-bold">{{ $currencySymbol }}{{ number_format($allPaymentsPrimary, 2) }}</td>
+                                                            <td class="text-end text-success fw-bold">${{ number_format($allPaymentsUSD, 2) }}</td>
                                                         </tr>
                                                         <tr>
                                                             <td class="text-end bg-light"><b>Saldo Pendiente:</b></td>
                                                             <td class="text-end text-danger fw-bold h5">
-                                                                {{ $currencySymbol }}{{ number_format($salesObt->total - $allPayments->sum('amount_primary'), 2) }}
+                                                                {{ $currencySymbol }}{{ number_format($pendingBalance, 2) }}
                                                             </td>
                                                             <td class="text-end text-danger fw-bold h5">
-                                                                ${{ number_format($salesObt->total_usd - $totalPaidUSD, 2) }}
+                                                                ${{ number_format($pendingBalanceUSD, 2) }}
                                                             </td>
                                                         </tr>
                                                     </tbody>
@@ -544,38 +576,69 @@
                                 </div>
                             </div>
                         @else
-                             {{-- Even if no payments, show Summary --}}
-                             <div class="row justify-content-end mt-4">
-                                <div class="col-md-8">
+                            {{-- End of payments check. We just unified the summary, so nothing else needed here. --}}
+                        @endif
+                        
+                        {{-- Detalles de Devoluciones --}}
+                        @if($salesObt && $salesObt->returns && $salesObt->returns->count() > 0)
+                            <div class="mt-4">
+                                <h6 class="text-danger"><i class="fa fa-undo"></i> Devoluciones de Productos Registradas</h6>
+                                <div class="table-responsive">
                                     <table class="table table-sm table-bordered">
-                                        <thead>
-                                            <tr class="bg-light text-center">
-                                                <th>Concepto</th>
-                                                <th>Moneda Factura ({{ $currencySymbol }})</th>
-                                                <th>Equivalente (USD)</th>
+                                        <thead class="table-light">
+                                            <tr class="text-center">
+                                                <th>Fecha</th>
+                                                <th>Motivo</th>
+                                                <th>Método de Reembolso</th>
+                                                <th>Total Devuelto</th>
+                                                <th>Detalles de Productos</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr>
-                                                <td class="text-end bg-light"><b>Monto Total:</b></td>
-                                                <td class="text-end fw-bold">{{ $currencySymbol }}{{ number_format($salesObt->total, 2) }}</td>
-                                                <td class="text-end fw-bold">${{ number_format($salesObt->total_usd, 2) }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td class="text-end bg-light"><b>Total Abonado:</b></td>
-                                                <td class="text-end text-success fw-bold">{{ $currencySymbol }}0.00</td>
-                                                <td class="text-end text-success fw-bold">$0.00</td>
-                                            </tr>
-                                            <tr>
-                                                <td class="text-end bg-light"><b>Saldo Pendiente:</b></td>
-                                                <td class="text-end text-danger fw-bold h5">
-                                                    {{ $currencySymbol }}{{ number_format($salesObt->total, 2) }}
-                                                </td>
-                                                <td class="text-end text-danger fw-bold h5">
-                                                    ${{ number_format($salesObt->total_usd, 2) }}
-                                                </td>
-                                            </tr>
+                                            @foreach($salesObt->returns as $return)
+                                                <tr class="text-center">
+                                                    <td>
+                                                        {{ $return->created_at->format('d/m/Y h:i A') }}<br>
+                                                        <a href="{{ route('pos.returns.generateCreditNotePdf', $return->id) }}" target="_blank"
+                                                           class="btn btn-xs btn-outline-danger mt-1" title="Imprimir Nota de Crédito">
+                                                            <i class="fas fa-file-pdf"></i> Nota
+                                                        </a>
+                                                    </td>
+                                                    <td>{{ $return->reason ?? 'N/A' }}</td>
+                                                    <td>
+                                                        @if($return->refund_method == 'cash')
+                                                            <span class="badge badge-light-success">Efectivo / Caja</span>
+                                                        @elseif($return->refund_method == 'wallet')
+                                                            <span class="badge badge-light-info">Saldo a Favor</span>
+                                                        @elseif($return->refund_method == 'debt_reduction')
+                                                            <span class="badge badge-light-warning">Redondeo a Deuda</span>
+                                                        @elseif($return->refund_method == 'bank')
+                                                            <span class="badge badge-light-primary">Banco / Transferencia</span>
+                                                        @else
+                                                            <span class="badge badge-light-secondary">{{ ucfirst($return->refund_method) }}</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="fw-bold text-danger">{{ $currencySymbol }}{{ number_format($return->total_returned, 2) }}</td>
+                                                    <td class="text-start">
+                                                        <ul class="mb-0 pl-3">
+                                                            @foreach($return->details as $retDetail)
+                                                                <li>
+                                                                    {{ (int)$retDetail->quantity }}x {{ $retDetail->saleDetail->product->name ?? 'Producto Eliminado' }} 
+                                                                    <small class="text-muted">({{ $currencySymbol }}{{ number_format($retDetail->unit_price, 2) }} c/u)</small>
+                                                                </li>
+                                                            @endforeach
+                                                        </ul>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
                                         </tbody>
+                                        <tfoot class="table-light">
+                                            <tr>
+                                                <td colspan="3" class="text-end"><b>Total Devoluciones:</b></td>
+                                                <td class="text-center text-danger"><b>{{ $currencySymbol }}{{ number_format($salesObt->returns->sum('total_returned'), 2) }}</b></td>
+                                                <td></td>
+                                            </tr>
+                                        </tfoot>
                                     </table>
                                 </div>
                             </div>
@@ -670,33 +733,58 @@
 
                 </div>
 
-                <div class="modal-footer">
+                <div class="modal-footer d-block">
                     @if (!is_null($sale_id))
-                        <button class="btn btn-sm btn-outline-dark" wire:click="printSale({{ $sale_id }})" title="Imprimir Ticket Cliente">
-                            Ticket Venta
-                            <i class="text-info icofont icofont-ticket fa-2x"></i>
-                        </button>
+                        {{-- Row 1: Acciones Generales --}}
+                        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                            <small class="text-muted fw-bold me-1">GENERAL:</small>
 
-                        <button class="btn btn-sm btn-outline-dark" wire:click="printInternalTicket({{ $sale_id }})" title="Imprimir Ticket Interno Contable">
-                            Ticket Interno
-                            <i class="text-warning icofont icofont-ticket fa-2x"></i>
-                        </button>
+                            <button class="btn btn-sm btn-outline-dark" wire:click="printSale({{ $sale_id }})" title="Imprimir Ticket Cliente">
+                                <i class="text-info icofont icofont-ticket"></i> Ticket Venta
+                            </button>
 
-                        <a class="btn btn-sm btn-outline-dark" 
-                           href="{{ route('pos.sales.generatePdfInternal', $sale_id) }}" target="_blank" title="Imprimir Comprobante Contable">
-                            PDF Interno
-                            <i class="text-danger icofont icofont-file-pdf fa-2x"></i>
-                        </a>
+                            <button class="btn btn-sm btn-outline-dark" wire:click="printInternalTicket({{ $sale_id }})" title="Imprimir Ticket Interno Contable">
+                                <i class="text-warning icofont icofont-ticket"></i> Ticket Interno
+                            </button>
 
-                        <a class="btn btn-sm btn-outline-dark {{ $sale_status == 'returned' ? 'disabled' : '' }}"
-                            href="{{ route('pos.sales.generatePdfInvoice', $sale_id) }}" target="_blank">
-                            Imprimir Factura
-                            <i class="text-danger icofont icofont-file-pdf fa-2x"></i>
-                        </a>
+                            <button type="button" class="btn btn-sm btn-outline-danger ms-auto"
+                                onclick="Livewire.dispatch('openReturnModal', { id: {{ $sale_id }} })">
+                                <i class="fa fa-undo"></i> Devolver Productos
+                            </button>
+
+                            <button class="btn btn-sm btn-dark" type="button" data-bs-dismiss="modal">Cerrar</button>
+                        </div>
+
+                        {{-- Row 2: Facturas Cliente --}}
+                        <div class="d-flex flex-wrap gap-2 align-items-center mb-1">
+                            <small class="text-muted fw-bold me-1">FACTURAS CLIENTE:</small>
+
+                            <a class="btn btn-sm btn-outline-info"
+                               href="{{ route('pos.sales.generatePdfInvoiceOriginal', $sale_id) }}" target="_blank">
+                                <i class="icofont icofont-file-pdf"></i> Original (Bruta)
+                            </a>
+
+                            <a class="btn btn-sm btn-outline-success {{ $sale_status == 'returned' ? 'disabled' : '' }}"
+                               href="{{ route('pos.sales.generatePdfInvoice', $sale_id) }}" target="_blank">
+                                <i class="icofont icofont-file-pdf"></i> Actualizada (Neta)
+                            </a>
+
+                            <span class="vr mx-1"></span>
+                            <small class="text-muted fw-bold me-1">COMPROBANTES INTERNOS:</small>
+
+                            <a class="btn btn-sm btn-outline-danger"
+                               href="{{ route('pos.sales.generatePdfInternalOriginal', $sale_id) }}" target="_blank">
+                                <i class="icofont icofont-file-pdf"></i> Interno Original
+                            </a>
+
+                            <a class="btn btn-sm btn-outline-warning {{ $sale_status == 'returned' ? 'disabled' : '' }}"
+                               href="{{ route('pos.sales.generatePdfInternal', $sale_id) }}" target="_blank">
+                                <i class="icofont icofont-file-pdf"></i> Interno Actualizado
+                            </a>
+                        </div>
+                    @else
+                        <button class="btn btn-sm btn-dark" type="button" data-bs-dismiss="modal">Cerrar</button>
                     @endif
-                    <button class="btn btn-dark " type="button" data-bs-dismiss="modal">Cerrar</button>
-
-
                 </div>
 
             </div>

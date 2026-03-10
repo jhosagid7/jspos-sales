@@ -99,7 +99,9 @@
                                             @php
                                                 $totalSurchargeFactor = 1 + (($sale->applied_commission_percent + $sale->applied_freight_percent + $sale->applied_exchange_diff_percent) / 100);
                                                 if ($totalSurchargeFactor == 0) $totalSurchargeFactor = 1;
-                                                $baseAmount = $sale->total / $totalSurchargeFactor;
+                                                $totalReturned = $sale->returns ? $sale->returns->sum('total_returned') : 0;
+                                                $effectiveTotal = max(0, $sale->total - $totalReturned);
+                                                $baseAmount = $effectiveTotal / $totalSurchargeFactor;
                                             @endphp
                                             ${{ number_format($baseAmount, 2) }}
                                         </td>
@@ -114,7 +116,7 @@
                                             @if($sale->status == 'paid')
                                                 <span class="badge badge-success">PAGADA</span>
                                             @elseif($sale->status == 'pending')
-                                                <span class="badge badge-warning">PENDIENTE</span>
+                                                <span class="badge badge-warning">PENDIENTE</span>|
                                             @else
                                                 <span class="badge badge-danger">{{ strtoupper($sale->status) }}</span>
                                             @endif
@@ -122,7 +124,7 @@
                                         <td>{{ number_format($sale->applied_commission_percent, 2) }}%</td>
                                         <td>
                                             @php
-                                                $finalPercent = ($sale->final_commission_amount / ($sale->total / (1 + ($sale->applied_commission_percent + $sale->applied_freight_percent + $sale->applied_exchange_diff_percent)/100))) * 100;
+                                                $finalPercent = $baseAmount > 0 ? ($sale->final_commission_amount / $baseAmount) * 100 : 0;
                                             @endphp
                                             {{ number_format($finalPercent, 2) }}%
                                         </td>

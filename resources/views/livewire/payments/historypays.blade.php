@@ -149,6 +149,11 @@
                                                         <b>Motivo:</b> {{ $pay->rejection_reason }}
                                                     </div>
                                                 @endif
+                                                @if(!empty($pay->modification_comment))
+                                                    <div class="text-info small mt-1">
+                                                        <b>Nota Admin:</b> {{ $pay->modification_comment }}
+                                                    </div>
+                                                @endif
                                             </td>
                                             <td data-label="Método">
                                                 <span class="badge badge-{{ $badgeColor }}">
@@ -254,6 +259,13 @@
                                                                     <i class="fas fa-check"></i>
                                                                 </button>
                                                                 
+                                                                <!-- EDIT BUTTON -->
+                                                                <button class="btn btn-info btn-sm"
+                                                                    wire:click="editPayment({{ $pay->id }})"
+                                                                    title="Editar Pago">
+                                                                    <i class="fas fa-edit"></i>
+                                                                </button>
+                                                                
                                                                 <button class="btn btn-warning btn-sm"
                                                                     type="button"
                                                                     x-on:click="
@@ -342,6 +354,143 @@
             if ($.fn.modal && $.fn.modal.Constructor.prototype._enforceFocus) {
                 $.fn.modal.Constructor.prototype._enforceFocus = function() {};
             }
+            
+            Livewire.on('show-edit-payment-modal', () => {
+                $('#modalEditPayment').modal('show');
+            });
+            Livewire.on('hide-edit-payment-modal', () => {
+                $('#modalEditPayment').modal('hide');
+            });
         });
     </script>
+    
+    <!-- Modal Edit Payment -->
+    <div wire:ignore.self class="modal fade" id="modalEditPayment" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">Editar Pago Pendiente</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="card bg-light border-secondary shadow-none">
+                                <div class="card-body p-2 d-flex justify-content-between align-items-center">
+                                    <div class="text-center w-33 border-right">
+                                        <small class="text-muted d-block text-uppercase font-weight-bold" style="font-size: 0.7rem;">Monto Venta</small>
+                                        <span class="font-weight-bold">${{ number_format($editSaleTotal, 2) }}</span>
+                                    </div>
+                                    <div class="text-center w-33 border-right">
+                                        <small class="text-muted d-block text-uppercase font-weight-bold" style="font-size: 0.7rem;">Abonado</small>
+                                        <span class="font-weight-bold text-success">${{ number_format($editSalePaid, 2) }}</span>
+                                    </div>
+                                    <div class="text-center w-33">
+                                        <small class="text-muted d-block text-uppercase font-weight-bold" style="font-size: 0.7rem;">Deuda Actual</small>
+                                        <span class="font-weight-bold text-danger">${{ number_format($editSaleDebt, 2) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12 col-md-6">
+                            <div class="form-group">
+                                <label>Monto</label>
+                                <input type="number" step="0.01" class="form-control" wire:model.live="editPaymentAmount">
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-6">
+                            <div class="form-group">
+                                <label>Tasa de Cambio</label>
+                                <input type="number" step="0.01" class="form-control" wire:model.live="editPaymentRate">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-12 text-center bg-light p-2 rounded border">
+                            <strong>Equivalente en Dólares ($):</strong> 
+                            <span class="text-success h5 mb-0">
+                                @if(is_numeric($editPaymentAmount) && is_numeric($editPaymentRate) && $editPaymentRate > 0)
+                                    ${{ number_format((float)$editPaymentAmount / (float)$editPaymentRate, 2) }}
+                                @else
+                                    $0.00
+                                @endif
+                            </span>
+                        </div>
+                    </div>
+                    
+                    @if($editEarlyDiscountAmount > 0 || $editUsdDiscountAmount > 0)
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="card bg-light border-info shadow-none">
+                                <div class="card-body p-2">
+                                    <h6 class="text-info font-weight-bold mb-2"><i class="fas fa-tags"></i> Descuentos Aplicables</h6>
+                                    @if($editEarlyDiscountAmount > 0)
+                                    <div class="custom-control custom-switch mb-1">
+                                        <input type="checkbox" class="custom-control-input" id="editApplyEarlyDiscount" wire:model.live="editApplyEarlyDiscount">
+                                        <label class="custom-control-label" for="editApplyEarlyDiscount">
+                                            {{ $editEarlyDiscountReason ?: 'Pronto Pago' }} ({{ $editEarlyDiscountPercent }}%): <span class="text-success font-weight-bold">${{ number_format($editEarlyDiscountAmount, 2) }}</span>
+                                        </label>
+                                    </div>
+                                    @endif
+                                    
+                                    @if($editUsdDiscountAmount > 0)
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="editApplyUsdDiscount" wire:model.live="editApplyUsdDiscount">
+                                        <label class="custom-control-label" for="editApplyUsdDiscount">
+                                            Pago en Divisa ({{ $editUsdDiscountPercent }}%): <span class="text-success font-weight-bold">${{ number_format($editUsdDiscountAmount, 2) }}</span>
+                                        </label>
+                                    </div>
+                                    @endif
+                                    <small class="text-muted d-block mt-2">Los descuentos seleccionados se restarán de la deuda total del cliente al aprobar este pago.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
+                    @php
+                        $predictiveValueUSD = (is_numeric($editPaymentAmount) && is_numeric($editPaymentRate) && $editPaymentRate > 0) ? ((float)$editPaymentAmount / (float)$editPaymentRate) : 0;
+                        if ($editApplyEarlyDiscount) $predictiveValueUSD += $editEarlyDiscountAmount;
+                        if ($editApplyUsdDiscount) $predictiveValueUSD += $editUsdDiscountAmount;
+                        $remainingPredicted = max(0, $editSaleDebt - $predictiveValueUSD);
+                    @endphp
+                    
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="alert {{ $remainingPredicted <= 0.05 ? 'alert-success' : 'alert-warning' }} m-0 p-2 text-center border">
+                                <strong>Saldo Restante Posterior a este Abono: </strong> 
+                                <span class="h5 mb-0 font-weight-bold">${{ number_format($remainingPredicted, 2) }}</span>
+                                @if($remainingPredicted <= 0.05)
+                                    <br><small class="font-weight-bold"><i class="fas fa-check-circle"></i> ¡Este pago liquida la deuda restante!</small>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mt-3">
+                        <label>Referencia / Envío</label>
+                        <input type="text" class="form-control" wire:model="editPaymentRef">
+                        <small class="text-muted">Si ingresas un número de cédula aquí, se sobrescribirá con el comprobante bancario real para poder aprobarlo.</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha</label>
+                        <input type="date" class="form-control" wire:model="editPaymentDate">
+                    </div>
+                    <div class="form-group">
+                        <label>Comentario de Modificación (Opcional)</label>
+                        <textarea class="form-control" wire:model="editPaymentComment" rows="2" placeholder="Ej: Se corrigió la tasa de cambio a la fecha del depósito real..."></textarea>
+                        <small class="text-muted">Este comentario será visible para el vendedor en el historial.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" wire:click="updatePayment">Guardar y Actualizar Banco</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

@@ -42,12 +42,20 @@
                                                     {{ app('fun')->dateFormat($sale->created_at) }}</small>
                                             </td>
                                             <td data-label="Total">${{ number_format($sale->total_display, 2) }}</td>
-                                            <td data-label="Abonado">${{ number_format($sale->total_paid_display, 2) }}</td>
+                                            <td data-label="Abonado">
+                                                ${{ number_format($sale->total_paid_display, 2) }}
+                                                @if($sale->payments->where('status', 'pending')->count() > 0)
+                                                    <br>
+                                                    <span class="badge badge-warning text-white mt-1" title="Contiene pagos pendientes por aprobar">
+                                                        <i class="fas fa-clock"></i> Pago por aprobar
+                                                    </span>
+                                                @endif
+                                            </td>
                                             <td data-label="Debe">${{ number_format($sale->debt_display, 2) }}</td>
                                             <td data-label="Acciones">
 
 
-                                                @if ($sale->total_paid_display > 0)
+                                                @if ($sale->payments->count() > 0)
                                                     @can('payments.history')
                                                     <button class="btn btn-default btn-sm"
                                                         wire:click="historyPayments({{ $sale->id }})" title="Ver Historial">
