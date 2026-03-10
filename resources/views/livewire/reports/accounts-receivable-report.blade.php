@@ -25,6 +25,15 @@
                                         </span>
                                     </div>
 
+                                    <div class="mt-3">
+                                        <span class="f-14"><b>Factura</b></span>
+                                        <div class="input-group">
+                                            <input wire:model="searchFactura" wire:keydown.enter.prevent="searchData" class="form-control" type="text" placeholder="Ej: 105 o F000105">
+                                            <span class="input-group-text list-light">
+                                                <i class="search-icon" data-feather="file-text"></i>
+                                            </span>
+                                        </div>
+                                    </div>
 
                                     <div class="mt-3">
                                         <span class="f-14"><b>Fecha desde</b></span>
@@ -87,7 +96,7 @@
                                     </div>
 
                                     <div class="mt-5">
-                                        <button wire:click.prevent="$set('showReport', true)" class="btn btn-dark">
+                                        <button wire:click.prevent="searchData" class="btn btn-dark">
                                             Consultar
                                         </button>
                                         <button wire:click.prevent="generatePdf" class="btn btn-danger ms-2"

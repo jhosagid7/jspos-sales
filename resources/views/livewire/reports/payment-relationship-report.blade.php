@@ -48,17 +48,17 @@
                     </div>
                     <div class="col-sm-12 col-md-3">
                         <label>Factura Desde (ID)</label>
-                        <input type="number" wire:model.live="invoice_from" class="form-control">
+                        <input type="number" wire:model.live="invoice_from" wire:keydown.enter.prevent="searchData" class="form-control">
                     </div>
                     <div class="col-sm-12 col-md-3">
                         <label>Factura Hasta (ID)</label>
-                        <input type="number" wire:model.live="invoice_to" class="form-control">
+                        <input type="number" wire:model.live="invoice_to" wire:keydown.enter.prevent="searchData" class="form-control">
                     </div>
                 </div>
 
                 <div class="row mb-3">
                     <div class="col-sm-12 col-md-8">
-                        <button wire:click="$set('showReport', true)" class="btn btn-primary btn-block">
+                        <button wire:click="searchData" class="btn btn-primary btn-block">
                             Consultar
                         </button>
                     </div>

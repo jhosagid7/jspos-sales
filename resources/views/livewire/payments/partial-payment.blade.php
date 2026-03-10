@@ -12,7 +12,7 @@
                         <div class="faq-form">
                             <input wire:keydown.enter.prevent="$set('search', $event.target.value)"
                                 class="form-control form-control-lg" type="text"
-                                placeholder="Ingresa el nombre del cliente" id="inputPartialPaySearch"
+                                placeholder="Ingresa el nombre del cliente o Nro Factura" id="inputPartialPaySearch"
                                 style="background-color: beige">
                             <i class="search-icon" data-feather="user"></i>
                         </div>

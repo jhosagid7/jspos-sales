@@ -19,6 +19,7 @@ class AccountsReceivableReport extends Component
 
 
     public $pagination = 10, $banks = [], $customer, $customer_name, $debt, $debt_usd, $dateFrom, $dateTo, $showReport = false, $status = 0;
+    public $searchFactura;
     public $totales = 0, $sale_id, $details = [], $pays = [];
     public $editingPaymentId, $editPaymentRef, $editPaymentAmount, $editPaymentDate, $editPaymentRate, $editPaymentComment;
     public $editApplyEarlyDiscount = false, $editApplyUsdDiscount = false;
@@ -33,6 +34,11 @@ class AccountsReceivableReport extends Component
     public $users = [], $user_id; // New properties
     public $groupBy = 'customer_id'; // Default group by
 
+    public function searchData()
+    {
+        $this->showReport = true;
+    }
+
     function mount()
     {
         session()->forget('account_customer');
@@ -41,7 +47,7 @@ class AccountsReceivableReport extends Component
         $this->paymentCurrency = $this->currencies->firstWhere('is_primary', 1)->code ?? 'COP';
         
         if (auth()->user()->can('sales.view_all')) {
-            $this->sellers = \App\Models\User::role('Vendedor')->orderBy('name')->get();
+            $this->sellers = \App\Models\User::role(['Vendedor', 'Vendedor foraneo'])->orderBy('name')->get();
             $this->users = \App\Models\User::orderBy('name')->get(); 
         } else {
             // Restricted view: only show themselves
@@ -113,6 +119,18 @@ class AccountsReceivableReport extends Component
                     $query->whereHas('customer', function($q) {
                         $q->where('seller_id', $this->seller_id);
                     });
+                })
+                ->when(!empty(trim($this->searchFactura)), function ($query) {
+                    $searchValue = trim($this->searchFactura);
+                    $saleId = 0;
+                    if (is_numeric($searchValue)) {
+                        $saleId = (int)$searchValue;
+                    } elseif (preg_match('/^[Ff]0*([1-9][0-9]*)$/', $searchValue, $matches)) {
+                        $saleId = (int)$matches[1];
+                    }
+                    if ($saleId > 0) {
+                        $query->where('id', $saleId);
+                    }
                 })
                 ->when($this->user_id != null, function ($query) {
                     $query->where('user_id', $this->user_id);

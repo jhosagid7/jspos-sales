@@ -60,9 +60,27 @@ class PartialPayment extends Component
 
     public  function getSalesWithDetails()
     {
-        $query = Sale::whereHas('customer', function ($query) {
+        $query = Sale::where(function ($query) {
             if (!empty(trim($this->search))) {
-                $query->where('name', 'like', "%{$this->search}%");
+                $searchValue = trim($this->search);
+                
+                // Search by Customer Name
+                $query->whereHas('customer', function ($subQuery) use ($searchValue) {
+                    $subQuery->where('name', 'like', "%{$searchValue}%");
+                });
+
+                // Check if search resembles an Invoice ID
+                $saleId = 0;
+                if (is_numeric($searchValue)) {
+                    $saleId = (int)$searchValue;
+                } elseif (preg_match('/^[Ff]0*([1-9][0-9]*)$/', $searchValue, $matches)) {
+                    $saleId = (int)$matches[1];
+                }
+
+                // Append OR condition for exact matching Sale ID
+                if ($saleId > 0) {
+                    $query->orWhere('id', $saleId);
+                }
             }
         })
             ->when(!auth()->user()->can('payments.view_all') && auth()->user()->can('payments.view_own'), function($q) {
@@ -401,7 +419,6 @@ class PartialPayment extends Component
                  $this->dispatch('noty', msg: 'PAGO SUBIDO. PENDIENTE DE APROBACIÓN.');
             }
             
-            $this->dispatch('close-modal'); 
             $this->resetUI();
 
         } catch (\Exception $th) {

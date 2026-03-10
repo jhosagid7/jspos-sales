@@ -27,6 +27,10 @@
                             <label>Lote</label>
                             <input type="text" wire:model.live="batch_filter" class="form-control" placeholder="Filtrar por lote...">
                         </div>
+                        <div class="col-md-2">
+                            <label>Factura</label>
+                            <input type="text" wire:model.live="searchFactura" wire:keydown.enter="$refresh" class="form-control" placeholder="Ej: 105 o F...105">
+                        </div>
                         @if($canManage || auth()->user()->can('commissions.view_all'))
                         <div class="col-md-3">
                             <label>Vendedor</label>

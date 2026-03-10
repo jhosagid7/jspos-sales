@@ -25,7 +25,7 @@ class CommissionReport extends Component
 
     public function render()
     {
-        $sellers = User::role('Vendedor')->get();
+        $sellers = User::role(['Vendedor', 'Vendedor foraneo'])->get();
         $sales = [];
 
         if ($this->seller_id != 0) {

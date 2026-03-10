@@ -22,10 +22,16 @@ class PaymentRelationshipReport extends Component
     public $operators = [], $sellers = [];
     public $selectedSheet = null; // For detail view
 
+    public function searchData()
+    {
+        $this->showReport = true;
+        $this->render();
+    }
+
     function mount()
     {
         $this->operators = \App\Models\User::orderBy('name')->get();
-        $this->sellers = \App\Models\User::role('Vendedor')->orderBy('name')->get();
+        $this->sellers = \App\Models\User::role(['Vendedor', 'Vendedor foraneo'])->orderBy('name')->get();
         
         // Default to today
         $this->dateFrom = Carbon::now()->format('Y-m-d');
@@ -146,12 +152,37 @@ class PaymentRelationshipReport extends Component
                         $c->where('zone', 'like', "%{$this->zone}%");
                     });
                 }
-                if ($this->invoice_from && $this->invoice_to) {
-                    // Assuming invoice_number is numeric or we cast it? 
-                    // Or just ID range? User said "Invoice Range". 
-                    // Let's assume ID for robustness or invoice_number if numeric.
-                    // Let's use ID for now as it's safer.
-                    $q->whereBetween('id', [$this->invoice_from, $this->invoice_to]);
+                if ($this->invoice_from || $this->invoice_to) {
+                    $invFrom = 0;
+                    if ($this->invoice_from) {
+                        $valFrom = trim($this->invoice_from);
+                        if (is_numeric($valFrom)) {
+                            $invFrom = (int)$valFrom;
+                        } elseif (preg_match('/^[Ff]0*([1-9][0-9]*)$/', $valFrom, $matches)) {
+                            $invFrom = (int)$matches[1];
+                        }
+                    }
+
+                    $invTo = 0;
+                    if ($this->invoice_to) {
+                        $valTo = trim($this->invoice_to);
+                        if (is_numeric($valTo)) {
+                            $invTo = (int)$valTo;
+                        } elseif (preg_match('/^[Ff]0*([1-9][0-9]*)$/', $valTo, $matches)) {
+                            $invTo = (int)$matches[1];
+                        }
+                    }
+
+                    if ($invFrom > 0 && $invTo > 0) {
+                        // Range Search
+                        $q->whereBetween('id', [$invFrom, $invTo]);
+                    } elseif ($invFrom > 0) {
+                        // Exact match for "From"
+                        $q->where('id', $invFrom);
+                    } elseif ($invTo > 0) {
+                        // Exact match for "To" 
+                        $q->where('id', $invTo);
+                    }
                 }
             });
         }

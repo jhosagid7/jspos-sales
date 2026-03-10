@@ -18,6 +18,7 @@ class SalesReport extends Component
     use \App\Traits\PrintTrait;
 
     public $pagination = 10, $users = [], $user_id, $dateFrom, $dateTo, $showReport = false, $type = 0;
+    public $searchFactura;
     public $totales = 0, $sale_id, $sale_status, $details = [];
     public $salesObt;
     public $sale_note;
@@ -25,13 +26,18 @@ class SalesReport extends Component
     public $sellers = [], $seller_id;
     public $customer; // New property for customer filter
 
+    public function searchData()
+    {
+        $this->showReport = true;
+    }
+
     function mount()
     {
         session()->forget('sale_customer'); // Clear session
         session(['map' => "TOTAL COSTO $0.00", 'child' => 'TOTAL VENTA $0.00', 'rest' => 'GANANCIA: $0.00 / MARGEN: 0.00%', 'pos' => 'Reporte de Ventas']);
 
         $this->users = User::orderBy('name')->get();
-        $this->sellers = User::role('Vendedor')->orderBy('name')->get();
+        $this->sellers = User::role(['Vendedor', 'Vendedor foraneo'])->orderBy('name')->get();
         $this->currencies = \App\Models\Currency::orderBy('id')->get();
     }
 
@@ -90,6 +96,18 @@ class SalesReport extends Component
                 ->when($this->customer != null, function ($query) {
                      $query->where('customer_id', $this->customer['id']);
                 })
+                ->when(!empty(trim($this->searchFactura)), function ($query) {
+                    $searchValue = trim($this->searchFactura);
+                    $saleId = 0;
+                    if (is_numeric($searchValue)) {
+                        $saleId = (int)$searchValue;
+                    } elseif (preg_match('/^[Ff]0*([1-9][0-9]*)$/', $searchValue, $matches)) {
+                        $saleId = (int)$matches[1];
+                    }
+                    if ($saleId > 0) {
+                        $query->where('id', $saleId);
+                    }
+                })
                 ->when($this->type != 0, function ($qry) {
                     $qry->where('type', $this->type);
                 })
@@ -113,6 +131,18 @@ class SalesReport extends Component
                 })
                 ->when($this->customer != null, function ($query) {
                      $query->where('customer_id', $this->customer['id']);
+                })
+                ->when(!empty(trim($this->searchFactura)), function ($query) {
+                    $searchValue = trim($this->searchFactura);
+                    $saleId = 0;
+                    if (is_numeric($searchValue)) {
+                        $saleId = (int)$searchValue;
+                    } elseif (preg_match('/^[Ff]0*([1-9][0-9]*)$/', $searchValue, $matches)) {
+                        $saleId = (int)$matches[1];
+                    }
+                    if ($saleId > 0) {
+                        $query->where('id', $saleId);
+                    }
                 })
                 ->when($this->type != 0, function ($qry) {
                     $qry->where('type', $this->type);
@@ -140,6 +170,18 @@ class SalesReport extends Component
                 })
                 ->when($this->customer != null, function ($query) {
                      $query->where('sales.customer_id', $this->customer['id']);
+                })
+                ->when(!empty(trim($this->searchFactura)), function ($query) {
+                    $searchValue = trim($this->searchFactura);
+                    $saleId = 0;
+                    if (is_numeric($searchValue)) {
+                        $saleId = (int)$searchValue;
+                    } elseif (preg_match('/^[Ff]0*([1-9][0-9]*)$/', $searchValue, $matches)) {
+                        $saleId = (int)$matches[1];
+                    }
+                    if ($saleId > 0) {
+                        $query->where('sales.id', $saleId);
+                    }
                 })
                 ->when($this->type != 0, function ($qry) {
                     $qry->where('sales.type', $this->type);

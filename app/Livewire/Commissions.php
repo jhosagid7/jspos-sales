@@ -14,7 +14,7 @@ class Commissions extends Component
 {
     use WithPagination;
 
-    public $dateFrom, $dateTo, $seller_id, $status_filter, $batch_filter;
+    public $dateFrom, $dateTo, $seller_id, $status_filter, $batch_filter, $searchFactura;
     public $pagination = 10;
 
     public $selectedSaleId;
@@ -105,10 +105,24 @@ class Commissions extends Component
         if (!empty($this->batch_filter)) {
             $query->where('batch_name', 'like', "%{$this->batch_filter}%");
         }
+        
+        // Filter by Invoice ID
+        if (!empty(trim($this->searchFactura))) {
+            $searchValue = trim($this->searchFactura);
+            $saleId = 0;
+            if (is_numeric($searchValue)) {
+                $saleId = (int)$searchValue;
+            } elseif (preg_match('/^[Ff]0*([1-9][0-9]*)$/', $searchValue, $matches)) {
+                $saleId = (int)$matches[1];
+            }
+            if ($saleId > 0) {
+                $query->where('id', $saleId);
+            }
+        }
 
         $commissions = $query->orderBy('created_at', 'desc')->paginate($this->pagination);
         
-        $sellers = User::role('Vendedor')->get();
+        $sellers = User::role(['Vendedor', 'Vendedor foraneo'])->get();
 
         return view('livewire.commissions.component', [
             'commissions' => $commissions,
@@ -305,6 +319,20 @@ class Commissions extends Component
             // Filter by Batch
             if (!empty($this->batch_filter)) {
                 $query->where('batch_name', 'like', "%{$this->batch_filter}%");
+            }
+            
+            // Filter by Invoice ID
+            if (!empty(trim($this->searchFactura))) {
+                $searchValue = trim($this->searchFactura);
+                $saleId = 0;
+                if (is_numeric($searchValue)) {
+                    $saleId = (int)$searchValue;
+                } elseif (preg_match('/^[Ff]0*([1-9][0-9]*)$/', $searchValue, $matches)) {
+                    $saleId = (int)$matches[1];
+                }
+                if ($saleId > 0) {
+                    $query->where('id', $saleId);
+                }
             }
         }
 
