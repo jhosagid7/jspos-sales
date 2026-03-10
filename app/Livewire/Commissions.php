@@ -69,6 +69,7 @@ class Commissions extends Component
         $query = Sale::query()
             ->with(['customer', 'user', 'payments', 'returns'])
             ->where('is_foreign_sale', true)
+            ->where('applied_commission_percent', '>', 0)
             ->where(function($q) {
                 $q->where('final_commission_amount', '>', 0)
                   ->orWhere('commission_status', 'pending_calculation')

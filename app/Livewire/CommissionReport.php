@@ -31,6 +31,7 @@ class CommissionReport extends Component
         if ($this->seller_id != 0) {
             $query = Sale::with(['customer', 'payments', 'sellerConfig'])
                 ->where('is_foreign_sale', true)
+                ->where('applied_commission_percent', '>', 0)
                 ->whereHas('customer', function($q) {
                     $q->where('seller_id', $this->seller_id);
                 })
