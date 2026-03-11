@@ -571,13 +571,14 @@ class PartialPayment extends Component
                     }
                 }
                 
-                // Bank Record - usually created specifically for this payment, so delete it?
-                // Logic in processPayment creates a new BankRecord.
-                if ($payment->bank_record_id) {
-                    \App\Models\BankRecord::destroy($payment->bank_record_id);
+                // Bank Record - usually created specifically for this payment, so delete it after payment
+                $bankRecordId = $payment->bank_record_id;
+                
+                $payment->delete(); // Delete payment first to remove foreign key lock
+                
+                if ($bankRecordId) {
+                    \App\Models\BankRecord::destroy($bankRecordId);
                 }
-
-                $payment->delete();
                 
                 DB::commit();
                 $this->dispatch('noty', msg: 'Pago eliminado correctamente');

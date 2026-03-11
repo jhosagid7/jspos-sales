@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.38] - 2026-03-11
+### Fixed
+- **Abonos**: Corregido el error de eliminación ("Integrity Constraint Violation 1451") que ocurría al intentar borrar un depósito bancario o transferencia pendiente (BankRecord) eliminando primero el recibo de pago y luego el registro del banco.
+
 ## [1.8.37] - 2026-03-11
 ### Fixed
 - **Configuración de Crédito**: Corregido un error técnico (TypeError) que ocurría al actualizar las reglas de crédito desde el Historial de Pagos, permitiendo que la tabla de historial se refresque correctamente.
