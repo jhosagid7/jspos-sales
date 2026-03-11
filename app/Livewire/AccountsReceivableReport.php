@@ -916,7 +916,7 @@ class AccountsReceivableReport extends Component
                     $snapshotUsdDiscount = null;
                 }
 
-                $daysElapsed = \Carbon\Carbon::parse($sale->created_at)->diffInDays(\Carbon\Carbon::parse($payment->created_at));
+                $daysElapsed = \Carbon\Carbon::parse($sale->created_at)->diffInDays(\Carbon\Carbon::parse($payment->payment_date ?? $payment->created_at));
                 $adjustment = \App\Services\CreditConfigService::calculateDiscount($sale->total_usd, $daysElapsed, $rules);
 
                 if ($adjustment) {
@@ -927,11 +927,15 @@ class AccountsReceivableReport extends Component
 
                 $usdPaymentDiscountPercent = 0;
                 if ($sale->is_foreign_sale) {
-                    if ($snapshotUsdDiscount !== null) {
-                        $usdPaymentDiscountPercent = $snapshotUsdDiscount;
-                    } else {
-                        $config = \App\Services\CreditConfigService::getCreditConfig($sale->customer, $sale->customer->seller);
-                        $usdPaymentDiscountPercent = $config['usd_payment_discount'] ?? 0;
+                    $hasVedHistory = $sale->payments()->whereIn('currency', ['VED', 'VES'])->exists();
+                    
+                    if (!$hasVedHistory) {
+                        if ($snapshotUsdDiscount !== null) {
+                            $usdPaymentDiscountPercent = $snapshotUsdDiscount;
+                        } else {
+                            $config = \App\Services\CreditConfigService::getCreditConfig($sale->customer, $sale->customer->seller);
+                            $usdPaymentDiscountPercent = $config['usd_payment_discount'] ?? 0;
+                        }
                     }
 
                     if ($usdPaymentDiscountPercent > 0) {
