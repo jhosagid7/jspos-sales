@@ -340,6 +340,16 @@
                     <i class="fas fa-print"></i> Imprimir Historial (Ticket)
                 </button>
                 @endcan
+
+                @if(isset($pays) && count($pays) > 0 && $totalPendingInPrimary > 0)
+                    @can('sales.reset_credit_snapshot')
+                    <button type="button" class="btn btn-outline-warning" 
+                            wire:click="resetCreditSnapshot({{ $pays[0]->sale_id }})"
+                            wire:confirm="¿Estás seguro de actualizar las reglas de crédito? Esto aplicará la configuración actual del cliente a esta venta.">
+                        <i class="fas fa-sync-alt"></i> Actualizar Reglas de Crédito
+                    </button>
+                    @endcan
+                @endif
                 <button type="button" class="btn btn-dark" data-dismiss="modal">Cerrar</button>
             </div>
             </div>

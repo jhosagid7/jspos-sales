@@ -135,6 +135,7 @@ class CreatePermissionsSeeder extends Seeder
             ['name' => 'sales.switch_warehouse', 'guard_name' => 'web'],
             ['name' => 'sales.view_all', 'guard_name' => 'web'],
             ['name' => 'sales.view_own', 'guard_name' => 'web'],
+            ['name' => 'sales.reset_credit_snapshot', 'guard_name' => 'web'],
             ['name' => 'settings', 'guard_name' => 'web'],
             ['name' => 'settings.backups', 'guard_name' => 'web'],
             ['name' => 'settings.index', 'guard_name' => 'web'],
