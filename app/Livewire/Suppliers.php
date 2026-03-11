@@ -22,14 +22,14 @@ class Suppliers extends Component
 
     protected $rules =
     [
-        'supplier.name' => "required|max:50|unique:suppliers,name",
+        'supplier.name' => "required|max:200|unique:suppliers,name",
         'supplier.address' => 'nullable|max:255',
         'supplier.phone' => 'nullable|max:15',
     ];
 
     protected $messages = [
         'supplier.name.required' => 'El nombre del proveedor es requerido',
-        'supplier.name.max' => 'El nombre del proveedor no puede tener más de 255 caracteres.',
+        'supplier.name.max' => 'El nombre del proveedor no puede tener más de 200 caracteres.',
         'supplier.name.unique' => 'El nombre del proveedor ya existe',
         'supplier.address.max' => 'La dirección solo puede tener máximo 255 caracteres',
         'supplier.phone.max' => 'Ingresa el teléfono en máximo 15 caracteres',
@@ -114,7 +114,7 @@ class Suppliers extends Component
     {
 
 
-        $this->rules['supplier.name'] = $this->supplier->id > 0 ? "required|max:50|unique:suppliers,name,{$this->supplier->id}" : 'required|max:50|unique:suppliers,name';
+        $this->rules['supplier.name'] = $this->supplier->id > 0 ? "required|max:200|unique:suppliers,name,{$this->supplier->id}" : 'required|max:200|unique:suppliers,name';
 
         $this->validate($this->rules, $this->messages);
 

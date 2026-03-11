@@ -21,7 +21,7 @@ class Customers extends Component
     public $discountRules = []; // Array of discount rules for this customer
 
     protected $rules = [
-        'customer.name' => 'required|max:45|unique:customers,name',
+        'customer.name' => 'required|max:200|unique:customers,name',
         'customer.taxpayer_id' => 'required|max:45',
         'customer.address' => 'required|max:255',
         'customer.city' => 'required|max:100',
@@ -45,7 +45,7 @@ class Customers extends Component
 
     protected $messages = [
         'customer.name.required' => 'El nombre del cliente es requerido',
-        'customer.name.max' => 'El nombre del cliente no puede tener más de 45 caracteres.',
+        'customer.name.max' => 'El nombre del cliente no puede tener más de 200 caracteres.',
         'customer.name.unique' => 'El nombre del cliente ya existe',
         'customer.address.max' => 'La dirección solo puede tener máximo 255 caracteres',
         'customer.address.required' => 'La dirección del cliente es requerido',
@@ -168,7 +168,7 @@ class Customers extends Component
 
     public function Store()
     {
-        $this->rules['customer.name'] = $this->customer->id > 0 ? "required|max:45|unique:customers,name,{$this->customer->id}" : 'required|max:45|unique:customers,name';
+        $this->rules['customer.name'] = $this->customer->id > 0 ? "required|max:200|unique:customers,name,{$this->customer->id}" : 'required|max:200|unique:customers,name';
 
         $this->validate($this->rules, $this->messages);
 

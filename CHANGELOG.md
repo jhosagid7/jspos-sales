@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.39] - 2026-03-11
+### Changed
+- **Catálogos**: Se incrementó el límite de caracteres en el nombre de los Clientes, Usuarios (Vendedores) y Proveedores. Anteriormente permitían máximo 45, 85 y 50 caracteres respectivamente. Ahora todos permiten registrar nombres de hasta 200 caracteres de longitud.
+
 ## [1.8.38] - 2026-03-11
 ### Fixed
 - **Abonos**: Corregido el error de eliminación ("Integrity Constraint Violation 1451") que ocurría al intentar borrar un depósito bancario o transferencia pendiente (BankRecord) eliminando primero el recibo de pago y luego el registro del banco.

@@ -29,7 +29,7 @@ class Users extends Component
 
     protected $rules =
     [
-        'user.name' => "required|max:85|unique:users,name",
+        'user.name' => "required|max:200|unique:users,name",
         'user.email' => 'required|email|max:75',
         'user.password' => 'nullable',
         'user.status' => 'required|in:Active,Locked',
@@ -63,7 +63,7 @@ class Users extends Component
 
     protected $messages = [
         'user.name.required' => 'Nombre requerido',
-        'user.name.max' => 'Nombre debe tener máximo 85 caracteres',
+        'user.name.max' => 'Nombre debe tener máximo 200 caracteres',
         'user.name.unique' => 'El nombre ya existe',
         'user.email.required' => 'Email requerido',
         'user.email.email' => 'Email inválido',
@@ -236,7 +236,7 @@ class Users extends Component
     {
         // 1. Basic Validation
         $rules = [
-            'user.name' => $this->user->id > 0 ? "required|max:85|unique:users,name,{$this->user->id}" : 'required|max:85|unique:users,name',
+            'user.name' => $this->user->id > 0 ? "required|max:200|unique:users,name,{$this->user->id}" : 'required|max:200|unique:users,name',
             'user.email' => $this->user->id > 0 ? "required|email|max:75|unique:users,email,{$this->user->id}" : 'required|email|max:75|unique:users,email',
             'user.phone' => 'nullable|max:25',
             'user.taxpayer_id' => 'nullable|max:45',
