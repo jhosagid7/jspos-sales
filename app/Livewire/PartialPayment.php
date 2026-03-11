@@ -661,7 +661,7 @@ class PartialPayment extends Component
             $sale->update(['credit_rules_snapshot' => null]);
             $this->dispatch('noty', msg: 'REGLAS DE CRÉDITO ACTUALIZADAS (SE APLICARÁ LA CONFIGURACIÓN ACTUAL DEL CLIENTE)');
             // Also refresh the history view
-            $this->historyPayments($saleId);
+            $this->historyPayments($sale);
         }
     }
 
