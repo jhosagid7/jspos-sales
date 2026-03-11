@@ -1083,6 +1083,22 @@ class AccountsReceivableReport extends Component
         }
     }
 
+    public function resetCreditSnapshot($saleId)
+    {
+        if (!auth()->user()->can('sales.reset_credit_snapshot')) {
+             $this->dispatch('noty', msg: 'NO TIENES PERMISO PARA ACTUALIZAR LAS REGLAS DE CRÉDITO');
+             return;
+        }
+
+        $sale = Sale::find($saleId);
+        if ($sale) {
+            $sale->update(['credit_rules_snapshot' => null]);
+            $this->dispatch('noty', msg: 'REGLAS DE CRÉDITO ACTUALIZADAS (SE APLICARÁ LA CONFIGURACIÓN ACTUAL DEL CLIENTE)');
+            // Also refresh the history view by passing the sale ID (this method expects the ID)
+            $this->historyPayments($sale->id);
+        }
+    }
+
     function printHistory()
     {
         if (empty($this->pays) || count($this->pays) == 0) {

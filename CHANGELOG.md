@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.40] - 2026-03-11
+### Fixed
+- **Configuración de Crédito**: Solucionado un error ("MethodNotFoundException") que ocurría si intentabas dar click al botón de "Actualizar Reglas de Crédito" desde la página de Cuentas por Cobrar en lugar de dentro de una venta específica.
+
 ## [1.8.39] - 2026-03-11
 ### Changed
 - **Catálogos**: Se incrementó el límite de caracteres en el nombre de los Clientes, Usuarios (Vendedores) y Proveedores. Anteriormente permitían máximo 45, 85 y 50 caracteres respectivamente. Ahora todos permiten registrar nombres de hasta 200 caracteres de longitud.
