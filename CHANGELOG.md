@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.8.35] - 2026-03-11
+### Fixed
+- **Pagos**: Corregido bug donde la opción de "Pago en Divisa" aparecía incorrectamente al editar un pago aunque la venta tuviera abonos previos en Bolívares.
+- **Pronto Pago**: Actualizado el cálculo de días para basarse en la fecha real del depósito bancario (`payment_date`) en lugar de la fecha en que se registró en el sistema, asegurando que el cliente no pierda su descuento por demoras administrativas.
+- **Reporte de Ventas Diarias**: Corregido el cálculo del total neto y la generación del PDF para usar de forma precisa los montos equivalentes en dólares.
+
 ## [1.8.34] - 2026-03-10
 ### Fixed
 - **Comisiones**: Filtradas y ocultadas todas las ventas que tengan una comisión aplicada explícita de `0%`. Ya no aparecerán ni en el Módulo de Comisiones ni en el Reporte de Comisiones, incluso si el vendedor tiene un porcentaje predeterminado en su perfil.
