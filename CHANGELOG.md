@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.8.36] - 2026-03-11
+### Added
+- **Configuración de Crédito**: Añadida la opción "Actualizar Reglas de Crédito" en el Historial de Pagos. Permite a los administradores forzar que una factura pendiente herede la configuración de crédito más reciente del cliente, resolviendo casos donde los descuentos por "Pronto Pago" no aplicaban debido a reglas antiguas guardadas en la factura.
+- **Permisos**: Nuevo permiso `sales.reset_credit_snapshot` para controlar quién puede actualizar las reglas de crédito de una factura.
+
 ## [1.8.35] - 2026-03-11
 ### Fixed
 - **Pagos**: Corregido bug donde la opción de "Pago en Divisa" aparecía incorrectamente al editar un pago aunque la venta tuviera abonos previos en Bolívares.

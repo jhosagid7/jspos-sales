@@ -649,6 +649,22 @@ class PartialPayment extends Component
         $this->debt_usd = null;
     }
 
+    public function resetCreditSnapshot($saleId)
+    {
+        if (!auth()->user()->can('sales.reset_credit_snapshot')) {
+            $this->dispatch('noty', msg: 'NO TIENES PERMISO PARA ESTA ACCIÓN');
+            return;
+        }
+
+        $sale = Sale::find($saleId);
+        if ($sale) {
+            $sale->update(['credit_rules_snapshot' => null]);
+            $this->dispatch('noty', msg: 'REGLAS DE CRÉDITO ACTUALIZADAS (SE APLICARÁ LA CONFIGURACIÓN ACTUAL DEL CLIENTE)');
+            // Also refresh the history view
+            $this->historyPayments($saleId);
+        }
+    }
+
     public function editPayment($paymentId)
     {
         if (!auth()->user()->can('payments.approve')) {
