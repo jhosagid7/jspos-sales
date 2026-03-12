@@ -185,7 +185,7 @@ class PartialPayment extends Component
         $usdPaymentDiscountPercent = 0;
         $fixedUsdDiscountAmount = 0;
         
-        if ($sale->is_foreign_sale) {
+        if ($sale->is_foreign_sale || $snapshotUsdDiscount > 0 || ($sale->customer->usd_payment_discount ?? 0) > 0) {
             
             // Check History: If any VED/VES payment exists, USD Discount is VOID.
             $hasVedHistory = $sale->payments()->whereIn('currency', ['VED', 'VES'])->exists();

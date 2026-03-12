@@ -130,12 +130,13 @@ class PaymentComponent extends Component
         $this->canUpload = $canUpload;
         $this->canPay = $canPay;
         
-        $this->applyAdjustment = false; 
-        $this->applyUsdDiscount = false;
-        
         // Default: If eligible for USD Discount, show it initially.
         if ($this->allowDiscounts && $this->fixedUsdDiscountAmount > 0) {
             $this->applyUsdDiscount = true;
+            $this->applyAdjustment = false;
+        } elseif ($this->adjustment) {
+            $this->applyAdjustment = true;
+            $this->applyUsdDiscount = false;
         }
 
         $this->payments = [];
@@ -148,11 +149,17 @@ class PaymentComponent extends Component
 
     public function toggleAdjustment()
     {
+        if ($this->applyAdjustment) {
+            $this->applyUsdDiscount = false;
+        }
         $this->calculateTotals(); 
     }
 
     public function toggleUsdDiscount()
     {
+        if ($this->applyUsdDiscount) {
+            $this->applyAdjustment = false;
+        }
         $this->calculateTotals();
     }
     
@@ -608,12 +615,11 @@ class PaymentComponent extends Component
             if ($this->allowDiscounts && $this->fixedUsdDiscountAmount > 0) {
                  if ($this->applyUsdDiscount) {
                      $this->applyAdjustment = false;
-                 } else {
-                     $this->applyAdjustment = false;
                  }
-            } else {
-                $this->applyUsdDiscount = false;
-                $this->applyAdjustment = false;
+                 // If applyAdjustment is true, handle exclusivity
+                 if ($this->applyAdjustment) {
+                     $this->applyUsdDiscount = false;
+                 }
             }
         }
 

@@ -35,8 +35,7 @@
                                 </div>
                                 <div class="card-body">
                                     {{-- Adjustment Alert (Early Payment) --}}
-                                    {{-- Show if Adjustment exists AND we are NOT eligible for USD Discount (e.g. mixed payments) --}}
-                                    @if($adjustment && !empty($payments) && !$usdAdjustment)
+                                    @if($adjustment)
                                         @php
                                             $adjType = $adjustment['rule_type'] ?? 'early_payment';
                                             // Dynamic color: Green/Warning if applied, Secondary if unchecked
@@ -66,7 +65,7 @@
 
                                     {{-- USD Discount Alert --}}
                                     {{-- Show ONLY if Eligible for USD Discount (No VED payments, etc) --}}
-                                    @if($allowDiscounts && $usdAdjustment && !$applyAdjustment)
+                                    @if($allowDiscounts && $usdAdjustment)
                                         <div class="alert alert-{{ $applyUsdDiscount ? 'info' : 'secondary' }} mb-3 p-2">
                                             <div class="d-flex align-items-center justify-content-between">
                                                 <div class="d-flex align-items-center">

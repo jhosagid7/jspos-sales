@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.49] - 2026-03-12
+### Fixed
+- **Descuentos**: Corregida la visibilidad de las alertas de descuento en el módulo de abonos. Ahora las opciones de "Pronto Pago" y "Pago en Divisa" aparecen de inmediato al abrir el modal, permitiendo su selección manual antes de registrar el primer pago.
+- **Descuentos**: Implementada exclusividad mutua entre descuentos. Activar uno desactiva automáticamente el otro para evitar errores de cálculo.
+- **Ventas Foráneas**: Optimizada la detección de ventas foráneas. Ahora se marcan correctamente aunque no se seleccione aplicar comisiones al momento de la venta, siempre que haya un vendedor asignado.
+- **Compatibilidad**: Expandida la disponibilidad del descuento por divisa para ventas existentes basadas en la configuración del cliente, incluso si no fueron marcadas originalmente como foráneas.
+
 ## [1.8.48] - 2026-03-12
 ### Fixed
 - **Cuentas por Cobrar**: Corregido un error de servidor (Hotfix) al intentar abrir el modal de pago. El error era causado por variables no definidas en la última actualización de cálculo de devoluciones.

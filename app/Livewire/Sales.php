@@ -3159,7 +3159,7 @@ class Sales extends Component
                 'applied_commission_percent' => $appliedComm,
                 'applied_freight_percent' => $appliedFreight,
                 'applied_exchange_diff_percent' => $appliedDiff,
-                'is_foreign_sale' => ($this->sellerConfig && $this->applyCommissions) ? true : false,
+                'is_foreign_sale' => $this->sellerConfig ? true : false,
                 'credit_days' => $this->creditConfig['credit_days'] ?? $this->calculateCreditDays(),
                 'delivery_status' => $this->driver_id ? 'pending' : 'delivered',
                 'credit_rules_snapshot' => $this->prepareCreditSnapshot(),
