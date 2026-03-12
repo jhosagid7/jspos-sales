@@ -441,6 +441,9 @@ class AccountsReceivableReport extends Component
             return $payment->amount / $rate;
         });
         
+        // Calculate Returns applied to debt
+        $totalReturnsOrig = $sale->returns->where('refund_method', 'debt_reduction')->sum('total_returned');
+        $exchangeRateReturns = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
         $totalReturnsUSD = $totalReturnsOrig / $exchangeRateReturns;
         
         $netTotalUSD = max(0, $sale->total_usd - $totalReturnsUSD);
