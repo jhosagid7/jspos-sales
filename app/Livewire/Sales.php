@@ -131,6 +131,9 @@ class Sales extends Component
     public $invoiceCurrency_id = null;
     public $invoiceExchangeRate = 1;
 
+    public $searchSeller = '';
+    public $sellers = [];
+
 
     public function updatedSelectedPaymentMethod($value)
     {
@@ -887,6 +890,9 @@ class Sales extends Component
         
         // Load Drivers
         $this->drivers = \App\Models\User::role('Driver')->get();
+
+        // Load Sellers
+        $this->sellers = \App\Models\User::all(); // Simplified for now, can be role-filtered if needed
     }
     
     public function hydrate()
@@ -933,6 +939,8 @@ class Sales extends Component
             'payments_count' => count($this->payments),
             'totalCartAtPayment' => $this->totalCartAtPayment
         ]);
+
+        $this->sellers = \App\Models\User::all();
     }
 
     public function render()
@@ -1304,37 +1312,38 @@ class Sales extends Component
 
     public function getOrdersWithDetails()
     {
-        if (empty(trim($this->search))) {
-            return Order::with('customer')
+        $query = Order::with(['customer', 'user'])
             ->when(!auth()->user()->can('orders.view_all') && auth()->user()->can('orders.view_own'), function($q) {
                 $q->where('user_id', auth()->id());
             })
-            ->whereHas('customer')
+            ->when($this->searchSeller, function($q) {
+                $q->where('user_id', $this->searchSeller);
+            });
+
+        if (empty(trim($this->search))) {
+            return $query->whereHas('customer')
                 ->where('status', 'pending')
-                ->orderBy('orders.id', 'desc')
+                ->orderBy('id', 'desc')
                 ->paginate($this->pagination);
         } else {
             $search = strtolower(trim($this->search));
 
-            return Order::with('customer')
-             ->when(!auth()->user()->can('orders.view_all') && auth()->user()->can('orders.view_own'), function($q) {
-                $q->where('user_id', auth()->id());
-            })
-            ->where(function ($query) use ($search) {
+            return $query->where(function ($sub) use ($search) {
                     // Búsqueda por el nombre del cliente
-                    $query->whereHas('customer', function ($subQuery) use ($search) {
-                        $subQuery->whereRaw("LOWER(name) LIKE ?", ["%{$search}%"]);
+                    $sub->whereHas('customer', function ($q2) use ($search) {
+                        $q2->whereRaw("LOWER(name) LIKE ?", ["%{$search}%"]);
                     });
 
-                    // Búsqueda por el ID de la orden
-                    $query->orWhere('id', 'LIKE', "%{$search}%");
+                    // Búsqueda por el ID de la orden o Folio
+                    $sub->orWhere('id', 'LIKE', "%{$search}%")
+                        ->orWhere('order_number', 'LIKE', "%{$search}%");
 
                     // Búsqueda por el total
-                    $query->orWhere('total', 'LIKE', "%{$search}%");
+                    $sub->orWhere('total', 'LIKE', "%{$search}%");
 
-                    // Búsqueda por el usuario (suponiendo que tienes una relación 'user' en Order)
-                    $query->orWhereHas('user', function ($subQuery) use ($search) {
-                        $subQuery->whereRaw("LOWER(name) LIKE ?", ["%{$search}%"]); // Cambia 'name' por el campo que corresponda en tu modelo User
+                    // Búsqueda por el usuario (vendedor)
+                    $sub->orWhereHas('user', function ($q2) use ($search) {
+                        $q2->whereRaw("LOWER(name) LIKE ?", ["%{$search}%"]);
                     });
                 })
                 ->where('status', $this->status)

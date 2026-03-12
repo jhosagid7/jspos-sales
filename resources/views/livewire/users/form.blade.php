@@ -140,7 +140,33 @@
                                     </select>
                                     @error('user.sales_view_mode') <span class="text-danger">{{ $message }}</span> @enderror
                                 </div>
+                                @if($this->isSeller($user->profile))
+                                <div class="col-sm-12 mt-3">
+                                    <label class="form-label">
+                                        <i class="fa fa-palette mr-1 text-muted"></i>
+                                        Color Identificador del Vendedor
+                                    </label>
+                                    <div class="d-flex align-items-center gap-3" style="gap:12px;">
+                                        <input wire:model="user.color" type="color"
+                                               class="form-control form-control-color"
+                                               style="width:60px; height:40px; padding:2px; cursor:pointer;"
+                                               title="Selecciona un color pastel para identificar tus órdenes">
+                                        @if($user->color)
+                                        <span class="badge fs-6 px-3 py-2"
+                                              style="background-color:{{ $user->color }}; color: #333; font-size:0.85rem; border:1px solid #ccc;">
+                                            {{ $user->name ?: 'Vendedor' }}
+                                        </span>
+                                        <small class="text-muted">Vista previa de la etiqueta</small>
+                                        @else
+                                        <small class="text-muted">Selecciona un color para ver la vista previa</small>
+                                        @endif
+                                    </div>
+                                    <small class="text-muted d-block mt-1">Este color se usa para identificar las órdenes de este vendedor en la lista de ventas. Se recomiendan colores pasteles.</small>
+                                    @error('user.color') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+                                @endif
                             </div>
+
                         </div>
                     </div>
 

@@ -8,12 +8,22 @@
                 </div>
                 <div class="modal-body">
                     @if ($order_selected_id == null)
-                        <div class="faq-form">
-                            <input wire:model.defer="search" wire:keydown.enter.prevent="getOrdersWithDetails"
-                                class="form-control form-control-lg" type="text"
-                                placeholder="Ingresa el nombre del cliente, nombre de operador, monto de compra o número defolio"
-                                id="inputprocessOrderSearch" style="background-color: beige">
-                            <i class="search-icon" data-feather="user"></i>
+                        <div class="faq-form row g-2">
+                            <div class="col-md-8">
+                                <input wire:model.defer="search" wire:keydown.enter.prevent="getOrdersWithDetails"
+                                    class="form-control form-control-lg" type="text"
+                                    placeholder="Buscar por cliente, monto, folio o vendedor..."
+                                    id="inputprocessOrderSearch" style="background-color: beige">
+                                <i class="search-icon" data-feather="user"></i>
+                            </div>
+                            <div class="col-md-4">
+                                <select wire:model.live="searchSeller" class="form-control form-control-lg">
+                                    <option value="">Filtrar por Vendedor (Todos)</option>
+                                    @foreach($sellers as $seller)
+                                        <option value="{{ $seller->id }}">{{ $seller->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
 
                         <div class="mt-3 table-responsive">
@@ -22,6 +32,7 @@
                                     <tr class="text-center">
                                         <th>Folio</th>
                                         <th>Cliente</th>
+                                        <th>Vendedor</th>
                                         <th>Total</th>
                                         <th>Articulos</th>
                                         <th>Estatus</th>
@@ -35,12 +46,22 @@
                                         <tr class="text-center">
                                             <td data-label="Folio">{{ $order->order_number ?? $order->id }}</td>
                                             <td data-label="Cliente">{{ $order->customer->name }}</td>
-                                            <td data-label="Total">${{ $order->total }}</td>
+                                            <td data-label="Vendedor">
+                                                @if($order->user)
+                                                    <span class="badge" 
+                                                          style="background-color: {{ $order->user->color ?? '#eee' }}; color: #333; font-weight: 600; border: 1px solid #ccc;">
+                                                        {{ $order->user->name }}
+                                                    </span>
+                                                @else
+                                                    <span class="text-muted">N/A</span>
+                                                @endif
+                                            </td>
+                                            <td data-label="Total">${{ number_format($order->total, 2) }}</td>
                                             <td data-label="Articulos">{{ $order->items }}</td>
                                             <td data-label="Estatus"><span
                                                     class="badge f-12 {{ $order->status == 'paid' ? 'badge-light-success' : ($order->status == 'return' ? 'badge-light-warning' : ($order->status == 'pending' ? 'badge-light-warning' : 'badge-light-danger')) }}">{{ $order->status }}</span>
                                             </td>
-                                            <td data-label="Fecha">{{ $order->created_at }}</td>
+                                            <td data-label="Fecha">{{ $order->created_at->format('d/m/Y H:i') }}</td>
                                             <td class="text-primary"></td>
 
                                             <td data-label="Acciones" data-container="body" data-bs-toggle="tooltip" data-bs-placement="top"

@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.8.42] - 2026-03-12
+### Added
+- **Vendedores**: Implementada la asignación de colores identificadores para vendedores. Los administradores pueden configurar un color pastel para cada vendedor desde su perfil de usuario.
+- **Ordenes de Venta**: Nueva columna "Vendedor" en la lista de ordenes por procesar que muestra el nombre del vendedor resaltado con su color identificador mediante una insignia (badge).
+- **Filtros**: Añadido selector de filtrado por vendedor en el modal de "Procesar Ordenes" para facilitar la búsqueda y organización de ventas.
+
+### Changed
+- **Catálogo de Usuarios**: El formulario de usuarios ahora permite configurar los datos de contacto (Teléfono, Cédula, Dirección) y el color del vendedor de forma más clara e integrada.
+
 ## [1.8.41] - 2026-03-12
 ### Changed
 - **Navegación**: Se agregaron etiquetas descriptivas (tooltips) a los iconos de notificaciones en la barra superior ("Cuentas por Pagar", "Créditos Vencidos / Cuentas por Cobrar" y "Comisiones Pendientes") para hacerlos más intuitivos para el usuario.

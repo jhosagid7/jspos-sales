@@ -59,6 +59,7 @@ class Users extends Component
         'user.phone' => 'nullable|max:25',
         'user.taxpayer_id' => 'nullable|max:45',
         'user.address' => 'nullable|max:255',
+        'user.color' => 'nullable|string|max:7',
     ];
 
     protected $messages = [
@@ -243,6 +244,7 @@ class Users extends Component
             'user.address' => 'nullable|max:255',
             'user.status' => 'required|in:Active,Locked',
             'user.profile' => 'required|not_in:0', 
+            'user.color' => 'nullable|max:7',
         ];
 
         // Password validation: required for new users, optional for existing users
