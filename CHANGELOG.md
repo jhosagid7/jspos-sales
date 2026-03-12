@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.8.44] - 2026-03-12
+### Fixed
+- **Filtros de Ordenes**: Corregido el filtro de "Vendedor" para que sea omnicanal. Ahora, al seleccionar un usuario en el desplegable, se filtran las órdenes donde este sea el **Vendedor Responsable** del cliente O el **Operador** que creó la orden.
+- **Búsqueda**: Reforzada la búsqueda por texto para incluir simultáneamente el nombre del Operador, Vendedor y Cliente.
+
 ## [1.8.43] - 2026-03-12
 ### Added
 - **Ordenes de Venta**: Se separaron las figuras de "Vendedor" y "Operador" en la lista de órdenes procesables. 

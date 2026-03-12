@@ -1317,8 +1317,10 @@ class Sales extends Component
                 $q->where('user_id', auth()->id());
             })
             ->when($this->searchSeller, function($q) {
-                $q->whereHas('customer', function ($sub) {
-                    $sub->where('seller_id', $this->searchSeller);
+                $q->where(function($sub) {
+                    $sub->whereHas('customer', function ($c) {
+                        $c->where('seller_id', $this->searchSeller);
+                    })->orWhere('user_id', $this->searchSeller);
                 });
             });
 
