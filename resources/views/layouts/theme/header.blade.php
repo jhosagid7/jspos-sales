@@ -75,7 +75,7 @@
         <!-- Purchases Notifications -->
         @module('module_purchases')
         @if ($noty_purchases->count() > 0)
-        <li class="nav-item dropdown">
+        <li class="nav-item dropdown" title="Cuentas por Pagar">
             <a class="nav-link" data-toggle="dropdown" href="#">
                 <i class="fas fa-shopping-cart"></i>
                 <span class="badge badge-danger navbar-badge">{{ $noty_purchases->count() }}</span>
@@ -110,13 +110,13 @@
         <!-- Sales Notifications -->
         @module('module_credits')
         @if ($noty_sales->count() > 0)
-        <li class="nav-item dropdown">
+        <li class="nav-item dropdown" title="Créditos Vencidos / Cuentas por Cobrar">
             <a class="nav-link" data-toggle="dropdown" href="#">
                 <i class="far fa-bell"></i>
                 <span class="badge badge-warning navbar-badge">{{ $noty_sales->count() }}</span>
             </a>
             <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right" style="max-height: 300px; overflow-y: auto;">
-                            <span class="dropdown-item dropdown-header">{{ $noty_sales->count() }} Notificaciones</span>
+                            <span class="dropdown-item dropdown-header">{{ $noty_sales->count() }} Créditos Vencidos</span>
                             <div class="dropdown-divider"></div>
                             @if(isset($total_receivables) && $total_receivables > 0)
                             <span class="dropdown-item dropdown-header text-danger font-weight-bold">Total Vencido: ${{ number_format($total_receivables, 2) }}</span>
@@ -145,7 +145,7 @@
         <!-- Commissions Notifications -->
         @module('module_commissions')
         @if (isset($noty_commissions) && $noty_commissions->count() > 0)
-        <li class="nav-item dropdown">
+        <li class="nav-item dropdown" title="Comisiones Pendientes">
             <a class="nav-link" data-toggle="dropdown" href="#">
                 <i class="fas fa-hand-holding-usd"></i>
                 <span class="badge badge-success navbar-badge">{{ $noty_commissions->count() }}</span>

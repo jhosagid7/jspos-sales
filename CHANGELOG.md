@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.41] - 2026-03-12
+### Changed
+- **Navegación**: Se agregaron etiquetas descriptivas (tooltips) a los iconos de notificaciones en la barra superior ("Cuentas por Pagar", "Créditos Vencidos / Cuentas por Cobrar" y "Comisiones Pendientes") para hacerlos más intuitivos para el usuario.
+
 ## [1.8.40] - 2026-03-11
 ### Fixed
 - **Configuración de Crédito**: Solucionado un error ("MethodNotFoundException") que ocurría si intentabas dar click al botón de "Actualizar Reglas de Crédito" desde la página de Cuentas por Cobrar en lugar de dentro de una venta específica.
