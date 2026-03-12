@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.8.46] - 2026-03-12
+### Fixed
+- **Pagos**: Mejora integral en la eliminación de abonos. Ahora el sistema elimina completamente los registros de **Zelle** y **Transferencias Bancarias** vinculados a un pago si este era el único que los utilizaba. Esto evita que queden referencias "fantasmas" marcadas como usadas que bloquean nuevos reportes del mismo pago.
+- **Validaciones**: Se ajustó la precisión decimal al restaurar saldos para garantizar que el estatus vuelva a "Unused" (No usado) correctamente.
+
 ## [1.8.45] - 2026-03-12
 ### Fixed
 - **Pagos**: Corregido el error de integridad (SQL 1451) al eliminar abonos que comparten una misma transferencia o depósito bancario. Ahora el sistema reintegra el saldo al registro bancario original y solo lo elimina si no existen otros pagos vinculados a él.

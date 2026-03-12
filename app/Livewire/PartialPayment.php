@@ -544,51 +544,42 @@ class PartialPayment extends Component
             if ($payment && ($payment->status === 'pending' || $payment->status === 'rejected')) {
                 
                 // Revert Zelle Record if exists
-                if ($payment->zelle_record_id) {
-                    $zelle = \App\Models\ZelleRecord::find($payment->zelle_record_id);
+                $zelleRecordId = $payment->zelle_record_id;
+                if ($zelleRecordId) {
+                    $zelle = \App\Models\ZelleRecord::find($zelleRecordId);
                     if ($zelle) {
-                         // We need to know how much was used. 
-                         // Logic in processPayment: $zelleRecord->remaining_balance -= $amountUsed;
-                         // So we add it back.
-                         // But wait, if partial payment, amount might be different from zelle amount?
-                         // In processPayment: $amountUsed = $payment['amount'];
-                         // $payment->amount IS the amount used.
-                         // However, need to check exchange rates? 
-                         // No, Zelle record is in USD usually? 
-                         // Let's check ZelleRecord model/usage. 
-                         // In processPayment: $zelleRecord->amount is stored.
-                         // But we reduced remaining_balance.
-                         
-                         $amountToRestore = $payment->amount; // This is the amount of the PAYMENT, in the currency of the payment.
-                         // If payment was in USD, fine. If Zelle, it is USD.
-                         
+                         $amountToRestore = $payment->amount; 
                          $zelle->remaining_balance += $amountToRestore;
                          if ($zelle->remaining_balance > $zelle->amount) $zelle->remaining_balance = $zelle->amount;
                          
-                         $zelle->status = 'partial'; // Revert to partial (or unused if full match, but 'partial' is safe)
-                         if($zelle->remaining_balance == $zelle->amount) $zelle->status = 'unused'; // Optional status logic if exists
+                         $zelle->status = ($zelle->remaining_balance >= ($zelle->amount - 0.01)) ? 'unused' : 'partial';
                          $zelle->save();
                     }
                 }
                 
-                // Bank Record - Restore balance and only delete if not used by others
-                if ($payment->bank_record_id) {
-                    $bankRec = \App\Models\BankRecord::find($payment->bank_record_id);
+                // Bank Record - Restore balance
+                $bankRecordId = $payment->bank_record_id;
+                if ($bankRecordId) {
+                    $bankRec = \App\Models\BankRecord::find($bankRecordId);
                     if ($bankRec) {
                         $bankRec->remaining_balance += $payment->amount; // Restaurar saldo
                         if ($bankRec->remaining_balance > $bankRec->amount) $bankRec->remaining_balance = $bankRec->amount;
-                        $bankRec->status = ($bankRec->remaining_balance == $bankRec->amount) ? 'unused' : 'partial';
+                        $bankRec->status = ($bankRec->remaining_balance >= ($bankRec->amount - 0.01)) ? 'unused' : 'partial';
                         $bankRec->save();
                     }
                 }
                 
-                $bankRecordId = $payment->bank_record_id;
                 $payment->delete(); // Delete payment first
                 
+                // Final cleanup: Delete records if they have NO more payments
+                if ($zelleRecordId) {
+                    if (!\App\Models\Payment::where('zelle_record_id', $zelleRecordId)->exists()) {
+                        \App\Models\ZelleRecord::destroy($zelleRecordId);
+                    }
+                }
+
                 if ($bankRecordId) {
-                    // Solo eliminar si ya no hay otros pagos vinculados
-                    $otherPayments = \App\Models\Payment::where('bank_record_id', $bankRecordId)->exists();
-                    if (!$otherPayments) {
+                    if (!\App\Models\Payment::where('bank_record_id', $bankRecordId)->exists()) {
                         \App\Models\BankRecord::destroy($bankRecordId);
                     }
                 }
