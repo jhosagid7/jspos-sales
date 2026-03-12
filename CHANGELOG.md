@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.8.45] - 2026-03-12
+### Fixed
+- **Pagos**: Corregido el error de integridad (SQL 1451) al eliminar abonos que comparten una misma transferencia o depósito bancario. Ahora el sistema reintegra el saldo al registro bancario original y solo lo elimina si no existen otros pagos vinculados a él.
+- **Pagos**: Se aseguró el orden correcto de eliminación (Pago primero, Registro Bancario después) en todos los módulos de gestión.
+
 ## [1.8.44] - 2026-03-12
 ### Fixed
 - **Filtros de Ordenes**: Corregido el filtro de "Vendedor" para que sea omnicanal. Ahora, al seleccionar un usuario en el desplegable, se filtran las órdenes donde este sea el **Vendedor Responsable** del cliente O el **Operador** que creó la orden.

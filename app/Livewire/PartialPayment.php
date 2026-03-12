@@ -571,13 +571,26 @@ class PartialPayment extends Component
                     }
                 }
                 
-                // Bank Record - usually created specifically for this payment, so delete it after payment
-                $bankRecordId = $payment->bank_record_id;
+                // Bank Record - Restore balance and only delete if not used by others
+                if ($payment->bank_record_id) {
+                    $bankRec = \App\Models\BankRecord::find($payment->bank_record_id);
+                    if ($bankRec) {
+                        $bankRec->remaining_balance += $payment->amount; // Restaurar saldo
+                        if ($bankRec->remaining_balance > $bankRec->amount) $bankRec->remaining_balance = $bankRec->amount;
+                        $bankRec->status = ($bankRec->remaining_balance == $bankRec->amount) ? 'unused' : 'partial';
+                        $bankRec->save();
+                    }
+                }
                 
-                $payment->delete(); // Delete payment first to remove foreign key lock
+                $bankRecordId = $payment->bank_record_id;
+                $payment->delete(); // Delete payment first
                 
                 if ($bankRecordId) {
-                    \App\Models\BankRecord::destroy($bankRecordId);
+                    // Solo eliminar si ya no hay otros pagos vinculados
+                    $otherPayments = \App\Models\Payment::where('bank_record_id', $bankRecordId)->exists();
+                    if (!$otherPayments) {
+                        \App\Models\BankRecord::destroy($bankRecordId);
+                    }
                 }
                 
                 DB::commit();
