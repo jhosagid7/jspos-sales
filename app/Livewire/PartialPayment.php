@@ -387,7 +387,7 @@ class PartialPayment extends Component
                     'account_number' => $payment['account_number'] ?? null,
                     'deposit_number' => $payment['reference'] ?? null,
                     'phone_number' => $payment['phone'] ?? null,
-                    'payment_date' => $payment['bank_date'] ?? $payment['zelle_date'] ?? \Carbon\Carbon::now(),
+                    'payment_date' => $payment['payment_date'] ?? $payment['bank_date'] ?? $payment['zelle_date'] ?? \Carbon\Carbon::now(),
                     'zelle_record_id' => $zelleRecordId,
                     'bank_record_id' => $bankRecordId,
                     'discount_applied' => $payment['discount_amount'] ?? 0,

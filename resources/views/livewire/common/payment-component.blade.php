@@ -403,6 +403,11 @@
                                                     </div>
                                                 @else
                                                     {{-- STANDARD BANK FIELDS --}}
+                                                    <div class="col-md-12">
+                                                        <label class="form-label">Fecha de Pago</label>
+                                                        <input type="date" class="form-control" wire:model.live="paymentDate">
+                                                        @error('paymentDate') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                    </div>
                                                     <div class="col-md-6">
                                                         <label class="form-label">Monto</label>
                                                         <input class="form-control" type="number" wire:model="amount" placeholder="0.00">

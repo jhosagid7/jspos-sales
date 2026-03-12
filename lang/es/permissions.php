@@ -17,6 +17,7 @@ return [
     'sales_configure_price_list' => ['name' => 'Configurar Lista Precios', 'description' => 'Permite crear y modificar listas de precios.'],
     'sales_generate_price_list' => ['name' => 'Generar Lista Precios', 'description' => 'Permite descargar o visualizar las listas de precios configuradas.'],
     'sales_show_exchange_rate' => ['name' => 'Ver Tasa USD/BCV', 'description' => 'Permite ver la referencia de tasa de cambio USD/BCV en ventas y productos.'],
+    'sales_reset_credit_snapshot' => ['name' => 'Actualizar Reglas de Crédito', 'description' => 'Permite actualizar las políticas de crédito (descuentos, plazos) de una venta según la configuración actual del cliente.'],
 
     // Ordenes
     'orders_view_all' => ['name' => 'Ver Todas las Órdenes', 'description' => 'Permite ver órdenes guardadas por cualquier usuario.'],

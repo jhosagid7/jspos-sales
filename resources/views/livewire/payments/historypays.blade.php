@@ -239,7 +239,7 @@
 
                                             </td>
 
-                                            <td data-label="Fecha"> {{ app('fun')->dateFormat($pay->created_at) }}</td>
+                                            <td data-label="Fecha"> {{ app('fun')->dateFormat($pay->payment_date ?? $pay->created_at) }}</td>
                                             <td data-label="Acciones">
                                                 <div class="d-flex flex-column gap-1">
                                                     @can('payments.print_receipt')

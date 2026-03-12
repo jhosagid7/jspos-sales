@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.8.50] - 2026-03-12
+### Fixed
+- **Fechas de Pago**: Corregida la lógica de registro de fechas en pagos y abonos. Ahora el sistema prioriza y utiliza la fecha seleccionada en el formulario (fecha del voucher) en lugar de la fecha actual del sistema.
+- **Historial de Pagos**: Actualizada la visualización del historial para mostrar la fecha real del depósito/transferencia, facilitando la conciliación bancaria.
+- **Lógica de Descuento**: La validación de "pago a tiempo" para descuentos ahora utiliza la fecha del pago seleccionada por el usuario, evitando penalizar a clientes por registros tardíos del personal administrativo.
+- **UI de Pagos**: Se añadió el campo de "Fecha de Pago" a la sección de bancos estándar para permitir registros históricos precisos.
+- **Permisos**: Corregida la visibilidad y traducción del permiso "Actualizar Reglas de Crédito" en el módulo de asignación de permisos.
+- **Edición de Pagos**: Asegurada la consistencia de fechas al editar pagos pendientes, manteniendo la fecha del comprobante original.
+
 ## [1.8.49] - 2026-03-12
 ### Fixed
 - **Descuentos**: Corregida la visibilidad de las alertas de descuento en el módulo de abonos. Ahora las opciones de "Pronto Pago" y "Pago en Divisa" aparecen de inmediato al abrir el modal, permitiendo su selección manual antes de registrar el primer pago.

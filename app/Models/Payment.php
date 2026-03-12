@@ -54,8 +54,8 @@ class Payment extends Model
         // Let's match Sale's logic: $dueDate = Carbon::parse($this->created_at)->addDays($creditDays);
         
         $dueDate = \Carbon\Carbon::parse($this->sale->created_at)->addDays($creditDays)->endOfDay();
-        $paymentDate = \Carbon\Carbon::parse($this->created_at);
+        $payDate = $this->payment_date ? \Carbon\Carbon::parse($this->payment_date) : \Carbon\Carbon::parse($this->created_at);
 
-        return $paymentDate->lte($dueDate);
+        return $payDate->lte($dueDate);
     }
 }
