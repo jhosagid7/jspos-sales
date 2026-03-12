@@ -1312,12 +1312,14 @@ class Sales extends Component
 
     public function getOrdersWithDetails()
     {
-        $query = Order::with(['customer', 'user'])
+        $query = Order::with(['customer.seller', 'user'])
             ->when(!auth()->user()->can('orders.view_all') && auth()->user()->can('orders.view_own'), function($q) {
                 $q->where('user_id', auth()->id());
             })
             ->when($this->searchSeller, function($q) {
-                $q->where('user_id', $this->searchSeller);
+                $q->whereHas('customer', function ($sub) {
+                    $sub->where('seller_id', $this->searchSeller);
+                });
             });
 
         if (empty(trim($this->search))) {
@@ -1332,6 +1334,11 @@ class Sales extends Component
                     // Búsqueda por el nombre del cliente
                     $sub->whereHas('customer', function ($q2) use ($search) {
                         $q2->whereRaw("LOWER(name) LIKE ?", ["%{$search}%"]);
+
+                        // Búsqueda por el nombre del vendedor asignado
+                        $q2->orWhereHas('seller', function ($q3) use ($search) {
+                            $q3->whereRaw("LOWER(name) LIKE ?", ["%{$search}%"]);
+                        });
                     });
 
                     // Búsqueda por el ID de la orden o Folio
@@ -1341,7 +1348,7 @@ class Sales extends Component
                     // Búsqueda por el total
                     $sub->orWhere('total', 'LIKE', "%{$search}%");
 
-                    // Búsqueda por el usuario (vendedor)
+                    // Búsqueda por el usuario (operador que realiza la orden)
                     $sub->orWhereHas('user', function ($q2) use ($search) {
                         $q2->whereRaw("LOWER(name) LIKE ?", ["%{$search}%"]);
                     });

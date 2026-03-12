@@ -33,6 +33,7 @@
                                         <th>Folio</th>
                                         <th>Cliente</th>
                                         <th>Vendedor</th>
+                                        <th>Operador</th>
                                         <th>Total</th>
                                         <th>Articulos</th>
                                         <th>Estatus</th>
@@ -47,14 +48,18 @@
                                             <td data-label="Folio">{{ $order->order_number ?? $order->id }}</td>
                                             <td data-label="Cliente">{{ $order->customer->name }}</td>
                                             <td data-label="Vendedor">
-                                                @if($order->user)
+                                                @php $assignedSeller = $order->customer->seller; @endphp
+                                                @if($assignedSeller)
                                                     <span class="badge" 
-                                                          style="background-color: {{ $order->user->color ?? '#eee' }}; color: #333; font-weight: 600; border: 1px solid #ccc;">
-                                                        {{ $order->user->name }}
+                                                          style="background-color: {{ $assignedSeller->color ?? '#eee' }}; color: #333; font-weight: 600; border: 1px solid #ccc;">
+                                                        {{ $assignedSeller->name }}
                                                     </span>
                                                 @else
                                                     <span class="text-muted">N/A</span>
                                                 @endif
+                                            </td>
+                                            <td data-label="Operador" class="text-muted" style="font-size: 0.9em;">
+                                                {{ $order->user->name ?? 'Sistema' }}
                                             </td>
                                             <td data-label="Total">${{ number_format($order->total, 2) }}</td>
                                             <td data-label="Articulos">{{ $order->items }}</td>
