@@ -162,7 +162,8 @@ class PartialPayment extends Component
         $exchangeRateReturns = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
         $totalReturnsUSD = $totalReturnsOrig / $exchangeRateReturns;
         
-        $debtUSD = max(0, $sale->total_usd - ($totalPaidUSD + $totalReturnsUSD));
+        $netTotalUSD = max(0, $sale->total_usd - $totalReturnsUSD);
+        $debtUSD = max(0, $netTotalUSD - $totalPaidUSD);
         
         // Calcular los días transcurridos desde que se CREÓ la venta
         $daysElapsed = Carbon::parse($sale->created_at)->diffInDays(Carbon::now());
@@ -204,10 +205,9 @@ class PartialPayment extends Component
                 
                 Log::info('PartialPayment::initPay Config', ['percent' => $usdPaymentDiscountPercent]);
                 
-                // Calculate Fixed Discount Amount based on ORIGINAL Sale Total USD
-                // User: "siempre le mostrara el descuento de pago divisa por el monto original"
+                // Calculate Fixed Discount Amount based on NET Sale Total USD (Sale - Returns)
                 if ($usdPaymentDiscountPercent > 0) {
-                     $fixedUsdDiscountAmount = $sale->total_usd * ($usdPaymentDiscountPercent / 100);
+                     $fixedUsdDiscountAmount = $netTotalUSD * ($usdPaymentDiscountPercent / 100);
                      $fixedUsdDiscountAmount = round($fixedUsdDiscountAmount, 2);
                      
                      // Convert to Invoice Currency if needed
@@ -218,7 +218,7 @@ class PartialPayment extends Component
                 }
             }
             
-            // Early Payment Adjustment always applies? 
+            // Early Payment Adjustment
             $adjustment = CreditConfigService::calculateDiscount($debtUSD, $daysElapsed, $rules);
 
             // Convert Adjustment Amount to Invoice Currency if needed

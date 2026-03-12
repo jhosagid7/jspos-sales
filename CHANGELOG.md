@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.47] - 2026-03-12
+### Fixed
+- **Descuentos y Devoluciones**: Corregido el cálculo de descuentos (Pronto Pago y Pago en Divisa) cuando existen devoluciones parciales. Ahora el sistema calcula el beneficio sobre el monto neto real de la factura (Total original menos productos devueltos) en lugar de usar siempre el monto original de venta. Esto aplica tanto en el módulo de Abonos como en el de Cuentas por Cobrar.
+
 ## [1.8.46] - 2026-03-12
 ### Fixed
 - **Pagos**: Mejora integral en la eliminación de abonos. Ahora el sistema elimina completamente los registros de **Zelle** y **Transferencias Bancarias** vinculados a un pago si este era el único que los utilizaba. Esto evita que queden referencias "fantasmas" marcadas como usadas que bloquean nuevos reportes del mismo pago.

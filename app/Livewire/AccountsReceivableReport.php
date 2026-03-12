@@ -441,12 +441,10 @@ class AccountsReceivableReport extends Component
             return $payment->amount / $rate;
         });
         
-        // Calculate Returns applied to debt
-        $totalReturnsOrig = $sale->returns->where('refund_method', 'debt_reduction')->sum('total_returned');
-        $exchangeRateReturns = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
         $totalReturnsUSD = $totalReturnsOrig / $exchangeRateReturns;
         
-        $debtUSD = $sale->total_usd - ($totalPaidUSD + $totalReturnsUSD);
+        $netTotalUSD = max(0, $sale->total_usd - $totalReturnsUSD);
+        $debtUSD = max(0, $netTotalUSD - $totalPaidUSD);
         
         // Convertir deuda a moneda principal para mostrar al usuario
         $primaryCurrency = \App\Models\Currency::where('is_primary', true)->first();
@@ -484,7 +482,7 @@ class AccountsReceivableReport extends Component
                 }
 
                 if ($usdPaymentDiscountPercent > 0) {
-                     $fixedUsdDiscountAmount = $sale->total_usd * ($usdPaymentDiscountPercent / 100);
+                     $fixedUsdDiscountAmount = $netTotalUSD * ($usdPaymentDiscountPercent / 100);
                      $fixedUsdDiscountAmount = round($fixedUsdDiscountAmount, 2);
                 }
              }
