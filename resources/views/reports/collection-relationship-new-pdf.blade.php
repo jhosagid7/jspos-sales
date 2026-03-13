@@ -9,7 +9,7 @@
         }
         body {
             font-family: Arial, sans-serif;
-            font-size: 9pt;
+            font-size: 8pt;
             color: #333;
             margin: 0;
             padding: 0;
@@ -44,14 +44,14 @@
         .table th {
             background-color: #f2f2f2;
             border-bottom: 2px solid #ddd;
-            padding: 5px;
+            padding: 3px;
             text-align: left;
-            font-size: 8pt;
+            font-size: 7pt;
         }
         .table td {
-            padding: 5px;
+            padding: 3px;
             border-bottom: 1px solid #eee;
-            font-size: 8pt;
+            font-size: 7pt;
             vertical-align: top;
         }
         .customer-header {
@@ -128,10 +128,14 @@
 
     <div class="report-title">Relación de Cobros</div>
     
-    <p>
+    <div style="margin-bottom: 15px;">
+        <strong>Activo:</strong> Todos<br>
+        <strong>Monedas:</strong> Dólares<br>
+        <strong>Fecha Desde:</strong> {{ \Carbon\Carbon::parse($dateFrom)->format('d/m/Y') }}<br>
+        <strong>Fecha Hasta:</strong> {{ \Carbon\Carbon::parse($dateTo)->format('d/m/Y') }}<br>
         <strong>Planilla:</strong> {{ $sheet->sheet_number }}<br>
         <strong>Usuario:</strong> {{ $user->name }}
-    </p>
+    </div>
 
     <table class="table">
         <thead>
@@ -257,6 +261,11 @@
                         <td class="text-right">{{ number_format($item['ingreso'], 4) }}</td>
                     </tr>
                 @endforeach
+                <tr>
+                    <td colspan="8">
+                        <div style="margin-left: 20px; font-size: 7pt;">Total Transacciones: {{ $items->count() }}</div>
+                    </td>
+                </tr>
                 <tr style="border-bottom: 2px solid #ccc;">
                     <td colspan="6" class="text-right"><strong>Subtotal Cliente:</strong></td>
                     <td class="text-right"><strong>{{ number_format($customerMonto, 4) }}</strong></td>

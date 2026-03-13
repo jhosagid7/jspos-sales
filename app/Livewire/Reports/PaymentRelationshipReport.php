@@ -273,7 +273,10 @@ class PaymentRelationshipReport extends Component
             $totalsByCurrency[$currencyCode] = $payments->where('currency', $currencyCode)->sum('amount');
         }
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.collection-relationship-new-pdf', compact('sheet', 'payments', 'returns', 'config', 'user', 'date', 'totalsByCategory', 'totalsByCurrency'));
+        $dateFrom = $this->dateFrom;
+        $dateTo = $this->dateTo;
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.collection-relationship-new-pdf', compact('sheet', 'payments', 'returns', 'config', 'user', 'date', 'totalsByCategory', 'totalsByCurrency', 'dateFrom', 'dateTo'));
         
         return response()->streamDownload(function () use ($pdf) {
             echo $pdf->output();

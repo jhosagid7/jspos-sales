@@ -1,5 +1,12 @@
 # Changelog
  
+## [1.8.55] - 2026-03-13
+### Changed
+- **Optimización de Reporte PDF**:
+    - **Ahorro de Papel**: Se redujo el tamaño de la fuente en las tablas de registros y se ajustaron los márgenes para permitir mayor contenido por página.
+    - **Encabezado Detallado**: Añadida la sección de filtros aplicados (Activo, Monedas, Fecha Desde y Fecha Hasta) para coincidir con los estándares de auditoría.
+    - **Contador de Movimientos**: Ahora se muestra el "Total Transacciones" al final de cada cliente, facilitando el conteo rápido de operaciones procesadas.
+
 ## [1.8.54] - 2026-03-13
 ### Changed
 - **Refinamiento de Relación de Cobros**:
