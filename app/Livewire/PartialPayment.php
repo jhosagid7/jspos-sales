@@ -294,6 +294,8 @@ class PartialPayment extends Component
                 $exchangeRate = $payment['exchange_rate'];
 
                 if ($payment['method'] == 'credit_note') {
+                    $collectionSheetId = $this->getOrCreateCollectionSheet();
+
                     \App\Models\SaleReturn::create([
                         'sale_id' => $sale->id,
                         'customer_id' => $sale->customer_id,
@@ -303,6 +305,7 @@ class PartialPayment extends Component
                         'reason' => $payment['note'] ?? 'Nota de Crédito Manual',
                         'return_type' => 'manual',
                         'refund_method' => 'debt_reduction',
+                        'collection_sheet_id' => $collectionSheetId
                     ]);
                     continue;
                 }

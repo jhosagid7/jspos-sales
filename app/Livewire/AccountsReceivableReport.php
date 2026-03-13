@@ -547,6 +547,25 @@ class AccountsReceivableReport extends Component
                 $exchangeRate = $payment['exchange_rate'];
 
                 if ($payment['method'] == 'credit_note') {
+                    // Find or Create Open Sheet for Today (Need to fetch it here or move sheet logic up)
+                    $today = \Carbon\Carbon::now()->format('Y-m-d');
+                    $sheet = \App\Models\CollectionSheet::where('status', 'open')
+                        ->whereDate('opened_at', $today)
+                        ->first();
+
+                    if (!$sheet) {
+                        $dateStr = \Carbon\Carbon::now()->format('Ymd');
+                        $count = \App\Models\CollectionSheet::whereDate('opened_at', $today)->count() + 1;
+                        $sheetNumber = $dateStr . '-' . str_pad($count, 2, '0', STR_PAD_LEFT);
+
+                        $sheet = \App\Models\CollectionSheet::create([
+                            'sheet_number' => $sheetNumber,
+                            'status' => 'open',
+                            'opened_at' => \Carbon\Carbon::now(),
+                            'total_amount' => 0
+                        ]);
+                    }
+
                     \App\Models\SaleReturn::create([
                         'sale_id' => $sale->id,
                         'customer_id' => $sale->customer_id,
@@ -556,6 +575,7 @@ class AccountsReceivableReport extends Component
                         'reason' => $payment['note'] ?? 'Nota de Crédito Manual',
                         'return_type' => 'manual',
                         'refund_method' => 'debt_reduction',
+                        'collection_sheet_id' => $sheet->id
                     ]);
                     continue;
                 }

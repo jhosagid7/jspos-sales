@@ -14,6 +14,9 @@
                             <button wire:click="generatePdf('detailed')" class="btn btn-dark">
                                 <i class="fas fa-file-alt"></i> PDF Detallado
                             </button>
+                            <button wire:click="generateRelacionCobroPdf" class="btn btn-warning text-white">
+                                <i class="fas fa-file-invoice"></i> PDF Relación Cobros (Nuevo)
+                            </button>
                         </div>
                         <button wire:click="closeDetails" class="btn btn-outline-dark">
                             <i class="fas fa-arrow-left"></i> Volver

@@ -208,6 +208,78 @@ class PaymentRelationshipReport extends Component
         return $query->get();
     }
     
+    function getSheetReturns($sheet)
+    {
+        return \App\Models\SaleReturn::where('collection_sheet_id', $sheet->id)
+            ->with(['sale.customer', 'user'])
+            ->get();
+    }
+
+    function generateRelacionCobroPdf()
+    {
+        if (!$this->selectedSheet) return;
+
+        $sheet = $this->selectedSheet;
+        $payments = $this->getSheetDetails($sheet);
+        $returns = $this->getSheetReturns($sheet);
+        
+        $config = \App\Models\Configuration::first();
+        $user = Auth()->user();
+        $date = \Carbon\Carbon::now()->format('d/m/Y H:i');
+
+        // Calculate Totals by Category requested by user (Match header image)
+        $currencies = \App\Models\Currency::all();
+        $banks = \App\Models\Bank::all();
+        
+        $totalsByCategory = [];
+        foreach($currencies as $c) {
+            $totalsByCategory["EFECTIVO " . strtoupper($c->code)] = 0;
+        }
+        foreach($banks as $b) {
+            $totalsByCategory[strtoupper($b->name)] = 0;
+        }
+        $totalsByCategory['NOTAS DE CREDITO (NC)'] = $returns->sum(function($r) {
+            $rate = $r->sale->primary_exchange_rate > 0 ? $r->sale->primary_exchange_rate : 1;
+            return $r->total_returned / $rate;
+        });
+
+        foreach($payments as $p) {
+            $amtUSD = $p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1);
+            
+            if ($p->pay_way == 'cash') {
+                $key = "EFECTIVO " . strtoupper($p->currency);
+                if (isset($totalsByCategory[$key])) {
+                    $totalsByCategory[$key] += $amtUSD;
+                } else {
+                    $totalsByCategory[$key] = $amtUSD;
+                }
+            } else {
+                $bankName = $p->bank ? strtoupper($p->bank) : ($p->pay_way == 'zelle' ? 'ZELLE' : null);
+                if ($bankName && isset($totalsByCategory[$bankName])) {
+                    $totalsByCategory[$bankName] += $amtUSD;
+                } elseif ($bankName) {
+                    $totalsByCategory[$bankName] = $amtUSD;
+                } else {
+                    $othersKey = 'OTROS (BANCOS/MEDIOS)';
+                    $totalsByCategory[$othersKey] = ($totalsByCategory[$othersKey] ?? 0) + $amtUSD;
+                }
+            }
+        }
+
+        // Totals per Currency (Original Amounts)
+        $totalsByCurrency = [];
+        $uniqueCurrencies = $payments->pluck('currency')->unique();
+        foreach($uniqueCurrencies as $currencyCode) {
+            $totalsByCurrency[$currencyCode] = $payments->where('currency', $currencyCode)->sum('amount');
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.collection-relationship-new-pdf', compact('sheet', 'payments', 'returns', 'config', 'user', 'date', 'totalsByCategory', 'totalsByCurrency'));
+        
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->output();
+        }, 'Relacion_Cobros_Nuevo_' . $sheet->sheet_number . '_' . \Carbon\Carbon::now()->format('YmdHis') . '.pdf');
+    }
+
     // PDF Generation would need to be updated similarly
     function generatePdf($type = 'basic') {
         $config = \App\Models\Configuration::first();

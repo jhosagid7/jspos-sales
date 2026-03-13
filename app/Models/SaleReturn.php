@@ -18,8 +18,14 @@ class SaleReturn extends Model
         'reason',
         'return_type',
         'refund_method',
-        'cash_register_id'
+        'cash_register_id',
+        'collection_sheet_id'
     ];
+
+    public function collectionSheet()
+    {
+        return $this->belongsTo(CollectionSheet::class);
+    }
 
     public function sale()
     {
