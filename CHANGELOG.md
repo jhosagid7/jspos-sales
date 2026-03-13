@@ -1,5 +1,15 @@
 # Changelog
  
+## [1.8.54] - 2026-03-13
+### Changed
+- **Refinamiento de Relación de Cobros**:
+    - **Número de Documento**: Ahora se muestra el Número de Factura (o Nota de Crédito) directamente en la columna principal, facilitando la identificación inmediata de qué se está cobrando.
+    - **Cálculo de Días Vencidos**: La columna de días ha sido reprogramada para mostrar los días de mora. (Ejemplo: +10 si está vencida, -2 si se pagó antes de tiempo, 0 si se pagó el día exacto).
+    - **Simplificación de Interfaz**: Se eliminaron las columnas de "Adelantos" y "Retenciones" para dar más espacio al contenido relevante, ya que el sistema no utiliza estos métodos.
+
+### Fixed
+- **Trazabilidad**: Removida la duplicidad del número de factura en la descripción para una lectura más limpia del reporte.
+
 ## [1.8.53] - 2026-03-13
 ### Added
 - **Nueva Relación de Cobros (REPORTE PREMIUM)**: Implementado un nuevo diseño de reporte detallado para planillas de cobro que agrupa los pagos por cliente, facilitando la auditoría y conciliación de saldos recaudados.
