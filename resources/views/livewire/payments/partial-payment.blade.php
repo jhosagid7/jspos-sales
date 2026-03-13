@@ -52,11 +52,14 @@
                                                 <div> 
                                                     <b>{{ $sale->id }}</b>
                                                     @foreach ($sale->returns as $return)
+                                                        @php 
+                                                            $isManual = $return->details->count() === 0;
+                                                        @endphp
                                                         <a href="{{ route('pos.returns.generateCreditNotePdf', $return->id) }}" 
                                                            target="_blank" 
                                                            class="ms-1" 
-                                                           title="Nota de Crédito #{{ $return->id }}">
-                                                            <i class="fas fa-file-invoice text-warning" style="font-size: 1.1em;"></i>
+                                                           title="{{ $isManual ? 'Nota de Crédito (Ajuste)' : 'Nota de Crédito (Devolución)' }} #{{ $return->id }}">
+                                                            <i class="fas fa-file-invoice" style="font-size: 1.1em; color: {{ $isManual ? '#fd7e14' : '#ffc107' }};"></i>
                                                         </a>
                                                     @endforeach
                                                 </div>

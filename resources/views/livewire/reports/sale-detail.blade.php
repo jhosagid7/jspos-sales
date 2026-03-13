@@ -627,6 +627,9 @@
                                                                     <small class="text-muted">({{ $currencySymbol }}{{ number_format($retDetail->unit_price, 2) }} c/u)</small>
                                                                 </li>
                                                             @endforeach
+                                                            @if($return->details->count() === 0)
+                                                                <li><i class="fa fa-info-circle me-1"></i> Ajuste Manual de Saldo</li>
+                                                            @endif
                                                         </ul>
                                                     </td>
                                                 </tr>

@@ -41,6 +41,7 @@ return [
     'payments_approve' => ['name' => 'Aprobar Pagos', 'description' => 'Permite confirmar pagos pendientes y aplicarlos a la cuenta.'],
     'payments_register_direct' => ['name' => 'Pago Directo', 'description' => 'Permite registrar un pago como "Aprobado" directamente, saltando la revisión.'],
     'payments_delete' => ['name' => 'Eliminar Pago', 'description' => 'Permite anular o eliminar un pago registrado.'],
+    'payments_create_credit_note' => ['name' => 'Crear Nota de Crédito', 'description' => 'Permite crear ajustes de saldo manuales (Notas de Crédito) al momento de abonar.'],
 
     // Caja
     'cash_register_open' => ['name' => 'Abrir Caja', 'description' => 'Permite realizar la apertura de caja diaria.'],

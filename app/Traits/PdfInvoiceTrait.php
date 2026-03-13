@@ -1195,6 +1195,14 @@ trait PdfInvoiceTrait
                 }
             }
 
+            // Fallback for Manual Credit Note (Adjustment)
+            if (empty($items)) {
+                $items[] = InvoiceItem::make('AJUSTE DE SALDO / NOTA DE CRÉDITO')
+                    ->reference('ADJUST')
+                    ->pricePerUnit($saleReturn->total_returned)
+                    ->quantity(1);
+            }
+
             $refundMethodTranslated = [
                 'cash' => 'Efectivo',
                 'bank' => 'Banco/Transferencia',
@@ -1203,7 +1211,7 @@ trait PdfInvoiceTrait
             ][$saleReturn->refund_method] ?? $saleReturn->refund_method;
 
             $notes = [
-                "<strong>Motivo:</strong> Devolución de mercancía",
+                "<strong>Motivo:</strong> " . ($saleReturn->reason ?? 'Devolución de mercancía'),
                 "<strong>Método de Reembolso:</strong> " . $refundMethodTranslated,
                 "<strong>Factura Original:</strong> #" . $sale->id
             ];

@@ -545,6 +545,20 @@ class AccountsReceivableReport extends Component
                 $amount = $payment['amount'];
                 $currencyCode = $payment['currency'];
                 $exchangeRate = $payment['exchange_rate'];
+
+                if ($payment['method'] == 'credit_note') {
+                    \App\Models\SaleReturn::create([
+                        'sale_id' => $sale->id,
+                        'customer_id' => $sale->customer_id,
+                        'user_id' => auth()->id(),
+                        'return_number' => 'NC-' . strtoupper(\Illuminate\Support\Str::random(6)),
+                        'total_returned' => $payment['amount_in_invoice_currency'] ?? $amount,
+                        'reason' => $payment['note'] ?? 'Nota de Crédito Manual',
+                        'return_type' => 'manual',
+                        'refund_method' => 'debt_reduction',
+                    ]);
+                    continue;
+                }
                 
                 // Handle Zelle Record
                 $zelleRecordId = null;

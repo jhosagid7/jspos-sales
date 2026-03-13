@@ -91,6 +91,10 @@ class PaymentComponent extends Component
     public $customExchangeRate;
     public $paymentDate; // Universal payment date field (mandatory for VED/Cash)
 
+    // Manual Credit Note
+    public $manualCreditAmount;
+    public $manualCreditReason;
+
 
     protected $listeners = ['initPayment'];
 
@@ -194,6 +198,9 @@ class PaymentComponent extends Component
         
         $this->customExchangeRate = null;
         $this->paymentDate = date('Y-m-d');
+        
+        $this->manualCreditAmount = null;
+        $this->manualCreditReason = null;
         
         // Keep paymentCurrency and paymentMethod as is for better UX
     }
@@ -540,6 +547,54 @@ class PaymentComponent extends Component
 
         $this->calculateTotals();
         $this->resetPaymentForm();
+    }
+
+    public function addCreditNote()
+    {
+        if (!auth()->user()->can('payments.create_credit_note')) {
+            $this->dispatch('noty', msg: 'No tienes permiso para crear notas de crédito manuales.');
+            return;
+        }
+
+        $this->validate([
+            'manualCreditAmount' => 'required|numeric|min:0.01',
+            'manualCreditReason' => 'required|string|min:3'
+        ]);
+
+        $currency = $this->currencies->firstWhere('code', $this->paymentCurrency);
+        $exchangeRate = $currency ? $currency->exchange_rate : 1;
+        $symbol = $currency ? $currency->symbol : '$';
+
+        $primaryCurrency = $this->currencies->firstWhere('is_primary', 1);
+        $amountInUSD = $this->manualCreditAmount / ($exchangeRate ?: 1);
+        
+        if ($currency && $currency->is_primary) {
+            $amountInPrimary = $this->manualCreditAmount;
+        } else {
+            $amountInPrimary = $amountInUSD * $primaryCurrency->exchange_rate;
+        }
+
+        // Amount in the currency of the debt (invoice)
+        $debtCurrency = $this->currencies->firstWhere('code', $this->currencyCode);
+        $debtRate = $debtCurrency ? $debtCurrency->exchange_rate : 1;
+        $amountInInvoiceCurrency = $amountInUSD * $debtRate;
+
+        $this->payments[] = [
+            'method' => 'credit_note',
+            'amount' => $this->manualCreditAmount,
+            'amount_in_invoice_currency' => $amountInInvoiceCurrency,
+            'currency' => $this->paymentCurrency,
+            'symbol' => $symbol,
+            'exchange_rate' => $exchangeRate,
+            'amount_in_primary' => $amountInPrimary,
+            'note' => $this->manualCreditReason,
+            'payment_date' => now()
+        ];
+
+        $this->manualCreditAmount = null;
+        $this->manualCreditReason = null;
+        
+        $this->calculateTotals();
     }
 
     public function removePayment($index)

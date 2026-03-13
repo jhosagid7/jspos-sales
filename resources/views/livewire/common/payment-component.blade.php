@@ -93,20 +93,21 @@
                                             <span class="fw-bold">{{ $symbol }}{{ number_format($totalToPay, 2) }}</span>
                                         </li>
                                         
-                                        {{-- Only show Adjustment if explicitly applied by logic OR if it's the eligible discount (strikethrough if disabled) --}}
-                                        @if($adjustment && !$usdAdjustment)
-                                            <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-1 {{ $applyAdjustment ? 'text-muted' : 'text-muted text-decoration-line-through' }}">
+                                        {{-- Only show Adjustment if actively applied --}}
+                                        @if($adjustment && $applyAdjustment)
+                                            <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-1 text-muted">
                                                 <span>{{ $adjustment['rule_type'] == 'early_payment' ? 'Descuento' : 'Recargo' }} ({{ $adjustment['percentage'] }}%):</span>
-                                                <span class="fw-bold {{ $applyAdjustment ? 'text-danger' : '' }}">
+                                                <span class="fw-bold text-danger">
                                                     -{{ $symbol }}{{ number_format($adjustment['amount'], 2) }}
                                                 </span>
                                             </li>
                                         @endif
                                         
-                                        @if($usdAdjustment)
-                                            <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-1 {{ $applyUsdDiscount ? 'text-muted' : 'text-muted text-decoration-line-through' }}">
+                                        {{-- Only show USD Discount if actively applied --}}
+                                        @if($usdAdjustment && $applyUsdDiscount)
+                                            <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-1 text-muted">
                                                 <span>Desc. Divisa ({{ $usdAdjustment['percentage'] }}%):</span>
-                                                <span class="fw-bold {{ $applyUsdDiscount ? 'text-danger' : '' }}">
+                                                <span class="fw-bold text-danger">
                                                     -{{ $symbol }}{{ number_format($usdAdjustment['amount'], 2) }}
                                                 </span>
                                             </li>
@@ -156,7 +157,17 @@
                                             </button>
                                         </div>
                                         @endmodule
-
+                                        
+                                        @can('payments.create_credit_note')
+                                        <div class="col-12 mt-2">
+                                            <button type="button" wire:click="$set('paymentMethod', 'credit_note')"
+                                                class="btn w-100 {{ $paymentMethod === 'credit_note' ? 'btn-warning text-dark' : 'btn-outline-warning' }}"
+                                                style="padding: 10px;">
+                                                <i class="fa fa-file-invoice fa-lg me-2"></i>
+                                                Nota de Crédito Manual (Ajuste)
+                                            </button>
+                                        </div>
+                                        @endcan
                                     </div>
                                 </div>
                             </div>
@@ -430,8 +441,38 @@
                                             @endif
                                         </div>
                                     @endif
-
-
+ 
+                                    {{-- CREDIT NOTE --}}
+                                    @if($paymentMethod === 'credit_note')
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <div class="alert alert-warning py-2 small mb-0">
+                                                    <i class="fa fa-info-circle me-1"></i> Esto generará una Nota de Crédito manual para ajustar el saldo de la factura, sin afectar el inventario.
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Monto del Ajuste</label>
+                                                <div class="input-group">
+                                                    <select class="form-select" style="max-width: 100px;" wire:model.live="paymentCurrency">
+                                                        @foreach($currencies as $curr)
+                                                            <option value="{{ $curr->code }}">{{ $curr->code }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                    <input class="form-control" type="number" step="0.01" wire:model="manualCreditAmount" placeholder="0.00" wire:keydown.enter="addCreditNote">
+                                                </div>
+                                                @error('manualCreditAmount') <span class="text-danger small">{{ $message }}</span> @enderror
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Motivo</label>
+                                                <input class="form-control" type="text" wire:model="manualCreditReason" placeholder="Ej: Redondeo, Bonificación" wire:keydown.enter="addCreditNote">
+                                                @error('manualCreditReason') <span class="text-danger small">{{ $message }}</span> @enderror
+                                            </div>
+                                            <div class="col-12">
+                                                <button class="btn btn-warning w-100" wire:click="addCreditNote">Aplicar Ajuste / NC</button>
+                                            </div>
+                                        </div>
+                                    @endif
+ 
                                 </div>
                             </div>
                         </div>
@@ -458,13 +499,18 @@
                                                 @forelse($payments as $index => $p)
                                                     <tr>
                                                         <td>
-                                                            <span class="badge bg-secondary">{{ strtoupper($p['method']) }}</span>
+                                                            <span class="badge {{ $p['method'] == 'credit_note' ? 'bg-warning text-dark' : 'bg-secondary' }}">
+                                                                {{ $p['method'] == 'credit_note' ? 'AJUSTE / NC' : strtoupper($p['method']) }}
+                                                            </span>
                                                             @if($p['method'] == 'bank') <br><small>{{ $p['bank_name'] }}</small> @endif
                                                             @if($p['method'] == 'zelle') 
                                                                 <br><small>Zelle: {{ $p['zelle_sender'] }}</small>
                                                                 @if(isset($p['zelle_file_url']) && $p['zelle_file_url'])
                                                                     <br><a href="{{ $p['zelle_file_url'] }}" target="_blank"><i class="fa fa-image"></i> Ver</a>
                                                                 @endif
+                                                            @endif
+                                                            @if($p['method'] == 'credit_note')
+                                                                <br><small>Motivo: {{ $p['note'] }}</small>
                                                             @endif
                                                         </td>
                                                         <td>{{ $p['symbol'] }}{{ number_format($p['amount'], 2) }}</td>
