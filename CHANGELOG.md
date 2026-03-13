@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.8.52] - 2026-03-13
+### Added
+- **Notas de Crédito Manuales**: Implementada la funcionalidad de "Ajustes de Saldo" que permite realizar descuentos de deuda manuales directamente desde el modal de abonos sin necesidad de devolver productos físicos.
+- **Multimoneda en Ajustes**: Selector de moneda integrado en la nota de crédito manual con cálculo automático de equivalencia hacia la moneda de la deuda.
+- **Seguridad**: Nuevo permiso `payments.create_credit_note` para restringir quién puede aplicar ajustes manuales a las facturas.
+
+### Changed
+- **Interfaz de Pagos**: Rediseñado el resumen de descuentos para mayor claridad. Ahora solo se muestran las filas de descuento que están activamente seleccionadas (Pronto Pago o Divisa), eliminando el texto tachado y mejorando el enfoque visual.
+- **Iconografía**: Actualizado el sistema de iconos en reportes y listados. Los ajustes manuales ahora se identifican con un icono de factura naranja para diferenciarlos visualmente de las devoluciones de mercancía (amarillo).
+- **PDF de Notas**: Adaptado el generador de PDF para imprimir descripciones personalizadas de "AJUSTE DE SALDO" cuando se detecta un retorno de tipo manual.
+
+### Fixed
+- **Base de Datos**: Corregido error de truncado en la tabla `sale_returns` al permitir el tipo de retorno 'manual' mediante una nueva migración.
+
 ## [1.8.51] - 2026-03-13
 ### Added
 - **Abonos Parciales**: Implementada paginación en el listado de ventas pendientes por abonar para mejorar el rendimiento.
