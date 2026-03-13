@@ -143,8 +143,6 @@
                 <th>No. Documento</th>
                 <th>Descripción</th>
                 <th class="text-right">Monto</th>
-                <th class="text-right">Adelantos</th>
-                <th class="text-right">Retenciones</th>
                 <th class="text-right">Total Ingreso</th>
             </tr>
         </thead>
@@ -167,21 +165,29 @@
                         $description .= " [Desc: $" . number_format($p->discount_applied, 2) . "]";
                     }
 
+                    $dateEmit = \Carbon\Carbon::parse($p->sale->created_at);
+                    $datePay = \Carbon\Carbon::parse($p->payment_date);
+                    $creditDays = $p->sale->credit_days ?? 0;
+                    $dueDate = $dateEmit->copy()->addDays($creditDays);
+                    
+                    // Signed difference: PayDate - DueDate
+                    // If payed on 15 and due on 10 -> 5 days late
+                    // If payed on 8 and due on 10 -> -2 days late (early)
+                    $daysDiff = $dueDate->diffInDays($datePay, false);
+
                     $activity->push([
                         'type' => 'Pago',
                         'customer_id' => $p->sale->customer_id,
                         'customer_name' => $p->sale->customer->name,
                         'customer_doc' => $p->sale->customer->taxpayer_id,
-                        'date_pay' => \Carbon\Carbon::parse($p->payment_date),
-                        'date_emit' => \Carbon\Carbon::parse($p->sale->created_at),
-                        'doc_number' => $p->deposit_number ?? $p->id,
+                        'date_pay' => $datePay,
+                        'date_emit' => $dateEmit,
+                        'days' => $daysDiff,
+                        'doc_number' => $p->sale->invoice_number ?? $p->sale->id,
                         'description' => $description,
                         'monto' => $p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1),
-                        'adelanto' => $p->pay_way == 'advance' || $p->pay_way == 'adelanto' ? ($p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1)) : 0,
-                        'retencion' => 0,
                         'ingreso' => ($p->pay_way == 'advance' || $p->pay_way == 'adelanto') ? 0 : ($p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1)),
                         'sale_id' => $p->sale_id,
-                        'invoice' => $p->sale->invoice_number ?? $p->sale->id,
                         'raw_amount' => $p->amount,
                         'currency' => $p->currency,
                         'rate' => $p->exchange_rate
@@ -189,21 +195,25 @@
                 }
 
                 foreach($returns as $r) {
+                    $dateEmit = \Carbon\Carbon::parse($r->sale->created_at);
+                    $datePay = \Carbon\Carbon::parse($r->created_at);
+                    $creditDays = $r->sale->credit_days ?? 0;
+                    $dueDate = $dateEmit->copy()->addDays($creditDays);
+                    $daysDiff = $dueDate->diffInDays($datePay, false);
+
                     $activity->push([
                         'type' => 'N/C',
                         'customer_id' => $r->customer_id,
                         'customer_name' => $r->customer->name,
                         'customer_doc' => $r->customer->taxpayer_id,
-                        'date_pay' => \Carbon\Carbon::parse($r->created_at),
-                        'date_emit' => \Carbon\Carbon::parse($r->sale->created_at),
+                        'date_pay' => $datePay,
+                        'date_emit' => $dateEmit,
+                        'days' => $daysDiff,
                         'doc_number' => $r->return_number,
                         'description' => $r->reason ?? 'Nota de Crédito',
                         'monto' => $r->total_returned / ($r->sale->primary_exchange_rate > 0 ? $r->sale->primary_exchange_rate : 1),
-                        'adelanto' => 0,
-                        'retencion' => 0,
                         'ingreso' => 0,
                         'sale_id' => $r->sale_id,
-                        'invoice' => $r->sale->invoice_number ?? $r->sale->id,
                         'raw_amount' => $r->total_returned,
                         'currency' => $r->sale->primary_currency_code ?? 'USD',
                         'rate' => $r->sale->primary_exchange_rate
@@ -212,8 +222,6 @@
 
                 $grouped = $activity->sortBy('date_pay')->groupBy('customer_id');
                 $grandTotalMonto = 0;
-                $grandTotalAdelanto = 0;
-                $grandTotalRetencion = 0;
                 $grandTotalIngreso = 0;
             @endphp
 
@@ -224,41 +232,34 @@
                     $customerIngreso = $items->sum('ingreso');
                 @endphp
                 <tr>
-                    <td colspan="10" class="customer-header">
+                    <td colspan="8" class="customer-header">
                         {{ $first['customer_doc'] }} - {{ strtoupper($first['customer_name']) }}
                     </td>
                 </tr>
                 @foreach($items as $item)
                     @php
-                        $days = $item['date_pay']->diffInDays($item['date_emit']);
                         $grandTotalMonto += $item['monto'];
-                        $grandTotalAdelanto += $item['adelanto'];
-                        $grandTotalRetencion += $item['retencion'];
                         $grandTotalIngreso += $item['ingreso'];
                     @endphp
                     <tr class="{{ $item['type'] == 'N/C' ? 'nc-row' : '' }}">
                         <td>{{ $item['type'] }}</td>
                         <td>{{ $item['date_pay']->format('d/m/Y') }}</td>
                         <td>{{ $item['date_emit']->format('d/m/Y') }}</td>
-                        <td class="text-center">{{ $days }}</td>
+                        <td class="text-center">{{ $item['days'] }}</td>
                         <td>{{ $item['doc_number'] }}</td>
                         <td>
                             {{ $item['description'] }}
                             @if($item['type'] == 'Pago')
                                 <br><small>Tasa: {{ number_format($item['rate'], 2) }} | ({{ number_format($item['raw_amount'], 2) }} {{ $item['currency'] }})</small>
                             @endif
-                            <span class="invoice-links">FAC: {{ $item['invoice'] }}</span>
                         </td>
                         <td class="text-right">{{ number_format($item['monto'], 4) }}</td>
-                        <td class="text-right">{{ number_format($item['adelanto'], 4) }}</td>
-                        <td class="text-right">{{ number_format($item['retencion'], 4) }}</td>
                         <td class="text-right">{{ number_format($item['ingreso'], 4) }}</td>
                     </tr>
                 @endforeach
                 <tr style="border-bottom: 2px solid #ccc;">
                     <td colspan="6" class="text-right"><strong>Subtotal Cliente:</strong></td>
                     <td class="text-right"><strong>{{ number_format($customerMonto, 4) }}</strong></td>
-                    <td colspan="2"></td>
                     <td class="text-right"><strong>{{ number_format($customerIngreso, 4) }}</strong></td>
                 </tr>
             @endforeach
@@ -266,8 +267,6 @@
             <tr class="total-row">
                 <td colspan="6" class="text-right">TOTAL GENERAL:</td>
                 <td class="text-right">{{ number_format($grandTotalMonto, 4) }}</td>
-                <td class="text-right">{{ number_format($grandTotalAdelanto, 4) }}</td>
-                <td class="text-right">{{ number_format($grandTotalRetencion, 4) }}</td>
                 <td class="text-right">{{ number_format($grandTotalIngreso, 4) }}</td>
             </tr>
         </tbody>
