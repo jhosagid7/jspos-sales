@@ -1,4 +1,18 @@
 # Changelog
+ 
+## [1.8.53] - 2026-03-13
+### Added
+- **Nueva Relación de Cobros (REPORTE PREMIUM)**: Implementado un nuevo diseño de reporte detallado para planillas de cobro que agrupa los pagos por cliente, facilitando la auditoría y conciliación de saldos recaudados.
+- **Detalle por Cliente**: Cada sección del reporte incluye el RIF/CI del cliente, subtotal financiero y un desglose de facturas canceladas con sus respectivos tipos de pago.
+- **Integración de Notas de Crédito**: Las Notas de Crédito (ajustes manuales) ahora se guardan vinculadas a la planilla de cobro del día, permitiendo su visualización en el reporte como parte de la gestión de deudas del operador.
+- **Resumen Multimoneda y Bancos**: El reporte incluye un nuevo cuadro de resumen al final que desglosa los totales por cada moneda recolectada (USD, VED, COP) y por cada banco configurado (Bancolombia, Banesco, Zelle, etc.) para coincidir perfectamente con la cabecera del documento.
+
+### Changed
+- **Lógica de Auditoría**: Añadida una columna de "DÍAS" que calcula automáticamente el tiempo transcurrido desde la emisión de la factura hasta el pago realizado, permitiendo detectar de forma visual los pagos en mora.
+- **Identificación de Banco**: Se mejoraron las descripciones automáticas en el reporte para incluir el nombre del banco y el número de referencia en transferencias, y el nombre del pagador en reportes de Zelle.
+
+### Fixed
+- **Trazabilidad**: Corregida la falta de vinculación de las Notas de Crédito manuales a las planillas de cobro, asegurando que todos los movimientos contables aparezcan en los cierres de caja correspondientes.
 
 ## [1.8.52] - 2026-03-13
 ### Added
