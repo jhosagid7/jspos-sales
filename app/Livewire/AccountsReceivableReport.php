@@ -107,7 +107,7 @@ class AccountsReceivableReport extends Component
         }
 
         try {
-            $query = Sale::with(['customer', 'payments'])
+            $query = Sale::with(['customer', 'payments', 'returns'])
                 ->where('type', 'credit')
                 ->when($this->status != 0, function ($query) {
                     $query->where('status', $this->status);

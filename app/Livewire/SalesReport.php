@@ -78,7 +78,7 @@ class SalesReport extends Component
                 $dTo = Carbon::parse($this->dateTo)->endOfDay();
             }
 
-            $sales = Sale::with(['customer', 'details', 'user', 'paymentDetails', 'changeDetails'])
+            $sales = Sale::with(['customer', 'details', 'user', 'paymentDetails', 'changeDetails', 'returns'])
                 ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
                     $q->whereBetween('created_at', [$dFrom, $dTo]);
                 })

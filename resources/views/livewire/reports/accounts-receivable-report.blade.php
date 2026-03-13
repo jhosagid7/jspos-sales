@@ -165,7 +165,17 @@
                                                         $saldoUSD = max(0, $finalTotalUSD - $totalAbonadoUSD);
                                                     @endphp
                                                     <tr class="text-center">
-                                                        <td>{{ $sale->id }}</td>
+                                                        <td>
+                                                            {{ $sale->id }}
+                                                            @foreach ($sale->returns as $return)
+                                                                <a href="{{ route('pos.returns.generateCreditNotePdf', $return->id) }}" 
+                                                                   target="_blank" 
+                                                                   class="ms-1" 
+                                                                   title="Nota de Crédito #{{ $return->id }}">
+                                                                    <i class="fas fa-file-invoice text-warning"></i>
+                                                                </a>
+                                                            @endforeach
+                                                        </td>
                                                         <td class="text-capitalize">{{ $sale->customer->name }}</td>
                                                         <td style="background-color: rgb(210, 243, 252)">
                                                             ${{ number_format($finalTotalUSD, 2) }}

@@ -23,6 +23,7 @@
                                 <thead class="">
                                     <tr>
                                         <th class='p-2'> Cliente</th>
+                                        <th class='p-2'>Vendedor</th>
                                         <th class='p-2'>Venta</th>
                                         <th class='p-2'>Total</th>
                                         <th class='p-2'>Abonado</th>
@@ -36,8 +37,29 @@
                                             <td data-label="Cliente">
                                                 <div class="txt-info">{{ $sale->customer->name }}</div>
                                             </td>
+                                            <td data-label="Vendedor">
+                                                @php $assignedSeller = $sale->customer->seller; @endphp
+                                                @if($assignedSeller)
+                                                    <span class="badge" 
+                                                          style="background-color: {{ $assignedSeller->color ?? '#eee' }}; color: #333; font-weight: 600; border: 1px solid #ccc;">
+                                                        {{ $assignedSeller->name }}
+                                                    </span>
+                                                @else
+                                                    <span class="text-muted">N/A</span>
+                                                @endif
+                                            </td>
                                             <td data-label="Venta">
-                                                <div> <b>{{ $sale->id }}</b></div>
+                                                <div> 
+                                                    <b>{{ $sale->id }}</b>
+                                                    @foreach ($sale->returns as $return)
+                                                        <a href="{{ route('pos.returns.generateCreditNotePdf', $return->id) }}" 
+                                                           target="_blank" 
+                                                           class="ms-1" 
+                                                           title="Nota de Crédito #{{ $return->id }}">
+                                                            <i class="fas fa-file-invoice text-warning" style="font-size: 1.1em;"></i>
+                                                        </a>
+                                                    @endforeach
+                                                </div>
                                                 <small><i class="icon-calendar"></i>
                                                     {{ app('fun')->dateFormat($sale->created_at) }}</small>
                                             </td>
@@ -82,6 +104,9 @@
                                     @endforelse
                                 </tbody>
                             </table>
+                        </div>
+                        <div class="mt-3">
+                            {{ $sales->links() }}
                         </div>
                         @include('livewire.payments.historypays')
 

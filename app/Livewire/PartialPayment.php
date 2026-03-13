@@ -9,6 +9,7 @@ use App\Models\Sale;
 use App\Models\SalePaymentDetail;
 use App\Traits\PrintTrait;
 use Livewire\Component;
+use Livewire\WithPagination;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -19,9 +20,11 @@ use Carbon\Carbon;
 
 class PartialPayment extends Component
 {
-    use PrintTrait;
+    use PrintTrait, WithPagination;
 
-    public $sales, $pays;
+    protected $paginationTheme = 'bootstrap';
+
+    public $pays;
     public  $search, $sale_selected_id, $customer_name, $debt, $debt_usd;
     public $editingPaymentId, $editPaymentRef, $editPaymentAmount, $editPaymentDate, $editPaymentRate, $editPaymentComment;
     public $editApplyEarlyDiscount = false, $editApplyUsdDiscount = false;
@@ -38,7 +41,6 @@ class PartialPayment extends Component
 
     function mount($key = null)
     {
-        $this->sales = [];
         $this->pays = [];
         $this->search = null;
         $this->sale_selected_id = null;
@@ -54,19 +56,24 @@ class PartialPayment extends Component
 
     public function render()
     {
-        $this->getSalesWithDetails();
-        return view('livewire.payments.partial-payment');
+        $sales = $this->getSalesWithDetails();
+        return view('livewire.payments.partial-payment', [
+            'sales' => $sales
+        ]);
     }
 
     public  function getSalesWithDetails()
     {
-        $query = Sale::where(function ($query) {
+        $sales = Sale::where(function ($query) {
             if (!empty(trim($this->search))) {
                 $searchValue = trim($this->search);
                 
                 // Search by Customer Name
                 $query->whereHas('customer', function ($subQuery) use ($searchValue) {
-                    $subQuery->where('name', 'like', "%{$searchValue}%");
+                    $subQuery->where('name', 'like', "%{$searchValue}%")
+                        ->orWhereHas('seller', function ($sellerQuery) use ($searchValue) {
+                            $sellerQuery->where('name', 'like', "%{$searchValue}%");
+                        });
                 });
 
                 // Check if search resembles an Invoice ID
@@ -90,17 +97,15 @@ class PartialPayment extends Component
             })
             ->where('type', 'credit')
             ->where('status', 'pending')
-            ->with(['customer', 'payments', 'returns'])
-            ->take(15)
-            ->orderBy('sales.id', 'desc');
+            ->with(['customer.seller', 'payments', 'returns'])
+            ->orderBy('sales.id', 'desc')
+            ->paginate(5);
 
-        $sales = $query->get();
-        
         // Obtener moneda principal
         $primaryCurrency = Currency::where('is_primary', true)->first();
         
         // Calcular totales correctos
-        $sales->map(function($sale) use ($primaryCurrency) {
+        $sales->getCollection()->transform(function($sale) use ($primaryCurrency) {
             // Calcular total pagado en USD
             $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected'])->sum(function($payment) {
                 $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
@@ -129,12 +134,12 @@ class PartialPayment extends Component
             return $sale;
         });
 
-        if (!empty(trim($this->search))) {
-            $this->search = null;
-            $this->dispatch('clear-search');
-        }
-        
-        $this->sales = $sales;
+        return $sales;
+    }
+
+    public function updatingSearch()
+    {
+        $this->resetPage();
     }
 
     function initPay($sale_id, $customer, $debt)

@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.8.51] - 2026-03-13
+### Added
+- **Abonos Parciales**: Implementada paginación en el listado de ventas pendientes por abonar para mejorar el rendimiento.
+- **Vendedores**: Agregada columna "Vendedor" con distintivo de color identificador en el modal de abonos.
+- **Búsqueda Avanzada**: Habilitada la búsqueda por nombre de vendedor en el modal de abonos.
+- **Notas de Crédito**: Agregada visualización de iconos de Notas de Crédito (devoluciones) con acceso directo al PDF en el modal de abonos y reportes de ventas/cuentas por cobrar.
+
+### Fixed
+- **Estabilidad**: Corregido error de variable indefinida `$sales` al filtrar ventas en el componente de pagos parciales.
+
 ## [1.8.50] - 2026-03-12
 ### Fixed
 - **Fechas de Pago**: Corregida la lógica de registro de fechas en pagos y abonos. Ahora el sistema prioriza y utiliza la fecha seleccionada en el formulario (fecha del voucher) en lugar de la fecha actual del sistema.

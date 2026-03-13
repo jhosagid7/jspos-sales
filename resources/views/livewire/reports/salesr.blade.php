@@ -218,7 +218,17 @@
                                         }
                                     @endphp
                                     <tr class="text-center {{ $sale->deletion_requested_at ? 'table-warning' : '' }}">
-                                        <td>{{ $sale->invoice_number ?? $sale->id }}</td>
+                                        <td>
+                                            {{ $sale->invoice_number ?? $sale->id }}
+                                            @foreach ($sale->returns as $return)
+                                                <a href="{{ route('pos.returns.generateCreditNotePdf', $return->id) }}" 
+                                                   target="_blank" 
+                                                   class="ms-1" 
+                                                   title="Nota de Crédito #{{ $return->id }}">
+                                                    <i class="fas fa-file-invoice text-warning"></i>
+                                                </a>
+                                            @endforeach
+                                        </td>
                                         <td>{{ $sale->customer->name }}</td>
                                         <td>${{ number_format($sale->total_usd, 2) }}</td>
                                         
