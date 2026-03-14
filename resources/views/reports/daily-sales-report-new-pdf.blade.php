@@ -98,7 +98,7 @@
         }
         .desc-text {
             display: inline-block;
-            max-width: 250px;
+            max-width: 350px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -230,14 +230,14 @@
     <table class="table">
         <thead>
             <tr>
-                <th>Documento</th>
-                <th>Descripción</th>
-                <th class="text-right">Monto Neto</th>
-                <th class="text-right">Impuestos</th>
-                <th class="text-right">Contado</th>
-                <th class="text-right">Crédito</th>
-                <th class="text-right">Bolívares</th>
-                <th class="text-right">Divisas</th>
+                <th style="width: 50px;">Documento</th>
+                <th style="width: auto;">Descripción</th>
+                <th style="width: 65px;" class="text-right">Monto Neto</th>
+                <th style="width: 50px;" class="text-right">Impuestos</th>
+                <th style="width: 65px;" class="text-right">Contado</th>
+                <th style="width: 65px;" class="text-right">Crédito</th>
+                <th style="width: 65px;" class="text-right">Bolívares</th>
+                <th style="width: 65px;" class="text-right">Divisas</th>
             </tr>
         </thead>
         <tbody>
@@ -290,8 +290,8 @@
                         <td>
                             <span class="desc-text">{{ strtoupper($sale->customer->name) }} ({{ $sale->customer->taxpayer_id }})</span>
                             @foreach($sale->paymentDetails as $payment)
-                                @if(in_array($payment->method, ['bank', 'zelle', 'deposit']))
-                                     <span class="pay-info"> | {{ $payment->method == 'zelle' ? 'Zelle' : ($payment->bank->name ?? 'Banco') }}: {{ $payment->reference }}</span>
+                                @if(in_array($payment->payment_method, ['bank', 'zelle', 'deposit']))
+                                     <span class="pay-info"> | {{ $payment->payment_method == 'zelle' ? 'Zelle' : ($payment->bank_name ?? 'Banco') }}: {{ $payment->reference_number }} (Tasa: {{ number_format($payment->exchange_rate, 2) }})</span>
                                 @endif
                             @endforeach
                         </td>
