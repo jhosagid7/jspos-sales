@@ -51,7 +51,7 @@
         .table td {
             padding: 2px;
             border-bottom: 1px solid #eee;
-            font-size: 6pt;
+            font-size: 7pt;
             vertical-align: top;
         }
         .customer-header {
@@ -329,7 +329,7 @@
 
                 {{-- Column 3: Signatures --}}
                 <td style="width: 35%; padding-left: 15px; vertical-align: bottom;">
-                    <div style="text-align: center; margin-bottom: 40px;">
+                    <div style="text-align: center; margin-bottom: 80px;">
                         <div style="border-top: 1px solid #000; width: 180px; margin: 0 auto;"></div>
                         <div style="font-size: 7pt; margin-top: 3px;">
                             <strong>ENTREGADO POR</strong><br>

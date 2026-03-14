@@ -1,5 +1,9 @@
 # Changelog
  
+## [1.8.61] - 2026-03-14
+### Changed
+- **Ajustes de Legibilidad en Reporte**: Se aumentó el tamaño de fuente de los registros a 7pt y se incrementó el espacio entre las firmas de "Entregado" y "Recibido" para mayor claridad.
+
 ## [1.8.60] - 2026-03-14
 ### Fixed
 - **Estética de Reporte PDF**: Se reforzó la línea divisoria del "Total Ingreso" en el resumen por categoría para asegurar su visibilidad en la generación del PDF.
