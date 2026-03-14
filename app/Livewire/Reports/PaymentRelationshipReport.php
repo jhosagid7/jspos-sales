@@ -21,6 +21,8 @@ class PaymentRelationshipReport extends Component
     
     public $operators = [], $sellers = [];
     public $selectedSheet = null; // For detail view
+    public $showPdfModal = false;
+    public $pdfUrl = '';
 
     public function searchData()
     {
@@ -282,6 +284,31 @@ class PaymentRelationshipReport extends Component
         return response()->streamDownload(function () use ($pdf) {
             echo $pdf->output();
         }, 'Relacion_Cobros_Nuevo_' . $sheet->sheet_number . '_' . \Carbon\Carbon::now()->format('YmdHis') . '.pdf');
+    }
+
+    public function openPdfPreview()
+    {
+        if (!$this->selectedSheet) return;
+        
+        $params = [
+            'dateFrom' => $this->dateFrom,
+            'dateTo' => $this->dateTo,
+            'operator_id' => $this->operator_id,
+            'seller_id' => $this->seller_id,
+            'batch_name' => $this->batch_name,
+            'zone' => $this->zone,
+            'invoice_from' => $this->invoice_from,
+            'invoice_to' => $this->invoice_to,
+        ];
+
+        $this->pdfUrl = route('reports.collection.relationship.pdf', array_merge(['sheet' => $this->selectedSheet->id], $params));
+        $this->showPdfModal = true;
+    }
+
+    public function closePdfPreview()
+    {
+        $this->showPdfModal = false;
+        $this->pdfUrl = '';
     }
 
     // PDF Generation would need to be updated similarly
