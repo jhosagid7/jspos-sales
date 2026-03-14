@@ -291,6 +291,7 @@ class Customers extends Component
             'days_to' => null,
             'discount_percentage' => 0,
             'rule_type' => 'early_payment',
+            'tag' => '',
             'description' => ''
         ];
     }
@@ -316,6 +317,7 @@ class Customers extends Component
                     'days_to' => $rule->days_to,
                     'discount_percentage' => $rule->discount_percentage,
                     'rule_type' => $rule->rule_type,
+                    'tag' => $rule->tag,
                     'description' => $rule->description
                 ];
             })->toArray();
@@ -345,7 +347,8 @@ class Customers extends Component
                     'days_to' => $rule['days_to'],
                     'discount_percentage' => $rule['discount_percentage'],
                     'rule_type' => $rule['rule_type'],
-                    'description' => $rule['description']
+                    'tag' => $rule['tag'] ?? null,
+                    'description' => $rule['description'] ?? ''
                 ]);
             }
         }

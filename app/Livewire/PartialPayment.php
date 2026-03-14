@@ -415,6 +415,7 @@ class PartialPayment extends Component
                     'discount_applied' => $payment['discount_amount'] ?? 0,
                     'discount_percentage' => $payment['discount_percentage'] ?? 0,
                     'discount_reason' => $payment['discount_reason'] ?? null,
+                    'discount_tag' => $payment['discount_tag'] ?? null,
                     'payment_days' => $payment['days_elapsed'] ?? 0,
                     'rule_type' => $payment['rule_type'] ?? null,
                     'collection_sheet_id' => $collectionSheetId

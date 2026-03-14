@@ -360,10 +360,11 @@
                                                 <tr>
                                                     <th>Desde (días)</th>
                                                     <th>Hasta (días)</th>
-                                                    <th>% Desc/Recargo</th>
-                                                    <th>Tipo</th>
-                                                    <th>Descripción</th>
-                                                    <th>Acciones</th>
+                                                     <th>Monto %</th>
+                                                     <th>Tipo</th>
+                                                     <th>Código</th>
+                                                     <th>Descripción</th>
+                                                     <th>Acciones</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -382,18 +383,23 @@
                                                         <input wire:model="discountRules.{{ $index }}.discount_percentage" 
                                                                type="number" step="0.01" class="form-control form-control-sm">
                                                     </td>
-                                                    <td>
-                                                        <select wire:model="discountRules.{{ $index }}.rule_type" 
-                                                                class="form-select form-select-sm">
-                                                            <option value="early_payment">Pronto Pago</option>
-                                                            <option value="overdue">Mora</option>
-                                                        </select>
-                                                    </td>
-                                                    <td>
-                                                        <input wire:model="discountRules.{{ $index }}.description" 
-                                                               type="text" class="form-control form-control-sm" 
-                                                               placeholder="Ej: Pronto pago 0-5 días">
-                                                    </td>
+                                                                 <td>
+                                                         <select wire:model="discountRules.{{ $index }}.rule_type" 
+                                                                 class="form-select form-select-sm">
+                                                             <option value="early_payment">Pronto Pago</option>
+                                                             <option value="overdue">Mora</option>
+                                                         </select>
+                                                     </td>
+                                                     <td>
+                                                         <input wire:model="discountRules.{{ $index }}.tag" 
+                                                                type="text" class="form-control form-control-sm" 
+                                                                placeholder="Ej: PP">
+                                                     </td>
+                                                     <td>
+                                                         <input wire:model="discountRules.{{ $index }}.description" 
+                                                                type="text" class="form-control form-control-sm" 
+                                                                placeholder="Ej: Pronto pago 0-5 días">
+                                                     </td>
                                                     <td class="text-center">
                                                         <button type="button" class="btn btn-sm btn-danger" 
                                                                 wire:click="removeDiscountRule({{ $index }})">

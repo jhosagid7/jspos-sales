@@ -17,6 +17,7 @@ class CreditDiscountRule extends Model
         'discount_percentage',
         'rule_type',
         'description',
+        'tag',
     ];
 
     protected $casts = [

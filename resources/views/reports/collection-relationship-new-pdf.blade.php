@@ -166,7 +166,11 @@
                     }
 
                     if ($p->discount_applied > 0) {
-                        $description .= " [Desc: $" . number_format($p->discount_applied, 2) . "]";
+                        $tag = $p->discount_tag;
+                        if (!$tag) {
+                            $tag = ($p->rule_type == 'usd_payment' ? 'PD' : 'PP');
+                        }
+                        $description .= " [Desc. {$tag}: $" . number_format($p->discount_applied, 2) . "]";
                     }
 
                     $dateEmit = \Carbon\Carbon::parse($p->sale->created_at);

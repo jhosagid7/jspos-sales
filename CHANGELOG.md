@@ -1,5 +1,14 @@
 # Changelog
  
+## [1.8.57] - 2026-03-14
+### Added
+- **Configuración de Tags de Descuento**: Se añadió un nuevo campo "Código" (Tag) en la configuración de reglas de descuento (Global, por Cliente y por Vendedor).
+- **Identificación de Descuentos en Reportes**: El reporte de Relación de Cobros ahora muestra el código específico del descuento aplicado (ej: "Desc. PP" para Pronto Pago, "Desc. PD" para Pago Divisa) en lugar de un genérico "Desc.".
+
+### Technical
+- **Base de Datos**: Nueva columna `tag` en `credit_discount_rules` y `discount_tag` en `payments`.
+- **Servicios**: Actualización de `CreditConfigService` para calcular y propagar el tag del descuento aplicado.
+
 ## [1.8.56] - 2026-03-14
 ### Fixed
 - **Corrección de Encabezado de Fechas**: Se ajustó el formato de las etiquetas de fecha (Desde/Hasta) y la información de cabecera (Fecha/Hora/Pág) para que coincidan exactamente con la estética del diseño de referencia (formato de dos puntos con espacio y sin negritas).

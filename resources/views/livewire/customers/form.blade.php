@@ -335,6 +335,7 @@
                                                     <th>Hasta (días)</th>
                                                     <th>% Desc/Recargo</th>
                                                     <th>Tipo</th>
+                                                    <th>Código</th>
                                                     <th>Descripción</th>
                                                     <th>Acciones</th>
                                                 </tr>
@@ -361,6 +362,11 @@
                                                             <option value="early_payment">Pronto Pago</option>
                                                             <option value="overdue">Mora</option>
                                                         </select>
+                                                    </td>
+                                                    <td>
+                                                        <input wire:model="discountRules.{{ $index }}.tag" 
+                                                               type="text" class="form-control form-control-sm" 
+                                                               placeholder="Ej: PP">
                                                     </td>
                                                     <td>
                                                         <input wire:model="discountRules.{{ $index }}.description" 

@@ -764,6 +764,7 @@ class PaymentComponent extends Component
                  $this->payments[$lastIndex]['discount_reason'] = $this->adjustment['reason'] ?? 'Pronto Pago';
                  $this->payments[$lastIndex]['days_elapsed'] = $this->adjustment['days'] ?? 0;
                  $this->payments[$lastIndex]['rule_type'] = $this->adjustment['rule_type'] ?? 'early_payment';
+                 $this->payments[$lastIndex]['discount_tag'] = $this->adjustment['tag'] ?? 'PP';
              }
              
              // 2. USD Discount
@@ -783,12 +784,13 @@ class PaymentComponent extends Component
                      $reason = $existingReason . " + " . $reason;
                  }
                  $this->payments[$lastIndex]['discount_reason'] = $reason;
-                 
-                 if (isset($this->payments[$lastIndex]['rule_type'])) {
-                     $this->payments[$lastIndex]['rule_type'] = 'combined'; 
-                 } else {
-                     $this->payments[$lastIndex]['rule_type'] = 'usd_payment';
-                 }
+                                  if (isset($this->payments[$lastIndex]['rule_type']) && $this->payments[$lastIndex]['rule_type'] !== 'usd_payment') {
+                      $this->payments[$lastIndex]['rule_type'] = 'combined'; 
+                      $this->payments[$lastIndex]['discount_tag'] = 'MIX'; // Combined tag
+                  } else {
+                      $this->payments[$lastIndex]['rule_type'] = 'usd_payment';
+                      $this->payments[$lastIndex]['discount_tag'] = $this->usdAdjustment['tag'] ?? 'PD';
+                  }
              }
         }
 

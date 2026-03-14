@@ -786,10 +786,11 @@
                                             <table class="table table-sm table-bordered">
                                                 <thead class="table-light">
                                                     <tr>
-                                                        <th>Desde (días)</th>
-                                                        <th>Hasta (días)</th>
-                                                        <th>% Desc/Recargo</th>
+                                                        <th>Desde</th>
+                                                        <th>Hasta</th>
+                                                        <th>% Desc</th>
                                                         <th>Tipo</th>
+                                                        <th>Código</th>
                                                         <th>Descripción</th>
                                                         <th>Acciones</th>
                                                     </tr>
@@ -816,6 +817,11 @@
                                                                 <option value="early_payment">Pronto Pago</option>
                                                                 <option value="overdue">Mora</option>
                                                             </select>
+                                                        </td>
+                                                        <td>
+                                                            <input wire:model="discountRules.{{ $index }}.tag" 
+                                                                   type="text" class="form-control form-control-sm" 
+                                                                   placeholder="Ej: PP">
                                                         </td>
                                                         <td>
                                                             <input wire:model="discountRules.{{ $index }}.description" 

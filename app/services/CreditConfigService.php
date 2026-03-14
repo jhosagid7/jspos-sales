@@ -125,7 +125,8 @@ class CreditConfigService
                     'percentage' => $rule->discount_percentage,
                     'reason' => $rule->description ?? "Ajuste por {$paymentDays} días",
                     'days' => $paymentDays,
-                    'rule_type' => $rule->rule_type
+                    'rule_type' => $rule->rule_type,
+                    'tag' => $rule->tag ?? null
                 ];
             }
         }
@@ -204,7 +205,8 @@ class CreditConfigService
 
             return [
                 'amount' => round($discountAmount, 2),
-                'percentage' => $creditConfig['usd_payment_discount']
+                'percentage' => $creditConfig['usd_payment_discount'],
+                'tag' => 'PD'
             ];
         }
 
