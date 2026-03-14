@@ -1,5 +1,9 @@
 # Changelog
  
+## [1.8.60] - 2026-03-14
+### Fixed
+- **Estética de Reporte PDF**: Se reforzó la línea divisoria del "Total Ingreso" en el resumen por categoría para asegurar su visibilidad en la generación del PDF.
+
 ## [1.8.59] - 2026-03-14
 ### Changed
 - **Rediseño de Pie de Reporte**: Se reorganizó el pie de página de la Relación de Cobros en 3 columnas (Resumen por Categoría, Detalle por Moneda y Firmas) para evitar solapamientos y ahorrar espacio.

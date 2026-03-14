@@ -302,8 +302,8 @@
                             @endif
                         @endforeach
                         <tr style="border-top: 1px solid #000;">
-                            <td class="summary-label" style="font-size: 7pt;">Total Ingreso:</td>
-                            <td class="text-right" style="font-weight: bold; font-size: 8pt;">{{ number_format($grandTotalIngreso, 4) }}</td>
+                            <td class="summary-label" style="font-size: 7pt; border-top: 1px solid #000;">Total Ingreso:</td>
+                            <td class="text-right" style="font-weight: bold; font-size: 8pt; border-top: 1px solid #000;">{{ number_format($grandTotalIngreso, 4) }}</td>
                         </tr>
                     </table>
                 </td>
