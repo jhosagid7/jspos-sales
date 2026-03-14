@@ -198,7 +198,7 @@
                             <td class="summary-label">Total de Facturas Eliminadas :</td>
                             <td class="summary-value">{{ number_format($totalDeleted ?? 0, 4) }}</td>
                         </tr>
-                        <tr style="border-top: 1px solid #eee;">
+                        <tr style="border-top: 1.5pt solid #000;">
                             <td class="summary-label">Total :</td>
                             <td class="summary-value">{{ number_format($summary['total_bruto'], 4) }}</td>
                         </tr>
@@ -215,7 +215,7 @@
                             <td class="summary-label">Total Divisas Pasado a USD :</td>
                             <td class="summary-value">{{ number_format($summary['total_divisa'], 4) }}</td>
                         </tr>
-                        <tr style="border-top: 1px solid #eee;">
+                        <tr style="border-top: 1.5pt solid #000;">
                             <td class="summary-label">Total Ingresos :</td>
                             <td class="summary-value">{{ number_format($summary['total_contado'], 4) }}</td>
                         </tr>
@@ -393,7 +393,7 @@
     <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
         <tr>
             {{-- Column 1: Income Breakdown (USD) --}}
-            <td style="width: 35%; vertical-align: top;">
+            <td style="width: 30%; vertical-align: top;">
                 <table style="width: 100%; font-size: 7.5pt;">
                     @php $grandTotalIncomeUSD = 0; @endphp
                     @foreach($totalsByCategory as $category => $total)
@@ -405,7 +405,7 @@
                         @php $grandTotalIncomeUSD += $total; @endphp
                         @endif
                     @endforeach
-                    <tr style="border-top: 1px solid #000; font-weight: bold;">
+                    <tr style="border-top: 1.5pt solid #000; font-weight: bold;">
                         <td style="padding-top: 3px;">Total Ingreso:</td>
                         <td class="text-right" style="padding: 3px 5px;">{{ number_format($grandTotalIncomeUSD, 4) }}</td>
                     </tr>
@@ -430,17 +430,21 @@
             </td>
 
             {{-- Column 3: Signatures --}}
-            <td style="width: 35%; vertical-align: top; text-align: right; padding-left: 20px;">
-                <div style="margin-top: 10px;">
-                    <div style="border-top: 1px solid #000; width: 180px; margin-left: auto; text-align: center; font-size: 7.5pt;">
-                        <strong>ENTREGADO POR</strong><br>(OPERADOR)
-                    </div>
-                </div>
-                <div style="margin-top: 40px;">
-                    <div style="border-top: 1px solid #000; width: 180px; margin-left: auto; text-align: center; font-size: 7.5pt;">
-                        <strong>RECIBIDO POR</strong>
-                    </div>
-                </div>
+            <td style="width: 40%; vertical-align: bottom; padding-left: 10px;">
+                <table style="width: 100%;">
+                    <tr>
+                        <td style="text-align: center; width: 50%;">
+                            <div style="border-top: 1px solid #000; width: 110px; margin: 0 auto; font-size: 7.5pt; padding-top: 5px;">
+                                <strong>ENTREGADO POR</strong><br>(OPERADOR)
+                            </div>
+                        </td>
+                        <td style="text-align: center; width: 50%;">
+                            <div style="border-top: 1px solid #000; width: 110px; margin: 0 auto; font-size: 7.5pt; padding-top: 5px;">
+                                <strong>RECIBIDO POR</strong>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
             </td>
         </tr>
     </table>

@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.8.66] - 2026-03-14
+### Fixed
+- **Estética del Reporte**: Se reforzaron las líneas divisorias en los totales de los cuadros de resumen (ahora en color negro sólido).
+- **Firmas**: Se reorganizó la sección de firmas para que aparezcan una al lado de la otra, optimizando el espacio al final del reporte.
+
 ## [1.8.65] - 2026-03-14
 ### Added
 - **Trazabilidad en Devoluciones**: Se añadieron las columnas "Solicitante", "Aprobador" y "Motivo" a la tabla de Notas de Crédito, garantizando el mismo nivel de control que en las facturas eliminadas.
