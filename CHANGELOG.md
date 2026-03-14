@@ -1,5 +1,11 @@
 # Changelog
  
+## [1.8.59] - 2026-03-14
+### Changed
+- **Rediseño de Pie de Reporte**: Se reorganizó el pie de página de la Relación de Cobros en 3 columnas (Resumen por Categoría, Detalle por Moneda y Firmas) para evitar solapamientos y ahorrar espacio.
+- **Doble Firma**: Se añadieron los bloques de firma para "Entregado por (Operador)" y "Recibido por".
+- **Optimización de Papel**: Se redujo el tamaño de fuente en los registros de pago de 7pt a 6pt para compactar la información.
+
 ## [1.8.58] - 2026-03-14
 ### Added
 - **Tag Personalizable para Pago Divisa**: Ahora puedes configurar el código (Tag) para el descuento por pago en USD (ej. "PD") directamente en la configuración global, por cliente o por vendedor.

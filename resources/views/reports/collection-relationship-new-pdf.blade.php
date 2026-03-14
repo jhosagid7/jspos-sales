@@ -49,9 +49,9 @@
             font-size: 7pt;
         }
         .table td {
-            padding: 3px;
+            padding: 2px;
             border-bottom: 1px solid #eee;
-            font-size: 7pt;
+            font-size: 6pt;
             vertical-align: top;
         }
         .customer-header {
@@ -77,8 +77,7 @@
             vertical-align: top;
         }
         .summary-box {
-            width: 250px;
-            float: left;
+            width: 100%;
         }
         .summary-box table {
             width: 100%;
@@ -286,49 +285,67 @@
     </table>
 
     <div class="footer-totals">
-        <div class="summary-box">
-            <table class="table-bordered">
-                @foreach($totalsByCategory as $label => $total)
-                    @php
-                        // Show all cash/bank/NC categories even if 0 to match layout, hide others if 0
-                        $isConfigured = !str_contains($label, 'OTROS');
-                    @endphp
-                    @if($total > 0 || $isConfigured)
-                        <tr>
-                            <td class="summary-label">{{ $label }}:</td>
-                            <td class="text-right">{{ number_format($total, 4) }}</td>
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+                {{-- Column 1: Income Categories --}}
+                <td style="width: 35%; padding-right: 15px;">
+                    <table class="table-bordered" style="width: 100%;">
+                        @foreach($totalsByCategory as $label => $total)
+                            @php
+                                $isConfigured = !str_contains($label, 'OTROS');
+                            @endphp
+                            @if($total > 0 || $isConfigured)
+                                <tr>
+                                    <td class="summary-label" style="font-size: 7pt;">{{ $label }}:</td>
+                                    <td class="text-right" style="font-size: 8pt;">{{ number_format($total, 4) }}</td>
+                                </tr>
+                            @endif
+                        @endforeach
+                        <tr style="border-top: 1px solid #000;">
+                            <td class="summary-label" style="font-size: 7pt;">Total Ingreso:</td>
+                            <td class="text-right" style="font-weight: bold; font-size: 8pt;">{{ number_format($grandTotalIngreso, 4) }}</td>
                         </tr>
-                    @endif
-                @endforeach
-                <tr style="border-top: 1px solid #000;">
-                    <td class="summary-label">Total Ingreso:</td>
-                    <td class="text-right" style="font-weight: bold;">{{ number_format($grandTotalIngreso, 4) }}</td>
-                </tr>
-            </table>
-        </div>
-        
-        <div class="summary-box" style="margin-left: 20px;">
-            <table class="table-bordered">
-                <thead>
-                    <tr style="background-color: #eee;">
-                        <th colspan="2" class="text-center">Detalle por Moneda</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($totalsByCurrency as $curr => $amt)
-                        <tr>
-                            <td class="summary-label">Total {{ $curr }}:</td>
-                            <td class="text-right">{{ number_format($amt, 2) }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-        
-        <div style="float: right; width: 250px; text-align: center; margin-top: 50px;">
-            <div style="border-top: 1px solid #000; width: 200px; margin: 0 auto;"></div>
-            Firma Autorizada
-        </div>
+                    </table>
+                </td>
+
+                {{-- Column 2: Detalle por Moneda --}}
+                <td style="width: 30%; padding: 0 15px; vertical-align: top;">
+                    <table class="table-bordered" style="width: 100%;">
+                        <thead>
+                            <tr style="background-color: #eee;">
+                                <th colspan="2" class="text-center" style="font-size: 7pt; padding: 2px;">Detalle por Moneda</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($totalsByCurrency as $curr => $amt)
+                                <tr>
+                                    <td class="summary-label" style="font-size: 7pt;">Total {{ $curr }}:</td>
+                                    <td class="text-right" style="font-size: 8pt;">{{ number_format($amt, 2) }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </td>
+
+                {{-- Column 3: Signatures --}}
+                <td style="width: 35%; padding-left: 15px; vertical-align: bottom;">
+                    <div style="text-align: center; margin-bottom: 40px;">
+                        <div style="border-top: 1px solid #000; width: 180px; margin: 0 auto;"></div>
+                        <div style="font-size: 7pt; margin-top: 3px;">
+                            <strong>ENTREGADO POR</strong><br>
+                            (OPERADOR)
+                        </div>
+                    </div>
+
+                    <div style="text-align: center;">
+                        <div style="border-top: 1px solid #000; width: 180px; margin: 0 auto;"></div>
+                        <div style="font-size: 7pt; margin-top: 3px;">
+                            <strong>RECIBIDO POR</strong>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </table>
     </div>
 
 </body>
