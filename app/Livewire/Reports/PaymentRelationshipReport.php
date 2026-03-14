@@ -273,8 +273,9 @@ class PaymentRelationshipReport extends Component
             $totalsByCurrency[$currencyCode] = $payments->where('currency', $currencyCode)->sum('amount');
         }
 
-        $dateFrom = $this->dateFrom;
-        $dateTo = $this->dateTo;
+        // Use component filters if present, otherwise fallback to the sheet's opening date
+        $dateFrom = $this->dateFrom ?: $sheet->opened_at;
+        $dateTo = $this->dateTo ?: $sheet->opened_at;
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.collection-relationship-new-pdf', compact('sheet', 'payments', 'returns', 'config', 'user', 'date', 'totalsByCategory', 'totalsByCurrency', 'dateFrom', 'dateTo'));
         

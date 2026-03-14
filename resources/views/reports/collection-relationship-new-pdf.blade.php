@@ -118,23 +118,23 @@
             </td>
             <td class="report-info">
                 <p>
-                    <strong>Fecha:</strong> {{ \Carbon\Carbon::parse($sheet->opened_at)->format('d/m/Y') }}<br>
-                    <strong>Hora:</strong> {{ \Carbon\Carbon::parse($sheet->opened_at)->format('h:i a') }}<br>
-                    <strong>Pág:</strong> 1
+                    Fecha : {{ \Carbon\Carbon::parse($sheet->opened_at)->format('d/m/Y') }}<br>
+                    Hora : {{ \Carbon\Carbon::parse($sheet->opened_at)->format('h:i a') }}<br>
+                    Pág : 1
                 </p>
             </td>
         </tr>
     </table>
 
-    <div class="report-title">Relación de Cobros</div>
+    <div class="report-title">RELACIÓN DE COBROS</div>
     
-    <div style="margin-bottom: 15px;">
-        <strong>Activo:</strong> Todos<br>
-        <strong>Monedas:</strong> Dólares<br>
-        <strong>Fecha Desde:</strong> {{ \Carbon\Carbon::parse($dateFrom)->format('d/m/Y') }}<br>
-        <strong>Fecha Hasta:</strong> {{ \Carbon\Carbon::parse($dateTo)->format('d/m/Y') }}<br>
-        <strong>Planilla:</strong> {{ $sheet->sheet_number }}<br>
-        <strong>Usuario:</strong> {{ $user->name }}
+    <div style="margin-bottom: 15px; font-size: 9pt; line-height: 1.4;">
+        Activo : Todos<br>
+        Monedas : Dólares<br>
+        Fecha Desde : {{ \Carbon\Carbon::parse($dateFrom)->format('d/m/Y') }}<br>
+        Fecha Hasta : {{ \Carbon\Carbon::parse($dateTo)->format('d/m/Y') }}<br>
+        Planilla : {{ $sheet->sheet_number }}<br>
+        Usuario : {{ $user->name }}
     </div>
 
     <table class="table">

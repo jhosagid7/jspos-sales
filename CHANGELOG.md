@@ -1,5 +1,10 @@
 # Changelog
  
+## [1.8.56] - 2026-03-14
+### Fixed
+- **Corrección de Encabezado de Fechas**: Se ajustó el formato de las etiquetas de fecha (Desde/Hasta) y la información de cabecera (Fecha/Hora/Pág) para que coincidan exactamente con la estética del diseño de referencia (formato de dos puntos con espacio y sin negritas).
+- **Lógica de Fechas en PDF**: Se implementó una lógica de respaldo para que, en caso de no haber un filtro activo, el reporte muestre automáticamente la fecha de apertura de la planilla de cobro.
+
 ## [1.8.55] - 2026-03-13
 ### Changed
 - **Optimización de Reporte PDF**:
