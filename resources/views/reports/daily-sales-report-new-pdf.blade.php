@@ -163,7 +163,8 @@
             Fecha : {{ \Carbon\Carbon::now()->format('d/m/Y') }}
         @endif
         <br>
-        Moneda de Referencia : Dólares
+        Moneda de Referencia : Dólares<br>
+        Operador : {{ strtoupper($user->name ?? 'N/A') }}
     </div>
 
 

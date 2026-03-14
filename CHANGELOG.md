@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.67] - 2026-03-14
+### Added
+- **Identificación del Operador**: Se añadió el nombre del operador que genera el reporte en el encabezado, debajo del periodo y la moneda de referencia.
+
 ## [1.8.66] - 2026-03-14
 ### Fixed
 - **Estética del Reporte**: Se reforzaron las líneas divisorias en los totales de los cuadros de resumen (ahora en color negro sólido).
