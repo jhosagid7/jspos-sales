@@ -29,6 +29,9 @@ class DailySalesReport extends Component
     public $includeDetails = false;
     public $groupBy = 'none';
 
+    public $showPdfModal = false;
+    public $pdfUrl = '';
+
     function mount()
     {
         session()->forget('daily_sale_customer');
@@ -174,13 +177,12 @@ class DailySalesReport extends Component
     {
         $dFrom = null;
         $dTo = null;
-        
         if($this->dateFrom && $this->dateTo) {
             $dFrom = Carbon::parse($this->dateFrom)->startOfDay();
             $dTo = Carbon::parse($this->dateTo)->endOfDay();
         }
 
-        $sales = Sale::with(['customer', 'details', 'user', 'paymentDetails', 'changeDetails'])
+        $sales = Sale::with(['customer', 'details', 'user', 'paymentDetails'])
             ->when($this->searchFolio, function($q) {
                 $q->where('id', 'like', "%{$this->searchFolio}%")
                   ->orWhere('invoice_number', 'like', "%{$this->searchFolio}%");
@@ -188,10 +190,10 @@ class DailySalesReport extends Component
             ->when($dFrom && $dTo && !$this->searchFolio, function($q) use ($dFrom, $dTo) {
                 $q->whereBetween('created_at', [$dFrom, $dTo]);
             })
-            ->when($this->user_id != null, function ($query) {
+            ->when($this->user_id != null && $this->user_id != 0, function ($query) {
                 $query->where('user_id', $this->user_id);
             })
-            ->when($this->seller_id != null, function ($query) {
+            ->when($this->seller_id != null && $this->seller_id != 0, function ($query) {
                 $query->whereHas('customer', function($q) {
                     $q->where('seller_id', $this->seller_id);
                 });
@@ -207,129 +209,168 @@ class DailySalesReport extends Component
             ->get();
 
         $data = [];
-        $totalNeto = 0;
-        $totalCredit = 0;
-        $totalPaidPerCurrency = [];
-
-        foreach($this->currencies as $currency) {
-            $totalPaidPerCurrency[$currency->code] = 0;
-        }
-
         if ($this->groupBy == 'none') {
-            $data['ALL'] = [
-                'name' => 'TODOS',
-                'sales' => $sales,
-                'total_usd' => $sales->sum('total_usd')
-            ];
+            $data['ALL'] = ['name' => 'TODOS', 'sales' => $sales, 'total_usd' => $sales->sum('total_usd')];
         } else {
             foreach ($sales as $sale) {
-                $key = '';
-                $name = '';
-
+                $key = ''; $name = '';
                 if ($this->groupBy == 'customer_id') {
-                    $key = $sale->customer_id;
-                    $name = $sale->customer->name;
+                    $key = $sale->customer_id; $name = $sale->customer->name;
                 } elseif ($this->groupBy == 'user_id') {
-                    $key = $sale->user_id;
-                    $name = $sale->user->name;
+                    $key = $sale->user_id; $name = $sale->user->name;
                 } elseif ($this->groupBy == 'seller_id') {
                     $key = $sale->customer->seller_id ?? 'NA';
                     $name = $sale->customer->seller->name ?? 'SIN VENDEDOR';
                 } elseif ($this->groupBy == 'date') {
-                    $key = $sale->created_at->format('Y-m-d');
-                    $name = $sale->created_at->format('d/m/Y');
+                    $key = $sale->created_at->format('Y-m-d'); $name = $sale->created_at->format('d/m/Y');
                 }
-
-                if (!isset($data[$key])) {
-                    $data[$key] = [
-                        'name' => $name,
-                        'sales' => [],
-                        'total_usd' => 0
-                    ];
-                }
-                
+                if (!isset($data[$key])) { $data[$key] = ['name' => $name, 'sales' => [], 'total_usd' => 0]; }
                 $data[$key]['sales'][] = $sale;
                 $data[$key]['total_usd'] += $sale->total_usd;
             }
         }
 
-        // Calculate Grand Totals for Columns
-        $totalNeto = 0;
-        $totalCredit = 0;
-        $totalPaidPerCurrency = [];
-        $totalPaidPerBank = [];
+        $banks = \App\Models\Bank::all();
+        $totalsByCategory = [];
+        foreach($this->currencies as $c) { $totalsByCategory["EFECTIVO " . strtoupper($c->code)] = 0; }
+        foreach($banks as $b) { $totalsByCategory[strtoupper($b->name)] = 0; }
+        $totalsByCategory['ZELLE'] = 0;
+        $totalsByCategory['NOTAS DE CREDITO (NC)'] = 0;
+
+        $totalsByCurrency = [];
+        foreach($this->currencies as $c) { $totalsByCurrency[$c->code] = 0; }
+
+        // Calculate NC from returns in the period
+        $returns = \App\Models\SaleReturn::with('sale')
+            ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
+                $q->whereBetween('created_at', [$dFrom, $dTo]);
+            })
+            ->get();
         
-        $banks = \App\Models\Bank::orderBy('name')->get();
-
-        foreach($this->currencies as $currency) {
-            $totalPaidPerCurrency[$currency->code] = 0;
-        }
-        foreach($banks as $bank) {
-            $totalPaidPerBank[$bank->id] = 0;
+        foreach($returns as $r) {
+            $rate = ($r->sale && $r->sale->primary_exchange_rate > 0) ? $r->sale->primary_exchange_rate : 1;
+            $totalsByCategory['NOTAS DE CREDITO (NC)'] += ($r->total_returned / $rate);
         }
 
-        $totalPaidPerCurrencySummarized = [];
-        foreach($this->currencies as $currency) {
-            $totalPaidPerCurrencySummarized[$currency->code] = 0;
-        }
+        // Fetch Deleted Sales
+        $deletedSales = Sale::with(['customer', 'user', 'requester', 'approver'])
+            ->whereNotNull('deletion_approved_at')
+            ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
+                $q->whereBetween('deletion_approved_at', [$dFrom, $dTo]);
+            })
+            ->when($this->user_id && $this->user_id != 0, function ($query) {
+                $query->where('user_id', $this->user_id);
+            })
+            ->get();
+
+        $summary = [
+            'total_bruto' => 0,
+            'total_flete' => 0,
+            'total_contado' => 0,
+            'total_credito' => 0,
+            'total_count' => $sales->count(),
+            'total_ved' => 0,
+            'total_divisa' => 0
+        ];
 
         foreach ($sales as $sale) {
-            $totalNeto += $sale->total_usd;
+            $summary['total_bruto'] += $sale->total_usd;
+            $summary['total_flete'] += $sale->total_freight ?? 0;
             
-            $totalPaidUSD = 0;
+            $salePaidUSD = 0;
             foreach($sale->paymentDetails as $payment) {
-                if($payment->method == 'bank' && $payment->bank_id) {
-                    if(isset($totalPaidPerBank[$payment->bank_id])) {
-                        $totalPaidPerBank[$payment->bank_id] += $payment->amount;
-                    }
-                } elseif(isset($totalPaidPerCurrency[$payment->currency_code])) {
-                    $totalPaidPerCurrency[$payment->currency_code] += $payment->amount;
+                $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
+                $amtUSD = $payment->amount / $rate;
+                $salePaidUSD += $amtUSD;
+                
+                if(isset($totalsByCurrency[$payment->currency_code])) {
+                    $totalsByCurrency[$payment->currency_code] += $payment->amount;
                 }
 
-                // Summarized Total (All payments by currency)
-                if(isset($totalPaidPerCurrencySummarized[$payment->currency_code])) {
-                    $totalPaidPerCurrencySummarized[$payment->currency_code] += $payment->amount;
+                if ($payment->method == 'bank' || $payment->method == 'deposit') {
+                    $bankName = $payment->bank ? strtoupper($payment->bank->name) : 'BANCO';
+                    $totalsByCategory[$bankName] = ($totalsByCategory[$bankName] ?? 0) + $amtUSD;
+                } elseif ($payment->method == 'zelle') {
+                    $totalsByCategory['ZELLE'] += $amtUSD;
+                } else {
+                    $key = "EFECTIVO " . strtoupper($payment->currency_code);
+                    $totalsByCategory[$key] = ($totalsByCategory[$key] ?? 0) + $amtUSD;
                 }
 
-                 $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
-                $totalPaidUSD += ($payment->amount / $rate);
+                if($payment->currency_code == 'VED' || $payment->currency_code == 'VES') {
+                    $summary['total_ved'] += $amtUSD;
+                } else {
+                    $summary['total_divisa'] += $amtUSD;
+                }
             }
             
             if($sale->paymentDetails->count() == 0 && $sale->type == 'cash') {
-                $code = $sale->primary_currency_code ?? 'VED';
-                 if(isset($totalPaidPerCurrency[$code])) {
-                    $totalPaidPerCurrency[$code] += $sale->cash;
+                $code = $sale->primary_currency_code ?? 'USD';
+                $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                $amtUSD = $sale->cash / $rate;
+                $salePaidUSD += $amtUSD;
+                
+                if(isset($totalsByCurrency[$code])) { $totalsByCurrency[$code] += $sale->cash; }
+                $key = "EFECTIVO " . strtoupper($code);
+                $totalsByCategory[$key] = ($totalsByCategory[$key] ?? 0) + $amtUSD;
+
+                if($code == 'VED' || $code == 'VES') {
+                    $summary['total_ved'] += $amtUSD;
+                } else {
+                    $summary['total_divisa'] += $amtUSD;
                 }
-                if(isset($totalPaidPerCurrencySummarized[$code])) {
-                    $totalPaidPerCurrencySummarized[$code] += $sale->cash;
-                }
-                 $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
-                $totalPaidUSD += ($sale->cash / $rate);
             }
-            
-             if($sale->status != 'paid' && $sale->status != 'returned') {
-                $totalCredit += max(0, $sale->total_usd - $totalPaidUSD);
+
+            $summary['total_contado'] += $salePaidUSD;
+            if($sale->status != 'paid') {
+                $summary['total_credito'] += max(0, $sale->total_usd - $salePaidUSD);
             }
         }
 
-        $pdf = Pdf::loadView('reports.daily-sales-report-pdf', [
+        $config = \App\Models\Configuration::first();
+        $user = auth()->user();
+
+        $pdf = Pdf::loadView('reports.daily-sales-report-new-pdf', [
             'data' => $data,
-            'currencies' => $this->currencies,
-            'banks' => $banks,
+            'summary' => $summary,
+            'returns' => $returns,
+            'deletedSales' => $deletedSales,
+            'totalsByCategory' => $totalsByCategory,
+            'totalsByCurrency' => $totalsByCurrency,
+            'config' => $config,
+            'user' => $user,
             'dateFrom' => $this->dateFrom,
             'dateTo' => $this->dateTo,
-            'groupBy' => $this->groupBy,
-            'totalNeto' => $totalNeto,
-            'totalCredit' => $totalCredit,
-            'totalPaidPerCurrency' => $totalPaidPerCurrency,
-            'totalPaidPerCurrencySummarized' => $totalPaidPerCurrencySummarized,
-            'totalPaidPerBank' => $totalPaidPerBank,
-            'reportFormat' => $this->reportFormat,
-            'includeDetails' => $this->includeDetails
+            'groupBy' => $this->groupBy
         ])->setPaper('a4', 'landscape');
 
         return response()->streamDownload(function () use ($pdf) {
             echo $pdf->output();
         }, 'Reporte_Ventas_Diarias.pdf');
+    }
+
+    public function openPdfPreview()
+    {
+        $params = [
+            'dateFrom' => $this->dateFrom,
+            'dateTo' => $this->dateTo,
+            'user_id' => $this->user_id,
+            'seller_id' => $this->seller_id,
+            'customer_id' => $this->customer ? $this->customer['id'] : null,
+            'type' => $this->type,
+            'searchFolio' => $this->searchFolio,
+            'reportFormat' => $this->reportFormat,
+            'includeDetails' => $this->includeDetails,
+            'groupBy' => $this->groupBy,
+        ];
+
+        $this->pdfUrl = route('reports.daily.sales.pdf', $params);
+        $this->showPdfModal = true;
+    }
+
+    public function closePdfPreview()
+    {
+        $this->showPdfModal = false;
+        $this->pdfUrl = '';
     }
 }

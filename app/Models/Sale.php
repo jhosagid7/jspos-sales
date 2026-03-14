@@ -168,6 +168,16 @@ class Sale extends Model
         return $this->belongsTo(User::class, 'driver_id');
     }
 
+    public function requester()
+    {
+        return $this->belongsTo(User::class, 'deletion_requested_by');
+    }
+
+    public function approver()
+    {
+        return $this->belongsTo(User::class, 'deletion_approved_by');
+    }
+
     public function deliveryLocations()
     {
         return $this->hasMany(DeliveryLocation::class);

@@ -102,4 +102,193 @@ class ReportController extends Controller
         
         return $pdf->stream('Relacion_Cobros_' . $sheet->sheet_number . '.pdf');
     }
+
+    public function dailySalesPdf(Request $request)
+    {
+        $dateFrom = $request->get('dateFrom');
+        $dateTo = $request->get('dateTo');
+        $user_id = $request->get('user_id');
+        $seller_id = $request->get('seller_id');
+        $customer_id = $request->get('customer_id');
+        $type = $request->get('type', 0);
+        $searchFolio = $request->get('searchFolio');
+        $groupBy = $request->get('groupBy', 'none');
+
+        $dFrom = null;
+        $dTo = null;
+        $dFrom = null; $dTo = null;
+        if($dateFrom && $dateTo) {
+            $dFrom = \Carbon\Carbon::parse($dateFrom)->startOfDay();
+            $dTo = \Carbon\Carbon::parse($dateTo)->endOfDay();
+        }
+
+        $sales = \App\Models\Sale::with(['customer', 'details', 'user', 'paymentDetails'])
+            ->when($searchFolio, function($q) use ($searchFolio) {
+                $q->where('id', 'like', "%{$searchFolio}%")
+                  ->orWhere('invoice_number', 'like', "%{$searchFolio}%");
+            })
+            ->when($dFrom && $dTo && !$searchFolio, function($q) use ($dFrom, $dTo) {
+                $q->whereBetween('created_at', [$dFrom, $dTo]);
+            })
+            ->when($user_id != null && $user_id != 0, function ($query) use ($user_id) {
+                $query->where('user_id', $user_id);
+            })
+            ->when($seller_id != null && $seller_id != 0, function ($query) use ($seller_id) {
+                $query->whereHas('customer', function($q) use ($seller_id) {
+                    $q->where('seller_id', $seller_id);
+                });
+            })
+            ->when($customer_id != null, function ($query) use ($customer_id) {
+                $query->where('customer_id', $customer_id);
+            })
+            ->when($type != 0, function ($qry) use ($type) {
+                $qry->where('type', $type);
+            })
+            ->where('status', '<>', 'returned')
+            ->orderBy('id', 'desc')
+            ->get();
+
+        $data = [];
+        if ($groupBy == 'none') {
+            $data['ALL'] = ['name' => 'TODOS', 'sales' => $sales, 'total_usd' => $sales->sum('total_usd')];
+        } else {
+            foreach ($sales as $sale) {
+                $key = ''; $name = '';
+                if ($groupBy == 'customer_id') {
+                    $key = $sale->customer_id; $name = $sale->customer->name;
+                } elseif ($groupBy == 'user_id') {
+                    $key = $sale->user_id; $name = $sale->user->name;
+                } elseif ($groupBy == 'seller_id') {
+                    $key = $sale->customer->seller_id ?? 'NA';
+                    $name = $sale->customer->seller->name ?? 'SIN VENDEDOR';
+                } elseif ($groupBy == 'date') {
+                    $key = $sale->created_at->format('Y-m-d'); $name = $sale->created_at->format('d/m/Y');
+                }
+                if (!isset($data[$key])) { $data[$key] = ['name' => $name, 'sales' => [], 'total_usd' => 0]; }
+                $data[$key]['sales'][] = $sale;
+                $data[$key]['total_usd'] += $sale->total_usd;
+            }
+        }
+
+        $currencies = \App\Models\Currency::all();
+        $banks = \App\Models\Bank::all();
+        
+        $totalsByCategory = [];
+        foreach($currencies as $c) { $totalsByCategory["EFECTIVO " . strtoupper($c->code)] = 0; }
+        foreach($banks as $b) { $totalsByCategory[strtoupper($b->name)] = 0; }
+        $totalsByCategory['ZELLE'] = 0;
+        $totalsByCategory['NOTAS DE CREDITO (NC)'] = 0;
+
+        $totalsByCurrency = [];
+        foreach($currencies as $c) { $totalsByCurrency[$c->code] = 0; }
+
+        // Calculate NC from returns in the period
+        $returns = \App\Models\SaleReturn::with('sale')
+            ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
+                $q->whereBetween('created_at', [$dFrom, $dTo]);
+            })
+            ->when($user_id && $user_id != 0, function ($query) use ($user_id) {
+                $query->where('user_id', $user_id);
+            })
+            ->get();
+        
+        foreach($returns as $r) {
+            $rate = ($r->sale && $r->sale->primary_exchange_rate > 0) ? $r->sale->primary_exchange_rate : 1;
+            $totalsByCategory['NOTAS DE CREDITO (NC)'] += ($r->total_returned / $rate);
+        }
+
+        // Fetch Deleted Sales
+        $deletedSales = \App\Models\Sale::with(['customer', 'user', 'requester', 'approver'])
+            ->whereNotNull('deletion_approved_at')
+            ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
+                $q->whereBetween('deletion_approved_at', [$dFrom, $dTo]);
+            })
+            ->when($user_id && $user_id != 0, function ($query) use ($user_id) {
+                $query->where('user_id', $user_id);
+            })
+            ->get();
+
+        $summary = [
+            'total_bruto' => 0,
+            'total_flete' => 0,
+            'total_contado' => 0,
+            'total_credito' => 0,
+            'total_count' => $sales->count(),
+            'total_ved' => 0,
+            'total_divisa' => 0
+        ];
+
+        foreach ($sales as $sale) {
+            $summary['total_bruto'] += $sale->total_usd;
+            $summary['total_flete'] += $sale->total_freight ?? 0;
+            
+            $salePaidUSD = 0;
+            foreach($sale->paymentDetails as $payment) {
+                $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
+                $amtUSD = $payment->amount / $rate;
+                $salePaidUSD += $amtUSD;
+                
+                if(isset($totalsByCurrency[$payment->currency_code])) {
+                    $totalsByCurrency[$payment->currency_code] += $payment->amount;
+                }
+
+                if ($payment->method == 'bank' || $payment->method == 'deposit') {
+                    $bankName = $payment->bank ? strtoupper($payment->bank->name) : 'BANCO';
+                    $totalsByCategory[$bankName] = ($totalsByCategory[$bankName] ?? 0) + $amtUSD;
+                } elseif ($payment->method == 'zelle') {
+                    $totalsByCategory['ZELLE'] += $amtUSD;
+                } else {
+                    $key = "EFECTIVO " . strtoupper($payment->currency_code);
+                    $totalsByCategory[$key] = ($totalsByCategory[$key] ?? 0) + $amtUSD;
+                }
+
+                if($payment->currency_code == 'VED' || $payment->currency_code == 'VES') {
+                    $summary['total_ved'] += $amtUSD;
+                } else {
+                    $summary['total_divisa'] += $amtUSD;
+                }
+            }
+            
+            if($sale->paymentDetails->count() == 0 && $sale->type == 'cash') {
+                $code = $sale->primary_currency_code ?? 'USD';
+                $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                $amtUSD = $sale->cash / $rate;
+                $salePaidUSD += $amtUSD;
+                
+                if(isset($totalsByCurrency[$code])) { $totalsByCurrency[$code] += $sale->cash; }
+                $key = "EFECTIVO " . strtoupper($code);
+                $totalsByCategory[$key] = ($totalsByCategory[$key] ?? 0) + $amtUSD;
+
+                if($code == 'VED' || $code == 'VES') {
+                    $summary['total_ved'] += $amtUSD;
+                } else {
+                    $summary['total_divisa'] += $amtUSD;
+                }
+            }
+
+            $summary['total_contado'] += $salePaidUSD;
+            if($sale->status != 'paid') {
+                $summary['total_credito'] += max(0, $sale->total_usd - $salePaidUSD);
+            }
+        }
+
+        $config = \App\Models\Configuration::first();
+        $user = auth()->user();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.daily-sales-report-new-pdf', [
+            'data' => $data,
+            'summary' => $summary,
+            'returns' => $returns,
+            'deletedSales' => $deletedSales,
+            'totalsByCategory' => $totalsByCategory,
+            'totalsByCurrency' => $totalsByCurrency,
+            'config' => $config,
+            'user' => $user,
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+            'groupBy' => $groupBy
+        ])->setPaper('a4', 'landscape');
+
+        return $pdf->stream('Reporte_Ventas_Diarias.pdf');
+    }
 }
