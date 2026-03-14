@@ -1,5 +1,9 @@
 # Changelog
  
+## [1.8.62] - 2026-03-14
+### Added
+- **Visor de PDF Integrado (Modal)**: Se implementó un previsualizador de PDF que se abre en una ventana modal dentro del sistema, permitiendo revisar la Relación de Cobros antes de imprimir o descargar.
+
 ## [1.8.61] - 2026-03-14
 ### Changed
 - **Ajustes de Legibilidad en Reporte**: Se aumentó el tamaño de fuente de los registros a 7pt y se incrementó el espacio entre las firmas de "Entregado" y "Recibido" para mayor claridad.
