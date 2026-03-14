@@ -1,4 +1,13 @@
 # Changelog
+
+## [1.8.63] - 2026-03-14
+### Changed
+- **Optimización de Reporte de Ventas Diarias**: Se rediseñó el layout del PDF para hacerlo más compacto, permitiendo ahorrar papel sin perder legibilidad.
+- **Detalles de Pago Transparente**: Ahora las descripciones de las ventas incluyen el banco y el número de referencia para pagos por Zelle o transferencia bancaria.
+### Added
+- **Control de Facturas Eliminadas**: Se incorporó una nueva sección que lista las facturas anuladas del día, detallando quién solicitó la eliminación, quién la aprobó y el motivo.
+- **Sección de Devoluciones**: Añadida la tabla de Notas de Crédito (Devoluciones) directamente en el reporte diario.
+- **Previsualización en Vivo**: Implementado un botón de "Previsualizar" que abre el reporte en una ventana modal antes de descargarlo.
  
 ## [1.8.62] - 2026-03-14
 ### Added
