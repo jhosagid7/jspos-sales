@@ -38,11 +38,14 @@ class CreditConfigService
         // null significa "heredar", 0.00 es un valor explícito (si el usuario puso 0)
         // Asumiendo que null es el default cuando no se ha configurado.
         $usdPaymentDiscount = $customer->usd_payment_discount;
+        $usdPaymentDiscountTag = $customer->usd_payment_discount_tag;
         if ($usdPaymentDiscount === null) {
             if ($seller && $seller->seller_usd_payment_discount !== null) {
                 $usdPaymentDiscount = $seller->seller_usd_payment_discount;
+                $usdPaymentDiscountTag = $seller->seller_usd_payment_discount_tag;
             } else {
                 $usdPaymentDiscount = $globalConfig->global_usd_payment_discount;
+                $usdPaymentDiscountTag = $globalConfig->global_usd_payment_discount_tag;
             }
         }
 
@@ -55,8 +58,9 @@ class CreditConfigService
                 'allow_credit' => $customer->allow_credit,
                 'credit_days' => $customer->credit_days,
                 'credit_limit' => $customer->credit_limit,
-                'usd_payment_discount' => $usdPaymentDiscount, // Resolved value
-                'discount_rules' => $discountRules, // Resolved value
+                'usd_payment_discount' => $usdPaymentDiscount, 
+                'usd_payment_discount_tag' => $usdPaymentDiscountTag,
+                'discount_rules' => $discountRules, 
                 'source' => 'customer',
                 'source_name' => $customer->name
             ];
@@ -68,8 +72,9 @@ class CreditConfigService
                 'allow_credit' => $seller->seller_allow_credit,
                 'credit_days' => $seller->seller_credit_days,
                 'credit_limit' => $seller->seller_credit_limit,
-                'usd_payment_discount' => $usdPaymentDiscount, // Resolved value
-                'discount_rules' => $discountRules, // Resolved value
+                'usd_payment_discount' => $usdPaymentDiscount, 
+                'usd_payment_discount_tag' => $usdPaymentDiscountTag,
+                'discount_rules' => $discountRules, 
                 'source' => 'seller',
                 'source_name' => $seller->name
             ];
@@ -80,8 +85,9 @@ class CreditConfigService
             'allow_credit' => $globalConfig->global_allow_credit ?? true,
             'credit_days' => $globalConfig->global_credit_days ?? 30,
             'credit_limit' => $globalConfig->global_credit_limit,
-            'usd_payment_discount' => $usdPaymentDiscount, // Resolved value
-            'discount_rules' => $discountRules, // Resolved value
+            'usd_payment_discount' => $usdPaymentDiscount, 
+            'usd_payment_discount_tag' => $usdPaymentDiscountTag,
+            'discount_rules' => $discountRules, 
             'source' => 'global',
             'source_name' => 'Sistema'
         ];
@@ -206,7 +212,7 @@ class CreditConfigService
             return [
                 'amount' => round($discountAmount, 2),
                 'percentage' => $creditConfig['usd_payment_discount'],
-                'tag' => 'PD'
+                'tag' => $creditConfig['usd_payment_discount_tag'] ?? 'PD'
             ];
         }
 
@@ -248,7 +254,8 @@ class CreditConfigService
 
         return [
             'discount_rules' => $rules,
-            'usd_payment_discount' => $usdPaymentDiscount
+            'usd_payment_discount' => $usdPaymentDiscount,
+            'usd_payment_discount_tag' => $snapshot['usd_payment_discount_tag'] ?? 'PD'
         ];
     }
 }

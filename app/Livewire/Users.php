@@ -53,6 +53,7 @@ class Users extends Component
         'user.seller_credit_days' => 'nullable|integer|min:0',
         'user.seller_credit_limit' => 'nullable|numeric|min:0',
         'user.seller_usd_payment_discount' => 'nullable|numeric|min:0|max:100',
+        'user.seller_usd_payment_discount_tag' => 'nullable|string|max:10',
         'user.sales_view_mode' => 'nullable|in:grid,list',
 
         // Contact Fields

@@ -1,5 +1,9 @@
 # Changelog
  
+## [1.8.58] - 2026-03-14
+### Added
+- **Tag Personalizable para Pago Divisa**: Ahora puedes configurar el código (Tag) para el descuento por pago en USD (ej. "PD") directamente en la configuración global, por cliente o por vendedor.
+
 ## [1.8.57] - 2026-03-14
 ### Added
 - **Configuración de Tags de Descuento**: Se añadió un nuevo campo "Código" (Tag) en la configuración de reglas de descuento (Global, por Cliente y por Vendedor).

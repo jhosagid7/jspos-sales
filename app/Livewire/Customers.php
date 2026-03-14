@@ -32,6 +32,7 @@ class Customers extends Component
         'customer.credit_days' => 'nullable|integer|min:1',
         'customer.credit_limit' => 'nullable|numeric|min:0',
         'customer.usd_payment_discount' => 'nullable|numeric|min:0|max:100',
+        'customer.usd_payment_discount_tag' => 'nullable|string|max:10',
         'commission_percent' => 'nullable|numeric|min:0|max:100',
         'freight_percent' => 'nullable|numeric|min:0|max:100',
         'exchange_diff_percent' => 'nullable|numeric|min:0|max:1000',

@@ -31,6 +31,7 @@ class Customer extends Model
         'credit_days',
         'credit_limit',
         'usd_payment_discount',
+        'usd_payment_discount_tag',
         // WhatsApp configuration fields
         'whatsapp_notify_sales',
         'whatsapp_notify_payments',

@@ -53,6 +53,7 @@ class Configuration extends Model
         'global_credit_days',
         'global_credit_limit',
         'global_usd_payment_discount',
+        'global_usd_payment_discount_tag',
         'license_notification_email',
         'license_request_email',
         'bcv_rate',

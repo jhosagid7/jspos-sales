@@ -398,12 +398,21 @@
                                     </h6>
                                 </div>
 
-                                <div class="col-sm-12">
-                                    <label class="form-label">% Descuento por Pago en USD (Zelle/Efectivo)</label>
-                                    <input wire:model="customer.usd_payment_discount" type="number" step="0.01" 
-                                           class="form-control" placeholder="Ej: 5.00">
-                                    <small class="text-muted">Descuento aplicado si el cliente paga con Zelle o Dólar en efectivo</small>
-                                    @error('customer.usd_payment_discount') <span class="text-danger">{{ $message }}</span> @enderror
+                                <div class="row g-2">
+                                    <div class="col-sm-8 text-center">
+                                        <label class="form-label">% Descuento por Pago en USD (Zelle/Efectivo)</label>
+                                        <input wire:model="customer.usd_payment_discount" type="number" step="0.01" 
+                                               class="form-control text-center" placeholder="Ej: 5.00">
+                                        <small class="text-muted">Descuento aplicado si paga con Zelle o Dólar en efectivo</small>
+                                        @error('customer.usd_payment_discount') <br><span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+                                    <div class="col-sm-4 text-center">
+                                        <label class="form-label">Código (Tag)</label>
+                                        <input wire:model="customer.usd_payment_discount_tag" type="text" 
+                                               class="form-control text-center" placeholder="Ej: PD">
+                                        <small class="text-muted">Ej: PD</small>
+                                        @error('customer.usd_payment_discount_tag') <br><span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
                                 </div>
 
                                 {{-- Nota sobre jerarquía --}}

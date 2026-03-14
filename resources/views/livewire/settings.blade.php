@@ -851,14 +851,22 @@
                                         <h6 class="text-info mb-3">
                                             <i class="fa fa-dollar-sign"></i> Descuento por Pago en USD
                                         </h6>
-                                    </div>
-
-                                    <div class="col-sm-12">
-                                        <label class="form-label">% Descuento por Pago en USD (Zelle/Efectivo)</label>
-                                        <input wire:model="globalUsdPaymentDiscount" type="number" step="0.01" 
-                                               class="form-control" placeholder="Ej: 5.00">
-                                        <small class="text-muted">Valor por defecto si no especifica el cliente/vendedor</small>
-                                        @error('globalUsdPaymentDiscount') <span class="text-danger">{{ $message }}</span> @enderror
+                                        <div class="row">
+                                            <div class="col-sm-8 text-center">
+                                                <label class="form-label">% Descuento por Pago en USD (Zelle/Efectivo)</label>
+                                                <input wire:model="globalUsdPaymentDiscount" type="number" step="0.01" 
+                                                       class="form-control" placeholder="Ej: 5.00">
+                                                <small class="text-muted">Valor por defecto si no especifica el cliente/vendedor</small>
+                                                @error('globalUsdPaymentDiscount') <br><span class="text-danger">{{ $message }}</span> @enderror
+                                            </div>
+                                            <div class="col-sm-4 text-center">
+                                                <label class="form-label">Código (Tag)</label>
+                                                <input wire:model="globalUsdPaymentDiscountTag" type="text" 
+                                                       class="form-control text-center" placeholder="Ej: PD">
+                                                <small class="text-muted">Ej: PD</small>
+                                                @error('globalUsdPaymentDiscountTag') <br><span class="text-danger">{{ $message }}</span> @enderror
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div class="col-12 mt-4">

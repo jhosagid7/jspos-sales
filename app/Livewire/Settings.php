@@ -13,7 +13,7 @@ class Settings extends Component
     public $setting_id = 0, $businessName, $phone, $taxpayerId, $vat, $printerName, $website, $leyend, $creditDays = 15, $address, $city, $creditPurchaseDays, $confirmationCode, $decimals;
     public $checkStockReservation, $salesViewMode;
     public $globalCommission1Threshold, $globalCommission1Percentage, $globalCommission2Threshold, $globalCommission2Percentage;
-    public $globalAllowCredit, $globalCreditDays, $globalCreditLimit, $globalUsdPaymentDiscount;
+    public $globalAllowCredit, $globalCreditDays, $globalCreditLimit, $globalUsdPaymentDiscount, $globalUsdPaymentDiscountTag;
     public $enableSharedCashRegister; // Nuevo: Caja Compartida
     public $discountRules = [];
 
@@ -131,6 +131,7 @@ class Settings extends Component
             $this->globalCreditDays = $config->global_credit_days;
             $this->globalCreditLimit = $config->global_credit_limit;
             $this->globalUsdPaymentDiscount = $config->global_usd_payment_discount;
+            $this->globalUsdPaymentDiscountTag = $config->global_usd_payment_discount_tag ?? 'PD';
             $this->enableSharedCashRegister = (bool) $config->enable_shared_cash_register;
             
             // Global Rates
@@ -303,7 +304,10 @@ class Settings extends Component
                  'global_allow_credit' => $this->globalAllowCredit ? 1 : 0,
                  'global_credit_days' => $this->globalCreditDays,
                  'global_credit_limit' => $this->globalCreditLimit,
-                 'global_usd_payment_discount' => $this->globalUsdPaymentDiscount
+                'global_usd_payment_discount' => $this->globalUsdPaymentDiscount,
+                'global_usd_payment_discount_tag' => $this->globalUsdPaymentDiscountTag ?? 'PD',
+                'bcv_rate' => $this->bcvRate,
+                'binance_rate' => $this->binanceRate,
             ]);
             
             $this->saveDiscountRules();
