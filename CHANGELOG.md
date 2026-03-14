@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.8.64] - 2026-03-14
+### Fixed
+- **Detalle de Pagos en PDF**: Corregido error que impedía visualizar el banco, referencia y tasa en la descripción de las ventas.
+- **Optimización de Espacio**: Se ajustaron los anchos de las columnas para otorgar más espacio a la descripción del cliente y evitar recortes innecesarios.
+
 ## [1.8.63] - 2026-03-14
 ### Changed
 - **Optimización de Reporte de Ventas Diarias**: Se rediseñó el layout del PDF para hacerlo más compacto, permitiendo ahorrar papel sin perder legibilidad.
