@@ -183,7 +183,7 @@ class ReportController extends Controller
         foreach($currencies as $c) { $totalsByCurrency[$c->code] = 0; }
 
         // Calculate NC from returns in the period
-        $returns = \App\Models\SaleReturn::with('sale')
+        $returns = \App\Models\SaleReturn::with(['sale', 'requester', 'approver'])
             ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
                 $q->whereBetween('created_at', [$dFrom, $dTo]);
             })
@@ -197,7 +197,6 @@ class ReportController extends Controller
             $totalsByCategory['NOTAS DE CREDITO (NC)'] += ($r->total_returned / $rate);
         }
 
-        // Fetch Deleted Sales
         $deletedSales = \App\Models\Sale::with(['customer', 'user', 'requester', 'approver'])
             ->whereNotNull('deletion_approved_at')
             ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
@@ -207,6 +206,8 @@ class ReportController extends Controller
                 $query->where('user_id', $user_id);
             })
             ->get();
+        
+        $totalDeleted = $deletedSales->sum('total_usd');
 
         $summary = [
             'total_bruto' => 0,
@@ -280,6 +281,7 @@ class ReportController extends Controller
             'summary' => $summary,
             'returns' => $returns,
             'deletedSales' => $deletedSales,
+            'totalDeleted' => $totalDeleted,
             'totalsByCategory' => $totalsByCategory,
             'totalsByCurrency' => $totalsByCurrency,
             'config' => $config,

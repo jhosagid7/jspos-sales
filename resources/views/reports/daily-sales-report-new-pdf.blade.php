@@ -195,8 +195,8 @@
                             <td class="summary-value">{{ number_format($summary['total_count'], 4) }}</td>
                         </tr>
                         <tr>
-                            <td class="summary-label">Total Exento :</td>
-                            <td class="summary-value">0.0000</td>
+                            <td class="summary-label">Total de Facturas Eliminadas :</td>
+                            <td class="summary-value">{{ number_format($totalDeleted ?? 0, 4) }}</td>
                         </tr>
                         <tr style="border-top: 1px solid #eee;">
                             <td class="summary-label">Total :</td>
@@ -327,7 +327,10 @@
                 <th>NC Número</th>
                 <th>Factura Orig.</th>
                 <th>Cliente</th>
-                <th class="text-right">Monto Devuelto (USD)</th>
+                <th class="text-right">Monto (USD)</th>
+                <th>Solicitante</th>
+                <th>Aprobador</th>
+                <th>Motivo</th>
             </tr>
         </thead>
         <tbody>
@@ -336,11 +339,14 @@
                     <td>{{ $return->created_at->format('d/m/Y') }}</td>
                     <td>{{ $return->id }}</td>
                     <td>{{ $return->sale->invoice_number ?? $return->sale_id }}</td>
-                    <td>{{ strtoupper($return->sale->customer->name ?? 'N/A') }}</td>
+                    <td><span class="desc-text">{{ strtoupper($return->customer->name ?? $return->sale->customer->name ?? 'N/A') }}</span></td>
                     <td class="text-right">
                         @php $rate = ($return->sale && $return->sale->primary_exchange_rate > 0) ? $return->sale->primary_exchange_rate : 1; @endphp
                         {{ number_format($return->total_returned / $rate, 4) }}
                     </td>
+                    <td><span class="desc-text">{{ $return->requester->name ?? 'N/A' }}</span></td>
+                    <td><span class="desc-text">{{ $return->approver->name ?? 'N/A' }}</span></td>
+                    <td><span class="desc-text">{{ $return->reason }}</span></td>
                 </tr>
             @endforeach
         </tbody>
@@ -348,6 +354,7 @@
             <tr style="border-top: 2px solid #000; font-weight: bold;">
                 <td colspan="4" class="text-right">TOTAL NC:</td>
                 <td class="text-right">{{ number_format($totalsByCategory['NOTAS DE CREDITO (NC)'], 4) }}</td>
+                <td colspan="3"></td>
             </tr>
         </tfoot>
     </table>

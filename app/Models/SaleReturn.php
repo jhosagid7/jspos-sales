@@ -19,7 +19,9 @@ class SaleReturn extends Model
         'return_type',
         'refund_method',
         'cash_register_id',
-        'collection_sheet_id'
+        'collection_sheet_id',
+        'requested_by',
+        'approved_by'
     ];
 
     public function collectionSheet()
@@ -45,5 +47,15 @@ class SaleReturn extends Model
     public function details()
     {
         return $this->hasMany(SaleReturnDetail::class);
+    }
+
+    public function requester()
+    {
+        return $this->belongsTo(User::class, 'requested_by');
+    }
+
+    public function approver()
+    {
+        return $this->belongsTo(User::class, 'approved_by');
     }
 }

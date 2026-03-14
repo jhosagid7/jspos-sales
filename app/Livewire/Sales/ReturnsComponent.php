@@ -185,6 +185,8 @@ class ReturnsComponent extends Component
                 'sale_id' => $this->sale->id,
                 'customer_id' => $this->sale->customer_id,
                 'user_id' => auth()->id(),
+                'requested_by' => auth()->id(),
+                'approved_by' => auth()->id(),
                 'return_number' => 'DEV-' . strtoupper(Str::random(6)),
                 'total_returned' => $this->totalReturnAmount,
                 'reason' => $this->reason,

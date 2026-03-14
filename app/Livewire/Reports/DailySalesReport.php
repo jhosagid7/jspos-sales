@@ -241,7 +241,7 @@ class DailySalesReport extends Component
         foreach($this->currencies as $c) { $totalsByCurrency[$c->code] = 0; }
 
         // Calculate NC from returns in the period
-        $returns = \App\Models\SaleReturn::with('sale')
+        $returns = \App\Models\SaleReturn::with(['sale', 'requester', 'approver'])
             ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
                 $q->whereBetween('created_at', [$dFrom, $dTo]);
             })
@@ -262,6 +262,8 @@ class DailySalesReport extends Component
                 $query->where('user_id', $this->user_id);
             })
             ->get();
+        
+        $totalDeleted = $deletedSales->sum('total_usd');
 
         $summary = [
             'total_bruto' => 0,
@@ -335,6 +337,7 @@ class DailySalesReport extends Component
             'summary' => $summary,
             'returns' => $returns,
             'deletedSales' => $deletedSales,
+            'totalDeleted' => $totalDeleted,
             'totalsByCategory' => $totalsByCategory,
             'totalsByCurrency' => $totalsByCurrency,
             'config' => $config,

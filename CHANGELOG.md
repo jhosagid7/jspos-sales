@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.8.65] - 2026-03-14
+### Added
+- **Trazabilidad en Devoluciones**: Se añadieron las columnas "Solicitante", "Aprobador" y "Motivo" a la tabla de Notas de Crédito, garantizando el mismo nivel de control que en las facturas eliminadas.
+- **Resumen de Eliminaciones**: Se reemplazó el campo "Total Exento" por el "Total de Facturas Eliminadas" en el resumen general del reporte para una mejor visibilidad de las anulaciones.
+- **Base de Datos Atualizada**: Nueva migración para registrar quién solicita y quién aprueba cada devolución de mercancía.
+
 ## [1.8.64] - 2026-03-14
 ### Fixed
 - **Detalle de Pagos en PDF**: Corregido error que impedía visualizar el banco, referencia y tasa en la descripción de las ventas.
