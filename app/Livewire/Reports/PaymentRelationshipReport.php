@@ -254,15 +254,22 @@ class PaymentRelationshipReport extends Component
             ->get();
 
         // 2. Returns associated with sales that have payments in this sheet
-        // but might not have a collection_sheet_id (e.g. old data or created via other modules)
+        // but might not have a collection_sheet_id
         $saleIdsInPayments = $sheet->payments()->pluck('sale_id')->unique();
         
-        $associatedReturns = \App\Models\SaleReturn::whereIn('sale_id', $saleIdsInPayments)
-            ->where(function($q) use ($sheet) {
-                $q->whereNull('collection_sheet_id')
-                  ->orWhere('collection_sheet_id', 0)
-                  // Also include if created on the same day as the sheet opened, even if sheet_id is null
-                  ->orWhereDate('created_at', \Carbon\Carbon::parse($sheet->opened_at)->toDateString());
+        $associatedReturns = \App\Models\SaleReturn::where(function($q) use ($saleIdsInPayments, $sheet) {
+                $q->whereIn('sale_id', $saleIdsInPayments);
+                // AND must be unassigned
+                $q->where(function($iq) {
+                    $iq->whereNull('collection_sheet_id')->orWhere('collection_sheet_id', 0);
+                });
+            })
+            ->orWhere(function($q) use ($sheet) {
+                // OR created on the same day (to capture returns from clients who only had returns that day)
+                $q->whereDate('created_at', \Carbon\Carbon::parse($sheet->opened_at)->toDateString())
+                  ->where(function($iq) {
+                      $iq->whereNull('collection_sheet_id')->orWhere('collection_sheet_id', 0);
+                  });
             })
             ->with(['sale.customer', 'user'])
             ->get();
