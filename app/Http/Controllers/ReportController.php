@@ -122,7 +122,7 @@ class ReportController extends Controller
             $dTo = \Carbon\Carbon::parse($dateTo)->endOfDay();
         }
 
-        $sales = \App\Models\Sale::with(['customer', 'details', 'user', 'paymentDetails'])
+        $sales = \App\Models\Sale::with(['customer', 'details', 'user', 'paymentDetails.bankRecord.bank'])
             ->when($searchFolio, function($q) use ($searchFolio) {
                 $q->where('id', 'like', "%{$searchFolio}%")
                   ->orWhere('invoice_number', 'like', "%{$searchFolio}%");
@@ -234,7 +234,12 @@ class ReportController extends Controller
                 }
 
                 if ($payment->method == 'bank' || $payment->method == 'deposit') {
-                    $bankName = $payment->bank ? strtoupper($payment->bank->name) : 'BANCO';
+                    $bankName = 'BANCO';
+                    if ($payment->bankRecord && $payment->bankRecord->bank) {
+                        $bankName = strtoupper($payment->bankRecord->bank->name);
+                    } elseif ($payment->bank_name) {
+                        $bankName = strtoupper($payment->bank_name);
+                    }
                     $totalsByCategory[$bankName] = ($totalsByCategory[$bankName] ?? 0) + $amtUSD;
                 } elseif ($payment->method == 'zelle') {
                     $totalsByCategory['ZELLE'] += $amtUSD;

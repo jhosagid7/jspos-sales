@@ -99,6 +99,22 @@
                                             </button>
                                         </div>
                                         @endmodule
+
+                                        {{-- Billetera Virtual --}}
+                                        <div class="col-4">
+                                            @php
+                                                $walletEnabled = !empty($customer['id']) && ($customer['wallet_balance'] ?? 0) > 0;
+                                            @endphp
+                                            <button 
+                                                type="button"
+                                                wire:click="$set('selectedPaymentMethod', 'wallet')"
+                                                class="btn w-100 {{ $selectedPaymentMethod === 'wallet' ? 'btn-warning' : 'btn-outline-warning' }}"
+                                                style="padding: 15px 10px;"
+                                                {{ !$walletEnabled ? 'disabled' : '' }}>
+                                                <i class="fa fa-wallet fa-2x d-block mb-2"></i>
+                                                <small class="d-block text-truncate">Billetera ({{ $primaryCurrency->symbol ?? '$' }}{{ formatMoney($customer['wallet_balance'] ?? 0) }})</small>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -220,6 +236,35 @@
                                                 <button class="btn btn-info w-100" wire:click="addPayment" type="button">
                                                     <i class="fa fa-credit-card me-2"></i>REGISTRAR CRÉDITO
                                                 </button>
+                                            </div>
+                                        </div>
+                                    @endif
+
+                                    {{-- BILLETERA --}}
+                                    @if($selectedPaymentMethod === 'wallet')
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <div class="alert alert-warning mb-3 shadow-sm border-warning">
+                                                    <h6 class="mb-2"><i class="fa fa-info-circle"></i> Saldo en Billetera Virtual</h6>
+                                                    <p class="mb-0">El cliente dispone de <strong>{{ $primaryCurrency->symbol ?? '$' }}{{ formatMoney($customer['wallet_balance'] ?? 0) }}</strong> en su billetera virtual.</p>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-12">
+                                                <label class="form-label">Monto a Usar</label>
+                                                <div class="input-group mb-3">
+                                                    <span class="input-group-text bg-warning text-white border-warning">{{ $primaryCurrency->symbol ?? '$' }}</span>
+                                                    <input 
+                                                        class="form-control border-warning" 
+                                                        oninput="validarInputNumber(this)"
+                                                        wire:model.live="walletAmount"
+                                                        wire:keydown.enter.prevent='addPayment' 
+                                                        type="number" 
+                                                        placeholder="0.00">
+                                                    <button class="btn btn-warning" type="button" wire:click="addPayment">
+                                                        <i class="fa fa-plus-circle me-1"></i> Usar Saldo
+                                                    </button>
+                                                </div>
+                                                @error('walletAmount') <span class="text-danger small d-block mt-n2 mb-2">{{ $message }}</span> @enderror
                                             </div>
                                         </div>
                                     @endif
@@ -502,6 +547,10 @@
                                                                     @if(isset($payment['zelle_file_url']) && $payment['zelle_file_url'])
                                                                         <br><a href="{{ $payment['zelle_file_url'] }}" target="_blank"><i class="fa fa-image"></i> Ver</a>
                                                                     @endif
+                                                                @elseif($payment['method'] === 'wallet')
+                                                                    <span class="badge bg-warning text-dark">
+                                                                        <i class="fa fa-wallet"></i> Billetera
+                                                                    </span>
                                                                 @endif
 
                                                             </td>

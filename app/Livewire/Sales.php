@@ -58,6 +58,7 @@ class Sales extends Component
 
     //pay properties
     public $banks, $cashAmount, $nequiAmount, $phoneNumber, $acountNumber, $depositNumber, $bank, $payType = 1, $payTypeName = 'PAGO EN EFECTIVO';
+    public $walletAmount = 0; // Amount to use from virtual wallet
 
     public $search3, $products = [], $selectedIndex = -1;
     public $warehouse_id;
@@ -424,6 +425,43 @@ class Sales extends Component
             return;
         }
         
+        // PAGO CON BILLETERA
+        if ($this->selectedPaymentMethod === 'wallet') {
+            $this->validate([
+                'walletAmount' => 'required|numeric|min:0.01',
+            ]);
+
+            // Validar que el cliente tenga saldo suficiente
+            $walletBalance = $this->customer['wallet_balance'] ?? 0;
+            if ($this->walletAmount > $walletBalance) {
+                $this->dispatch('noty', msg: 'Saldo insuficiente en la billetera virtual.', type: 'error');
+                return;
+            }
+
+            // Obtener moneda principal
+            $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
+
+            $this->payments[] = [
+                'method' => 'wallet',
+                'amount' => $this->walletAmount,
+                'currency' => $primaryCurrency->code ?? 'USD',
+                'symbol' => $primaryCurrency->symbol ?? '$',
+                'exchange_rate' => 1,
+                'amount_in_primary_currency' => $this->walletAmount,
+                'details' => 'Pago con Billetera Virtual',
+            ];
+
+            $this->calculateRemainingAndChange();
+            session(['payments' => $this->payments]);
+            session(['remainingAmount' => $this->remainingAmount]);
+            session(['change' => $this->change]);
+
+            $this->reset(['walletAmount']);
+            $this->dispatch('noty', msg: 'Pago con billetera agregado correctamente');
+            
+            return;
+        }
+
         // PAGO EN EFECTIVO (lógica existente)
         $this->validate([
             'paymentAmount' => 'required|numeric|min:0.01',
@@ -2579,6 +2617,7 @@ class Sales extends Component
                 
                 $customer['total_debt'] = $totalDebt;
                 $customer['has_overdue'] = $hasOverdue;
+                $customer['wallet_balance'] = $customerDb->wallet_balance ?? 0;
             }
             
             // Update session and component property with enriched customer data
@@ -3412,6 +3451,18 @@ class Sales extends Component
                              } catch (\Exception $e) {
                                   Log::error("Error creating/linking BankRecord: " . $e->getMessage());
                              }
+                        }
+                    }
+
+                    // Deducción de Billetera Virtual
+                    if ($payment['method'] === 'wallet') {
+                        $customerModel = \App\Models\Customer::find($this->customer['id']);
+                        if ($customerModel) {
+                            $customerModel->wallet_balance -= $payment['amount_in_primary_currency'];
+                            $customerModel->save();
+                            
+                            // Actualizar balance en el array local por si acaso
+                            $this->customer['wallet_balance'] = $customerModel->wallet_balance;
                         }
                     }
 

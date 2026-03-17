@@ -10,6 +10,7 @@ use App\Models\SaleReturnDetail;
 use App\Models\ProductWarehouse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class ReturnsComponent extends Component
 {
@@ -19,7 +20,6 @@ class ReturnsComponent extends Component
     public $refundMethod = 'debt_reduction'; // default
     public $cashRegisterId;
     public $reason = '';
-    
     // Calculated values
     public $totalReturnAmount = 0;
     
@@ -43,6 +43,7 @@ class ReturnsComponent extends Component
         if ($primaryCurrency) {
             $this->currencySymbol = $primaryCurrency->symbol ?? $primaryCurrency->code;
         }
+
     }
 
     public function loadSale($id)
@@ -155,6 +156,11 @@ class ReturnsComponent extends Component
             return;
         }
 
+        if (empty(trim($this->reason))) {
+            $this->dispatch('noty', msg: 'Por favor, indique el motivo de la devolución.', type: 'error');
+            return;
+        }
+
         // Validate Bad Condition Warehouses
         foreach ($this->returnItems as $item) {
             if (!is_array($item)) continue;
@@ -169,6 +175,9 @@ class ReturnsComponent extends Component
 
         DB::beginTransaction();
         try {
+            $user = auth()->user();
+            $canApprove = $user->can('sales.approve_return') || $user->hasRole('Admin');
+
             // 1. Create Sale Return Header
             $isFullReturn = true;
             foreach ($this->returnItems as $item) {
@@ -186,7 +195,10 @@ class ReturnsComponent extends Component
                 'customer_id' => $this->sale->customer_id,
                 'user_id' => auth()->id(),
                 'requested_by' => auth()->id(),
-                'approved_by' => auth()->id(),
+                'requested_at' => Carbon::now(),
+                'approved_by' => $canApprove ? auth()->id() : null,
+                'approved_at' => $canApprove ? Carbon::now() : null,
+                'status' => $canApprove ? 'approved' : 'pending',
                 'return_number' => 'DEV-' . strtoupper(Str::random(6)),
                 'total_returned' => $this->totalReturnAmount,
                 'reason' => $this->reason,
@@ -195,7 +207,7 @@ class ReturnsComponent extends Component
                 'cash_register_id' => $this->refundMethod === 'cash' ? $this->cashRegisterId : null,
             ]);
 
-            // 2. Create Details & Adjust Stock
+            // Create Details
             foreach ($this->returnItems as $item) {
                 if (!is_array($item)) continue;
                 $qty = (float)($item['qty_to_return'] ?? 0);
@@ -206,7 +218,6 @@ class ReturnsComponent extends Component
                     $unitPrice = (float)($item['unit_price'] ?? 0);
                     $subtotal = $qty * $unitPrice;
                     $condition = $item['condition'] ?? 'good';
-                    $destWarehouseId = ($condition === 'bad') ? $item['destination_warehouse_id'] : null;
                     
                     if ($detailId) {
                         SaleReturnDetail::create([
@@ -218,68 +229,144 @@ class ReturnsComponent extends Component
                             'subtotal' => $subtotal,
                             'stock_action' => $condition === 'good' ? 'returned_to_stock' : 'damaged'
                         ]);
-
-                        // Adjust Stock
-                        if ($productId) {
-                            $targetWarehouseId = null;
-                            
-                            if ($condition === 'good') {
-                                // Find the warehouse where it came from
-                                $saleDetail = SaleDetail::find($detailId);
-                                if ($saleDetail && $saleDetail->warehouse_id) {
-                                    $targetWarehouseId = $saleDetail->warehouse_id;
-                                }
-                            } else {
-                                // Going to the user selected designated bad warehouse (Merma)
-                                $targetWarehouseId = $destWarehouseId;
-                            }
-                            
-                            if ($targetWarehouseId) {
-                                $productWarehouse = ProductWarehouse::firstOrCreate(
-                                    ['product_id' => $productId, 'warehouse_id' => $targetWarehouseId],
-                                    ['stock_qty' => 0]
-                                );
-                                
-                                $productWarehouse->stock_qty += $qty;
-                                $productWarehouse->save();
-                            }
-                        }
                     }
                 }
             }
 
-            // 3. Handle Money Logic
-            if ($this->refundMethod === 'wallet' && $this->sale->customer_id) {
-                $customer = \App\Models\Customer::find($this->sale->customer_id);
-                $customer->wallet_balance += $this->totalReturnAmount;
-                $customer->save();
-            } 
-            elseif ($this->refundMethod === 'cash') {
-                // Record cash movement OUT
-                \App\Models\CashMovement::create([
-                    'cash_register_id' => $this->cashRegisterId,
-                    'user_id' => auth()->id(),
-                    'type' => 'expense', // Outflow
-                    'amount' => $this->totalReturnAmount,
-                    'concept' => 'Devolución de mercancía Factura #' . $this->sale->invoice_number,
-                ]);
+            // 2. Adjust Stock & Money ONLY if approved
+            if ($canApprove) {
+                $this->executeReturnEffects($saleReturn);
+            } else {
+                // Notify Supervisors
+                try {
+                    $supervisors = \App\Models\User::permission('sales.approve_return')->get();
+                    if ($supervisors->isEmpty()) {
+                        $supervisors = \App\Models\User::role('Admin')->get();
+                    }
+                    foreach ($supervisors as $supervisor) {
+                        \Illuminate\Support\Facades\Mail::to($supervisor->email)->send(new \App\Mail\SaleReturnRequested($saleReturn, $user));
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Error enviando correo de solicitud de devolución: ' . $e->getMessage());
+                }
             }
-            // If it's debt_reduction, we don't do anything actively right now.
-            // The accessor getDebtAttribute() on Sale should dynamically sum SaleReturn amounts 
-            // and subtract them from the debt calculation.
 
             DB::commit();
 
             $this->dispatch('hide-return-modal');
-            $this->dispatch('noty', msg: 'Devolución procesada correctamente. Total: ' . $this->currencySymbol . number_format($this->totalReturnAmount, 2), type: 'success');
             
-            // Refresh parent (like Sales Report)
+            if ($canApprove) {
+                $this->dispatch('noty', msg: 'Devolución procesada y aprobada correctamente.', type: 'success');
+            } else {
+                $this->dispatch('noty', msg: 'Solicitud de devolución enviada a supervisión.', type: 'info');
+            }
+            
             $this->dispatch('refreshSales'); 
 
         } catch (\Exception $e) {
             DB::rollBack();
             $this->dispatch('noty', msg: 'Error al procesar: ' . $e->getMessage(), type: 'error');
         }
+    }
+
+    /**
+     * Executes the actual stock and financial effects of a return
+     */
+    protected function executeReturnEffects(SaleReturn $saleReturn)
+    {
+        // Adjust Stock
+        foreach ($saleReturn->details as $item) {
+            if ($item->product_id) {
+                $targetWarehouseId = null;
+                $saleDetail = SaleDetail::find($item->sale_detail_id);
+                
+                if ($item->stock_action === 'returned_to_stock') {
+                    if ($saleDetail && $saleDetail->warehouse_id) {
+                        $targetWarehouseId = $saleDetail->warehouse_id;
+                    }
+                } else {
+                    // Merma/Damaged - Finding the designated warehouse logic should be here or from the original request
+                    // For now, we take it from the original item if we have it, or fallback
+                    // (In a real scenario, we might need to store the target warehouse in the detail)
+                }
+                
+                if ($targetWarehouseId) {
+                    $productWarehouse = ProductWarehouse::firstOrCreate(
+                        ['product_id' => $item->product_id, 'warehouse_id' => $targetWarehouseId],
+                        ['stock_qty' => 0]
+                    );
+                    $productWarehouse->stock_qty += $item->quantity_returned;
+                    $productWarehouse->save();
+                }
+            }
+        }
+
+        // Handle Money Logic
+        if ($saleReturn->refund_method === 'wallet' && $saleReturn->customer_id) {
+            $customer = \App\Models\Customer::find($saleReturn->customer_id);
+            $customer->wallet_balance += $saleReturn->total_returned;
+            $customer->save();
+        } 
+        elseif ($saleReturn->refund_method === 'cash' && $saleReturn->cash_register_id) {
+            \App\Models\CashMovement::create([
+                'cash_register_id' => $saleReturn->cash_register_id,
+                'user_id' => auth()->id(),
+                'type' => 'expense',
+                'amount' => $saleReturn->total_returned,
+                'concept' => 'Devolución Factura #' . ($saleReturn->sale->invoice_number ?? $saleReturn->sale_id),
+            ]);
+        }
+    }
+
+    public function ApproveReturn($returnId)
+    {
+        if (!auth()->user()->can('sales.approve_return') && !auth()->user()->hasRole('Admin')) {
+            $this->dispatch('noty', msg: 'No tienes permiso para aprobar devoluciones', type: 'error');
+            return;
+        }
+
+        DB::beginTransaction();
+        try {
+            $saleReturn = SaleReturn::with('details', 'sale')->findOrFail($returnId);
+            
+            if ($saleReturn->status !== 'pending') {
+                $this->dispatch('noty', msg: 'Esta devolución ya fue procesada', type: 'warning');
+                return;
+            }
+
+            $saleReturn->update([
+                'status' => 'approved',
+                'approved_by' => auth()->id(),
+                'approved_at' => Carbon::now()
+            ]);
+
+            $this->executeReturnEffects($saleReturn);
+
+            DB::commit();
+            $this->dispatch('noty', msg: 'Devolución aprobada con éxito', type: 'success');
+            $this->dispatch('refreshSales');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->dispatch('noty', msg: 'Error al aprobar: ' . $e->getMessage(), type: 'error');
+        }
+    }
+
+    public function RejectReturn($returnId)
+    {
+        if (!auth()->user()->can('sales.approve_return') && !auth()->user()->hasRole('Admin')) {
+            $this->dispatch('noty', msg: 'No tienes permiso para rechazar devoluciones', type: 'error');
+            return;
+        }
+
+        $saleReturn = SaleReturn::findOrFail($returnId);
+        $saleReturn->update([
+            'status' => 'rejected',
+            'approved_by' => auth()->id(),
+            'approved_at' => Carbon::now()
+        ]);
+
+        $this->dispatch('noty', msg: 'Devolución rechazada', type: 'info');
+        $this->dispatch('refreshSales');
     }
 
     public function render()

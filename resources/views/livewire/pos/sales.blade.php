@@ -106,6 +106,13 @@
                                     Cliente
                                 @endif
                             </label>
+
+                            @if ($customer != null && ($customer['wallet_balance'] ?? 0) > 0)
+                                <div class="alert alert-warning py-1 px-2 mt-1 mb-2 d-flex justify-content-between align-items-center shadow-sm" style="font-size: 0.85rem; border-left: 3px solid #ffc107;">
+                                    <span><i class="fas fa-wallet me-1"></i> Billetera:</span>
+                                    <strong class="text-dark">{{ $primaryCurrency->symbol ?? '$' }}{{ formatMoney($customer['wallet_balance']) }}</strong>
+                                </div>
+                            @endif
                             
                             @module('module_commissions')
                             <div class="custom-control custom-switch" title="{{ ($sellerConfig || $customerConfig) ? '' : 'Seleccione un cliente con conf. comercial para habilitar' }}">
@@ -147,6 +154,13 @@
                                     Cliente
                                 @endif
                             </label>
+
+                            @if ($customer != null && ($customer['wallet_balance'] ?? 0) > 0)
+                                <div class="alert alert-warning py-1 px-2 mt-1 mb-2 d-flex justify-content-between align-items-center shadow-sm" style="font-size: 0.85rem; border-left: 3px solid #ffc107;">
+                                    <span><i class="fas fa-wallet me-1"></i> Billetera:</span>
+                                    <strong class="text-dark">{{ $primaryCurrency->symbol ?? '$' }}{{ formatMoney($customer['wallet_balance']) }}</strong>
+                                </div>
+                            @endif
                             {{-- Solo mostramos indicador visual discreto, sin controles --}}
                             @if($sellerConfig || $customerConfig)
                                 <span class="badge badge-light text-muted" style="font-size: 0.75rem;" title="Comisiones Aplicadas Automáticamente">

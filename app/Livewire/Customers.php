@@ -42,6 +42,7 @@ class Customers extends Component
         'customerCommission2Percentage' => 'nullable|numeric',
         'customer.whatsapp_notify_sales' => 'nullable|boolean',
         'customer.whatsapp_notify_payments' => 'nullable|boolean',
+        'customer.wallet_balance' => 'nullable|numeric|min:0',
     ];
 
     protected $messages = [

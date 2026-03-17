@@ -242,6 +242,7 @@ class DailySalesReport extends Component
 
         // Calculate NC from returns in the period
         $returns = \App\Models\SaleReturn::with(['sale', 'requester', 'approver'])
+            ->where('status', 'approved')
             ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
                 $q->whereBetween('created_at', [$dFrom, $dTo]);
             })

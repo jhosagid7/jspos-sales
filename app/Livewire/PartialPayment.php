@@ -144,25 +144,21 @@ class PartialPayment extends Component
 
     function initPay($sale_id, $customer, $debt)
     {
-        $sale = Sale::find($sale_id);
+        $sale = Sale::with('customer')->find($sale_id);
         
         if (!$sale) {
             $this->dispatch('noty', msg: 'Venta no encontrada');
             return;
         }
         
-        // Define Invoice Currency Variables EARLY
         $invoiceCurrency = $sale->primary_currency_code ?? 'USD'; 
         $invoiceRate = $sale->primary_exchange_rate ?? 1;
 
-        // Calcular deuda en USD (moneda base)
-        // Fix: Exclude 'pending' and 'rejected' payments so they don't reduce the debt until verified
         $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected'])->sum(function($payment) {
             $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
             return $payment->amount / $rate;
         });
         
-        // Calculate Returns applied to debt
         $totalReturnsOrig = $sale->returns->where('refund_method', 'debt_reduction')->sum('total_returned');
         $exchangeRateReturns = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
         $totalReturnsUSD = $totalReturnsOrig / $exchangeRateReturns;
@@ -170,15 +166,12 @@ class PartialPayment extends Component
         $netTotalUSD = max(0, $sale->total_usd - $totalReturnsUSD);
         $debtUSD = max(0, $netTotalUSD - $totalPaidUSD);
         
-        // Calcular los días transcurridos desde que se CREÓ la venta
         $daysElapsed = Carbon::parse($sale->created_at)->diffInDays(Carbon::now());
         
-        // Obtener configuración de crédito (usar Snapshot si existe)
         $parsedSnapshot = CreditConfigService::parseCreditSnapshot($sale->credit_rules_snapshot);
         $rules = $parsedSnapshot['discount_rules'];
         $snapshotUsdDiscount = $parsedSnapshot['usd_payment_discount'];
 
-        // Si no hay snapshot (y tampoco se pudo parsear nada válido), fallback a configuración actual
         if (empty($sale->credit_rules_snapshot)) {
              $creditConfig = CreditConfigService::getCreditConfig($sale->customer, $sale->customer->seller);
              $rules = $creditConfig['discount_rules'];
@@ -190,49 +183,26 @@ class PartialPayment extends Component
         $usdPaymentDiscountPercent = 0;
         $fixedUsdDiscountAmount = 0;
         
-        if ($sale->is_foreign_sale || $snapshotUsdDiscount > 0 || ($sale->customer->usd_payment_discount ?? 0) > 0) {
-            
-            // Check History: If any VED/VES payment exists, USD Discount is VOID.
-            $hasVedHistory = $sale->payments()->whereIn('currency', ['VED', 'VES'])->exists();
-            
-            Log::info('PartialPayment::initPay History Check', ['hasVedHistory' => $hasVedHistory]);
-            
+        $hasVedHistory = $sale->payments()->whereIn('currency', ['VED', 'VES'])->exists();
+        $customerUsdDiscount = $sale->customer->usd_payment_discount ?? 0;
+        
+        if ($sale->is_foreign_sale || $snapshotUsdDiscount > 0 || $customerUsdDiscount > 0) {
             if (!$hasVedHistory) {
                 $allowDiscounts = true;
+                $usdPaymentDiscountPercent = $snapshotUsdDiscount ?? $customerUsdDiscount;
                 
-                // Fetch USD Payment Discount %
-                if ($snapshotUsdDiscount !== null) {
-                    $usdPaymentDiscountPercent = $snapshotUsdDiscount;
-                } else {
-                    $config = CreditConfigService::getCreditConfig($sale->customer, $sale->customer->seller);
-                    $usdPaymentDiscountPercent = $config['usd_payment_discount'] ?? 0;
-                }
-                
-                Log::info('PartialPayment::initPay Config', ['percent' => $usdPaymentDiscountPercent]);
-                
-                // Calculate Fixed Discount Amount based on NET Sale Total USD (Sale - Returns)
                 if ($usdPaymentDiscountPercent > 0) {
-                     $fixedUsdDiscountAmount = $netTotalUSD * ($usdPaymentDiscountPercent / 100);
-                     $fixedUsdDiscountAmount = round($fixedUsdDiscountAmount, 2);
-                     
-                     // Convert to Invoice Currency if needed
-                     if ($invoiceCurrency !== 'USD') {
-                         $fixedUsdDiscountAmount = $fixedUsdDiscountAmount * $invoiceRate;
-                         $fixedUsdDiscountAmount = round($fixedUsdDiscountAmount, 2);
-                     }
+                    $fixedUsdDiscountAmount = round($netTotalUSD * ($usdPaymentDiscountPercent / 100) * $invoiceRate, 2);
                 }
-            }
-            
-            // Early Payment Adjustment
-            $adjustment = CreditConfigService::calculateDiscount($debtUSD, $daysElapsed, $rules);
-
-            // Convert Adjustment Amount to Invoice Currency if needed
-            if ($adjustment && $invoiceCurrency !== 'USD') {
-                $adjustment['amount'] = round($adjustment['amount'] * $invoiceRate, 2);
             }
         }
+        
+        $adjustment = CreditConfigService::calculateDiscount($debtUSD, $daysElapsed, $rules);
 
-        // Convert Debt to Invoice Currency
+        if ($adjustment && $invoiceCurrency !== 'USD') {
+            $adjustment['amount'] = round($adjustment['amount'] * $invoiceRate, 2);
+        }
+
         $debtInInvoiceCurrency = $debtUSD * $invoiceRate;
         
         $this->sale_selected_id = $sale_id;
@@ -240,22 +210,22 @@ class PartialPayment extends Component
         $this->debt = round($debtInInvoiceCurrency, 2);
         $this->debt_usd = round($debtUSD, 2);
         
-        // Check Permissions
         $canUpload = auth()->user()->can('payments.upload');
         $canPay = auth()->user()->can('payments.register_direct');
         
-        // Open the Payment Component Modal
         $this->dispatch('initPayment', 
-            total: $this->debt, 
-            currency: $invoiceCurrency, 
-            customer: $this->customer_name, 
-            allowPartial: true,
-            adjustment: $adjustment, 
-            allowDiscounts: $allowDiscounts, 
-            usdDiscountPercent: $usdPaymentDiscountPercent, 
-            fixedUsdDiscountAmount: $fixedUsdDiscountAmount, 
-            canUpload: $canUpload,
-            canPay: $canPay
+            $this->debt, 
+            $invoiceCurrency, 
+            $this->customer_name, 
+            true,
+            $adjustment, 
+            $allowDiscounts, 
+            $usdPaymentDiscountPercent, 
+            $fixedUsdDiscountAmount, 
+            $canUpload,
+            $canPay,
+            $sale->customer->id ?? $sale->customer_id,
+            $sale->customer->wallet_balance ?? 0
         );
     }
     
@@ -345,6 +315,17 @@ class PartialPayment extends Component
                         $zelleRecordId = $zelleRecord->id;
                     }
                 } 
+
+                if ($payment['method'] === 'wallet') {
+                    if ($status === 'approved') {
+                        $customer = \App\Models\Customer::find($sale->customer_id);
+                        if ($customer) {
+                            $customer->wallet_balance -= floatval($payment['amount_in_primary']);
+                            $customer->save();
+                            Log::info("Wallet balance deducted for customer #{$customer->id} (Direct Payment)");
+                        }
+                    }
+                }
 
                 $bankRecordId = null;
                 $createdBankRecord = null;
@@ -503,6 +484,22 @@ class PartialPayment extends Component
                     'status' => 'approved',
                     'collection_sheet_id' => $currentSheetId
                 ]);
+
+                // Deduct from wallet if applicable
+                if ($payment->pay_way === 'wallet') {
+                    $customer = \App\Models\Customer::find($payment->sale->customer_id);
+                    if ($customer) {
+                        // For Payments table, we need to convert to primary currency
+                        $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
+                        $primaryRate = $payment->primary_exchange_rate > 0 ? $payment->primary_exchange_rate : 1;
+                        $amountInUSD = $payment->amount / $rate;
+                        $amountInPrimary = $amountInUSD * $primaryRate;
+
+                        $customer->wallet_balance -= floatval($amountInPrimary);
+                        $customer->save();
+                        Log::info("Wallet balance deducted for customer #{$customer->id} (Payment Approved)");
+                    }
+                }
                 
                 $sale = Sale::find($payment->sale_id);
                 $this->checkSaleSettlement($sale);

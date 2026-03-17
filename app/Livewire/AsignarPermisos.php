@@ -109,6 +109,8 @@ class AsignarPermisos extends Component
              $action = $parts[1] ?? $name;
 
              $map = [
+                'approve_deletion' => 'Aprobar Eliminación',
+                'approve_return' => 'Aprobar Devolución',
                 'index' => 'Ver / Listar',
                 'create' => 'Crear',
                 'edit' => 'Editar',

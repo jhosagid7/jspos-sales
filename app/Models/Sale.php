@@ -80,7 +80,7 @@ class Sale extends Model
 
     function customer()
     {
-        return $this->belongsTo(Customer::class)->select('id', 'name', 'address', 'city', 'phone', 'taxpayer_id', 'email', 'seller_id', 'allow_credit', 'credit_days', 'credit_limit', 'usd_payment_discount', 'whatsapp_notify_sales', 'whatsapp_notify_payments');
+        return $this->belongsTo(Customer::class)->select('id', 'name', 'address', 'city', 'phone', 'taxpayer_id', 'email', 'seller_id', 'allow_credit', 'credit_days', 'credit_limit', 'usd_payment_discount', 'whatsapp_notify_sales', 'whatsapp_notify_payments', 'wallet_balance');
     }
 
     function user()

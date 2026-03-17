@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.8.68] - 2026-03-17
+### Fixed
+- **Billetera Virtual en Abonos**: Corregido error de base de datos (SQL 1265) al intentar pagar con la billetera virtual en el módulo de abonos parciales.
+- **Billetera Virtual en Abonos**: Se habilitó la visibilidad del botón de "Billetera" en el modal de abonos y se sincronizó el saldo del cliente correctamente.
+- **Billetera Virtual**: Se corrigió la lógica de deducción de saldo para asegurar que se reste el monto equivalente en moneda principal, manteniendo consistencia con el punto de venta.
+
 ## [1.8.67] - 2026-03-14
 ### Added
 - **Identificación del Operador**: Se añadió el nombre del operador que genera el reporte en el encabezado, debajo del periodo y la moneda de referencia.

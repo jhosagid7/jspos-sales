@@ -100,9 +100,10 @@
                             @endif
                             
                             <div class="col-md-12 mb-3">
-                                <label><b>Motivo de la Devolución (Opcional):</b></label>
-                                <textarea wire:model="reason" class="form-control" rows="2" placeholder="Ej: Producto dañado, cambio de talla..."></textarea>
+                                <label><b>Motivo de la Devolución <span class="text-danger">(Obligatorio)</span>:</b></label>
+                                <textarea wire:model="reason" class="form-control mb-3" rows="2" placeholder="Ej: Producto dañado, cambio de talla, etc."></textarea>
                             </div>
+
                         </div>
 
                     @else

@@ -8,6 +8,7 @@ use App\Models\ZelleRecord;
 use App\Livewire\PartialPayment;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Livewire\Attributes\On;
 use Illuminate\Support\Facades\Log;
 
 class PaymentComponent extends Component
@@ -18,6 +19,8 @@ class PaymentComponent extends Component
     public $totalToPay = 0;
     public $currencyCode = 'COP'; // Currency of the debt
     public $customerName = '';
+    public $customerId = null;
+    public $walletBalance = 0;
     
     // Internal properties
     public $payments = [];
@@ -32,6 +35,7 @@ class PaymentComponent extends Component
     public $accountNumber;
     public $depositNumber;
     public $phoneNumber; // For Nequi
+    public $walletAmount; // For Virtual Wallet
     
     // Zelle Inputs
     public $zelleSender;
@@ -110,7 +114,8 @@ class PaymentComponent extends Component
         $this->resetPaymentForm();
     }
 
-    public function initPayment($total, $currency = 'COP', $customer = '', $allowPartial = false, $adjustment = null, $allowDiscounts = false, $usdDiscountPercent = 0, $fixedUsdDiscountAmount = 0, $canUpload = false, $canPay = false)
+    #[On('initPayment')]
+    public function initPayment($total, $currency = 'COP', $customer = '', $allowPartial = false, $adjustment = null, $allowDiscounts = false, $usdDiscountPercent = 0, $fixedUsdDiscountAmount = 0, $canUpload = false, $canPay = false, $customerId = null, $walletBalance = 0)
     {
         Log::info('PaymentComponent::initPayment Received', [
             'total' => $total,
@@ -118,7 +123,9 @@ class PaymentComponent extends Component
             'percent' => $usdDiscountPercent,
             'fixedAmount' => $fixedUsdDiscountAmount,
             'canUpload' => $canUpload,
-            'canPay' => $canPay
+            'canPay' => $canPay,
+            'customerId' => $customerId,
+            'walletBalance' => $walletBalance
         ]);
 
         $this->totalToPay = floatval($total);
@@ -133,14 +140,30 @@ class PaymentComponent extends Component
         
         $this->canUpload = $canUpload;
         $this->canPay = $canPay;
+        $this->customerId = $customerId;
+        $this->walletBalance = floatval($walletBalance);
         
-        // Default: If eligible for USD Discount, show it initially.
+        // 1. Inicializar USD Discount si califica
         if ($this->allowDiscounts && $this->fixedUsdDiscountAmount > 0) {
+            $this->usdAdjustment = [
+                'amount' => $this->fixedUsdDiscountAmount,
+                'percentage' => $this->usdPaymentDiscountPercent
+            ];
+        } else {
+            $this->usdAdjustment = null;
+        }
+
+        // 2. Establecer selección inicial (mutuamente excluyentes)
+        // Si ambos existen, priorizamos USD por defecto (como en v1.8.49) pero ambos quedan visibles
+        if ($this->usdAdjustment) {
             $this->applyUsdDiscount = true;
             $this->applyAdjustment = false;
         } elseif ($this->adjustment) {
             $this->applyAdjustment = true;
             $this->applyUsdDiscount = false;
+        } else {
+            $this->applyUsdDiscount = false;
+            $this->applyAdjustment = false;
         }
 
         $this->payments = [];
@@ -201,6 +224,7 @@ class PaymentComponent extends Component
         
         $this->manualCreditAmount = null;
         $this->manualCreditReason = null;
+        $this->walletAmount = null;
         
         // Keep paymentCurrency and paymentMethod as is for better UX
     }
@@ -261,7 +285,7 @@ class PaymentComponent extends Component
                  ->first();
                  
              if ($history) {
-                 $this->customExchangeRate = $history->rate;
+                $this->customExchangeRate = $history->rate;
                  // Optional: Flash message? No, too noisy.
              } else {
                  // Fallback to current config rate if no history found?
@@ -398,6 +422,17 @@ class PaymentComponent extends Component
         $this->validate([
             'amount' => 'required|numeric|min:0.01',
         ]);
+
+        if ($this->paymentMethod == 'wallet') {
+            if ($this->walletBalance <= 0) {
+                $this->dispatch('noty', msg: 'El cliente no tiene saldo en su billetera virtual.');
+                return;
+            }
+            if ($this->amount > $this->walletBalance) {
+                $this->dispatch('noty', msg: 'Saldo insuficiente en la billetera virtual (' . number_format($this->walletBalance, 2) . ').');
+                return;
+            }
+        }
         
         // Validate Cash VED Date
         if ($this->paymentMethod == 'cash' && in_array($this->paymentCurrency, ['VED', 'VES'])) {

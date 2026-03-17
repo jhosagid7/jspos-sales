@@ -21,7 +21,10 @@ class SaleReturn extends Model
         'cash_register_id',
         'collection_sheet_id',
         'requested_by',
-        'approved_by'
+        'approved_by',
+        'status',
+        'requested_at',
+        'approved_at'
     ];
 
     public function collectionSheet()

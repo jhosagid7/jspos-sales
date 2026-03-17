@@ -1,6 +1,6 @@
 <div>
     <div wire:ignore.self class="modal fade" id="modalPayment" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+        <div class="modal-dialog modal-xl" role="document">
             <div class="modal-content">
                 <div class="modal-header bg-primary">
                     <h5 class="modal-title text-white">
@@ -25,7 +25,7 @@
                         }
                     @endphp
 
-                    <div class="row">
+                    <div class="row align-items-start">
                         {{-- Left Column: Summary & Method --}}
                         <div class="col-md-6">
                             {{-- Summary --}}
@@ -157,6 +157,17 @@
                                             </button>
                                         </div>
                                         @endmodule
+                                        
+                                        @if($customerId && $walletBalance > 0)
+                                        <div class="col-6">
+                                            <button type="button" wire:click="$set('paymentMethod', 'wallet')"
+                                                class="btn w-100 {{ $paymentMethod === 'wallet' ? 'btn-warning' : 'btn-outline-warning' }}"
+                                                style="padding: 15px 10px;">
+                                                <i class="fa fa-wallet fa-2x d-block mb-2"></i>
+                                                <small class="d-block text-truncate">Billetera ({{ $symbol }}{{ number_format($walletBalance, 2) }})</small>
+                                            </button>
+                                        </div>
+                                        @endif
                                         
                                         @can('payments.create_credit_note')
                                         <div class="col-12 mt-2">
@@ -437,8 +448,27 @@
                                                     <div class="col-12">
                                                         <button class="btn btn-primary w-100" wire:click="addPayment">Agregar Pago</button>
                                                     </div>
-                                                @endif
-                                            @endif
+                                            </div> {{-- AQUÍ FALTABA ESTE CIERRE DE LA FILA DE BANCO --}}
+                                        @endif
+                                    @endif
+                                @endif
+
+                                    {{-- WALLET --}}
+                                    @if($paymentMethod === 'wallet')
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <div class="alert alert-warning mb-0 border-warning">
+                                                    <i class="fa fa-info-circle me-1"></i> El cliente dispone de <strong>{{ $symbol }}{{ number_format($walletBalance, 2) }}</strong> en su billetera virtual.
+                                                </div>
+                                            </div>
+                                            <div class="col-md-12">
+                                                <label class="form-label">Monto a Usar</label>
+                                                <input class="form-control border-warning" type="number" wire:model="amount" placeholder="0.00" wire:keydown.enter="addPayment">
+                                                @error('amount') <span class="text-danger small">{{ $message }}</span> @enderror
+                                            </div>
+                                            <div class="col-12">
+                                                <button class="btn btn-warning w-100" wire:click="addPayment">Usar Saldo</button>
+                                            </div>
                                         </div>
                                     @endif
  
@@ -499,8 +529,8 @@
                                                 @forelse($payments as $index => $p)
                                                     <tr>
                                                         <td>
-                                                            <span class="badge {{ $p['method'] == 'credit_note' ? 'bg-warning text-dark' : 'bg-secondary' }}">
-                                                                {{ $p['method'] == 'credit_note' ? 'AJUSTE / NC' : strtoupper($p['method']) }}
+                                                            <span class="badge {{ $p['method'] == 'credit_note' ? 'bg-warning text-dark' : ($p['method'] == 'wallet' ? 'bg-warning' : 'bg-secondary') }}">
+                                                                {{ $p['method'] == 'credit_note' ? 'AJUSTE / NC' : ($p['method'] == 'wallet' ? 'BILLETERA' : strtoupper($p['method'])) }}
                                                             </span>
                                                             @if($p['method'] == 'bank') <br><small>{{ $p['bank_name'] }}</small> @endif
                                                             @if($p['method'] == 'zelle') 
@@ -511,6 +541,8 @@
                                                             @endif
                                                             @if($p['method'] == 'credit_note')
                                                                 <br><small>Motivo: {{ $p['note'] }}</small>
+                                                            @elseif($p['method'] == 'wallet')
+                                                                <br><small>Pago con Billetera Virtual</small>
                                                             @endif
                                                         </td>
                                                         <td>{{ $p['symbol'] }}{{ number_format($p['amount'], 2) }}</td>

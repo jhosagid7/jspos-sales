@@ -312,6 +312,13 @@
                                     <small class="text-muted">Monto máximo total en crédito pendiente</small>
                                     @error('customer.credit_limit') <span class="text-danger">{{ $message }}</span> @enderror
                                 </div>
+                                <div class="col-sm-6 mt-3">
+                                    <label class="form-label text-success"><strong>Saldo en Billetera ($)</strong></label>
+                                    <input wire:model="customer.wallet_balance" type="number" step="0.01" class="form-control border-success" 
+                                           placeholder="Ej: 50.00">
+                                    <small class="text-muted">Saldo a favor del cliente para usar en compras</small>
+                                    @error('customer.wallet_balance') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
 
                                 {{-- Sección 2: Reglas de Descuento/Recargo --}}
                                 <div class="col-sm-12 mt-4">

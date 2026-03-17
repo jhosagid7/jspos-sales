@@ -122,15 +122,26 @@
             margin-top: 30px;
         }
         .signature-box {
-            width: 45%;
+            width: 100%;
             text-align: center;
-            display: inline-block;
-            vertical-align: top;
+            margin-bottom: 40px;
         }
         .signature-line {
-            border-top: 1px solid #000;
-            width: 200px;
+            border-top: 1px solid #333;
+            width: 80%;
             margin: 0 auto 5px auto;
+        }
+        .summary-label-bold {
+            font-weight: bold;
+            font-size: 7.5pt;
+        }
+        .currency-header {
+            background-color: #f0f0f0;
+            text-align: center;
+            font-weight: bold;
+            padding: 2px;
+            border: 1px solid #ccc;
+            margin-bottom: 5px;
         }
     </style>
 </head>
@@ -394,35 +405,37 @@
     <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
         <tr>
             {{-- Column 1: Income Breakdown (USD) --}}
-            <td style="width: 30%; vertical-align: top;">
+            <td style="width: 32%; vertical-align: top;">
                 <table style="width: 100%; font-size: 7.5pt;">
                     @php $grandTotalIncomeUSD = 0; @endphp
                     @foreach($totalsByCategory as $category => $total)
-                        @if($total > 0 || str_contains($category, 'EFECTIVO'))
                         <tr>
-                            <td style="padding: 1px 0;">{{ strtoupper($category) }}:</td>
-                            <td class="text-right" style="padding: 1px 5px;">{{ number_format($total, 4) }}</td>
+                            <td class="summary-label-bold" style="padding: 1px 0;">{{ strtoupper($category) }}:</td>
+                            <td class="text-right" style="padding: 1px 5px; font-weight: normal;">{{ number_format($total, 4) }}</td>
                         </tr>
-                        @php $grandTotalIncomeUSD += $total; @endphp
-                        @endif
+                        @php 
+                            if ($category !== 'NOTAS DE CREDITO (NC)') {
+                                $grandTotalIncomeUSD += $total; 
+                            }
+                        @endphp
                     @endforeach
-                    <tr style="border-top: 1.5pt solid #000; font-weight: bold;">
-                        <td style="padding-top: 3px;">Total Ingreso:</td>
-                        <td class="text-right" style="padding: 3px 5px;">{{ number_format($grandTotalIncomeUSD, 4) }}</td>
+                    <tr style="border-top: 1.5pt solid #333;">
+                        <td class="summary-label-bold" style="padding-top: 3px;">Total Ingreso:</td>
+                        <td class="text-right" style="font-weight: bold; padding-top: 3px; padding-right: 5px;">{{ number_format($grandTotalIncomeUSD, 4) }}</td>
                     </tr>
                 </table>
             </td>
 
             {{-- Column 2: Details by Currency --}}
-            <td style="width: 30%; vertical-align: top; padding-left: 10px;">
-                <div style="background-color: #f0f0f0; padding: 2px; text-align: center; border: 1px solid #ccc; font-weight: bold; margin-bottom: 5px;">
+            <td style="width: 23%; vertical-align: top; padding-left: 10px; padding-right: 10px;">
+                <div class="currency-header">
                     Detalle por Moneda
                 </div>
-                <table style="width: 100%; font-size: 7.5pt;">
+                <table style="width: 100%; font-size: 8pt;">
                     @foreach($totalsByCurrency as $currCode => $amount)
                         @if($amount > 0)
                         <tr>
-                            <td>Total {{ $currCode }}:</td>
+                            <td style="font-weight: bold;">Total {{ $currCode }}:</td>
                             <td class="text-right">{{ number_format($amount, 2) }}</td>
                         </tr>
                         @endif
@@ -430,19 +443,18 @@
                 </table>
             </td>
 
-            {{-- Column 3: Signatures --}}
-            <td style="width: 40%; vertical-align: bottom; padding-left: 10px;">
-                <table style="width: 100%;">
+            {{-- Column 3: Signatures Side by Side --}}
+            <td style="width: 45%; vertical-align: top; padding-left: 10px;">
+                <table style="width: 100%; margin-top: 80px;">
                     <tr>
-                        <td style="text-align: center; width: 50%;">
-                            <div style="border-top: 1px solid #000; width: 110px; margin: 0 auto; font-size: 7.5pt; padding-top: 5px;">
-                                <strong>ENTREGADO POR</strong><br>(OPERADOR)
-                            </div>
+                        <td style="width: 50%; text-align: center; vertical-align: top;">
+                            <div style="border-top: 1px solid #333; width: 90%; margin: 0 auto 5px auto;"></div>
+                            <div style="font-size: 7.5pt; font-weight: bold;">ENTREGADO POR</div>
+                            <div style="font-size: 7.5pt; font-weight: bold;">(OPERADOR)</div>
                         </td>
-                        <td style="text-align: center; width: 50%;">
-                            <div style="border-top: 1px solid #000; width: 110px; margin: 0 auto; font-size: 7.5pt; padding-top: 5px;">
-                                <strong>RECIBIDO POR</strong>
-                            </div>
+                        <td style="width: 50%; text-align: center; vertical-align: top;">
+                            <div style="border-top: 1px solid #333; width: 90%; margin: 0 auto 5px auto;"></div>
+                            <div style="font-size: 7.5pt; font-weight: bold;">RECIBIDO POR</div>
                         </td>
                     </tr>
                 </table>

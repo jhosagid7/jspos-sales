@@ -46,6 +46,7 @@
                                     <th width="25%">Teléfono</th>
                                     <th width="25%">CC/Nit</th>
                                     <th width="15%">Vendedor</th>
+                                    <th width="10%">Billetera</th>
                                     
                                     <th class="text-center">Actions</th>
                                 </tr>
@@ -59,6 +60,9 @@
                                         <td>{{ $item->phone }}</td>
                                         <td>{{ $item->taxpayerId }}</td>
                                         <td>{{ $item->seller ? $item->seller->name : 'N/A' }}</td>
+                                        <td class="text-center fw-bold {{ $item->wallet_balance > 0 ? 'text-success' : '' }}">
+                                            ${{ number_format($item->wallet_balance, 2) }}
+                                        </td>
                                         
                                         <td class="text-center">
 
