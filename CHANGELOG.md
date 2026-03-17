@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.69] - 2026-03-17
+### Fixed
+- **Modal de Pago**: Corregido error crítico de visualización en el que los formularios de Zelle y Banco no cargaban correctamente debido a un error de estructura HTML.
+
 ## [1.8.68] - 2026-03-17
 ### Fixed
 - **Billetera Virtual en Abonos**: Corregido error de base de datos (SQL 1265) al intentar pagar con la billetera virtual en el módulo de abonos parciales.
