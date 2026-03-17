@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.75] - 2026-03-17
+### Changed
+- **Unificación Estética**: Se aplicaron los nuevos estilos de la "Billetera Virtual" y la disposición de botones (col-4) a todos los módulos de pago, incluyendo Ventas/Abono y Cuentas por Cobrar, para mantener una estética coherente en todo el sistema.
+
 ## [1.8.74] - 2026-03-17
 ### Fixed
 - **Estilos en POS**: Se corrigió un error en el que el código CSS de la billetera se mostraba como texto en la parte superior del modal debido a una incompatibilidad con la etiqueta @style.

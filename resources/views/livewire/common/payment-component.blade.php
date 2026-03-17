@@ -25,6 +25,30 @@
                         }
                     @endphp
 
+                    <style>
+                        .btn-outline-wallet {
+                            color: #f39c12 !important;
+                            border-color: #f39c12 !important;
+                            background-color: transparent !important;
+                        }
+                        .btn-outline-wallet:hover {
+                            color: #fff !important;
+                            background-color: #e67e22 !important;
+                            border-color: #d35400 !important;
+                        }
+                        .btn-active-wallet {
+                            color: #fff !important;
+                            background-color: #f39c12 !important;
+                            border-color: #e67e22 !important;
+                            box-shadow: 0 4px 8px rgba(243, 156, 18, 0.3) !important;
+                        }
+                        .btn-pay-method {
+                            padding: 15px 10px;
+                            border-radius: 8px;
+                            transition: all 0.3s ease;
+                        }
+                    </style>
+
                     <div class="row align-items-start">
                         {{-- Left Column: Summary & Method --}}
                         <div class="col-md-6">
@@ -138,20 +162,18 @@
                                     <h6 class="mb-0"><i class="fa fa-credit-card me-2"></i>Método de Pago</h6>
                                 </div>
                                 <div class="card-body">
-                                    <div class="row g-2">
-                                        <div class="col-6">
+                                    <div class="row g-2 justify-content-center">
+                                        <div class="col-4">
                                             <button type="button" wire:click="$set('paymentMethod', 'cash')"
-                                                class="btn w-100 {{ $paymentMethod === 'cash' ? 'btn-success' : 'btn-outline-success' }}"
-                                                style="padding: 15px 10px;">
+                                                class="btn w-100 btn-pay-method {{ $paymentMethod === 'cash' ? 'btn-success' : 'btn-outline-success' }}">
                                                 <i class="fa fa-money-bill-wave fa-2x d-block mb-2"></i>
                                                 <small class="d-block">Efectivo</small>
                                             </button>
                                         </div>
                                         @module('module_advanced_payments')
-                                        <div class="col-6">
+                                        <div class="col-4">
                                             <button type="button" wire:click="$set('paymentMethod', 'bank')"
-                                                class="btn w-100 {{ $paymentMethod === 'bank' ? 'btn-primary' : 'btn-outline-primary' }}"
-                                                style="padding: 15px 10px;">
+                                                class="btn w-100 btn-pay-method {{ $paymentMethod === 'bank' ? 'btn-primary' : 'btn-outline-primary' }}">
                                                 <i class="fa fa-university fa-2x d-block mb-2"></i>
                                                 <small class="d-block">Banco / Zelle</small>
                                             </button>
@@ -159,12 +181,11 @@
                                         @endmodule
                                         
                                         @if($customerId && $walletBalance > 0)
-                                        <div class="col-6">
+                                        <div class="col-4">
                                             <button type="button" wire:click="$set('paymentMethod', 'wallet')"
-                                                class="btn w-100 {{ $paymentMethod === 'wallet' ? 'btn-warning' : 'btn-outline-warning' }}"
-                                                style="padding: 15px 10px;">
+                                                class="btn w-100 btn-pay-method {{ $paymentMethod === 'wallet' ? 'btn-active-wallet' : 'btn-outline-wallet' }}">
                                                 <i class="fa fa-wallet fa-2x d-block mb-2"></i>
-                                                <small class="d-block text-truncate">Billetera ({{ $symbol }}{{ number_format($walletBalance, 2) }})</small>
+                                                <small class="d-block text-truncate fw-bold">Billetera ({{ $symbol }}{{ number_format($walletBalance, 2) }})</small>
                                             </button>
                                         </div>
                                         @endif
@@ -172,8 +193,7 @@
                                         @can('payments.create_credit_note')
                                         <div class="col-12 mt-2">
                                             <button type="button" wire:click="$set('paymentMethod', 'credit_note')"
-                                                class="btn w-100 {{ $paymentMethod === 'credit_note' ? 'btn-warning text-dark' : 'btn-outline-warning' }}"
-                                                style="padding: 10px;">
+                                                class="btn w-100 btn-pay-method {{ $paymentMethod === 'credit_note' ? 'btn-warning text-dark' : 'btn-outline-warning' }}">
                                                 <i class="fa fa-file-invoice fa-lg me-2"></i>
                                                 Nota de Crédito Manual (Ajuste)
                                             </button>
