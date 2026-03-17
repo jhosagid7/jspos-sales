@@ -25,7 +25,7 @@ class PartialPayment extends Component
     protected $paginationTheme = 'bootstrap';
 
     public $pays;
-    public  $search, $sale_selected_id, $customer_name, $debt, $debt_usd;
+    public $search, $sale_selected_id, $customer_name, $debt, $debt_usd;
     public $editingPaymentId, $editPaymentRef, $editPaymentAmount, $editPaymentDate, $editPaymentRate, $editPaymentComment;
     public $editApplyEarlyDiscount = false, $editApplyUsdDiscount = false;
     public $editEarlyDiscountAmount = 0, $editUsdDiscountAmount = 0;
@@ -39,7 +39,7 @@ class PartialPayment extends Component
         'close-modal' => 'resetUI'
     ];
 
-    function mount($key = null)
+    public function mount($key = null)
     {
         $this->pays = [];
         $this->search = null;
@@ -62,7 +62,7 @@ class PartialPayment extends Component
         ]);
     }
 
-    public  function getSalesWithDetails()
+    public function getSalesWithDetails()
     {
         $sales = Sale::where(function ($query) {
             if (!empty(trim($this->search))) {
@@ -141,8 +141,7 @@ class PartialPayment extends Component
     {
         $this->resetPage();
     }
-
-    function initPay($sale_id, $customer, $debt)
+    public function initPay($sale_id, $customer, $debt)
     {
         $sale = Sale::with('customer')->find($sale_id);
         
@@ -173,12 +172,12 @@ class PartialPayment extends Component
         $snapshotUsdDiscount = $parsedSnapshot['usd_payment_discount'];
 
         if (empty($sale->credit_rules_snapshot)) {
-             $creditConfig = CreditConfigService::getCreditConfig($sale->customer, $sale->customer->seller);
-             $rules = $creditConfig['discount_rules'];
-             $snapshotUsdDiscount = null; 
+            $creditConfig = CreditConfigService::getCreditConfig($sale->customer, $sale->customer->seller);
+            $rules = $creditConfig['discount_rules'];
+            $snapshotUsdDiscount = null; 
         }
         
-        $adjustment = null;
+        $earlyDiscountAdjustment = null;
         $allowDiscounts = false;
         $usdPaymentDiscountPercent = 0;
         $fixedUsdDiscountAmount = 0;
@@ -197,10 +196,10 @@ class PartialPayment extends Component
             }
         }
         
-        $adjustment = CreditConfigService::calculateDiscount($debtUSD, $daysElapsed, $rules);
+        $earlyDiscountAdjustment = CreditConfigService::calculateDiscount($debtUSD, $daysElapsed, $rules);
 
-        if ($adjustment && $invoiceCurrency !== 'USD') {
-            $adjustment['amount'] = round($adjustment['amount'] * $invoiceRate, 2);
+        if ($earlyDiscountAdjustment && $invoiceCurrency !== 'USD') {
+            $earlyDiscountAdjustment['amount'] = round($earlyDiscountAdjustment['amount'] * $invoiceRate, 2);
         }
 
         $debtInInvoiceCurrency = $debtUSD * $invoiceRate;
@@ -218,7 +217,7 @@ class PartialPayment extends Component
             $invoiceCurrency, 
             $this->customer_name, 
             true,
-            $adjustment, 
+            $earlyDiscountAdjustment, 
             $allowDiscounts, 
             $usdPaymentDiscountPercent, 
             $fixedUsdDiscountAmount, 
@@ -894,19 +893,19 @@ class PartialPayment extends Component
         $this->resetUI();
     }
 
-    function historyPayments(Sale $sale)
+    public function historyPayments(Sale $sale)
     {
         $this->pays = $sale->payments;
         $this->dispatch('show-payhistory');
     }
 
-    function printReceipt($payment_id)
+    public function printReceipt($payment_id)
     {
         $this->printPayment($payment_id);
         $this->dispatch('noty', msg: 'IMPRIMIENDO RECIBO DE PAGO...');
     }
 
-    function printHistory()
+    public function printHistory()
     {
         if (empty($this->pays) || count($this->pays) == 0) {
             $this->dispatch('noty', msg: 'NO HAY PAGOS PARA IMPRIMIR');
