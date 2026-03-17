@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.74] - 2026-03-17
+### Fixed
+- **Estilos en POS**: Se corrigió un error en el que el código CSS de la billetera se mostraba como texto en la parte superior del modal debido a una incompatibilidad con la etiqueta @style.
+
 ## [1.8.73] - 2026-03-17
 ### Changed
 - **Interfaz de Pago POS**: Se removió el botón de "Crédito" del modal de pago rápido y se reubicó el botón de "Billetera Virtual" en su lugar.

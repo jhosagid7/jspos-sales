@@ -19,24 +19,24 @@
                         $symbol = $targetCurrency ? $targetCurrency->symbol : '$';
                     @endphp
 
-                    @style
+                    <style>
                         .btn-outline-wallet {
-                            color: #f39c12;
-                            border-color: #f39c12;
-                            background-color: transparent;
+                            color: #f39c12 !important;
+                            border-color: #f39c12 !important;
+                            background-color: transparent !important;
                         }
                         .btn-outline-wallet:hover {
-                            color: #fff;
-                            background-color: #e67e22;
-                            border-color: #d35400;
+                            color: #fff !important;
+                            background-color: #e67e22 !important;
+                            border-color: #d35400 !important;
                         }
                         .btn-active-wallet {
                             color: #fff !important;
                             background-color: #f39c12 !important;
                             border-color: #e67e22 !important;
-                            box-shadow: 0 4px 8px rgba(243, 156, 18, 0.3);
+                            box-shadow: 0 4px 8px rgba(243, 156, 18, 0.3) !important;
                         }
-                    @endstyle
+                    </style>
 
                     <div class="row">
                         {{-- Columna Izquierda: Resumen y Método de Pago --}}
