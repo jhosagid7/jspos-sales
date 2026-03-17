@@ -517,7 +517,8 @@ class AccountsReceivableReport extends Component
             fixedUsdDiscountAmount: $fixedUsdDiscountAmount,
             canUpload: $canUpload,
             canPay: $canPay,
-            prefill: $prefill
+            customerId: $sale->customer->id ?? $sale->customer_id,
+            walletBalance: $sale->customer->wallet_balance ?? 0
         );
     }
     

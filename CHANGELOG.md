@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.72] - 2026-03-17
+### Fixed
+- **Billetera en Cuentas por Cobrar**: Se habilitó la opción de pago con billetera virtual en el módulo de reportes de cuentas por cobrar, sincronizando el saldo del cliente correctamente.
+
 ## [1.8.71] - 2026-03-17
 ### Fixed
 - **Retroactividad de NC**: Se mejoró la lógica de descubrimiento de Notas de Crédito antiguas para que aparezcan en los reportes de días anteriores basándose en su fecha de creación o asociación con facturas pagadas, incluso si no tenían un ID de planilla asignado originalmente.
