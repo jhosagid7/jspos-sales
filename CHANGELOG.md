@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.8.70] - 2026-03-17
+### Added
+- **Integración de Notas de Crédito**: Se centralizó la lógica de creación de "Planillas de Cobro" mediante un Trait para asegurar que las Notas de Crédito (NC), manuales o por devolución, se asocien correctamente al reporte diario.
+- **Relación de Cobros**: Se mejoró la búsqueda y visualización de Notas de Crédito en el reporte, permitiendo ver el historial completo de transacciones (pagos y NC) por cliente en el PDF.
+
 ## [1.8.69] - 2026-03-17
 ### Fixed
 - **Modal de Pago**: Corregido error crítico de visualización en el que los formularios de Zelle y Banco no cargaban correctamente debido a un error de estructura HTML.

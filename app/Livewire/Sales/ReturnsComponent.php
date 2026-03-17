@@ -12,8 +12,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 
+use App\Traits\CollectionSheetTrait;
+
 class ReturnsComponent extends Component
 {
+    use CollectionSheetTrait;
     public $saleId;
     public $sale;
     public $returnItems = []; // Array of items with 'qty_to_return'
@@ -205,6 +208,7 @@ class ReturnsComponent extends Component
                 'return_type' => $isFullReturn ? 'full' : 'partial',
                 'refund_method' => $this->refundMethod,
                 'cash_register_id' => $this->refundMethod === 'cash' ? $this->cashRegisterId : null,
+                'collection_sheet_id' => $this->refundMethod === 'debt_reduction' ? $this->getOrCreateCollectionSheet() : null,
             ]);
 
             // Create Details

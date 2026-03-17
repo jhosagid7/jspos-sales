@@ -12,10 +12,11 @@ use App\Traits\PrintTrait;
 use Livewire\Attributes\On;
 use Livewire\WithPagination;
 
+use App\Traits\CollectionSheetTrait;
+
 class AccountsReceivableReport extends Component
 {
-    use PrintTrait;
-    use WithPagination;
+    use PrintTrait, WithPagination, CollectionSheetTrait;
 
 
     public $pagination = 10, $banks = [], $customer, $customer_name, $debt, $debt_usd, $dateFrom, $dateTo, $showReport = false, $status = 0;
@@ -547,25 +548,6 @@ class AccountsReceivableReport extends Component
                 $exchangeRate = $payment['exchange_rate'];
 
                 if ($payment['method'] == 'credit_note') {
-                    // Find or Create Open Sheet for Today (Need to fetch it here or move sheet logic up)
-                    $today = \Carbon\Carbon::now()->format('Y-m-d');
-                    $sheet = \App\Models\CollectionSheet::where('status', 'open')
-                        ->whereDate('opened_at', $today)
-                        ->first();
-
-                    if (!$sheet) {
-                        $dateStr = \Carbon\Carbon::now()->format('Ymd');
-                        $count = \App\Models\CollectionSheet::whereDate('opened_at', $today)->count() + 1;
-                        $sheetNumber = $dateStr . '-' . str_pad($count, 2, '0', STR_PAD_LEFT);
-
-                        $sheet = \App\Models\CollectionSheet::create([
-                            'sheet_number' => $sheetNumber,
-                            'status' => 'open',
-                            'opened_at' => \Carbon\Carbon::now(),
-                            'total_amount' => 0
-                        ]);
-                    }
-
                     \App\Models\SaleReturn::create([
                         'sale_id' => $sale->id,
                         'customer_id' => $sale->customer_id,
@@ -575,7 +557,8 @@ class AccountsReceivableReport extends Component
                         'reason' => $payment['note'] ?? 'Nota de Crédito Manual',
                         'return_type' => 'manual',
                         'refund_method' => 'debt_reduction',
-                        'collection_sheet_id' => $sheet->id
+                        'collection_sheet_id' => $this->getOrCreateCollectionSheet(),
+                        'status' => 'approved'
                     ]);
                     continue;
                 }
@@ -646,33 +629,9 @@ class AccountsReceivableReport extends Component
                      }
                 }
 
-                // Handle Collection Sheet (Global Daily Sheet)
-                $today = \Carbon\Carbon::now()->format('Y-m-d');
-                
-                // 1. Close any open sheet from previous days
-                \App\Models\CollectionSheet::where('status', 'open')
-                    ->whereDate('opened_at', '<', $today)
-                    ->update(['status' => 'closed', 'closed_at' => \Carbon\Carbon::now()]);
-
-                // 2. Find or Create Open Sheet for Today
-                $sheet = \App\Models\CollectionSheet::where('status', 'open')
-                    ->whereDate('opened_at', $today)
-                    ->first();
-
-                if (!$sheet) {
-                    // Create new sheet for today
-                    // Generate Sheet Number: YYYYMMDD-01
-                    $dateStr = \Carbon\Carbon::now()->format('Ymd');
-                    $count = \App\Models\CollectionSheet::whereDate('opened_at', $today)->count() + 1;
-                    $sheetNumber = $dateStr . '-' . str_pad($count, 2, '0', STR_PAD_LEFT);
-
-                    $sheet = \App\Models\CollectionSheet::create([
-                        'sheet_number' => $sheetNumber,
-                        'status' => 'open',
-                        'opened_at' => \Carbon\Carbon::now(),
-                        'total_amount' => 0
-                    ]);
-                }
+                // Use Trait for sheet
+                $sheetId = $this->getOrCreateCollectionSheet();
+                $sheet = \App\Models\CollectionSheet::find($sheetId);
 
                 $pay = Payment::create([
                     'user_id' => Auth()->user()->id,

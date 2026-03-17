@@ -85,8 +85,12 @@ class PaymentRelationshipReport extends Component
         // Yes, let's filter sheets that have at least one matching payment.
 
         if ($this->operator_id || $this->seller_id || $this->batch_name || $this->zone || ($this->invoice_from && $this->invoice_to)) {
-            $query->whereHas('payments', function($q) {
-                $this->applyPaymentFilters($q);
+            $query->where(function($sheetQuery) {
+                $sheetQuery->whereHas('payments', function($q) {
+                    $this->applyPaymentFilters($q);
+                })->orWhereHas('returns', function($q) {
+                    $this->applyReturnFilters($q);
+                });
             });
         }
 
@@ -193,6 +197,38 @@ class PaymentRelationshipReport extends Component
         $query->where('status', 'approved');
     }
 
+    function applyReturnFilters($query)
+    {
+        if ($this->operator_id) {
+            $query->where('user_id', $this->operator_id);
+        }
+
+        if ($this->seller_id || $this->batch_name || $this->zone || ($this->invoice_from && $this->invoice_to)) {
+            $query->whereHas('sale', function($q) {
+                if ($this->seller_id) {
+                    $q->whereHas('customer', function($c) {
+                        $c->where('seller_id', $this->seller_id);
+                    });
+                }
+                if ($this->batch_name) {
+                    $q->where('batch_name', 'like', "%{$this->batch_name}%");
+                }
+                if ($this->zone) {
+                    $q->whereHas('customer', function($c) {
+                        $c->where('zone', 'like', "%{$this->zone}%");
+                    });
+                }
+                if ($this->invoice_from || $this->invoice_to) {
+                    // Logic mirroring invoice id search in payments
+                    if ($this->invoice_from) $q->where('id', '>=', (int)preg_replace('/[^0-9]/', '', $this->invoice_from));
+                    if ($this->invoice_to) $q->where('id', '<=', (int)preg_replace('/[^0-9]/', '', $this->invoice_to));
+                }
+            });
+        }
+        
+        $query->where('status', 'approved');
+    }
+
     function viewDetails($sheetId)
     {
         $this->selectedSheet = \App\Models\CollectionSheet::find($sheetId);
@@ -212,9 +248,26 @@ class PaymentRelationshipReport extends Component
     
     function getSheetReturns($sheet)
     {
-        return \App\Models\SaleReturn::where('collection_sheet_id', $sheet->id)
+        // 1. Returns explicitly assigned to this sheet
+        $returnsInSheet = \App\Models\SaleReturn::where('collection_sheet_id', $sheet->id)
             ->with(['sale.customer', 'user'])
             ->get();
+
+        // 2. Returns associated with sales that have payments in this sheet
+        // but might not have a collection_sheet_id (e.g. old data or created via other modules)
+        $saleIdsInPayments = $sheet->payments()->pluck('sale_id')->unique();
+        
+        $associatedReturns = \App\Models\SaleReturn::whereIn('sale_id', $saleIdsInPayments)
+            ->where(function($q) use ($sheet) {
+                $q->whereNull('collection_sheet_id')
+                  ->orWhere('collection_sheet_id', 0)
+                  // Also include if created on the same day as the sheet opened, even if sheet_id is null
+                  ->orWhereDate('created_at', \Carbon\Carbon::parse($sheet->opened_at)->toDateString());
+            })
+            ->with(['sale.customer', 'user'])
+            ->get();
+
+        return $returnsInSheet->merge($associatedReturns)->unique('id');
     }
 
     function generateRelacionCobroPdf()
