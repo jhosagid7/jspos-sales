@@ -19,6 +19,25 @@
                         $symbol = $targetCurrency ? $targetCurrency->symbol : '$';
                     @endphp
 
+                    @style
+                        .btn-outline-wallet {
+                            color: #f39c12;
+                            border-color: #f39c12;
+                            background-color: transparent;
+                        }
+                        .btn-outline-wallet:hover {
+                            color: #fff;
+                            background-color: #e67e22;
+                            border-color: #d35400;
+                        }
+                        .btn-active-wallet {
+                            color: #fff !important;
+                            background-color: #f39c12 !important;
+                            border-color: #e67e22 !important;
+                            box-shadow: 0 4px 8px rgba(243, 156, 18, 0.3);
+                        }
+                    @endstyle
+
                     <div class="row">
                         {{-- Columna Izquierda: Resumen y Método de Pago --}}
                         <div class="col-md-6">
@@ -80,41 +99,19 @@
                                         </div>
                                         @endmodule
 
-                                        {{-- Crédito (deshabilitado si no hay cliente o no tiene crédito) --}}
-                                        @module('module_credits')
+                                        {{-- Billetera Virtual (En lugar de Crédito si el cliente tiene saldo) --}}
+                                        @if(!empty($customer['id']) && ($customer['wallet_balance'] ?? 0) > 0)
                                         <div class="col-4">
-                                            @php
-                                                $creditEnabled = !empty($customer->id) && 
-                                                                 !empty($creditConfig['allow_credit']) && 
-                                                                 $creditConfig['allow_credit'] === true;
-                                            @endphp
-                                            <button 
-                                                type="button"
-                                                wire:click="$set('selectedPaymentMethod', 'credit')"
-                                                class="btn w-100 {{ $selectedPaymentMethod === 'credit' ? 'btn-info' : 'btn-outline-info' }}"
-                                                style="padding: 15px 10px;"
-                                                {{ !$creditEnabled ? 'disabled' : '' }}>
-                                                <i class="fa fa-credit-card fa-2x d-block mb-2"></i>
-                                                <small class="d-block">Crédito</small>
-                                            </button>
-                                        </div>
-                                        @endmodule
-
-                                        {{-- Billetera Virtual --}}
-                                        <div class="col-4">
-                                            @php
-                                                $walletEnabled = !empty($customer['id']) && ($customer['wallet_balance'] ?? 0) > 0;
-                                            @endphp
                                             <button 
                                                 type="button"
                                                 wire:click="$set('selectedPaymentMethod', 'wallet')"
-                                                class="btn w-100 {{ $selectedPaymentMethod === 'wallet' ? 'btn-warning' : 'btn-outline-warning' }}"
-                                                style="padding: 15px 10px;"
-                                                {{ !$walletEnabled ? 'disabled' : '' }}>
+                                                class="btn w-100 {{ $selectedPaymentMethod === 'wallet' ? 'btn-active-wallet' : 'btn-outline-wallet' }}"
+                                                style="padding: 15px 10px; border-radius: 8px;">
                                                 <i class="fa fa-wallet fa-2x d-block mb-2"></i>
-                                                <small class="d-block text-truncate">Billetera ({{ $primaryCurrency->symbol ?? '$' }}{{ formatMoney($customer['wallet_balance'] ?? 0) }})</small>
+                                                <small class="d-block text-truncate fw-bold">Billetera ({{ $primaryCurrency->symbol ?? '$' }}{{ formatMoney($customer['wallet_balance'] ?? 0) }})</small>
                                             </button>
                                         </div>
+                                        @endif
                                     </div>
                                 </div>
                             </div>

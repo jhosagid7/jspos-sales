@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.8.73] - 2026-03-17
+### Changed
+- **Interfaz de Pago POS**: Se removió el botón de "Crédito" del modal de pago rápido y se reubicó el botón de "Billetera Virtual" en su lugar.
+- **Estética de Billetera**: Se actualizó el color del botón de Billetera a un naranja vibrante y moderno para mejorar la experiencia visual.
+
 ## [1.8.72] - 2026-03-17
 ### Fixed
 - **Billetera en Cuentas por Cobrar**: Se habilitó la opción de pago con billetera virtual en el módulo de reportes de cuentas por cobrar, sincronizando el saldo del cliente correctamente.
