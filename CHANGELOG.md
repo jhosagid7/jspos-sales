@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.8.76] - 2026-03-18
+### Changed
+- **Reporte de Ventas Diarias**: Se mejoró la visualización de los pagos en divisas (Zelle y Bancos), mostrando el equivalente en dólares de una forma más clara (ej. `(Dólar: $5.04)`). Además, la columna de Bolívares ahora refleja el monto exacto cobrado en moneda nacional en lugar de su conversión a dólares, mejorando la conciliación de caja.
 ## [1.8.75] - 2026-03-17
 ### Changed
 - **Unificación Estética**: Se aplicaron los nuevos estilos de la "Billetera Virtual" y la disposición de botones (col-4) a todos los módulos de pago, incluyendo Ventas/Abono y Cuentas por Cobrar, para mantener una estética coherente en todo el sistema.

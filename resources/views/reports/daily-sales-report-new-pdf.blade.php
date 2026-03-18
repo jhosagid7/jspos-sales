@@ -253,6 +253,9 @@
             </tr>
         </thead>
         <tbody>
+            @php 
+                $grandRawVed = 0;
+            @endphp
             @foreach ($data as $key => $groupData)
                 @if($groupBy != 'none')
                     <tr>
@@ -274,7 +277,7 @@
                             $paidToday += $amtUSD;
                             
                             if($payment->currency_code == 'VED' || $payment->currency_code == 'VES') {
-                                $vedPaid += $amtUSD;
+                                $vedPaid += $payment->amount; // Raw amount in Bolívares
                             } else {
                                 $divisaPaid += $amtUSD;
                             }
@@ -286,11 +289,13 @@
                             $amtUSD = $sale->cash / $rate;
                             $paidToday += $amtUSD;
                             if($sale->primary_currency_code == 'VED' || $sale->primary_currency_code == 'VES') {
-                                $vedPaid += $amtUSD;
+                                $vedPaid += $sale->cash; // Raw amount in Bolívares
                             } else {
                                 $divisaPaid += $amtUSD;
                             }
                         }
+
+                        $grandRawVed += $vedPaid;
 
                         $creditUSD = 0;
                         if($sale->status != 'paid') {
@@ -303,7 +308,11 @@
                             <span class="desc-text">{{ strtoupper($sale->customer->name) }} ({{ $sale->customer->taxpayer_id }})</span>
                             @foreach($sale->paymentDetails as $payment)
                                 @if(in_array($payment->payment_method, ['bank', 'zelle', 'deposit']))
-                                     <span class="pay-info"> | {{ $payment->payment_method == 'zelle' ? 'Zelle' : ($payment->bank_name ?? 'Banco') }}: {{ $payment->reference_number }} (Tasa: {{ number_format($payment->exchange_rate, 2) }})</span>
+                                     @php
+                                         $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
+                                         $usdEquiv = $payment->amount / $rate;
+                                     @endphp
+                                     <span class="pay-info"> | {{ $payment->payment_method == 'zelle' ? 'Zelle' : ($payment->bank_name ?? 'Banco') }}: {{ $payment->reference_number }} (Tasa: {{ number_format($payment->exchange_rate, 2) }}) (Dólar: ${{ number_format($usdEquiv, 2) }})</span>
                                 @endif
                             @endforeach
                         </td>
@@ -311,7 +320,7 @@
                         <td class="text-right">0.0000</td>
                         <td class="text-right">{{ number_format($paidToday, 4) }}</td>
                         <td class="text-right">{{ $creditUSD > 0.0001 ? number_format($creditUSD, 4) : '0.0000' }}</td>
-                        <td class="text-right">{{ number_format($vedPaid, 4) }}</td>
+                        <td class="text-right">{{ number_format($vedPaid, 2) }}</td>
                         <td class="text-right">{{ number_format($divisaPaid, 4) }}</td>
                     </tr>
                 @endforeach
@@ -324,7 +333,7 @@
                 <td class="text-right">0.0000</td>
                 <td class="text-right">{{ number_format($summary['total_contado'], 4) }}</td>
                 <td class="text-right">{{ number_format($summary['total_credito'], 4) }}</td>
-                <td class="text-right">{{ number_format($summary['total_ved'], 4) }}</td>
+                <td class="text-right">{{ number_format($grandRawVed, 2) }}</td>
                 <td class="text-right">{{ number_format($summary['total_divisa'], 4) }}</td>
             </tr>
         </tfoot>
