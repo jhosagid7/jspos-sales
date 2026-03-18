@@ -85,7 +85,11 @@
             </tr>
         </thead>
         <tbody>
-            @php $totalPaidUSD = 0; @endphp
+            @php 
+                $totalPaidUSD = 0; 
+                $totalReturnsUSD = 0;
+                $exchangeRateReturns = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+            @endphp
             @foreach($sale->payments as $payment)
                 @php
                     $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
@@ -145,22 +149,49 @@
                     <td class="text-right"><strong>$ {{ number_format($amountUSD, 2) }}</strong></td>
                 </tr>
             @endforeach
+            
+            @foreach($sale->returns->where('refund_method', 'debt_reduction')->where('status', 'approved') as $return)
+                @php
+                    $returnAmountUSD = $return->total_returned / $exchangeRateReturns;
+                    $totalReturnsUSD += $returnAmountUSD;
+                @endphp
+                <tr>
+                    <td>{{ \Carbon\Carbon::parse($return->created_at)->format('d/m/Y') }}</td>
+                    <td><strong>Nota de Crédito</strong></td>
+                    <td style="text-align: left; font-size: 10px; color: #7f8c8d;">
+                        <b>Folio N/C:</b> {{ $return->return_number }}<br>
+                        <b>Motivo:</b> {{ $return->reason }}
+                    </td>
+                    <td><span class="status-badge status-approved">APROBADO</span></td>
+                    <td class="text-center">USD</td>
+                    <td class="text-right">{{ number_format($return->total_returned, 2) }}</td>
+                    <td class="text-right" style="color: #7f8c8d;">{{ number_format($exchangeRateReturns, 2) }}</td>
+                    <td class="text-right"><strong>$ {{ number_format($returnAmountUSD, 2) }}</strong></td>
+                </tr>
+            @endforeach
         </tbody>
     </table>
 
     <div class="totals-container">
         <table class="totals-table">
+            @php $totalSale = $sale->total_usd > 0 ? $sale->total_usd : ($sale->total / ($sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1)); @endphp
             <tr>
                 <td class="label">TOTAL VENTA (USD):</td>
-                <td class="value">$ {{ number_format($sale->total_usd > 0 ? $sale->total_usd : ($sale->total / ($sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1)), 2) }}</td>
+                <td class="value">$ {{ number_format($totalSale, 2) }}</td>
             </tr>
             <tr>
                 <td class="label">TOTAL ABONADO (USD):</td>
                 <td class="value">$ {{ number_format($totalPaidUSD, 2) }}</td>
             </tr>
+            @if($totalReturnsUSD > 0)
+            <tr>
+                <td class="label">NOTAS DE CRÉDITO (USD):</td>
+                <td class="value" style="color: #d35400;">$ {{ number_format($totalReturnsUSD, 2) }}</td>
+            </tr>
+            @endif
             <tr>
                 <td class="label">SALDO RESTANTE (USD):</td>
-                <td class="value">$ {{ number_format(max(0, ($sale->total_usd > 0 ? $sale->total_usd : ($sale->total / ($sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1))) - $totalPaidUSD), 2) }}</td>
+                <td class="value">$ {{ number_format(max(0, $totalSale - $totalPaidUSD - $totalReturnsUSD), 2) }}</td>
             </tr>
         </table>
     </div>
