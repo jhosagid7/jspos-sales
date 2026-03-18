@@ -28,6 +28,7 @@ class PartialPayment extends Component
 
     public $pays;
     public $search, $sale_selected_id, $customer_name, $debt, $debt_usd;
+    public $history_sale_id;
     public $editingPaymentId, $editPaymentRef, $editPaymentAmount, $editPaymentDate, $editPaymentRate, $editPaymentComment;
     public $editApplyEarlyDiscount = false, $editApplyUsdDiscount = false;
     public $editEarlyDiscountAmount = 0, $editUsdDiscountAmount = 0;
@@ -913,27 +914,8 @@ class PartialPayment extends Component
 
     public function historyPayments(Sale $sale)
     {
-        $payments = $sale->payments;
-        $returns = $sale->returns->where('refund_method', 'debt_reduction')->where('status', 'approved');
-
-        foreach($returns as $return) {
-            $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
-            
-            $pseudoPayment = new Payment([
-                'sale_id' => $sale->id,
-                'amount' => $return->total_returned,
-                'currency' => 'USD', // Display as USD base
-                'exchange_rate' => $rate,
-                'pay_way' => 'credit_note',
-                'status' => 'approved',
-                'payment_date' => $return->created_at,
-                'modification_comment' => $return->reason
-            ]);
-            $pseudoPayment->id = 'NC-' . $return->return_number; 
-            $payments->push($pseudoPayment);
-        }
-
-        $this->pays = $payments->sortBy('payment_date')->values();
+        $this->history_sale_id = $sale->id;
+        $this->pays = $sale->payments;
         $this->dispatch('show-payhistory');
     }
 

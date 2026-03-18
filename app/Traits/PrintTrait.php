@@ -678,7 +678,7 @@ trait PrintTrait
                 $printerName = $printConfig['printerName'];
                 $printerWidth = $printConfig['printerWidth'];
 
-                $sale = Sale::with(['customer', 'payments', 'user'])->find($saleId);
+                $sale = Sale::with(['customer', 'payments', 'returns', 'user'])->find($saleId);
                 
                 $connector = new CustomWindowsPrintConnector($printerName);
                 $printer = new Printer($connector);
@@ -730,6 +730,27 @@ trait PrintTrait
                     $totalPaidUSD += $amountUSD;
                 }
 
+
+
+                $totalReturnsUSD = 0;
+                $returns = $sale->returns->where('refund_method', 'debt_reduction')->where('status', 'approved');
+                foreach ($returns as $return) {
+                    $date = Carbon::parse($return->created_at)->format('d/m/y');
+                    $amount = number_format($return->total_returned, 2);
+                    $method = 'Nota Credito';
+                    
+                    $amountStr = $amount . " USD";
+
+                    $printer->text("$date  $method\n");
+                    $printer->setJustification(Printer::JUSTIFY_RIGHT);
+                    $printer->text("$amountStr\n");
+                    $printer->setJustification(Printer::JUSTIFY_LEFT);
+
+                    $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                    $amountUSD = $return->total_returned / $rate;
+                    $totalReturnsUSD += $amountUSD;
+                }
+
                 $printer->text($separator . "\n");
                 
                 // Totals
@@ -741,17 +762,24 @@ trait PrintTrait
                      $totalSaleUSD = $sale->total / $rate;
                 }
 
-                $balanceUSD = $totalSaleUSD - $totalPaidUSD;
+                $balanceUSD = $totalSaleUSD - $totalPaidUSD - $totalReturnsUSD;
                 if($balanceUSD < 0) $balanceUSD = 0;
                 
                 // Convert to System Currency (Primary)
                 $primaryRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
                 $totalPaidSystem = $totalPaidUSD * $primaryRate;
+                $totalReturnsSystem = $totalReturnsUSD * $primaryRate;
                 $balanceSystem = $balanceUSD * $primaryRate;
 
                 $printer->setJustification(Printer::JUSTIFY_RIGHT);
-                $printer->text("Total Pagado (USD): $" . number_format($totalPaidUSD, 2) . "\n");
-                $printer->text("Total Pagado ($primaryCode): $" . number_format($totalPaidSystem, 2) . "\n");
+                $printer->text("Total Venta (USD): $" . number_format($totalSaleUSD, 2) . "\n");
+                $printer->text("Total Abonado (USD): $" . number_format($totalPaidUSD, 2) . "\n");
+                if ($totalReturnsUSD > 0) {
+                     $printer->text("Notas de Credito (USD): $" . number_format($totalReturnsUSD, 2) . "\n");
+                }
+                $printer->text("Saldo Pendiente (USD): $" . number_format($balanceUSD, 2) . "\n");
+                
+                $printer->text("\n");
                 $printer->text("Saldo Pendiente ($primaryCode): $" . number_format($balanceSystem, 2) . "\n");
 
                 if ($sale->days_overdue > 0) {

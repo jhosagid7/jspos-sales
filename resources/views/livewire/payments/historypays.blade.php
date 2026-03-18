@@ -94,7 +94,7 @@
                                         $totalPendingInPrimary = 0;
                                         $primaryCurrency = \App\Models\Currency::where('is_primary', true)->first();
                                     @endphp
-                                    @forelse ($pays as $pay)
+                                    @foreach ($pays as $pay)
                                         @php
                                             // Determinar nombre del método
                                             $methodName = 'Efectivo';
@@ -313,11 +313,56 @@
                                                 @endif
                                             </td>
                                         </tr>
-                                    @empty
+                                    @endforeach
+                                    
+                                    {{-- CREDIT NOTES / RETURNS --}}
+                                    @php
+                                        $saleIdForReturns = $history_sale_id ?? null;
+                                        $sale_for_returns = $saleIdForReturns ? \App\Models\Sale::find($saleIdForReturns) : null;
+                                        $returnsForHistory = $sale_for_returns ? $sale_for_returns->returns->where('refund_method', 'debt_reduction')->where('status', 'approved') : collect([]);
+                                    @endphp
+                                    @foreach($returnsForHistory as $return)
+                                        @php
+                                            $rate = $sale_for_returns->primary_exchange_rate > 0 ? $sale_for_returns->primary_exchange_rate : 1;
+                                            $equivUsd = $return->total_returned / $rate;
+                                            $amountInPrimary = $equivUsd * $primaryCurrency->exchange_rate;
+                                            $totalApprovedInPrimary += $amountInPrimary;
+                                        @endphp
                                         <tr>
-                                            <td colspan="8">Sin pagos</td>
+                                            <td data-label="Folio">
+                                                <div class="d-flex align-items-center">
+                                                    N/C-{{ $return->return_number }}
+                                                    <span class="badge badge-success ms-2" style="font-size: 0.6rem;">APROBADO</span>
+                                                </div>
+                                            </td>
+                                            <td data-label="Método">
+                                                <span class="badge badge-warning">Nota de Crédito</span>
+                                            </td>
+                                            <td data-label="Moneda">Dólar (USD)</td>
+                                            <td data-label="Monto" style="background-color: rgb(228, 243, 253)">
+                                                <div> <b>{{ number_format($return->total_returned, 2) }}</b></div>
+                                            </td>
+                                            <td data-label="Tasa">{{ number_format($rate, 2) }}</td>
+                                            <td data-label="Equiv. $">
+                                                <b>${{ number_format($equivUsd, 2) }}</b>
+                                            </td>
+                                            <td data-label="Detalles">
+                                                <div class="small mt-1 text-info"><b>Nota Admin:</b> {{ $return->reason }}</div>
+                                            </td>
+                                            <td data-label="Fecha"> {{ app('fun')->dateFormat($return->created_at) }}</td>
+                                            <td data-label="Acciones">
+                                                <div class="text-center text-muted">
+                                                    <small><i class="fas fa-info-circle"></i> Referencia interna</small>
+                                                </div>
+                                            </td>
                                         </tr>
-                                    @endforelse
+                                    @endforeach
+
+                                    @if(count($pays) == 0 && count($returnsForHistory) == 0)
+                                        <tr>
+                                            <td colspan="9" class="text-center">Sin pagos</td>
+                                        </tr>
+                                    @endif
                                 </tbody>
                                 <tfoot>
                                     <tr>
