@@ -1100,15 +1100,29 @@ class AccountsReceivableReport extends Component
     }
     function historyPayments($sale_id) // Changed type hint to $sale_id for flexibility or keep object if using implicit binding
     {
-        // If passed as object from blade, Livewire handles it. But let's support ID too just in case.
-        // Actually the blade probably calls historyPayments({{ $sale->id }}) which passes int.
-        // The original code had Type Hint Sale $sale. 
-        // If blade passes ID, type hint fails unless implicit binding works?
-        // Let's check how it's called. Typically wire:click="historyPayments({{ $row->id }})".
-        // Use find to be safe.
         $sale = Sale::find($sale_id);
         if ($sale) {
-            $this->pays = $sale->payments;
+            $payments = $sale->payments;
+            $returns = $sale->returns->where('refund_method', 'debt_reduction')->where('status', 'approved');
+
+            foreach($returns as $return) {
+                $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                
+                $pseudoPayment = new \App\Models\Payment([
+                    'sale_id' => $sale->id,
+                    'amount' => $return->total_returned,
+                    'currency' => 'USD', // Display as USD base
+                    'exchange_rate' => $rate,
+                    'pay_way' => 'credit_note',
+                    'status' => 'approved',
+                    'payment_date' => $return->created_at,
+                    'modification_comment' => $return->reason
+                ]);
+                $pseudoPayment->id = 'N/C-' . $return->return_number; 
+                $payments->push($pseudoPayment);
+            }
+
+            $this->pays = $payments->sortBy('payment_date')->values();
             $this->dispatch('show-payhistory');
         }
     }

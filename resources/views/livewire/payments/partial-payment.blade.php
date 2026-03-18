@@ -27,6 +27,7 @@
                                         <th class='p-2'>Venta</th>
                                         <th class='p-2'>Total</th>
                                         <th class='p-2'>Abonado</th>
+                                        <th class='p-2'>N/C</th>
                                         <th class='p-2'>Debe</th>
                                         <th class='p-2'></th>
                                     </tr>
@@ -74,6 +75,13 @@
                                                     <span class="badge badge-warning text-white mt-1" title="Contiene pagos pendientes por aprobar">
                                                         <i class="fas fa-clock"></i> Pago por aprobar
                                                     </span>
+                                                @endif
+                                            </td>
+                                            <td data-label="N/C" class="text-warning font-weight-bold">
+                                                @if($sale->total_returns_display > 0)
+                                                    ${{ number_format($sale->total_returns_display, 2) }}
+                                                @else
+                                                    $0.00
                                                 @endif
                                             </td>
                                             <td data-label="Debe">${{ number_format($sale->debt_display, 2) }}</td>

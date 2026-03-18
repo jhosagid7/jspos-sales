@@ -109,6 +109,9 @@
                                             } elseif ($payWay == 'zelle') {
                                                 $methodName = 'Zelle';
                                                 $badgeColor = 'dark';
+                                            } elseif ($payWay == 'credit_note') {
+                                                $methodName = 'Nota de Crédito';
+                                                $badgeColor = 'warning';
                                             }
                                             
                                             // Determinar nombre de moneda
@@ -241,67 +244,73 @@
 
                                             <td data-label="Fecha"> {{ app('fun')->dateFormat($pay->payment_date ?? $pay->created_at) }}</td>
                                             <td data-label="Acciones">
-                                                <div class="d-flex flex-column gap-1">
-                                                    @can('payments.print_receipt')
-                                                    <button class="btn btn-default btn-sm"
-                                                        wire:click="printReceipt({{ $pay->id }})" title="Imprimir Recibo">
-                                                        <i class="fas fa-print"></i>
-                                                    </button>
-                                                    @endcan
-                                                    
-                                                    @if(isset($pay->status) && $pay->status == 'pending')
-                                                        @can('payments.approve')
-                                                            <div class="d-flex gap-1 mt-1">
-                                                                <button class="btn btn-success btn-sm"
-                                                                    wire:click="approvePayment({{ $pay->id }})" 
-                                                                    wire:confirm="¿Estás seguro de aprobar este pago?"
-                                                                    title="Aprobar Pago">
-                                                                    <i class="fas fa-check"></i>
-                                                                </button>
-                                                                
-                                                                <!-- EDIT BUTTON -->
-                                                                <button class="btn btn-info btn-sm"
-                                                                    wire:click="editPayment({{ $pay->id }})"
-                                                                    title="Editar Pago">
-                                                                    <i class="fas fa-edit"></i>
-                                                                </button>
-                                                                
-                                                                <button class="btn btn-warning btn-sm"
-                                                                    type="button"
-                                                                    x-on:click="
-                                                                        swal({
-                                                                            title: 'Rechazar Pago',
-                                                                            text: 'Por favor indica el motivo del rechazo:',
-                                                                            content: 'input',
-                                                                            buttons: {
-                                                                                cancel: { text: 'Cancelar', visible: true, closeModal: true, value: null },
-                                                                                confirm: { text: 'Sí, Rechazar', value: true, visible: true, closeModal: true }
-                                                                            },
-                                                                            dangerMode: true,
-                                                                        }).then((value) => {
-                                                                            if (value === null) return;
-                                                                            if (value === '') { swal('Error', '¡Debes escribir un motivo!', 'error'); return; }
-                                                                            $wire.rejectPayment({{ $pay->id }}, value);
-                                                                        })
-                                                                    "
-                                                                    title="Rechazar Pago">
-                                                                    <i class="fas fa-times"></i>
-                                                                </button>
-                                                            </div>
-                                                        @endcan
-                                                    @endif
-                                                    
-                                                    @if(isset($pay->status) && ($pay->status == 'pending' || $pay->status == 'rejected'))
-                                                        @can('payments.delete')
-                                                        <button class="btn btn-outline-danger btn-sm mt-1"
-                                                            wire:click="deletePayment({{ $pay->id }})"
-                                                            wire:confirm="¿Eliminar este pago? Si es Zelle/Banco se restaurará el saldo."
-                                                            title="Eliminar Pago">
-                                                            <i class="fas fa-trash"></i>
+                                                @if($payWay !== 'credit_note')
+                                                    <div class="d-flex flex-column gap-1">
+                                                        @can('payments.print_receipt')
+                                                        <button class="btn btn-default btn-sm"
+                                                            wire:click="printReceipt({{ $pay->id }})" title="Imprimir Recibo">
+                                                            <i class="fas fa-print"></i>
                                                         </button>
                                                         @endcan
-                                                    @endif
-                                                </div>
+                                                        
+                                                        @if(isset($pay->status) && $pay->status == 'pending')
+                                                            @can('payments.approve')
+                                                                <div class="d-flex gap-1 mt-1">
+                                                                    <button class="btn btn-success btn-sm"
+                                                                        wire:click="approvePayment({{ $pay->id }})" 
+                                                                        wire:confirm="¿Estás seguro de aprobar este pago?"
+                                                                        title="Aprobar Pago">
+                                                                        <i class="fas fa-check"></i>
+                                                                    </button>
+                                                                    
+                                                                    <!-- EDIT BUTTON -->
+                                                                    <button class="btn btn-info btn-sm"
+                                                                        wire:click="editPayment({{ $pay->id }})"
+                                                                        title="Editar Pago">
+                                                                        <i class="fas fa-edit"></i>
+                                                                    </button>
+                                                                    
+                                                                    <button class="btn btn-warning btn-sm"
+                                                                        type="button"
+                                                                        x-on:click="
+                                                                            swal({
+                                                                                title: 'Rechazar Pago',
+                                                                                text: 'Por favor indica el motivo del rechazo:',
+                                                                                content: 'input',
+                                                                                buttons: {
+                                                                                    cancel: { text: 'Cancelar', visible: true, closeModal: true, value: null },
+                                                                                    confirm: { text: 'Sí, Rechazar', value: true, visible: true, closeModal: true }
+                                                                                },
+                                                                                dangerMode: true,
+                                                                            }).then((value) => {
+                                                                                if (value === null) return;
+                                                                                if (value === '') { swal('Error', '¡Debes escribir un motivo!', 'error'); return; }
+                                                                                $wire.rejectPayment({{ $pay->id }}, value);
+                                                                            })
+                                                                        "
+                                                                        title="Rechazar Pago">
+                                                                        <i class="fas fa-times"></i>
+                                                                    </button>
+                                                                </div>
+                                                            @endcan
+                                                        @endif
+                                                        
+                                                        @if(isset($pay->status) && ($pay->status == 'pending' || $pay->status == 'rejected'))
+                                                            @can('payments.delete')
+                                                            <button class="btn btn-outline-danger btn-sm mt-1"
+                                                                wire:click="deletePayment({{ $pay->id }})"
+                                                                wire:confirm="¿Eliminar este pago? Si es Zelle/Banco se restaurará el saldo."
+                                                                title="Eliminar Pago">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                            @endcan
+                                                        @endif
+                                                    </div>
+                                                @else
+                                                    <div class="text-center text-muted">
+                                                        <small><i class="fas fa-info-circle"></i> Referencia interna</small>
+                                                    </div>
+                                                @endif
                                             </td>
                                         </tr>
                                     @empty

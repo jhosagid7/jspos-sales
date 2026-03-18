@@ -144,7 +144,8 @@ class PartialPayment extends Component
             
             // Asignar valores para la vista (convertidos a moneda principal actual)
             $sale->total_display = $totalUSD * $primaryCurrency->exchange_rate;
-            $sale->total_paid_display = ($totalPaidUSD + $initialPaidUSD + $totalReturnsUSD) * $primaryCurrency->exchange_rate;
+            $sale->total_paid_display = ($totalPaidUSD + $initialPaidUSD) * $primaryCurrency->exchange_rate;
+            $sale->total_returns_display = $totalReturnsUSD * $primaryCurrency->exchange_rate;
             $sale->debt_display = $debtUSD * $primaryCurrency->exchange_rate;
             
             return $sale;
@@ -912,7 +913,27 @@ class PartialPayment extends Component
 
     public function historyPayments(Sale $sale)
     {
-        $this->pays = $sale->payments;
+        $payments = $sale->payments;
+        $returns = $sale->returns->where('refund_method', 'debt_reduction')->where('status', 'approved');
+
+        foreach($returns as $return) {
+            $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+            
+            $pseudoPayment = new Payment([
+                'sale_id' => $sale->id,
+                'amount' => $return->total_returned,
+                'currency' => 'USD', // Display as USD base
+                'exchange_rate' => $rate,
+                'pay_way' => 'credit_note',
+                'status' => 'approved',
+                'payment_date' => $return->created_at,
+                'modification_comment' => $return->reason
+            ]);
+            $pseudoPayment->id = 'NC-' . $return->return_number; 
+            $payments->push($pseudoPayment);
+        }
+
+        $this->pays = $payments->sortBy('payment_date')->values();
         $this->dispatch('show-payhistory');
     }
 
