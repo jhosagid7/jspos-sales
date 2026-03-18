@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.8.77] - 2026-03-18
+### Changed
+- **Estética de Reportes**: Se unificaron los criterios de los contadores en el resumen del informe diario. Ahora se leen como "Total Facturas Procesadas" en vez de "Total Transacciones", y el "Total Facturas Eliminadas" ahora indica la cantidad de facturas anuladas y no la sumatoria de sus montos, para una comprensión más limpia.
 ## [1.8.76] - 2026-03-18
 ### Changed
 - **Reporte de Ventas Diarias**: Se mejoró la visualización de los pagos en divisas (Zelle y Bancos), mostrando el equivalente en dólares de una forma más clara (ej. `(Dólar: $5.04)`). Además, la columna de Bolívares ahora refleja el monto exacto cobrado en moneda nacional en lugar de su conversión a dólares, mejorando la conciliación de caja.

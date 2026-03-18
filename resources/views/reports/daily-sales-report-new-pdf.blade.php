@@ -187,6 +187,14 @@
                     <span class="summary-section-title">CIERRE DE OPERACIONES DE FACTURAS</span>
                     <table width="100%">
                         <tr>
+                            <td class="summary-label">Total Facturas Procesadas :</td>
+                            <td class="summary-value">{{ number_format($summary['total_count'], 0) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="summary-label">Total Facturas Eliminadas :</td>
+                            <td class="summary-value">{{ count($deletedSales ?? []) }}</td>
+                        </tr>
+                        <tr>
                             <td class="summary-label">Total Ventas Brutas :</td>
                             <td class="summary-value">{{ number_format($summary['total_bruto'], 4) }}</td>
                         </tr>
@@ -201,14 +209,6 @@
                         <tr>
                             <td class="summary-label">Total Crédito en Operaciones :</td>
                             <td class="summary-value">{{ number_format($summary['total_credito'], 4) }}</td>
-                        </tr>
-                        <tr>
-                            <td class="summary-label">Total Transacciones :</td>
-                            <td class="summary-value">{{ number_format($summary['total_count'], 4) }}</td>
-                        </tr>
-                        <tr>
-                            <td class="summary-label">Total de Facturas Eliminadas :</td>
-                            <td class="summary-value">{{ number_format($totalDeleted ?? 0, 4) }}</td>
                         </tr>
                         <tr style="border-top: 1.5pt solid #000;">
                             <td class="summary-label">Total :</td>
