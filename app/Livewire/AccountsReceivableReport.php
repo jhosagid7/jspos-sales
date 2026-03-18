@@ -356,6 +356,7 @@ class AccountsReceivableReport extends Component
 
             // Include abonos (payments)
             foreach($sale->payments as $payment) {
+                if(in_array($payment->status, ['pending', 'rejected'])) continue;
                 $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
                 $paymentsFormatted[] = [
                     'date' => $payment->created_at->format('d/m/Y'),
@@ -364,6 +365,19 @@ class AccountsReceivableReport extends Component
                     'amount_original' => $payment->amount,
                     'rate' => $rate,
                     'amount_usd' => $payment->amount / $rate
+                ];
+            }
+
+            // Include Returns (Credit Notes)
+            foreach($sale->returns->where('refund_method', 'debt_reduction')->where('status', 'approved') as $return) {
+                $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                $paymentsFormatted[] = [
+                    'date' => $return->created_at->format('d/m/Y'),
+                    'method' => 'Nota de Crédito (' . $return->return_number . ')',
+                    'currency' => 'N/C',
+                    'amount_original' => $return->total_returned,
+                    'rate' => $rate,
+                    'amount_usd' => $return->total_returned / $rate
                 ];
             }
 

@@ -131,6 +131,7 @@
                                                     <th>Cliente</th>
                                                     <th>Total</th>
                                                     <th>Abonado</th>
+                                                    <th>N/C</th>
                                                     <th>Saldo</th>
                                                     <th>Días Vencidos</th>
                                                     <th>Estatus</th>
@@ -141,7 +142,8 @@
                                             <tbody>
                                                 @forelse ($sales as $sale)
                                                     @php
-                                                        $totalPaidUSD = $sale->payments->sum(function($payment) {
+                                                        // Calculate Approved Payments in USD
+                                                        $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected'])->sum(function($payment) {
                                                             $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
                                                             $amountUSD = $payment->amount / $rate;
                                                             
@@ -152,11 +154,20 @@
                                                                 return $amountUSD + $discountVal;
                                                             }
                                                         });
+
+                                                        // Initial payments
                                                         $initialPaidUSD = $sale->paymentDetails->sum(function($detail) {
                                                             $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
                                                             return $detail->amount / $rate;
                                                         });
-                                                        $totalAbonadoUSD = $totalPaidUSD + $initialPaidUSD;
+
+                                                        // Calculate Returns (NC) applied to debt
+                                                        $totalReturnsOrig = $sale->returns->where('refund_method', 'debt_reduction')->sum('total_returned');
+                                                        $exchangeRateReturns = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                                                        $totalReturnsUSD = $totalReturnsOrig / $exchangeRateReturns;
+
+                                                        // Total applied to debt (Payments + NC)
+                                                        $totalAbonadoUSD = $totalPaidUSD + $initialPaidUSD + $totalReturnsUSD;
                                                         
                                                         // Calculate Total USD with fallback
                                                         $exchangeRate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
@@ -182,7 +193,7 @@
                                                             ${{ number_format($finalTotalUSD, 2) }}
                                                         </td>
                                                         <td>
-                                                            ${{ number_format($totalAbonadoUSD, 2) }}
+                                                            ${{ number_format($totalPaidUSD + $initialPaidUSD, 2) }}
                                                             @if($sale->payments->where('status', 'pending')->count() > 0)
                                                                 <br>
                                                                 <span class="badge badge-warning text-white mt-1" title="Contiene pagos pendientes por aprobar">
@@ -190,10 +201,16 @@
                                                                 </span>
                                                             @endif
                                                         </td>
+                                                        <td class="text-warning font-weight-bold">
+                                                            @if($totalReturnsUSD > 0)
+                                                                ${{ number_format($totalReturnsUSD, 2) }}
+                                                            @else
+                                                                $0.00
+                                                            @endif
+                                                        </td>
                                                         <td style="background-color: beige">
                                                             ${{ number_format($saldoUSD, 2) }}
                                                         </td>
-                                                        <td>
                                                         <td>
                                                             @if($sale->status == 'paid')
                                                                 @if($sale->days_overdue > 0)

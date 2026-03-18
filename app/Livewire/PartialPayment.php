@@ -109,9 +109,22 @@ class PartialPayment extends Component
         // Calcular totales correctos
         $sales->getCollection()->transform(function($sale) use ($primaryCurrency) {
             // Calcular total pagado en USD
-            $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected'])->sum(function($payment) {
-                $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
-                return $payment->amount / $rate;
+            $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected'])->sum(function($p) {
+                $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
+                $amountUSD = $p->amount / $rate; 
+                
+                $discountVal = $p->discount_applied ?? 0;
+                if ($p->rule_type === 'overdue') {
+                    return $amountUSD - $discountVal;
+                } else {
+                    return $amountUSD + $discountVal;
+                }
+            });
+            
+            // Pagos iniciales (si los hay)
+            $initialPaidUSD = $sale->paymentDetails->sum(function($detail) {
+                $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
+                return $detail->amount / $rate;
             });
             
             // Si la venta no tiene total_usd (ventas antiguas), calcularlo
@@ -121,16 +134,17 @@ class PartialPayment extends Component
                 $totalUSD = $sale->total / $exchangeRate;
             }
             
-            // Calculate Returns applied to debt
+            // Notas de Crédito (devoluciones y ajustes manuales)
             $totalReturnsOrig = $sale->returns->where('refund_method', 'debt_reduction')->sum('total_returned');
             $exchangeRateReturns = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
             $totalReturnsUSD = $totalReturnsOrig / $exchangeRateReturns;
             
-            $debtUSD = max(0, $totalUSD - ($totalPaidUSD + $totalReturnsUSD));
+            // Cálculo del saldo real
+            $debtUSD = max(0, $totalUSD - ($totalPaidUSD + $initialPaidUSD + $totalReturnsUSD));
             
             // Asignar valores para la vista (convertidos a moneda principal actual)
             $sale->total_display = $totalUSD * $primaryCurrency->exchange_rate;
-            $sale->total_paid_display = $totalPaidUSD * $primaryCurrency->exchange_rate;
+            $sale->total_paid_display = ($totalPaidUSD + $initialPaidUSD + $totalReturnsUSD) * $primaryCurrency->exchange_rate;
             $sale->debt_display = $debtUSD * $primaryCurrency->exchange_rate;
             
             return $sale;
