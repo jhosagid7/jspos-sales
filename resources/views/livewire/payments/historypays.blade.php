@@ -399,7 +399,7 @@
                     @can('sales.reset_credit_snapshot')
                     <button type="button" class="btn btn-outline-warning" 
                             wire:click="resetCreditSnapshot({{ $pays[0]->sale_id }})"
-                            wire:confirm="¿Estás seguro de actualizar las reglas de crédito? Esto aplicará la configuración actual del cliente a esta venta.">
+                            wire:confirm="¿Estás seguro de actualizar las reglas de crédito? Esto aplicará la configuración actual del cliente a esta venta de forma permanente.">
                         <i class="fas fa-sync-alt"></i> Actualizar Reglas de Crédito
                     </button>
                     @endcan

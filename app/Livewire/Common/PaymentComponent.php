@@ -693,12 +693,10 @@ class PaymentComponent extends Component
                 }
             } elseif ($hasVed) {
                 // Scenario: VED Involved -> Strict Early Payment Only
-                // FORCE USD Discount OFF
-                $this->applyUsdDiscount = false;
-                // Scenario: VED Involved -> Strict Early Payment Only
-                // FORCE USD Discount OFF
-                $this->applyUsdDiscount = false;
-                // $this->applyAdjustment = true; // REMOVED: Allow user to toggle it off manually if they want.
+                // FORCE USD Discount OFF unless Admin
+                if (!auth()->user()->can('payments.force_discounts')) {
+                    $this->applyUsdDiscount = false;
+                }
             }
         } else {
             // No payments -> Respect user toggle, but ensure exclusivity
@@ -725,12 +723,12 @@ class PaymentComponent extends Component
         
         $this->usdAdjustment = null;
         
-        if ($this->allowDiscounts && $this->fixedUsdDiscountAmount > 0 && !$hasVed) {
+        if ($this->allowDiscounts && $this->fixedUsdDiscountAmount > 0 && (!$hasVed || auth()->user()->can('payments.force_discounts'))) {
              
              $this->usdAdjustment = [
                  'amount' => $this->fixedUsdDiscountAmount,
                  'percentage' => $this->usdPaymentDiscountPercent,
-                 'reason' => 'Descuento Pago Divisa'
+                 'reason' => 'Descuento Pago Divisa' . ($hasVed ? ' (Forzado)' : '')
              ];
              
              // Check if paying enough to settle

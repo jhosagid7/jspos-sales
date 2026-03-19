@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.78] - 2026-03-19
+### Added
+- **Permiso Forzar Descuento**: Se creó e inyectó un nuevo permiso llamado `payments.force_discounts` que le confiere poderes al usuario para eludir el sistema de control de descuentos por pronto pago o divisa.
+
+### Changed
+- **Lógica de Descuentos**: Se habilitó la capacidad a "superusuarios" con el nuevo permiso para activar de forma forzada los switches de descuento en divisas y pronto pago en los módulos de Cuentas por Cobrar y Abonos.
+- **Inmutabilidad de la Factura**: Se corrigió el botón de "Actualizar Reglas de Crédito" para que su comportamiento emane una inmutabilidad en la factura: en vez de destruir la configuración y atarla en vivo, ahora crea un nuevo "Snapshot", respetando su valor a futuro si el cliente cambia.
+
 ## [1.8.77] - 2026-03-18
 ### Changed
 - **Estética de Reportes**: Se unificaron los criterios de los contadores en el resumen del informe diario. Ahora se leen como "Total Facturas Procesadas" en vez de "Total Transacciones", y el "Total Facturas Eliminadas" ahora indica la cantidad de facturas anuladas y no la sumatoria de sus montos, para una comprensión más limpia.

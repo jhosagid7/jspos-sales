@@ -79,6 +79,7 @@ class CreatePermissionsSeeder extends Seeder
             ['name' => 'pago con Nequi', 'guard_name' => 'web'],
             ['name' => 'payments.approve', 'guard_name' => 'web'],
             ['name' => 'payments.delete', 'guard_name' => 'web'],
+            ['name' => 'payments.force_discounts', 'guard_name' => 'web'],
             ['name' => 'payments.history', 'guard_name' => 'web'],
             ['name' => 'payments.pay', 'guard_name' => 'web'],
             ['name' => 'payments.print_history', 'guard_name' => 'web'],

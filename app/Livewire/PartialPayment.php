@@ -204,7 +204,7 @@ class PartialPayment extends Component
         $customerUsdDiscount = $sale->customer->usd_payment_discount ?? 0;
         
         if ($sale->is_foreign_sale || $snapshotUsdDiscount > 0 || $customerUsdDiscount > 0) {
-            if (!$hasVedHistory) {
+            if (!$hasVedHistory || auth()->user()->can('payments.force_discounts')) {
                 $allowDiscounts = true;
                 $usdPaymentDiscountPercent = $snapshotUsdDiscount ?? $customerUsdDiscount;
                 
@@ -215,6 +215,20 @@ class PartialPayment extends Component
         }
         
         $earlyDiscountAdjustment = CreditConfigService::calculateDiscount($debtUSD, $daysElapsed, $rules);
+        
+        if (!$earlyDiscountAdjustment && auth()->user()->can('payments.force_discounts')) {
+            $baseRule = $rules->where('rule_type', 'early_payment')->first();
+            if ($baseRule) {
+                $earlyDiscountAdjustment = [
+                    'amount' => round($debtUSD * ($baseRule->discount_percentage / 100), 2),
+                    'percentage' => $baseRule->discount_percentage,
+                    'reason' => 'Forzado: ' . ($baseRule->description ?? 'Pronto Pago Base'),
+                    'days' => $daysElapsed,
+                    'rule_type' => 'early_payment',
+                    'tag' => $baseRule->tag ?? null
+                ];
+            }
+        }
 
         if ($earlyDiscountAdjustment && $invoiceCurrency !== 'USD') {
             $earlyDiscountAdjustment['amount'] = round($earlyDiscountAdjustment['amount'] * $invoiceRate, 2);
@@ -701,8 +715,16 @@ class PartialPayment extends Component
 
         $sale = Sale::find($saleId);
         if ($sale) {
-            $sale->update(['credit_rules_snapshot' => null]);
-            $this->dispatch('noty', msg: 'REGLAS DE CRÉDITO ACTUALIZADAS (SE APLICARÁ LA CONFIGURACIÓN ACTUAL DEL CLIENTE)');
+            $creditConfig = \App\Services\CreditConfigService::getCreditConfig($sale->customer, $sale->customer->seller);
+            
+            $snapshotToSave = [
+                'discount_rules' => $creditConfig['discount_rules']->toArray(),
+                'usd_payment_discount' => $creditConfig['usd_payment_discount'],
+                'usd_payment_discount_tag' => $creditConfig['usd_payment_discount_tag']
+            ];
+
+            $sale->update(['credit_rules_snapshot' => $snapshotToSave]);
+            $this->dispatch('noty', msg: 'REGLAS DE CRÉDITO ACTUALIZADAS Y FIJADAS A LA CONFIGURACIÓN DEL CLIENTE (INMUTABLE)');
             // Also refresh the history view
             $this->historyPayments($sale);
         }
@@ -778,26 +800,39 @@ class PartialPayment extends Component
                     $this->editEarlyDiscountAmount = $adjustment['amount'];
                     $this->editEarlyDiscountPercent = $adjustment['percentage'];
                     $this->editEarlyDiscountReason = $adjustment['reason'];
+                } elseif (auth()->user()->can('payments.force_discounts')) {
+                    $baseRule = $rules->where('rule_type', 'early_payment')->first();
+                    if ($baseRule) {
+                        $this->editEarlyDiscountPercent = $baseRule->discount_percentage;
+                        $this->editEarlyDiscountAmount = round($sale->total_usd * ($baseRule->discount_percentage / 100), 2);
+                        $this->editEarlyDiscountReason = 'Forzado: ' . ($baseRule->description ?? 'Pronto Pago Base');
+                    }
                 }
 
                 $usdPaymentDiscountPercent = 0;
+                $isUsdForced = false;
+                
                 if ($sale->is_foreign_sale) {
                     // Check Ved History like in initPay
                     $hasVedHistory = $sale->payments()->whereIn('currency', ['VED', 'VES'])->exists();
                     
-                    if (!$hasVedHistory) {
+                    if (!$hasVedHistory || auth()->user()->can('payments.force_discounts')) {
                         if ($snapshotUsdDiscount !== null) {
                             $usdPaymentDiscountPercent = $snapshotUsdDiscount;
                         } else {
                             $config = \App\Services\CreditConfigService::getCreditConfig($sale->customer, $sale->customer->seller);
                             $usdPaymentDiscountPercent = $config['usd_payment_discount'] ?? 0;
                         }
+                        
+                        if ($hasVedHistory) {
+                            $isUsdForced = true;
+                        }
                     }
 
                     if ($usdPaymentDiscountPercent > 0) {
                         $this->editUsdDiscountAmount = round($sale->total_usd * ($usdPaymentDiscountPercent / 100), 2);
                         $this->editUsdDiscountPercent = $usdPaymentDiscountPercent;
-                        $this->editUsdDiscountReason = 'Descuento Pago Divisa';
+                        $this->editUsdDiscountReason = 'Descuento Pago Divisa' . ($isUsdForced ? ' (Forzado)' : '');
                     }
                 }
 
