@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.8.79] - 2026-03-20
+### Added
+- **Reporte de Despacho (Relación de Despacho)**: Se integró un nuevo reporte detallado bajo el módulo de entregas.
+- **Acceso por Módulo**: Se implementó una lógica de visibilidad dinámica en el sidebar, condicionada a la licencia `module_delivery`.
+
+### Changed
+- **Diseño de Reportes**: Se unificó la estética del Reporte de Despacho con el diseño premium de "Ventas Diarias", incluyendo agrupaciones por vendedor y secciones de firma (Despacho, Chofer y Recibido).
+- **Persistencia de Choferes**: Se optimizó el proceso de carga de usuarios con roles de driver/chofer/repartidor, haciéndolo robusto ante variaciones en los nombres de roles en la base de datos.
+- **Ciclo de Vida de Ventas**: Se ajustó la lógica de limpieza pos-venta para preservar la lista de choferes cargada, permitiendo múltiples operaciones consecutivas sin recarga manual.
+
+### Fixed
+- **Asignación de Chofer en Venta**: Se corrigió el bug que impedía guardar el `driver_id` en la tabla de ventas al finalizar una factura.
+- **Error Spatie RoleDoesNotExist**: Se eliminó la excepción fatal que ocurría cuando un rol de chofer esperado no existía en el sistema.
+
 ## [1.8.78] - 2026-03-19
 ### Added
 - **Permiso Forzar Descuento**: Se creó e inyectó un nuevo permiso llamado `payments.force_discounts` que le confiere poderes al usuario para eludir el sistema de control de descuentos por pronto pago o divisa.

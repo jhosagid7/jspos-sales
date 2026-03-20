@@ -660,7 +660,7 @@ class Users extends Component
     }
     public function loadAllowedRoles()
     {
-        $modules = session('tenant.modules', []);
+        $modules = config('tenant.modules', []);
         $allRoles = \Spatie\Permission\Models\Role::orderBy('name')->get();
 
         $this->roles = $allRoles->filter(function ($role) use ($modules) {

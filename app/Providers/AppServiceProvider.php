@@ -27,7 +27,22 @@ class AppServiceProvider extends ServiceProvider
 
         // Registro de directiva Blade para Módulos SaaS
         \Illuminate\Support\Facades\Blade::if('module', function ($moduleName) {
-            $modules = config('tenant.modules', []);
+            $modules = config('tenant.modules');
+            
+            if ($modules === null) {
+                // If config is null, the middleware hasn't run or is not persistent
+                // Check if we can get it from the license service directly as fallback
+                try {
+                    $licenseService = app(\App\Services\LicenseService::class);
+                    $status = $licenseService->checkLicense();
+                    $modules = $status['modules'] ?? [];
+                    // Cache it for the rest of this request
+                    config(['tenant.modules' => $modules]);
+                } catch (\Exception $e) {
+                    $modules = [];
+                }
+            }
+
             return in_array($moduleName, $modules);
         });
 

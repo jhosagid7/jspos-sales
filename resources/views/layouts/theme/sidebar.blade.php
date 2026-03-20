@@ -290,6 +290,14 @@
                                 <p>Ventas Diarias</p>
                             </a>
                         </li>
+                        @module('module_delivery')
+                        <li class="nav-item">
+                            <a href="{{ route('reports.dispatch') }}" class="nav-link {{ Request::is('reports/dispatch*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Relación de Despacho</p>
+                            </a>
+                        </li>
+                        @endmodule
                         @endcan
                         @module('module_purchases')
                         @can('reports.purchases')

@@ -1,12 +1,13 @@
 <?php
-
 namespace App\Http\Controllers;
 
-use App\Models\CollectionSheet;
-use App\Models\SaleReturn;
+use App\Models\Sale;
 use App\Models\Configuration;
+use App\Models\User;
 use App\Models\Bank;
 use App\Models\Currency;
+use App\Models\CollectionSheet;
+use App\Models\SaleReturn;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -297,5 +298,117 @@ class ReportController extends Controller
         ])->setPaper('a4', 'landscape');
 
         return $pdf->stream('Reporte_Ventas_Diarias.pdf');
+    }
+
+    public function dispatchPdf(Request $request)
+    {
+        $dateFrom = $request->get('dateFrom');
+        $dateTo = $request->get('dateTo');
+        $driver_id = $request->get('driver_id');
+
+        $dFrom = Carbon::parse($dateFrom)->startOfDay();
+        $dTo = Carbon::parse($dateTo)->endOfDay();
+
+        $sales = Sale::with(['customer', 'driver', 'sellerConfig.user', 'paymentDetails'])
+            ->whereNotNull('driver_id')
+            ->whereBetween('created_at', [$dFrom, $dTo])
+            ->when($driver_id && $driver_id !== 'all', function($q) use ($driver_id) {
+                $q->where('driver_id', $driver_id);
+            })
+            ->orderBy('driver_id')
+            ->orderBy('id')
+            ->get();
+
+        $data = [];
+        $overallTotalBase = 0;
+        $overallTotalFreight = 0;
+        $overallTotalCommission = 0;
+        $overallTotalDiff = 0;
+        $overallTotalFinal = 0;
+
+        foreach ($sales as $sale) {
+            $driverKey = $sale->driver_id;
+            $driverName = $sale->driver->name ?? 'N/A';
+            
+            // Get Seller through Customer instead of Sale->seller_id
+            $seller = $sale->customer->seller ?? null;
+            $sellerId = $seller ? $seller->id : 0;
+            $sellerName = $seller ? strtoupper($seller->name) : 'SIN VENDEDOR';
+
+            if (!isset($data[$driverKey])) {
+                $data[$driverKey] = [
+                    'name' => strtoupper($driverName),
+                    'sellers' => [],
+                    'total_base' => 0,
+                    'total_final' => 0
+                ];
+            }
+
+            if (!isset($data[$driverKey]['sellers'][$sellerId])) {
+                $data[$driverKey]['sellers'][$sellerId] = [
+                    'name' => $sellerName,
+                    'sales' => [],
+                    'total_base' => 0,
+                    'total_final' => 0
+                ];
+            }
+
+            // Calculations
+            $totalFac = $sale->total_usd;
+            $incPercent = ($sale->applied_commission_percent + $sale->applied_freight_percent + $sale->applied_exchange_diff_percent);
+            $baseAmount = $totalFac / (1 + ($incPercent / 100));
+            
+            // Amounts by concept
+            $commAmt = $baseAmount * ($sale->applied_commission_percent / 100);
+            $freightAmt = $baseAmount * ($sale->applied_freight_percent / 100);
+            $diffAmt = $baseAmount * ($sale->applied_exchange_diff_percent / 100);
+
+            $saleObj = (object)[
+                'invoice_number' => $sale->invoice_number ?? $sale->id,
+                'customer_name' => $sale->customer->name,
+                'destination' => $sale->customer->city ?? 'N/A',
+                'base' => $baseAmount,
+                'inc_percent' => $incPercent,
+                'total' => $totalFac,
+                'date' => $sale->created_at->format('d/m/Y')
+            ];
+
+            $data[$driverKey]['sellers'][$sellerId]['sales'][] = $saleObj;
+            $data[$driverKey]['sellers'][$sellerId]['total_base'] += $baseAmount;
+            $data[$driverKey]['sellers'][$sellerId]['total_final'] += $totalFac;
+            
+            $data[$driverKey]['total_base'] += $baseAmount;
+            $data[$driverKey]['total_final'] += $totalFac;
+
+            $overallTotalBase += $baseAmount;
+            $overallTotalFreight += $freightAmt;
+            $overallTotalCommission += $commAmt;
+            $overallTotalDiff += $diffAmt;
+            $overallTotalFinal += $totalFac;
+        }
+
+        $config = Configuration::first();
+        $user = auth()->user();
+
+        $pdf = Pdf::loadView('reports.dispatch-report-pdf', [
+            'data' => $data,
+            'config' => $config,
+            'user' => $user,
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+            'overall' => [
+                'base' => $overallTotalBase,
+                'freight' => $overallTotalFreight,
+                'commission' => $overallTotalCommission,
+                'diff' => $overallTotalDiff,
+                'total' => $overallTotalFinal
+            ]
+        ])->setPaper('a4', 'portrait');
+
+        if ($request->has('download')) {
+            return $pdf->download('Reporte_Despacho.pdf');
+        }
+
+        return $pdf->stream('Reporte_Despacho.pdf');
     }
 }

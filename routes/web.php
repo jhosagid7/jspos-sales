@@ -20,6 +20,7 @@ use App\Livewire\Categories;
 use App\Livewire\SalesReport;
 use App\Livewire\AsignarPermisos;
 use App\Livewire\PurchasesReport;
+use App\Livewire\Reports\DispatchReport;
 use Illuminate\Support\Facades\Route;
 use App\Livewire\AccountsPayableReport;
 use App\Http\Controllers\DataController;
@@ -147,6 +148,8 @@ Route::middleware('auth')->group(function () {
         Route::get('commissions', \App\Livewire\CommissionReport::class)->name('reports.commissions')->middleware(['can:reports.sales', 'module:module_commissions']); // reports.commissions?
         Route::get('best-sellers', \App\Livewire\Reports\BestSellers::class)->name('reports.best.sellers')->middleware('can:reports.sales');
         Route::get('rotation', \App\Livewire\Reports\RotationReport::class)->name('reports.rotation')->middleware(['can:reports.stock', 'module:module_advanced_reports']);
+        Route::get('dispatch', DispatchReport::class)->name('reports.dispatch')->middleware(['can:reports.sales', 'module:module_delivery']);
+        Route::get('dispatch/pdf', [\App\Http\Controllers\ReportController::class, 'dispatchPdf'])->name('reports.dispatch.pdf')->middleware(['can:reports.sales', 'module:module_delivery']);
     });
 
     // Consultas

@@ -926,8 +926,14 @@ class Sales extends Component
         // Initialize Bank Date
         $this->bankDate = date('Y-m-d');
         
-        // Load Drivers
-        $this->drivers = \App\Models\User::role('Driver')->get();
+        // Load Drivers de forma segura (solo roles que existan)
+        $possibleRoles = ['driver', 'chofer', 'repartidor', 'Driver', 'Chofer'];
+        $existingRoles = \Spatie\Permission\Models\Role::whereIn('name', $possibleRoles)->pluck('name')->toArray();
+        if (!empty($existingRoles)) {
+            $this->drivers = \App\Models\User::role($existingRoles)->get();
+        } else {
+            $this->drivers = \App\Models\User::all(); // Fallback si no hay roles creados
+        }
 
         // Load Sellers
         $this->sellers = \App\Models\User::all(); // Simplified for now, can be role-filtered if needed
@@ -3207,6 +3213,7 @@ class Sales extends Component
                 'seller_tier_1_percent' => $tier1Percent,
                 'seller_tier_2_days' => $tier2Days,
                 'seller_tier_2_percent' => $tier2Percent,
+                'driver_id' => $this->driver_id,
             ]);
 
             // get cart session
@@ -3592,7 +3599,7 @@ class Sales extends Component
 
             $this->dispatch('noty', msg: 'VENTA REGISTRADA CON ÉXITO');
             $this->dispatch('close-modalPay', element: $type == 3 ? 'modalDeposit' : ($type == 4 ? 'modalNequi' : 'modalCash'));
-            $this->resetExcept('config', 'banks', 'bank', 'warehouses');
+            $this->resetExcept('config', 'banks', 'bank', 'warehouses', 'drivers', 'sellers');
             $this->clear();
             session()->forget('sale_customer');
             
@@ -3751,7 +3758,7 @@ class Sales extends Component
                  // Let's check initPayment instead.
             }
 
-            $this->resetExcept('config', 'banks', 'bank', 'currencies', 'warehouses');
+            $this->resetExcept('config', 'banks', 'bank', 'currencies', 'warehouses', 'drivers', 'sellers');
             $this->clear();
             session()->forget('sale_customer');
             // Obtener el último registro insertado
