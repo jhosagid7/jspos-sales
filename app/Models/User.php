@@ -124,4 +124,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(DriverLocation::class, 'driver_id');
     }
+
+    public function customers()
+    {
+        return $this->hasMany(Customer::class, 'seller_id');
+    }
 }

@@ -305,15 +305,23 @@ class ReportController extends Controller
         $dateFrom = $request->get('dateFrom');
         $dateTo = $request->get('dateTo');
         $driver_id = $request->get('driver_id');
+        $seller_id = $request->get('seller_id');
+        $columns = json_decode($request->get('columns'), true) ?? [];
+        $signatures = json_decode($request->get('signatures'), true) ?? [];
 
         $dFrom = Carbon::parse($dateFrom)->startOfDay();
         $dTo = Carbon::parse($dateTo)->endOfDay();
 
-        $sales = Sale::with(['customer', 'driver', 'sellerConfig.user', 'paymentDetails'])
+        $sales = Sale::with(['customer.seller', 'driver', 'sellerConfig.user', 'paymentDetails'])
             ->whereNotNull('driver_id')
             ->whereBetween('created_at', [$dFrom, $dTo])
             ->when($driver_id && $driver_id !== 'all', function($q) use ($driver_id) {
                 $q->where('driver_id', $driver_id);
+            })
+            ->when($seller_id && $seller_id !== 'all', function($q) use ($seller_id) {
+                $q->whereHas('customer', function($c) use ($seller_id) {
+                    $c->where('seller_id', $seller_id);
+                });
             })
             ->orderBy('driver_id')
             ->orderBy('id')
@@ -368,6 +376,9 @@ class ReportController extends Controller
                 'customer_name' => $sale->customer->name,
                 'destination' => $sale->customer->city ?? 'N/A',
                 'base' => $baseAmount,
+                'commission_amt' => $commAmt,
+                'freight_amt' => $freightAmt,
+                'diff_amt' => $diffAmt,
                 'inc_percent' => $incPercent,
                 'total' => $totalFac,
                 'date' => $sale->created_at->format('d/m/Y')
@@ -396,6 +407,8 @@ class ReportController extends Controller
             'user' => $user,
             'dateFrom' => $dateFrom,
             'dateTo' => $dateTo,
+            'columns' => $columns,
+            'signatures' => $signatures,
             'overall' => [
                 'base' => $overallTotalBase,
                 'freight' => $overallTotalFreight,
@@ -403,7 +416,7 @@ class ReportController extends Controller
                 'diff' => $overallTotalDiff,
                 'total' => $overallTotalFinal
             ]
-        ])->setPaper('a4', 'portrait');
+        ])->setPaper('a4', 'landscape');
 
         if ($request->has('download')) {
             return $pdf->download('Reporte_Despacho.pdf');

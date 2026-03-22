@@ -77,7 +77,7 @@
         }
         
         .summary-box {
-            width: 35%;
+            width: 30%;
             margin-left: auto;
             border-top: 1.5pt solid #000;
             margin-top: 10px;
@@ -98,7 +98,7 @@
 
         .footer-signatures {
             width: 100%;
-            margin-top: 50px;
+            margin-top: 40px;
         }
         .signature-line {
             border-top: 1px solid #333;
@@ -131,7 +131,7 @@
     
     <div style="margin-bottom: 10px; font-size: 8pt;">
         Periodo : {{ \Carbon\Carbon::parse($dateFrom)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($dateTo)->format('d/m/Y') }}<br>
-        Moneda de Referencia : Dólares<br>
+        Moneda : Dólares<br>
         Generado por : {{ strtoupper($user->name ?? 'N/A') }}
     </div>
 
@@ -143,45 +143,60 @@
         <table class="table">
             <thead>
                 <tr>
-                    <th style="width: 70px;">Factura</th>
-                    <th style="width: 100px;">Entrega</th>
-                    <th>Cliente</th>
-                    <th style="width: 80px;" class="text-right">Importe Base</th>
-                    <th style="width: 60px;" class="text-center">% Aplicado</th>
-                    <th style="width: 80px;" class="text-right">Monto Nota</th>
+                    @if($columns['invoice']) <th style="width: 65px;">Factura</th> @endif
+                    @if($columns['destination']) <th style="width: 80px;">Entrega</th> @endif
+                    @if($columns['customer']) <th>Cliente</th> @endif
+                    @if($columns['base']) <th style="width: 70px;" class="text-right">Base</th> @endif
+                    @if($columns['percent']) <th style="width: 50px;" class="text-center">% Apl.</th> @endif
+                    @if($columns['commission']) <th style="width: 65px;" class="text-right">Comisión</th> @endif
+                    @if($columns['freight']) <th style="width: 65px;" class="text-right">Flete</th> @endif
+                    @if($columns['differential']) <th style="width: 65px;" class="text-right">Diferencial</th> @endif
+                    @if($columns['total']) <th style="width: 70px;" class="text-right">Monto</th> @endif
+                    @if($columns['date']) <th style="width: 60px;" class="text-center">Fecha</th> @endif
                 </tr>
             </thead>
             <tbody>
                 @foreach ($driverGroup['sellers'] as $sellerId => $sellerGroup)
                     <tr>
-                        <td colspan="6" class="seller-header">
+                        <td colspan="{{ collect($columns)->filter()->count() }}" class="seller-header">
                             VENDEDOR: {{ $sellerGroup['name'] }}
                         </td>
                     </tr>
                     @foreach ($sellerGroup['sales'] as $sale)
                         <tr>
-                            <td>{{ $sale->invoice_number }}</td>
-                            <td>{{ strtoupper($sale->destination) }}</td>
-                            <td>{{ strtoupper($sale->customer_name) }}</td>
-                            <td class="text-right">{{ number_format($sale->base, 2) }}</td>
-                            <td class="text-center">{{ number_format($sale->inc_percent, 2) }}%</td>
-                            <td class="text-right">{{ number_format($sale->total, 2) }}</td>
+                            @if($columns['invoice']) <td>{{ $sale->invoice_number }}</td> @endif
+                            @if($columns['destination']) <td>{{ strtoupper($sale->destination) }}</td> @endif
+                            @if($columns['customer']) <td>{{ strtoupper($sale->customer_name) }}</td> @endif
+                            @if($columns['base']) <td class="text-right">{{ number_format($sale->base, 2) }}</td> @endif
+                            @if($columns['percent']) <td class="text-center">{{ number_format($sale->inc_percent, 1) }}%</td> @endif
+                            @if($columns['commission']) <td class="text-right">{{ number_format($sale->commission_amt, 2) }}</td> @endif
+                            @if($columns['freight']) <td class="text-right">{{ number_format($sale->freight_amt, 2) }}</td> @endif
+                            @if($columns['differential']) <td class="text-right">{{ number_format($sale->diff_amt, 2) }}</td> @endif
+                            @if($columns['total']) <td class="text-right" style="font-weight: bold;">{{ number_format($sale->total, 2) }}</td> @endif
+                            @if($columns['date']) <td class="text-center">{{ $sale->date }}</td> @endif
                         </tr>
                     @endforeach
                     <tr style="background-color: #fafafa; font-weight: bold;">
-                        <td colspan="3" class="text-right">Subtotal Vendedor:</td>
-                        <td class="text-right">{{ number_format($sellerGroup['total_base'], 2) }}</td>
-                        <td></td>
+                        <td colspan="{{ collect($columns)->take(3)->filter()->count() }}" class="text-right">Subtotal Vendedor:</td>
+                        @php $skip = collect($columns)->take(3)->filter()->count(); @endphp
+                        
+                        @for($i=0; $i < (collect($columns)->filter()->count() - $skip - 1); $i++)
+                            <td></td>
+                        @endfor
                         <td class="text-right">{{ number_format($sellerGroup['total_final'], 2) }}</td>
+                        @if($columns['date']) <td></td> @endif
                     </tr>
                 @endforeach
             </tbody>
             <tfoot>
                 <tr style="background-color: #f0f0f0; font-weight: bold; border-top: 1.5pt solid #999;">
-                    <td colspan="3" class="text-right">TOTAL {{ $driverGroup['name'] }}:</td>
-                    <td class="text-right">{{ number_format($driverGroup['total_base'], 2) }}</td>
-                    <td></td>
+                    <td colspan="{{ collect($columns)->take(3)->filter()->count() }}" class="text-right">TOTAL {{ $driverGroup['name'] }}:</td>
+                    @php $skip = collect($columns)->take(3)->filter()->count(); @endphp
+                    @for($i=0; $i < (collect($columns)->filter()->count() - $skip - 1); $i++)
+                        <td></td>
+                    @endfor
                     <td class="text-right">{{ number_format($driverGroup['total_final'], 2) }}</td>
+                    @if($columns['date']) <td></td> @endif
                 </tr>
             </tfoot>
         </table>
@@ -189,22 +204,30 @@
 
     <div class="summary-box">
         <table class="summary-table">
+            @if($columns['base'])
             <tr>
                 <td class="summary-label">TOTAL BASE:</td>
                 <td class="summary-value">{{ number_format($overall['base'], 2) }}</td>
             </tr>
+            @endif
+            @if($columns['freight'])
             <tr>
                 <td class="summary-label">TOTAL FLETE:</td>
                 <td class="summary-value">{{ number_format($overall['freight'], 2) }}</td>
             </tr>
+            @endif
+            @if($columns['commission'])
             <tr>
                 <td class="summary-label">TOTAL COMISIÓN:</td>
                 <td class="summary-value">{{ number_format($overall['commission'], 2) }}</td>
             </tr>
+            @endif
+            @if($columns['differential'])
             <tr>
                 <td class="summary-label">TOTAL DIFERENCIA:</td>
                 <td class="summary-value">{{ number_format($overall['diff'], 2) }}</td>
             </tr>
+            @endif
             <tr style="border-top: 1pt solid #000;">
                 <td class="summary-label" style="font-size: 8.5pt;">TOTAL GENERAL:</td>
                 <td class="summary-value" style="font-size: 8.5pt;">{{ number_format($overall['total'], 2) }}</td>
@@ -212,24 +235,35 @@
         </table>
     </div>
 
-    <table class="footer-signatures">
-        <tr>
-            <td style="width: 33%; text-align: center;">
-                <div class="signature-line"></div>
-                <div style="font-size: 7.5pt; font-weight: bold;">ENTREGADO POR</div>
-                <div style="font-size: 7pt;">(DESPACHO)</div>
-            </td>
-            <td style="width: 33%; text-align: center;">
-                <div class="signature-line"></div>
-                <div style="font-size: 7.5pt; font-weight: bold;">CHOFER</div>
-                <div style="font-size: 7pt;">(FIRMA)</div>
-            </td>
-            <td style="width: 33%; text-align: center;">
-                <div class="signature-line"></div>
-                <div style="font-size: 7.5pt; font-weight: bold;">RECIBIDO POR</div>
-                <div style="font-size: 7pt;">(ALMACÉN / CAJA)</div>
-            </td>
-        </tr>
+    <table class="footer-signatures" style="width: 100%; border-collapse: collapse;">
+        @php
+            $activeSignatures = [];
+            if($signatures['entregado']) $activeSignatures[] = ['label' => 'ENTREGADO POR', 'sub' => '(DESPACHO)'];
+            if($signatures['chofer']) $activeSignatures[] = ['label' => 'CHOFER', 'sub' => '(FIRMA)'];
+            if($signatures['vendedor']) $activeSignatures[] = ['label' => 'VENDEDOR', 'sub' => '(FIRMA)'];
+            if($signatures['operador']) $activeSignatures[] = ['label' => 'OPERADOR', 'sub' => '(CAJA)'];
+            if($signatures['recibido']) $activeSignatures[] = ['label' => 'RECIBIDO POR', 'sub' => '(ALMACÉN / TALLER)'];
+            if($signatures['administrador']) $activeSignatures[] = ['label' => 'ADMINISTRADOR', 'sub' => '(FIRMA)'];
+            if($signatures['gerente']) $activeSignatures[] = ['label' => 'GERENTE GENERAL', 'sub' => '(FIRMA)'];
+            
+            $chunks = array_chunk($activeSignatures, 3);
+        @endphp
+
+        @foreach($chunks as $chunk)
+            <tr>
+                @foreach($chunk as $sig)
+                    <td style="width: 33%; text-align: center; padding-top: 40px; vertical-align: bottom;">
+                        <div class="signature-line"></div>
+                        <div style="font-size: 7.5pt; font-weight: bold;">{{ $sig['label'] }}</div>
+                        <div style="font-size: 7pt;">{{ $sig['sub'] }}</div>
+                    </td>
+                @endforeach
+                {{-- Fill empty cells if chunk is less than 3 --}}
+                @for($i = count($chunk); $i < 3; $i++)
+                    <td style="width: 33%;"></td>
+                @endfor
+            </tr>
+        @endforeach
     </table>
 
 </body>

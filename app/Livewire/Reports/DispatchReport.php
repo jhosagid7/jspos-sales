@@ -22,6 +22,34 @@ class DispatchReport extends Component
     
     public $showPdfModal = false;
     public $pdfUrl = '';
+    
+    // Filtros adicionales
+    public $seller_id = 'all';
+    public $sellers = [];
+    
+    // Configuración de columnas (basado en el requerimiento del usuario)
+    public $columns = [
+        'invoice' => true,
+        'destination' => true,
+        'customer' => true,
+        'base' => true,
+        'percent' => true,
+        'commission' => true,
+        'freight' => true,
+        'differential' => true,
+        'total' => true,
+        'date' => false
+    ];
+
+    public $signatures = [
+        'chofer' => true,
+        'entregado' => true,
+        'recibido' => true,
+        'vendedor' => false,
+        'administrador' => false,
+        'gerente' => false,
+        'operador' => false
+    ];
 
     public function mount()
     {
@@ -40,8 +68,13 @@ class DispatchReport extends Component
         if (!empty($existingRoles)) {
             $this->drivers = User::role($existingRoles)->orderBy('name')->get();
         } else {
-            // Fallback: si no hay roles específicos, buscar usuarios con permisos de delivery o simplemente vacíos
-            $this->drivers = User::all(); // O podrías filtrar por un permiso específico si existe
+            $this->drivers = User::all();
+        }
+
+        // Cargar vendedores únicos que tengan ventas registradas o simplemente todos con rol de vendedor
+        $this->sellers = User::whereHas('customers')->orderBy('name')->get();
+        if($this->sellers->isEmpty()){
+             $this->sellers = User::all();
         }
         
         session(['pos' => 'Reporte de Despacho']);
@@ -63,11 +96,16 @@ class DispatchReport extends Component
         $dFrom = Carbon::parse($this->dateFrom)->startOfDay();
         $dTo = Carbon::parse($this->dateTo)->endOfDay();
 
-        return Sale::with(['customer', 'driver', 'sellerConfig.user'])
+        return Sale::with(['customer.seller', 'driver', 'sellerConfig.user'])
             ->whereNotNull('driver_id')
             ->whereBetween('created_at', [$dFrom, $dTo])
             ->when($this->driver_id !== 'all', function($q) {
                 $q->where('driver_id', $this->driver_id);
+            })
+            ->when($this->seller_id !== 'all', function($q) {
+                $q->whereHas('customer', function($c) {
+                    $c->where('seller_id', $this->seller_id);
+                });
             })
             ->orderBy('driver_id')
             ->orderBy('created_at')
@@ -85,10 +123,12 @@ class DispatchReport extends Component
         $params = [
             'dateFrom' => $this->dateFrom,
             'dateTo' => $this->dateTo,
-            'driver_id' => $this->driver_id
+            'driver_id' => $this->driver_id,
+            'seller_id' => $this->seller_id,
+            'columns' => json_encode($this->columns),
+            'signatures' => json_encode($this->signatures)
         ];
 
-        // Definiremos esta ruta en el archivo web.php luego
         $this->pdfUrl = route('reports.dispatch.pdf', $params);
         $this->showPdfModal = true;
     }
