@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.8.80] - 2026-03-22
+### Added
+- **Monitoreo Administrativo de Drivers**: Ahora el administrador puede ver el dashboard específico de cualquier chofer haciendo clic en su etiqueta en el mapa o en el reporte de despacho.
+- **Vínculos de Seguimiento en Mapa**: Se añadieron enlaces directos en los popups del "Mapa en Vivo" para ver la "Hoja de Ruta" del chofer y el seguimiento individual de cada pedido.
+- **Acceso Logístico en Sidebar**: El enlace "MI RUTA" ahora es visible para Administradores y Supervisores bajo el nombre "LOGÍSTICA / RUTAS", facilitando el acceso al monitoreo.
+
+### Changed
+- **Arquitectura de Vistas (Livewire 3)**: Se optimizó el renderizado del Mapa y el Dashboard para cumplir estrictamente con el requisito de "Root Element" único de Livewire 3, moviendo los scripts a stacks específicos.
+- **Navegación Dinámica**: El dashboard del chofer ahora detecta si está siendo visto por un administrador, mostrando un banner informativo y previniendo la actualización accidental de la ubicación del administrador como si fuera la del chofer.
+
+### Fixed
+- **Error Multiple Root Elements**: Se corrigió el fallo crítico de Livewire en el Mapa de Choferes causado por etiquetas HTML mal cerradas y scripts mal posicionados.
+- **Data Binding en Dashboard**: Se restauraron propiedades públicas perdidas (tab, sales, historySales) que causaban errores de variable indefinida.
+
+
+
 ## [1.8.79] - 2026-03-20
 ### Added
 - **Reporte de Despacho (Relación de Despacho)**: Se integró un nuevo reporte detallado bajo el módulo de entregas.

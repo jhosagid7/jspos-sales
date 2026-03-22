@@ -209,7 +209,11 @@
                                         $diffAmt = $baseAmount * ($sale->applied_exchange_diff_percent / 100);
                                     @endphp
                                     <tr class="text-center f-12">
-                                        <td><span class="badge badge-light-primary">{{ $sale->driver->name ?? 'N/A' }}</span></td>
+                                         <td>
+                                             <a href="{{ route('driver.dashboard', ['driverId' => $sale->driver_id]) }}" class="badge badge-light-primary">
+                                                 {{ $sale->driver->name ?? 'N/A' }}
+                                             </a>
+                                         </td>
                                         @if($columns['invoice']) <td>{{ $sale->invoice_number ?? $sale->id }}</td> @endif
                                         @if($columns['destination']) <td>{{ $sale->customer->city ?? 'N/A' }}</td> @endif
                                         @if($columns['customer']) <td class="text-left">{{ $sale->customer->name }}</td> @endif

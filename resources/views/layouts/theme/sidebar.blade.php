@@ -69,14 +69,19 @@
                 </li>
                 @endunlessrole
 
-                @role('Driver')
+                @php
+                    $isDriver = auth()->user()->hasRole('Driver');
+                    $canSeeLogistics = auth()->user()->hasRole(['Admin', 'Supervisor', 'Super Admin']) || auth()->user()->can('sales.index');
+                @endphp
+
+                @if($isDriver || $canSeeLogistics)
                 <li class="nav-item">
                     <a href="{{ route('driver.dashboard') }}" class="nav-link {{ Request::is('driver/dashboard') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-truck-loading"></i>
-                        <p>MI RUTA</p>
+                        <p>{{ $isDriver ? 'MI RUTA' : 'LOGÍSTICA / RUTAS' }}</p>
                     </a>
                 </li>
-                @endrole
+                @endif
                 
                 @unlessrole('Driver')
                 

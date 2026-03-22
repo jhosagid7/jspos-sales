@@ -185,7 +185,7 @@ Route::middleware('auth')->group(function () {
     })->name('whatsapp.download-pdf');
 
     // Delivery Routes
-    Route::get('driver/dashboard', \App\Livewire\DriverDashboard::class)->name('driver.dashboard'); // Maybe add permission?
+    Route::get('driver/dashboard/{driverId?}', \App\Livewire\DriverDashboard::class)->name('driver.dashboard'); // Maybe add permission?
     Route::get('delivery/tracking/{sale}', \App\Livewire\DeliveryTracking::class)->name('delivery.tracking')->middleware('can:sales.index');
     Route::get('delivery/map', \App\Livewire\LiveDriverMap::class)->name('delivery.map')->middleware('can:sales.index');
 

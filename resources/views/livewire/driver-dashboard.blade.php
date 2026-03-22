@@ -1,4 +1,16 @@
 <div>
+    @if($viewingAsAdmin)
+        <div class="alert alert-info border-info d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <i class="fas fa-info-circle me-2"></i>
+                Viendo ruta de: <strong>{{ \App\Models\User::find($driverId)->name }}</strong> (Modo Monitoreo)
+            </div>
+            <a href="{{ route('delivery.map') }}" class="btn btn-sm btn-info text-white">
+                <i class="fas fa-map me-1"></i> Volver al Mapa
+            </a>
+        </div>
+    @endif
+
     <div class="page-header">
         <div class="page-title">
             <h4>Mis Entregas</h4>
@@ -227,6 +239,8 @@
             </div>
         </div>
     </div>
+
+    @push('my-scripts')
     <script>
         function updateDeliveryStatus(saleId, status) {
             if (!navigator.geolocation) {
@@ -234,45 +248,27 @@
                 return;
             }
 
-            // Show loading state (optional but good UX)
-            // Swal.fire({title: 'Obteniendo ubicación...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() }});
-
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    // Success
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
-                    
-                    // Call Livewire method
                     @this.call('updateStatus', saleId, status, lat, lng);
                 },
                 (error) => {
-                    // Error
                     console.error("Error GPS:", error);
                     let msg = "No se pudo obtener la ubicación.";
                     if (error.code == 1) msg = "Permiso de ubicación denegado.";
                     if (error.code == 2) msg = "Ubicación no disponible.";
                     if (error.code == 3) msg = "Tiempo de espera agotado.";
-                    
                     alert(msg + " Asegúrate de tener el GPS activado y dar permisos.");
                 },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
-                }
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
         }
 
         document.addEventListener('livewire:initialized', () => {
-            @this.on('msg-ok', (msg) => {
-                // Swal.close();
-                noty(msg, 1); // Assuming 'noty' is your global notification function
-            });
-            @this.on('msg-error', (msg) => {
-                // Swal.close();
-                noty(msg, 2);
-            });
+            @this.on('msg-ok', (msg) => { noty(msg, 1); });
+            @this.on('msg-error', (msg) => { noty(msg, 2); });
             @this.on('show-collection-modal', () => {
                 var myModal = new bootstrap.Modal(document.getElementById('modalCollection'));
                 myModal.show();
@@ -280,10 +276,9 @@
             @this.on('hide-collection-modal', () => {
                 var el = document.getElementById('modalCollection');
                 var modal = bootstrap.Modal.getInstance(el);
-                modal.hide();
+                if(modal) modal.hide();
             });
 
-            // Real-time tracking interval (every 60 seconds)
             setInterval(() => {
                 if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(
@@ -292,13 +287,12 @@
                             const lng = position.coords.longitude;
                             @this.call('updateDriverLocation', lat, lng);
                         },
-                        (error) => {
-                            console.error("Error auto-tracking:", error);
-                        },
+                        (error) => { console.error("Error auto-tracking:", error); },
                         { enableHighAccuracy: true }
                     );
                 }
-            }, 60000); // 60000 ms = 1 minute
+            }, 60000);
         });
     </script>
+    @endpush
 </div>

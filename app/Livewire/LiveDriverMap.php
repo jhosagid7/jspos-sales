@@ -37,7 +37,8 @@ class LiveDriverMap extends Component
                             'id' => $sale->id,
                             'customer' => $sale->customer->name,
                             'address' => $sale->customer->address,
-                            'status' => $sale->delivery_status
+                            'status' => $sale->delivery_status,
+                            'tracking_url' => route('delivery.tracking', ['sale' => $sale->id])
                         ];
                     });
 
@@ -47,7 +48,8 @@ class LiveDriverMap extends Component
                     'lat' => $lastLoc ? $lastLoc->latitude : null,
                     'lng' => $lastLoc ? $lastLoc->longitude : null,
                     'last_update' => $lastLoc ? $lastLoc->created_at->diffForHumans() : 'N/A',
-                    'active_orders' => $activeOrders
+                    'active_orders' => $activeOrders,
+                    'dashboard_url' => route('driver.dashboard', ['driverId' => $driver->id])
                 ];
             });
         

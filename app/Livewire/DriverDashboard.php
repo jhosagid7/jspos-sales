@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Auth;
 
 class DriverDashboard extends Component
 {
+    public $driverId;
+    public $viewingAsAdmin = false;
     public $sales;
     public $historySales;
     public $tab = 'pending'; // pending, history
@@ -17,27 +19,33 @@ class DriverDashboard extends Component
     public $selectedSaleId = null;
     public $selectedSaleTotal = 0;
     public $collectionNote = '';
-
     public $collectionPayments = []; // [{currency_id, amount, exchange_rate}]
     public $existingCollections = [];
 
-
-    public function mount()
+    public function mount($driverId = null)
     {
+        // If driverId is provided and user has permission (Admin or sales.index)
+        if ($driverId && (Auth::user()->hasRole(['Admin', 'Supervisor']) || Auth::user()->can('sales.index'))) {
+            $this->driverId = $driverId;
+            $this->viewingAsAdmin = true;
+        } else {
+            $this->driverId = Auth::id();
+        }
+        
         $this->loadSales();
     }
 
     public function loadSales()
     {
         // Active Sales (Pending or In Transit)
-        $this->sales = Sale::where('driver_id', Auth::id())
+        $this->sales = Sale::where('driver_id', $this->driverId)
             ->whereIn('delivery_status', ['pending', 'in_transit'])
             ->with('customer')
             ->orderBy('created_at', 'asc') // Oldest first for delivery priority
             ->get();
 
         // History Sales (Delivered or Cancelled) - Last 50
-        $this->historySales = Sale::where('driver_id', Auth::id())
+        $this->historySales = Sale::where('driver_id', $this->driverId)
             ->whereIn('delivery_status', ['delivered', 'cancelled'])
             ->with('customer')
             ->orderBy('delivered_at', 'desc') // Newest delivered first
@@ -52,7 +60,7 @@ class DriverDashboard extends Component
 
     public function updateStatus($saleId, $status, $lat, $lng)
     {
-        $sale = Sale::where('id', $saleId)->where('driver_id', Auth::id())->first();
+        $sale = Sale::where('id', $saleId)->where('driver_id', $this->driverId)->first();
 
         if ($sale) {
             $sale->delivery_status = $status;
@@ -134,7 +142,7 @@ class DriverDashboard extends Component
 
         $collection = \App\Models\DeliveryCollection::create([
             'sale_id' => $this->selectedSaleId,
-            'driver_id' => Auth::id(),
+            'driver_id' => $this->driverId,
             'amount' => 0, 
             'note' => $this->collectionNote
         ]);
@@ -158,11 +166,14 @@ class DriverDashboard extends Component
 
     public function updateDriverLocation($lat, $lng)
     {
-        \App\Models\DriverLocation::create([
-            'driver_id' => Auth::id(),
-            'latitude' => $lat,
-            'longitude' => $lng
-        ]);
+        // Only update if the user is actually the driver (don't update if admin is viewing)
+        if (Auth::id() == $this->driverId) {
+            \App\Models\DriverLocation::create([
+                'driver_id' => Auth::id(),
+                'latitude' => $lat,
+                'longitude' => $lng
+            ]);
+        }
     }
 
     public function render()
