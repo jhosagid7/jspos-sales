@@ -424,4 +424,40 @@ class ReportController extends Controller
 
         return $pdf->stream('Reporte_Despacho.pdf');
     }
+
+    public function settlementPdf(Request $request)
+    {
+        $dateFrom = $request->get('dateFrom');
+        $dateTo = $request->get('dateTo');
+        $driver_id = $request->get('driver_id');
+
+        $dFrom = Carbon::parse($dateFrom)->startOfDay();
+        $dTo = Carbon::parse($dateTo)->endOfDay();
+
+        $sales = Sale::with(['customer', 'driver', 'deliveryCollections.payments.currency'])
+            ->whereNotNull('driver_id')
+            ->where(function($q) use ($dFrom, $dTo) {
+                $q->whereBetween('created_at', [$dFrom, $dTo])
+                  ->orWhereBetween('delivered_at', [$dFrom, $dTo]);
+            })
+            ->when($driver_id && $driver_id !== 'all', function($q) use ($driver_id) {
+                $q->where('driver_id', $driver_id);
+            })
+            ->orderBy('driver_id')
+            ->orderBy('id')
+            ->get();
+
+        $config = Configuration::first();
+        $user = auth()->user();
+
+        $pdf = Pdf::loadView('reports.delivery-settlement-pdf', [
+            'sales' => $sales,
+            'config' => $config,
+            'user' => $user,
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo
+        ])->setPaper('a4', 'portrait');
+
+        return $pdf->stream('Liquidacion_Ruta.pdf');
+    }
 }

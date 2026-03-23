@@ -21,18 +21,46 @@ class DriverDashboard extends Component
     public $collectionNote = '';
     public $collectionPayments = []; // [{currency_id, amount, exchange_rate}]
     public $existingCollections = [];
+    
+    // Monitoring
+    public $hasMonitoringPermission = false;
+    public $driversList = [];
 
     public function mount($driverId = null)
     {
-        // If driverId is provided and user has permission (Admin or sales.index)
-        if ($driverId && (Auth::user()->hasRole(['Admin', 'Supervisor']) || Auth::user()->can('sales.index'))) {
+        $this->hasMonitoringPermission = Auth::user()->can('driver_monitoring') || Auth::user()->hasRole('Admin');
+        
+        // If driverId is provided and user has permission
+        if ($driverId && ($this->hasMonitoringPermission || $driverId == Auth::id())) {
             $this->driverId = $driverId;
-            $this->viewingAsAdmin = true;
+            $this->viewingAsAdmin = ($driverId != Auth::id());
         } else {
             $this->driverId = Auth::id();
         }
+
+        if ($this->hasMonitoringPermission) {
+            $this->loadDriversList();
+        }
         
         $this->loadSales();
+    }
+
+    public function loadDriversList()
+    {
+        // Get all users with driver role or that have sales assigned
+        $this->driversList = \App\Models\User::whereHas('roles', function($q) {
+                $q->whereIn('name', ['Driver', 'Chofer', 'repartidor', 'driver']);
+            })
+            ->orWhereIn('id', Sale::whereNotNull('driver_id')->pluck('driver_id')->unique())
+            ->orderBy('name')
+            ->get();
+    }
+
+    public function updatedDriverId()
+    {
+        $this->viewingAsAdmin = ($this->driverId != Auth::id());
+        $this->loadSales();
+        $this->reset(['selectedSaleId', 'selectedSaleTotal', 'existingCollections', 'collectionNote', 'collectionPayments']);
     }
 
     public function loadSales()
@@ -81,6 +109,38 @@ class DriverDashboard extends Component
         } else {
             $this->dispatch('msg-error', 'Pedido no encontrado o no asignado');
         }
+    }
+
+    public function startAllRoutes($lat, $lng)
+    {
+        // For admin monitoring, prevent actual updates
+        if ($this->viewingAsAdmin) {
+            $this->dispatch('msg-error', 'Solo el chofer asignado puede iniciar sus rutas');
+            return;
+        }
+
+        $pendingSales = Sale::where('driver_id', $this->driverId)
+            ->where('delivery_status', 'pending')
+            ->get();
+            
+        if ($pendingSales->isEmpty()) {
+            $this->dispatch('msg-error', 'No hay rutas pendientes por iniciar');
+            return;
+        }
+
+        foreach ($pendingSales as $sale) {
+            $sale->update(['delivery_status' => 'in_transit']);
+            
+            DeliveryLocation::create([
+                'sale_id' => $sale->id,
+                'latitude' => $lat,
+                'longitude' => $lng,
+                'status_at_capture' => 'in_transit'
+            ]);
+        }
+        
+        $this->loadSales();
+        $this->dispatch('msg-ok', count($pendingSales) . ' rutas iniciadas correctamente');
     }
 
     public function selectSale($saleId)
@@ -135,10 +195,16 @@ class DriverDashboard extends Component
         }
 
         $this->validate([
+            'selectedSaleId' => 'required|exists:sales,id',
             'collectionNote' => 'nullable|string|max:255',
             'collectionPayments.*.amount' => 'required|numeric|min:0.01',
             'collectionPayments.*.currency_id' => 'required|exists:currencies,id'
         ]);
+
+        if (!$this->selectedSaleId) {
+            $this->dispatch('msg-error', 'ID de pedido no válido. Por favor, cierre el modal e intente de nuevo.');
+            return;
+        }
 
         $collection = \App\Models\DeliveryCollection::create([
             'sale_id' => $this->selectedSaleId,
@@ -159,9 +225,9 @@ class DriverDashboard extends Component
 
         $this->dispatch('hide-collection-modal');
         $this->dispatch('msg-ok', 'Novedad registrada correctamente');
-        $this->dispatch('hide-collection-modal');
-        $this->dispatch('msg-ok', 'Novedad registrada correctamente');
+        
         $this->reset(['collectionPayments', 'collectionNote', 'selectedSaleId', 'selectedSaleTotal', 'existingCollections']);
+        $this->loadSales(); // Refresh the sales list
     }
 
     public function updateDriverLocation($lat, $lng)

@@ -41,9 +41,13 @@
                         <button wire:click="generateReport" class="btn btn-dark w-100 mb-2">
                              <i class="fa fa-search"></i> Consultar
                         </button>
-                        <button wire:click="openPdfPreview" class="btn btn-info text-white w-100"
+                        <button wire:click="openPdfPreview" class="btn btn-info text-white w-100 mb-2"
                             {{ !$showReport || count($sales) < 1 ? 'disabled' : '' }}>
-                            <i class="fa fa-file-pdf-o"></i> Previsualizar PDF
+                            <i class="fa fa-file-pdf-o"></i> Relación de Despacho
+                        </button>
+                        <button wire:click="openSettlementPreview" class="btn btn-success text-white w-100"
+                            {{ !$showReport || count($sales) < 1 ? 'disabled' : '' }}>
+                            <i class="fa fa-check-circle"></i> Hoja de Liquidación
                         </button>
                     </div>
                 </div>

@@ -1,13 +1,33 @@
 <div>
     @if($viewingAsAdmin)
-        <div class="alert alert-info border-info d-flex justify-content-between align-items-center mb-4">
+        <div class="alert alert-info border-0 shadow-sm mb-4 d-flex justify-content-between align-items-center">
             <div>
-                <i class="fas fa-info-circle me-2"></i>
-                Viendo ruta de: <strong>{{ \App\Models\User::find($driverId)->name }}</strong> (Modo Monitoreo)
+                <i class="fas fa-user-shield me-2"></i><strong>Modo Supervisión:</strong> 
+                Monitoreando a: <strong>{{ \App\Models\User::find($driverId)->name ?? 'Indefinido' }}</strong>
             </div>
-            <a href="{{ route('delivery.map') }}" class="btn btn-sm btn-info text-white">
+            <a href="{{ route('delivery.map') }}" class="btn btn-info btn-sm text-white">
                 <i class="fas fa-map me-1"></i> Volver al Mapa
             </a>
+        </div>
+    @endif
+
+    @if($hasMonitoringPermission)
+        <div class="card mb-4 border-0 shadow-sm shadow-blue">
+            <div class="card-body py-3">
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <label class="form-label mb-1 text-muted fw-bold small text-uppercase">Seleccionar Chofer para Monitoreo</label>
+                        <select wire:model.live="driverId" class="form-select border-primary">
+                            @foreach($driversList as $driver)
+                                <option value="{{ $driver->id }}">{{ $driver->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-8 text-end d-none d-md-block">
+                        <span class="text-muted small">Vista administrativa de logística</span>
+                    </div>
+                </div>
+            </div>
         </div>
     @endif
 
@@ -36,6 +56,15 @@
         <!-- Pending Tab -->
         @if($tab == 'pending')
         <div class="row">
+            @if(count($sales->where('delivery_status', 'pending')) > 0)
+                <div class="col-12 mb-3">
+                    <button onclick="startAllRoutes()" class="btn btn-primary w-100 py-2 shadow-sm">
+                        <i class="fas fa-truck-loading me-2"></i> Iniciar Todas las Rutas
+                    </button>
+                    <hr>
+                </div>
+            @endif
+
             @forelse($sales as $sale)
                 <div class="col-12 col-md-6 col-lg-4">
                     <div class="card shadow-sm border-0 mb-3">
@@ -234,7 +263,12 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="button" wire:click="saveCollection" class="btn btn-primary">Guardar</button>
+                    <button type="button" wire:click="saveCollection" 
+                            wire:loading.attr="disabled"
+                            class="btn btn-primary">
+                        <span wire:loading wire:target="saveCollection" class="spinner-border spinner-border-sm me-2"></span>
+                        Guardar
+                    </button>
                 </div>
             </div>
         </div>
@@ -264,6 +298,27 @@
                 },
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
+        }
+
+        function startAllRoutes() {
+            if (!confirm('¿Deseas iniciar la ruta para TODOS los pedidos pendientes?')) return;
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        @this.call('startAllRoutes', lat, lng);
+                    },
+                    (error) => {
+                        console.error("Error GPS:", error);
+                        alert("No se pudo obtener la ubicación. Asegúrate de tener el GPS activado.");
+                    },
+                    { enableHighAccuracy: true, timeout: 5000 }
+                );
+            } else {
+                alert("Geolocalización no soportada en este navegador.");
+            }
         }
 
         document.addEventListener('livewire:initialized', () => {

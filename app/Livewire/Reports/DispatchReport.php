@@ -133,6 +133,18 @@ class DispatchReport extends Component
         $this->showPdfModal = true;
     }
 
+    public function openSettlementPreview()
+    {
+        $params = [
+            'dateFrom' => $this->dateFrom,
+            'dateTo' => $this->dateTo,
+            'driver_id' => $this->driver_id
+        ];
+
+        $this->pdfUrl = route('reports.settlement.pdf', $params);
+        $this->showPdfModal = true;
+    }
+
     public function closePdfPreview()
     {
         $this->showPdfModal = false;
