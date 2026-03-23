@@ -30,6 +30,8 @@ class CashCount extends Component
     public $totalCashDetails = [];
     public $totalBankDetails = [];
     public $totalZelleDetails = [];
+    public $showPdfModal = false;
+    public $pdfUrl = '';
 
 
     function mount()
@@ -192,8 +194,8 @@ class CashCount extends Component
 
         $dFrom = Carbon::today()->startOfDay();
         $dTo = Carbon::today()->endOfDay();
-        $this->dateFrom = $dFrom;
-        $this->dateTo = $dTo;
+        $this->dateFrom = $dFrom->format('Y/m/d');
+        $this->dateTo = $dTo->format('Y/m/d');
 
         try {
             $sales = Sale::whereBetween('created_at', [$dFrom, $dTo])
@@ -584,6 +586,27 @@ class CashCount extends Component
                 $this->totalZelleDetails[$sender] += $amount;
             }
         }
+    }
+    public function openPdfPreview()
+    {
+        // If dates are not set, default to Today's date (formatted for URL consistency)
+        $dFrom = $this->dateFrom ?: Carbon::today()->format('Y/m/d');
+        $dTo = $this->dateTo ?: Carbon::today()->format('Y/m/d');
+
+        $params = [
+            'dateFrom' => $dFrom,
+            'dateTo' => $dTo,
+            'user_id' => $this->user_id,
+        ];
+
+        $this->pdfUrl = route('reports.cash.count.pdf', $params);
+        $this->showPdfModal = true;
+    }
+
+    public function closePdfPreview()
+    {
+        $this->showPdfModal = false;
+        $this->pdfUrl = '';
     }
 }
 

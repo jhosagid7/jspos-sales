@@ -469,95 +469,173 @@ trait PrintTrait
                 $connector = new CustomWindowsPrintConnector($printerName);
                 $printer = new Printer($connector);
 
-                $printer->setJustification(Printer::JUSTIFY_CENTER);
-                $printer->setTextSize(1, 1);
-
-                $printer->text(strtoupper($config->business_name) . "\n");
-                $printer->setTextSize(1, 1);
-                $printer->text("Corte de Caja \n");
-                //$printer->text("NIT: $config->taxpayer_id \n\n");
-
-
-                $printer->setJustification(Printer::JUSTIFY_LEFT);
-
-                // Determine widths based on configuration
                 $widthConfig = $printerWidth;
-
                 $is58mm = $widthConfig === '58mm';
                 $separator = $is58mm ? "--------------------------------" : "=============================================";
-
-                $printer->text($separator . "\n");
-                $printer->text("Desde: " . Carbon::parse($dfrom)->format('d/m/Y') . "\n");
-                $printer->text("Hasta: " . Carbon::parse($dto)->format('d/m/Y') . "\n");
-                $printer->text("Usuario: " . $user_name . " \n");
-                $printer->text($separator . "\n");
 
                 $primary = \App\Helpers\CurrencyHelper::getPrimaryCurrency();
                 $currencySymbol = $primary ? $primary->symbol : '$';
 
-                $printer->text("RESUMEN GENERAL\n");
-                $printer->text("VENTAS TOTALES: " . $currencySymbol . number_format($salesTotal, 2) . "\n");
-                $printer->text("  Contado: " . $currencySymbol . number_format($cash, 2) . "\n");
+                // --- HEADER ---
+                $printer->setJustification(Printer::JUSTIFY_CENTER);
+                $printer->setTextSize(1, 1);
+                $printer->text(strtoupper($config->business_name) . "\n");
+                $printer->text("CORTE DE CAJA\n");
+                $printer->setJustification(Printer::JUSTIFY_LEFT);
+                $printer->text($separator . "\n");
+                $printer->text("Fecha: " . Carbon::parse($dfrom)->format('d/m/Y') . " - " . Carbon::parse($dto)->format('d/m/Y') . "\n");
+                $printer->text("Cajero: " . $user_name . "\n");
+                $printer->text($separator . "\n\n");
 
-                $printer->text("  Banco: " . $currencySymbol . number_format($deposit, 2) . "\n");
-                $printer->text("  Crédito: " . $currencySymbol . number_format($credit, 2) . "\n");
-                $printer->text("---------" . "\n");
-                $printer->text("ABONOS RECIBIDOS: " . $currencySymbol . number_format($payments, 2) . "\n");
-                $printer->text("  Contado: " . $currencySymbol . number_format($pcash, 2) . "\n");
+                // Helper for labels
+                $getCurrencyLabel = function($code) {
+                    $c = \App\Models\Currency::where('code', $code)->first();
+                    return $c ? $c->label . " (" . $code . ")" : $code;
+                };
 
-                $printer->text("  Banco: " . $currencySymbol . number_format($pdeposit, 2) . "\n");
+                // --- SECTION 1: VENTAS DEL DÍA ---
+                $printer->setJustification(Printer::JUSTIFY_CENTER);
+                $printer->text("VENTAS DEL DÍA\n");
+                $printer->setJustification(Printer::JUSTIFY_LEFT);
                 $printer->text($separator . "\n");
 
-                // DETAILED SALES BREAKDOWN
-                if (!empty($salesByCurrency)) {
-                    $printer->setJustification(Printer::JUSTIFY_CENTER);
-                    $printer->text("DETALLE VENTAS POR MONEDA\n");
-                    $printer->setJustification(Printer::JUSTIFY_LEFT);
-                    $printer->text("---------------------------------------------\n");
-
-                    // Helper to get currency label
-                    $getCurrencyLabel = function($code) {
-                        $c = \App\Models\Currency::where('code', $code)->first();
-                        return $c ? $c->label . " (" . $code . ")" : $code;
-                    };
-
-                    // Cash Sales
-                    if (!empty($salesByCurrency['cash'])) {
-                        $printer->text("EFECTIVO:\n");
-                        foreach ($salesByCurrency['cash'] as $currency => $amount) {
-                            $printer->text("  " . $getCurrencyLabel($currency) . ": " . number_format($amount, 2) . "\n");
+                // Cash
+                if (!empty($salesByCurrency['cash'])) {
+                    $printer->text("EFECTIVO:\n");
+                    foreach ($salesByCurrency['cash'] as $currency => $amount) {
+                         $printer->text("  " . $getCurrencyLabel($currency) . ": " . number_format($amount, 2) . "\n");
+                    }
+                }
+                // Bank
+                if (!empty($salesByCurrency['deposit'])) {
+                    $printer->text("BANCO:\n");
+                    foreach ($salesByCurrency['deposit'] as $bankName => $currencies) {
+                        if (is_array($currencies)) {
+                             $printer->text("  " . $bankName . ":\n");
+                             foreach ($currencies as $curr => $amt) {
+                                  $printer->text("    " . $getCurrencyLabel($curr) . ": " . number_format($amt, 2) . "\n");
+                             }
+                        } else {
+                             $printer->text("  Otros: " . $getCurrencyLabel($bankName) . ": " . number_format($currencies, 2) . "\n");
                         }
                     }
+                }
+                // Zelle
+                if (!empty($salesByCurrency['zelle'])) {
+                    $printer->text("ZELLE:\n");
+                    foreach ($salesByCurrency['zelle'] as $sender => $amount) {
+                         $printer->text("  " . substr($sender, 0, 18) . ": " . number_format($amount, 2) . "\n");
+                    }
+                }
+                
+                $printer->text("\nTOTAL VENTAS: " . $currencySymbol . number_format($salesTotal, 2) . "\n");
+                $printer->text("VENTAS A CRÉDITO: " . $currencySymbol . number_format($credit, 2) . "\n\n");
 
 
-                // Deposit Payments
+                // --- SECTION 2: PAGOS RECIBIDOS ---
+                $printer->setJustification(Printer::JUSTIFY_CENTER);
+                $printer->text("PAGOS DE CRÉDITOS RECIBIDOS\n");
+                $printer->setJustification(Printer::JUSTIFY_LEFT);
+                $printer->text($separator . "\n");
+
+                // Cash
+                if (!empty($paymentsByCurrency['cash'])) {
+                    $printer->text("EFECTIVO:\n");
+                    foreach ($paymentsByCurrency['cash'] as $currency => $amount) {
+                         $printer->text("  " . $getCurrencyLabel($currency) . ": " . number_format($amount, 2) . "\n");
+                    }
+                }
+                // Bank
                 if (!empty($paymentsByCurrency['deposit'])) {
                     $printer->text("BANCO:\n");
                     foreach ($paymentsByCurrency['deposit'] as $bankName => $currencies) {
-                        $printer->text("  " . $bankName . ":\n");
-                        foreach ($currencies as $currency => $amount) {
-                            $printer->text("    " . $getCurrencyLabel($currency) . ": " . number_format($amount, 2) . "\n");
+                        if (is_array($currencies)) {
+                             $printer->text("  " . $bankName . ":\n");
+                             foreach ($currencies as $curr => $amt) {
+                                  $printer->text("    " . $getCurrencyLabel($curr) . ": " . number_format($amt, 2) . "\n");
+                             }
+                        } else {
+                             $printer->text("  Otros: " . $getCurrencyLabel($bankName) . ": " . number_format($currencies, 2) . "\n");
                         }
                     }
                 }
-                     $printer->text($separator . "\n");
+                // Zelle
+                if (!empty($paymentsByCurrency['zelle'])) {
+                    $printer->text("ZELLE:\n");
+                    foreach ($paymentsByCurrency['zelle'] as $sender => $amount) {
+                         $printer->text("  " . substr($sender, 0, 18) . ": " . number_format($amount, 2) . "\n");
+                    }
+                }
+                
+                $printer->text("\nTOTAL PAGOS RECIBIDOS: " . $currencySymbol . number_format($payments, 2) . "\n\n");
+
+
+                // --- SECTION 3: RESUMEN TOTAL ---
+                $printer->setJustification(Printer::JUSTIFY_CENTER);
+                $printer->text("RESUMEN TOTAL\n");
+                $printer->setJustification(Printer::JUSTIFY_LEFT);
+                $printer->text($separator . "\n");
+
+                $printer->text("TOTAL EFECTIVO: \n");
+                $totalCashFinal = [];
+                foreach (['cash'] as $type) {
+                     foreach (($salesByCurrency[$type] ?? []) as $c => $a) { $totalCashFinal[$c] = ($totalCashFinal[$c] ?? 0) + $a; }
+                     foreach (($paymentsByCurrency[$type] ?? []) as $c => $a) { $totalCashFinal[$c] = ($totalCashFinal[$c] ?? 0) + $a; }
+                }
+                foreach ($totalCashFinal as $c => $a) {
+                     $printer->text("  " . $getCurrencyLabel($c) . ": " . number_format($a, 2) . "\n");
                 }
 
+                $printer->text("TOTAL BANCO: \n");
+                $totalBankFinal = [];
+                foreach (['deposit'] as $type) {
+                     foreach (($salesByCurrency[$type] ?? []) as $bn => $currAmt) {
+                         if (is_array($currAmt)) {
+                             foreach ($currAmt as $c => $a) { $totalBankFinal[$bn][$c] = ($totalBankFinal[$bn][$c] ?? 0) + $a; }
+                         } else {
+                             $totalBankFinal['Otros'][$bn] = ($totalBankFinal['Otros'][$bn] ?? 0) + $currAmt;
+                         }
+                     }
+                     foreach (($paymentsByCurrency[$type] ?? []) as $bn => $currAmt) {
+                         if (is_array($currAmt)) {
+                             foreach ($currAmt as $c => $a) { $totalBankFinal[$bn][$c] = ($totalBankFinal[$bn][$c] ?? 0) + $a; }
+                         } else {
+                             $totalBankFinal['Otros'][$bn] = ($totalBankFinal['Otros'][$bn] ?? 0) + $currAmt;
+                         }
+                     }
+                }
+                foreach ($totalBankFinal as $bn => $currs) {
+                     $printer->text("  " . $bn . ":\n");
+                     foreach ($currs as $c => $a) {
+                         $printer->text("    " . $getCurrencyLabel($c) . ": " . number_format($a, 2) . "\n");
+                     }
+                }
+
+                $zelleTotal = 0;
+                foreach (['zelle'] as $type) {
+                     $zelleTotal += array_sum($salesByCurrency[$type] ?? []);
+                     $zelleTotal += array_sum($paymentsByCurrency[$type] ?? []);
+                }
+                $printer->text("TOTAL ZELLE: $" . number_format($zelleTotal, 2) . "\n");
+
+                $printer->text($separator . "\n");
+                $printer->setTextSize(1, 1);
+                $totalG = $salesTotal - $credit + $payments;
+                $printer->text("TOTAL GENERAL: " . $currencySymbol . number_format($totalG, 2) . "\n");
+                $printer->setTextSize(1, 1);
+                $printer->text($separator . "\n");
 
                 $printer->feed(3);
-                $printer->setJustification(Printer::JUSTIFY_CENTER);
                 $printer->cut();
                 $printer->close();
             } else {
-                Log::info("La tabla configurations está vacía, no es posible imprimir el corte de caja");
+                Log::info("La configuración de impresora no está disponible.");
             }
-            //
         } catch (\Exception $th) {
             Log::info("Error al intentar imprimir el corte de caja \n {$th->getMessage()} ");
             $this->dispatch('noty', msg: 'ERROR AL IMPRIMIR CORTE: ' . $th->getMessage());
         }
     }
-
     function printOrder($orderId)
     {
         try {

@@ -7,6 +7,8 @@ use App\Models\User;
 use App\Models\Bank;
 use App\Models\Currency;
 use App\Models\CollectionSheet;
+use App\Models\Payment;
+use App\Models\SalePaymentDetail;
 use App\Models\SaleReturn;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -462,5 +464,203 @@ class ReportController extends Controller
         ])->setPaper('a4', 'portrait');
 
         return $pdf->stream('Liquidacion_Ruta.pdf');
+    }
+
+    public function cashCountPdf(Request $request)
+    {
+        $dateFrom = $request->get('dateFrom') ?: Carbon::today()->format('Y/m/d');
+        $dateTo = $request->get('dateTo') ?: Carbon::today()->format('Y/m/d');
+        $user_id = $request->get('user_id', 0);
+
+        $dFrom = Carbon::parse($dateFrom)->startOfDay();
+        $dTo = Carbon::parse($dateTo)->endOfDay();
+
+        $currencies = Currency::orderBy('is_primary', 'desc')->get();
+        $primaryCurrency = $currencies->firstWhere('is_primary', 1);
+        $primaryRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
+        $primaryCode = $primaryCurrency ? $primaryCurrency->code : 'COP';
+        $symbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
+
+        $sales = Sale::whereBetween('created_at', [$dFrom, $dTo])
+                ->when($user_id != 0, function ($qry) use ($user_id) {
+                    $qry->where('user_id', $user_id);
+                })
+                ->where('status', '<>', 'returned')
+                ->select('id', 'total', 'cash', 'change', 'type', 'primary_exchange_rate', 'customer_id')
+                ->get();
+
+        $totalSales = $sales->sum(function($sale) use ($primaryRate) {
+            $saleRate = $sale->primary_exchange_rate ?? $primaryRate;
+            $totalUSD = $sale->total / $saleRate;
+            return $totalUSD * $primaryRate;
+        });
+
+        $saleIds = $sales->pluck('id');
+        $paymentDetails = SalePaymentDetail::whereIn('sale_id', $saleIds)->get();
+        
+        $salesByCurrency = $this->aggregateSalesByCurrency($sales, $paymentDetails, $currencies);
+
+        $totalCreditSales = $sales->where('type', 'credit')->sum(function($sale) use ($primaryRate) {
+            $saleRate = $sale->primary_exchange_rate ?? $primaryRate;
+            $totalUSD = $sale->total / $saleRate;
+            return $totalUSD * $primaryRate;
+        });
+
+        $payments = Payment::whereBetween('created_at', [$dFrom, $dTo])
+            ->when($user_id != 0, function ($qry) use ($user_id) {
+                $qry->where('user_id', $user_id);
+            })
+            ->where('status', 'approved')
+            ->select('id', 'pay_way', 'amount', 'bank', 'currency', 'exchange_rate', 'primary_exchange_rate')
+            ->get();
+
+        $totalPayments = $payments->sum(function($payment) use ($primaryRate) {
+            $paymentRate = $payment->exchange_rate ?? 1;
+            $paymentPrimaryRate = $payment->primary_exchange_rate ?? $primaryRate;
+            $amountUSD = $payment->amount / $paymentRate;
+            return $amountUSD * $paymentPrimaryRate;
+        });
+
+        $paymentsByCurrency = $this->aggregatePaymentsByCurrency($payments, $currencies);
+
+        $totalCashDetails = [];
+        if (isset($salesByCurrency['cash'])) {
+            foreach ($salesByCurrency['cash'] as $currency => $amount) {
+                $totalCashDetails[$currency] = ($totalCashDetails[$currency] ?? 0) + $amount;
+            }
+        }
+        if (isset($paymentsByCurrency['cash'])) {
+            foreach ($paymentsByCurrency['cash'] as $currency => $amount) {
+                $totalCashDetails[$currency] = ($totalCashDetails[$currency] ?? 0) + $amount;
+            }
+        }
+
+        $totalBankDetails = [];
+        if (isset($salesByCurrency['deposit'])) {
+            foreach ($salesByCurrency['deposit'] as $bankName => $value) {
+                if (is_array($value)) {
+                    foreach ($value as $currency => $amount) {
+                        $totalBankDetails[$bankName][$currency] = ($totalBankDetails[$bankName][$currency] ?? 0) + $amount;
+                    }
+                } else {
+                    $totalBankDetails['Otros'][$bankName] = ($totalBankDetails['Otros'][$bankName] ?? 0) + $value;
+                }
+            }
+        }
+        if (isset($paymentsByCurrency['deposit'])) {
+            foreach ($paymentsByCurrency['deposit'] as $bankName => $currenciesInBank) {
+                foreach ($currenciesInBank as $currency => $amount) {
+                    $totalBankDetails[$bankName][$currency] = ($totalBankDetails[$bankName][$currency] ?? 0) + $amount;
+                }
+            }
+        }
+
+        $totalZelleDetails = [];
+        if (isset($salesByCurrency['zelle'])) {
+            foreach ($salesByCurrency['zelle'] as $sender => $amount) {
+                $totalZelleDetails[$sender] = ($totalZelleDetails[$sender] ?? 0) + $amount;
+            }
+        }
+        if (isset($paymentsByCurrency['zelle'])) {
+            foreach ($paymentsByCurrency['zelle'] as $sender => $amount) {
+                $totalZelleDetails[$sender] = ($totalZelleDetails[$sender] ?? 0) + $amount;
+            }
+        }
+
+        $config = Configuration::first();
+        $user_name = $user_id == 0 ? 'Todos los usuarios' : User::find($user_id)->name;
+
+        $getLabel = function($code) use ($currencies) {
+            $c = $currencies->firstWhere('code', $code);
+            return $c ? $c->label : $code;
+        };
+
+        $convertToPrimary = function($amount, $currencyCode) use ($currencies, $primaryRate) {
+             if ($currencyCode == 'USD') { return $amount * $primaryRate; }
+             $curr = $currencies->firstWhere('code', $currencyCode);
+             if (!$curr) return $amount;
+             $rate = $curr->exchange_rate > 0 ? $curr->exchange_rate : 1;
+             $amtUSD = $amount / $rate;
+             return $amtUSD * $primaryRate;
+        };
+
+        $pdf = Pdf::loadView('reports.cash-count-pdf', [
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+            'user_name' => $user_name,
+            'salesTotal' => $totalSales,
+            'credit' => $totalCreditSales,
+            'payments' => $totalPayments,
+            'salesByCurrency' => $salesByCurrency,
+            'paymentsByCurrency' => $paymentsByCurrency,
+            'totalCashDetails' => $totalCashDetails,
+            'totalBankDetails' => $totalBankDetails,
+            'totalZelleDetails' => $totalZelleDetails,
+            'config' => $config,
+            'symbol' => $symbol,
+            'getLabel' => $getLabel,
+            'convertToPrimary' => $convertToPrimary
+        ])->setPaper('a4', 'portrait');
+
+        return $pdf->stream("Corte_Caja_{$dateFrom}.pdf");
+    }
+
+    private function aggregateSalesByCurrency($sales, $paymentDetails, $currencies)
+    {
+        $aggregated = ['cash' => [], 'nequi' => [], 'deposit' => [], 'zelle' => []];
+        $primaryCurrency = $currencies->firstWhere('is_primary', 1);
+        $primaryCode = $primaryCurrency ? $primaryCurrency->code : 'COP';
+        $paymentsBySale = $paymentDetails->groupBy('sale_id');
+
+        foreach ($sales as $sale) {
+            if (isset($paymentsBySale[$sale->id])) {
+                foreach ($paymentsBySale[$sale->id] as $paymentDetail) {
+                    $currency = $paymentDetail->currency_code;
+                    $bankName = $paymentDetail->bank_name;
+                    $paymentMethod = $paymentDetail->payment_method ?? 'cash';
+                    $category = match($paymentMethod) { 'cash' => 'cash', 'nequi' => 'nequi', 'bank' => 'deposit', 'zelle' => 'zelle', default => 'cash' };
+                    
+                    if ($category == 'deposit' && $bankName) {
+                        $aggregated['deposit'][$bankName][$currency] = ($aggregated['deposit'][$bankName][$currency] ?? 0) + $paymentDetail->amount;
+                    } elseif ($category == 'zelle') {
+                         $sender = 'Desconocido';
+                         if ($paymentDetail->zelleRecord) { $sender = $paymentDetail->zelleRecord->sender_name . ' (Ref: ' . $paymentDetail->zelleRecord->reference . ')'; }
+                         $aggregated['zelle'][$sender] = ($aggregated['zelle'][$sender] ?? 0) + $paymentDetail->amount;
+                    } else {
+                        $aggregated[$category][$currency] = ($aggregated[$category][$currency] ?? 0) + $paymentDetail->amount;
+                    }
+                }
+            } else {
+                $category = match($sale->type) { 'cash', 'cash/nequi', 'mixed' => 'cash', 'nequi' => 'nequi', 'deposit', 'bank' => 'deposit', default => null };
+                if ($category === null || $sale->type === 'credit') continue;
+                $netAmount = $sale->cash - $sale->change;
+                if ($netAmount > 0) { $aggregated[$category][$primaryCode] = ($aggregated[$category][$primaryCode] ?? 0) + $netAmount; }
+            }
+        }
+        return $aggregated;
+    }
+
+    private function aggregatePaymentsByCurrency($payments, $currencies)
+    {
+        $aggregated = ['cash' => [], 'nequi' => [], 'deposit' => [], 'zelle' => []];
+        $primaryCurrency = $currencies->firstWhere('is_primary', 1);
+        $primaryCode = $primaryCurrency ? $primaryCurrency->code : 'COP';
+
+        foreach ($payments as $payment) {
+            $payWay = $payment->pay_way;
+            $currency = $payment->currency ?? $primaryCode;
+
+            if ($payWay == 'deposit' && !empty($payment->bank)) {
+                $bankName = $payment->bank;
+                $aggregated['deposit'][$bankName][$currency] = ($aggregated['deposit'][$bankName][$currency] ?? 0) + $payment->amount;
+            } elseif ($payWay == 'zelle') {
+                 $sender = 'Desconocido';
+                 if ($payment->zelleRecord) { $sender = $payment->zelleRecord->sender_name . ' (Ref: ' . $payment->zelleRecord->reference . ')'; }
+                 $aggregated['zelle'][$sender] = ($aggregated['zelle'][$sender] ?? 0) + $payment->amount;
+            } else {
+                $aggregated[$payWay][$currency] = ($aggregated[$payWay][$currency] ?? 0) + $payment->amount;
+            }
+        }
+        return $aggregated;
     }
 }
