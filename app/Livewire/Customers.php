@@ -22,7 +22,7 @@ class Customers extends Component
 
     protected $rules = [
         'customer.name' => 'required|max:200|unique:customers,name',
-        'customer.taxpayer_id' => 'required|max:45',
+        'customer.taxpayer_id' => 'nullable|max:45',
         'customer.address' => 'required|max:255',
         'customer.city' => 'required|max:100',
         'customer.phone' => 'nullable|max:15',
@@ -55,7 +55,6 @@ class Customers extends Component
         'customer.city.required' => 'La ciudad del cliente es requerida',
         'customer.phone.max' => 'Ingresa el teléfono en máximo 15 caracteres',
         'customer.taxpayer_id.max' => 'La cc/nit solo puede tener máximo 45 caracteres',
-        'customer.taxpayer_id.required' => 'La cc/nit del cliente es requerido',
     ];
 
 
@@ -197,6 +196,14 @@ class Customers extends Component
         }
         if (!isset($this->customer->whatsapp_notify_payments)) {
             $this->customer->whatsapp_notify_payments = false;
+        }
+
+        // Handle defaults for optional fields if empty/null
+        if (empty($this->customer->wallet_balance)) {
+            $this->customer->wallet_balance = 0;
+        }
+        if (empty(trim($this->customer->usd_payment_discount_tag))) {
+            $this->customer->usd_payment_discount_tag = 'PD';
         }
 
         // save model

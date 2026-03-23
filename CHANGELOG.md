@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.8.87] - 2026-03-24
+
+### Fixed
+- **Catálogo de Clientes**: Se relajaron las validaciones para que los campos **CC/Nit** y **Billetera** dejen de ser obligatorios, evitando errores de integridad en la base de datos al dejar campos vacíos.
+- **Códigos de Descuento (PP/PD)**: Se implementaron valores por defecto automáticos para evitar fallos cuando el usuario no define un código manual.
+
 ## [1.8.86] - 2026-03-24
 
 ### Fixed

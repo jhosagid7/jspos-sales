@@ -93,7 +93,7 @@
                                     @error('customer.name') <span class="text-danger">{{ $message }}</span> @enderror
                                 </div>
                                 <div class="col-sm-6 mt-3">
-                                    <label class="form-label">CC/Nit <span class="txt-danger">*</span></label>
+                                    <label class="form-label">CC/Nit</label>
                                     <input wire:model="customer.taxpayer_id" class="form-control" type="text" placeholder="cc/nit">
                                     @error('customer.taxpayer_id') <span class="text-danger">{{ $message }}</span> @enderror
                                 </div>
