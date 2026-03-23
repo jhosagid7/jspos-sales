@@ -143,7 +143,7 @@
                                                 @forelse ($sales as $sale)
                                                     @php
                                                         // Calculate Approved Payments in USD
-                                                        $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected'])->sum(function($payment) {
+                                                        $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected', 'voided'])->sum(function($payment) {
                                                             $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
                                                             $amountUSD = $payment->amount / $rate;
                                                             

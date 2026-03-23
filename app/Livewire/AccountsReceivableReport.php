@@ -155,7 +155,7 @@ class AccountsReceivableReport extends Component
             // Calculate total pending balance in USD
             $this->totales = $sales->getCollection()->sum(function($sale) {
                 // Calculate Paid Amount from Payments
-                $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected'])->sum(function($payment) {
+                $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected', 'voided'])->sum(function($payment) {
                     $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
                     $amountUSD = $payment->amount / $rate;
                     
@@ -313,7 +313,7 @@ class AccountsReceivableReport extends Component
 
         foreach ($sales as $sale) {
             // Calculate balance in USD
-            $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected'])->sum(function($payment) use ($sale) {
+            $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected', 'voided'])->sum(function($payment) use ($sale) {
                 $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : ($payment->currency == 'USD' ? 1 : ($sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1));
                 return $payment->amount / $rate;
             });
@@ -452,7 +452,7 @@ class AccountsReceivableReport extends Component
         }
         
         // Calcular deuda en USD (moneda base)
-        $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected'])->sum(function($payment) {
+        $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected', 'voided'])->sum(function($payment) {
             $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
             return $payment->amount / $rate;
         });
@@ -791,6 +791,77 @@ class AccountsReceivableReport extends Component
             $this->dispatch('noty', msg: 'Error al rechazar: ' . $e->getMessage());
         }
     }
+
+    public function voidPayment($paymentId, $reason)
+    {
+        $payment = Payment::find($paymentId);
+        
+        if (!$payment) return;
+
+        $isToday = Carbon::parse($payment->payment_date ?? $payment->created_at)->isToday();
+        
+        // Permission check
+        if ($isToday) {
+            if (!auth()->user()->can('payments.void_today')) {
+                $this->dispatch('noty', msg: 'NO TIENES PERMISO PARA ANULAR PAGOS DEL DÍA');
+                return;
+            }
+        } else {
+            if (!auth()->user()->can('payments.void_anytime')) {
+                $this->dispatch('noty', msg: 'NO TIENES PERMISO PARA ANULAR PAGOS DE FECHAS ANTERIORES');
+                return;
+            }
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Revert Zelle Record if exists
+            if ($payment->zelle_record_id) {
+                $zelle = \App\Models\ZelleRecord::find($payment->zelle_record_id);
+                if ($zelle) {
+                    $zelle->remaining_balance += $payment->amount;
+                    if ($zelle->remaining_balance > $zelle->amount) $zelle->remaining_balance = $zelle->amount;
+                    $zelle->status = ($zelle->remaining_balance >= ($zelle->amount - 0.01)) ? 'unused' : 'partial';
+                    $zelle->save();
+                }
+            }
+            
+            // Bank Record - Restore balance
+            if ($payment->bank_record_id) {
+                $bankRec = \App\Models\BankRecord::find($payment->bank_record_id);
+                if ($bankRec) {
+                    $bankRec->remaining_balance += $payment->amount;
+                    if ($bankRec->remaining_balance > $bankRec->amount) $bankRec->remaining_balance = $bankRec->amount;
+                    $bankRec->status = ($bankRec->remaining_balance >= ($bankRec->amount - 0.01)) ? 'unused' : 'partial';
+                    $bankRec->save();
+                }
+            }
+
+            // Update status to voided
+            $payment->update([
+                'status' => 'voided',
+                'rejection_reason' => $reason
+            ]);
+
+            // If sale was 'paid', revert to 'credit'
+            $sale = Sale::find($payment->sale_id);
+            if ($sale && $sale->status === 'paid') {
+                $sale->update(['status' => 'credit']);
+            }
+
+            DB::commit();
+            $this->dispatch('noty', msg: 'Pago anulado correctamente');
+            
+            if ($sale && $this->pays && count($this->pays) > 0 && $this->pays[0]->sale_id == $sale->id) {
+                $this->pays = $sale->payments; 
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->dispatch('noty', msg: 'Error al anular: ' . $e->getMessage());
+        }
+    }
+
 
     public function deletePayment($paymentId)
     {

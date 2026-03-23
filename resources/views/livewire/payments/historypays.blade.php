@@ -145,11 +145,18 @@
                                                         <span class="badge badge-success ms-2" style="font-size: 0.6rem;">APROBADO</span>
                                                     @elseif(isset($pay->status) && $pay->status == 'rejected')
                                                         <span class="badge badge-danger ms-2" style="font-size: 0.6rem;">RECHAZADO</span>
+                                                    @elseif(isset($pay->status) && $pay->status == 'voided')
+                                                        <span class="badge badge-dark ms-2" style="font-size: 0.6rem; background-color: #6c757d;">ANULADO</span>
                                                     @endif
                                                 </div>
                                                 @if(isset($pay->rejection_reason) && $pay->status == 'rejected')
                                                     <div class="text-danger small mt-1">
-                                                        <b>Motivo:</b> {{ $pay->rejection_reason }}
+                                                        <b>Motivo Rechazo:</b> {{ $pay->rejection_reason }}
+                                                    </div>
+                                                @endif
+                                                @if(isset($pay->rejection_reason) && $pay->status == 'voided')
+                                                    <div class="text-secondary small mt-1">
+                                                        <b>Motivo Anulación:</b> {{ $pay->rejection_reason }}
                                                     </div>
                                                 @endif
                                                 @if(!empty($pay->modification_comment))
@@ -304,6 +311,39 @@
                                                                 <i class="fas fa-trash"></i>
                                                             </button>
                                                             @endcan
+                                                        @endif
+
+                                                        @if(isset($pay->status) && $pay->status == 'approved')
+                                                            @php
+                                                                $isToday = \Carbon\Carbon::parse($pay->payment_date ?? $pay->created_at)->isToday();
+                                                                $canVoid = false;
+                                                                if ($isToday && auth()->user()->can('payments.void_today')) $canVoid = true;
+                                                                if (!$isToday && auth()->user()->can('payments.void_anytime')) $canVoid = true;
+                                                            @endphp
+
+                                                            @if($canVoid)
+                                                            <button class="btn btn-danger btn-sm mt-1"
+                                                                type="button"
+                                                                x-on:click="
+                                                                    swal({
+                                                                        title: 'Anular Pago',
+                                                                        text: '¿Estás seguro de ANULAR este pago? Se restaurará el saldo en Banco/Zelle y la deuda del cliente aumentará. Indica el motivo:',
+                                                                        content: 'input',
+                                                                        buttons: {
+                                                                            cancel: { text: 'Cancelar', visible: true, closeModal: true, value: null },
+                                                                            confirm: { text: 'Sí, Anular', value: true, visible: true, closeModal: true }
+                                                                        },
+                                                                        dangerMode: true,
+                                                                    }).then((value) => {
+                                                                        if (value === null) return;
+                                                                        if (value === '') { swal('Error', '¡Debes escribir un motivo!', 'error'); return; }
+                                                                        $wire.voidPayment({{ $pay->id }}, value);
+                                                                    })
+                                                                "
+                                                                title="Anular Pago">
+                                                                <i class="fas fa-ban"></i> Anular
+                                                            </button>
+                                                            @endif
                                                         @endif
                                                     </div>
                                                 @else

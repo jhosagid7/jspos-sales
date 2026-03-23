@@ -123,8 +123,12 @@
                         if($payment->reference) $details[] = "Ref: " . $payment->reference;
                     }
 
+                    if ($payment->status === 'voided' && $payment->rejection_reason) {
+                        $details[] = "<b>Motivo Anulación:</b> " . $payment->rejection_reason;
+                    }
+
                 @endphp
-                <tr class="{{ $payment->status === 'cancelled' ? 'voided' : '' }}">
+                <tr class="{{ ($payment->status === 'cancelled' || $payment->status === 'voided') ? 'voided' : '' }}">
                     <td>{{ \Carbon\Carbon::parse($payment->created_at)->format('d/m/Y') }}</td>
                     <td>
                         <strong>{{ ucfirst($payment->pay_way == 'cash' ? 'Efectivo' : ($payment->pay_way == 'deposit' ? 'Banco' : $payment->pay_way)) }}</strong>
@@ -139,6 +143,8 @@
                             <span class="status-badge status-pending">PENDIENTE</span>
                         @elseif($payment->status == 'approved')
                             <span class="status-badge status-approved">APROBADO</span>
+                        @elseif($payment->status == 'voided')
+                            <span class="status-badge status-rejected" style="background-color: #6c757d;">ANULADO</span>
                         @else
                             <span class="status-badge status-rejected">{{ strtoupper($payment->status) }}</span>
                         @endif

@@ -123,6 +123,8 @@ class AsignarPermisos extends Component
                 'assign' => 'Asignar',
                 'map' => 'Ver Mapa',
                 'labels' => 'Generar Etiquetas',
+                'void_today' => 'Anular pagos del día',
+                'void_anytime' => 'Anular cualquier pago',
              ];
 
              return $map[$name] ?? $map[$action] ?? ucfirst(str_replace('_', ' ', $action));

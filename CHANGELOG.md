@@ -1,4 +1,16 @@
 # Changelog
+ 
+## [1.8.90] - 2026-03-24
+
+### Added
+- **Anulación de Pagos (Cuentas por Cobrar)**: Nueva funcionalidad para anular pagos aprobados sin eliminarlos del historial, permitiendo mantener una auditoría completa.
+- **Motivo de Anulación**: Se integró un campo obligatorio para registrar el motivo de la anulación del pago, visible tanto en el historial del sistema como en los reportes PDF.
+- **Permisos Granulares**: Se implementaron dos nuevos niveles de seguridad: `payments.void_today` (para anular pagos del mismo día) y `payments.void_anytime` (para anular cualquier fecha).
+- **Reversión Automática**: El sistema ahora restaura automáticamente los saldos en los registros de Zelle y Banco vinculados al anular un pago, y devuelve la factura al estado "Crédito" si estaba totalmente pagada.
+
+### Fixed
+- **Integridad de Base de Datos**: Se actualizó la columna `status` en la tabla de pagos para soportar el nuevo estado `voided`, evitando errores de truncado de datos.
+- **Traducciones**: Se agregaron etiquetas amigables en español para los nuevos permisos en el módulo de asignación.
 
 ## [1.8.89] - 2026-03-24
 
