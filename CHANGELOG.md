@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.88] - 2026-03-24
+
+### Added
+- **Corte de Caja (Reporte Detallado)**: Rediseño completo del ticket térmico para ser más explícito. Ahora separa claramente las ventas del día de los abonos de créditos recibidos, ambos desglosados por método de pago y moneda.
+- **Exportación a PDF (Corte de Caja)**: Nueva funcionalidad para generar un informe oficial en formato A4 (PDF) con tablas detalladas de arqueo de caja y espacios para firmas de supervisión.
+- **Vista Previa de Reportes**: Implementación de un modal de previsualización que permite revisar el PDF sin salir del módulo de Corte de Caja.
+- **Filtros Inteligentes de Fecha**: El reporte ahora toma por defecto la fecha actual ("Hoy") si no se especifica un rango, facilitando los cortes diarios rápidos.
+
 ## [1.8.87] - 2026-03-24
 
 ### Fixed
