@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.8.85] - 2026-03-23
+
+### Added
+- **Hoja de Liquidación de Ruta (PDF)**: Nuevo reporte para conciliación administrativa al finalizar recorridos. Incluye desglose por factura, cobranza declarada y novedades.
+- **Selector de Choferes (Modo Supervisión)**: Los administradores ahora pueden alternar entre rutas de diferentes choferes desde el dashboard centralizado.
+- **Permiso `driver_monitoring`**: Control de acceso granular para la visualización de rutas de terceros.
+- **Inicio Masivo de Rutas**: Botón "Iniciar Todas las Rutas" para que el chofer active todos sus pedidos pendientes con un solo clic.
+
+### Fixed
+- **Error Intermitente al Guardar Novedades**: Se corrigió el fallo de `Integrity constraint violation (sale_id cannot be null)` mediante validación robusta y estados de carga (`wire:loading`).
+- **Prevención de Doble Envío**: Bloqueo del botón guardar para evitar duplicidad de registros y pérdida de estado en modales de cobranza.
+- **Validación GPS**: Mejora en la captura de coordenadas al iniciar rutas masivas.
+
 ## [1.8.80] - 2026-03-22
 ### Added
 - **Monitoreo Administrativo de Drivers**: Ahora el administrador puede ver el dashboard específico de cualquier chofer haciendo clic en su etiqueta en el mapa o en el reporte de despacho.
@@ -306,10 +319,6 @@
 - **Abonos:** Excluidos los pagos con estado 'PENDIENTE' o 'RECHAZADO' del cálculo de la "Deuda Actual" en las tablas principales de Cuentas por Cobrar y Abonos.
 - **Abonos:** Actualizado el modal "Historial de Pagos" para desglosar el "Total Aprobado" y "Total Pendiente".
 
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 ## [1.8.30] - 2026-03-04
