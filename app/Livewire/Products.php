@@ -88,12 +88,14 @@ class Products extends Component
     {
         $this->form->cancel();
         $this->editing = true;
+        $this->dispatch('update-quill-content', content: '');
     }
 
 
 
     function Edit(Product $product)
     {
+        $this->form->cancel();
         $this->editing = true;
         $this->form->product_id = $product->id;
         $this->form->name = $product->name;
@@ -177,7 +179,9 @@ class Products extends Component
 
     function cancel()
     {
+        $this->form->cancel();
         $this->editing = false;
+        $this->dispatch('update-quill-content', content: '');
     }
 
 
