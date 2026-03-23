@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.8.89] - 2026-03-24
+
+### Fixed
+- **Módulo de Productos**: Se corrigió el error de persistencia de datos donde al editar múltiples productos consecutivamente, la información del producto anterior permanecía en los campos. Ahora el sistema realiza una limpieza total del estado al cancelar o cambiar de producto.
+
 ## [1.8.88] - 2026-03-24
 
 ### Added
