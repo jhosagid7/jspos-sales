@@ -162,6 +162,7 @@ Route::middleware('auth')->group(function () {
 
     //corte de caja
     Route::get('cash-count', CashCount::class)->name('cash.count')->middleware('can:cash_register.close');
+    Route::get('cash-count/pdf', [\App\Http\Controllers\ReportController::class, 'cashCountPdf'])->name('reports.cash.count.pdf')->middleware('can:cash_register.close');
 
     //settings
     Route::get('settings', Settings::class)->name('settings')->middleware('can:settings.index');
