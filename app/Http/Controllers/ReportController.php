@@ -430,18 +430,21 @@ class ReportController extends Controller
         $dateFrom = $request->get('dateFrom');
         $dateTo = $request->get('dateTo');
         $driver_id = $request->get('driver_id');
+        $seller_id = $request->get('seller_id');
 
         $dFrom = Carbon::parse($dateFrom)->startOfDay();
         $dTo = Carbon::parse($dateTo)->endOfDay();
 
         $sales = Sale::with(['customer', 'driver', 'deliveryCollections.payments.currency'])
             ->whereNotNull('driver_id')
-            ->where(function($q) use ($dFrom, $dTo) {
-                $q->whereBetween('created_at', [$dFrom, $dTo])
-                  ->orWhereBetween('delivered_at', [$dFrom, $dTo]);
-            })
+            ->whereBetween('created_at', [$dFrom, $dTo])
             ->when($driver_id && $driver_id !== 'all', function($q) use ($driver_id) {
                 $q->where('driver_id', $driver_id);
+            })
+            ->when($seller_id && $seller_id !== 'all', function($q) use ($seller_id) {
+                $q->whereHas('customer', function($c) use ($seller_id) {
+                    $c->where('seller_id', $seller_id);
+                });
             })
             ->orderBy('driver_id')
             ->orderBy('id')

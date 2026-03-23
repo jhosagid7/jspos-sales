@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.8.86] - 2026-03-24
+
+### Fixed
+- **Sincronización de Filtros en Reportes**: Se alinearon los criterios de búsqueda (vendedor y fecha) de la "Hoja de Liquidación" con la "Relación de Despacho", garantizando que el PDF muestre exactamente lo mismo que se visualiza en pantalla.
+
 ## [1.8.85] - 2026-03-23
 
 ### Added

@@ -138,7 +138,8 @@ class DispatchReport extends Component
         $params = [
             'dateFrom' => $this->dateFrom,
             'dateTo' => $this->dateTo,
-            'driver_id' => $this->driver_id
+            'driver_id' => $this->driver_id,
+            'seller_id' => $this->seller_id
         ];
 
         $this->pdfUrl = route('reports.settlement.pdf', $params);
