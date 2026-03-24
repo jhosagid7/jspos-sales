@@ -13,7 +13,8 @@ class DescargoDetail extends Model
         'descargo_id',
         'product_id',
         'quantity',
-        'cost'
+        'cost',
+        'items_json'
     ];
 
     public function descargo()

@@ -136,13 +136,62 @@ class CargosList extends Component
                 $this->dispatch('noty', msg: 'No tienes permisos para eliminar.', type: 'error');
                 return;
             }
-            $cargo->update([
-                'status' => 'voided',
-                'deletion_reason' => $this->reason,
-                'deleted_by' => auth()->id(),
-                'deletion_date' => now()
-            ]);
-            $this->dispatch('noty', msg: 'Cargo eliminado.');
+
+            try {
+                \Illuminate\Support\Facades\DB::beginTransaction();
+
+                // If cargo was approved, we MUST reverse the stock impacts
+                if ($cargo->status == 'approved') {
+                    foreach ($cargo->details as $item) {
+                        $product = $item->product;
+
+                        // Reverse ProductItems created
+                        if ($item->items_json) {
+                            $items = json_decode($item->items_json, true);
+                            foreach ($items as $bobina) {
+                                // Find and delete matching items created by this cargo if still available
+                                // Note: if they were sold, we don't have them but we still reduce global stock
+                                $foundItem = \App\Models\ProductItem::where('product_id', $item->product_id)
+                                    ->where('warehouse_id', $cargo->warehouse_id)
+                                    ->where('quantity', $bobina['weight'])
+                                    ->where('status', 'available')
+                                    ->orderBy('created_at', 'desc') // take the most recent
+                                    ->first();
+
+                                if ($foundItem) {
+                                    $foundItem->delete();
+                                }
+                            }
+                        }
+
+                        // Reverse Stock (DECREASE)
+                        $pivot = $product->warehouses()->where('warehouse_id', $cargo->warehouse_id)->first();
+                        
+                        if ($pivot) {
+                            $newQty = $pivot->pivot->stock_qty - $item->quantity;
+                            $product->warehouses()->updateExistingPivot($cargo->warehouse_id, ['stock_qty' => $newQty]);
+                        }
+                        
+                        // Update global stock
+                        $product->stock_qty -= $item->quantity;
+                        $product->save();
+                    }
+                }
+
+                $cargo->update([
+                    'status' => 'voided',
+                    'deletion_reason' => $this->reason,
+                    'deleted_by' => auth()->id(),
+                    'deletion_date' => now()
+                ]);
+
+                \Illuminate\Support\Facades\DB::commit();
+                $this->dispatch('noty', msg: 'Cargo eliminado y stock revertido.');
+
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\DB::rollBack();
+                $this->dispatch('noty', msg: 'Error al eliminar: ' . $e->getMessage(), type: 'error');
+            }
         }
 
         $this->dispatch('hide-action-modal');

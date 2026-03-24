@@ -181,7 +181,7 @@
 
                     <div class="row mt-4 pt-4 border-top">
                         <!-- CARGO NUEVO -->
-                        <div class="col-md-6">
+                        <div class="col-md-6 border-end">
                             <h5 class="text-primary mb-3">
                                 <i class="fas fa-boxes"></i> Plantilla: Nuevo Cargo / Ajuste Creado
                             </h5>
@@ -208,6 +208,39 @@
                                 <p class="mb-1"><code>[CARGO_ID]</code> : ID del Ajuste</p>
                                 <p class="mb-1"><code>[MOTIVO]</code> : Motivo del ajuste</p>
                                 <p class="mb-1"><code>[USUARIO]</code> : Quien registró el cargo</p>
+                                <p class="mb-1"><code>[FECHA]</code> : Fecha del registro</p>
+                                <p class="mb-1"><code>[EMPRESA]</code> : Nombre de tu negocio</p>
+                            </div>
+                        </div>
+
+                        <!-- DESCARGO NUEVO -->
+                        <div class="col-md-6 p-x-3">
+                            <h5 class="text-primary mb-3">
+                                <i class="fas fa-truck-loading"></i> Plantilla: Nuevo Descargo / Salida Creado
+                            </h5>
+                            
+                            <div class="form-check form-switch form-switch-lg mb-3">
+                                <input wire:model="descargo_active" class="form-check-input form-check-input-success" type="checkbox" id="descargoActiveSwitch">
+                                <label class="form-check-label" for="descargoActiveSwitch">
+                                    <strong>Habilitar envío automático al registrar un Descargo</strong>
+                                </label>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label>Asunto (Uso Interno)</label>
+                                <input type="text" wire:model="descargo_subject" class="form-control" placeholder="Ej: Nueva Salida Pendiente">
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label>Cuerpo del Mensaje (Texto Normal, Usa *asteriscos* para negrita)</label>
+                                <textarea wire:model="descargo_body" class="form-control" rows="5" placeholder="Escribe tu mensaje usando las variables..."></textarea>
+                            </div>
+
+                            <div class="alert alert-light border">
+                                <h6>Variables Disponibles:</h6>
+                                <p class="mb-1"><code>[DESCARGO_ID]</code> : ID de la Salida</p>
+                                <p class="mb-1"><code>[MOTIVO]</code> : Motivo de la salida</p>
+                                <p class="mb-1"><code>[USUARIO]</code> : Quien registró el descargo</p>
                                 <p class="mb-1"><code>[FECHA]</code> : Fecha del registro</p>
                                 <p class="mb-1"><code>[EMPRESA]</code> : Nombre de tu negocio</p>
                             </div>

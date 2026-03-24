@@ -80,31 +80,83 @@ class CreateDescargo extends Component
         }
     }
 
+    // Variable Item Inputs
+    public $vw_weight, $vw_color, $vw_batch, $current_product_id;
+
     public function addToCart($productId)
     {
         $product = \App\Models\Product::find($productId);
         if (!$product) return;
 
         if (isset($this->cart[$productId])) {
-            $this->cart[$productId]['quantity']++;
+            if (!$product->is_variable_quantity) {
+                 $this->cart[$productId]['quantity']++;
+            }
         } else {
             $this->cart[$productId] = [
                 'id' => $product->id,
                 'name' => $product->name,
                 'sku' => $product->sku,
-                'cost' => $product->cost, // Add cost
-                'quantity' => 1
+                'cost' => $product->cost,
+                'quantity' => $product->is_variable_quantity ? 0 : 1,
+                'is_variable' => (bool)$product->is_variable_quantity,
+                'items' => [] 
             ];
         }
         
         $this->search = '';
         $this->searchResults = [];
     }
+    
+    public function openVariableModal($productId)
+    {
+        $this->current_product_id = $productId;
+        $this->vw_weight = '';
+        $this->vw_color = '';
+        $this->vw_batch = '';
+        $this->dispatch('show-variable-modal');
+    }
 
-    public function updateQuantity($productId, $qty)
+    public function addVariableItem()
+    {
+        $this->validate([
+            'vw_weight' => 'required|numeric|min:0.01',
+            'vw_color' => 'nullable|string|max:50',
+            'vw_batch' => 'nullable|string|max:50'
+        ]);
+
+        if (isset($this->cart[$this->current_product_id])) {
+            $this->cart[$this->current_product_id]['items'][] = [
+                'weight' => $this->vw_weight,
+                'color' => $this->vw_color,
+                'batch' => $this->vw_batch
+            ];
+            
+            // Recalculate total weight/quantity
+            $totalWeight = collect($this->cart[$this->current_product_id]['items'])->sum('weight');
+            $this->cart[$this->current_product_id]['quantity'] = $totalWeight;
+        }
+
+        $this->reset(['vw_weight', 'vw_color', 'vw_batch']);
+        $this->dispatch('noty', msg: 'Item agregado a la lista');
+        $this->dispatch('focus-weight');
+    }
+
+    public function removeVariableItem($productId, $index)
+    {
+        if (isset($this->cart[$productId]['items'][$index])) {
+            unset($this->cart[$productId]['items'][$index]);
+            $this->cart[$productId]['items'] = array_values($this->cart[$productId]['items']);
+            
+            $totalWeight = collect($this->cart[$productId]['items'])->sum('weight');
+            $this->cart[$productId]['quantity'] = $totalWeight;
+        }
+    }
+
+    public function updateQuantity($productId, $cant)
     {
         if (isset($this->cart[$productId])) {
-            $this->cart[$productId]['quantity'] = $qty;
+            $this->cart[$productId]['quantity'] = $cant;
         }
     }
 
@@ -123,15 +175,19 @@ class CreateDescargo extends Component
             'cart' => 'required|array|min:1'
         ]);
 
-        // Validate Decimals
+        // Validate items
         foreach ($this->cart as $item) {
             $product = \App\Models\Product::find($item['id']);
             if ($product && !$product->allow_decimal) {
                 if (floor($item['quantity']) != $item['quantity']) {
-                    $this->addError("cart.{$item['id']}.quantity", "El producto {$product->name} no permite decimales.");
-                    $this->dispatch('noty', msg: "El producto {$product->name} no permite cantidades decimales.", type: 'error');
+                    $this->addError("cart", "El producto {$product->name} no permite decimales.");
                     return;
                 }
+            }
+            if ($item['is_variable'] && empty($item['items'])) {
+                $this->addError("cart", "El producto {$item['name']} requiere items.");
+                $this->dispatch('noty', msg: "Faltan items en producto {$item['name']}", type: 'error');
+                return;
             }
         }
 
@@ -149,37 +205,28 @@ class CreateDescargo extends Component
             ]);
 
             foreach ($this->cart as $item) {
-                \App\Models\DescargoDetail::create([
+                $detail = \App\Models\DescargoDetail::create([
                     'descargo_id' => $descargo->id,
                     'product_id' => $item['id'],
                     'quantity' => $item['quantity'],
-                    'cost' => $item['cost'] // Save cost
+                    'cost' => $item['cost']
                 ]);
 
-                // Update Stock (SUBTRACT)
-                $product = \App\Models\Product::find($item['id']);
-                
-                // Check if pivot exists
-                $pivot = $product->warehouses()->where('warehouse_id', $this->warehouse_id)->first();
-                
-                if ($pivot) {
-                    $newQty = $pivot->pivot->stock_qty - $item['quantity'];
-                    $product->warehouses()->updateExistingPivot($this->warehouse_id, ['stock_qty' => $newQty]);
-                } else {
-                    // If not in warehouse, create with negative stock? Or 0 - qty?
-                    // Assuming we can have negative stock or it starts at 0.
-                    $product->warehouses()->attach($this->warehouse_id, ['stock_qty' => -$item['quantity']]);
+                if ($item['is_variable'] && !empty($item['items'])) {
+                    $detail->update(['items_json' => json_encode($item['items'])]);
                 }
-                
-                // Update global stock
-                $product->stock_qty -= $item['quantity'];
-                $product->save();
             }
 
             \Illuminate\Support\Facades\DB::commit();
             
+            // Dispatch Events and Notifications
+            event(new \App\Events\DescargoCreated($descargo));
+
+            $approvers = \App\Models\User::permission('adjustments.approve_descargo')->get();
+            \Illuminate\Support\Facades\Notification::send($approvers, new \App\Notifications\DescargoCreatedNotification($descargo));
+
             $this->reset(['cart', 'motive', 'authorized_by', 'comments', 'search']);
-            $this->dispatch('noty', msg: 'Descargo registrado correctamente');
+            $this->dispatch('noty', msg: 'Descargo registrado. Pendiente de aprobación.');
             
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\DB::rollBack();

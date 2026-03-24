@@ -16,11 +16,22 @@ class Descargo extends Model
         'motive',
         'date',
         'comments',
-        'status'
+        'status',
+        'approved_by',
+        'approval_date',
+        'rejection_reason',
+        'rejected_by',
+        'rejection_date',
+        'deletion_reason',
+        'deleted_by',
+        'deletion_date'
     ];
 
     protected $casts = [
-        'date' => 'datetime'
+        'date' => 'datetime',
+        'approval_date' => 'datetime',
+        'rejection_date' => 'datetime',
+        'deletion_date' => 'datetime'
     ];
 
     public function details()
@@ -36,5 +47,20 @@ class Descargo extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function approver()
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function rejecter()
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
+    }
+
+    public function deleter()
+    {
+        return $this->belongsTo(User::class, 'deleted_by');
     }
 }

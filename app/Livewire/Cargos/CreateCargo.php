@@ -176,11 +176,10 @@ class CreateCargo extends Component
             'cart' => 'required|array|min:1'
         ]);
 
-        // Validate Variable Items
+        // Validate Variable Items and Decimals
         foreach ($this->cart as $item) {
             $product = \App\Models\Product::find($item['id']);
             
-            // Validate Decimals
             if ($product && !$product->allow_decimal) {
                 if (floor($item['quantity']) != $item['quantity']) {
                     $this->addError("cart.{$item['id']}.quantity", "El producto {$product->name} no permite decimales.");
@@ -189,7 +188,6 @@ class CreateCargo extends Component
                 }
             }
 
-            // Validate Missing Items
             if ($item['is_variable'] && empty($item['items'])) {
                 $this->addError("cart", "El producto {$item['name']} requiere items.");
                 $this->dispatch('noty', msg: "Faltan items en producto {$item['name']}", type: 'error');
@@ -207,7 +205,7 @@ class CreateCargo extends Component
                 'motive' => $this->motive,
                 'date' => $this->date,
                 'comments' => $this->comments,
-                'status' => 'pending', // Pending approval or specific status? Using 'pending' as default.
+                'status' => 'pending', 
             ]);
 
             foreach ($this->cart as $item) {
@@ -218,7 +216,6 @@ class CreateCargo extends Component
                     'cost' => $item['cost'] 
                 ]);
 
-                // Store variable items details in JSON if they exist (to be processed upon approval)
                 if ($item['is_variable'] && !empty($item['items'])) {
                     $detail->update(['items_json' => json_encode($item['items'])]);
                 }
@@ -226,10 +223,10 @@ class CreateCargo extends Component
 
             \Illuminate\Support\Facades\DB::commit();
             
-            // Dispatch Event for WhatsApp and internal processing
+            // Dispatch Event
             event(new \App\Events\CargoCreated($cargo));
 
-            // Send Email Notifications to approvers
+            // Send Email Notifications
             $approvers = \App\Models\User::permission('adjustments.approve_cargo')->get();
             \Illuminate\Support\Facades\Notification::send($approvers, new \App\Notifications\CargoCreatedNotification($cargo));
             

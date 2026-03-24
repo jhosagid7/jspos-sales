@@ -19,6 +19,10 @@ class WhatsappSettings extends Component
     public $cargo_subject = 'Nuevo Cargo / Ajuste Creado';
     public $cargo_body = 'Hola, se ha registrado un nuevo Cargo #[CARGO_ID] por el motivo: [MOTIVO]. Responsable: [USUARIO]. Por favor revisa el panel para su aprobación.';
 
+    public $descargo_active = true;
+    public $descargo_subject = 'Nuevo Descargo / Salida de Inventario';
+    public $descargo_body = 'Hola, se ha registrado una nueva Salida #[DESCARGO_ID] por el motivo: [MOTIVO]. Responsable: [USUARIO]. Por favor revisa el panel para su aprobación.';
+
     public function mount()
     {
         // ... (existing sale/payment load) ...
@@ -49,6 +53,18 @@ class WhatsappSettings extends Component
         $this->cargo_active = $cargoTemplate->is_active;
         $this->cargo_subject = $cargoTemplate->subject;
         $this->cargo_body = $cargoTemplate->body;
+
+        $descargoTemplate = WhatsappTemplate::firstOrCreate(
+            ['event_type' => 'descargo_created'],
+            [
+                'subject' => $this->descargo_subject,
+                'body' => $this->descargo_body,
+                'is_active' => true
+            ]
+        );
+        $this->descargo_active = $descargoTemplate->is_active;
+        $this->descargo_subject = $descargoTemplate->subject;
+        $this->descargo_body = $descargoTemplate->body;
 
         session(['map' => 'Ajustes', 'child' => ' WhatsApp']);
     }
@@ -94,6 +110,15 @@ class WhatsappSettings extends Component
                 'subject' => $this->cargo_subject,
                 'body' => $this->cargo_body,
                 'is_active' => $this->cargo_active
+            ]
+        );
+
+        WhatsappTemplate::updateOrCreate(
+            ['event_type' => 'descargo_created'],
+            [
+                'subject' => $this->descargo_subject,
+                'body' => $this->descargo_body,
+                'is_active' => $this->descargo_active
             ]
         );
 

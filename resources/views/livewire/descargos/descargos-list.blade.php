@@ -69,22 +69,46 @@
                                     <td>{{ $descargo->authorized_by }}</td>
                                     <td>{{ $descargo->user->name }}</td>
                                     <td class="text-center">
-                                        <span class="badge badge-{{ $descargo->status == 'approved' ? 'success' : 'warning' }} text-uppercase">
-                                            {{ $descargo->status == 'approved' ? 'Aprobado' : 'Pendiente' }}
+                                         @php
+                                            $badgeClass = 'warning';
+                                            $statusLabel = 'Pendiente';
+                                            if($descargo->status == 'approved') { $badgeClass = 'success'; $statusLabel = 'Aprobado'; }
+                                            elseif($descargo->status == 'rejected') { $badgeClass = 'danger'; $statusLabel = 'Rechazado'; }
+                                            elseif($descargo->status == 'voided') { $badgeClass = 'secondary'; $statusLabel = 'Eliminado'; }
+                                        @endphp
+                                        <span class="badge badge-{{ $badgeClass }} text-uppercase">
+                                            {{ $statusLabel }}
                                         </span>
+                                        
+                                        @if($descargo->status == 'pending')
+                                            <div class="mt-2 text-center">
+                                                @can('adjustments.approve_descargo')
+                                                    <button wire:click="approve({{ $descargo->id }})" class="btn btn-dark btn-sm" title="Aprobar"
+                                                        onclick="confirm('¿Confirmas aprobar este descargo? El stock se actualizará.') || event.stopImmediatePropagation()">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                @endcan
+                                                
+                                                @can('adjustments.reject_descargo')
+                                                    <button wire:click="openActionModal({{ $descargo->id }}, 'reject')" class="btn btn-danger btn-sm" title="Rechazar">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                @endcan
+                                            </div>
+                                        @endif
+
+                                        @if($descargo->status == 'approved')
+                                            @can('adjustments.delete_descargo')
+                                                <button wire:click="openActionModal({{ $descargo->id }}, 'delete')" class="btn btn-outline-danger btn-sm mt-1" title="Eliminar/Anular">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            @endcan
+                                        @endif
                                     </td>
                                     <td class="text-center">
                                         <button wire:click="getDescargoDetail({{ $descargo->id }})" class="btn btn-dark btn-sm" title="Ver Detalles">
                                             <i class="fas fa-list"></i>
                                         </button>
-                                        @can('adjustments.approve_descargo')
-                                            @if($descargo->status == 'pending')
-                                                <button wire:click="approve({{ $descargo->id }})" class="btn btn-dark btn-sm" title="Aprobar"
-                                                    onclick="confirm('¿Confirmas aprobar este descargo?') || event.stopImmediatePropagation()">
-                                                    <i class="fas fa-check"></i>
-                                                </button>
-                                            @endif
-                                        @endcan
                                         <a href="{{ route('descargos.pdf', $descargo->id) }}" class="btn btn-outline-danger btn-sm" target="_blank" title="PDF">
                                             <i class="fas fa-file-pdf"></i>
                                         </a>
@@ -102,12 +126,52 @@
             </div>
         </div>
     </div>
-    @include('livewire.descargos.descargo-detail')
     
+    @include('livewire.descargos.descargo-detail')
+
+    <!-- Modal Acción (Rechazo/Eliminación) -->
+    <div class="modal fade" id="modalAction" tabindex="-1" role="dialog" wire:ignore.self>
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title text-white">{{ $action_type == 'reject' ? 'Rechazar Descargo' : 'Eliminar/Anular Descargo' }}</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <label>Indique el motivo de esta acción (Obligatorio)</label>
+                            <textarea wire:model="reason" class="form-control" rows="3" placeholder="Escriba aquí..."></textarea>
+                            @error('reason') <span class="text-danger">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" wire:click="processAction">Procesar Acción</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        document.addEventListener('livewire:init', () => {
-            Livewire.on('show-detail', (event) => {
+        document.addEventListener('livewire:initialized', () => {
+             Livewire.on('show-detail', (event) => {
                 $('#modalDescargoDetail').modal('show');
+            });
+
+            Livewire.on('show-action-modal', (event) => {
+                $('#modalAction').modal('show');
+            });
+
+            Livewire.on('hide-action-modal', (event) => {
+                $('#modalAction').modal('hide');
+            });
+
+            window.livewire.on('noty', (msg, type = 'success') => {
+                 noty(msg, type);
             });
         });
     </script>

@@ -184,9 +184,12 @@
 
                     <div class="row mt-3">
                         <div class="col-sm-12 text-center">
-                            <button wire:click="save" class="btn btn-primary btn-lg" {{ count($cart) < 1 ? 'disabled' : '' }}>
-                                GUARDAR CARGO
-                            </button>
+                        <button wire:click="save" wire:loading.attr="disabled" class="btn btn-primary btn-lg" {{ count($cart) < 1 ? 'disabled' : '' }}>
+                            <span wire:loading.remove wire:target="save">GUARDAR CARGO</span>
+                            <span wire:loading wire:target="save">
+                                <i class="fas fa-spinner fa-spin"></i> PROCESANDO...
+                            </span>
+                        </button>
                         </div>
                     </div>
 

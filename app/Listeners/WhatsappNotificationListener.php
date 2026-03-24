@@ -36,6 +36,8 @@ class WhatsappNotificationListener
             $this->handlePaymentReceived($event->paymentModel, $event->amountPaid, $event->sale);
         } elseif ($event instanceof \App\Events\CargoCreated) {
             $this->handleCargoCreated($event->cargo);
+        } elseif ($event instanceof \App\Events\DescargoCreated) {
+            $this->handleDescargoCreated($event->descargo);
         }
     }
 
@@ -89,6 +91,59 @@ class WhatsappNotificationListener
 
         } catch (\Exception $e) {
             Log::error("Error en WhatsappNotificationListener (CargoCreated): " . $e->getMessage());
+        }
+    }
+
+    protected function handleDescargoCreated(\App\Models\Descargo $descargo)
+    {
+        try {
+            $template = WhatsappTemplate::where('event_type', 'descargo_created')->where('is_active', true)->first();
+            if (!$template) return;
+
+            // Generate Descargo Detail PDF
+            $config = \App\Models\Configuration::first();
+            $fullDescargo = \App\Models\Descargo::with(['warehouse', 'user', 'details.product'])->find($descargo->id);
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.descargo-detail-pdf', ['adjustment' => $fullDescargo, 'config' => $config]);
+            
+            $pdfDir = storage_path('app/public/whatsapp_pdfs');
+            if (!file_exists($pdfDir)) {
+                mkdir($pdfDir, 0777, true);
+            }
+            $pdfPath = $pdfDir . '/descargo_detalle_' . $descargo->id . '.pdf';
+            $pdf->save($pdfPath);
+
+            // Find users with 'adjustments.approve_descargo' permission
+            $approvers = \App\Models\User::permission('adjustments.approve_descargo')->get();
+
+            foreach ($approvers as $user) {
+                if (!$user->phone) continue;
+                $phone = preg_replace('/[^0-9]/', '', $user->phone);
+                
+                $messageText = $this->compileTemplate($template->body, null, null, 0, 0, null, null, $descargo);
+
+                WhatsappMessage::create([
+                    'related_model_id' => $descargo->id,
+                    'related_model_type' => \App\Models\Descargo::class,
+                    'customer_id' => null, // Internal notify
+                    'phone_number' => $phone,
+                    'message_body' => $messageText,
+                    'attachment_path' => $pdfPath,
+                    'status' => 'pending'
+                ]);
+            }
+
+            // Finally: Dispatch current batch of messages
+            $pending = WhatsappMessage::where('status', 'pending')
+                 ->where('related_model_id', $descargo->id)
+                 ->where('related_model_type', \App\Models\Descargo::class)
+                 ->get();
+
+            foreach ($pending as $msg) {
+                \App\Jobs\SendWhatsappMessage::dispatch($msg->id);
+            }
+
+        } catch (\Exception $e) {
+            Log::error("Error en WhatsappNotificationListener (DescargoCreated): " . $e->getMessage());
         }
     }
 
@@ -218,7 +273,7 @@ class WhatsappNotificationListener
         return preg_replace('/[^0-9]/', '', $phone);
     }
 
-    protected function compileTemplate($body, $sale = null, $customer = null, $amountPaid = 0, $debt = 0, $paymentCurrencyCode = null, $cargo = null)
+    protected function compileTemplate($body, $sale = null, $customer = null, $amountPaid = 0, $debt = 0, $paymentCurrencyCode = null, $cargo = null, $descargo = null)
     {
         $primaryCurrency = \App\Helpers\CurrencyHelper::getPrimaryCurrency();
         $primarySymbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
@@ -229,6 +284,9 @@ class WhatsappNotificationListener
         }
 
         $conf = \App\Models\Configuration::first();
+
+        // Support for both Cargo and Descargo in the same variables or separate if user prefers
+        $adj = $cargo ?? $descargo;
 
         $vars = [
             '{CLIENTE}' => $customer ? $customer->name : '',
@@ -244,9 +302,11 @@ class WhatsappNotificationListener
             '[SALDO_RESTANTE]' => $primarySymbol . ' ' . number_format($debt, 2),
             '[EMPRESA]' => $conf->business_name ?? 'Sistema POS',
             '[CARGO_ID]' => $cargo ? $cargo->id : '',
-            '[MOTIVO]' => $cargo ? $cargo->motive : '',
-            '[USUARIO]' => $cargo ? $cargo->user->name : '',
-            '[FECHA]' => $cargo ? $cargo->date->format('d/m/Y H:i') : ($sale ? $sale->created_at->format('d/m/Y H:i') : now()->format('d/m/Y H:i'))
+            '[DESCARGO_ID]' => $descargo ? $descargo->id : '',
+            '[MOTIVO]' => $adj ? $adj->motive : '',
+            '[USUARIO]' => $adj ? $adj->user->name : '',
+            '[AUTORIZADO]' => $adj ? $adj->authorized_by : '',
+            '[FECHA]' => $adj ? $adj->date->format('d/m/Y H:i') : ($sale ? $sale->created_at->format('d/m/Y H:i') : now()->format('d/m/Y H:i'))
         ];
 
         return str_replace(array_keys($vars), array_values($vars), $body);

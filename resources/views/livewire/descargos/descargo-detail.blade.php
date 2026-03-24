@@ -17,13 +17,39 @@
                                 <div><b>Depósito:</b> {{ $descargoObt->warehouse->name ?? 'N/A' }}</div>
                                 <div><b>Fecha:</b> {{ $descargoObt->date->format('d/m/Y H:i') }}</div>
                                 <div><b>Motivo:</b> {{ $descargoObt->motive }}</div>
+                                <div><b>Autorizado Por:</b> {{ $descargoObt->authorized_by }}</div>
                             </div>
                             <div class="col-sm-6 text-right">
                                 <div><b>Responsable:</b> {{ $descargoObt->user->name ?? 'N/A' }}</div>
-                                <div><b>Autorizado Por:</b> {{ $descargoObt->authorized_by }}</div>
-                                <div><b>Estado:</b> <span class="badge badge-{{ $descargoObt->status == 'approved' ? 'success' : 'warning' }}">{{ strtoupper($descargoObt->status) }}</span></div>
+                                <div>
+                                    <b>Estado:</b> 
+                                    @php
+                                        $badgeClass = 'warning';
+                                        if($descargoObt->status == 'approved') $badgeClass = 'success';
+                                        elseif($descargoObt->status == 'rejected') $badgeClass = 'danger';
+                                        elseif($descargoObt->status == 'voided') $badgeClass = 'secondary';
+                                    @endphp
+                                    <span class="badge badge-{{ $badgeClass }} text-uppercase">{{ $descargoObt->status }}</span>
+                                </div>
+                                @if($descargoObt->status == 'approved')
+                                    <div class="mt-1"><small>Aprobado: {{ $descargoObt->approval_date->format('d/m/Y H:i') }} por {{ $descargoObt->approver->name ?? 'N/A' }}</small></div>
+                                @endif
                             </div>
                         </div>
+
+                         @if($descargoObt->status == 'rejected')
+                            <div class="alert alert-danger">
+                                <b>RECHAZADO:</b> {{ $descargoObt->rejection_reason }}
+                                <br><small>Por: {{ $descargoObt->rejecter->name ?? 'N/A' }} el {{ $descargoObt->rejection_date->format('d/m/Y H:i') }}</small>
+                            </div>
+                        @endif
+
+                        @if($descargoObt->status == 'voided')
+                            <div class="alert alert-secondary">
+                                <b>ELIMINADO/ANULADO:</b> {{ $descargoObt->deletion_reason }}
+                                <br><small>Por: {{ $descargoObt->deleter->name ?? 'N/A' }} el {{ $descargoObt->deletion_date->format('d/m/Y H:i') }}</small>
+                            </div>
+                        @endif
 
                         @if($descargoObt->comments)
                             <div class="row mb-3">
@@ -42,29 +68,42 @@
                                         <th>SKU</th>
                                         <th>Producto</th>
                                         <th>Cantidad</th>
+                                        <th>Detalles (Items)</th>
                                         <th>Costo</th>
                                         <th>Total</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @forelse ($details as $detail)
-                                        <tr class="text-center">
-                                            <td>{{ $detail->product->sku }}</td>
+                                        <tr>
+                                            <td class="text-center">{{ $detail->product->sku }}</td>
                                             <td>{{ $detail->product->name }}</td>
-                                            <td>{{ number_format($detail->quantity, 2) }}</td>
-                                            <td>${{ number_format($detail->cost, 2) }}</td>
-                                            <td>${{ number_format($detail->quantity * $detail->cost, 2) }}</td>
+                                            <td class="text-center">{{ number_format($detail->quantity, 2) }}</td>
+                                            <td>
+                                                @if($detail->items_json)
+                                                    @php $items = json_decode($detail->items_json, true); @endphp
+                                                    <ul class="mb-0 p-0 pl-3">
+                                                        @foreach($items as $i)
+                                                            <li><small>{{ $i['weight'] }} kg {{ $i['color'] ? '| '.$i['color'] : '' }} {{ $i['batch'] ? '| Lote: '.$i['batch'] : '' }}</small></li>
+                                                        @endforeach
+                                                    </ul>
+                                                @else
+                                                    <span class="text-muted">N/A</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-right">${{ number_format($detail->cost, 2) }}</td>
+                                            <td class="text-right">${{ number_format($detail->quantity * $detail->cost, 2) }}</td>
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="5" class="text-center">Sin detalles</td>
+                                            <td colspan="6" class="text-center">Sin detalles</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
                                 <tfoot>
                                     <tr>
-                                        <td colspan="4" class="text-right"><b>Total Costo:</b></td>
-                                        <td class="text-center"><b>${{ number_format($details->sum(function($d){ return $d->quantity * $d->cost; }), 2) }}</b></td>
+                                        <td colspan="5" class="text-right"><b>Total General:</b></td>
+                                        <td class="text-right"><b>${{ number_format($details->sum(function($d){ return $d->quantity * $d->cost; }), 2) }}</b></td>
                                     </tr>
                                 </tfoot>
                             </table>

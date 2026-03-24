@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.9.1] - 2026-03-24
+
+### Added
+- **Flujo de Aprobación de Descargos**: Migración completa del motor de flujo de trabajo para salidas de inventario (Descargos / Ajustes de Reducción). Ahora las salidas se registran como `Pendientes` y requieren autorización para descontar definitivamente el stock.
+- **Notificaciones de WhatsApp para Descargos**: Integración con el motor de WhatsApp para enviar alertas automáticas de nuevas salidas a los supervisores, incluyendo el PDF del ajuste adjunto.
+- **Configuración Independiente de Plantillas**: Nueva sección en los Ajustes de WhatsApp para personalizar los mensajes de Descargos de forma separada a los Cargos, con soporte para variables como `[DESCARGO_ID]`. (Permite habilitar/deshabilitar por separado).
+- **Estados de Carga (UX)**: Se implementaron indicadores visuales de "PROCESANDO..." y bloqueo de botones al guardar Cargos y Descargos para evitar duplicidad de registros y mejorar la respuesta visual (especialmente durante la generación de PDF).
+
+### Fixed
+- **Integridad de Stock en Anulaciones**: Corregido error crítico donde la anulación (void) de un ajuste ya aprobado no revertía el inventario. Ahora, anular un Cargo DECRECE el stock y anular un Descargo lo INCREMENTA, incluyendo la recreación/eliminación de ítems variables (bobinas) para mantener la trazabilidad exacta.
+- **Consistencia de Base de Datos**: Actualización de la columna `status` en la tabla de Cargos de ENUM a STRING para evitar el error "Data truncated" al usar los nuevos estados de flujo de trabajo (`rejected`, `voided`).
+- **Visualización de Auditoría**: Mejora integral de las vistas de detalle para mostrar quién aprobó, rechazó o anuló cada ajuste, junto con la fecha y el motivo obligatorio de la acción.
+
 ## [1.9.0] - 2026-03-24
 
 ### Added
