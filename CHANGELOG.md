@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0] - 2026-03-24
+
+### Added
+- **Adjuntos de PDF en Notificaciones**: Implementación de generación dinámica de documentos PDF para cada Cargo (Ajuste). Los archivos se adjuntan automáticamente tanto al **Correo Electrónico** como al mensaje de **WhatsApp** enviado a los aprobadores.
+- **Reporte Detallado de Cargo**: Nueva plantilla profesional de comprobante interno de ajuste de inventario, incluyendo motivo, almacén, items cuantificados y costos valorados.
+- **Botón de Descarga Manual**: Se añadió el ícono de descarga de PDF directamente en el listado de cargos para un acceso rápido a los documentos históricos.
+
 ## [1.8.99] - 2026-03-24
 
 ### Added
