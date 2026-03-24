@@ -19,6 +19,10 @@ class CargosList extends Component
     public $cargo_id;
     public $cargoObt;
     public $details = [];
+
+    // Action properties
+    public $action_type = ''; // 'reject' or 'delete'
+    public $reason = '';
     
     protected $paginationTheme = 'bootstrap';
 
@@ -39,15 +43,109 @@ class CargosList extends Component
     public function approve($id)
     {
         if (!auth()->user()->can('adjustments.approve_cargo')) {
-            $this->dispatch('msg-error', 'No tienes permisos para aprobar cargos.');
+            $this->dispatch('noty', msg: 'No tienes permisos para aprobar cargos.', type: 'error');
             return;
         }
 
         $cargo = Cargo::find($id);
-        if ($cargo->status == 'pending') {
-            $cargo->update(['status' => 'approved']);
-            $this->dispatch('msg-ok', 'Cargo aprobado correctamente.');
+        if ($id && $cargo->status == 'pending') {
+            try {
+                \Illuminate\Support\Facades\DB::beginTransaction();
+
+                foreach ($cargo->details as $item) {
+                    $product = $item->product;
+                    
+                    // Create Product Items if variable
+                    if ($item->items_json) {
+                        $items = json_decode($item->items_json, true);
+                        foreach ($items as $bobina) {
+                            \App\Models\ProductItem::create([
+                                'product_id' => $item->product_id,
+                                'warehouse_id' => $cargo->warehouse_id,
+                                'quantity' => $bobina['weight'],
+                                'original_quantity' => $bobina['weight'],
+                                'color' => $bobina['color'] ?? null,
+                                'batch' => $bobina['batch'] ?? null,
+                                'status' => 'available'
+                            ]);
+                        }
+                    }
+
+                    // Update Stock
+                    // Check if pivot exists
+                    $pivot = $product->warehouses()->where('warehouse_id', $cargo->warehouse_id)->first();
+                    
+                    if ($pivot) {
+                        $newQty = $pivot->pivot->stock_qty + $item->quantity;
+                        $product->warehouses()->updateExistingPivot($cargo->warehouse_id, ['stock_qty' => $newQty]);
+                    } else {
+                        $product->warehouses()->attach($cargo->warehouse_id, ['stock_qty' => $item->quantity]);
+                    }
+                    
+                    // Update global stock
+                    $product->stock_qty += $item->quantity;
+                    $product->save();
+                }
+
+                $cargo->update([
+                    'status' => 'approved',
+                    'approved_by' => auth()->id(),
+                    'approval_date' => now()
+                ]);
+
+                \Illuminate\Support\Facades\DB::commit();
+                $this->dispatch('noty', msg: 'Cargo aprobado y stock actualizado.');
+                
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\DB::rollBack();
+                $this->dispatch('noty', msg: 'Error al aprobar: ' . $e->getMessage(), type: 'error');
+            }
         }
+    }
+
+    public function openActionModal($id, $type)
+    {
+        $this->cargo_id = $id;
+        $this->action_type = $type;
+        $this->reason = '';
+        $this->dispatch('show-action-modal');
+    }
+
+    public function processAction()
+    {
+        $this->validate([
+            'reason' => 'required|min:5|max:255'
+        ]);
+
+        $cargo = Cargo::find($this->cargo_id);
+        
+        if ($this->action_type === 'reject') {
+            if (!auth()->user()->can('adjustments.reject_cargo')) {
+                $this->dispatch('noty', msg: 'No tienes permisos para rechazar.', type: 'error');
+                return;
+            }
+            $cargo->update([
+                'status' => 'rejected',
+                'rejection_reason' => $this->reason,
+                'rejected_by' => auth()->id(),
+                'rejection_date' => now()
+            ]);
+            $this->dispatch('noty', msg: 'Cargo rechazado.');
+        } else {
+            if (!auth()->user()->can('adjustments.delete_cargo')) {
+                $this->dispatch('noty', msg: 'No tienes permisos para eliminar.', type: 'error');
+                return;
+            }
+            $cargo->update([
+                'status' => 'voided',
+                'deletion_reason' => $this->reason,
+                'deleted_by' => auth()->id(),
+                'deletion_date' => now()
+            ]);
+            $this->dispatch('noty', msg: 'Cargo eliminado.');
+        }
+
+        $this->dispatch('hide-action-modal');
     }
 
     public function updatingSearch()

@@ -13,7 +13,8 @@ class CargoDetail extends Model
         'cargo_id',
         'product_id',
         'quantity',
-        'cost'
+        'cost',
+        'items_json'
     ];
 
     public function cargo()

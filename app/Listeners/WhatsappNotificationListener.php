@@ -30,10 +30,57 @@ class WhatsappNotificationListener
      */
     public function handle(object $event): void
     {
-        if ($event instanceof SaleCreated) {
+        if ($event instanceof \App\Events\SaleCreated) {
             $this->handleSaleCreated($event->sale);
-        } elseif ($event instanceof PaymentReceived) {
+        } elseif ($event instanceof \App\Events\PaymentReceived) {
             $this->handlePaymentReceived($event->paymentModel, $event->amountPaid, $event->sale);
+        } elseif ($event instanceof \App\Events\CargoCreated) {
+            $this->handleCargoCreated($event->cargo);
+        }
+    }
+
+    protected function handleCargoCreated(\App\Models\Cargo $cargo)
+    {
+        try {
+            $template = WhatsappTemplate::where('event_type', 'cargo_created')->where('is_active', true)->first();
+            if (!$template) return;
+
+            // Find users with 'adjustments.approve_cargo' permission
+            $approvers = \App\Models\User::permission('adjustments.approve_cargo')->get();
+
+            foreach ($approvers as $user) {
+                if (!$user->phone) continue;
+                $phone = preg_replace('/[^0-9]/', '', $user->phone);
+                
+                $messageText = $this->compileTemplate($template->body, null, null, 0, 0, null, $cargo);
+
+                WhatsappMessage::create([
+                    'related_model_id' => $cargo->id,
+                    'related_model_type' => \App\Models\Cargo::class,
+                    'customer_id' => null, // Internal notify
+                    'phone_number' => $phone,
+                    'message_body' => $messageText,
+                    'attachment_path' => null,
+                    'status' => 'pending'
+                ]);
+                
+                // Note: The job dispatcher will handle the actual sending
+                // (Wait, I should dispatch the job if the system requires it immediately)
+                // Existing code used: \App\Jobs\SendWhatsappMessage::dispatch($msg->id);
+            }
+
+            // Finally: Dispatch current batch of messages
+            $pending = WhatsappMessage::where('status', 'pending')
+                ->where('related_model_id', $cargo->id)
+                ->where('related_model_type', \App\Models\Cargo::class)
+                ->get();
+
+            foreach ($pending as $msg) {
+                \App\Jobs\SendWhatsappMessage::dispatch($msg->id);
+            }
+
+        } catch (\Exception $e) {
+            Log::error("Error en WhatsappNotificationListener (CargoCreated): " . $e->getMessage());
         }
     }
 
@@ -163,7 +210,7 @@ class WhatsappNotificationListener
         return preg_replace('/[^0-9]/', '', $phone);
     }
 
-    protected function compileTemplate($body, $sale, $customer, $amountPaid = 0, $debt = 0, $paymentCurrencyCode = null)
+    protected function compileTemplate($body, $sale = null, $customer = null, $amountPaid = 0, $debt = 0, $paymentCurrencyCode = null, $cargo = null)
     {
         $primaryCurrency = \App\Helpers\CurrencyHelper::getPrimaryCurrency();
         $primarySymbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
@@ -173,18 +220,25 @@ class WhatsappNotificationListener
             $paymentCurrencySymbol = \App\Helpers\CurrencyHelper::getSymbol($paymentCurrencyCode);
         }
 
+        $conf = \App\Models\Configuration::first();
+
         $vars = [
-            '{CLIENTE}' => $customer->name,
-            '[CLIENTE]' => $customer->name,
-            '{FACTURA}' => $sale->id,
-            '[FACTURA]' => $sale->id,
-            '[FACTURA_PAGADA]' => $sale->id,
-            '{TOTAL}' => $primarySymbol . ' ' . number_format($sale->total, 2),
-            '[TOTAL]' => $primarySymbol . ' ' . number_format($sale->total, 2),
+            '{CLIENTE}' => $customer ? $customer->name : '',
+            '[CLIENTE]' => $customer ? $customer->name : '',
+            '{FACTURA}' => $sale ? $sale->id : '',
+            '[FACTURA]' => $sale ? $sale->id : '',
+            '[FACTURA_PAGADA]' => $sale ? $sale->id : '',
+            '{TOTAL}' => $sale ? ($primarySymbol . ' ' . number_format($sale->total, 2)) : '',
+            '[TOTAL]' => $sale ? ($primarySymbol . ' ' . number_format($sale->total, 2)) : '',
             '{ABONO}' => $paymentCurrencySymbol . ' ' . number_format($amountPaid, 2),
             '[MONTO_PAGADO]' => $paymentCurrencySymbol . ' ' . number_format($amountPaid, 2),
             '{SALDO}' => $primarySymbol . ' ' . number_format($debt, 2),
             '[SALDO_RESTANTE]' => $primarySymbol . ' ' . number_format($debt, 2),
+            '[EMPRESA]' => $conf->business_name ?? 'Sistema POS',
+            '[CARGO_ID]' => $cargo ? $cargo->id : '',
+            '[MOTIVO]' => $cargo ? $cargo->motive : '',
+            '[USUARIO]' => $cargo ? $cargo->user->name : '',
+            '[FECHA]' => $cargo ? $cargo->date->format('d/m/Y H:i') : ($sale ? $sale->created_at->format('d/m/Y H:i') : now()->format('d/m/Y H:i'))
         ];
 
         return str_replace(array_keys($vars), array_values($vars), $body);

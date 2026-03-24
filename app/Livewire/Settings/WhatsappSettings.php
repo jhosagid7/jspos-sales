@@ -15,16 +15,16 @@ class WhatsappSettings extends Component
     public $payment_subject = 'Notificación de Abono';
     public $payment_body = 'Hola [CLIENTE], hemos recibido tu pago por [MONTO_PAGADO] a la factura #[FACTURA_PAGADA]. Tu saldo restante es de [SALDO_RESTANTE].';
 
+    public $cargo_active = true;
+    public $cargo_subject = 'Nuevo Cargo / Ajuste Creado';
+    public $cargo_body = 'Hola, se ha registrado un nuevo Cargo #[CARGO_ID] por el motivo: [MOTIVO]. Responsable: [USUARIO]. Por favor revisa el panel para su aprobación.';
+
     public function mount()
     {
-        // Load or create defaults
+        // ... (existing sale/payment load) ...
         $saleTemplate = WhatsappTemplate::firstOrCreate(
             ['event_type' => 'sale_created'],
-            [
-                'subject' => $this->sale_subject,
-                'body' => $this->sale_body,
-                'is_active' => true
-            ]
+            ['subject' => $this->sale_subject, 'body' => $this->sale_body, 'is_active' => true]
         );
         $this->sale_active = $saleTemplate->is_active;
         $this->sale_subject = $saleTemplate->subject;
@@ -32,15 +32,23 @@ class WhatsappSettings extends Component
 
         $paymentTemplate = WhatsappTemplate::firstOrCreate(
             ['event_type' => 'payment_received'],
-            [
-                'subject' => $this->payment_subject,
-                'body' => $this->payment_body,
-                'is_active' => true
-            ]
+            ['subject' => $this->payment_subject, 'body' => $this->payment_body, 'is_active' => true]
         );
         $this->payment_active = $paymentTemplate->is_active;
         $this->payment_subject = $paymentTemplate->subject;
         $this->payment_body = $paymentTemplate->body;
+
+        $cargoTemplate = WhatsappTemplate::firstOrCreate(
+            ['event_type' => 'cargo_created'],
+            [
+                'subject' => $this->cargo_subject,
+                'body' => $this->cargo_body,
+                'is_active' => true
+            ]
+        );
+        $this->cargo_active = $cargoTemplate->is_active;
+        $this->cargo_subject = $cargoTemplate->subject;
+        $this->cargo_body = $cargoTemplate->body;
 
         session(['map' => 'Ajustes', 'child' => ' WhatsApp']);
     }
@@ -77,6 +85,15 @@ class WhatsappSettings extends Component
                 'subject' => $this->payment_subject,
                 'body' => $this->payment_body,
                 'is_active' => $this->payment_active
+            ]
+        );
+
+        WhatsappTemplate::updateOrCreate(
+            ['event_type' => 'cargo_created'],
+            [
+                'subject' => $this->cargo_subject,
+                'body' => $this->cargo_body,
+                'is_active' => $this->cargo_active
             ]
         );
 

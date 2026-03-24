@@ -25,6 +25,9 @@ class EventServiceProvider extends ServiceProvider
         \App\Events\PaymentReceived::class => [
             \App\Listeners\WhatsappNotificationListener::class,
         ],
+        \App\Events\CargoCreated::class => [
+            \App\Listeners\WhatsappNotificationListener::class,
+        ],
         'Illuminate\Auth\Events\Login' => [
             'App\Listeners\LoginSuccess',
         ],

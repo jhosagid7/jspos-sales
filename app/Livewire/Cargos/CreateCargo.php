@@ -211,50 +211,30 @@ class CreateCargo extends Component
             ]);
 
             foreach ($this->cart as $item) {
-                \App\Models\CargoDetail::create([
+                $detail = \App\Models\CargoDetail::create([
                     'cargo_id' => $cargo->id,
                     'product_id' => $item['id'],
                     'quantity' => $item['quantity'],
                     'cost' => $item['cost'] 
                 ]);
 
-                // Create Product Items if variable
+                // Store variable items details in JSON if they exist (to be processed upon approval)
                 if ($item['is_variable'] && !empty($item['items'])) {
-                    foreach ($item['items'] as $bobina) {
-                        \App\Models\ProductItem::create([
-                            'product_id' => $item['id'],
-                            'warehouse_id' => $this->warehouse_id,
-                            'quantity' => $bobina['weight'],
-                            'original_quantity' => $bobina['weight'],
-                            'color' => $bobina['color'] ?? null,
-                            'batch' => $bobina['batch'] ?? null,
-                            'status' => 'available'
-                        ]);
-                    }
+                    $detail->update(['items_json' => json_encode($item['items'])]);
                 }
-
-                // Update Stock
-                $product = \App\Models\Product::find($item['id']);
-                
-                // Check if pivot exists
-                $pivot = $product->warehouses()->where('warehouse_id', $this->warehouse_id)->first();
-                
-                if ($pivot) {
-                    $newQty = $pivot->pivot->stock_qty + $item['quantity'];
-                    $product->warehouses()->updateExistingPivot($this->warehouse_id, ['stock_qty' => $newQty]);
-                } else {
-                    $product->warehouses()->attach($this->warehouse_id, ['stock_qty' => $item['quantity']]);
-                }
-                
-                // Update global stock
-                $product->stock_qty += $item['quantity'];
-                $product->save();
             }
 
             \Illuminate\Support\Facades\DB::commit();
             
+            // Dispatch Event for WhatsApp and internal processing
+            event(new \App\Events\CargoCreated($cargo));
+
+            // Send Email Notifications to approvers
+            $approvers = \App\Models\User::permission('adjustments.approve_cargo')->get();
+            \Illuminate\Support\Facades\Notification::send($approvers, new \App\Notifications\CargoCreatedNotification($cargo));
+            
             $this->reset(['cart', 'motive', 'authorized_by', 'comments', 'search']);
-            $this->dispatch('noty', msg: 'Cargo registrado correctamente');
+            $this->dispatch('noty', msg: 'Cargo registrado correctamente. Pendiente de aprobación.');
             
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\DB::rollBack();

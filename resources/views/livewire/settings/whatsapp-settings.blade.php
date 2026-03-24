@@ -178,6 +178,41 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="row mt-4 pt-4 border-top">
+                        <!-- CARGO NUEVO -->
+                        <div class="col-md-6">
+                            <h5 class="text-primary mb-3">
+                                <i class="fas fa-boxes"></i> Plantilla: Nuevo Cargo / Ajuste Creado
+                            </h5>
+                            
+                            <div class="form-check form-switch form-switch-lg mb-3">
+                                <input wire:model="cargo_active" class="form-check-input form-check-input-success" type="checkbox" id="cargoActiveSwitch">
+                                <label class="form-check-label" for="cargoActiveSwitch">
+                                    <strong>Habilitar envío automático al registrar un Cargo</strong>
+                                </label>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label>Asunto (Uso Interno)</label>
+                                <input type="text" wire:model="cargo_subject" class="form-control" placeholder="Ej: Nuevo Cargo Pendiente">
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label>Cuerpo del Mensaje (Texto Normal, Usa *asteriscos* para negrita)</label>
+                                <textarea wire:model="cargo_body" class="form-control" rows="5" placeholder="Escribe tu mensaje usando las variables..."></textarea>
+                            </div>
+
+                            <div class="alert alert-light border">
+                                <h6>Variables Disponibles:</h6>
+                                <p class="mb-1"><code>[CARGO_ID]</code> : ID del Ajuste</p>
+                                <p class="mb-1"><code>[MOTIVO]</code> : Motivo del ajuste</p>
+                                <p class="mb-1"><code>[USUARIO]</code> : Quien registró el cargo</p>
+                                <p class="mb-1"><code>[FECHA]</code> : Fecha del registro</p>
+                                <p class="mb-1"><code>[EMPRESA]</code> : Nombre de tu negocio</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

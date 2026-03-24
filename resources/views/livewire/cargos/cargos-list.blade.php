@@ -69,17 +69,41 @@
                                     <td>{{ $cargo->authorized_by }}</td>
                                     <td>{{ $cargo->user->name }}</td>
                                     <td class="text-center">
-                                        <span class="badge badge-{{ $cargo->status == 'approved' ? 'success' : 'warning' }} text-uppercase">
-                                            {{ $cargo->status == 'approved' ? 'Aprobado' : 'Pendiente' }}
+                                        @php
+                                            $badgeClass = 'warning';
+                                            $statusLabel = 'Pendiente';
+                                            if($cargo->status == 'approved') { $badgeClass = 'success'; $statusLabel = 'Aprobado'; }
+                                            elseif($cargo->status == 'rejected') { $badgeClass = 'danger'; $statusLabel = 'Rechazado'; }
+                                            elseif($cargo->status == 'voided') { $badgeClass = 'secondary'; $statusLabel = 'Eliminado'; }
+                                        @endphp
+                                        <span class="badge badge-{{ $badgeClass }} text-uppercase">
+                                            {{ $statusLabel }}
                                         </span>
-                                        @can('adjustments.approve_cargo')
-                                            @if($cargo->status == 'pending')
-                                                <button wire:click="approve({{ $cargo->id }})" class="btn btn-dark btn-sm" title="Aprobar"
-                                                    onclick="confirm('¿Confirmas aprobar este cargo?') || event.stopImmediatePropagation()">
-                                                    <i class="fas fa-check"></i>
+                                        
+                                        @if($cargo->status == 'pending')
+                                            <div class="mt-2 text-center">
+                                                @can('adjustments.approve_cargo')
+                                                    <button wire:click="approve({{ $cargo->id }})" class="btn btn-dark btn-sm" title="Aprobar"
+                                                        onclick="confirm('¿Confirmas aprobar este cargo? El stock se actualizará.') || event.stopImmediatePropagation()">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                @endcan
+                                                
+                                                @can('adjustments.reject_cargo')
+                                                    <button wire:click="openActionModal({{ $cargo->id }}, 'reject')" class="btn btn-danger btn-sm" title="Rechazar">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                @endcan
+                                            </div>
+                                        @endif
+
+                                        @if($cargo->status == 'approved')
+                                            @can('adjustments.delete_cargo')
+                                                <button wire:click="openActionModal({{ $cargo->id }}, 'delete')" class="btn btn-outline-danger btn-sm mt-1" title="Eliminar/Anular">
+                                                    <i class="fas fa-trash"></i>
                                                 </button>
-                                            @endif
-                                        @endcan
+                                            @endcan
+                                        @endif
                                     </td>
                                     <td class="text-center">
                                         <button wire:click="getCargoDetail({{ $cargo->id }})" class="btn btn-dark btn-sm" title="Ver Detalles">
@@ -103,11 +127,50 @@
         </div>
     </div>
     @include('livewire.cargos.cargo-detail')
+
+    <!-- Modal Acción (Rechazo/Eliminación) -->
+    <div class="modal fade" id="modalAction" tabindex="-1" role="dialog" wire:ignore.self>
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title">{{ $action_type == 'reject' ? 'Rechazar Cargo' : 'Eliminar/Anular Cargo' }}</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <label>Indique el motivo de esta acción (Obligatorio)</label>
+                            <textarea wire:model="reason" class="form-control" rows="3" placeholder="Escriba aquí..."></textarea>
+                            @error('reason') <span class="text-danger">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" wire:click="processAction">Procesar Action</button>
+                </div>
+            </div>
+        </div>
+    </div>
     
     <script>
-        document.addEventListener('livewire:init', () => {
+        document.addEventListener('livewire:initialized', () => {
             Livewire.on('show-detail', (event) => {
                 $('#modalCargoDetail').modal('show');
+            });
+
+            Livewire.on('show-action-modal', (event) => {
+                $('#modalAction').modal('show');
+            });
+
+            Livewire.on('hide-action-modal', (event) => {
+                $('#modalAction').modal('hide');
+            });
+
+            window.livewire.on('noty', msg => {
+                noty(msg)
             });
         });
     </script>
