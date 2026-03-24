@@ -1,4 +1,13 @@
 # Changelog
+
+## [1.8.92] - 2026-03-24
+
+### Added
+- **Libro de Relación de Cobros (Auditoría)**: Los pagos anulados ahora son visibles en el reporte detallado diario. Se identifican con el prefijo `[ANULADO]` y tachado visual, incluyendo el motivo de la anulación para mantener una auditoría completa del día.
+- **Integridad Financiera**: Se ajustó el motor de cálculo de deudas en el modelo central (`Sale.php`) para excluir automáticamente los cobros anulados, garantizando que el saldo del cliente se refleje correctamente en todo el sistema.
+
+### Changed
+- **Lógica de Caja**: Las anulaciones en la planilla de cobro ahora se marcan con "Ingreso 0.00", permitiendo que el reporte cuadre con el dinero físico recolectado sin omitir la transacción original.
  
 ## [1.8.90] - 2026-03-24
 
