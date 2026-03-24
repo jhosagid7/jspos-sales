@@ -59,10 +59,18 @@ class CargoCreatedNotification extends Notification implements ShouldQueue
 
         $messageText = str_replace(array_keys($vars), array_values($vars), $body);
 
+        // Generate PDF content for attachment
+        $fullCargo = \App\Models\Cargo::with(['warehouse', 'user', 'details.product'])->find($this->cargo->id);
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.cargo-detail-pdf', ['cargo' => $fullCargo, 'config' => $conf]);
+        $pdfContent = $pdf->output();
+
         return (new MailMessage)
                     ->subject($subject)
                     ->greeting('Hola ' . $notifiable->name)
                     ->line($messageText)
+                    ->attachData($pdfContent, 'detalle_cargo_' . $this->cargo->id . '.pdf', [
+                        'mime' => 'application/pdf',
+                    ])
                     ->action('Ver Cargo en el Panel', url('/cargos'))
                     ->line('Gracias por usar nuestro sistema.');
     }

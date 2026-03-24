@@ -45,6 +45,18 @@ class WhatsappNotificationListener
             $template = WhatsappTemplate::where('event_type', 'cargo_created')->where('is_active', true)->first();
             if (!$template) return;
 
+            // Generate Cargo Detail PDF
+            $config = \App\Models\Configuration::first();
+            $fullCargo = \App\Models\Cargo::with(['warehouse', 'user', 'details.product'])->find($cargo->id);
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.cargo-detail-pdf', ['cargo' => $fullCargo, 'config' => $config]);
+            
+            $pdfDir = storage_path('app/public/whatsapp_pdfs');
+            if (!file_exists($pdfDir)) {
+                mkdir($pdfDir, 0777, true);
+            }
+            $pdfPath = $pdfDir . '/cargo_detalle_' . $cargo->id . '.pdf';
+            $pdf->save($pdfPath);
+
             // Find users with 'adjustments.approve_cargo' permission
             $approvers = \App\Models\User::permission('adjustments.approve_cargo')->get();
 
@@ -60,13 +72,9 @@ class WhatsappNotificationListener
                     'customer_id' => null, // Internal notify
                     'phone_number' => $phone,
                     'message_body' => $messageText,
-                    'attachment_path' => null,
+                    'attachment_path' => $pdfPath,
                     'status' => 'pending'
                 ]);
-                
-                // Note: The job dispatcher will handle the actual sending
-                // (Wait, I should dispatch the job if the system requires it immediately)
-                // Existing code used: \App\Jobs\SendWhatsappMessage::dispatch($msg->id);
             }
 
             // Finally: Dispatch current batch of messages
