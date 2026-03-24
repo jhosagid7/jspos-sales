@@ -124,8 +124,8 @@ class Sale extends Model
     //accessors
     public function getDebtAttribute()
     {
-        // Exclude 'pending' or 'rejected' payments (only count approved/paid)
-        $totalPays = $this->payments->whereNotIn('status', ['pending', 'rejected'])->sum('amount');
+        // Exclude 'pending', 'rejected' or 'voided' payments (only count approved)
+        $totalPays = $this->payments->where('status', 'approved')->sum('amount');
         
         // Deduct returns that were applied directly to the debt
         $totalReturns = $this->returns->where('refund_method', 'debt_reduction')->sum('total_returned');

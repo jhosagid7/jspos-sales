@@ -27,7 +27,7 @@ class ReportController extends Controller
         $invoiceFrom = $request->get('invoice_from');
         $invoiceTo = $request->get('invoice_to');
 
-        $query = $sheet->payments()->with(['sale.customer', 'user', 'zelleRecord'])->where('status', 'approved');
+        $query = $sheet->payments()->with(['sale.customer', 'user', 'zelleRecord'])->whereIn('status', ['approved', 'voided']);
 
         if ($operatorId) {
             $query->where('user_id', $operatorId);
@@ -77,6 +77,8 @@ class ReportController extends Controller
         });
 
         foreach($payments as $p) {
+            if ($p->status == 'voided') continue;
+            
             $amtUSD = $p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1);
             if ($p->pay_way == 'cash') {
                 $key = "EFECTIVO " . strtoupper($p->currency);
@@ -95,7 +97,7 @@ class ReportController extends Controller
         $totalsByCurrency = [];
         $uniqueCurrencies = $payments->pluck('currency')->unique();
         foreach($uniqueCurrencies as $currencyCode) {
-            $totalsByCurrency[$currencyCode] = $payments->where('currency', $currencyCode)->sum('amount');
+            $totalsByCurrency[$currencyCode] = $payments->where('currency', $currencyCode)->where('status', 'approved')->sum('amount');
         }
 
         $dateFromFormatted = $dateFrom ?: $sheet->opened_at->format('Y-m-d');

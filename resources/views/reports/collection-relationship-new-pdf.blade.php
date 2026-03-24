@@ -98,6 +98,10 @@
             margin-top: 2px;
             display: block;
         }
+        .voided-row td {
+            color: #777;
+            text-decoration: line-through;
+        }
     </style>
 </head>
 <body>
@@ -155,13 +159,18 @@
                 $activity = collect();
                 
                 foreach($payments as $p) {
-                    $description = strtoupper($p->pay_way);
+                    $isVoided = ($p->status == 'voided');
+                    $description = ($isVoided ? '[ANULADO] ' : '') . strtoupper($p->pay_way);
                     if ($p->pay_way == 'zelle' && $p->zelleRecord) {
                         $description .= " (Sender: {$p->zelleRecord->sender_name}, Ref: {$p->zelleRecord->reference})";
                     } elseif (($p->pay_way == 'bank' || $p->pay_way == 'deposit') && $p->bank) {
                         $description .= " ({$p->bank}, Ref: {$p->deposit_number})";
                     } elseif ($p->deposit_number) {
                         $description .= " (Ref: {$p->deposit_number})";
+                    }
+
+                    if ($isVoided && $p->rejection_reason) {
+                        $description .= " - Motivo: {$p->rejection_reason}";
                     }
 
                     if ($p->discount_applied > 0) {
@@ -193,7 +202,8 @@
                         'doc_number' => $p->sale->invoice_number ?? $p->sale->id,
                         'description' => $description,
                         'monto' => $p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1),
-                        'ingreso' => ($p->pay_way == 'advance' || $p->pay_way == 'adelanto') ? 0 : ($p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1)),
+                        'ingreso' => ($isVoided || $p->pay_way == 'advance' || $p->pay_way == 'adelanto') ? 0 : ($p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1)),
+                        'is_voided' => $isVoided,
                         'sale_id' => $p->sale_id,
                         'raw_amount' => $p->amount,
                         'currency' => $p->currency,
@@ -248,7 +258,7 @@
                         $grandTotalMonto += $item['monto'];
                         $grandTotalIngreso += $item['ingreso'];
                     @endphp
-                    <tr class="{{ $item['type'] == 'N/C' ? 'nc-row' : '' }}">
+                    <tr class="{{ $item['type'] == 'N/C' ? 'nc-row' : '' }} {{ ($item['is_voided'] ?? false) ? 'voided-row' : '' }}">
                         <td>{{ $item['type'] }}</td>
                         <td>{{ $item['date_pay']->format('d/m/Y') }}</td>
                         <td>{{ $item['date_emit']->format('d/m/Y') }}</td>
