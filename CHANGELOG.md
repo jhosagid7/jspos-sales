@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.8.99] - 2026-03-24
+
+### Added
+- **Flujo de Aprobación de Cargos**: Nueva arquitectura de flujo de trabajo para ajustes manuales de inventario (Cargos). Los ajustes ahora se registran como `Pendientes` y no modifican el stock hasta ser formalmente aprobados por un usuario autorizado.
+- **Notificaciones Multi-canal (Avisos de Ajuste)**: Integración automática de notificaciones por **Email y WhatsApp** que se envían a todos los supervisores/administradores al momento de registrar un nuevo ajuste.
+- **Gestión de Plantillas**: Nueva sección en la configuración del sistema para activar/desactivar y personalizar los mensajes de notificación de ajustes, incluyendo soporte para variables dinámicas.
+- **Justificación Obligatoria**: Se implementó el requerimiento de motivo (textarea) para todas las acciones de **rechazo** y **anulación** de cargos, reforzando la trazabilidad de la auditoría.
+- **Permisos de Flujo de Trabajo**: Nuevos permisos granulares `adjustments.approve_cargo`, `adjustments.reject_cargo` y `adjustments.delete_cargo` para un control total del ciclo de vida del inventario.
+
+### Changed
+- **Optimización de Productos Variables**: Los detalles de bobinas y items de báscula ahora se almacenan de forma temporal en formato JSON durante la fase pendiente, creándose los registros definitivos de `ProductItem` únicamente tras la aprobación final.
+
 ## [1.8.98] - 2026-03-24
 
 ### Added
