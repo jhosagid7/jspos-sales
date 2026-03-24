@@ -1,13 +1,15 @@
 # Changelog
 
-## [1.8.92] - 2026-03-24
+## [1.8.98] - 2026-03-24
 
 ### Added
-- **Libro de Relación de Cobros (Auditoría)**: Los pagos anulados ahora son visibles en el reporte detallado diario. Se identifican con el prefijo `[ANULADO]` y tachado visual, incluyendo el motivo de la anulación para mantener una auditoría completa del día.
-- **Integridad Financiera**: Se ajustó el motor de cálculo de deudas en el modelo central (`Sale.php`) para excluir automáticamente los cobros anulados, garantizando que el saldo del cliente se refleje correctamente en todo el sistema.
+- **Módulo Inicial de Cargos (Ajustes)**: Implementación de la fase 1 del sistema de ajustes de inventario manual con soporte para productos variables (bobinas) y búsqueda optimizada.
 
-### Changed
-- **Lógica de Caja**: Las anulaciones en la planilla de cobro ahora se marcan con "Ingreso 0.00", permitiendo que el reporte cuadre con el dinero físico recolectado sin omitir la transacción original.
+### Fixed
+- **Restauración de Stock (Integridad)**: Corregido error crítico donde la eliminación de una venta no devolvía el stock al depósito de origen. Ahora se restaura correctamente tanto el stock global como el específico por almacén, incluyendo componentes de productos dinámicos.
+- **Redondeo en Ticket (POS)**: Se ajustó el motor de cálculo en el recibo de venta para mostrar el subtotal con 2 decimales exactos, eliminando la discrepancia visual con el total cobrado.
+
+## [1.8.92] - 2026-03-24
  
 ## [1.8.90] - 2026-03-24
 

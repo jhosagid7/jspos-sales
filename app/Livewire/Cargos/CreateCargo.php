@@ -153,6 +153,18 @@ class CreateCargo extends Component
         }
     }
 
+    public function updateQuantity($productId, $cant)
+    {
+        if (isset($this->cart[$productId])) {
+            $this->cart[$productId]['quantity'] = $cant;
+        }
+    }
+
+    public function removeFromCart($productId)
+    {
+        unset($this->cart[$productId]);
+    }
+
 
     public function save()
     {

@@ -279,10 +279,61 @@ class SalesReport extends Component
                     'deletion_approved_at' => Carbon::now(),
                 ]);
 
-                $saleDetails = SaleDetail::where('sale_id', $saleId)->get();
+                foreach ($sale->details as $detail) {
+                    $product = $detail->product;
+                    if (!$product) continue;
 
-                foreach ($saleDetails as $detail) {
-                    Product::find($detail->product_id)->increment('stock_qty', $detail->quantity);
+                    // Calculate quantity to restore based on conversion factor if it was stored
+                    // For now, use the detail quantity directly as it matches the deduction logic in Sales::storeOrder
+                    $qtyToRestore = $detail->quantity;
+                    $warehouseId = $detail->warehouse_id;
+
+                    // Determine Composite Mode (matching Sales.php logic)
+                    $isComposite = $product->components->count() > 0;
+                    $isPreAssembled = $product->is_pre_assembled;
+                    $isDynamic = $isComposite && !$isPreAssembled;
+
+                    if ($isDynamic) {
+                        // Dynamic Mode: Restore Components ONLY
+                        foreach ($product->components as $component) {
+                            $componentQtyToRestore = $qtyToRestore * $component->pivot->quantity;
+                            $component->increment('stock_qty', $componentQtyToRestore);
+
+                            if ($warehouseId) {
+                                $compWarehouse = \App\Models\ProductWarehouse::where('product_id', $component->id)
+                                    ->where('warehouse_id', $warehouseId)
+                                    ->first();
+                                if ($compWarehouse) {
+                                    $compWarehouse->increment('stock_qty', $componentQtyToRestore);
+                                } else {
+                                    \App\Models\ProductWarehouse::create([
+                                        'product_id' => $component->id,
+                                        'warehouse_id' => $warehouseId,
+                                        'stock_qty' => $componentQtyToRestore
+                                    ]);
+                                }
+                            }
+                        }
+                    } else {
+                        // Normal Product OR Pre-assembled Kit: Restore Product Stock
+                        $product->increment('stock_qty', $qtyToRestore);
+
+                        if ($warehouseId) {
+                            $productWarehouse = \App\Models\ProductWarehouse::where('product_id', $product->id)
+                                ->where('warehouse_id', $warehouseId)
+                                ->first();
+
+                            if ($productWarehouse) {
+                                $productWarehouse->increment('stock_qty', $qtyToRestore);
+                            } else {
+                                \App\Models\ProductWarehouse::create([
+                                    'product_id' => $product->id,
+                                    'warehouse_id' => $warehouseId,
+                                    'stock_qty' => $qtyToRestore
+                                ]);
+                            }
+                        }
+                    }
                 }
 
                 // Restore Balances and Delete Payments
