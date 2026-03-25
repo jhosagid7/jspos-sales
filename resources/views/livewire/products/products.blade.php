@@ -240,9 +240,8 @@
 
         function validateInput(input) {
             // Expresión regular que coincide con números enteros positivos,
-            // con hasta dos decimales y un solo punto decimal
-            //var regex = /^\d+(\.\d{1,2})?$/
-            var regex = /^\d{1,11}(\.\d{1,2})?$/;
+            // con hasta cuatro decimales y un solo punto decimal
+            var regex = /^\d*[.]?\d{0,4}$/;
 
             // Comprueba si la entrada del usuario coincide con la expresión regular
             if (!regex.test(input.value)) {

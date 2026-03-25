@@ -226,7 +226,7 @@
                                     calculatePrice() {
                                         if(this.cost > 0 && this.margin > 0) {
                                             // Price = Cost / (1 - Margin%)
-                                            this.price = (this.cost / (1 - (this.margin / 100))).toFixed(2);
+                                            this.price = (this.cost / (1 - (this.margin / 100))).toFixed(4);
                                         }
                                     }
                                 }" x-init="calculateMargin()">
@@ -236,7 +236,7 @@
                                             <label class="form-label">Costo de Compra</label>
                                             <div class="input-group">
                                                 <span class="input-group-text">$</span>
-                                                <input wire:model="form.cost" x-model="cost" @input="calculateMargin()" class="form-control numerico" type="number" placeholder="0.00">
+                                                <input wire:model="form.cost" x-model="cost" @input="calculateMargin()" class="form-control numerico" type="number" placeholder="0.0000" step="0.0001">
                                             </div>
                                         </div>
                                         {{-- price --}}
@@ -244,7 +244,7 @@
                                             <label class="form-label">Precio de Venta</label>
                                             <div class="input-group">
                                                 <span class="input-group-text">$</span>
-                                                <input wire:model="form.price" x-model="price" @input="calculateMargin()" class="form-control numerico" type="number" placeholder="0.00">
+                                                <input wire:model="form.price" x-model="price" @input="calculateMargin()" class="form-control numerico" type="number" placeholder="0.0000" step="0.0001">
                                             </div>
                                         </div>
                                         {{-- margin --}}
@@ -252,7 +252,7 @@
                                             <label class="form-label">Margen de Ganancia (%)</label>
                                             <div class="input-group">
                                                 <span class="input-group-text">%</span>
-                                                <input x-model="margin" @input="calculatePrice()" class="form-control numerico" type="number" placeholder="0.00">
+                                                <input x-model="margin" @input="calculatePrice()" class="form-control numerico" type="number" placeholder="0.00" step="0.01">
                                             </div>
                                         </div>
                                     </div>
@@ -446,7 +446,7 @@
                                     },
                                     calculatePrice() {
                                         if(this.cost > 0 && this.margin > 0) {
-                                            this.price = (this.cost / (1 - (this.margin / 100))).toFixed(2);
+                                            this.price = (this.cost / (1 - (this.margin / 100))).toFixed(4);
                                         }
                                     }
                                 }">
@@ -456,14 +456,14 @@
                                                 class="txt-danger">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text">$</span>
-                                            <input wire:model="form.value" x-model="price" @input="calculateMargin()" class="form-control numerico" type="number" placeholder="0.00">
+                                            <input wire:model="form.value" x-model="price" @input="calculateMargin()" class="form-control numerico" type="number" placeholder="0.0000" step="0.0001">
                                         </div>
                                     </div>
                                     <div class="col-sm-3">
                                         <label class="form-label">Margen (%)</label>
                                         <div class="input-group">
                                             <span class="input-group-text">%</span>
-                                            <input x-model="margin" @input="calculatePrice()" class="form-control numerico" type="number" placeholder="0.00">
+                                            <input x-model="margin" @input="calculatePrice()" class="form-control numerico" type="number" placeholder="0.00" step="0.01">
                                         </div>
                                     </div>
                                     <div class="col-sm-12 col-md-2">
@@ -552,11 +552,11 @@
                                                     <td>{{ $detail['warehouse_name'] }}</td>
                                                     <td class="text-center">
                                                         <div class="input-group input-group-sm">
-                                                            <input type="number" 
-                                                                   class="form-control text-center text-primary fw-bold" 
+                                                            <input type="number"
+                                                                   class="form-control text-center text-primary fw-bold"
                                                                    value="{{ $detail['stock'] }}"
                                                                    wire:change="updateStockDetail({{ $index }}, $event.target.value)"
-                                                                   step="any"
+                                                                   step="0.0001"
                                                                    min="0">
                                                         </div>
                                                     </td>
@@ -597,7 +597,7 @@
                                     <label class="form-label">Costo</label>
                                     <div class="input-group">
                                         <span class="input-group-text">$</span>
-                                        <input wire:model="form.supplier_cost" class="form-control numerico" type="number" placeholder="0.00">
+                                        <input wire:model="form.supplier_cost" class="form-control numerico" type="number" placeholder="0.00" step="0.0001">
                                     </div>
                                     @error('form.supplier_cost') <span class="text-danger">{{ $message }}</span> @enderror
                                 </div>
@@ -652,7 +652,7 @@
                                     <label class="form-label">Costo Adicional (Mano de obra, etc)</label>
                                     <div class="input-group">
                                         <span class="input-group-text">$</span>
-                                        <input wire:model.live.debounce.500ms="form.additional_cost" class="form-control numerico" type="number" placeholder="0.00">
+                                        <input wire:model.live.debounce.500ms="form.additional_cost" class="form-control numerico" type="number" placeholder="0.00" step="0.0001">
                                     </div>
                                 </div>
 
@@ -662,7 +662,7 @@
                                         <span class="input-group-text"><i class="fa fa-search"></i></span>
                                         <input wire:model.live.debounce.300ms="search_component" class="form-control" type="text" placeholder="Escribe para buscar...">
                                     </div>
-                                    
+
                                     @if(!empty($component_search_results))
                                         <ul class="list-group mt-1 w-100" style="z-index: 1000; max-height: 200px; overflow-y: auto;">
                                             @foreach($component_search_results as $result)
@@ -692,11 +692,11 @@
                                             <tr>
                                                 <td>{{ $item['name'] }}</td>
                                                 <td>
-                                                    <input type="number" 
-                                                           class="form-control form-control-sm" 
+                                                    <input type="number"
+                                                           class="form-control form-control-sm"
                                                            value="{{ $item['quantity'] }}"
                                                            wire:change="updateComponentQty({{ $index }}, $event.target.value)"
-                                                           min="0.01" step="0.01">
+                                                           min="0.0001" step="0.0001">
                                                 </td>
                                                 <td>
                                                     <button wire:click.prevent="removeComponent({{ $index }})" class="btn btn-danger btn-sm">
@@ -736,11 +736,11 @@
                                         <span class="input-group-text">
                                             @if($form->freight_type == 'percentage') % @else $ @endif
                                         </span>
-                                        <input wire:model="form.freight_value" class="form-control" type="number" min="0" step="0.01">
+                                        <input wire:model="form.freight_value" class="form-control" type="number" min="0" step="0.0001">
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <hr>
 
                             {{-- Price Group --}}
@@ -762,18 +762,18 @@
 
                             <h6 class="mb-3">Precios por Volumen (Mayorista)</h6>
                             <div class="alert alert-light border">
-                                <i class="fa fa-info-circle text-info"></i> 
+                                <i class="fa fa-info-circle text-info"></i>
                                 Define precios especiales que se activan automáticamente al vender cierta cantidad.
                             </div>
 
                             <div class="row g-3 mb-3">
                                 <div class="col-md-4">
                                     <label class="form-label">Cantidad Mínima</label>
-                                    <input type="number" id="tierMinQty" class="form-control" placeholder="Ej: 100">
+                                    <input type="number" id="tierMinQty" class="form-control" placeholder="Ej: 100" step="0.0001">
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Precio Unitario Especial</label>
-                                    <input type="number" id="tierPrice" class="form-control" placeholder="Ej: 3.50">
+                                    <input type="number" id="tierPrice" class="form-control" placeholder="Ej: 3.50" step="0.0001">
                                 </div>
                                 <div class="col-md-4 d-flex align-items-end">
                                     <button type="button" class="btn btn-primary w-100" onclick="addPriceTier()">
@@ -795,7 +795,7 @@
                                         @forelse($form->pricing_tiers as $index => $tier)
                                             <tr>
                                                 <td>Mayor a <strong>{{ $tier['min_qty'] }}</strong> unidades</td>
-                                                <td><span class="text-success fw-bold">${{ number_format($tier['price'], 2) }}</span></td>
+                                                <td><span class="text-success fw-bold">${{ number_format($tier['price'], 4) }}</span></td>
                                                 <td>
                                                     <button type="button" class="btn btn-danger btn-sm" wire:click="removePriceTier({{ $index }})">
                                                         <i class="fa fa-trash"></i>
@@ -811,7 +811,6 @@
                                 </table>
                             </div>
 
-                            {{-- Alpine/JS Helper for Tiers --}}
                             <script>
                                 function addPriceTier() {
                                     let qty = document.getElementById('tierMinQty').value;
@@ -828,23 +827,6 @@
                             </script>
                         </div>
                     </div>
-
-                    {{-- Variable Items Content --}}
-                    @if($form->is_variable_quantity && $form->product_id > 0)
-                        <div class="tab-pane fade {{ $tab == 9 ? 'active show' : '' }}" id="variable-items" role="tabpanel">
-                            <div class="sidebar-body">
-                                <livewire:product-items-manager :productId="$form->product_id" wire:key="items-manager-{{ $form->product_id }}" />
-                            </div>
-                        </div>
-                    @elseif($form->is_variable_quantity)
-                        <div class="tab-pane fade {{ $tab == 9 ? 'active show' : '' }}" id="variable-items" role="tabpanel">
-                            <div class="sidebar-body">
-                                <div class="alert alert-warning">
-                                    <i class="fa fa-info-circle"></i> Debes guardar el producto primero para gestionar los items/bobinas.
-                                </div>
-                            </div>
-                        </div>
-                    @endif
 
                     {{-- Statistics Tab --}}
                     <div class="tab-pane fade {{ $tab == 8 ? 'active show' : '' }}" id="statistics" role="tabpanel">
@@ -894,54 +876,7 @@
                                                 <h6 class="mb-0 fw-bold">Tendencia de Ventas (Últimos 12 Meses)</h6>
                                             </div>
                                             <div class="card-body p-2" wire:ignore>
-                                                <div x-data='{
-                                                    init() {
-                                                        if (typeof Highcharts !== "undefined") {
-                                                            this.renderChart();
-                                                        } else {
-                                                            document.addEventListener("DOMContentLoaded", () => this.renderChart());
-                                                        }
-                                                    },
-                                                    renderChart() {
-                                                        const trendData = @json($stats["trend"]);
-                                                        Highcharts.chart(this.$refs.chart, {
-                                                            chart: { type: "areaspline", backgroundColor: "transparent" },
-                                                            title: { text: "" },
-                                                            xAxis: { 
-                                                                categories: trendData.map(item => item.label),
-                                                                crosshair: true,
-                                                                lineColor: "transparent",
-                                                                tickColor: "transparent"
-                                                            },
-                                                            yAxis: { 
-                                                                min: 0, 
-                                                                title: { text: "" }, 
-                                                                gridLineColor: "#f0f0f0" 
-                                                            },
-                                                            tooltip: {
-                                                                shared: true,
-                                                                headerFormat: "<span style=\"font-size: 10px\">{point.key}</span><br/>",
-                                                                pointFormat: "<span style=\"color:{point.color}\">\u25CF</span> {series.name}: <b>{point.y}</b><br/>"
-                                                            },
-                                                            plotOptions: {
-                                                                areaspline: {
-                                                                    fillOpacity: 0.1,
-                                                                    marker: { enabled: false, symbol: "circle", radius: 2, states: { hover: { enabled: true } } }
-                                                                }
-                                                            },
-                                                            series: [{
-                                                                name: "Ventas",
-                                                                data: trendData.map(item => item.value),
-                                                                color: "#6366f1",
-                                                                lineColor: "#6366f1"
-                                                            }],
-                                                            credits: { enabled: false },
-                                                            legend: { enabled: false }
-                                                        });
-                                                    }
-                                                }'>
-                                                    <div x-ref="chart" style="height: 250px;"></div>
-                                                </div>
+                                                <div id="salesTrendChart" style="height: 250px;"></div>
                                             </div>
                                         </div>
                                     </div>
@@ -992,7 +927,7 @@
                                                                 <td class="text-center">
                                                                     <span class="badge bg-info text-dark">{{ $customer['quantity'] }}</span>
                                                                 </td>
-                                                                <td class="text-end pe-3 fw-bold text-success">${{ number_format($customer['amount'], 2) }}</td>
+                                                                <td class="text-end pe-3 fw-bold text-success">${{ number_format($customer['amount'], 4) }}</td>
                                                             </tr>
                                                         @empty
                                                             <tr>
@@ -1006,55 +941,23 @@
                                     </div>
                                 </div>
 
-                                {{-- Chart Script --}}
                                 <script>
                                     document.addEventListener('livewire:initialized', () => {
                                         initChart();
                                     });
-                                    
-                                    // Re-init chart when tab is shown (if needed) or when Livewire updates
-                                    document.addEventListener('livewire:navigated', () => {
-                                        initChart();
-                                    });
-
                                     function initChart() {
                                         if (!document.getElementById('salesTrendChart')) return;
-                                        
                                         const trendData = @json($stats['trend']);
-                                        
                                         Highcharts.chart('salesTrendChart', {
                                             chart: { type: 'areaspline', backgroundColor: 'transparent' },
                                             title: { text: '' },
-                                            xAxis: { 
-                                                categories: trendData.map(item => item.label),
-                                                crosshair: true,
-                                                lineColor: 'transparent',
-                                                tickColor: 'transparent'
-                                            },
-                                            yAxis: { 
-                                                min: 0, 
-                                                title: { text: '' }, 
-                                                gridLineColor: '#f0f0f0' 
-                                            },
-                                            tooltip: {
-                                                shared: true,
-                                                headerFormat: '<span style="font-size: 10px">{point.key}</span><br/>',
-                                                pointFormat: '<span style="color:{point.color}">\u25CF</span> {series.name}: <b>{point.y}</b><br/>'
-                                            },
-                                            plotOptions: {
-                                                areaspline: {
-                                                    fillOpacity: 0.1,
-                                                    marker: { enabled: false, symbol: 'circle', radius: 2, states: { hover: { enabled: true } } }
-                                                }
-                                            },
+                                            xAxis: { categories: trendData.map(item => item.label) },
                                             series: [{
                                                 name: 'Ventas',
                                                 data: trendData.map(item => item.value),
-                                                color: '#6366f1',
-                                                lineColor: '#6366f1'
+                                                color: '#6366f1'
                                             }],
-                                            credits: { enabled: false },
-                                            legend: { enabled: false }
+                                            credits: { enabled: false }
                                         });
                                     }
                                 </script>
@@ -1067,6 +970,7 @@
                             @endif
                         </div>
                     </div>
+
 
 
 

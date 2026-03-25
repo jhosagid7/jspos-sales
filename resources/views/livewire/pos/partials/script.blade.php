@@ -198,7 +198,7 @@
 
     function validarInputNumber(input) {
         // Expresión regular para validar el formato del número (permite decimales intermedios)
-        var regex = /^\d*\.?\d{0,2}$/;
+        var regex = /^\d*\.?\d{0,4}$/;
 
         // Validar si el valor del input coincide con la expresión regular
         if (!regex.test(input.value)) {
@@ -209,7 +209,7 @@
 
     function justNumber(input) {
         // Expresión regular para validar el formato del número
-        var regex = /^\d*\.?\d{0,2}$/;
+        var regex = /^\d*\.?\d{0,4}$/;
 
         // Validar si el valor del input coincide con la expresión regular
         if (!regex.test(input.value)) {

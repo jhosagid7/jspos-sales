@@ -101,14 +101,14 @@
                             <td>
                                 <div class="input-group input-group-sm">
                                     <input wire:change="setCost('{{ $item['id'] }}', $event.target.value )"
-                                        class="form-control form-control-sm text-center" type="number" value="{{ $item['cost'] }}"
+                                        class="form-control form-control-sm text-center" type="number" step="0.0001" value="{{ $item['cost'] }}"
                                         id="c{{$item['id']}}">
                                 </div>
                             </td>
                             <td>
                                 <div class="input-group input-group-sm">
                                     <input wire:change="setPrice('{{ $item['id'] }}', $event.target.value )"
-                                        class="form-control form-control-sm text-center" type="number" value="{{ $item['price'] ?? 0 }}"
+                                        class="form-control form-control-sm text-center" type="number" step="0.0001" value="{{ $item['price'] ?? 0 }}"
                                         id="pr{{$item['id']}}">
                                     <div class="input-group-append">
                                         <button class="btn btn-warning btn-sm" type="button" wire:click="openPriceModal('{{ $item['id'] }}')" title="Gestionar Precios">

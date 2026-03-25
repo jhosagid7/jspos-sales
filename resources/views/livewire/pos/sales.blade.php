@@ -83,7 +83,7 @@
                             <label class="font-weight-bold mb-0">Moneda Factura / Ticket:</label>
                             @if($invoiceExchangeRate != 1)
                                 <span class="badge badge-info" style="font-size: 0.9em;">
-                                    Tasa: {{ number_format($invoiceExchangeRate, 2) }}
+                                    Tasa: {{ number_format($invoiceExchangeRate, 4) }}
                                 </span>
                             @endif
                         </div>
@@ -209,7 +209,7 @@
                                             @php
                                                 $creditSource = isset($customer['customer_allow_credit']) && $customer['customer_allow_credit'] ? 'Cliente' : 'Vendedor/Global';
                                             @endphp
-                                            <li><strong>Crédito:</strong> {{ $customer['credit_days'] ?? 0 }} días | Límite: ${{ number_format($customer['credit_limit'] ?? 0, 2) }} <i>({{ $creditSource }})</i></li>
+                                            <li><strong>Crédito:</strong> {{ $customer['credit_days'] ?? 0 }} días | Límite: ${{ number_format($customer['credit_limit'] ?? 0, 4) }} <i>({{ $creditSource }})</i></li>
                                         @endif
                                         
                                         @if(isset($customer['usd_payment_discount']) && $customer['usd_payment_discount'] > 0)
@@ -231,7 +231,7 @@
                                             <i class="fas fa-eye"></i> Ver Detalle
                                         </button>
                                     </div>
-                                    <small><strong>Total Deuda: ${{ number_format($customer['total_debt'], 2) }}</strong></small>
+                                    <small><strong>Total Deuda: ${{ number_format($customer['total_debt'], 4) }}</strong></small>
                                 @endif
                                 
                                 {{-- Discount Rules --}}
@@ -317,7 +317,7 @@
                                             <div class="input-group-prepend">
                                                 <span class="input-group-text p-1">{{ $displayCurrency ? $displayCurrency->symbol : '$' }}</span>
                                             </div>
-                                            <input type="number" class="form-control form-control-sm text-right" 
+                                            <input type="number" step="0.0001" class="form-control form-control-sm text-right" 
                                                 wire:model.lazy="total_freight" 
                                                 style="max-width: 100px;">
                                         </div>
@@ -545,9 +545,9 @@
                                             <td><strong>{{ $inv['invoice_number'] }}</strong></td>
                                             <td>{{ $inv['created_at'] }}</td>
                                             <td>{{ $inv['due_date'] }}</td>
-                                            <td class="text-right">{{ $inv['currency_symbol'] ?? '$' }} {{ number_format($inv['total'], 2) }}</td>
-                                            <td class="text-right">{{ $inv['currency_symbol'] ?? '$' }} {{ number_format($inv['paid'], 2) }}</td>
-                                            <td class="text-right"><strong>{{ $inv['currency_symbol'] ?? '$' }} {{ number_format($inv['pending'], 2) }}</strong></td>
+                                            <td class="text-right">{{ $inv['currency_symbol'] ?? '$' }} {{ number_format($inv['total'], 4) }}</td>
+                                            <td class="text-right">{{ $inv['currency_symbol'] ?? '$' }} {{ number_format($inv['paid'], 4) }}</td>
+                                            <td class="text-right"><strong>{{ $inv['currency_symbol'] ?? '$' }} {{ number_format($inv['pending'], 4) }}</strong></td>
                                             <td class="text-center">
                                                 @if($inv['is_overdue'])
                                                     <span class="badge badge-danger">VENCIDA</span>
@@ -565,11 +565,11 @@
                                             @if(isset($customer['debt_totals']))
                                                 @foreach($customer['debt_totals'] as $currency => $data)
                                                     <div>
-                                                        {{ $data['symbol'] }} {{ number_format($data['total'], 2) }} <small class="text-muted">({{ $currency }})</small>
+                                                        {{ $data['symbol'] }} {{ number_format($data['total'], 4) }} <small class="text-muted">({{ $currency }})</small>
                                                     </div>
                                                 @endforeach
                                             @else
-                                                ${{ number_format($customer['total_debt'], 2) }}
+                                                ${{ number_format($customer['total_debt'], 4) }}
                                             @endif
                                         </td>
                                         <td></td>

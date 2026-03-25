@@ -516,7 +516,7 @@
                                                 <input class="form-control form-control-sm"
                                                     wire:keydown.enter.prevent="setCustomPrice('{{ $item['id'] }}', $event.target.value )"
                                                     type="text" oninput="justNumber(this)" 
-                                                    value="{{ round($item['sale_price'] * $conversionFactor, 2) }}"
+                                                    value="{{ number_format($item['sale_price'] * $conversionFactor, \App\Services\ConfigurationService::getDecimalPlaces(), '.', '') }}"
                                                     @cannot('sales.manage_adjustments') readonly @endcannot>
                                                 
                                                 @can('sales.manage_adjustments')
@@ -527,7 +527,7 @@
                                                     <div class="dropdown-menu dropdown-menu-right" style="min-width: 250px; z-index: 10000;">
                                                         <a class="dropdown-item" href="javascript:void(0)">
                                                             <div class="d-flex flex-column">
-                                                                <span class="font-weight-bold">{{ $targetSymbol }}{{ round($item['sale_price'] * $conversionFactor, 2) }}</span>
+                                                                <span class="font-weight-bold">{{ $targetSymbol }}{{ round($item['sale_price'] * $conversionFactor, \App\Services\ConfigurationService::getDecimalPlaces()) }}</span>
                                                                 @if(isset($currencies) && $currencies->count() > 1)
                                                                     <div class="text-muted small">
                                                                         @foreach($currencies as $currency)
@@ -553,8 +553,7 @@
                                                 <input class="form-control form-control-sm" id="inputPrice{{ $item['id'] }}"
                                                     wire:keydown.enter.prevent="setCustomPrice('{{ $item['id'] }}', $event.target.value )"
                                                     oninput="justNumber(this)" type="text"
-                                                    placeholder="{{ round($item['sale_price'] * $conversionFactor, 2) }}"
-                                                    value="{{ round($item['sale_price'] * $conversionFactor, 2) }}"
+                                                    value="{{ number_format($item['sale_price'] * $conversionFactor, \App\Services\ConfigurationService::getDecimalPlaces(), '.', '') }}"
                                                     @cannot('sales.manage_adjustments') readonly @endcannot>
                                                 
                                                 @can('sales.manage_adjustments')
@@ -572,7 +571,7 @@
                                                             <a class="dropdown-item" href="javascript:void(0)" 
                                                                wire:click.prevent="setCustomPrice('{{ $item['id'] }}', '{{ $price['price'] }}')">
                                                                 <div class="d-flex flex-column">
-                                                                    <span class="font-weight-bold">{{ $targetSymbol }}{{ round($price['price'] * $conversionFactor, 2) }}</span>
+                                                                    <span class="font-weight-bold">{{ $targetSymbol }}{{ round($price['price'] * $conversionFactor, \App\Services\ConfigurationService::getDecimalPlaces()) }}</span>
                                                                     @if(isset($currencies) && $currencies->count() > 1)
                                                                         <div class="text-muted small">
                                                                             @foreach($currencies as $currency)

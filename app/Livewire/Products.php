@@ -241,12 +241,12 @@ class Products extends Component
         // validar que el valor sea un número positivo con un máximo de un decimal
         $validator = validator(
             ['price' => $this->form->value],
-            ['price' => ['required', 'numeric', 'min:0', 'regex:/^\d+(\.\d{2})?$/']]
+            ['price' => ['required', 'numeric', 'min:0', 'regex:/^\d+(\.\d{4})?$/']]
         );
 
         if ($validator->fails()) {
             $this->form->value = '';
-            $this->dispatch('noty', msg: '¡El valor debe ser un número positivo con un máximo de dos decimal!');
+            $this->dispatch('noty', msg: '¡El valor debe ser un número positivo con un máximo de cuatro decimales!');
             return;
         }
 
@@ -382,7 +382,7 @@ class Products extends Component
         }
         
         $totalCost += floatval($this->form->additional_cost);
-        $this->form->cost = round($totalCost, 2);
+        $this->form->cost = round($totalCost, 4);
     }
 
     public function updatedFormAdditionalCost()

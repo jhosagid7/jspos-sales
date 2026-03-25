@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.9.2] - 2026-03-25
+
+### Added
+- **Precisión Financiera de 4 Decimales (Soporte Global)**: Implementación de arquitectura completa para soportar 4 decimales en toda la cadena de suministro y ventas. 
+    - **Base de Datos**: Migración masiva de columnas de costo y precio de `decimal(15, 2)` a `decimal(15, 4)` en productos, órdenes, ventas, compras e inventario.
+    - **Configuración Dinámica**: El sistema ahora lee `getDecimalPlaces()` de forma centralizada para aplicar el redondeo configurado en todos los cálculos y traits.
+    - **Visualización en PDF**: Actualización de plantillas de reportes de Ventas Diarias y Cuadre de Caja para mostrar montos con 4 decimales.
+
+### Changed
+- **Motor de Interfaz (UX)**: Mejorada la visualización de precios en el POS para mostrar ceros a la derecha (ej. `12.4300`) mediante `number_format`, garantizando claridad en productos con precios de alta precisión.
+- **Validación de Entradas**: Las funciones globales de JavaScript (`justNumber`, `validarInputNumber`) ahora permiten hasta 4 decimales durante el tipeo manual.
+- **Módulos POS y Compras**: Se añadió el atributo `step="0.0001"` a todos los campos de entrada de costos y precios para permitir ajustes granulares sin restricciones del navegador.
+
+### Fixed
+- **Redondeo en Inventario**: Corregida la visualización de valorización de stock que estaba forzada a 2 decimales en la vista de inventario.
+
 ## [1.9.1] - 2026-03-24
 
 ### Added

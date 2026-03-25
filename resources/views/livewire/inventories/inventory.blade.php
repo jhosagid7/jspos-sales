@@ -31,11 +31,11 @@
                             <td style="background-color: rgb(253, 251, 224)">{{$item->stock_qty}}</td>
                             <td>{{$item->cost}}</td>
                             <td style="background-color: rgb(210, 247, 234)">${{ round($item->stock_qty *
-                                $item->cost,2) }}
+                                $item->cost, \App\Services\ConfigurationService::getDecimalPlaces()) }}
                             </td>
                             <td>{{$item->price}}</td>
                             <td style="background-color: rgb(210, 247, 234)">${{ round($item->stock_qty *
-                                $item->price,2) }}
+                                $item->price, \App\Services\ConfigurationService::getDecimalPlaces()) }}
                             </td>
                             <td>
                                 @can('inventory.edit')
@@ -137,7 +137,7 @@
         
 
         function justNumber(input) {    
-            var regex = /^\d*\.?\d{0,2}$/    
+            var regex = /^\d*\.?\d{0,4}$/    
     
             if (!regex.test(input.value)) {                
                 input.value = input.value.slice(0, -1)

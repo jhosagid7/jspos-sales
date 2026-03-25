@@ -203,7 +203,7 @@ Livewire.on('hide-modal', event => {
            
     function validarInputNumber(input) {
             // expresión regular para validar el formato del número
-            var regex = /^\d+(\.\d{1,2})?$/;
+            var regex = /^\d+(\.\d{1,4})?$/;
     
             // Validar si el valor del input coincide con la expresión regular
             if (!regex.test(input.value)) {        
@@ -212,7 +212,7 @@ Livewire.on('hide-modal', event => {
     }
     function justNumber(input) {
     // Expresión regular para validar el formato del número
-    var regex = /^\d*\.?\d{0,2}$/;
+    var regex = /^\d*\.?\d{0,4}$/;
     
     // Validar si el valor del input coincide con la expresión regular
     if (!regex.test(input.value)) {

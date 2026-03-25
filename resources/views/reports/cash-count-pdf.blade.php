@@ -61,8 +61,8 @@
                 @foreach($salesByCurrency['cash'] as $curr => $amt)
                     <tr>
                         <td>Efectivo {{ $getLabel($curr) }}</td>
-                        <td class="text-right">{{ number_format($amt, 2) }} {{ $curr }}</td>
-                        <td class="text-right">{{ $symbol }} {{ number_format($convertToPrimary($amt, $curr), 2) }}</td>
+                        <td class="text-right">{{ number_format($amt, 4) }} {{ $curr }}</td>
+                        <td class="text-right">{{ $symbol }} {{ number_format($convertToPrimary($amt, $curr), 4) }}</td>
                     </tr>
                 @endforeach
             @endif
@@ -74,15 +74,15 @@
                         @foreach($currs as $curr => $amt)
                             <tr>
                                 <td><span class="bank-name">{{ $bn }}</span></td>
-                                <td class="text-right">{{ number_format($amt, 2) }} {{ $curr }}</td>
-                                <td class="text-right">{{ $symbol }} {{ number_format($convertToPrimary($amt, $curr), 2) }}</td>
+                                <td class="text-right">{{ number_format($amt, 4) }} {{ $curr }}</td>
+                                <td class="text-right">{{ $symbol }} {{ number_format($convertToPrimary($amt, $curr), 4) }}</td>
                             </tr>
                         @endforeach
                     @else
                          <tr>
                             <td>Banco / Otros: {{ $getLabel($bn) }}</td>
-                            <td class="text-right">{{ number_format($currs, 2) }} {{ $bn }}</td>
-                            <td class="text-right">{{ $symbol }} {{ number_format($convertToPrimary($currs, $bn), 2) }}</td>
+                            <td class="text-right">{{ number_format($currs, 4) }} {{ $bn }}</td>
+                            <td class="text-right">{{ $symbol }} {{ number_format($convertToPrimary($currs, $bn), 4) }}</td>
                         </tr>
                     @endif
                 @endforeach
@@ -93,23 +93,23 @@
                 @foreach($salesByCurrency['zelle'] as $sender => $amt)
                     <tr>
                         <td>Zelle: <span class="badge">{{ substr($sender, 0, 30) }}</span></td>
-                        <td class="text-right">{{ number_format($amt, 2) }} USD</td>
-                        <td class="text-right">{{ $symbol }} {{ number_format($convertToPrimary($amt, 'USD'), 2) }}</td>
+                        <td class="text-right">{{ number_format($amt, 4) }} USD</td>
+                        <td class="text-right">{{ $symbol }} {{ number_format($convertToPrimary($amt, 'USD'), 4) }}</td>
                     </tr>
                 @endforeach
             @endif
 
             <tr class="total-row">
                 <td colspan="2" class="text-right">TOTAL VENTAS RECIBIDAS (NETO):</td>
-                <td class="text-right">{{ $symbol }} {{ number_format($salesTotal - $credit, 2) }}</td>
+                <td class="text-right">{{ $symbol }} {{ number_format($salesTotal - $credit, 4) }}</td>
             </tr>
             <tr>
                 <td colspan="2" class="text-right">VENTAS A CRÉDITO:</td>
-                <td class="text-right">{{ $symbol }} {{ number_format($credit, 2) }}</td>
+                <td class="text-right">{{ $symbol }} {{ number_format($credit, 4) }}</td>
             </tr>
             <tr class="total-row" style="background: #eef;">
                 <td colspan="2" class="text-right">TOTAL VENTAS BRUTAS:</td>
-                <td class="text-right">{{ $symbol }} {{ number_format($salesTotal, 2) }}</td>
+                <td class="text-right">{{ $symbol }} {{ number_format($salesTotal, 4) }}</td>
             </tr>
         </tbody>
     </table>
@@ -129,8 +129,8 @@
                 @foreach($paymentsByCurrency['cash'] as $curr => $amt)
                     <tr>
                         <td>Efectivo {{ $getLabel($curr) }}</td>
-                        <td class="text-right">{{ number_format($amt, 2) }} {{ $curr }}</td>
-                        <td class="text-right">{{ $symbol }} {{ number_format($convertToPrimary($amt, $curr), 2) }}</td>
+                        <td class="text-right">{{ number_format($amt, 4) }} {{ $curr }}</td>
+                        <td class="text-right">{{ $symbol }} {{ number_format($convertToPrimary($amt, $curr), 4) }}</td>
                     </tr>
                 @endforeach
             @endif
@@ -141,15 +141,15 @@
                         @foreach($currs as $curr => $amt)
                             <tr>
                                 <td><span class="bank-name">{{ $bn }}</span></td>
-                                <td class="text-right">{{ number_format($amt, 2) }} {{ $curr }}</td>
-                                <td class="text-right">{{ $symbol }} {{ number_format($convertToPrimary($amt, $curr), 2) }}</td>
+                                <td class="text-right">{{ number_format($amt, 4) }} {{ $curr }}</td>
+                                <td class="text-right">{{ $symbol }} {{ number_format($convertToPrimary($amt, $curr), 4) }}</td>
                             </tr>
                         @endforeach
                     @else
                          <tr>
                             <td>Banco / Otros: {{ $getLabel($bn) }}</td>
-                            <td class="text-right">{{ number_format($currs, 2) }} {{ $bn }}</td>
-                            <td class="text-right">{{ $symbol }} {{ number_format($convertToPrimary($currs, $bn), 2) }}</td>
+                            <td class="text-right">{{ number_format($currs, 4) }} {{ $bn }}</td>
+                            <td class="text-right">{{ $symbol }} {{ number_format($convertToPrimary($currs, $bn), 4) }}</td>
                         </tr>
                     @endif
                 @endforeach
@@ -159,8 +159,8 @@
                 @foreach($paymentsByCurrency['zelle'] as $sender => $amt)
                     <tr>
                         <td>Zelle: <span class="badge">{{ substr($sender, 0, 30) }}</span></td>
-                        <td class="text-right">{{ number_format($amt, 2) }} USD</td>
-                        <td class="text-right">{{ $symbol }} {{ number_format($convertToPrimary($amt, 'USD'), 2) }}</td>
+                        <td class="text-right">{{ number_format($amt, 4) }} USD</td>
+                        <td class="text-right">{{ $symbol }} {{ number_format($convertToPrimary($amt, 'USD'), 4) }}</td>
                     </tr>
                 @endforeach
             @endif
@@ -173,7 +173,7 @@
 
             <tr class="total-row">
                 <td colspan="2" class="text-right">TOTAL PAGOS RECIBIDOS:</td>
-                <td class="text-right">{{ $symbol }} {{ number_format($payments, 2) }}</td>
+                <td class="text-right">{{ $symbol }} {{ number_format($payments, 4) }}</td>
             </tr>
         </tbody>
     </table>
@@ -196,13 +196,13 @@
                     @php $primaryAmt = $convertToPrimary($amt, $curr); $totalCashFull += $primaryAmt; @endphp
                     <tr>
                         <td>TOTAL EFECTIVO ({{ $curr }})</td>
-                        <td class="text-right">{{ number_format($amt, 2) }} {{ $curr }}</td>
-                        <td class="text-right">{{ $symbol }} {{ number_format($primaryAmt, 2) }}</td>
+                        <td class="text-right">{{ number_format($amt, 4) }} {{ $curr }}</td>
+                        <td class="text-right">{{ $symbol }} {{ number_format($primaryAmt, 4) }}</td>
                     </tr>
                 @endforeach
                 <tr class="total-row" style="background-color: #f1f1f1;">
                     <td colspan="2" class="text-right">SUBTOTAL EFECTIVO:</td>
-                    <td class="text-right">{{ $symbol }} {{ number_format($totalCashFull, 2) }}</td>
+                    <td class="text-right">{{ $symbol }} {{ number_format($totalCashFull, 4) }}</td>
                 </tr>
 
                 {{-- Total Banks --}}
@@ -213,14 +213,14 @@
                         @php $primaryAmt = $convertToPrimary($amt, $curr); $totalBankFull += $primaryAmt; @endphp
                         <tr>
                             <td>TOTAL BANCO: <span class="bank-name">{{ $bn }} ({{ $curr }})</span></td>
-                            <td class="text-right">{{ number_format($amt, 2) }} {{ $curr }}</td>
-                            <td class="text-right">{{ $symbol }} {{ number_format($primaryAmt, 2) }}</td>
+                            <td class="text-right">{{ number_format($amt, 4) }} {{ $curr }}</td>
+                            <td class="text-right">{{ $symbol }} {{ number_format($primaryAmt, 4) }}</td>
                         </tr>
                     @endforeach
                 @endforeach
                 <tr class="total-row" style="background-color: #f1f1f1;">
                     <td colspan="2" class="text-right">SUBTOTAL BANCOS:</td>
-                    <td class="text-right">{{ $symbol }} {{ number_format($totalBankFull, 2) }}</td>
+                    <td class="text-right">{{ $symbol }} {{ number_format($totalBankFull, 4) }}</td>
                 </tr>
 
                 {{-- Total Zelle --}}
@@ -230,20 +230,20 @@
                     @php $primaryAmt = $convertToPrimary($amt, 'USD'); $totalZelleFull += $primaryAmt; @endphp
                     <tr>
                         <td>TOTAL Zelle: {{ $sender }}</td>
-                        <td class="text-right">{{ number_format($amt, 2) }} USD</td>
-                        <td class="text-right">{{ $symbol }} {{ number_format($primaryAmt, 2) }}</td>
+                        <td class="text-right">{{ number_format($amt, 4) }} USD</td>
+                        <td class="text-right">{{ $symbol }} {{ number_format($primaryAmt, 4) }}</td>
                     </tr>
                 @endforeach
                 <tr class="total-row" style="background-color: #f1f1f1;">
                     <td colspan="2" class="text-right">SUBTOTAL ZELLE:</td>
-                    <td class="text-right">{{ $symbol }} {{ number_format($totalZelleFull, 2) }}</td>
+                    <td class="text-right">{{ $symbol }} {{ number_format($totalZelleFull, 4) }}</td>
                 </tr>
 
                 {{-- TOTAL GENERAL --}}
                 <tr><td colspan="3" style="padding-top: 20px;"></td></tr>
                 <tr style="background: #33a2ff; color: #fff; font-size: 14px; font-weight: bold;">
                     <td colspan="2" class="text-right" style="padding: 10px;">TOTAL GENERAL EN CAJA:</td>
-                    <td class="text-right" style="padding: 10px;">{{ $symbol }} {{ number_format($totalCashFull + $totalBankFull + $totalZelleFull, 2) }}</td>
+                    <td class="text-right" style="padding: 10px;">{{ $symbol }} {{ number_format($totalCashFull + $totalBankFull + $totalZelleFull, 4) }}</td>
                 </tr>
             </tbody>
         </table>

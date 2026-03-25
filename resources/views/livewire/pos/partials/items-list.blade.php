@@ -307,7 +307,7 @@
                                                 <input class="form-control form-control-sm"
                                                     wire:keydown.enter.prevent="setCustomPrice('{{ $item['id'] }}', $event.target.value )"
                                                     type="text" oninput="justNumber(this)" 
-                                                    value="{{ $item['sale_price'] }}"
+                                                    value="{{ number_format($item['sale_price'], \App\Services\ConfigurationService::getDecimalPlaces(), '.', '') }}"
                                                     @cannot('sales.manage_adjustments') readonly @endcannot>
                                                 
                                                 @can('sales.manage_adjustments')
@@ -318,7 +318,7 @@
                                                     <div class="dropdown-menu dropdown-menu-right" style="min-width: 250px; z-index: 10000;">
                                                         <a class="dropdown-item" href="javascript:void(0)">
                                                             <div class="d-flex flex-column">
-                                                                <span class="font-weight-bold">{{ $primarySymbol }}{{ $item['sale_price'] }}</span>
+                                                                <span class="font-weight-bold">{{ $primarySymbol }}{{ number_format($item['sale_price'], \App\Services\ConfigurationService::getDecimalPlaces()) }}</span>
                                                                 @if(isset($currencies) && $currencies->count() > 1)
                                                                     <div class="text-muted small">
                                                                         @foreach($currencies as $currency)
@@ -343,7 +343,7 @@
                                                     wire:keydown.enter.prevent="setCustomPrice('{{ $item['id'] }}', $event.target.value )"
                                                     oninput="justNumber(this)" type="text"
                                                     placeholder="{{ $item['sale_price'] }}"
-                                                    value="{{ $item['sale_price'] }}"
+                                                    value="{{ number_format($item['sale_price'], \App\Services\ConfigurationService::getDecimalPlaces(), '.', '') }}"
                                                     @cannot('sales.manage_adjustments') readonly @endcannot>
                                                 
                                                 @can('sales.manage_adjustments')
@@ -356,7 +356,7 @@
                                                             <a class="dropdown-item" href="javascript:void(0)" 
                                                                wire:click.prevent="setCustomPrice('{{ $item['id'] }}', '{{ $price['price'] }}')">
                                                                 <div class="d-flex flex-column">
-                                                                    <span class="font-weight-bold">{{ $primarySymbol }}{{ $price['price'] }}</span>
+                                                                    <span class="font-weight-bold">{{ $primarySymbol }}{{ number_format($price['price'], \App\Services\ConfigurationService::getDecimalPlaces()) }}</span>
                                                                 </div>
                                                             </a>
                                                             @if(!$loop->last) <div class="dropdown-divider"></div> @endif

@@ -312,7 +312,7 @@
                                          $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
                                          $usdEquiv = $payment->amount / $rate;
                                      @endphp
-                                     <span class="pay-info"> | {{ $payment->payment_method == 'zelle' ? 'Zelle' : ($payment->bank_name ?? 'Banco') }}: {{ $payment->reference_number }} (Tasa: {{ number_format($payment->exchange_rate, 2) }}) (Dólar: ${{ number_format($usdEquiv, 2) }})</span>
+                                     <span class="pay-info"> | {{ $payment->payment_method == 'zelle' ? 'Zelle' : ($payment->bank_name ?? 'Banco') }}: {{ $payment->reference_number }} (Tasa: {{ number_format($payment->exchange_rate, 4) }}) (Dólar: ${{ number_format($usdEquiv, 4) }})</span>
                                 @endif
                             @endforeach
                         </td>
@@ -320,7 +320,7 @@
                         <td class="text-right">0.0000</td>
                         <td class="text-right">{{ number_format($paidToday, 4) }}</td>
                         <td class="text-right">{{ $creditUSD > 0.0001 ? number_format($creditUSD, 4) : '0.0000' }}</td>
-                        <td class="text-right">{{ number_format($vedPaid, 2) }}</td>
+                        <td class="text-right">{{ number_format($vedPaid, 4) }}</td>
                         <td class="text-right">{{ number_format($divisaPaid, 4) }}</td>
                     </tr>
                 @endforeach
@@ -333,7 +333,7 @@
                 <td class="text-right">0.0000</td>
                 <td class="text-right">{{ number_format($summary['total_contado'], 4) }}</td>
                 <td class="text-right">{{ number_format($summary['total_credito'], 4) }}</td>
-                <td class="text-right">{{ number_format($grandRawVed, 2) }}</td>
+                <td class="text-right">{{ number_format($grandRawVed, 4) }}</td>
                 <td class="text-right">{{ number_format($summary['total_divisa'], 4) }}</td>
             </tr>
         </tfoot>
@@ -445,7 +445,7 @@
                         @if($amount > 0)
                         <tr>
                             <td style="font-weight: bold;">Total {{ $currCode }}:</td>
-                            <td class="text-right">{{ number_format($amount, 2) }}</td>
+                            <td class="text-right">{{ number_format($amount, 4) }}</td>
                         </tr>
                         @endif
                     @endforeach
