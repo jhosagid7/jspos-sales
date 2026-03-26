@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.9.5] - 2026-03-26
+
+### Added
+- **Rediseño Premium - Compras**: Interfaz totalmente renovada con sidebar de resumen fijo, diseño de tarjetas redondeadas, gradientes modernos y mejora en la legibilidad de la tabla de items.
+
 ## [1.9.4] - 2026-03-26
 
 ### Fixed
