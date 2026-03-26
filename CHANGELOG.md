@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.9.12] - 2026-03-26
+
+### Added
+- **Módulo de Reporte de Inventario (Stock)**: Nueva interfaz profesional inspirada en el reporte de despacho para la gestión de existencias.
+- **Configuración de Columnas Dinámicas**: Capacidad de activar/desactivar campos como SKU, Nombre, Categoría, Proveedor, Costo, Precio y Valuaciones.
+- **Campo de Conteo Físico**: Opción para incluir una columna vacía en el PDF diseñada para inventarios manuales con lápiz/bolígrafo.
+- **Columna de Utilidad (UT. %)**: Visualización del margen de ganancia por producto basado en el costo y precio de venta actual.
+- **Firmas Personalizables**: Selección dinámica de hasta 4 líneas de firma (Elaborado, Autorizado, Gerencia, Auditoría/Almacén) al pie del reporte.
+- **Acceso Directo en Sidebar**: Integración del nuevo reporte en la sección de "REPORTES" del menú principal.
+
+### Changed
+- **Plantilla de Orden de Compra**: Optimización del diseño del PDF de compras, incluyendo la columna "Nuevo Costo" y mejora en la disposición de la información del proveedor.
+
+## [1.9.11] - 2026-03-26
+### Added
+- Feature for Purchase Order PDF generation with an empty "Nuevo Costo" column for manual entry.
+- `PurchaseController` for handling purchase report requests.
+- Custom PDF template `invoice-purchase-order.blade.php` for professional purchase orders.
+- "Print" action button in the "Procesar Ordenes de Compra" modal.
+
 ## [1.9.10] - 2026-03-26
 
 ### Fixed

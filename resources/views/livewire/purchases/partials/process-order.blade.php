@@ -43,11 +43,14 @@
                                             <td>{{ $order->created_at }}</td>
                                             
                                             <td data-container="body" data-bs-toggle="tooltip" data-bs-placement="top"
-                                                data-bs-html="true" data-bs-title="<b>Ver los detalles de la orden</b>">
+                                                data-bs-html="true" data-bs-title="<b>Acciones de la orden</b>">
                                                 <button class="btn btn-primary btn-sm"
                                                     wire:click.prevent="loadOrderToCart({{ $order->id }})">
                                                     <i class="fas fa-cart-plus"></i> Cargar
                                                 </button>
+                                                <a href="{{ route('purchases.pdf', $order->id) }}" target="_blank" class="btn btn-info btn-sm">
+                                                    <i class="fas fa-print"></i>
+                                                </a>
                                                 @if ($order->status != 'deleted')
                                                     <button class="btn btn-danger btn-sm"
                                                         onclick="DestroyOrder({{ $order->id }})">

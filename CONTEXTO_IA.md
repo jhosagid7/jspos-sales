@@ -14,6 +14,7 @@ La IA debe leer este archivo para entender cómo trabajar en este proyecto espec
     -   Si todo está bien, fusionar (merge) con `develop`.
     -   Crear el Release / Tag.
 3.  **Orden del Changelog**: Las versiones más recientes siempre deben ir arriba en `CHANGELOG.md`.
+4.  **REGLA DE ORO (PUSH)**: NUNCA realizar `git push` al repositorio de GitHub ni subir cambios al remoto sin que el usuario lo pida **EXPLÍCITAMENTE**. Primero se deben revisar los cambios localmente y, una vez aprobados, se procede con el comando de subida.
 
 ## Decisiones de Diseño
 ...
@@ -21,7 +22,7 @@ La IA debe leer este archivo para entender cómo trabajar en este proyecto espec
 ## 1. Reglas Generales de Desarrollo
 - **Stack Tecnológico**: Laravel, Blade/Vue (según aplique), Tailwind CSS, MySQL.
 - **Estilo de Código**: Seguir estándares de Laravel.
-- **Idioma**: Español (según preferencia del usuario).
+- **Idioma**: Español (OBLIGATORIO para todos los reportes, resúmenes y comunicaciones con el usuario).
 - **Diseño Responsivo (OBLIGATORIO)**: Todas las nuevas interfaces o modificaciones DEBEN verse y funcionar correctamente en Celulares, Tablets y PC. El sistema es multi-dispositivo.
 
 ## 2. Instrucciones Frecuentes
@@ -49,7 +50,7 @@ La IA debe leer este archivo para entender cómo trabajar en este proyecto espec
 - **OBLIGATORIO: Revisar Workflow de Release**: Antes de ejecutar cualquier comando para "subir cambios" o hacer un "release" o "despliegue", el asistente DEBE leer el archivo `.agent/workflows/release.md` para seguir estrictamente los pasos definidos. Asumir los pasos ha llevado a omisiones (como faltar el archivo version.txt o el tag).
 - **MIGRACIONES AUTOMÁTICAS**: Si el desarrollo incluye modificaciones a la base de datos (nuevas tablas, migraciones, seeders), **NUNCA** se debe asumir que el cliente correrá los comandos manualmente. El desarrollador (IA) debe integrar la ejecución de estas migraciones en el script/controlador de actualización del sistema (ej. `UpdateService` o rutas de update) para que sea transparente para el usuario final.
 - **CHANGELOG Obligatorio**: ANTES de hacer cualquier commit de release, tag, o `git push origin develop`, **SIEMPRE** se debe actualizar el archivo `CHANGELOG.md` con los cambios realizados.
-- **Recordatorio Constante**: Si el usuario pide "subir cambios" o "hacer release", el primer paso es verificar y actualizar el Changelog de acuerdo al flujo definido.
+- **Recordatorio Constante**: Si el usuario pide "subir cambios" o "hacer release", el primer paso es verificar y actualizar el Changelog. **NO REALIZAR GIT PUSH AL REMOTO SIN ORDEN EXPLÍCITA**.
 
 ## 7. Cambios Arquitectónicos Recientes (Protección y Optimización)
 ### 7.1. Protección contra Re-instalación Accidental

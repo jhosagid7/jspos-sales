@@ -59,6 +59,9 @@
                                     <button wire:click.prevent="viewDetails({{$purchase->id}})" class="btn btn-dark btn-sm">
                                         <i class="fas fa-list"></i>
                                     </button>
+                                    <a href="{{ route('purchases.pdf', $purchase->id) }}" target="_blank" class="btn btn-info btn-sm">
+                                        <i class="fas fa-print"></i>
+                                    </a>
                                 </td>
                             </tr>
                             @endforeach

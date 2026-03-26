@@ -665,4 +665,68 @@ class ReportController extends Controller
         }
         return $aggregated;
     }
+
+    public function inventoryPdf(Request $request)
+    {
+        $supplier_id = $request->get('supplier_id');
+        $category_id = $request->get('category_id');
+        $columns = json_decode($request->get('columns'), true) ?? [];
+        $signatures = json_decode($request->get('signatures'), true) ?? [];
+        $search = $request->get('search');
+
+        $products = \App\Models\Product::where('status', 'available')
+            ->when($supplier_id && $supplier_id !== 'all', function ($q) use ($supplier_id) {
+                $q->where('supplier_id', $supplier_id);
+            })
+            ->when($category_id && $category_id !== 'all', function ($q) use ($category_id) {
+                $q->where('category_id', $category_id);
+            })
+            ->when($search, function ($q) use ($search) {
+                $q->where(function($qq) use ($search) {
+                    $qq->where('name', 'like', "%{$search}%")
+                      ->orWhere('sku', 'like', "%{$search}%");
+                });
+            })
+            ->with(['category', 'supplier'])
+            ->orderBy('name')
+            ->get();
+
+        $config = Configuration::first();
+        $user = auth()->user();
+
+        $supplier_name = 'Todos';
+        if($supplier_id && $supplier_id !== 'all'){
+            $s = \App\Models\Supplier::find($supplier_id);
+            $supplier_name = $s ? $s->name : 'N/A';
+        }
+
+        $category_name = 'Todas';
+        if($category_id && $category_id !== 'all'){
+            $c = \App\Models\Category::find($category_id);
+            $category_name = $c ? $c->name : 'N/A';
+        }
+
+        $totals = [
+            'cost' => $products->sum(fn($p) => $p->stock_qty * $p->cost),
+            'price' => $products->sum(fn($p) => $p->stock_qty * $p->price),
+            'items' => $products->sum('stock_qty')
+        ];
+
+        $pdf = Pdf::loadView('reports.inventory-report-pdf', [
+            'products' => $products,
+            'config' => $config,
+            'user' => $user,
+            'columns' => $columns,
+            'signatures' => $signatures,
+            'supplier_name' => $supplier_name,
+            'category_name' => $category_name,
+            'totals' => $totals
+        ])->setPaper('a4', 'portrait');
+
+        if ($request->has('download')) {
+            return $pdf->download('Reporte_Inventario.pdf');
+        }
+
+        return $pdf->stream('Reporte_Inventario.pdf');
+    }
 }

@@ -358,6 +358,12 @@
                                 <p>Más Vendidos</p>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="{{ route('reports.inventory') }}" class="nav-link {{ Request::is('reports/inventory*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Inventario Stock</p>
+                            </a>
+                        </li>
                         @module('module_advanced_reports')
                         <li class="nav-item">
                             <a href="{{ route('reports.rotation') }}" class="nav-link">
