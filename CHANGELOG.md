@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.9.6] - 2026-03-26
+
+### Fixed
+- **Layout Responsivo - Compras**: Cambio de breakpoints (lg a md) para evitar que el resumen de compra se baje en pantallas medianas o portátiles.
+
 ## [1.9.5] - 2026-03-26
 
 ### Added

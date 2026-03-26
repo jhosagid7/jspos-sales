@@ -1,7 +1,7 @@
 <div>
-    <div class="row px-3 pt-3">
+    <div class="row px-2 pt-3">
         {{-- Main Table Section --}}
-        <div class="col-sm-12 col-lg-9">
+        <div class="col-sm-12 col-md-8 col-lg-9">
             @include('livewire.purchases.partials.items')
             
             @include('livewire.purchases.partials.payConfirm')
@@ -12,7 +12,7 @@
         </div>
 
         {{-- Sidebar Summary Section --}}
-        <div class="col-sm-12 col-lg-3">
+        <div class="col-sm-12 col-md-4 col-lg-3">
             <div class="card shadow-sm border-0 sticky-top" style="border-radius: 16px; top: 20px; border: 1px solid #e9ecef;">
                 <div class="card-header bg-white border-bottom-0 pt-4 px-4 d-flex justify-content-between align-items-center">
                     <h5 class="font-weight-bold text-dark mb-0" style="letter-spacing: -0.5px;">Resumen Compra</h5>
