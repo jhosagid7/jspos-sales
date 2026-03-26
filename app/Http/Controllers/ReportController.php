@@ -729,4 +729,192 @@ class ReportController extends Controller
 
         return $pdf->stream('Reporte_Inventario.pdf');
     }
+
+    public function accountsReceivablePdf(Request $request)
+    {
+        $customer_id = $request->get('customer_id');
+        $seller_id = $request->get('seller_id');
+        $user_id = $request->get('user_id');
+        $dateFrom = $request->get('dateFrom');
+        $dateTo = $request->get('dateTo');
+        $status = $request->get('status');
+        $groupBy = $request->get('groupBy', 'customer_id');
+        $searchFactura = $request->get('searchFactura');
+
+        // Security check matching Livewire component
+        if (!auth()->user()->can('sales.view_all')) {
+            $user_id = auth()->id();
+        }
+
+        $query = Sale::with(['customer', 'details', 'user', 'paymentDetails'])
+            ->where('type', 'credit')
+            ->where('status', '<>', 'returned');
+
+        if ($customer_id) {
+            $query->where('customer_id', $customer_id);
+        }
+        if ($seller_id) {
+            $query->whereHas('customer', function($q) use ($seller_id) {
+                $q->where('seller_id', $seller_id);
+            });
+        }
+        if ($user_id) {
+            $query->where('user_id', $user_id);
+        }
+        if ($dateFrom && $dateTo) {
+            $dFrom = Carbon::parse($dateFrom)->startOfDay();
+            $dTo = Carbon::parse($dateTo)->endOfDay();
+            $query->whereBetween('created_at', [$dFrom, $dTo]);
+        }
+        
+        if ($searchFactura) {
+             $numericSearch = is_numeric($searchFactura) ? (int)$searchFactura : null;
+             if (preg_match('/^[Ff]0*([1-9][0-9]*)$/', $searchFactura, $matches)) {
+                 $numericSearch = (int)$matches[1];
+             }
+             
+             $query->where(function($q) use ($searchFactura, $numericSearch) {
+                 if ($numericSearch !== null) {
+                     $q->where('id', $numericSearch);
+                 } else {
+                     $q->where('invoice_number', 'like', "%{$searchFactura}%");
+                 }
+             });
+        }
+        
+        if ($status && $status != '0') {
+            $query->where('status', $status);
+        }
+
+        $sales = $query->orderBy('id', 'asc')->get();
+
+        if ($sales->isEmpty()) {
+            return response('No hay datos para generar el reporte.', 404);
+        }
+
+        $data = [];
+        $grandTotalDebt = 0;
+
+        foreach ($sales as $sale) {
+            $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected', 'voided'])->sum(function($payment) use ($sale) {
+                $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : ($payment->currency == 'USD' ? 1 : ($sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1));
+                return $payment->amount / $rate;
+            });
+            
+            $initialPaidUSD = $sale->paymentDetails->sum(function($detail) {
+                $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
+                return $detail->amount / $rate;
+            });
+
+            $totalReturnsOrig = $sale->returns->where('refund_method', 'debt_reduction')->where('status', 'approved')->sum('total_returned');
+            $exchangeRateReturns = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+            $totalReturnsUSD = $totalReturnsOrig / $exchangeRateReturns;
+
+            $totalUSD = $sale->total_usd;
+            if (!$totalUSD || $totalUSD == 0) {
+                $exchangeRate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                $totalUSD = $sale->total / $exchangeRate;
+            }
+
+            $balance = max(0, $totalUSD - ($totalPaidUSD + $initialPaidUSD + $totalReturnsUSD));
+            $balance_before_nc = max(0, $totalUSD - ($totalPaidUSD + $initialPaidUSD));
+
+            if ($status != 'paid' && $balance < 0.01) continue;
+
+             $key = '';
+             $name = '';
+ 
+             if ($groupBy == 'customer_id') {
+                 $key = $sale->customer_id;
+                 $name = $sale->customer->name ?? 'SIN CLIENTE';
+             } elseif ($groupBy == 'user_id') {
+                 $key = $sale->user_id;
+                 $name = $sale->user->name ?? 'SIN USUARIO';
+             } elseif ($groupBy == 'seller_id') {
+                 $key = $sale->customer->seller_id ?? 'NA';
+                 $name = $sale->customer->seller->name ?? 'SIN VENDEDOR';
+             } elseif ($groupBy == 'date') {
+                 $key = $sale->created_at->format('Y-m-d');
+                 $name = $sale->created_at->format('d/m/Y');
+             } else {
+                 $key = 'ALL';
+                 $name = 'TODOS';
+             }
+ 
+             if (!isset($data[$key])) {
+                 $data[$key] = [
+                     'name' => $name,
+                     'invoices' => [],
+                     'total_debt' => 0,
+                     'customer' => $sale->customer
+                 ];
+             }
+ 
+             $dueDate = clone $sale->created_at;
+             $dueDate->addDays(30);
+             if($sale->customer && $sale->customer->payment_terms) {
+                 $dueDate = $sale->created_at->copy()->addDays(intval($sale->customer->payment_terms));
+             }
+
+             $daysOverdue = 0;
+             if ($sale->days_overdue !== null) {
+                 $daysOverdue = intval($sale->days_overdue);
+             } else {
+                 $daysOverdue = floor(Carbon::now()->diffInDays($dueDate, false) * -1); 
+             }
+
+             $creditNotes = [];
+             $sum_nc = 0;
+             foreach($sale->returns->where('refund_method', 'debt_reduction')->where('status', 'approved') as $return) {
+                 $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                 $returnAmt = $return->total_returned / $rate;
+                 $sum_nc += $returnAmt;
+                 $creditNotes[] = [
+                     'operation' => 'N/C',
+                     'date' => $return->created_at->format('d/m/Y'),
+                     'due_date' => $return->created_at->format('d/m/Y'),
+                     'days' => $daysOverdue,
+                     'doc_no' => str_pad($return->id, 8, '0', STR_PAD_LEFT),
+                     'description' => 'Factnr:' .  ($sale->invoice_number ?? $sale->id) . ' Doc:' . str_pad($return->id, 8, '0', STR_PAD_LEFT),
+                     'amount' => -1 * $returnAmt
+                 ];
+             }
+
+             $data[$key]['invoices'][] = [
+                 'operation' => 'Factura',
+                 'date' => $sale->created_at->format('d/m/Y'),
+                 'due_date' => $dueDate->format('d/m/Y'),
+                 'days' => $daysOverdue * -1, 
+                 'doc_no' => str_pad($sale->invoice_number ?? $sale->id, 8, '0', STR_PAD_LEFT),
+                 'description' => 'Factnr:' .  ($sale->invoice_number ?? $sale->id) . ' Doc:' . str_pad($sale->invoice_number ?? $sale->id, 8, '0', STR_PAD_LEFT),
+                 'total' => $totalUSD,
+                 'balance' => $balance_before_nc, // This is explicitly passed instead of $balance to make visual sums accurate
+                 'credit_notes' => $creditNotes
+             ];
+             
+             // To ensure visual totals match what the user reads on the paper exactly:
+             $visualDebtLine = $balance_before_nc - $sum_nc;
+             $data[$key]['total_debt'] += $visualDebtLine;
+             $grandTotalDebt += $visualDebtLine;
+        }
+
+        if (empty($data)) {
+            return response('NO HAY CUENTAS POR COBRAR PENDIENTES', 404);
+        }
+
+        $config = Configuration::first();
+        $user = auth()->user();
+        $date = Carbon::now()->format('d/m/Y');
+        $time = Carbon::now()->format('h:i a');
+        $seller_name = $seller_id ? \App\Models\User::find($seller_id)->name : null;
+
+        $pdf = Pdf::loadView('reports.accounts-receivable-pdf', compact('data', 'config', 'user', 'date', 'time', 'groupBy', 'grandTotalDebt', 'seller_name'))
+            ->setPaper('a4', 'portrait');
+
+        if ($request->has('download')) {
+             return $pdf->download('Cuentas_Por_Cobrar_' . Carbon::now()->format('YmdHis') . '.pdf');
+        }
+
+        return $pdf->stream('Cuentas_Por_Cobrar_' . Carbon::now()->format('YmdHis') . '.pdf');
+    }
 }

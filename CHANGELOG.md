@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.9.14] - 2026-03-26
+
+### Fixed
+- **Historial de Pagos**: Reescritura del archivo `historypays.blade.php` para restaurar los botones y funcionalidades perdidas (Aprobar, Rechazar, Anular, Imprimir Recibo) manteniendo la corrección de la estructura "Multiple Root Elements" de Livewire.
+
 ## [1.9.13] - 2026-03-26
 
 ### Fixed

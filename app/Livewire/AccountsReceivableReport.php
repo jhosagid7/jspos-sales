@@ -35,6 +35,9 @@ class AccountsReceivableReport extends Component
     public $sellers = [], $seller_id;
     public $users = [], $user_id; // New properties
     public $groupBy = 'customer_id'; // Default group by
+    
+    public $showPdfModal = false;
+    public $pdfUrl = null;
 
     public function searchData()
     {
@@ -271,175 +274,38 @@ class AccountsReceivableReport extends Component
     // I will abort the overwrite for a second and verify the file content properly.
     // I cannot risk deleting methods I don't see.
 
+    public function getPdfParams()
+    {
+        return [
+            'customer_id' => $this->customer ? $this->customer['id'] : null,
+            'seller_id' => $this->seller_id,
+            'user_id' => $this->user_id,
+            'dateFrom' => $this->dateFrom,
+            'dateTo' => $this->dateTo,
+            'status' => $this->status,
+            'groupBy' => $this->groupBy,
+            'searchFactura' => $this->searchFactura,
+        ];
+    }
+
     public function generatePdf()
     {
-        if ($this->customer == null && $this->dateFrom == null && $this->dateTo == null && $this->seller_id == null && $this->user_id == null) {
-            $query = Sale::with(['customer', 'details', 'user', 'paymentDetails'])
-                ->where('type', 'credit')
-                ->where('status', '<>', 'returned');
-        } else {
-            $query = Sale::with(['customer', 'details', 'user', 'paymentDetails'])
-                ->where('type', 'credit')
-                ->where('status', '<>', 'returned')
-                ->when($this->customer != null, function ($query) {
-                    $query->where('customer_id', $this->customer['id']);
-                })
-                ->when($this->seller_id != null, function ($query) {
-                    $query->whereHas('customer', function($q) {
-                        $q->where('seller_id', $this->seller_id);
-                    });
-                })
-                ->when($this->user_id != null, function ($query) {
-                    $query->where('user_id', $this->user_id);
-                });
+        $params = $this->getPdfParams();
+        $params['download'] = 1;
 
-            if ($this->dateFrom != null && $this->dateTo != null) {
-                $dFrom = Carbon::parse($this->dateFrom)->startOfDay();
-                $dTo = Carbon::parse($this->dateTo)->endOfDay();
-                $query->whereBetween('created_at', [$dFrom, $dTo]);
-            }
-        }
+        return redirect()->route('reports.accounts.receivable.pdf', $params);
+    }
 
-        $sales = $query->orderBy('id', 'desc')->get();
+    public function openPdfPreview()
+    {
+        $this->pdfUrl = route('reports.accounts.receivable.pdf', $this->getPdfParams());
+        $this->showPdfModal = true;
+    }
 
-        if ($sales->isEmpty()) {
-            $this->dispatch('noty', msg: 'NO HAY DATOS PARA GENERAR EL REPORTE');
-            return;
-        }
-
-        // Group data
-        $data = [];
-        $grandTotalDebt = 0;
-
-        foreach ($sales as $sale) {
-            // Calculate balance in USD
-            $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected', 'voided'])->sum(function($payment) use ($sale) {
-                $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : ($payment->currency == 'USD' ? 1 : ($sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1));
-                return $payment->amount / $rate;
-            });
-            
-            $initialPaidUSD = $sale->paymentDetails->sum(function($detail) {
-                $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
-                return $detail->amount / $rate;
-            });
-
-            // Calculate Returns applied to debt
-            $totalReturnsOrig = $sale->returns->where('refund_method', 'debt_reduction')->sum('total_returned');
-            $exchangeRateReturns = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
-            $totalReturnsUSD = $totalReturnsOrig / $exchangeRateReturns;
-
-            // Calculate total USD if missing
-            $totalUSD = $sale->total_usd;
-            if (!$totalUSD || $totalUSD == 0) {
-                $exchangeRate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
-                $totalUSD = $sale->total / $exchangeRate;
-            }
-
-            $balance = max(0, $totalUSD - ($totalPaidUSD + $initialPaidUSD + $totalReturnsUSD));
-
-            // Only include if there is balance (debt)
-            if ($balance < 0.01) continue;
-
-            $paymentsFormatted = [];
-            
-            // Include initial payments
-            foreach($sale->paymentDetails as $payment) {
-                $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
-                $paymentsFormatted[] = [
-                    'date' => $payment->created_at->format('d/m/Y'),
-                    'method' => $payment->payment_method,
-                    'currency' => $payment->currency_code,
-                    'amount_original' => $payment->amount,
-                    'rate' => $rate,
-                    'amount_usd' => $payment->amount / $rate
-                ];
-            }
-
-            // Include abonos (payments)
-            foreach($sale->payments as $payment) {
-                if(in_array($payment->status, ['pending', 'rejected'])) continue;
-                $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
-                $paymentsFormatted[] = [
-                    'date' => $payment->created_at->format('d/m/Y'),
-                    'method' => $payment->pay_way,
-                    'currency' => $payment->currency,
-                    'amount_original' => $payment->amount,
-                    'rate' => $rate,
-                    'amount_usd' => $payment->amount / $rate
-                ];
-            }
-
-            // Include Returns (Credit Notes)
-            foreach($sale->returns->where('refund_method', 'debt_reduction')->where('status', 'approved') as $return) {
-                $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
-                $paymentsFormatted[] = [
-                    'date' => $return->created_at->format('d/m/Y'),
-                    'method' => 'Nota de Crédito (' . $return->return_number . ')',
-                    'currency' => 'N/C',
-                    'amount_original' => $return->total_returned,
-                    'rate' => $rate,
-                    'amount_usd' => $return->total_returned / $rate
-                ];
-            }
-
-             // Grouping Logic
-            $key = '';
-            $name = '';
-
-            if ($this->groupBy == 'customer_id') {
-                $key = $sale->customer_id;
-                $name = $sale->customer->name;
-            } elseif ($this->groupBy == 'user_id') {
-                $key = $sale->user_id;
-                $name = $sale->user->name;
-            } elseif ($this->groupBy == 'seller_id') {
-                $key = $sale->customer->seller_id ?? 'NA';
-                $name = $sale->customer->seller->name ?? 'SIN VENDEDOR';
-            } elseif ($this->groupBy == 'date') {
-                $key = $sale->created_at->format('Y-m-d');
-                $name = $sale->created_at->format('d/m/Y');
-            } else {
-                $key = 'ALL';
-                $name = 'TODOS';
-            }
-
-            if (!isset($data[$key])) {
-                $data[$key] = [
-                    'name' => $name,
-                    'invoices' => [],
-                    'total_debt' => 0
-                ];
-            }
-
-            $data[$key]['invoices'][] = [
-                'folio' => $sale->invoice_number ?? $sale->id,
-                'date' => $sale->created_at->format('d/m/Y'),
-                'due_date' => $sale->created_at->addDays(30)->format('d/m/Y'), // Example due date
-                'total' => $sale->total_usd,
-                'balance' => $balance,
-                'payments' => $paymentsFormatted
-            ];
-            
-            $data[$key]['total_debt'] += $balance;
-            $grandTotalDebt += $balance;
-        }
-        
-        if (empty($data)) {
-            $this->dispatch('noty', msg: 'NO HAY CUENTAS POR COBRAR PENDIENTES');
-            return;
-        }
-
-        $config = \App\Models\Configuration::first();
-        $user = Auth()->user();
-        $date = Carbon::now()->format('d/m/Y H:i');
-        $groupBy = $this->groupBy;
-        $seller_name = $this->seller_id ? \App\Models\User::find($this->seller_id)->name : null;
-
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.accounts-receivable-pdf', compact('data', 'config', 'user', 'date', 'groupBy', 'grandTotalDebt', 'seller_name'));
-        
-        return response()->streamDownload(function () use ($pdf) {
-            echo $pdf->output();
-        }, 'Cuentas_Por_Cobrar_' . Carbon::now()->format('YmdHis') . '.pdf');
+    public function closePdfPreview()
+    {
+        $this->showPdfModal = false;
+        $this->pdfUrl = null;
     }
 
     function initPayment($sale_id, $customer, $debt = null, $prefill = [])

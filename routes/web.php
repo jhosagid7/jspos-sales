@@ -140,6 +140,7 @@ Route::middleware('auth')->group(function () {
         Route::get('sales', SalesReport::class)->name('reports.sales')->middleware('can:reports.sales');
         Route::get('purchases', PurchasesReport::class)->name('reports.purchases')->middleware(['can:reports.purchases', 'module:module_purchases']);
         Route::get('accounts-receivable', AccountsReceivableReport::class)->name('reports.accounts.receivable')->middleware(['can:reports.financial', 'module:module_credits']);
+        Route::get('accounts-receivable/pdf', [\App\Http\Controllers\ReportController::class, 'accountsReceivablePdf'])->name('reports.accounts.receivable.pdf')->middleware(['can:reports.financial', 'module:module_credits']);
         Route::get('accounts-payables', AccountsPayableReport::class)->name('reports.accounts.payables')->middleware(['can:reports.financial', 'module:module_purchases']);
         Route::get('payment-relationship', \App\Livewire\Reports\PaymentRelationshipReport::class)->name('reports.payment.relationship')->middleware(['can:reports.sales', 'module:module_credits']);
         Route::get('collection-relationship/{sheet}/pdf', [\App\Http\Controllers\ReportController::class, 'collectionRelationshipPdf'])->name('reports.collection.relationship.pdf');

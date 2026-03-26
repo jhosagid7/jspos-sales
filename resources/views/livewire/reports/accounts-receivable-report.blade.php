@@ -99,6 +99,10 @@
                                         <button wire:click.prevent="searchData" class="btn btn-dark">
                                             Consultar
                                         </button>
+                                        <button wire:click.prevent="openPdfPreview" class="btn btn-info text-white ms-2"
+                                            title="Previsualizar">
+                                            <i class="fas fa-eye"></i> Previsualizar
+                                        </button>
                                         <button wire:click.prevent="generatePdf" class="btn btn-danger ms-2"
                                             title="Generar Reporte PDF">
                                             <i class="fas fa-file-pdf"></i> PDF
@@ -401,4 +405,39 @@
 
         })
     </script>
+    
+    {{-- PDF Viewer in Modal --}}
+    @if($showPdfModal)
+    <div class="modal fade show" style="display: block; background: rgba(0,0,0,0.7); z-index: 9999;" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-xl" role="document" style="height: 90vh; max-width: 95vw; margin-top: 5vh;">
+            <div class="modal-content" style="height: 100%;">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title text-white">Vista Previa: Reporte de Cuentas por Cobrar</h5>
+                    <button type="button" class="btn-close btn-close-white" wire:click="closePdfPreview" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0" style="height: calc(100% - 60px);">
+                    @if($pdfUrl)
+                        <iframe src="{{ $pdfUrl }}" style="width: 100%; height: 100%; border: none;"></iframe>
+                    @else
+                        <div class="d-flex justify-content-center align-items-center" style="height: 100%;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="sr-only">Cargando...</span>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" wire:click="closePdfPreview">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.body.style.overflow = 'hidden';
+    </script>
+    @else
+    <script>
+        document.body.style.overflow = 'auto';
+    </script>
+    @endif
 </div>
