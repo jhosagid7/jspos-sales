@@ -423,9 +423,17 @@
                 <div class="modal-footer">
                 @if(isset($pays) && count($pays) > 0)
                     @can('payments.print_pdf')
-                    <button type="button" class="btn btn-danger" wire:click="generatePaymentHistoryPdf({{ $pays[0]->sale_id ?? $saleId }})">
+                    @php
+                        $pdfId = null;
+                        if(isset($pays[0])) {
+                            $pdfId = $pays[0]->sale_id ?? $pays[0]->purchase_id ?? ($saleId ?? null);
+                        }
+                    @endphp
+                    @if($pdfId)
+                    <button type="button" class="btn btn-danger" wire:click="generatePaymentHistoryPdf({{ $pdfId }})">
                         <i class="fas fa-file-pdf"></i> Imprimir Reporte PDF
                     </button>
+                    @endif
                     @endcan
                 @endif
                 
@@ -435,26 +443,20 @@
                 </button>
                 @endcan
 
-                @if(isset($pays) && count($pays) > 0 && $totalPendingInPrimary > 0)
-                    @can('sales.reset_credit_snapshot')
+                    @if(isset($pays[0]) && isset($pays[0]->sale_id))
                     <button type="button" class="btn btn-outline-warning" 
                             wire:click="resetCreditSnapshot({{ $pays[0]->sale_id }})"
                             wire:confirm="¿Estás seguro de actualizar las reglas de crédito? Esto aplicará la configuración actual del cliente a esta venta de forma permanente.">
                         <i class="fas fa-sync-alt"></i> Actualizar Reglas de Crédito
                     </button>
-                    @endcan
-                @endif
+                    @endif
+
                 <button type="button" class="btn btn-dark" data-dismiss="modal">Cerrar</button>
             </div>
             </div>
-        </div>
-    </div>
-    
-    <script>
+      <script>
         document.addEventListener('livewire:initialized', () => {
             // Fix for SweetAlert input not throwable when Bootstrap Modal is open
-            // Bootstrap enforces focus on the modal, blocking external inputs (like SweetAlert)
-            // This overrides that behavior safely for this view.
             if ($.fn.modal && $.fn.modal.Constructor.prototype._enforceFocus) {
                 $.fn.modal.Constructor.prototype._enforceFocus = function() {};
             }
@@ -468,6 +470,7 @@
         });
     </script>
     
+    @isset($editSaleTotal)
     <!-- Modal Edit Payment -->
     <div wire:ignore.self class="modal fade" id="modalEditPayment" tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">
@@ -526,7 +529,7 @@
                         </div>
                     </div>
                     
-                    @if($editEarlyDiscountAmount > 0 || $editUsdDiscountAmount > 0)
+                    @if(isset($editEarlyDiscountAmount) && ($editEarlyDiscountAmount > 0 || $editUsdDiscountAmount > 0))
                     <div class="row mb-3">
                         <div class="col-12">
                             <div class="card bg-light border-info shadow-none">
@@ -558,8 +561,8 @@
 
                     @php
                         $predictiveValueUSD = (is_numeric($editPaymentAmount) && is_numeric($editPaymentRate) && $editPaymentRate > 0) ? ((float)$editPaymentAmount / (float)$editPaymentRate) : 0;
-                        if ($editApplyEarlyDiscount) $predictiveValueUSD += $editEarlyDiscountAmount;
-                        if ($editApplyUsdDiscount) $predictiveValueUSD += $editUsdDiscountAmount;
+                        if (isset($editApplyEarlyDiscount) && $editApplyEarlyDiscount) $predictiveValueUSD += $editEarlyDiscountAmount;
+                        if (isset($editApplyUsdDiscount) && $editApplyUsdDiscount) $predictiveValueUSD += $editUsdDiscountAmount;
                         $remainingPredicted = max(0, $editSaleDebt - $predictiveValueUSD);
                     @endphp
                     
@@ -595,6 +598,11 @@
                     <button type="button" class="btn btn-primary" wire:click="updatePayment">Guardar y Actualizar Banco</button>
                 </div>
             </div>
+        </div>
+    </div>
+    @endisset
+</div>
+  </div>
         </div>
     </div>
 </div>

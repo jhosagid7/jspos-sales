@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.9.3] - 2026-03-26
+
+### Fixed
+- **Estabilidad del Módulo de Compras (Crucial)**: Corregido un error estructural de "Multiple root elements" en la vista Blade que impedía el acceso al módulo de compras.
+- **Null-Safety en Inicialización**: Añadida protección nula al cargar la configuración por defecto del almacén en el módulo de compras, previniendo cuelgues al iniciar.
+- **Ambigüedad en Consultas de Reportes**: Resueltos errores de "Column 'created_at' is ambiguous" en los reportes mediante el uso de prefijos de tabla explícitos.
+- **Gestión de Proveedores en Órdenes**: Corregida la visualización y filtrado de órdenes de compra que no tienen un proveedor asociado (común en órdenes automáticas desde Requisición).
+
+### Changed
+- **Reporte de Billetera (Ingresos vs Uso)**: El reporte de Arqueo de Caja ahora desglosa correctamente el uso de la billetera virtual, diferenciando entre ingresos del día (devoluciones) y pagos realizados con saldos anteriores.
+
 ## [1.9.2] - 2026-03-25
 
 ### Added

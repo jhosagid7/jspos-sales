@@ -105,7 +105,7 @@
             });
         })
     </script>
-</div>
+
         <div class="col-sm-12 col-md-3">
             <div class="card card-primary card-outline customer-sticky">
                 <div class="card-header">

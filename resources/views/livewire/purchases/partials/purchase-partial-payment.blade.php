@@ -34,7 +34,7 @@
                                     @forelse ($purchases as $purchase)
                                         <tr>
                                             <td>
-                                                <div class="txt-info">{{ $purchase->supplier->name }}</div>
+                                                <div class="txt-info">{{ $purchase->supplier->name ?? 'SIN PROVEEDOR' }}</div>
                                             </td>
                                             <td>
                                                 <div> <b>{{ $purchase->id }}</b></div>
@@ -55,7 +55,7 @@
                                                 @endif
 
                                                 <button class="btn btn-default btn-sm"
-                                                    wire:click="initPay({{ $purchase->id }},'{{ $purchase->supplier->name }}',{{ $purchase->debt_display }})" title="Abonar">
+                                                    wire:click="initPay({{ $purchase->id }},'{{ $purchase->supplier->name ?? 'S/P' }}',{{ $purchase->debt_display }})" title="Abonar">
                                                     <i class="fas fa-money-bill-wave text-success"></i>
                                                 </button>
 

@@ -21,7 +21,8 @@ class CashCount extends Component
     use PrintTrait;
 
     public $users = [], $user, $user_id = 0, $totales = 0, $dateFrom, $dateTo;
-    public $totalDeposit = 0, $totalNequi = 0, $totalCash = 0, $totalSales = 0, $totalCreditSales = 0, $totalPayments = 0, $totalPaymentsDeposit = 0, $totalPaymentsCash = 0, $totalPaymentsNequi = 0;
+    public $totalDeposit = 0, $totalNequi = 0, $totalCash = 0, $totalSales = 0, $totalCreditSales = 0, $totalPayments = 0, $totalPaymentsDeposit = 0, $totalPaymentsCash = 0, $totalPaymentsNequi = 0, $totalPaymentsWallet = 0;
+    public $totalWalletAddedToday = 0, $totalWalletUsedToday = 0, $totalWalletUsedPrevious = 0;
     
     // New properties for currency breakdown
     public $salesByCurrency = [];

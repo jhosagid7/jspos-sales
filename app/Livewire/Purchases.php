@@ -170,7 +170,7 @@ class Purchases extends Component
         session(['map' => 'Compras', 'child' => ' Componente ', 'pos' => 'MÓDULO DE COMPRAS']);
 
         $this->warehouses = \App\Models\Warehouse::where('is_active', 1)->get();
-        $this->warehouse_id = $this->config->default_warehouse_id ?? $this->warehouses->first()->id ?? null;
+        $this->warehouse_id = $this->config?->default_warehouse_id ?? ($this->warehouses->first()->id ?? null);
     }
 
 

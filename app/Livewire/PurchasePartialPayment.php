@@ -41,16 +41,21 @@ class PurchasePartialPayment extends Component
 
     public  function getPurchasesWithDetails()
     {
-        $query = Purchase::whereHas('supplier', function ($query) {
-            if (!empty(trim($this->search))) {
-                $query->where('name', 'like', "%{$this->search}%");
-            }
-        })
+        $query = Purchase::query()
             ->where('type', 'credit')
             ->where('status', 'pending')
+            ->when(!empty(trim($this->search)), function ($q) {
+                $s = "%{$this->search}%";
+                $q->where(function($sub) use ($s) {
+                    $sub->where('id', 'like', $s)
+                        ->orWhereHas('supplier', function ($q2) use ($s) {
+                            $q2->where('name', 'like', $s);
+                        });
+                });
+            })
             ->with(['supplier', 'payables'])
-            ->take(15)
-            ->orderBy('purchases.id', 'desc');
+            ->orderBy('id', 'desc')
+            ->take(15);
 
         $purchases = $query->get();
         
