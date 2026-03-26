@@ -1,3 +1,4 @@
+<div>
 <style>
     @media (max-width: 768px) {
         .table-mobile-payments thead {
@@ -61,7 +62,6 @@
         }
     }
 </style>
-<div>
     <div wire:ignore.self class="modal fade" id="modalPayHistory" role="dialog">
         <div class="modal-dialog modal-xl" role="document">
             <div class="modal-content ">
@@ -135,329 +135,113 @@
                                                 $totalApprovedInPrimary += $amountInPrimary;
                                             }
                                         @endphp
-                                        <tr>
-                                            <td data-label="Folio"> 
-                                                <div class="d-flex align-items-center">
-                                                    {{ $pay->id }}
-                                                    @if(isset($pay->status) && $pay->status == 'pending')
-                                                        <span class="badge badge-warning text-dark ms-2" style="font-size: 0.6rem;">PENDIENTE</span>
-                                                    @elseif(isset($pay->status) && $pay->status == 'approved')
-                                                        <span class="badge badge-success ms-2" style="font-size: 0.6rem;">APROBADO</span>
-                                                    @elseif(isset($pay->status) && $pay->status == 'rejected')
-                                                        <span class="badge badge-danger ms-2" style="font-size: 0.6rem;">RECHAZADO</span>
-                                                    @elseif(isset($pay->status) && $pay->status == 'voided')
-                                                        <span class="badge badge-dark ms-2" style="font-size: 0.6rem; background-color: #6c757d;">ANULADO</span>
-                                                    @endif
-                                                </div>
-                                                @if(isset($pay->rejection_reason) && $pay->status == 'rejected')
-                                                    <div class="text-danger small mt-1">
-                                                        <b>Motivo Rechazo:</b> {{ $pay->rejection_reason }}
-                                                    </div>
-                                                @endif
-                                                @if(isset($pay->rejection_reason) && $pay->status == 'voided')
-                                                    <div class="text-secondary small mt-1">
-                                                        <b>Motivo Anulación:</b> {{ $pay->rejection_reason }}
-                                                    </div>
-                                                @endif
-                                                @if(!empty($pay->modification_comment))
-                                                    <div class="text-info small mt-1">
-                                                        <b>Nota Admin:</b> {{ $pay->modification_comment }}
-                                                    </div>
-                                                @endif
-                                            </td>
+                                        <tr class="text-center">
+                                            <td data-label="Folio">{{ $pay->id }}</td>
                                             <td data-label="Método">
-                                                <span class="badge badge-{{ $badgeColor }}">
-                                                    {{ $methodName }}
-                                                </span>
+                                                <span class="badge badge-{{ $badgeColor }}">{{ strtoupper($methodName) }}</span>
                                             </td>
                                             <td data-label="Moneda">{{ $currencyName }}</td>
-                                            <td data-label="Monto" style="background-color: rgb(228, 243, 253)">
-                                                <div> <b>{{ number_format($pay->amount, 2) }}</b></div>
+                                            <td data-label="Monto">
+                                                <b>{{ number_format($pay->amount, 2) }}</b>
                                             </td>
-                                            <td data-label="Tasa">{{ number_format($pay->exchange_rate, 2) }}</td>
+                                            <td data-label="Tasa">
+                                                {{ number_format($pay->exchange_rate, 2) }}
+                                            </td>
                                             <td data-label="Equiv. $">
-                                                @php
-                                                    $equivUsd = 0;
-                                                    // Logic: If VED/COP, divide by rate. If USD/Zelle, use amount.
-                                                    // $pay->currency is reliable? 
-                                                    // Let's use the same logic we used for $amountInUSD above (line 123)
-                                                    $rateSafe = $pay->exchange_rate > 0 ? $pay->exchange_rate : 1;
-                                                    
-                                                    if (in_array($pay->currency, ['VED', 'VES', 'COP'])) {
-                                                        $equivUsd = $pay->amount / $rateSafe;
-                                                    } else {
-                                                        $equivUsd = $pay->amount;
-                                                    }
-                                                @endphp
-                                                <b>${{ number_format($equivUsd, 2) }}</b>
+                                                <span class="text-primary font-weight-bold">
+                                                    ${{ number_format($amountInUSD, 2) }}
+                                                </span>
                                             </td>
-                                            <td data-label="Detalles">
-                                                @php
-                                                    $payWay = $pay->pay_way ?? $pay->payment_method;
-                                                @endphp
-                                                @if ($payWay == 'deposit' || $payWay == 'bank')
-                                                    @if($pay->bankRecord)
-                                                        <div class="small text-left">
-                                                            <div><b>Banco:</b> {{ $pay->bankRecord->bank->name ?? ($pay->bank ?? ($pay->bank_name ?? 'N/A')) }}</div>
-                                                            <div><b>Fecha:</b> {{ \Carbon\Carbon::parse($pay->bankRecord->payment_date)->format('d/m/Y') }}</div>
-                                                            <div><b>Monto:</b> {{ number_format($pay->bankRecord->amount, 2) }}</div>
-                                                            <div><b>Ref:</b> {{ $pay->bankRecord->reference }}</div>
-                                                            @if($pay->bankRecord->image_path)
-                                                                <div class="mt-1">
-                                                                    @can('payments.view_proof')
-                                                                    <a href="{{ asset('storage/' . $pay->bankRecord->image_path) }}" target="_blank" class="text-primary">
-                                                                        <i class="fas fa-image"></i> Ver Comprobante
-                                                                    </a>
-                                                                    @endcan
-                                                                </div>
-                                                            @endif
-                                                        </div>
-                                                    @else
-                                                        <div>
-                                                            <small>
-                                                                @if($pay->account_number) Cta:{{ $pay->account_number }} @endif
-                                                                @if($pay->account_number && ($pay->deposit_number || $pay->reference_number)) / @endif
-                                                                @if($pay->deposit_number || $pay->reference_number) Ref:{{ $pay->reference_number ?? $pay->deposit_number }} @endif
-                                                            </small>
-                                                        </div>
-                                                    @endif
-                                                @elseif ($payWay == 'zelle' && $pay->zelleRecord)
-                                                    <div class="small text-left">
-                                                        <div><b>Emisor:</b> {{ $pay->zelleRecord->sender_name }}</div>
-                                                        <div><b>Fecha:</b> {{ \Carbon\Carbon::parse($pay->zelleRecord->zelle_date)->format('d/m/Y') }}</div>
-                                                        <div><b>Monto Orig.:</b> ${{ number_format($pay->zelleRecord->amount, 2) }}</div>
-                                                        <div><b>Saldo Rest.:</b> ${{ number_format($pay->zelleRecord->remaining_balance, 2) }}</div>
-                                                        @if($pay->zelleRecord->reference)
-                                                            <div><b>Ref:</b> {{ $pay->zelleRecord->reference }}</div>
-                                                        @endif
-                                                        <div class="mt-1">
-                                                            <span class="badge badge-{{ $pay->zelleRecord->remaining_balance <= 0.01 ? 'secondary' : 'success' }}">
-                                                                {{ $pay->zelleRecord->remaining_balance <= 0.01 ? 'Agotado' : 'Disponible' }}
-                                                            </span>
-                                                        </div>
-                                                        @if($pay->zelleRecord->image_path)
-                                                            <div class="mt-1">
-                                                                @can('payments.view_proof')
-                                                                <a href="{{ asset('storage/' . $pay->zelleRecord->image_path) }}" target="_blank" class="text-primary">
-                                                                    <i class="fas fa-image"></i> Ver Comprobante
-                                                                </a>
-                                                                @endcan
-                                                            </div>
-                                                        @endif
+                                            <td data-label="Detalles" class="text-left small" style="min-width: 200px;">
+                                                @if(isset($pay->reference) && $pay->reference)
+                                                    <div class="d-flex align-items-center mb-1">
+                                                        <i class="fas fa-hashtag text-muted mr-2" style="width: 15px;"></i>
+                                                        <span>Ref: <b>{{ $pay->reference }}</b></span>
                                                     </div>
                                                 @endif
-
+                                                @if(isset($pay->comment) && $pay->comment)
+                                                    <div class="d-flex align-items-center mb-1">
+                                                        <i class="fas fa-comment-dots text-muted mr-2" style="width: 15px;"></i>
+                                                        <span class="text-truncate" style="max-width: 150px;">{{ $pay->comment }}</span>
+                                                    </div>
+                                                @endif
+                                                @if(isset($pay->status) && $pay->status == 'pending')
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="fas fa-clock text-warning mr-2" style="width: 15px;"></i>
+                                                        <span class="badge badge-warning">PENDIENTE</span>
+                                                    </div>
+                                                @elseif(isset($pay->status) && $pay->status == 'rejected')
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="fas fa-times-circle text-danger mr-2" style="width: 15px;"></i>
+                                                        <span class="badge badge-danger">RECHAZADO</span>
+                                                    </div>
+                                                @endif
                                             </td>
-
-                                            <td data-label="Fecha"> {{ app('fun')->dateFormat($pay->payment_date ?? $pay->created_at) }}</td>
-                                            <td data-label="Acciones">
-                                                @if($payWay !== 'credit_note')
-                                                    <div class="d-flex flex-column gap-1">
-                                                        @can('payments.print_receipt')
-                                                        <button class="btn btn-default btn-sm"
-                                                            wire:click="printReceipt({{ $pay->id }})" title="Imprimir Recibo">
-                                                            <i class="fas fa-print"></i>
+                                            <td data-label="Fecha" class="small">
+                                                {{ $pay->created_at }}
+                                            </td>
+                                            <td>
+                                                <div class="d-flex flex-column gap-1">
+                                                    @if(isset($pay->status) && $pay->status == 'pending' && isset($pay->currency) && $pay->currency != 'USD')
+                                                        <button class="btn btn-info btn-xs mb-1" wire:click="editPayment({{ $pay->id }}, {{ $pay->amount }}, {{ $pay->exchange_rate }}, '{{ $pay->reference }}', '{{ $pay->created_at }}', '{{ $pay->comment }}')" title="Editar Pago">
+                                                            <i class="fas fa-edit"></i>
                                                         </button>
-                                                        @endcan
-                                                        
-                                                        @if(isset($pay->status) && $pay->status == 'pending')
-                                                            @can('payments.approve')
-                                                                <div class="d-flex gap-1 mt-1">
-                                                                    <button class="btn btn-success btn-sm"
-                                                                        wire:click="approvePayment({{ $pay->id }})" 
-                                                                        wire:confirm="¿Estás seguro de aprobar este pago?"
-                                                                        title="Aprobar Pago">
-                                                                        <i class="fas fa-check"></i>
-                                                                    </button>
-                                                                    
-                                                                    <!-- EDIT BUTTON -->
-                                                                    <button class="btn btn-info btn-sm"
-                                                                        wire:click="editPayment({{ $pay->id }})"
-                                                                        title="Editar Pago">
-                                                                        <i class="fas fa-edit"></i>
-                                                                    </button>
-                                                                    
-                                                                    <button class="btn btn-warning btn-sm"
-                                                                        type="button"
-                                                                        x-on:click="
-                                                                            swal({
-                                                                                title: 'Rechazar Pago',
-                                                                                text: 'Por favor indica el motivo del rechazo:',
-                                                                                content: 'input',
-                                                                                buttons: {
-                                                                                    cancel: { text: 'Cancelar', visible: true, closeModal: true, value: null },
-                                                                                    confirm: { text: 'Sí, Rechazar', value: true, visible: true, closeModal: true }
-                                                                                },
-                                                                                dangerMode: true,
-                                                                            }).then((value) => {
-                                                                                if (value === null) return;
-                                                                                if (value === '') { swal('Error', '¡Debes escribir un motivo!', 'error'); return; }
-                                                                                $wire.rejectPayment({{ $pay->id }}, value);
-                                                                            })
-                                                                        "
-                                                                        title="Rechazar Pago">
-                                                                        <i class="fas fa-times"></i>
-                                                                    </button>
-                                                                </div>
-                                                            @endcan
-                                                        @endif
-                                                        
-                                                        @if(isset($pay->status) && ($pay->status == 'pending' || $pay->status == 'rejected'))
-                                                            @can('payments.delete')
-                                                            <button class="btn btn-outline-danger btn-sm mt-1"
-                                                                wire:click="deletePayment({{ $pay->id }})"
-                                                                wire:confirm="¿Eliminar este pago? Si es Zelle/Banco se restaurará el saldo."
-                                                                title="Eliminar Pago">
-                                                                <i class="fas fa-trash"></i>
-                                                            </button>
-                                                            @endcan
-                                                        @endif
-
-                                                        @if(isset($pay->status) && $pay->status == 'approved')
-                                                            @php
-                                                                $isToday = \Carbon\Carbon::parse($pay->payment_date ?? $pay->created_at)->isToday();
-                                                                $canVoid = false;
-                                                                if ($isToday && auth()->user()->can('payments.void_today')) $canVoid = true;
-                                                                if (!$isToday && auth()->user()->can('payments.void_anytime')) $canVoid = true;
-                                                            @endphp
-
-                                                            @if($canVoid)
-                                                            <button class="btn btn-danger btn-sm mt-1"
-                                                                type="button"
-                                                                x-on:click="
-                                                                    swal({
-                                                                        title: 'Anular Pago',
-                                                                        text: '¿Estás seguro de ANULAR este pago? Se restaurará el saldo en Banco/Zelle y la deuda del cliente aumentará. Indica el motivo:',
-                                                                        content: 'input',
-                                                                        buttons: {
-                                                                            cancel: { text: 'Cancelar', visible: true, closeModal: true, value: null },
-                                                                            confirm: { text: 'Sí, Anular', value: true, visible: true, closeModal: true }
-                                                                        },
-                                                                        dangerMode: true,
-                                                                    }).then((value) => {
-                                                                        if (value === null) return;
-                                                                        if (value === '') { swal('Error', '¡Debes escribir un motivo!', 'error'); return; }
-                                                                        $wire.voidPayment({{ $pay->id }}, value);
-                                                                    })
-                                                                "
-                                                                title="Anular Pago">
-                                                                <i class="fas fa-ban"></i> Anular
-                                                            </button>
-                                                            @endif
-                                                        @endif
-                                                    </div>
-                                                @else
-                                                    <div class="text-center text-muted">
-                                                        <small><i class="fas fa-info-circle"></i> Referencia interna</small>
-                                                    </div>
-                                                @endif
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                    
-                                    {{-- CREDIT NOTES / RETURNS --}}
-                                    @php
-                                        $saleIdForReturns = $history_sale_id ?? null;
-                                        $sale_for_returns = $saleIdForReturns ? \App\Models\Sale::find($saleIdForReturns) : null;
-                                        $returnsForHistory = $sale_for_returns ? $sale_for_returns->returns->where('refund_method', 'debt_reduction')->where('status', 'approved') : collect([]);
-                                    @endphp
-                                    @foreach($returnsForHistory as $return)
-                                        @php
-                                            $rate = $sale_for_returns->primary_exchange_rate > 0 ? $sale_for_returns->primary_exchange_rate : 1;
-                                            $equivUsd = $return->total_returned / $rate;
-                                            $amountInPrimary = $equivUsd * $primaryCurrency->exchange_rate;
-                                            $totalApprovedInPrimary += $amountInPrimary;
-                                        @endphp
-                                        <tr>
-                                            <td data-label="Folio">
-                                                <div class="d-flex align-items-center">
-                                                    N/C-{{ $return->return_number }}
-                                                    <span class="badge badge-success ms-2" style="font-size: 0.6rem;">APROBADO</span>
-                                                </div>
-                                            </td>
-                                            <td data-label="Método">
-                                                <span class="badge badge-warning">Nota de Crédito</span>
-                                            </td>
-                                            <td data-label="Moneda">Dólar (USD)</td>
-                                            <td data-label="Monto" style="background-color: rgb(228, 243, 253)">
-                                                <div> <b>{{ number_format($return->total_returned, 2) }}</b></div>
-                                            </td>
-                                            <td data-label="Tasa">{{ number_format($rate, 2) }}</td>
-                                            <td data-label="Equiv. $">
-                                                <b>${{ number_format($equivUsd, 2) }}</b>
-                                            </td>
-                                            <td data-label="Detalles">
-                                                <div class="small mt-1 text-info"><b>Nota Admin:</b> {{ $return->reason }}</div>
-                                            </td>
-                                            <td data-label="Fecha"> {{ app('fun')->dateFormat($return->created_at) }}</td>
-                                            <td data-label="Acciones">
-                                                <div class="text-center text-muted">
-                                                    <small><i class="fas fa-info-circle"></i> Referencia interna</small>
+                                                    @endif
+                                                    
+                                                    @if(!isset($pay->status) || $pay->status != 'rejected')
+                                                        <button class="btn btn-danger btn-xs"
+                                                            onclick="confirmDeletePay({{ $pay->id }})" title="Eliminar Pago">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    @endif
                                                 </div>
                                             </td>
                                         </tr>
                                     @endforeach
-
-                                    @if(count($pays) == 0 && count($returnsForHistory) == 0)
-                                        <tr>
-                                            <td colspan="9" class="text-center">Sin pagos</td>
-                                        </tr>
-                                    @endif
                                 </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <td colspan="3" class="text-end"><b>TOTAL APROBADO (Estimado en {{ $primaryCurrency->code }}):</b></td>
-                                        <td colspan="5"><b>${{ number_format($totalApprovedInPrimary, 2) }}</b></td>
+                                <tfoot class="bg-light">
+                                    <tr class="font-weight-bold">
+                                        <td colspan="5" class="text-right"> Totales:</td>
+                                        <td colspan="4" class="text-left p-0">
+                                            <div class="d-flex flex-column p-2">
+                                                <div class="d-flex justify-content-between mb-1">
+                                                    <span class="text-success">Aprobado:</span>
+                                                    <span class="text-dark">{{ $primaryCurrency->symbol }}{{ number_format($totalApprovedInPrimary, 2) }}</span>
+                                                </div>
+                                                @if($totalPendingInPrimary > 0)
+                                                <div class="d-flex justify-content-between border-top pt-1">
+                                                    <span class="text-warning">Pendiente:</span>
+                                                    <span class="text-dark">{{ $primaryCurrency->symbol }}{{ number_format($totalPendingInPrimary, 2) }}</span>
+                                                </div>
+                                                @endif
+                                            </div>
+                                        </td>
                                     </tr>
-                                    @if($totalPendingInPrimary > 0)
-                                    <tr>
-                                        <td colspan="3" class="text-end text-warning"><b>TOTAL PENDIENTE (Estimado en {{ $primaryCurrency->code }}):</b></td>
-                                        <td colspan="5" class="text-warning"><b>${{ number_format($totalPendingInPrimary, 2) }}</b></td>
-                                    </tr>
-                                    @endif
                                 </tfoot>
                             </table>
                         </div>
+                    @else
+                        <div class="alert alert-info py-4 text-center">
+                            <i class="fas fa-info-circle fa-2x d-block mb-3"></i>
+                            No se han registrado pagos para esta operaciÃ³n.
+                        </div>
                     @endif
-                </div>
-                <div class="modal-footer">
-                @if(isset($pays) && count($pays) > 0)
-                    @can('payments.print_pdf')
-                    @php
-                        $pdfId = null;
-                        if(isset($pays[0])) {
-                            $pdfId = $pays[0]->sale_id ?? $pays[0]->purchase_id ?? ($saleId ?? null);
-                        }
-                    @endphp
-                    @if($pdfId)
-                    <button type="button" class="btn btn-danger" wire:click="generatePaymentHistoryPdf({{ $pdfId }})">
-                        <i class="fas fa-file-pdf"></i> Imprimir Reporte PDF
-                    </button>
-                    @endif
-                    @endcan
-                @endif
-                
-                @can('payments.print_history')
-                <button type="button" class="btn btn-dark" wire:click="printHistory">
-                    <i class="fas fa-print"></i> Imprimir Historial (Ticket)
-                </button>
-                @endcan
 
-                    @if(isset($pays[0]) && isset($pays[0]->sale_id))
-                    <button type="button" class="btn btn-outline-warning" 
-                            wire:click="resetCreditSnapshot({{ $pays[0]->sale_id }})"
-                            wire:confirm="¿Estás seguro de actualizar las reglas de crédito? Esto aplicará la configuración actual del cliente a esta venta de forma permanente.">
+                    @if(isset($pays) && count($pays) > 0 && isset($history_sale_id) && $history_sale_id)
+                    <button class="btn btn-sm btn-outline-primary mt-3 py-1 btn-block shadow-none" wire:click="syncCreditRules({{ $history_sale_id }})">
                         <i class="fas fa-sync-alt"></i> Actualizar Reglas de Crédito
                     </button>
                     @endif
 
-                <button type="button" class="btn btn-dark" data-dismiss="modal">Cerrar</button>
-            </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-dark" data-dismiss="modal">Cerrar</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
-      <script>
+    
+    <script>
         document.addEventListener('livewire:initialized', () => {
             // Fix for SweetAlert input not throwable when Bootstrap Modal is open
             if ($.fn.modal && $.fn.modal.Constructor.prototype._enforceFocus) {
@@ -555,7 +339,7 @@
                                         </label>
                                     </div>
                                     @endif
-                                    <small class="text-muted d-block mt-2">Los descuentos seleccionados se restarán de la deuda total del cliente al aprobar este pago.</small>
+                                    <small class="text-muted d-block mt-2">Los descuentos seleccionados se restarÃ¡n de la deuda total del cliente al aprobar este pago.</small>
                                 </div>
                             </div>
                         </div>
@@ -575,25 +359,25 @@
                                 <strong>Saldo Restante Posterior a este Abono: </strong> 
                                 <span class="h5 mb-0 font-weight-bold">${{ number_format($remainingPredicted, 2) }}</span>
                                 @if($remainingPredicted <= 0.05)
-                                    <br><small class="font-weight-bold"><i class="fas fa-check-circle"></i> ¡Este pago liquida la deuda restante!</small>
+                                    <br><small class="font-weight-bold"><i class="fas fa-check-circle"></i> Â¡Este pago liquida la deuda restante!</small>
                                 @endif
                             </div>
                         </div>
                     </div>
 
                     <div class="form-group mt-3">
-                        <label>Referencia / Envío</label>
+                        <label>Referencia / EnvÃ­o</label>
                         <input type="text" class="form-control" wire:model="editPaymentRef">
-                        <small class="text-muted">Si ingresas un número de cédula aquí, se sobrescribirá con el comprobante bancario real para poder aprobarlo.</small>
+                        <small class="text-muted">Si ingresas un nÃºmero de cÃ©dula aquÃ­, se sobrescribirÃ¡ con el comprobante bancario real para poder aprobarlo.</small>
                     </div>
                     <div class="form-group">
                         <label>Fecha</label>
                         <input type="date" class="form-control" wire:model="editPaymentDate">
                     </div>
                     <div class="form-group">
-                        <label>Comentario de Modificación (Opcional)</label>
-                        <textarea class="form-control" wire:model="editPaymentComment" rows="2" placeholder="Ej: Se corrigió la tasa de cambio a la fecha del depósito real..."></textarea>
-                        <small class="text-muted">Este comentario será visible para el vendedor en el historial.</small>
+                        <label>Comentario de ModificaciÃ³n (Opcional)</label>
+                        <textarea class="form-control" wire:model="editPaymentComment" rows="2" placeholder="Ej: Se corrigiÃ³ la tasa de cambio a la fecha del depÃ³sito real..."></textarea>
+                        <small class="text-muted">Este comentario serÃ¡ visible para el vendedor en el historial.</small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -602,5 +386,6 @@
                 </div>
             </div>
         </div>
+    </div>
     @endisset
 </div>

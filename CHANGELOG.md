@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.9.10] - 2026-03-26
+
+### Fixed
+- **Solución Definitiva a 'Multiple Root Elements'**: Reescrita la estructura de `historypays.blade.php` para garantizar un balance perfecto de etiquetas div, permitiendo que el componente `purchase-partial-payment` se monte correctamente en Livewire sin excepciones estructurales.
+
+## [1.9.9] - 2026-03-26
+
+### Fixed
+- **Excepción de Raíz Livewire**: Corregido el error de "Multiple Root Elements" en `historypays.blade.php` al envolver los estilos y el contenido en un único div. Esto permite que el modal de Abonos funcione sin errores.
+
 ## [1.9.8] - 2026-03-26
 
 ### Fixed
