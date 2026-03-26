@@ -67,7 +67,15 @@
                             <td>{{ $product->name }}</td>
                             <td>{{ $product->stock_qty }}</td>
                             <td>{{ $product->max_stock }}</td>
-                            <td class="text-danger font-weight-bold">{{ $deficit }}</td>
+                            <td class="font-weight-bold">
+                                @if($deficit > 0)
+                                    <span class="text-danger"><i class="fa fa-arrow-down"></i> Faltan {{ $deficit }}</span>
+                                @elseif($deficit < 0)
+                                    <span class="text-primary"><i class="fa fa-arrow-up"></i> Sobran {{ abs($deficit) }}</span>
+                                @else
+                                    <span class="text-success"><i class="fa fa-check"></i> Óptimo (0)</span>
+                                @endif
+                            </td>
                             <td>
                                 @if($bestSupplier && $bestSupplier->supplier)
                                     {{ $bestSupplier->supplier->name }}

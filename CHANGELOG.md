@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.9.17] - 2026-03-26
+
+### Changed
+- **Mejoras Visuales en Requisición**: Se rediseñó la columna "Déficit (A Comprar)" en la tabla de Sugerencias de Compras. Ahora muestra textos explícitos con código de colores en lugar de números matemáticos: Verde ("Óptimo") para stock en cero déficit, Rojo ("Faltan X") cuando la mercancía realmente falta, y Azul ("Sobran X") cuando el inventario cruza holgadamente el máximo sugerido. Ninguna cantidad negativa causará confusión nuevamente.
+
+
 ## [1.9.16] - 2026-03-26
 
 ### Added
