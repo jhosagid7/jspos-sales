@@ -71,6 +71,8 @@
                                 <tr>
                                     <th class="text-center" width="100"></th>
                                     <th class="text-left">Descripción</th>
+                                    <th class="text-center">Costo</th>
+                                    <th class="text-center">Inc. / Margen</th>
                                     <th class="text-center">Precios</th>
                                     <th class="text-center">Tipo</th>
                                     <th class="text-center">Estado</th>
@@ -101,10 +103,21 @@
                                             @endif
                                         </td>
                                         <td class="text-center">
+                                            <span class="text-dark font-weight-bold">${{ number_format($product->cost, 2) }}</span>
+                                        </td>
+                                        <td class="text-center" style="font-size: 0.85rem;">
+                                            @php
+                                                $markup = $product->cost > 0 ? (($product->price - $product->cost) / $product->cost) * 100 : 0;
+                                                $margin = $product->price > 0 ? (($product->price - $product->cost) / $product->price) * 100 : 0;
+                                            @endphp
+                                            <div class="text-success mb-1" title="Incremento sobre costo"><i class="fa fa-arrow-up"></i> {{ number_format($markup, 2) }}%</div>
+                                            <div class="text-secondary" title="Margen de ganancia"><i class="fa fa-chart-pie"></i> {{ number_format($margin, 2) }}%</div>
+                                        </td>
+                                        <td class="text-center">
                                             @if ($product->priceList->count() > 0)
                                                 [{{ '$' . implode(', ', $product->priceList->pluck('price')->toArray()) }}]
                                             @else
-                                                ${{ $product->price }}
+                                                ${{ number_format($product->price, 2) }}
                                             @endif
                                         </td>
                                         <td class="text-center">

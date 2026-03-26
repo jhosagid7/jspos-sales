@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.9.16] - 2026-03-26
+
+### Added
+- **Métricas Financieras en Catálogo**: Se agregó la columna de "Costo" ($) y la de "Inc. / Margen" (%) a la tabla principal de productos. Esto permite a los usuarios previsualizar el costo real, el incremento sobre el costo y el margen de ganancia de venta sin necesidad de entrar al modo de edición.
+
+
 ## [1.9.15] - 2026-03-26
 
 ### Added
