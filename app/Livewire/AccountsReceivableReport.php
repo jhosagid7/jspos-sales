@@ -936,37 +936,7 @@ class AccountsReceivableReport extends Component
 
 
     public function checkSaleSettlement($sale) {
-        $sale->refresh();
-        
-        $currentTotalPaidUSD = $sale->payments->where('status', 'approved')->sum(function($p) {
-            $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
-            $amountUSD = $p->amount / $rate;
-            
-            $adjustmentUSD = $p->discount_applied ?? 0;
-             if ($p->rule_type === 'overdue') {
-                return $amountUSD - $adjustmentUSD;
-            } else {
-                return $amountUSD + $adjustmentUSD;
-            }
-        });
-        
-        $initialPaidUSD = $sale->paymentDetails->sum(function($detail) {
-            $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
-            return $detail->amount / $rate;
-        });
-        
-        $grandTotalPaidUSD = $currentTotalPaidUSD + $initialPaidUSD;
-        
-        if ($grandTotalPaidUSD >= ($sale->total_usd - 0.01)) {
-            $sale->update(['status' => 'paid']);
-            
-            Payment::where('sale_id', $sale->id)
-                ->where('status', 'approved')
-                ->where('created_at', '>=', \Carbon\Carbon::now()->subMinute())
-                ->update(['type' => 'settled']);
-                
-            \App\Services\CommissionService::calculateCommission($sale);
-        }
+        $sale->checkSettlement();
     }
 
     public function editPayment($paymentId)

@@ -128,8 +128,8 @@ class Sale extends Model
         $totalPays = $this->payments->where('status', 'approved')->sum('amount');
         
         // Deduct returns that were applied directly to the debt
-        $totalReturns = $this->returns->where('refund_method', 'debt_reduction')->sum('total_returned');
-
+        $totalReturns = $this->returns->where('refund_method', 'debt_reduction')->where('status', 'approved')->sum('total_returned');
+        
         $debt = $this->total - $totalPays - $totalReturns;
 
         return $debt > 0 ? $debt : 0;
@@ -186,5 +186,49 @@ class Sale extends Model
     public function deliveryCollections()
     {
         return $this->hasMany(DeliveryCollection::class);
+    }
+
+    public function checkSettlement()
+    {
+        $this->refresh();
+        
+        $currentTotalPaidUSD = $this->payments->where('status', 'approved')->sum(function($p) {
+            $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
+            $amountUSD = $p->amount / $rate; 
+            
+            $adjustmentUSD = $p->discount_applied ?? 0;
+            
+            if ($p->rule_type === 'overdue') {
+                return $amountUSD - $adjustmentUSD;
+            } else {
+                return $amountUSD + $adjustmentUSD;
+            }
+        });
+        
+        $initialPaidUSD = $this->paymentDetails->sum(function($detail) {
+            $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
+            return $detail->amount / $rate;
+        });
+
+        $totalReturnsOrig = $this->returns->where('refund_method', 'debt_reduction')->where('status', 'approved')->sum('total_returned');
+        $exchangeRateReturns = $this->primary_exchange_rate > 0 ? $this->primary_exchange_rate : 1;
+        $totalReturnsUSD = $totalReturnsOrig / $exchangeRateReturns;
+        
+        $grandTotalPaidUSD = $currentTotalPaidUSD + $initialPaidUSD + $totalReturnsUSD;
+        
+        if ($grandTotalPaidUSD >= ($this->total_usd - 0.01)) {
+            $this->update(['status' => 'paid']);
+            
+            Payment::where('sale_id', $this->id)
+                ->where('status', 'approved')
+                ->where('created_at', '>=', \Carbon\Carbon::now()->subMinute())
+                ->update(['type' => 'settled']);
+            
+            // COMMISSION CALCULATION (Fix: Use Payment Date)
+            $lastPaymentDate = $this->payments->where('status', 'approved')->max('payment_date');
+            if (!$lastPaymentDate) $lastPaymentDate = now();
+                
+            \App\Services\CommissionService::calculateCommission($this, $lastPaymentDate);
+        }
     }
 }

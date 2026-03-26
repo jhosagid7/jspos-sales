@@ -320,6 +320,10 @@ class ReturnsComponent extends Component
                 'concept' => 'Devolución Factura #' . ($saleReturn->sale->invoice_number ?? $saleReturn->sale_id),
             ]);
         }
+        
+        if ($saleReturn->refund_method === 'debt_reduction') {
+            $saleReturn->sale->checkSettlement();
+        }
     }
 
     public function ApproveReturn($returnId)

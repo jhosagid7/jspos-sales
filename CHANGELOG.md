@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.9.13] - 2026-03-26
+
+### Fixed
+- **Estatus Cuentas por Cobrar**: Corregida lógica central donde las facturas no cambiaban a "Pagado" al saldar la deuda restante usando devoluciones (Notas de Crédito).
+- **Corrección Retroactiva Automática**: Incluida migración que escanea facturas históricas a crédito en estado "Pendiente" y las marca como pagadas si su saldo fue cubierto por devoluciones, generando sus respectivas comisiones.
+
 ## [1.9.12] - 2026-03-26
 
 ### Added
