@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.9.4] - 2026-03-26
+
+### Fixed
+- **Estructura Blade de Pagos**: Corregida la presencia de etiquetas de cierre div redundantes en `historypays.blade.php` que causaban errores de "Multiple root elements" en el módulo de compras y abonos.
+
 ## [1.9.3] - 2026-03-26
 
 ### Fixed
