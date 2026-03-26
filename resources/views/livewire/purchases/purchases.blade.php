@@ -1,9 +1,13 @@
-<div>
-    <div class="row px-2 pt-3">
-        {{-- Main Table Section --}}
+<div class="container-fluid py-3 px-4">
+    <div class="row g-4">
+        {{-- Main Table Section (Left) --}}
         <div class="col-sm-12 col-md-8 col-lg-9">
-            @include('livewire.purchases.partials.items')
+            <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px; overflow: hidden;">
+                @include('livewire.purchases.partials.items')
+            </div>
             
+            {{-- Other Partials that should stay in this column but maybe they are modals? --}}
+            {{-- Actually, if they are @include they are pasted here. --}}
             @include('livewire.purchases.partials.payConfirm')
             @include('livewire.purchases.partials.script')
             @include('livewire.purchases.partials.price-modal')
@@ -11,9 +15,9 @@
             <livewire:purchase-partial-payment />
         </div>
 
-        {{-- Sidebar Summary Section --}}
+        {{-- Sidebar Summary Section (Right) --}}
         <div class="col-sm-12 col-md-4 col-lg-3">
-            <div class="card shadow-sm border-0 sticky-top" style="border-radius: 16px; top: 20px; border: 1px solid #e9ecef;">
+            <div class="card shadow-sm border-0 sticky-top" style="border-radius: 16px; top: 20px; border: 1px solid #e9ecef; z-index: 1020;">
                 <div class="card-header bg-white border-bottom-0 pt-4 px-4 d-flex justify-content-between align-items-center">
                     <h5 class="font-weight-bold text-dark mb-0" style="letter-spacing: -0.5px;">Resumen Compra</h5>
                     <button type="button" class="btn btn-sm btn-light text-primary rounded-circle shadow-none" data-toggle="modal" data-target="#modalSupplier" title="Nuevo Proveedor">
@@ -124,7 +128,7 @@
         </div>
     </div>
 
-    {{-- Modals Section --}}
+    {{-- Modals Section (outside the row for stability) --}}
     <div wire:ignore.self class="modal fade" id="modalSupplier" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
@@ -134,6 +138,7 @@
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
+                <!-- ... Modal Body stays the same ... -->
                 <div class="modal-body p-4">
                     <div class="row">
                         <div class="col-sm-12 col-md-6 mb-3">
@@ -161,7 +166,7 @@
         </div>
     </div>
 
-    <div class="modal fade" id="modalVariableItem" tabindex="-1" role="dialog" wire:ignore.self shadow-lg>
+    <div class="modal fade" id="modalVariableItem" tabindex="-1" role="dialog" wire:ignore.self>
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content border-0" style="border-radius: 15px;">
                 <div class="modal-header bg-dark text-white" style="border-radius: 15px 15px 0 0;">
@@ -196,13 +201,12 @@
     </div>
 
     <style>
-        .hover-scale:hover { transform: scale(1.02); }
-        .transition-all { transition: all 0.3s ease; }
-        .bg-success-light { background-color: #f0fdf4; }
-        .letter-spacing-1 { letter-spacing: 1px; }
-        .card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
-        .payment-btn:hover { filter: brightness(0.95); transform: translateY(-2px); }
-        .sticky-top { z-index: 10 !important; }
+        .hover-scale:hover { transform: scale(1.01); }
+        .transition-all { transition: all 0.2s ease; }
+        .sticky-top { z-index: 1020 !important; }
+        @media (min-width: 1200px) {
+            .container-fluid { max-width: 100%; }
+        }
     </style>
 
     <script>
@@ -220,8 +224,10 @@
 
             Livewire.on('focus-weight', () => {
                  setTimeout(() => {
-                     $('#vw_weight').val(''); 
-                     $('#vw_weight').focus();
+                     if(document.getElementById('vw_weight')) {
+                         document.getElementById('vw_weight').value = ''; 
+                         document.getElementById('vw_weight').focus();
+                     }
                  }, 300);
             });
         })

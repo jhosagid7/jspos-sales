@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.9.8] - 2026-03-26
+
+### Fixed
+- **Balance de Etiquetas HTML**: Corregida la falta de cierre de divs en `historypays.blade.php` que causaba la rotura del diseño responsivo en Ventas y Compras, obligando a los componentes a apilarse verticalmente.
+
+## [1.9.7] - 2026-03-26
+
+### Fixed
+- **Estructura de Rejilla - Compras**: Implementación de `container-fluid` y corrección de etiquetas Livewire para garantizar que el sidebar se mantenga a la derecha y no se desplace debajo de la tabla.
+
 ## [1.9.6] - 2026-03-26
 
 ### Fixed

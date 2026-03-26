@@ -5,7 +5,7 @@
                 <div class="d-flex align-items-center">
                     <span class="text-muted small text-uppercase font-weight-bold mr-3" style="font-size: 0.65rem; white-space: nowrap;">Búsqueda</span>
                     <div class="flex-grow-1" style="max-width: 450px;">
-                        <livewire:product-search>
+                        <livewire:product-search />
                     </div>
                 </div>
             </div>

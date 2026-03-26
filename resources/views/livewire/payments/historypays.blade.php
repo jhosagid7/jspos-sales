@@ -454,6 +454,9 @@
                 <button type="button" class="btn btn-dark" data-dismiss="modal">Cerrar</button>
             </div>
             </div>
+        </div>
+    </div>
+</div>
       <script>
         document.addEventListener('livewire:initialized', () => {
             // Fix for SweetAlert input not throwable when Bootstrap Modal is open
@@ -599,6 +602,5 @@
                 </div>
             </div>
         </div>
-    </div>
     @endisset
 </div>
