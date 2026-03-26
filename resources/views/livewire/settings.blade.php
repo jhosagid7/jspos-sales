@@ -123,6 +123,18 @@
                             </a>
                         </li>
                         @endmodule
+                        
+                        {{-- Tab 10: Actualización Masiva de Precios --}}
+                        <li class="nav-item mb-2">
+                            <a class="nav-link {{ $tab == 10 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                               wire:click.prevent="$set('tab', 10)" href="#">
+                                <i class="fa fa-percent fa-2x"></i>
+                                <div>
+                                    <h6 class="mb-0">Precios Masivos</h6>
+                                    <small class="{{ $tab == 10 ? 'text-white' : 'text-muted' }}">Aumentos por Lote</small>
+                                </div>
+                            </a>
+                        </li>
                     </ul>
                 </div>
 
@@ -879,6 +891,14 @@
                             </div>
                         </div>
                         @endmodule
+                        
+                        {{-- TAB 10: ACTUALIZACIÓN MASIVA DE PRECIOS --}}
+                        <div class="tab-pane fade {{ $tab == 10 ? 'active show' : '' }}" id="bulk-price-settings" role="tabpanel"
+                            aria-labelledby="bulk-price-settings-tab">
+                            <div class="sidebar-body">
+                                <livewire:settings.bulk-price-update />
+                            </div>
+                        </div>
 
                     </div>
                 </div>

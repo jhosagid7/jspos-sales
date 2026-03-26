@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.9.15] - 2026-03-26
+
+### Added
+- **Actualización Masiva de Precios**: Nueva sección en la Configuración del Sistema que permite ajustar (aumentar o descontar) el Costo de Compra o el Precio de Venta mediante un porcentaje. Cuenta con filtros obligatorios por Categoría y/o Proveedor y panel de confirmación irreversible.
+- **Sincronización Bidireccional de Precios**: Se agregó un nuevo campo en el catálogo de productos para el "Porcentaje de Incremento sobre Costo". Ahora el sistema sincroniza automáticamente en tres vías: Margen de Ganancia, Porcentaje de Incremento y Precio de Venta.
+
 ## [1.9.14] - 2026-03-26
 
 ### Fixed

@@ -216,43 +216,65 @@
                                     cost: @entangle('form.cost'),
                                     price: @entangle('form.price'),
                                     margin: 0,
-                                    calculateMargin() {
+                                    markup: 0,
+                                    calculatePercents() {
                                         if(this.cost > 0 && this.price > 0) {
-                                            this.margin = ((this.price - this.cost) / this.price * 100).toFixed(2);
+                                            this.margin = (((this.price - this.cost) / this.price) * 100).toFixed(2);
+                                            this.markup = (((this.price - this.cost) / this.cost) * 100).toFixed(2);
                                         } else {
                                             this.margin = 0;
+                                            this.markup = 0;
                                         }
                                     },
-                                    calculatePrice() {
-                                        if(this.cost > 0 && this.margin > 0) {
-                                            // Price = Cost / (1 - Margin%)
-                                            this.price = (this.cost / (1 - (this.margin / 100))).toFixed(4);
+                                    calculatePriceFromMargin() {
+                                        if(this.cost > 0 && this.margin !== '') {
+                                            let m = parseFloat(this.margin);
+                                            if (m >= 100) m = 99.99;
+                                            this.price = (this.cost / (1 - (m / 100))).toFixed(4);
+                                            this.markup = (((this.price - this.cost) / this.cost) * 100).toFixed(2);
+                                        }
+                                    },
+                                    calculatePriceFromMarkup() {
+                                        if(this.cost > 0 && this.markup !== '') {
+                                            let mk = parseFloat(this.markup);
+                                            this.price = (this.cost * (1 + (mk / 100))).toFixed(4);
+                                            this.margin = (((this.price - this.cost) / this.price) * 100).toFixed(2);
                                         }
                                     }
-                                }" x-init="calculateMargin()">
+                                }" x-init="calculatePercents()" x-effect="if(cost) calculatePercents()">
                                     <div class="row">
                                         {{-- cost --}}
-                                        <div class="col-sm-12 col-md-4">
+                                        <div class="col-sm-12 col-md-3">
                                             <label class="form-label">Costo de Compra</label>
                                             <div class="input-group">
                                                 <span class="input-group-text">$</span>
-                                                <input wire:model="form.cost" x-model="cost" @input="calculateMargin()" class="form-control numerico" type="number" placeholder="0.0000" step="0.0001">
+                                                <input wire:model="form.cost" x-model="cost" @input="calculatePercents()" class="form-control numerico" type="number" placeholder="0.0000" step="0.0001">
                                             </div>
                                         </div>
-                                        {{-- price --}}
-                                        <div class="col-sm-12 col-md-4">
-                                            <label class="form-label">Precio de Venta</label>
-                                            <div class="input-group">
-                                                <span class="input-group-text">$</span>
-                                                <input wire:model="form.price" x-model="price" @input="calculateMargin()" class="form-control numerico" type="number" placeholder="0.0000" step="0.0001">
-                                            </div>
-                                        </div>
-                                        {{-- margin --}}
-                                        <div class="col-sm-12 col-md-4">
-                                            <label class="form-label">Margen de Ganancia (%)</label>
+                                        {{-- markup (NEW) --}}
+                                        <div class="col-sm-12 col-md-3">
+                                            <label class="form-label"><i class="fa fa-arrow-up text-success"></i> Incremento (%)</label>
                                             <div class="input-group">
                                                 <span class="input-group-text">%</span>
-                                                <input x-model="margin" @input="calculatePrice()" class="form-control numerico" type="number" placeholder="0.00" step="0.01">
+                                                <input x-model="markup" @input="calculatePriceFromMarkup()" class="form-control text-success font-weight-bold" type="number" placeholder="0.00" step="0.01">
+                                            </div>
+                                            <small class="text-muted" style="font-size: 0.65rem;">Costo + %</small>
+                                        </div>
+                                        {{-- margin --}}
+                                        <div class="col-sm-12 col-md-3">
+                                            <label class="form-label"><i class="fa fa-chart-pie text-secondary"></i> Margen Ganancia</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">%</span>
+                                                <input x-model="margin" @input="calculatePriceFromMargin()" class="form-control text-secondary font-weight-bold" type="number" placeholder="0.00" step="0.01">
+                                            </div>
+                                            <small class="text-muted" style="font-size: 0.65rem;">Ganado / P. Ventas</small>
+                                        </div>
+                                        {{-- price --}}
+                                        <div class="col-sm-12 col-md-3">
+                                            <label class="form-label text-primary font-weight-bold">Precio de Venta</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text bg-primary text-white">$</span>
+                                                <input wire:model="form.price" x-model="price" @input="calculatePercents()" class="form-control text-primary font-weight-bold" type="number" placeholder="0.0000" step="0.0001">
                                             </div>
                                         </div>
                                     </div>
