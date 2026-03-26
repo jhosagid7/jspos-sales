@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.9.18] - 2026-03-26
+
+### Changed
+- **Requisición (Déficit)**: Simplificación de la columna "Déficit (A Comprar)". Se eliminó el texto redundante y ahora sólo se muestran los íconos de colores junto con los números precisos para mejorar el minimalismo visual y evitar distractores en pantalla.
+
+
 ## [1.9.17] - 2026-03-26
 
 ### Changed
