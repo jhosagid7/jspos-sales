@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Log;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 
-class WhatsappNotificationListener
+class WhatsappNotificationListener implements ShouldQueue
 {
     use \App\Traits\PdfInvoiceTrait;
 

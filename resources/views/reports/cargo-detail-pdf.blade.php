@@ -133,7 +133,7 @@
                 <th width="10%">ID</th>
                 <th>Producto / Descripción</th>
                 <th width="15%" class="text-center">Cant.</th>
-                @if(auth()->user()->can('inventory.view_costs'))
+                @if(!auth()->check() || auth()->user()->can('inventory.view_costs'))
                 <th width="15%" class="text-right">Costo Unit.</th>
                 <th width="15%" class="text-right">Subtotal</th>
                 @endif
@@ -152,14 +152,14 @@
                         @endif
                     </td>
                     <td class="text-center">{{ number_format($item->quantity, 2) }}</td>
-                    @if(auth()->user()->can('inventory.view_costs'))
+                    @if(!auth()->check() || auth()->user()->can('inventory.view_costs'))
                     <td class="text-right">${{ number_format($item->cost, 2) }}</td>
                     <td class="text-right">${{ number_format($subtotal, 2) }}</td>
                     @endif
                 </tr>
             @endforeach
         </tbody>
-        @if(auth()->user()->can('inventory.view_costs'))
+        @if(!auth()->check() || auth()->user()->can('inventory.view_costs'))
         <tfoot>
             <tr>
                 <td colspan="4" class="text-right"><strong>TOTAL COSTO VALORADO:</strong></td>

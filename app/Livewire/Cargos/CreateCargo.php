@@ -22,12 +22,41 @@ class CreateCargo extends Component
     
     public $warehouses = [];
 
-    public function mount()
+    public $cargo_id = null;
+
+    public function mount($cargo = null)
     {
         $this->date = now()->format('Y-m-d\TH:i');
         $this->warehouses = \App\Models\Warehouse::where('is_active', 1)->get();
         // Default warehouse if exists
         $this->warehouse_id = $this->warehouses->first()->id ?? null;
+
+        if ($cargo) {
+            $cargoObj = \App\Models\Cargo::with('details.product')->find($cargo);
+            if ($cargoObj && $cargoObj->status == 'pending') {
+                $this->cargo_id = $cargoObj->id;
+                $this->warehouse_id = $cargoObj->warehouse_id;
+                $this->motive = $cargoObj->motive;
+                $this->authorized_by = $cargoObj->authorized_by;
+                $this->comments = $cargoObj->comments;
+                $this->date = $cargoObj->date->format('Y-m-d\TH:i');
+
+                // Pre-fill cart
+                foreach ($cargoObj->details as $item) {
+                    if ($item->product) {
+                        $this->cart[$item->product_id] = [
+                            'id' => $item->product_id,
+                            'name' => $item->product->name,
+                            'sku' => $item->product->sku,
+                            'cost' => $item->cost,
+                            'quantity' => $item->quantity,
+                            'is_variable' => (bool)$item->product->is_variable_quantity,
+                            'items' => $item->items_json ? json_decode($item->items_json, true) : []
+                        ];
+                    }
+                }
+            }
+        }
     }
 
     public function updatedSearch()
@@ -198,15 +227,34 @@ class CreateCargo extends Component
         try {
             \Illuminate\Support\Facades\DB::beginTransaction();
 
-            $cargo = \App\Models\Cargo::create([
-                'warehouse_id' => $this->warehouse_id,
-                'user_id' => auth()->id(),
-                'authorized_by' => $this->authorized_by,
-                'motive' => $this->motive,
-                'date' => $this->date,
-                'comments' => $this->comments,
-                'status' => 'pending', 
-            ]);
+            if ($this->cargo_id) {
+                // Update existing cargo
+                $cargo = \App\Models\Cargo::find($this->cargo_id);
+                $cargo->update([
+                    'warehouse_id' => $this->warehouse_id,
+                    'user_id' => auth()->id(),
+                    'authorized_by' => $this->authorized_by,
+                    'motive' => $this->motive,
+                    'date' => $this->date,
+                    'comments' => $this->comments,
+                ]);
+
+                // Limpiar detalles anteriores
+                \App\Models\CargoDetail::where('cargo_id', $cargo->id)->delete();
+                $isUpdate = true;
+            } else {
+                // Create new cargo
+                $cargo = \App\Models\Cargo::create([
+                    'warehouse_id' => $this->warehouse_id,
+                    'user_id' => auth()->id(),
+                    'authorized_by' => $this->authorized_by,
+                    'motive' => $this->motive,
+                    'date' => $this->date,
+                    'comments' => $this->comments,
+                    'status' => 'pending', 
+                ]);
+                $isUpdate = false;
+            }
 
             foreach ($this->cart as $item) {
                 $detail = \App\Models\CargoDetail::create([
@@ -223,15 +271,19 @@ class CreateCargo extends Component
 
             \Illuminate\Support\Facades\DB::commit();
             
-            // Dispatch Event
-            event(new \App\Events\CargoCreated($cargo));
+            if (!$isUpdate) {
+                // Dispatch Event only on creation
+                event(new \App\Events\CargoCreated($cargo));
 
-            // Send Email Notifications
-            $approvers = \App\Models\User::permission('adjustments.approve_cargo')->get();
-            \Illuminate\Support\Facades\Notification::send($approvers, new \App\Notifications\CargoCreatedNotification($cargo));
-            
-            $this->reset(['cart', 'motive', 'authorized_by', 'comments', 'search']);
-            $this->dispatch('noty', msg: 'Cargo registrado correctamente. Pendiente de aprobación.');
+                // Send Email Notifications
+                $approvers = \App\Models\User::permission('adjustments.approve_cargo')->get();
+                \Illuminate\Support\Facades\Notification::send($approvers, new \App\Notifications\CargoCreatedNotification($cargo));
+                $this->dispatch('noty', msg: 'Cargo registrado correctamente. Pendiente de aprobación.');
+                $this->reset(['cart', 'motive', 'authorized_by', 'comments', 'search']);
+            } else {
+                $this->dispatch('noty', msg: 'Cargo actualizado correctamente.');
+                return redirect()->route('cargos');
+            }
             
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\DB::rollBack();

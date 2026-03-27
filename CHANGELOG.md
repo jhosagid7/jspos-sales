@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.9.19] - 2026-03-27
+
+### Added
+- **Edición de Cargos**: Añadida la opción para modificar los Cargos "Pendientes". Los usuarios pueden actualizar las cantidades, eliminar productos, cambiar el motivo y ajustar el detalle antes de aplicar el impacto definitivamente al inventario.
+
+### Changed
+- **Procesos en Segundo Plano Eficientes (Colas)**: Para evitar cuelgues al crear Cargos o procesos largos, se implementó que la generación de recibos PDF, envíos de correo del comprobante y notificaciones vía WhatsApp API ahora corran 100% en cola de procesos (background Database Jobs) usando el Worker del sistema configurado mediante NSSM. Se migró el entorno y el sistema es ahora considerablemente más fluido.
+
+
 ## [1.9.18] - 2026-03-26
 
 ### Changed

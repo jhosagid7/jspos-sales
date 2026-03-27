@@ -82,6 +82,12 @@
                                         
                                         @if($cargo->status == 'pending')
                                             <div class="mt-2 text-center">
+                                                @can('adjustments.create')
+                                                    <a href="{{ route('cargos.edit', $cargo->id) }}" class="btn btn-primary btn-sm" title="Editar">
+                                                        <i class="fas fa-pencil-alt"></i>
+                                                    </a>
+                                                @endcan
+                                                
                                                 @can('adjustments.approve_cargo')
                                                     <button wire:click="approve({{ $cargo->id }})" class="btn btn-dark btn-sm" title="Aprobar"
                                                         onclick="confirm('¿Confirmas aprobar este cargo? El stock se actualizará.') || event.stopImmediatePropagation()">

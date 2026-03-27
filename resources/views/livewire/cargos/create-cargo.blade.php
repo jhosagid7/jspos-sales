@@ -3,8 +3,7 @@
         <div class="col-sm-12">
             <div class="widget widget-chart-one">
                 <div class="widget-heading">
-                    <h4 class="card-title">
-                        <b>Crear Nuevo Cargo / Ajuste de Entrada</b>
+                        <b>{{ $cargo_id ? 'Editar Cargo / Ajuste de Entrada' : 'Crear Nuevo Cargo / Ajuste de Entrada' }}</b>
                     </h4>
                     <ul class="tabs tab-pills">
                         <li>
@@ -185,7 +184,7 @@
                     <div class="row mt-3">
                         <div class="col-sm-12 text-center">
                         <button wire:click="save" wire:loading.attr="disabled" class="btn btn-primary btn-lg" {{ count($cart) < 1 ? 'disabled' : '' }}>
-                            <span wire:loading.remove wire:target="save">GUARDAR CARGO</span>
+                            <span wire:loading.remove wire:target="save">{{ $cargo_id ? 'ACTUALIZAR CARGO' : 'GUARDAR CARGO' }}</span>
                             <span wire:loading wire:target="save">
                                 <i class="fas fa-spinner fa-spin"></i> PROCESANDO...
                             </span>
