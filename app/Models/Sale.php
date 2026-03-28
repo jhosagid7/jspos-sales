@@ -229,6 +229,11 @@ class Sale extends Model
             if (!$lastPaymentDate) $lastPaymentDate = now();
                 
             \App\Services\CommissionService::calculateCommission($this, $lastPaymentDate);
+        } else {
+            // Revert status to pending if it was previously paid but no longer meets settlement criteria
+            if ($this->status === 'paid') {
+                $this->update(['status' => 'pending']);
+            }
         }
     }
 }

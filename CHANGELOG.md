@@ -1,3 +1,10 @@
+## [1.9.22] - 2026-03-28
+
+### Fixed
+- **Anulación de Pagos (Cuentas por Cobrar)**: Se corrigió un error crítico de base de datos (SQL 1265 - Data truncated) que ocurría al intentar anular un pago, causado por un valor de estado inválido.
+- **Sincronización de Caja**: Ahora, al anular o eliminar un pago desde el reporte de Cuentas por Cobrar, el monto se resta automáticamente de la Hoja de Recaudación (Collection Sheet) para mantener la integridad del cuadre de caja.
+- **Estado de Factura**: Se optimizó la lógica de liquidación para que las facturas regresen automáticamente al estado "Pendiente" si, tras una anulación de pago, el saldo deja de estar cubierto, permitiendo una trazabilidad exacta de la deuda.
+
 ## [1.9.21] - 2026-03-28
 
 ### Added

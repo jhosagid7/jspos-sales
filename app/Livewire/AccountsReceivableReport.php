@@ -710,10 +710,19 @@ class AccountsReceivableReport extends Component
                 'rejection_reason' => $reason
             ]);
 
-            // If sale was 'paid', revert to 'credit'
+            // Revert Collection Sheet total if linked
+            if ($payment->collection_sheet_id) {
+                $sheet = \App\Models\CollectionSheet::find($payment->collection_sheet_id);
+                if ($sheet) {
+                    $amountUSD = $payment->amount / ($payment->exchange_rate > 0 ? $payment->exchange_rate : 1);
+                    $sheet->decrement('total_amount', $amountUSD);
+                }
+            }
+
+            // Restore sale status if it was paid
             $sale = Sale::find($payment->sale_id);
-            if ($sale && $sale->status === 'paid') {
-                $sale->update(['status' => 'credit']);
+            if ($sale) {
+                 $this->checkSaleSettlement($sale);
             }
 
             DB::commit();
@@ -765,6 +774,15 @@ class AccountsReceivableReport extends Component
                         if ($bankRec->remaining_balance > $bankRec->amount) $bankRec->remaining_balance = $bankRec->amount;
                         $bankRec->status = ($bankRec->remaining_balance >= ($bankRec->amount - 0.01)) ? 'unused' : 'partial';
                         $bankRec->save();
+                    }
+                }
+
+                // Revert Collection Sheet total if linked
+                if ($payment->collection_sheet_id) {
+                    $sheet = \App\Models\CollectionSheet::find($payment->collection_sheet_id);
+                    if ($sheet) {
+                        $amountUSD = $payment->amount / ($payment->exchange_rate > 0 ? $payment->exchange_rate : 1);
+                        $sheet->decrement('total_amount', $amountUSD);
                     }
                 }
 
