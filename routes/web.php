@@ -156,6 +156,8 @@ Route::middleware('auth')->group(function () {
         Route::get('purchases/{purchase}/pdf', [\App\Http\Controllers\PurchaseController::class, 'pdf'])->name('purchases.pdf')->middleware(['can:purchases.index', 'module:module_purchases']);
         Route::get('reports/inventory', \App\Livewire\Reports\InventoryReport::class)->name('reports.inventory')->middleware(['can:reports.sales']);
         Route::get('reports/inventory/pdf', [\App\Http\Controllers\ReportController::class, 'inventoryPdf'])->name('reports.inventory.pdf')->middleware(['can:reports.sales']);
+        Route::get('reports/movements', \App\Livewire\Reports\ProductMovementsReport::class)->name('reports.movements')->middleware(['can:reports.stock']);
+        Route::get('reports/movements/pdf', [\App\Http\Controllers\ReportController::class, 'productMovementsPdf'])->name('reports.product.movements.pdf')->middleware(['can:reports.stock']);
     });
 
     // Consultas

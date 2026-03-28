@@ -13,6 +13,7 @@ use App\Models\SaleReturn;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
@@ -916,5 +917,159 @@ class ReportController extends Controller
         }
 
         return $pdf->stream('Cuentas_Por_Cobrar_' . Carbon::now()->format('YmdHis') . '.pdf');
+    }
+
+    public function productMovementsPdf(Request $request)
+    {
+        $product_id = $request->get('product_id');
+        $dateFrom = $request->get('dateFrom');
+        $dateTo = $request->get('dateTo');
+        $selected_warehouse_id = $request->get('warehouse_id', 'all');
+
+        $product = \App\Models\Product::with(['category', 'supplier'])->findOrFail($product_id);
+        
+        $start = Carbon::parse($dateFrom)->startOfDay();
+        $end = Carbon::parse($dateTo)->endOfDay();
+
+        // 1. Initial Stock
+        $inBefore = DB::table('purchase_details')
+                    ->join('purchases', 'purchases.id', '=', 'purchase_details.purchase_id')
+                    ->where('product_id', $product_id)->where('purchase_details.created_at', '<', $start)
+                    ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
+                        $q->where('purchases.warehouse_id', $selected_warehouse_id);
+                    })->sum('quantity')
+                  + DB::table('cargo_details')->where('product_id', $product_id)->where('cargo_details.created_at', '<', $start)
+                        ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
+                            $q->join('cargos', 'cargos.id', '=', 'cargo_details.cargo_id')
+                                ->where('cargos.warehouse_id', $selected_warehouse_id);
+                        })->sum('quantity')
+                  + DB::table('sale_return_details')
+                        ->join('sale_details', 'sale_details.id', '=', 'sale_return_details.sale_detail_id')
+                        ->where('sale_return_details.product_id', $product_id)
+                        ->where('sale_return_details.created_at', '<', $start)
+                        ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
+                            $q->where('sale_details.warehouse_id', $selected_warehouse_id);
+                        })->sum('quantity_returned')
+                  + DB::table('transfer_details')->join('transfers', 'transfers.id', '=', 'transfer_details.transfer_id')
+                                ->where('product_id', $product_id)->where('transfer_details.created_at', '<', $start)
+                                ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
+                                    $q->where('transfers.to_warehouse_id', $selected_warehouse_id);
+                                })->sum('quantity');
+
+        $outBefore = DB::table('sale_details')->where('product_id', $product_id)->where('sale_details.created_at', '<', $start)
+                        ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
+                            $q->where('warehouse_id', $selected_warehouse_id);
+                        })->sum('quantity')
+                   + DB::table('descargo_details')->where('product_id', $product_id)->where('descargo_details.created_at', '<', $start)
+                        ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
+                            $q->join('descargos', 'descargos.id', '=', 'descargo_details.descargo_id')
+                                ->where('descargos.warehouse_id', $selected_warehouse_id);
+                        })->sum('quantity')
+                    + DB::table('transfer_details')->join('transfers', 'transfers.id', '=', 'transfer_details.transfer_id')
+                                ->where('product_id', $product_id)->where('transfer_details.created_at', '<', $start)
+                                ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
+                                    $q->where('transfers.from_warehouse_id', $selected_warehouse_id);
+                                })->sum('quantity');
+
+        $initialStock = $inBefore - $outBefore;
+
+        // 2. Movements
+        $v = DB::table('sale_details as sd')
+            ->join('sales as s', 's.id', '=', 'sd.sale_id')
+            ->join('customers as c', 'c.id', '=', 's.customer_id')
+            ->join('users as u', 'u.id', '=', 's.user_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'sd.warehouse_id')
+            ->where('sd.product_id', $product_id)
+            ->whereBetween('sd.created_at', [$start, $end])
+            ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
+                $q->where('sd.warehouse_id', $selected_warehouse_id);
+            })
+            ->select('sd.created_at as movement_date', DB::raw("'Venta' as type"), 's.invoice_number as reference', 'u.name as operator', 'c.name as detail', 'w.name as warehouse_name', DB::raw("0 as quantity_in"), 'sd.quantity as quantity_out');
+
+        $co = DB::table('purchase_details as pd')
+            ->join('purchases as p', 'p.id', '=', 'pd.purchase_id')
+            ->join('suppliers as su', 'su.id', '=', 'p.supplier_id')
+            ->join('users as u', 'u.id', '=', 'p.user_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'p.warehouse_id')
+            ->where('pd.product_id', $product_id)
+            ->whereBetween('pd.created_at', [$start, $end])
+            ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
+                $q->where('p.warehouse_id', $selected_warehouse_id);
+            })
+            ->select('pd.created_at as movement_date', DB::raw("'Compra' as type"), 'p.id as reference', 'u.name as operator', 'su.name as detail', DB::raw("COALESCE(w.name, 'Principal (Compras)') as warehouse_name"), 'pd.quantity as quantity_in', DB::raw("0 as quantity_out"));
+
+        $ca = DB::table('cargo_details as cd')
+            ->join('cargos as car', 'car.id', '=', 'cd.cargo_id')
+            ->join('users as u', 'u.id', '=', 'car.user_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'car.warehouse_id')
+            ->where('cd.product_id', $product_id)
+            ->whereBetween('cd.created_at', [$start, $end])
+            ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
+                $q->where('car.warehouse_id', $selected_warehouse_id);
+            })
+            ->select('cd.created_at as movement_date', DB::raw("'Cargo (Ajuste)' as type"), 'car.id as reference', 'u.name as operator', 'car.motive as detail', 'w.name as warehouse_name', 'cd.quantity as quantity_in', DB::raw("0 as quantity_out"));
+
+        $de = DB::table('descargo_details as dd')
+            ->join('descargos as des', 'des.id', '=', 'dd.descargo_id')
+            ->join('users as u', 'u.id', '=', 'des.user_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'des.warehouse_id')
+            ->where('dd.product_id', $product_id)
+            ->whereBetween('dd.created_at', [$start, $end])
+            ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
+                $q->where('des.warehouse_id', $selected_warehouse_id);
+            })
+            ->select('dd.created_at as movement_date', DB::raw("'Descargo (Salida)' as type"), 'des.id as reference', 'u.name as operator', 'des.motive as detail', 'w.name as warehouse_name', DB::raw("0 as quantity_in"), 'dd.quantity as quantity_out');
+
+        $re = DB::table('sale_return_details as rd')
+            ->join('sale_returns as sr', 'sr.id', '=', 'rd.sale_return_id')
+            ->join('sale_details as sd_orig', 'sd_orig.id', '=', 'rd.sale_detail_id')
+            ->join('sales as s', 's.id', '=', 'sr.sale_id')
+            ->join('customers as cl', 'cl.id', '=', 's.customer_id')
+            ->join('users as u', 'u.id', '=', 'sr.user_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'sd_orig.warehouse_id')
+            ->where('rd.product_id', $product_id)
+            ->whereBetween('rd.created_at', [$start, $end])
+            ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
+                $q->where('sd_orig.warehouse_id', $selected_warehouse_id);
+            })
+            ->select('rd.created_at as movement_date', DB::raw("'Devolución (NC)' as type"), 'sr.id as reference', 'u.name as operator', 'cl.name as detail', DB::raw("COALESCE(w.name, 'Principal (NC)') as warehouse_name"), 'rd.quantity_returned as quantity_in', DB::raw("0 as quantity_out"));
+
+        $trIn = DB::table('transfer_details as td')
+            ->join('transfers as t', 't.id', '=', 'td.transfer_id')
+            ->join('users as u', 'u.id', '=', 't.user_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 't.to_warehouse_id')
+            ->leftJoin('warehouses as wf', 'wf.id', '=', 't.from_warehouse_id')
+            ->where('td.product_id', $product_id)
+            ->whereBetween('td.created_at', [$start, $end])
+            ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
+                $q->where('t.to_warehouse_id', $selected_warehouse_id);
+            })
+            ->select('td.created_at as movement_date', DB::raw("'Transferencia (Entrada)' as type"), 't.id as reference', 'u.name as operator', DB::raw("CONCAT(COALESCE(wf.name, 'N/A'), ' -> ', COALESCE(w.name, 'N/A')) as detail"), 'w.name as warehouse_name', 'td.quantity as quantity_in', DB::raw("0 as quantity_out"));
+
+        $trOut = DB::table('transfer_details as td')
+            ->join('transfers as t', 't.id', '=', 'td.transfer_id')
+            ->join('users as u', 'u.id', '=', 't.user_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 't.from_warehouse_id')
+            ->leftJoin('warehouses as wt', 'wt.id', '=', 't.to_warehouse_id')
+            ->where('td.product_id', $product_id)
+            ->whereBetween('td.created_at', [$start, $end])
+            ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
+                $q->where('t.from_warehouse_id', $selected_warehouse_id);
+            })
+            ->select('td.created_at as movement_date', DB::raw("'Transferencia (Salida)' as type"), 't.id as reference', 'u.name as operator', DB::raw("CONCAT(COALESCE(w.name, 'N/A'), ' -> ', COALESCE(wt.name, 'N/A')) as detail"), 'w.name as warehouse_name', DB::raw("0 as quantity_in"), 'td.quantity as quantity_out');
+
+        $movements = $v->unionAll($co)->unionAll($ca)->unionAll($de)->unionAll($re)->unionAll($trIn)->unionAll($trOut)->orderBy('movement_date', 'asc')->get();
+
+        $totalIn = $movements->sum('quantity_in');
+        $totalOut = $movements->sum('quantity_out');
+        $finalStock = $initialStock + $totalIn - $totalOut;
+
+        $config = Configuration::first();
+        $user = auth()->user();
+        $warehouse_name = $selected_warehouse_id != 'all' ? \App\Models\Warehouse::find($selected_warehouse_id)->name : 'TODOS LOS DEPÓSITOS';
+
+        $pdf = Pdf::loadView('reports.product-movements-pdf', compact('product', 'movements', 'initialStock', 'totalIn', 'totalOut', 'finalStock', 'config', 'user', 'dateFrom', 'dateTo', 'warehouse_name'));
+
+        return $pdf->stream('Kardex_' . $product->sku . '.pdf');
     }
 }

@@ -364,6 +364,12 @@
                                 <p>Inventario Stock</p>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="{{ route('reports.movements') }}" class="nav-link {{ Request::is('reports/movements*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Movimientos Producto</p>
+                            </a>
+                        </li>
                         @module('module_advanced_reports')
                         <li class="nav-item">
                             <a href="{{ route('reports.rotation') }}" class="nav-link">

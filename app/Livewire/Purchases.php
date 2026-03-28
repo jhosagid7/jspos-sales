@@ -714,6 +714,7 @@ class Purchases extends Component
                 'status' => $this->status,
                 'type' => $this->purchaseType,
                 'supplier_id' => $this->supplier['id'],
+                'warehouse_id' => $this->warehouse_id,
                 'user_id' =>  Auth()->user()->id,
                 'notes' => $this->notes,
             ]);
@@ -931,6 +932,7 @@ class Purchases extends Component
                 'status' => $this->status,
                 'type' => $this->purchaseType,
                 'supplier_id' => $this->supplier['id'],
+                'warehouse_id' => $this->warehouse_id,
                 'user_id' =>  Auth()->user()->id,
                 'notes' => $this->notes,
             ]);
