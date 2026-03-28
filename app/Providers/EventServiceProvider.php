@@ -20,16 +20,16 @@ class EventServiceProvider extends ServiceProvider
             SendEmailVerificationNotification::class,
         ],
         \App\Events\SaleCreated::class => [
-            \App\Listeners\WhatsappNotificationListener::class,
+            \App\Listeners\SystemNotificationListener::class,
         ],
         \App\Events\PaymentReceived::class => [
-            \App\Listeners\WhatsappNotificationListener::class,
+            \App\Listeners\SystemNotificationListener::class,
         ],
         \App\Events\CargoCreated::class => [
-            \App\Listeners\WhatsappNotificationListener::class,
+            \App\Listeners\SystemNotificationListener::class,
         ],
         \App\Events\DescargoCreated::class => [
-            \App\Listeners\WhatsappNotificationListener::class,
+            \App\Listeners\SystemNotificationListener::class,
         ],
         'Illuminate\Auth\Events\Login' => [
             'App\Listeners\LoginSuccess',

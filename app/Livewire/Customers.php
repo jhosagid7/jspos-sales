@@ -42,6 +42,10 @@ class Customers extends Component
         'customerCommission2Percentage' => 'nullable|numeric',
         'customer.whatsapp_notify_sales' => 'nullable|boolean',
         'customer.whatsapp_notify_payments' => 'nullable|boolean',
+        'customer.email_notify_sales' => 'nullable|boolean',
+        'customer.email_notify_payments' => 'nullable|boolean',
+        'customer.wa_dispatch_mode' => 'nullable|in:auto,manual',
+        'customer.email_dispatch_mode' => 'nullable|in:auto,manual',
         'customer.wallet_balance' => 'nullable|numeric|min:0',
     ];
 
@@ -64,6 +68,10 @@ class Customers extends Component
         $this->customer->seller_id = 0;
         $this->customer->whatsapp_notify_sales = true;
         $this->customer->whatsapp_notify_payments = true;
+        $this->customer->email_notify_sales = true;
+        $this->customer->email_notify_payments = true;
+        $this->customer->wa_dispatch_mode = 'auto';
+        $this->customer->email_dispatch_mode = 'auto';
         $this->commission_percent = 0;
         $this->freight_percent = 0;
         $this->exchange_diff_percent = 0;
@@ -115,6 +123,10 @@ class Customers extends Component
         $this->customer->seller_id = 0;
         $this->customer->whatsapp_notify_sales = true;
         $this->customer->whatsapp_notify_payments = true;
+        $this->customer->email_notify_sales = true;
+        $this->customer->email_notify_payments = true;
+        $this->customer->wa_dispatch_mode = 'auto';
+        $this->customer->email_dispatch_mode = 'auto';
         $this->tab = 1; // Reset to first tab
         $this->resetCommissionFields();
         $this->editing = true;
@@ -197,6 +209,18 @@ class Customers extends Component
         if (!isset($this->customer->whatsapp_notify_payments)) {
             $this->customer->whatsapp_notify_payments = false;
         }
+        if (!isset($this->customer->email_notify_sales)) {
+            $this->customer->email_notify_sales = false;
+        }
+        if (!isset($this->customer->email_notify_payments)) {
+            $this->customer->email_notify_payments = false;
+        }
+        if (!isset($this->customer->wa_dispatch_mode)) {
+            $this->customer->wa_dispatch_mode = 'auto';
+        }
+        if (!isset($this->customer->email_dispatch_mode)) {
+            $this->customer->email_dispatch_mode = 'auto';
+        }
 
         // Handle defaults for optional fields if empty/null
         if (empty($this->customer->wallet_balance)) {
@@ -260,6 +284,10 @@ class Customers extends Component
             $this->customer->seller_id = 0;
             $this->customer->whatsapp_notify_sales = true;
             $this->customer->whatsapp_notify_payments = true;
+            $this->customer->email_notify_sales = true;
+            $this->customer->email_notify_payments = true;
+            $this->customer->wa_dispatch_mode = 'auto';
+            $this->customer->email_dispatch_mode = 'auto';
             $this->resetCommissionFields();
             $this->tab = 1;
         }

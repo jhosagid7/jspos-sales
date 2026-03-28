@@ -35,6 +35,10 @@ class Customer extends Model
         // WhatsApp configuration fields
         'whatsapp_notify_sales',
         'whatsapp_notify_payments',
+        'email_notify_sales',
+        'email_notify_payments',
+        'wa_dispatch_mode',
+        'email_dispatch_mode',
     ];
 
     protected $casts = [
@@ -44,6 +48,8 @@ class Customer extends Model
         'usd_payment_discount' => 'decimal:2',
         'whatsapp_notify_sales' => 'boolean',
         'whatsapp_notify_payments' => 'boolean',
+        'email_notify_sales' => 'boolean',
+        'email_notify_payments' => 'boolean',
     ];
 
     function sales()

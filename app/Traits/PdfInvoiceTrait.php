@@ -117,6 +117,7 @@ trait PdfInvoiceTrait
                     }
                 }
 
+                $items = [];
                 foreach ($sale->details as $detail) {
                     $effectiveQty = $detail->quantity - ($returnedQuantities[$detail->id] ?? 0);
                     
@@ -239,7 +240,7 @@ trait PdfInvoiceTrait
         }
     }
 
-    public function getSavedPdfInvoicePathPaid(Sale $sale, $customFilename)
+    public function getSavedPdfInvoicePathPaid(Sale $sale, $customFilename, $originalOnly = false)
     {
         try {
             $config = Configuration::first();
@@ -293,6 +294,7 @@ trait PdfInvoiceTrait
                     }
                 }
 
+                $items = [];
                 foreach ($sale->details as $detail) {
                     $effectiveQty = $detail->quantity - ($returnedQuantities[$detail->id] ?? 0);
 
@@ -540,7 +542,7 @@ trait PdfInvoiceTrait
         }
     }
 
-    public function getSavedPdfInvoicePathPending(Sale $sale, $customFilename)
+    public function getSavedPdfInvoicePathPending(Sale $sale, $customFilename, $originalOnly = false)
     {
         try {
             $config = Configuration::first();

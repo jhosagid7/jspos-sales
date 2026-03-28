@@ -3,9 +3,9 @@
 namespace App\Livewire\Settings;
 
 use Livewire\Component;
-use App\Models\WhatsappTemplate;
+use App\Models\EmailTemplate;
 
-class WhatsappSettings extends Component
+class EmailSettings extends Component
 {
     public $sale_active = true;
     public $sale_subject = 'Notificación de Venta';
@@ -30,7 +30,7 @@ class WhatsappSettings extends Component
     public function mount()
     {
         // ... (existing sale/payment load) ...
-        $saleTemplate = WhatsappTemplate::firstOrCreate(
+        $saleTemplate = EmailTemplate::firstOrCreate(
             ['event_type' => 'sale_created'],
             ['subject' => $this->sale_subject, 'body' => $this->sale_body, 'is_active' => true, 'dispatch_mode' => 'auto']
         );
@@ -39,7 +39,7 @@ class WhatsappSettings extends Component
         $this->sale_body = $saleTemplate->body;
         $this->sale_dispatch_mode = $saleTemplate->dispatch_mode ?? 'auto';
 
-        $paymentTemplate = WhatsappTemplate::firstOrCreate(
+        $paymentTemplate = EmailTemplate::firstOrCreate(
             ['event_type' => 'payment_received'],
             ['subject' => $this->payment_subject, 'body' => $this->payment_body, 'is_active' => true, 'dispatch_mode' => 'auto']
         );
@@ -48,7 +48,7 @@ class WhatsappSettings extends Component
         $this->payment_body = $paymentTemplate->body;
         $this->payment_dispatch_mode = $paymentTemplate->dispatch_mode ?? 'auto';
 
-        $cargoTemplate = WhatsappTemplate::firstOrCreate(
+        $cargoTemplate = EmailTemplate::firstOrCreate(
             ['event_type' => 'cargo_created'],
             [
                 'subject' => $this->cargo_subject,
@@ -62,7 +62,7 @@ class WhatsappSettings extends Component
         $this->cargo_body = $cargoTemplate->body;
         $this->cargo_dispatch_mode = $cargoTemplate->dispatch_mode ?? 'auto';
 
-        $descargoTemplate = WhatsappTemplate::firstOrCreate(
+        $descargoTemplate = EmailTemplate::firstOrCreate(
             ['event_type' => 'descargo_created'],
             [
                 'subject' => $this->descargo_subject,
@@ -76,27 +76,12 @@ class WhatsappSettings extends Component
         $this->descargo_body = $descargoTemplate->body;
         $this->descargo_dispatch_mode = $descargoTemplate->dispatch_mode ?? 'auto';
 
-        session(['map' => 'Ajustes', 'child' => ' WhatsApp']);
-    }
-
-    public function disconnectWhatsapp()
-    {
-        try {
-            $response = \Illuminate\Support\Facades\Http::post('http://localhost:3000/logout');
-            
-            if ($response->successful()) {
-                $this->dispatch('noty', msg: 'SESIÓN DE WHATSAPP DESCONECTADA');
-            } else {
-                $this->dispatch('msg-error', msg: 'Hubo un problema al intentar desconectar.');
-            }
-        } catch (\Exception $e) {
-            $this->dispatch('msg-error', msg: 'No se pudo conectar con el servicio de WhatsApp.');
-        }
+        session(['map' => 'Ajustes', 'child' => ' Correo Electrónico']);
     }
 
     public function save()
     {
-        WhatsappTemplate::updateOrCreate(
+        EmailTemplate::updateOrCreate(
             ['event_type' => 'sale_created'],
             [
                 'subject' => $this->sale_subject,
@@ -106,7 +91,7 @@ class WhatsappSettings extends Component
             ]
         );
 
-        WhatsappTemplate::updateOrCreate(
+        EmailTemplate::updateOrCreate(
             ['event_type' => 'payment_received'],
             [
                 'subject' => $this->payment_subject,
@@ -116,7 +101,7 @@ class WhatsappSettings extends Component
             ]
         );
 
-        WhatsappTemplate::updateOrCreate(
+        EmailTemplate::updateOrCreate(
             ['event_type' => 'cargo_created'],
             [
                 'subject' => $this->cargo_subject,
@@ -126,7 +111,7 @@ class WhatsappSettings extends Component
             ]
         );
 
-        WhatsappTemplate::updateOrCreate(
+        EmailTemplate::updateOrCreate(
             ['event_type' => 'descargo_created'],
             [
                 'subject' => $this->descargo_subject,
@@ -136,11 +121,11 @@ class WhatsappSettings extends Component
             ]
         );
 
-        $this->dispatch('noty', msg: 'CONFIGURACIÓN DE WHATSAPP GUARDADA');
+        $this->dispatch('noty', msg: 'CONFIGURACIÓN DE CORREO GUARDADA');
     }
 
     public function render()
     {
-        return view('livewire.settings.whatsapp-settings');
+        return view('livewire.settings.email-settings');
     }
 }

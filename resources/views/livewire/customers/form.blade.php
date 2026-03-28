@@ -68,10 +68,10 @@
                     <li class="nav-item mb-2">
                         <a class="nav-link {{ $tab == 5 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                            wire:click.prevent="$set('tab',5)" href="#">
-                            <i class="fab fa-whatsapp fa-2x"></i>
+                            <i class="fas fa-bell fa-2x"></i>
                             <div>
                                 <h6 class="mb-0">Notificaciones</h6>
-                                <small class="{{ $tab == 5 ? 'text-white' : 'text-muted' }}">Mensajes por WhatsApp</small>
+                                <small class="{{ $tab == 5 ? 'text-white' : 'text-muted' }}">WhatsApp y Correo</small>
                             </div>
                         </a>
                     </li>
@@ -440,9 +440,9 @@
                             <div class="row g-2">
                                 <div class="col-sm-12">
                                     <h6 class="text-success mb-3">
-                                        <i class="fab fa-whatsapp"></i> Ajustes de Notificaciones
+                                        <i class="fab fa-whatsapp"></i> Ajustes de WhatsApp
                                     </h6>
-                                    <p class="text-muted small">Seleccione qué notificaciones automáticas desea enviar a este cliente vía WhatsApp.</p>
+                                    <p class="text-muted small">Seleccione qué notificaciones desea enviar a este cliente vía WhatsApp.</p>
                                 </div>
 
                                 <div class="col-sm-12 mt-3">
@@ -467,9 +467,57 @@
                                     @error('customer.whatsapp_notify_payments') <span class="text-danger">{{ $message }}</span> @enderror
                                 </div>
                                 
+                                
+                                <div class="col-sm-12 mt-3">
+                                    <label class="form-label text-success"><strong>Modo de Envío WhatsApp</strong></label>
+                                    <select wire:model="customer.wa_dispatch_mode" class="form-select border-success">
+                                        <option value="auto">Automático (Enviar al instante)</option>
+                                        <option value="manual">Manual (Enviar a Bandeja de Revisión)</option>
+                                    </select>
+                                    <small class="text-muted d-block mt-1">Si está en "Manual", el mensaje irá a la Bandeja de Salida para que lo revises antes de enviarlo.</small>
+                                </div>
+
+                                <div class="col-sm-12 mt-4 pt-3 border-top">
+                                    <h6 class="text-primary mb-3">
+                                        <i class="fas fa-envelope"></i> Ajustes de Correo Electrónico
+                                    </h6>
+                                    <p class="text-muted small">Seleccione qué correos electrónicos desea enviar a este cliente con los adjuntos en PDF.</p>
+                                </div>
+
+                                <div class="col-sm-12 mt-2">
+                                    <div class="form-check form-switch form-switch-lg">
+                                        <input wire:model="customer.email_notify_sales" class="form-check-input" type="checkbox" id="emailNotifySales">
+                                        <label class="form-check-label" for="emailNotifySales">
+                                            <strong>Notificar Ventas</strong>
+                                            <small class="d-block text-muted">Enviar factura/pedido en PDF por correo al crear venta.</small>
+                                        </label>
+                                    </div>
+                                    @error('customer.email_notify_sales') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+
+                                <div class="col-sm-12 mt-4">
+                                    <div class="form-check form-switch form-switch-lg">
+                                        <input wire:model="customer.email_notify_payments" class="form-check-input" type="checkbox" id="emailNotifyPayments">
+                                        <label class="form-check-label" for="emailNotifyPayments">
+                                            <strong>Notificar Abonos / Pagos</strong>
+                                            <small class="d-block text-muted">Enviar estado de cuenta y recibo en PDF por correo.</small>
+                                        </label>
+                                    </div>
+                                    @error('customer.email_notify_payments') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+
+                                <div class="col-sm-12 mt-3">
+                                    <label class="form-label text-primary"><strong>Modo de Envío por Correo</strong></label>
+                                    <select wire:model="customer.email_dispatch_mode" class="form-select border-primary">
+                                        <option value="auto">Automático (Enviar al instante)</option>
+                                        <option value="manual">Manual (Enviar a Bandeja de Revisión)</option>
+                                    </select>
+                                    <small class="text-muted d-block mt-1">Si está en "Manual", el correo irá a la Bandeja de Salida para que lo revises antes de enviarlo.</small>
+                                </div>
+
                                 <div class="col-sm-12 mt-4">
                                     <div class="alert alert-info">
-                                        <i class="fa fa-info-circle"></i> <strong>Importante:</strong> Si el cliente no tiene un número de teléfono válido registrado en la pestaña "Información General", los mensajes serán enviados al Vendedor asignado.
+                                        <i class="fa fa-info-circle"></i> <strong>Importante:</strong> Si el cliente no tiene un teléfono/correo válido, el mensaje saltará a los datos del vendedor asignado. También los ajustes globales del sistema deben estar encendidos.
                                     </div>
                                 </div>
                             </div>

@@ -503,7 +503,6 @@
                                 <p>Dispositivos</p>
                             </a>
                         </li>
-                        @module('module_whatsapp')
                         <li class="nav-item">
                             <a href="{{ route('settings.whatsapp') }}" class="nav-link {{ Request::is('settings/whatsapp*') && !Request::is('settings/whatsapp-outbox*') ? 'active' : '' }}">
                                 <i class="fab fa-whatsapp nav-icon"></i>
@@ -516,7 +515,18 @@
                                 <p>WhatsApp Bandeja</p>
                             </a>
                         </li>
-                        @endmodule
+                        <li class="nav-item border-top pt-2">
+                            <a href="{{ route('settings.email') }}" class="nav-link {{ Request::is('settings/email*') && !Request::is('settings/email-outbox*') ? 'active' : '' }}">
+                                <i class="fas fa-envelope nav-icon"></i>
+                                <p>Email Config</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('settings.email_outbox') }}" class="nav-link {{ Request::is('settings/email-outbox*') ? 'active' : '' }}">
+                                <i class="fas fa-mail-bulk nav-icon"></i>
+                                <p>Email Bandeja</p>
+                            </a>
+                        </li>
                         <li class="nav-item">
                             <a href="javascript:void(0)" onclick="Livewire.dispatch('trigger-license-modal')" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>

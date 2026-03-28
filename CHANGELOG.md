@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.20] - 2026-03-28
+
+### Fixed
+- **Automatización de Notificaciones (Ventas y Abonos)**: Se corrigió la lógica de envío automático para que los Abonos (Recibos de Pago) se despachen instantáneamente por correo electrónico, al igual que las ventas.
+- **Generación de PDF de Pagos**: Se implementó una nueva plantilla de PDF específica para los recibos de pago (`payment-history-pdf`), asegurando que las notificaciones de abono adjunten el documento correcto y no la factura de venta original.
+- **Sincronización de Preferencias del Cliente**: Se optimizó el motor de notificaciones para que respete estrictamente los interruptores de "Notificar Ventas" y "Notificar Abonos" de cada cliente. Ahora, si se desactiva una opción, el sistema deja el mensaje "En Cola" en lugar de enviarlo automáticamente, manteniendo la sincronización entre lo que se ve en la configuración y el comportamiento del servidor.
+- **Estabilidad del Worker**: Se implementó la recarga forzada del modelo `Customer` desde la base de datos en cada tarea de notificación, eliminando problemas de datos obsoletos o nulos en el servidor de segundo plano.
+
 ## [1.9.19] - 2026-03-27
 
 ### Added

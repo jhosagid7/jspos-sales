@@ -178,18 +178,26 @@ Route::middleware('auth')->group(function () {
     
     // WhatsApp
     Route::get('settings/whatsapp', \App\Livewire\Settings\WhatsappSettings::class)->name('settings.whatsapp')->middleware(['can:settings.index', 'module:module_whatsapp']);
+    Route::get('settings/email', \App\Livewire\Settings\EmailSettings::class)->name('settings.email')->middleware(['can:settings.index']);
     Route::get('settings/whatsapp-outbox', \App\Livewire\Settings\WhatsappOutbox::class)->name('settings.whatsapp_outbox')->middleware(['can:settings.index', 'module:module_whatsapp']);
+    Route::get('settings/email-outbox', \App\Livewire\Settings\EmailOutbox::class)->name('settings.email_outbox')->middleware(['can:settings.index']);
     Route::get('settings/license-generator', \App\Livewire\Settings\LicenseGenerator::class)->name('settings.license_generator')->middleware('role:Super Admin');
     
     Route::get('whatsapp/download-pdf/{msgId}', function($msgId) {
         $msg = \App\Models\WhatsappMessage::findOrFail($msgId);
-        
         if ($msg->attachment_path && file_exists($msg->attachment_path)) {
             return response()->file($msg->attachment_path);
         }
-        
-        abort(404, 'PDF no encontrado o ya fue eliminado del servidor.');
+        abort(404, 'PDF no encontrado.');
     })->name('whatsapp.download-pdf');
+
+    Route::get('email/download-pdf/{msgId}', function($msgId) {
+        $msg = \App\Models\EmailMessage::findOrFail($msgId);
+        if ($msg->attachment_path && file_exists($msg->attachment_path)) {
+            return response()->file($msg->attachment_path);
+        }
+        abort(404, 'PDF no encontrado.');
+    })->name('email.download-pdf');
 
     // Delivery Routes
     Route::get('driver/dashboard/{driverId?}', \App\Livewire\DriverDashboard::class)->name('driver.dashboard'); // Maybe add permission?
