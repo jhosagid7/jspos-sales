@@ -19,6 +19,7 @@ class Purchase extends Model
         'status',
         'type',
         'supplier_id',
+        'warehouse_id',
         'user_id',
         'notes',
     ];

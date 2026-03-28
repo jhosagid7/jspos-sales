@@ -1,4 +1,13 @@
-# Changelog
+## [1.9.21] - 2026-03-28
+
+### Added
+- **Persistencia de Depósito en Compras**: Se añadió el campo `warehouse_id` a la tabla de `purchases` para mantener un registro histórico de en qué almacén entró la mercancía comprada.
+- **Trazabilidad en Kardex**: El reporte de Movimientos de Producto (Kardex) ahora muestra el nombre real del depósito para las nuevas compras.
+
+### Fixed
+- **Filtro de Depósito en Kardex**: Se corrigió el filtrado por almacén que no se estaba aplicando correctamente en las consultas SQL del reporte.
+- **Filtro de Devoluciones**: Se integró el filtrado por depósito en los movimientos de Notas de Crédito/Devoluciones dentro del Kardex.
+- **Interfaz de PDF**: Se reparó el botón "Cerrar" del modal de previsualización de PDF que no respondía a la interacción del usuario.
 
 ## [1.9.20] - 2026-03-28
 
