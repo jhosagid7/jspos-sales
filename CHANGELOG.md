@@ -1,3 +1,8 @@
+## [1.9.25] - 2026-03-30
+
+### Fixed
+- **Reporte de Ventas Diarias (PDF)**: Corregido el error de layout donde facturas con múltiples pagos (como la factura 629) causaban que las columnas se desplazaran horizontalmente. Ahora los detalles de pago se muestran en líneas separadas dentro de la columna de descripción, respetando el ancho de la tabla y facilitando la impresión.
+
 ## [1.9.24] - 2026-03-30
 
 ### Fixed

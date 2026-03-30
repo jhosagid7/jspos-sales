@@ -81,12 +81,10 @@
             font-size: 7.5pt;
         }
         .table td {
-            padding: 0px 3px;
+            padding: 2px 3px;
             border-bottom: 1px solid #ddd;
             font-size: 7.2pt;
-            vertical-align: middle;
-            height: 14px;
-            white-space: nowrap;
+            vertical-align: top;
         }
         .table th {
             background-color: #f2f2f2;
@@ -98,10 +96,8 @@
         }
         .desc-text {
             display: inline-block;
-            max-width: 350px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            max-width: 100%;
+            white-space: normal;
         }
         .pay-info {
             font-size: 6.5pt;
@@ -355,15 +351,19 @@
                     @endphp
                     <tr>
                         <td>{{ $sale->invoice_number ?? $sale->id }}</td>
-                        <td>
-                            <span class="desc-text">{{ strtoupper($sale->customer->name) }} ({{ $sale->customer->taxpayer_id }})</span>
+                        <td style="white-space: normal;">
+                            <div class="desc-text" style="font-weight: bold; border-bottom: 1px dashed #eee; display: block; max-width: none;">{{ strtoupper($sale->customer->name) }} ({{ $sale->customer->taxpayer_id }})</div>
                             @foreach($sale->paymentDetails as $payment)
                                 @if(in_array($payment->payment_method, ['bank', 'zelle', 'deposit']))
                                      @php
                                          $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
                                          $usdEquiv = $payment->amount / $rate;
                                      @endphp
-                                     <span class="pay-info"> | {{ $payment->payment_method == 'zelle' ? 'Zelle' : ($payment->bank_name ?? 'Banco') }}: {{ $payment->reference_number }} (Tasa: {{ number_format($payment->exchange_rate, 4) }}) (Dólar: ${{ number_format($usdEquiv, 4) }})</span>
+                                     <div class="pay-info" style="display: block; border-left: 2px solid #ddd; padding-left: 3px; margin-top: 1px;">
+                                         {{ $payment->payment_method == 'zelle' ? 'Zelle' : ($payment->bank_name ?? 'Banco') }}: {{ $payment->reference_number }} 
+                                         <span style="color: #888;">(Tasa: {{ number_format($payment->exchange_rate, 4) }})</span> 
+                                         <span style="font-weight: bold;">[${{ number_format($usdEquiv, 4) }}]</span>
+                                     </div>
                                 @endif
                             @endforeach
                         </td>

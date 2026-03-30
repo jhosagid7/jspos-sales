@@ -82,6 +82,14 @@ La IA debe leer este archivo para entender cómo trabajar en este proyecto espec
     3. **Consumo Billetera (-)**: Los pagos realizados con saldo virtual anterior se restan del flujo, ya que no representan entrada de dinero físico hoy.
     4. **Sincronización Total**: Se unificó el cálculo para el Dashboard (Livewire), el PDF (Letter/A4) y el Ticket Térmico (PrintTrait), asegurando que los tres canales arrojen el mismo resultado exacto.
 
+### 7.5. Optimización de Layout en Reportes PDF (Multilínea)
+- **Problema**: En el Reporte de Ventas Diarias, las facturas con múltiples métodos de pago concatenados causaban un desbordamiento horizontal de las columnas (ej. Factura 629), rompiendo el formato de impresión.
+- **Solución**: Se eliminó la restricción `white-space: nowrap` de las celdas de la tabla y se refactorizaron los detalles de pago para que se listen verticalmente.
+- **Detalle Técnico**:
+    - Uso de `display: block` para cada entrada de pago dentro de la celda de descripción.
+    - Cambio de `vertical-align: middle` a `top` para mejorar la legibilidad en registros multilínea.
+    - Eliminación de `height: 14px` fijo para permitir que la fila crezca dinámicamente según el contenido.
+
 ## 8. Roadmap y Tareas Futuras Adjudicadas
 ### 8.1. Sistema de Rollback para Actualizaciones (Planificado)
 - **Objetivo**: Permitir a los clientes y administradores revertir una actualización fácilmente si algo falla en producción.
