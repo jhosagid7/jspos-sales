@@ -1,3 +1,14 @@
+## [1.9.23] - 2026-03-30
+
+### Added
+- **Previsualización de Reporte Cuentas por Cobrar**: Se implementó un nuevo botón "Previsualizar" con icono de ojo que abre un modal con un visualizador PDF (iframe), permitiendo revisar el reporte antes de descargarlo.
+- **Rediseño Profesional de Reporte AR**: Se reestructuró totalmente la plantilla PDF (`accounts-receivable-pdf`) siguiendo un diseño de alta gama:
+    - Agrupación por cliente con bloques de información (Código, Dirección, Teléfono, etc.).
+    - Detalle de transacciones (Operación, Emisión, Vencimiento, Días de Mora, No. Doc, Descripción y Monto).
+    - Desglose matemático exacto: La línea de "Factura" muestra el saldo previo y las "N/C" se restan visualmente para que el total por cliente sea intuitivo y cuadre a simple vista.
+- **Optimización de Paginación**: Se corrigió un error de DomPDF que generaba grandes espacios en blanco al inicio de página. Ahora el reporte corta y fluye naturalmente entre hojas.
+- **Control de Acceso Dinámico**: El reporte PDF ahora respeta estrictamente los permisos del usuario; si el operador no tiene permiso de "Ver todo", el reporte solo incluirá sus propios movimientos.
+
 ## [1.9.22] - 2026-03-28
 
 ### Fixed
