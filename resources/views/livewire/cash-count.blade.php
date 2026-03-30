@@ -95,9 +95,14 @@
                                                         <table class="table table-sm table-borderless mb-0">
                                                             @foreach ($salesByCurrency['cash'] as $currencyCode => $amount)
                                                                 @php
-                                                                    $curr = collect($currencies)->firstWhere('code', $currencyCode);
-                                                                    $currSymbol = $curr ? $curr->symbol : $currencyCode;
-                                                                    $label = $curr ? $curr->label . ' (' . $currencyCode . ')' : $currencyCode;
+                                                                    if ($currencyCode === '_CUSTODIA_') {
+                                                                        $label = 'BILLETERA (CUSTODIA)';
+                                                                        $currSymbol = $symbol ?? '$';
+                                                                    } else {
+                                                                        $curr = collect($currencies)->firstWhere('code', $currencyCode);
+                                                                        $currSymbol = $curr ? $curr->symbol : $currencyCode;
+                                                                        $label = $curr ? $curr->label . ' (' . $currencyCode . ')' : $currencyCode;
+                                                                    }
                                                                 @endphp
                                                                 <tr>
                                                                     <td class="text-muted">{{ $label }}:</td>
@@ -338,9 +343,14 @@
                                                 @if (!empty($totalCashDetails))
                                                     @foreach ($totalCashDetails as $currency => $amount)
                                                         @php
-                                                            $curr = collect($currencies)->firstWhere('code', $currency);
-                                                            $currSymbol = $curr ? $curr->symbol : $currency;
-                                                            $label = $curr ? $curr->label : $currency;
+                                                            if ($currency === '_CUSTODIA_') {
+                                                                $label = 'BILLETERA (CUSTODIA)';
+                                                                $currSymbol = $symbol ?? '$';
+                                                            } else {
+                                                                $curr = collect($currencies)->firstWhere('code', $currency);
+                                                                $currSymbol = $curr ? $curr->symbol : $currency;
+                                                                $label = $curr ? $curr->label : $currency;
+                                                            }
                                                         @endphp
                                                         <h4 class="text-success mb-0">{{ $currSymbol }}{{ number_format($amount, 2) }}</h4>
                                                         <small class="text-muted">{{ $label }}</small><br>
@@ -394,16 +404,39 @@
                                         </div>
                                     </div>
 
+                    {{-- Wallet Breakdown (if applicable) --}}
+                    @if($totalWalletAddedToday > 0 || $totalWalletUsedToday > 0)
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <div class="card p-2 bg-light">
+                                    <h6 class="text-dark border-bottom pb-1"><i class="icofont icofont-wallet"></i> Movimientos Billetera (Virtual)</h6>
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted">Custodia Generada HOY (+)</span>
+                                        <span class="fw-bold text-success">{{ $symbol }}{{ number_format($totalWalletAddedToday, 2) }}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted">Saldos Anteriores Consumidos (-)</span>
+                                        <span class="fw-bold text-danger">- {{ $symbol }}{{ number_format($totalWalletUsedToday, 2) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
                     <div class="row mt-4">
                         <div class="col-12">
                             <div class="alert alert-success mb-0 py-3">
-                                <h5 class="mb-0">
-                                    <strong>TOTAL GENERAL:</strong>
-                                    <span class="float-end">{{ $symbol }}{{ number_format($totalCash + $totalDeposit + $totalPayments, 2) }}</span>
+                                <h5 class="mb-0 text-center">
+                                    <strong>TOTAL EN CAJA (A ENTREGAR):</strong>
+                                    <span class="float-end">{{ $symbol }}{{ number_format($grandTotalIncomeUSD, 2) }}</span>
                                 </h5>
+                                <div class="text-center mt-2 small opacity-75">
+                                    <small>* Este monto incluye efectivo, bancos y custodia hoy.</small>
+                                </div>
                             </div>
                         </div>
                     </div>
+
                 </div>
                 <div class="card-footer text-center">
                     <button title="Imprimir corte de caja" wire:click.prevent="printCC"

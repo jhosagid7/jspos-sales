@@ -456,7 +456,7 @@ trait PrintTrait
 
 
 
-    function printCashCount($user_name, $dfrom, $dto, $totales, $salesTotal, $cash, $nequi, $deposit, $payments, $credit, $pcash, $pdeposit, $pnequi, $salesByCurrency = [], $paymentsByCurrency = [])
+    function printCashCount($user_name, $dfrom, $dto, $totales, $salesTotal, $cash, $nequi, $deposit, $payments, $credit, $pcash, $pdeposit, $pnequi, $salesByCurrency = [], $paymentsByCurrency = [], $walletAdded = 0, $walletUsed = 0, $grandTotal = 0)
     {
         try {
             $printConfig = $this->getPrinterConfig();
@@ -495,7 +495,7 @@ trait PrintTrait
 
                 // --- SECTION 1: VENTAS DEL DÍA ---
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
-                $printer->text("VENTAS DEL DÍA\n");
+                $printer->text("VENTAS DEL DÍA (FLUJO NETO)\n");
                 $printer->setJustification(Printer::JUSTIFY_LEFT);
                 $printer->text($separator . "\n");
 
@@ -503,7 +503,12 @@ trait PrintTrait
                 if (!empty($salesByCurrency['cash'])) {
                     $printer->text("EFECTIVO:\n");
                     foreach ($salesByCurrency['cash'] as $currency => $amount) {
-                         $printer->text("  " . $getCurrencyLabel($currency) . ": " . number_format($amount, 2) . "\n");
+                         if ($currency === '_CUSTODIA_') {
+                             $label = 'BILLETERA (CUSTODIA)';
+                         } else {
+                             $label = $getCurrencyLabel($currency);
+                         }
+                         $printer->text("  " . $label . ": " . number_format($amount, 2) . "\n");
                     }
                 }
                 // Bank
@@ -528,7 +533,7 @@ trait PrintTrait
                     }
                 }
                 
-                $printer->text("\nTOTAL VENTAS: " . $currencySymbol . number_format($salesTotal, 2) . "\n");
+                $printer->text("\nTOTAL VENTAS RECIBIDAS: " . $currencySymbol . number_format($salesTotal - $credit, 2) . "\n");
                 $printer->text("VENTAS A CRÉDITO: " . $currencySymbol . number_format($credit, 2) . "\n\n");
 
 
@@ -578,9 +583,14 @@ trait PrintTrait
 
                 $printer->text("TOTAL EFECTIVO: \n");
                 $totalCashFinal = [];
-                foreach (['cash'] as $type) {
-                     foreach (($salesByCurrency[$type] ?? []) as $c => $a) { $totalCashFinal[$c] = ($totalCashFinal[$c] ?? 0) + $a; }
-                     foreach (($paymentsByCurrency[$type] ?? []) as $c => $a) { $totalCashFinal[$c] = ($totalCashFinal[$c] ?? 0) + $a; }
+                // Add sales cash flows (already net)
+                foreach (($salesByCurrency['cash'] ?? []) as $c => $a) {
+                    if ($c === '_CUSTODIA_') continue; // Custody handled separately
+                    $totalCashFinal[$c] = ($totalCashFinal[$c] ?? 0) + $a;
+                }
+                // Add credit payments cash
+                foreach (($paymentsByCurrency['cash'] ?? []) as $c => $a) {
+                    $totalCashFinal[$c] = ($totalCashFinal[$c] ?? 0) + $a;
                 }
                 foreach ($totalCashFinal as $c => $a) {
                      $printer->text("  " . $getCurrencyLabel($c) . ": " . number_format($a, 2) . "\n");
@@ -588,21 +598,21 @@ trait PrintTrait
 
                 $printer->text("TOTAL BANCO: \n");
                 $totalBankFinal = [];
-                foreach (['deposit'] as $type) {
-                     foreach (($salesByCurrency[$type] ?? []) as $bn => $currAmt) {
-                         if (is_array($currAmt)) {
-                             foreach ($currAmt as $c => $a) { $totalBankFinal[$bn][$c] = ($totalBankFinal[$bn][$c] ?? 0) + $a; }
-                         } else {
-                             $totalBankFinal['Otros'][$bn] = ($totalBankFinal['Otros'][$bn] ?? 0) + $currAmt;
-                         }
-                     }
-                     foreach (($paymentsByCurrency[$type] ?? []) as $bn => $currAmt) {
-                         if (is_array($currAmt)) {
-                             foreach ($currAmt as $c => $a) { $totalBankFinal[$bn][$c] = ($totalBankFinal[$bn][$c] ?? 0) + $a; }
-                         } else {
-                             $totalBankFinal['Otros'][$bn] = ($totalBankFinal['Otros'][$bn] ?? 0) + $currAmt;
-                         }
-                     }
+                // Add sales bank flows
+                foreach (($salesByCurrency['deposit'] ?? []) as $bn => $currAmt) {
+                    if (is_array($currAmt)) {
+                        foreach ($currAmt as $c => $a) { $totalBankFinal[$bn][$c] = ($totalBankFinal[$bn][$c] ?? 0) + $a; }
+                    } else {
+                        $totalBankFinal['Otros'][$bn] = ($totalBankFinal['Otros'][$bn] ?? 0) + $currAmt;
+                    }
+                }
+                // Add credit payments bank flows
+                foreach (($paymentsByCurrency['deposit'] ?? []) as $bn => $currAmt) {
+                    if (is_array($currAmt)) {
+                        foreach ($currAmt as $c => $a) { $totalBankFinal[$bn][$c] = ($totalBankFinal[$bn][$c] ?? 0) + $a; }
+                    } else {
+                        $totalBankFinal['Otros'][$bn] = ($totalBankFinal['Otros'][$bn] ?? 0) + $currAmt;
+                    }
                 }
                 foreach ($totalBankFinal as $bn => $currs) {
                      $printer->text("  " . $bn . ":\n");
@@ -612,16 +622,31 @@ trait PrintTrait
                 }
 
                 $zelleTotal = 0;
-                foreach (['zelle'] as $type) {
-                     $zelleTotal += array_sum($salesByCurrency[$type] ?? []);
-                     $zelleTotal += array_sum($paymentsByCurrency[$type] ?? []);
+                $zelleTotal += array_sum($salesByCurrency['zelle'] ?? []);
+                $zelleTotal += array_sum($paymentsByCurrency['zelle'] ?? []);
+                $printer->text("TOTAL ZELLE: $" . number_format($zelleTotal, 2) . "\n\n");
+
+                // --- SECTION 4: BILLETERA / CUSTODIA ---
+                if ($walletAdded > 0 || $walletUsed > 0) {
+                    $printer->setJustification(Printer::JUSTIFY_CENTER);
+                    $printer->text("MOVIMIENTOS BILLETERA\n");
+                    $printer->setJustification(Printer::JUSTIFY_LEFT);
+                    $printer->text($separator . "\n");
+                    $printer->text("Custodia Hoy (+): " . $currencySymbol . number_format($walletAdded, 2) . "\n");
+                    $printer->text("Consumo Billetera (-): " . $currencySymbol . number_format($walletUsed, 2) . "\n");
+                    $printer->text($separator . "\n\n");
                 }
-                $printer->text("TOTAL ZELLE: $" . number_format($zelleTotal, 2) . "\n");
 
                 $printer->text($separator . "\n");
                 $printer->setTextSize(1, 1);
-                $totalG = $salesTotal - $credit + $payments;
-                $printer->text("TOTAL GENERAL: " . $currencySymbol . number_format($totalG, 2) . "\n");
+                
+                // If grandTotal was not passed, fallback to old formula (but it should be passed)
+                $finalTotal = $grandTotal > 0 ? $grandTotal : ($salesTotal - $credit + $payments);
+                
+                $printer->setJustification(Printer::JUSTIFY_CENTER);
+                $printer->text("TOTAL EN CAJA (A ENTREGAR):\n");
+                $printer->setTextSize(1, 2);
+                $printer->text($currencySymbol . " " . number_format($finalTotal, 2) . "\n");
                 $printer->setTextSize(1, 1);
                 $printer->text($separator . "\n");
 

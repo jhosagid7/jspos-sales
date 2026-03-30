@@ -151,6 +151,7 @@ class ReportController extends Controller
                 $qry->where('type', $type);
             })
             ->where('status', '<>', 'returned')
+            ->whereNull('deletion_approved_at')
             ->orderBy('id', 'desc')
             ->get();
 
@@ -183,13 +184,13 @@ class ReportController extends Controller
         foreach($currencies as $c) { $totalsByCategory["EFECTIVO " . strtoupper($c->code)] = 0; }
         foreach($banks as $b) { $totalsByCategory[strtoupper($b->name)] = 0; }
         $totalsByCategory['ZELLE'] = 0;
-        $totalsByCategory['NOTAS DE CREDITO (NC)'] = 0;
 
         $totalsByCurrency = [];
         foreach($currencies as $c) { $totalsByCurrency[$c->code] = 0; }
 
-        // Calculate NC from returns in the period
+        // Fetch Returns for list table in PDF (no sum here - summing done per-sale below)
         $returns = \App\Models\SaleReturn::with(['sale', 'requester', 'approver'])
+            ->where('status', 'approved')
             ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
                 $q->whereBetween('created_at', [$dFrom, $dTo]);
             })
@@ -197,11 +198,6 @@ class ReportController extends Controller
                 $query->where('user_id', $user_id);
             })
             ->get();
-        
-        foreach($returns as $r) {
-            $rate = ($r->sale && $r->sale->primary_exchange_rate > 0) ? $r->sale->primary_exchange_rate : 1;
-            $totalsByCategory['NOTAS DE CREDITO (NC)'] += ($r->total_returned / $rate);
-        }
 
         $deletedSales = \App\Models\Sale::with(['customer', 'user', 'requester', 'approver'])
             ->whereNotNull('deletion_approved_at')
@@ -216,71 +212,217 @@ class ReportController extends Controller
         $totalDeleted = $deletedSales->sum('total_usd');
 
         $summary = [
-            'total_bruto' => 0,
-            'total_flete' => 0,
+            'total_bruto'   => 0,
+            'total_flete'   => 0,
             'total_contado' => 0,
             'total_credito' => 0,
-            'total_count' => $sales->count(),
-            'total_ved' => 0,
-            'total_divisa' => 0
+            'total_count'   => $sales->count(),
+            'total_ved'     => 0,
+            'total_divisa'  => 0,
+            'total_nc_raw'  => 0,
         ];
 
+        $totalNCUSD          = 0;
+        $totalWalletAddedUSD = 0; 
+        $totalWalletUsedUSD  = 0; 
+        
+        // LEFT TABLE: Categories in USD
+        $totalsByCategory = [
+            'EFECTIVO USD'       => 0,
+            'EFECTIVO VED'       => 0,
+            'EFECTIVO COP'       => 0,
+            'BANCOLOMBIA'        => 0,
+            'BANCO DE VENEZUELA' => 0,
+            'ZELLE'              => 0,
+            'BANESCO'            => 0,
+            'PROVINCIAL'         => 0,
+        ];
+
+        // RIGHT TABLE: Totals in Physical Original Currency
+        $totalsByCurrencyPhys = [];
+
         foreach ($sales as $sale) {
-            $summary['total_bruto'] += $sale->total_usd;
-            $summary['total_flete'] += $sale->total_freight ?? 0;
-            
+            $r_rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+
+            // 1. Net: subtract approved returns for this sale
+            $returnsForSale = \App\Models\SaleReturn::where('sale_id', $sale->id)
+                ->where('status', 'approved')
+                ->get();
+
+            $retAmtUSD = 0;
+            foreach ($returnsForSale as $ret) {
+                $rt_rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                $retAmtUSD += ($ret->total_returned / $rt_rate);
+                if (str_contains(strtolower($ret->refund_method ?? ''), 'wallet')) {
+                    $totalWalletAddedUSD += ($ret->total_returned / $rt_rate);
+                }
+            }
+
+            $netSaleUSD = $sale->total_usd - $retAmtUSD;
+            $totalNCUSD += $retAmtUSD;
+
+            // 2. Accumulate net summary
+            $summary['total_bruto'] += round($netSaleUSD, 4);
+            $summary['total_flete'] += round($sale->total_freight ?? 0, 4);
+
             $salePaidUSD = 0;
+
+            // 3. Process payments
             foreach($sale->paymentDetails as $payment) {
-                $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
+                $rate   = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
                 $amtUSD = $payment->amount / $rate;
                 $salePaidUSD += $amtUSD;
-                
+
                 if(isset($totalsByCurrency[$payment->currency_code])) {
                     $totalsByCurrency[$payment->currency_code] += $payment->amount;
                 }
 
-                if ($payment->method == 'bank' || $payment->method == 'deposit') {
-                    $bankName = 'BANCO';
-                    if ($payment->bankRecord && $payment->bankRecord->bank) {
-                        $bankName = strtoupper($payment->bankRecord->bank->name);
-                    } elseif ($payment->bank_name) {
-                        $bankName = strtoupper($payment->bank_name);
-                    }
-                    $totalsByCategory[$bankName] = ($totalsByCategory[$bankName] ?? 0) + $amtUSD;
-                } elseif ($payment->method == 'zelle') {
-                    $totalsByCategory['ZELLE'] += $amtUSD;
+                $pCurr = strtoupper($payment->currency_code);
+
+                if ($payment->payment_method == 'wallet') {
+                    $totalWalletUsedUSD += $amtUSD;
+                    $totalsByCategory['PAGO BILLETERA'] = ($totalsByCategory['PAGO BILLETERA'] ?? 0) + $amtUSD;
                 } else {
-                    $key = "EFECTIVO " . strtoupper($payment->currency_code);
-                    $totalsByCategory[$key] = ($totalsByCategory[$key] ?? 0) + $amtUSD;
+                    // RIGHT TABLE (PHYSICAL)
+                    $totalsByCurrencyPhys[$pCurr] = ($totalsByCurrencyPhys[$pCurr] ?? 0) + $payment->amount;
+
+                    // LEFT TABLE (USD CATEGORIES)
+                    if ($payment->payment_method == 'bank' || $payment->payment_method == 'deposit') {
+                        $bankName = 'BANCO';
+                        if ($payment->bankRecord && $payment->bankRecord->bank) {
+                            $bankName = strtoupper($payment->bankRecord->bank->name);
+                        } elseif ($payment->bank_name) {
+                            $bankName = strtoupper($payment->bank_name);
+                        }
+                        $totalsByCategory[$bankName] = ($totalsByCategory[$bankName] ?? 0) + $amtUSD;
+                    } elseif ($payment->payment_method == 'zelle') {
+                        $totalsByCategory['ZELLE'] = ($totalsByCategory['ZELLE'] ?? 0) + $amtUSD;
+                    } else {
+                        $key = "EFECTIVO " . $pCurr;
+                        $totalsByCategory[$key] = ($totalsByCategory[$key] ?? 0) + $amtUSD;
+                    }
                 }
 
                 if($payment->currency_code == 'VED' || $payment->currency_code == 'VES') {
                     $summary['total_ved'] += $amtUSD;
-                } else {
-                    $summary['total_divisa'] += $amtUSD;
                 }
             }
-            
-            if($sale->paymentDetails->count() == 0 && $sale->type == 'cash') {
-                $code = $sale->primary_currency_code ?? 'USD';
-                $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
-                $amtUSD = $sale->cash / $rate;
-                $salePaidUSD += $amtUSD;
+
+            // 4. Subtract change (vueltos)
+            foreach($sale->changeDetails as $change) {
+                $rateC   = $change->exchange_rate > 0 ? $change->exchange_rate : 1;
+                $amtUSD_C = $change->amount / $rateC;
+                $cCurr = strtoupper($change->currency_code);
                 
-                if(isset($totalsByCurrency[$code])) { $totalsByCurrency[$code] += $sale->cash; }
+                $salePaidUSD -= $amtUSD_C;
+
+                // Subtract from Physical Original Currency
+                $totalsByCurrencyPhys[$cCurr] = ($totalsByCurrencyPhys[$cCurr] ?? 0) - $change->amount;
+
+                $keyC = "EFECTIVO " . $cCurr;
+                $totalsByCategory[$keyC] = ($totalsByCategory[$keyC] ?? 0) - $amtUSD_C;
+            }
+
+            // 5. Legacy cash sales (no paymentDetails)
+            if($sale->paymentDetails->count() == 0 && $sale->type == 'cash') {
+                $code   = $sale->primary_currency_code ?? 'USD';
+                $rate   = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                $amtUSD = ($sale->cash - $sale->change) / $rate;
+                $salePaidUSD += $amtUSD;
+                if(isset($totalsByCurrency[$code])) { $totalsByCurrency[$code] += ($sale->cash - $sale->change); }
+                
+                $totalsByCurrencyPhys[strtoupper($code)] = ($totalsByCurrencyPhys[strtoupper($code)] ?? 0) + ($sale->cash - $sale->change);
+
                 $key = "EFECTIVO " . strtoupper($code);
                 $totalsByCategory[$key] = ($totalsByCategory[$key] ?? 0) + $amtUSD;
-
-                if($code == 'VED' || $code == 'VES') {
-                    $summary['total_ved'] += $amtUSD;
-                } else {
-                    $summary['total_divisa'] += $amtUSD;
-                }
+                if($code == 'VED' || $code == 'VES') { $summary['total_ved'] += $amtUSD; }
             }
 
             $summary['total_contado'] += $salePaidUSD;
             if($sale->status != 'paid') {
-                $summary['total_credito'] += max(0, $sale->total_usd - $salePaidUSD);
+                $summary['total_credito'] += max(0, $netSaleUSD - $salePaidUSD);
+            }
+        }
+
+        $totalNCUSD = $returns->whereIn('sale_id', $sales->pluck('id'))
+            ->sum(function($r) {
+                $rate = ($r->sale && $r->sale->primary_exchange_rate > 0) ? $r->sale->primary_exchange_rate : 1;
+                return $r->total_returned / $rate;
+            });
+
+        $totalWalletAddedUSD = \App\Models\SaleReturn::whereBetween('created_at', [$dFrom, $dTo])
+            ->where('refund_method', 'wallet')
+            ->where('status', 'approved')
+            ->get()
+            ->sum(function($r) {
+                $rate = ($r->sale && $r->sale->primary_exchange_rate > 0) ? $r->sale->primary_exchange_rate : 1;
+                return $r->total_returned / $rate;
+            });
+            
+        $totalWalletUsedUSD = 0; // Accumulated below
+
+
+        // Top block uses NET figures
+        $summary['total_contado'] = $summary['total_bruto'];
+        $summary['total_divisa']  = $summary['total_contado'] - $summary['total_ved'];
+        $summary['total_final']   = $summary['total_contado'] + $summary['total_flete'] + $summary['total_credito'];
+
+            // 6. Final Segregation: 
+            // - ALWAYS subtract from the Income Breakdown (left table) to get real Net Revenue.
+            // - ONLY subtract from the Physical Count (right table) if cash left the drawer.
+            foreach ($returns as $ret) {
+                if (!$ret->sale) continue;
+                $saleCurrCode = strtoupper($ret->sale->primary_currency_code ?? 'USD');
+                $rt_rate = $ret->sale->primary_exchange_rate > 0 ? $ret->sale->primary_exchange_rate : 1;
+                $retAmtUSD = $ret->total_returned / $rt_rate;
+
+                // A. Right Table (Physical original currency) - only if not virtual
+                if ($ret->refund_method !== 'wallet' && $ret->refund_method !== 'debt_reduction') {
+                    if (isset($totalsByCurrencyPhys[$saleCurrCode])) {
+                        $totalsByCurrencyPhys[$saleCurrCode] -= $ret->total_returned;
+                    }
+                }
+
+                // B. Left Table (Breakdown) - Always subtract income from Ventas, 
+                // it is re-added as Custody later at line 395 if applicable.
+                $key = "EFECTIVO " . $saleCurrCode;
+                if (isset($totalsByCategory[$key])) {
+                    $totalsByCategory[$key] -= $retAmtUSD;
+                } else {
+                    $totalsByCategory['EFECTIVO USD'] = ($totalsByCategory['EFECTIVO USD'] ?? 0) - $retAmtUSD;
+                }
+
+                $summary['total_nc_raw'] += $retAmtUSD;
+            }
+
+        // 7. Segregation of Custody: Re-label Today's NC-to-wallet as Custody
+        // Since we already subtracted ALL returns above, and totalWalletAddedUSD is part of those returns
+        // we add it back as a separate "Custodia" category. This way:
+        // Net Physical = (Gross - All Returns)
+        // Responsibility = Net Physical + Custodia (Returns that didn't leave the drawer)
+        if ($totalWalletAddedUSD > 0.0001) {
+            $totalsByCategory['BILLETERA (CUSTODIA HOY)'] = $totalWalletAddedUSD;
+        }
+
+        $salesSubtotal = 0;
+        foreach ($totalsByCategory as $k => $v) {
+            if (!str_contains($k, 'BILLETERA') && !str_contains($k, 'PAGO BILLETERA')) {
+                $salesSubtotal += $v;
+            }
+        }
+        
+        // Total Deliver = Net Physical Sales + Today's Custody
+        $grandTotalIncomeUSD = $salesSubtotal + $totalWalletAddedUSD;
+
+
+        // Adjust totalsByCurrency to show NET amounts (subtract returns per currency)
+        foreach ($returns as $ret) {
+            if (!$ret->sale) continue;
+            $saleCurrCode = $ret->sale->primary_currency_code ?? 'USD';
+            $rt_rate = $ret->sale->primary_exchange_rate > 0 ? $ret->sale->primary_exchange_rate : 1;
+            // total_returned is in sale currency units
+            if (isset($totalsByCurrency[$saleCurrCode])) {
+                $totalsByCurrency[$saleCurrCode] -= $ret->total_returned;
             }
         }
 
@@ -295,12 +437,15 @@ class ReportController extends Controller
             'totalDeleted' => $totalDeleted,
             'totalsByCategory' => $totalsByCategory,
             'totalsByCurrency' => $totalsByCurrency,
+            'totalsByCurrencyPhys' => $totalsByCurrencyPhys,
             'config' => $config,
             'user' => $user,
             'dateFrom' => $dateFrom,
             'dateTo' => $dateTo,
-            'groupBy' => $groupBy
+            'groupBy' => $groupBy,
+            'grandTotalIncomeUSD' => $grandTotalIncomeUSD
         ])->setPaper('a4', 'landscape');
+
 
         return $pdf->stream('Reporte_Ventas_Diarias.pdf');
     }
@@ -489,6 +634,7 @@ class ReportController extends Controller
                     $qry->where('user_id', $user_id);
                 })
                 ->where('status', '<>', 'returned')
+                ->whereNull('deletion_approved_at')
                 ->select('id', 'total', 'cash', 'change', 'type', 'primary_exchange_rate', 'customer_id')
                 ->get();
 
@@ -501,8 +647,31 @@ class ReportController extends Controller
         $saleIds = $sales->pluck('id');
         $paymentDetails = SalePaymentDetail::whereIn('sale_id', $saleIds)->get();
         
-        $salesByCurrency = $this->aggregateSalesByCurrency($sales, $paymentDetails, $currencies);
+        $totalNCUSD = \App\Models\SaleReturn::whereBetween('created_at', [$dFrom, $dTo])
+            ->where('status', 'approved')
+            ->whereIn('sale_id', $saleIds) // ONLY NCs of visible sales
+            ->get()
+            ->sum(function($r) use ($primaryRate) {
+                $rate = ($r->sale && $r->sale->primary_exchange_rate > 0) ? $r->sale->primary_exchange_rate : $primaryRate;
+                return ($r->total_returned / $rate) * $primaryRate;
+            });
 
+        $totalSales = $totalSales - $totalNCUSD;
+
+        $totalWalletAddedToday = \App\Models\SaleReturn::whereBetween('created_at', [$dFrom, $dTo])
+            ->where('refund_method', 'wallet')
+            ->where('status', 'approved')
+            ->get() // ALL wallet additions (including ghost sales)
+            ->sum(function($r) use ($primaryRate) {
+                $rate = ($r->sale && $r->sale->primary_exchange_rate > 0) ? $r->sale->primary_exchange_rate : $primaryRate;
+                return ($r->total_returned / $rate) * $primaryRate;
+            });
+
+
+        $totalWalletUsedUSD = $paymentDetails->where('payment_method', 'wallet')->sum('amount_in_primary_currency');
+        
+        $salesByCurrency = $this->aggregateSalesByCurrency($sales, $paymentDetails, $currencies);
+        
         $totalCreditSales = $sales->where('type', 'credit')->sum(function($sale) use ($primaryRate) {
             $saleRate = $sale->primary_exchange_rate ?? $primaryRate;
             $totalUSD = $sale->total / $saleRate;
@@ -570,6 +739,62 @@ class ReportController extends Controller
             }
         }
 
+        // To keep it simple and consistent with DailySalesReport:
+        $totalsByCategory = [];
+        foreach($currencies as $c) { $totalsByCategory["EFECTIVO " . strtoupper($c->code)] = 0; }
+        
+        foreach($totalCashDetails as $code => $amt) {
+             $totalsByCategory["EFECTIVO " . strtoupper($code)] = $amt;
+        }
+        
+        // Final Segregation logic for the report: Subtract returns correctly BEFORE calculating totals
+        $returnsForC = \App\Models\SaleReturn::whereBetween('created_at', [$dFrom, $dTo])
+            ->where('status', 'approved')
+            ->get();
+
+        foreach ($returnsForC as $ret) {
+            if (!$ret->sale) continue;
+            $saleCurrCode = strtoupper($ret->sale->primary_currency_code ?? 'USD');
+            $rt_rate = $ret->sale->primary_exchange_rate > 0 ? $ret->sale->primary_exchange_rate : 1;
+            $retAmtRAW = $ret->total_returned; 
+            $retAmtUSD = ($ret->total_returned / $rt_rate) * $primaryRate;
+            $retMethod = strtolower($ret->refund_method ?? 'cash');
+
+            $key = "EFECTIVO " . $saleCurrCode;
+            if (isset($totalsByCategory[$key])) {
+                $totalsByCategory[$key] -= $retAmtUSD;
+            } else {
+                $totalsByCategory['EFECTIVO USD'] = ($totalsByCategory['EFECTIVO USD'] ?? 0) - $retAmtUSD;
+            }
+
+            if ($retMethod !== 'wallet' && $retMethod !== 'debt_reduction') {
+                if (isset($totalCashDetails[$saleCurrCode])) {
+                    $totalCashDetails[$saleCurrCode] -= $retAmtRAW;
+                }
+            }
+        }
+
+        $salesSubtotal = 0;
+        foreach ($totalsByCategory as $k => $v) {
+            $currCode = str_replace('EFECTIVO ', '', $k);
+            $salesSubtotal += $this->convertToPrimaryLocal($v, $currCode, $currencies, $primaryRate);
+        }
+
+        // Bank and Zelle subtotals
+        $bankSubtotalUSD = 0;
+        foreach($totalBankDetails as $bn => $currs) foreach($currs as $curr => $amt) $bankSubtotalUSD += $this->convertToPrimaryLocal($amt, $curr, $currencies, $primaryRate);
+        $zelleSubtotalUSD = 0;
+        foreach($totalZelleDetails as $s => $a) $zelleSubtotalUSD += $a; 
+
+        $salesSubtotal += $bankSubtotalUSD + $zelleSubtotalUSD;
+
+        if ($totalWalletAddedToday > 0.0001) {
+            $totalsByCategory['BILLETERA (CUSTODIA HOY)'] = $totalWalletAddedToday;
+        }
+
+        $grandTotalIncomeUSD = $salesSubtotal + $totalWalletAddedToday;
+
+
         $config = Configuration::first();
         $user_name = $user_id == 0 ? 'Todos los usuarios' : User::find($user_id)->name;
 
@@ -583,8 +808,7 @@ class ReportController extends Controller
              $curr = $currencies->firstWhere('code', $currencyCode);
              if (!$curr) return $amount;
              $rate = $curr->exchange_rate > 0 ? $curr->exchange_rate : 1;
-             $amtUSD = $amount / $rate;
-             return $amtUSD * $primaryRate;
+             return ($amount / $rate) * $primaryRate;
         };
 
         $pdf = Pdf::loadView('reports.cash-count-pdf', [
@@ -599,18 +823,31 @@ class ReportController extends Controller
             'totalCashDetails' => $totalCashDetails,
             'totalBankDetails' => $totalBankDetails,
             'totalZelleDetails' => $totalZelleDetails,
+            'totalsByCategory' => $totalsByCategory,
+            'totalWalletAddedToday' => $totalWalletAddedToday,
+            'totalWalletUsedToday' => $totalWalletUsedUSD,
+            'grandTotalIncomeUSD' => $grandTotalIncomeUSD,
             'config' => $config,
             'symbol' => $symbol,
             'getLabel' => $getLabel,
             'convertToPrimary' => $convertToPrimary
         ])->setPaper('a4', 'portrait');
 
+
         return $pdf->stream("Corte_Caja_{$dateFrom}.pdf");
     }
 
+    private function convertToPrimaryLocal($amount, $currencyCode, $currencies, $primaryRate) {
+        if ($currencyCode == 'USD') return $amount * $primaryRate;
+        $curr = $currencies->firstWhere('code', $currencyCode);
+        $rate = ($curr && $curr->exchange_rate > 0) ? $curr->exchange_rate : 1;
+        return ($amount / $rate) * $primaryRate;
+    }
+
+
     private function aggregateSalesByCurrency($sales, $paymentDetails, $currencies)
     {
-        $aggregated = ['cash' => [], 'nequi' => [], 'deposit' => [], 'zelle' => []];
+        $aggregated = ['cash' => [], 'nequi' => [], 'deposit' => [], 'zelle' => [], 'wallet' => []];
         $primaryCurrency = $currencies->firstWhere('is_primary', 1);
         $primaryCode = $primaryCurrency ? $primaryCurrency->code : 'COP';
         $paymentsBySale = $paymentDetails->groupBy('sale_id');
@@ -621,9 +858,18 @@ class ReportController extends Controller
                     $currency = $paymentDetail->currency_code;
                     $bankName = $paymentDetail->bank_name;
                     $paymentMethod = $paymentDetail->payment_method ?? 'cash';
-                    $category = match($paymentMethod) { 'cash' => 'cash', 'nequi' => 'nequi', 'bank' => 'deposit', 'zelle' => 'zelle', default => 'cash' };
+                    $category = match($paymentMethod) { 
+                        'cash' => 'cash', 
+                        'nequi' => 'nequi', 
+                        'bank' => 'deposit', 
+                        'zelle' => 'zelle', 
+                        'wallet' => 'wallet',
+                        default => 'cash' 
+                    };
                     
-                    if ($category == 'deposit' && $bankName) {
+                    if ($category == 'wallet') {
+                        $aggregated['wallet'][$currency] = ($aggregated['wallet'][$currency] ?? 0) + $paymentDetail->amount;
+                    } elseif ($category == 'deposit' && $bankName) {
                         $aggregated['deposit'][$bankName][$currency] = ($aggregated['deposit'][$bankName][$currency] ?? 0) + $paymentDetail->amount;
                     } elseif ($category == 'zelle') {
                          $sender = 'Desconocido';
@@ -634,7 +880,7 @@ class ReportController extends Controller
                     }
                 }
             } else {
-                $category = match($sale->type) { 'cash', 'cash/nequi', 'mixed' => 'cash', 'nequi' => 'nequi', 'deposit', 'bank' => 'deposit', default => null };
+                $category = match($sale->type) { 'cash', 'cash/nequi', 'mixed' => 'cash', 'nequi' => 'nequi', 'deposit', 'bank' => 'deposit', 'wallet' => 'wallet', default => null };
                 if ($category === null || $sale->type === 'credit') continue;
                 $netAmount = $sale->cash - $sale->change;
                 if ($netAmount > 0) { $aggregated[$category][$primaryCode] = ($aggregated[$category][$primaryCode] ?? 0) + $netAmount; }

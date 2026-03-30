@@ -5,7 +5,7 @@
     <title>Reporte de Ventas Diarias</title>
     <style>
         @page {
-            margin: 0.5cm;
+            margin: 0.3cm;
         }
         body {
             font-family: Arial, sans-serif;
@@ -119,12 +119,12 @@
         
         .footer-signatures {
             width: 100%;
-            margin-top: 30px;
+            margin-top: 15px;
         }
         .signature-box {
             width: 100%;
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 20px;
         }
         .signature-line {
             border-top: 1px solid #333;
@@ -249,12 +249,18 @@
                 <th style="width: 65px;" class="text-right">Contado</th>
                 <th style="width: 65px;" class="text-right">Crédito</th>
                 <th style="width: 65px;" class="text-right">Bolívares</th>
+                <th style="width: 65px;" class="text-right">Pesos</th>
                 <th style="width: 65px;" class="text-right">Divisas</th>
             </tr>
         </thead>
         <tbody>
             @php 
                 $grandRawVed = 0;
+                $grandRawCop = 0;
+                $grandTotalNeto = 0;
+                $grandTotalPaid = 0;
+                $grandTotalCredit = 0;
+                $grandTotalDivisa = 0;
             @endphp
             @foreach ($data as $key => $groupData)
                 @if($groupBy != 'none')
@@ -267,40 +273,85 @@
 
                 @foreach ($groupData['sales'] as $sale)
                     @php
+                        $totalReturnedUSD = 0;
+                        foreach($sale->returns as $return) {
+                            if($return->status == 'approved') {
+                                $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                                $totalReturnedUSD += ($return->total_returned / $rate);
+                            }
+                        }
+                        $netSaleUSD = $sale->total_usd - $totalReturnedUSD;
+                        // 2. Calcular Pagos Netos (Pagos - Vueltos)
                         $paidToday = 0;
-                        $vedPaid = 0;
-                        $divisaPaid = 0;
+                        $vedPaid = 0; // Raw VED
+                        $copPaid = 0; // Raw COP
+                        $divisaPaid = 0; // Netted USD Divisa
 
+                        // Sumar pagos
                         foreach($sale->paymentDetails as $payment) {
                             $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
                             $amtUSD = $payment->amount / $rate;
                             $paidToday += $amtUSD;
                             
-                            if($payment->currency_code == 'VED' || $payment->currency_code == 'VES') {
-                                $vedPaid += $payment->amount; // Raw amount in Bolívares
+                            $curr = strtoupper($payment->currency_code);
+                            if($curr == 'VED' || $curr == 'VES') {
+                                $vedPaid += $payment->amount; 
+                            } elseif($curr == 'COP') {
+                                $copPaid += $payment->amount;
                             } else {
                                 $divisaPaid += $amtUSD;
                             }
                         }
                         
-                        // Handle raw cash sales (no payment details record)
+                        // Restar vueltos
+                        foreach($sale->changeDetails as $change) {
+                            $rateC = $change->exchange_rate > 0 ? $change->exchange_rate : 1;
+                            $amtUSD_C = $change->amount / $rateC;
+                            $paidToday -= $amtUSD_C;
+
+                            $currC = strtoupper($change->currency_code);
+                            if($currC == 'VED' || $currC == 'VES') {
+                                $vedPaid -= $change->amount;
+                            } elseif($currC == 'COP') {
+                                $copPaid -= $change->amount;
+                            } else {
+                                $divisaPaid -= $amtUSD_C;
+                            }
+                        }
+                        
+                        // Net total cash sales (fallback)
                         if($sale->paymentDetails->count() == 0 && $sale->type == 'cash') {
                             $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
-                            $amtUSD = $sale->cash / $rate;
+                            $netCash = $sale->cash - $sale->change;
+                            $amtUSD = $netCash / $rate;
                             $paidToday += $amtUSD;
-                            if($sale->primary_currency_code == 'VED' || $sale->primary_currency_code == 'VES') {
-                                $vedPaid += $sale->cash; // Raw amount in Bolívares
+                            $currS = strtoupper($sale->primary_currency_code);
+                            if($currS == 'VED' || $currS == 'VES') {
+                                $vedPaid += $netCash;
+                            } elseif($currS == 'COP') {
+                                $copPaid += $netCash;
                             } else {
                                 $divisaPaid += $amtUSD;
                             }
                         }
+                        
+                        $paidToday = $paidToday - $totalReturnedUSD;
+                        $divisaPaid = $divisaPaid - $totalReturnedUSD;
 
                         $grandRawVed += $vedPaid;
 
+                        // 3. Crédito sobre el monto NETO
                         $creditUSD = 0;
-                        if($sale->status != 'paid') {
-                            $creditUSD = max(0, $sale->total_usd - $paidToday);
+                        if($sale->status != 'paid' && $sale->status != 'returned') {
+                            $creditUSD = max(0, $netSaleUSD - $paidToday);
                         }
+
+                        // Acumuladores del Pie de Página
+                        $grandTotalNeto += $netSaleUSD;
+                        $grandTotalPaid += $paidToday;
+                        $grandTotalCredit += $creditUSD;
+                        $grandTotalDivisa += $divisaPaid;
+                        $grandRawCop += $copPaid; // Added COP accumulator
                     @endphp
                     <tr>
                         <td>{{ $sale->invoice_number ?? $sale->id }}</td>
@@ -316,11 +367,12 @@
                                 @endif
                             @endforeach
                         </td>
-                        <td class="text-right">{{ number_format($sale->total_usd, 4) }}</td>
+                        <td class="text-right">{{ number_format($netSaleUSD, 4) }}</td>
                         <td class="text-right">0.0000</td>
                         <td class="text-right">{{ number_format($paidToday, 4) }}</td>
                         <td class="text-right">{{ $creditUSD > 0.0001 ? number_format($creditUSD, 4) : '0.0000' }}</td>
                         <td class="text-right">{{ number_format($vedPaid, 4) }}</td>
+                        <td class="text-right">{{ number_format($copPaid, 4) }}</td>
                         <td class="text-right">{{ number_format($divisaPaid, 4) }}</td>
                     </tr>
                 @endforeach
@@ -329,18 +381,19 @@
         <tfoot>
             <tr style="border-top: 2px solid #000; font-weight: bold;">
                 <td colspan="2" class="text-right">TOTALES:</td>
-                <td class="text-right">{{ number_format($summary['total_bruto'], 4) }}</td>
+                <td class="text-right">{{ number_format($grandTotalNeto, 4) }}</td>
                 <td class="text-right">0.0000</td>
-                <td class="text-right">{{ number_format($summary['total_contado'], 4) }}</td>
-                <td class="text-right">{{ number_format($summary['total_credito'], 4) }}</td>
+                <td class="text-right">{{ number_format($grandTotalPaid, 4) }}</td>
+                <td class="text-right">{{ number_format($grandTotalCredit, 4) }}</td>
                 <td class="text-right">{{ number_format($grandRawVed, 4) }}</td>
-                <td class="text-right">{{ number_format($summary['total_divisa'], 4) }}</td>
+                <td class="text-right">{{ number_format($grandRawCop, 4) }}</td>
+                <td class="text-right">{{ number_format($grandTotalDivisa, 4) }}</td>
             </tr>
         </tfoot>
     </table>
 
     @if(count($returns) > 0)
-    <div style="font-weight: bold; font-size: 10pt; margin-bottom: 5px; margin-top: 15px;">Notas de Crédito (Devoluciones)</div>
+    <div style="font-weight: bold; font-size: 10pt; margin-bottom: 5px; margin-top: 10px;">Notas de Crédito (Devoluciones)</div>
     <table class="table">
         <thead>
             <tr>
@@ -374,7 +427,7 @@
         <tfoot>
             <tr style="border-top: 2px solid #000; font-weight: bold;">
                 <td colspan="4" class="text-right">TOTAL NC:</td>
-                <td class="text-right">{{ number_format($totalsByCategory['NOTAS DE CREDITO (NC)'], 4) }}</td>
+                <td class="text-right">{{ number_format($summary['total_nc_raw'] ?? 0, 4) }}</td>
                 <td colspan="3"></td>
             </tr>
         </tfoot>
@@ -411,25 +464,86 @@
     </table>
     @endif
 
-    <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+    <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
         <tr>
             {{-- Column 1: Income Breakdown (USD) --}}
             <td style="width: 32%; vertical-align: top;">
                 <table style="width: 100%; font-size: 7.5pt;">
-                    @php $grandTotalIncomeUSD = 0; @endphp
-                    @foreach($totalsByCategory as $category => $total)
+                @php
+                    $salesSubtotal  = 0;
+                    $walletSubtotal = 0;
+                    $salesItems     = [];
+                    $walletItems    = [];
+
+                    foreach ($totalsByCategory as $category => $total) {
+                        $isWallet = str_contains(strtoupper($category), 'BILLETERA') || str_contains(strtoupper($category), 'PAGO BILLETERA');
+                        if ($isWallet) {
+                            $walletItems[$category] = $total;
+                            if (str_contains(strtoupper($category), 'PAGO BILLETERA')) {
+                                $walletSubtotal -= $total;
+                            } else {
+                                $walletSubtotal += $total;
+                            }
+                        } else {
+                            $salesItems[$category] = $total;
+                            $salesSubtotal += $total;
+                        }
+                    }
+                    // $grandTotalIncomeUSD is now passed from Controller correctly.
+                @endphp
+
+                {{-- === SECCIÓN VENTAS === --}}
+                <table style="width: 100%; font-size: 7.5pt;">
+                    <tr>
+                        <td colspan="2" style="font-weight: bold; font-size: 7pt; border-bottom: 1pt solid #555; padding-bottom: 2px; padding-top: 4px; color: #333;">
+                            -- VENTAS
+                        </td>
+                    </tr>
+                    @foreach($salesItems as $category => $total)
                         <tr>
                             <td class="summary-label-bold" style="padding: 1px 0;">{{ strtoupper($category) }}:</td>
                             <td class="text-right" style="padding: 1px 5px; font-weight: normal;">{{ number_format($total, 4) }}</td>
                         </tr>
-                        @php 
-                            if ($category !== 'NOTAS DE CREDITO (NC)') {
-                                $grandTotalIncomeUSD += $total; 
-                            }
-                        @endphp
                     @endforeach
+                    <tr style="border-top: 1pt solid #aaa;">
+                        <td class="summary-label-bold" style="padding-top: 2px;">Subtotal Ventas:</td>
+                        <td class="text-right" style="padding-top: 2px; padding-right: 5px; font-weight: bold;">{{ number_format($salesSubtotal, 4) }}</td>
+                    </tr>
+                </table>
+
+                @if(count($walletItems) > 0)
+                {{-- === SECCIÓN BILLETERA === --}}
+                <table style="width: 100%; font-size: 7.5pt; margin-top: 6px;">
+                    <tr>
+                        <td colspan="2" style="font-weight: bold; font-size: 7pt; border-bottom: 1pt solid #555; padding-bottom: 2px; padding-top: 4px; color: #555;">
+                            -- BILLETERA (CLIENTE)
+                        </td>
+                    </tr>
+                    @foreach($walletItems as $category => $total)
+                        @php $isPago = str_contains(strtoupper($category), 'PAGO BILLETERA'); @endphp
+                        <tr>
+                            <td class="summary-label-bold" style="padding: 1px 0;">{{ strtoupper($category) }}:</td>
+                            <td class="text-right" style="padding: 1px 5px; font-weight: normal;">
+                                {{ $isPago ? '-' : '+' }}{{ number_format($total, 4) }}
+                            </td>
+                        </tr>
+                    @endforeach
+                    <tr style="border-top: 1pt solid #aaa; background-color: #fcfcfc;">
+                        <td class="summary-label-bold" style="padding-top: 2px;">Saldo Billetera Consumido (Anterior):</td>
+                        <td class="text-right" style="padding-top: 2px; padding-right: 5px; font-weight: bold; color: #b30000;">{{ number_format($walletSubtotal, 4) }}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" style="font-size: 5.5pt; color: #777; font-style: italic; text-align: right; padding-right: 5px;">
+                            * Este monto YA fue entregado en fechas anteriores.
+                        </td>
+                    </tr>
+                </table>
+                @endif
+
+                {{-- TOTAL FINAL --}}
+                <table style="width: 100%; font-size: 7.5pt; margin-top: 4px;">
                     <tr style="border-top: 1.5pt solid #333;">
-                        <td class="summary-label-bold" style="padding-top: 3px;">Total Ingreso:</td>
+                        <td class="summary-label-bold" style="padding-top: 3px;">Total en Caja (Entregar):</td>
                         <td class="text-right" style="font-weight: bold; padding-top: 3px; padding-right: 5px;">{{ number_format($grandTotalIncomeUSD, 4) }}</td>
                     </tr>
                 </table>
@@ -438,23 +552,26 @@
             {{-- Column 2: Details by Currency --}}
             <td style="width: 23%; vertical-align: top; padding-left: 10px; padding-right: 10px;">
                 <div class="currency-header">
-                    Detalle por Moneda
+                    Arqueo Físico por Moneda
                 </div>
                 <table style="width: 100%; font-size: 8pt;">
-                    @foreach($totalsByCurrency as $currCode => $amount)
-                        @if($amount > 0)
+                    @foreach($totalsByCurrencyPhys as $currCode => $amount)
+                        @if(abs($amount) > 0.0001)
                         <tr>
                             <td style="font-weight: bold;">Total {{ $currCode }}:</td>
-                            <td class="text-right">{{ number_format($amount, 4) }}</td>
+                            <td class="text-right">{{ number_format($amount, 2) }}</td>
                         </tr>
                         @endif
                     @endforeach
                 </table>
+                <div style="font-size: 6pt; color: #666; margin-top: 5px; text-align: center;">
+                    * Entregar este monto físico.
+                </div>
             </td>
 
             {{-- Column 3: Signatures Side by Side --}}
             <td style="width: 45%; vertical-align: top; padding-left: 10px;">
-                <table style="width: 100%; margin-top: 80px;">
+                <table style="width: 100%; margin-top: 30px;">
                     <tr>
                         <td style="width: 50%; text-align: center; vertical-align: top;">
                             <div style="border-top: 1px solid #333; width: 90%; margin: 0 auto 5px auto;"></div>
@@ -470,6 +587,8 @@
             </td>
         </tr>
     </table>
+
+    </div>
 
 </body>
 </html>
