@@ -239,15 +239,37 @@
                     <td class="text-right">{{ $symbol }} {{ number_format($totalZelleFull, 4) }}</td>
                 </tr>
 
+                {{-- Total Wallet / Custody --}}
+
+                @if($totalWalletAddedToday > 0 || $totalWalletUsedToday > 0)
+                    <tr><td colspan="3" style="padding-top: 15px;"></td></tr>
+                    <tr style="background-color: #f8f9fa;">
+                         <td colspan="2">BILLETERA (CUSTODIA GENERADA HOY)</td>
+                         <td class="text-right">{{ $symbol }} {{ number_format($totalWalletAddedToday, 4) }}</td>
+                    </tr>
+                    <tr style="color: #b30000;">
+                         <td colspan="2">(-) PAGOS CON BILLETERA (SALDO ANTERIOR CONSUMIDO)</td>
+                         <td class="text-right">- {{ $symbol }} {{ number_format($totalWalletUsedToday, 4) }}</td>
+                    </tr>
+                    <tr class="total-row" style="background-color: #e9ecef;">
+                        <td colspan="2" class="text-right">SUBTOTAL BILLETERA NETO:</td>
+                        <td class="text-right">{{ $symbol }} {{ number_format($totalWalletAddedToday - $totalWalletUsedToday, 4) }}</td>
+                    </tr>
+                @endif
+
                 {{-- TOTAL GENERAL --}}
                 <tr><td colspan="3" style="padding-top: 20px;"></td></tr>
                 <tr style="background: #33a2ff; color: #fff; font-size: 14px; font-weight: bold;">
-                    <td colspan="2" class="text-right" style="padding: 10px;">TOTAL GENERAL EN CAJA:</td>
-                    <td class="text-right" style="padding: 10px;">{{ $symbol }} {{ number_format($totalCashFull + $totalBankFull + $totalZelleFull, 4) }}</td>
+                    <td colspan="2" class="text-right" style="padding: 10px;">TOTAL GENERAL EN CAJA (A ENTREGAR):</td>
+                    <td class="text-right" style="padding: 10px;">{{ $symbol }} {{ number_format($grandTotalIncomeUSD, 4) }}</td>
                 </tr>
             </tbody>
         </table>
+        <div style="font-size: 9px; color: #666; margin-top: -10px; padding-left: 10px;">
+            * El total a entregar incluye el flujo físico neto más la custodia generada hoy, descontando el uso de saldos virtuales anteriores.
+        </div>
     </div>
+
 
     <table class="signature-table">
         <tr>

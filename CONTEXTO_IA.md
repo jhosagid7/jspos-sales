@@ -73,6 +73,15 @@ La IA debe leer este archivo para entender cómo trabajar en este proyecto espec
 - **Reservas**: Al guardar una venta como "Pendiente" (`storeOrder`), los items variables se marcan como `reserved` en DB.
 - **Carga de Ordenes**: Al editar/cargar una orden guardada, se usa un flag `$bypassReservation` para permitir que la orden cargue sus propios items reservados (que normalmente estarían ocultos si la config `check_stock_reservation` está activa).
 
+### 7.4. Conciliación Financiera y Segregación de Billetera (Arqueo de Caja)
+- **Problema**: Discrepancias en el "Total a Entregar" cuando había devoluciones (Notas de Crédito) que se convertían en saldo de billetera, ya que el sistema no diferenciaba claramente entre el flujo de efectivo físico y el saldo virtual.
+- **Solución**: Refactorización del motor de cálculo en `CashCount.php` y `ReportController.php`.
+- **Lógica de Reconciliación**:
+    1. **Flujo Neto**: Las ventas se reportan netas (Ventas Brutas - Devoluciones).
+    2. **Custodia Hoy (+)**: El efectivo que queda en caja por devoluciones convertidas a billetera se suma al arqueo como "Responsabilidad del Cajero" (Custodia).
+    3. **Consumo Billetera (-)**: Los pagos realizados con saldo virtual anterior se restan del flujo, ya que no representan entrada de dinero físico hoy.
+    4. **Sincronización Total**: Se unificó el cálculo para el Dashboard (Livewire), el PDF (Letter/A4) y el Ticket Térmico (PrintTrait), asegurando que los tres canales arrojen el mismo resultado exacto.
+
 ## 8. Roadmap y Tareas Futuras Adjudicadas
 ### 8.1. Sistema de Rollback para Actualizaciones (Planificado)
 - **Objetivo**: Permitir a los clientes y administradores revertir una actualización fácilmente si algo falla en producción.

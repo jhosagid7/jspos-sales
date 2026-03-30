@@ -1,3 +1,11 @@
+## [1.9.24] - 2026-03-30
+
+### Fixed
+- **Conciliación de Arqueo de Caja**: Se unificó la lógica financiera entre el Dashboard (Livewire), el Reporte PDF y el Ticket Térmico. Ahora los tres canales de reporte reflejan un "Total a Entregar" consistente y matemáticamente exacto.
+- **Segregación de Billetera Virtual**: Se implementó la visualización clara de los movimientos de billetera (Custodia Hoy y Consumo de Saldo Anterior) en todos los reportes de arqueo.
+- **Precisión en Ventas del Día**: Ahora el arqueo reporta el flujo de caja **NETO** (Ventas menos Devoluciones), eliminando la inflación artificial de ingresos cuando se generan Notas de Crédito que se quedan en custodia.
+- **Ticket Térmico Profesional**: Se rediseñó el ticket de corte (`PrintTrait`) para detallar los pagos por Banco y Zelle (incluyendo emisor/referencia) y mostrar el desglose de movimientos de billetera.
+
 ## [1.9.23] - 2026-03-30
 
 ### Added

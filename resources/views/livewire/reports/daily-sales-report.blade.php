@@ -170,7 +170,17 @@
                             <tbody>
                                 @forelse ($sales as $sale)
                                     @php
-                                        // Calcular montos pagados por moneda
+                                        // 1. Calcular Monto Neto de la Factura (Venta - Devoluciones)
+                                        $totalReturnedUSD = 0;
+                                        foreach($sale->returns as $return) {
+                                            if($return->status == 'approved') {
+                                                $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                                                $totalReturnedUSD += ($return->total_returned / $rate);
+                                            }
+                                        }
+                                        $netTotalUSD = $sale->total_usd - $totalReturnedUSD;
+
+                                        // 2. Calcular montos pagados netos por moneda (Pagos - Vueltos)
                                         $paidPerCurrency = [];
                                         $totalPaidUSD = 0;
                                         
@@ -178,7 +188,7 @@
                                             $paidPerCurrency[$currency->code] = 0;
                                         }
 
-                                        // Sumar pagos
+                                        // Sumar pagos recibidos
                                         foreach($sale->paymentDetails as $payment) {
                                             if(isset($paidPerCurrency[$payment->currency_code])) {
                                                 $paidPerCurrency[$payment->currency_code] += $payment->amount;
@@ -186,25 +196,38 @@
                                             $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
                                             $totalPaidUSD += ($payment->amount / $rate);
                                         }
+
+                                        // Restar vueltos entregados (Importante para cuadre de caja)
+                                        foreach($sale->changeDetails as $change) {
+                                            if(isset($paidPerCurrency[$change->currency_code])) {
+                                                $paidPerCurrency[$change->currency_code] -= $change->amount;
+                                            }
+                                            $rateC = $change->exchange_rate > 0 ? $change->exchange_rate : 1;
+                                            $totalPaidUSD -= ($change->amount / $rateC);
+                                        }
                                         
+                                        // Manejo de ventas de contado directas (sin detalle de pago)
                                         if($sale->paymentDetails->count() == 0 && $sale->type == 'cash') {
-                                            $code = $sale->primary_currency_code ?? 'VED'; // Fallback
+                                            $code = $sale->primary_currency_code ?? 'VED'; 
+                                            // Asumimos que $sale->cash ya viene neto si no hay detalles, pero si hay cambio lo restamos por seguridad
+                                            $netCash = $sale->cash - $sale->change;
                                             if(isset($paidPerCurrency[$code])) {
-                                                $paidPerCurrency[$code] += $sale->cash;
+                                                $paidPerCurrency[$code] += $netCash;
                                             }
                                             $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
-                                            $totalPaidUSD += ($sale->cash / $rate);
+                                            $totalPaidUSD += ($netCash / $rate);
                                         }
 
+                                        // 3. Calcular Crédito sobre el monto NETO
                                         $creditUSD = 0;
                                         if($sale->status != 'paid' && $sale->status != 'returned') {
-                                            $creditUSD = max(0, $sale->total_usd - $totalPaidUSD);
+                                            $creditUSD = max(0, $netTotalUSD - $totalPaidUSD);
                                         }
                                     @endphp
                                     <tr class="text-center">
                                         <td>{{ $sale->invoice_number ?? $sale->id }}</td>
                                         <td>{{ $sale->customer->name }}</td>
-                                        <td>${{ number_format($sale->total_usd, 2) }}</td>
+                                        <td>${{ number_format($netTotalUSD, 2) }}</td>
                                         
                                         @foreach($currencies as $currency)
                                             <td>
