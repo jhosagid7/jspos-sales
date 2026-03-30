@@ -199,15 +199,15 @@
                             <td class="summary-value">{{ number_format($summary['total_flete'], 4) }}</td>
                         </tr>
                         <tr>
-                            <td class="summary-label">Total Contado :</td>
+                            <td class="summary-label">Total Cobrado (Eq. USD) :</td>
                             <td class="summary-value">{{ number_format($summary['total_contado'], 4) }}</td>
                         </tr>
                         <tr>
                             <td class="summary-label">Total Crédito en Operaciones :</td>
-                            <td class="summary-value">{{ number_format($summary['total_credito'], 4) }}</td>
+                            <td class="summary-value">{{ number_format($summary['total_credito'] ?? 0, 4) }}</td>
                         </tr>
                         <tr style="border-top: 1.5pt solid #000;">
-                            <td class="summary-label">Total :</td>
+                            <td class="summary-label">Total Neto facturado :</td>
                             <td class="summary-value">{{ number_format($summary['total_bruto'], 4) }}</td>
                         </tr>
                     </table>
@@ -220,11 +220,11 @@
                             <td class="summary-value">{{ number_format($summary['total_ved'], 4) }}</td>
                         </tr>
                         <tr>
-                            <td class="summary-label">Total Divisas Pasado a USD :</td>
+                            <td class="summary-label">Total Efectivo USD :</td>
                             <td class="summary-value">{{ number_format($summary['total_divisa'], 4) }}</td>
                         </tr>
                         <tr style="border-top: 1.5pt solid #000;">
-                            <td class="summary-label">Total Ingresos :</td>
+                            <td class="summary-label">Total Ingresos Caja :</td>
                             <td class="summary-value">{{ number_format($summary['total_contado'], 4) }}</td>
                         </tr>
                     </table>
@@ -242,11 +242,10 @@
                 <th style="width: auto;">Descripción</th>
                 <th style="width: 65px;" class="text-right">Monto Neto</th>
                 <th style="width: 50px;" class="text-right">Impuestos</th>
-                <th style="width: 65px;" class="text-right">Contado</th>
+                <th style="width: 65px;" class="text-right">Dólares</th>
                 <th style="width: 65px;" class="text-right">Crédito</th>
                 <th style="width: 65px;" class="text-right">Bolívares</th>
                 <th style="width: 65px;" class="text-right">Pesos</th>
-                <th style="width: 65px;" class="text-right">Divisas</th>
             </tr>
         </thead>
         <tbody>
@@ -369,11 +368,10 @@
                         </td>
                         <td class="text-right">{{ number_format($netSaleUSD, 4) }}</td>
                         <td class="text-right">0.0000</td>
-                        <td class="text-right">{{ number_format($paidToday, 4) }}</td>
+                        <td class="text-right">{{ number_format($divisaPaid, 4) }}</td>
                         <td class="text-right">{{ $creditUSD > 0.0001 ? number_format($creditUSD, 4) : '0.0000' }}</td>
                         <td class="text-right">{{ number_format($vedPaid, 4) }}</td>
                         <td class="text-right">{{ number_format($copPaid, 4) }}</td>
-                        <td class="text-right">{{ number_format($divisaPaid, 4) }}</td>
                     </tr>
                 @endforeach
             @endforeach
@@ -383,11 +381,10 @@
                 <td colspan="2" class="text-right">TOTALES:</td>
                 <td class="text-right">{{ number_format($grandTotalNeto, 4) }}</td>
                 <td class="text-right">0.0000</td>
-                <td class="text-right">{{ number_format($grandTotalPaid, 4) }}</td>
+                <td class="text-right">{{ number_format($grandTotalDivisa, 4) }}</td>
                 <td class="text-right">{{ number_format($grandTotalCredit, 4) }}</td>
                 <td class="text-right">{{ number_format($grandRawVed, 4) }}</td>
                 <td class="text-right">{{ number_format($grandRawCop, 4) }}</td>
-                <td class="text-right">{{ number_format($grandTotalDivisa, 4) }}</td>
             </tr>
         </tfoot>
     </table>

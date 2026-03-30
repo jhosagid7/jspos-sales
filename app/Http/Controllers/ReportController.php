@@ -241,6 +241,8 @@ class ReportController extends Controller
         // RIGHT TABLE: Totals in Physical Original Currency
         $totalsByCurrencyPhys = [];
 
+        $totalDivisaPaid = 0;
+        
         foreach ($sales as $sale) {
             $r_rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
 
@@ -266,6 +268,7 @@ class ReportController extends Controller
             $summary['total_flete'] += round($sale->total_freight ?? 0, 4);
 
             $salePaidUSD = 0;
+            $saleDivisaPaid = 0;
 
             // 3. Process payments
             foreach($sale->paymentDetails as $payment) {
@@ -301,6 +304,11 @@ class ReportController extends Controller
                         $key = "EFECTIVO " . $pCurr;
                         $totalsByCategory[$key] = ($totalsByCategory[$key] ?? 0) + $amtUSD;
                     }
+
+                    // Is it Divisa? (USD/Zelle/etc, basically NOT VED/COP)
+                    if($pCurr != 'VED' && $pCurr != 'VES' && $pCurr != 'COP') {
+                        $saleDivisaPaid += $amtUSD;
+                    }
                 }
 
                 if($payment->currency_code == 'VED' || $payment->currency_code == 'VES') {
@@ -321,6 +329,10 @@ class ReportController extends Controller
 
                 $keyC = "EFECTIVO " . $cCurr;
                 $totalsByCategory[$keyC] = ($totalsByCategory[$keyC] ?? 0) - $amtUSD_C;
+
+                if($cCurr != 'VED' && $cCurr != 'VES' && $cCurr != 'COP') {
+                    $saleDivisaPaid -= $amtUSD_C;
+                }
             }
 
             // 5. Legacy cash sales (no paymentDetails)
@@ -335,10 +347,16 @@ class ReportController extends Controller
 
                 $key = "EFECTIVO " . strtoupper($code);
                 $totalsByCategory[$key] = ($totalsByCategory[$key] ?? 0) + $amtUSD;
-                if($code == 'VED' || $code == 'VES') { $summary['total_ved'] += $amtUSD; }
+                if($code == 'VED' || $code == 'VES') { 
+                    $summary['total_ved'] += $amtUSD; 
+                } else if($code != 'COP') {
+                    $saleDivisaPaid += $amtUSD;
+                }
             }
 
             $summary['total_contado'] += $salePaidUSD;
+            $totalDivisaPaid += ($saleDivisaPaid - $retAmtUSD);
+            
             if($sale->status != 'paid') {
                 $summary['total_credito'] += max(0, $netSaleUSD - $salePaidUSD);
             }
@@ -363,8 +381,7 @@ class ReportController extends Controller
 
 
         // Top block uses NET figures
-        $summary['total_contado'] = $summary['total_bruto'];
-        $summary['total_divisa']  = $summary['total_contado'] - $summary['total_ved'];
+        $summary['total_divisa']  = $totalDivisaPaid;
         $summary['total_final']   = $summary['total_contado'] + $summary['total_flete'] + $summary['total_credito'];
 
             // 6. Final Segregation: 

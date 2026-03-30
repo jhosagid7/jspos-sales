@@ -1,3 +1,11 @@
+## [1.9.26] - 2026-03-30
+
+### Fixed
+- **Reporte de Ventas Diarias (Matemática)**: Corregido un bug crítico donde el "Total Contado" del encabezado se sobreescribía con el "Total Bruto", causando reportes de ingresos inflados que no reflejaban la realidad de la caja.
+- **Reporte de Ventas Diarias (Layout)**: Renombrada la columna "Contado" a "Dólares" y ajustada su lógica para que solo muestre el componente pagado en USD/Divisas. Ahora, si se paga en Bolívares o Pesos, el monto aparece en sus respectivas columnas y se muestra como 0 en la columna de Dólares (tal como lo solicitó el cliente).
+- **Reporte de Ventas Diarias (Redundancia)**: Eliminada la columna "Divisas" del final de la tabla para un diseño más limpio y evitar duplicidad de información.
+- **Claridad de Totales**: Se mejoraron las etiquetas del bloque de resumen superior ("Total Cobrado Eq. USD", "Total Neto Facturado", "Total Ingresos Caja") para una mejor interpretación administrativa por parte de los supervisores.
+
 ## [1.9.25] - 2026-03-30
 
 ### Fixed
