@@ -226,6 +226,11 @@ class ReportController extends Controller
         $totalWalletAddedUSD = 0; 
         $totalWalletUsedUSD  = 0; 
         
+        $grandTotalNeto      = 0;
+        $grandTotalCredit    = 0;
+        $grandRawVed         = 0;
+        $grandRawCop         = 0;
+
         // LEFT TABLE: Categories in USD
         $totalsByCategory = [
             'EFECTIVO USD'       => 0,
@@ -240,7 +245,6 @@ class ReportController extends Controller
 
         // RIGHT TABLE: Totals in Physical Original Currency
         $totalsByCurrencyPhys = [];
-
         $totalDivisaPaid = 0;
         
         foreach ($sales as $sale) {
@@ -313,6 +317,10 @@ class ReportController extends Controller
 
                 if($payment->currency_code == 'VED' || $payment->currency_code == 'VES') {
                     $summary['total_ved'] += $amtUSD;
+                    $grandRawVed += $payment->amount;
+                }
+                if($payment->currency_code == 'COP') {
+                    $grandRawCop += $payment->amount;
                 }
             }
 
@@ -355,18 +363,35 @@ class ReportController extends Controller
             }
 
             $summary['total_contado'] += $salePaidUSD;
-            $totalDivisaPaid += ($saleDivisaPaid - $retAmtUSD);
+            $totalDivisaPaid += $saleDivisaPaid;
+            
+            $grandTotalNeto += $sale->total_usd;
             
             if($sale->status != 'paid') {
+                $grandTotalCredit += max(0, $netSaleUSD - $salePaidUSD);
                 $summary['total_credito'] += max(0, $netSaleUSD - $salePaidUSD);
             }
         }
 
-        $totalNCUSD = $returns->whereIn('sale_id', $sales->pluck('id'))
-            ->sum(function($r) {
-                $rate = ($r->sale && $r->sale->primary_exchange_rate > 0) ? $r->sale->primary_exchange_rate : 1;
-                return $r->total_returned / $rate;
-            });
+        $totalNCRaw = 0;
+        foreach ($returns as $ret) {
+            if (!$ret->sale) continue;
+            $saleCurrCode = strtoupper($ret->sale->primary_currency_code ?? 'USD');
+            $rt_rate = $ret->sale->primary_exchange_rate > 0 ? $ret->sale->primary_exchange_rate : 1;
+            $retAmtUSD = $ret->total_returned / $rt_rate;
+            $totalNCRaw += $retAmtUSD;
+
+            // Physical Count (Right Table) - only if cash actually left the drawer
+            if ($ret->refund_method !== 'wallet' && $ret->refund_method !== 'debt_reduction') {
+                if (isset($totalsByCurrencyPhys[$saleCurrCode])) {
+                    $totalsByCurrencyPhys[$saleCurrCode] -= $ret->total_returned;
+                }
+            }
+        }
+
+        $summary['total_nc_raw'] = $totalNCRaw;
+        $summary['total_divisa'] = $totalDivisaPaid - $totalNCRaw; // Net for top summary
+        $summary['total_final']  = $summary['total_contado'] + $summary['total_flete'] + $summary['total_credito'] - $totalNCRaw;
 
         $totalWalletAddedUSD = \App\Models\SaleReturn::whereBetween('created_at', [$dFrom, $dTo])
             ->where('refund_method', 'wallet')
@@ -377,58 +402,22 @@ class ReportController extends Controller
                 return $r->total_returned / $rate;
             });
             
-        $totalWalletUsedUSD = 0; // Accumulated below
+        // Explicitly add NC category for the left table summary
+        if ($totalNCRaw > 0.0001) {
+            $totalsByCategory['(-) DEVOLUCIONES (NC)'] = -$totalNCRaw;
+        }
 
-
-        // Top block uses NET figures
-        $summary['total_divisa']  = $totalDivisaPaid;
-        $summary['total_final']   = $summary['total_contado'] + $summary['total_flete'] + $summary['total_credito'];
-
-            // 6. Final Segregation: 
-            // - ALWAYS subtract from the Income Breakdown (left table) to get real Net Revenue.
-            // - ONLY subtract from the Physical Count (right table) if cash left the drawer.
-            foreach ($returns as $ret) {
-                if (!$ret->sale) continue;
-                $saleCurrCode = strtoupper($ret->sale->primary_currency_code ?? 'USD');
-                $rt_rate = $ret->sale->primary_exchange_rate > 0 ? $ret->sale->primary_exchange_rate : 1;
-                $retAmtUSD = $ret->total_returned / $rt_rate;
-
-                // A. Right Table (Physical original currency) - only if not virtual
-                if ($ret->refund_method !== 'wallet' && $ret->refund_method !== 'debt_reduction') {
-                    if (isset($totalsByCurrencyPhys[$saleCurrCode])) {
-                        $totalsByCurrencyPhys[$saleCurrCode] -= $ret->total_returned;
-                    }
-                }
-
-                // B. Left Table (Breakdown) - Always subtract income from Ventas, 
-                // it is re-added as Custody later at line 395 if applicable.
-                $key = "EFECTIVO " . $saleCurrCode;
-                if (isset($totalsByCategory[$key])) {
-                    $totalsByCategory[$key] -= $retAmtUSD;
-                } else {
-                    $totalsByCategory['EFECTIVO USD'] = ($totalsByCategory['EFECTIVO USD'] ?? 0) - $retAmtUSD;
-                }
-
-                $summary['total_nc_raw'] += $retAmtUSD;
-            }
-
-        // 7. Segregation of Custody: Re-label Today's NC-to-wallet as Custody
-        // Since we already subtracted ALL returns above, and totalWalletAddedUSD is part of those returns
-        // we add it back as a separate "Custodia" category. This way:
-        // Net Physical = (Gross - All Returns)
-        // Responsibility = Net Physical + Custodia (Returns that didn't leave the drawer)
         if ($totalWalletAddedUSD > 0.0001) {
-            $totalsByCategory['BILLETERA (CUSTODIA HOY)'] = $totalWalletAddedUSD;
+            $totalsByCategory['(+) CUSTODIA (NC BILLETERA)'] = $totalWalletAddedUSD;
         }
 
         $salesSubtotal = 0;
         foreach ($totalsByCategory as $k => $v) {
-            if (!str_contains($k, 'BILLETERA') && !str_contains($k, 'PAGO BILLETERA')) {
+            if (!str_contains(strtoupper($k), 'BILLETERA')) {
                 $salesSubtotal += $v;
             }
         }
         
-        // Total Deliver = Net Physical Sales + Today's Custody
         $grandTotalIncomeUSD = $salesSubtotal + $totalWalletAddedUSD;
 
 
@@ -460,7 +449,12 @@ class ReportController extends Controller
             'dateFrom' => $dateFrom,
             'dateTo' => $dateTo,
             'groupBy' => $groupBy,
-            'grandTotalIncomeUSD' => $grandTotalIncomeUSD
+            'grandTotalIncomeUSD' => $grandTotalIncomeUSD,
+            'grandTotalDivisa' => $summary['total_divisa'],
+            'grandRawVed' => $grandRawVed,
+            'grandRawCop' => $grandRawCop,
+            'grandTotalNeto' => $grandTotalNeto,
+            'grandTotalCredit' => $grandTotalCredit,
         ])->setPaper('a4', 'landscape');
 
 
