@@ -46,7 +46,7 @@ class Sales extends Component
     use SaleTrait;
     use WithFileUploads;
 
-    public Collection $cart;
+    public $cart;
     public $taxCart = 0, $itemsCart, $subtotalCart = 0, $totalCart = 0, $ivaCart = 0;
 
     public $config, $customer, $iva = 0;
@@ -98,6 +98,7 @@ class Sales extends Component
     // VED Bank Details
     public $bankReference;
     public $bankDate;
+    public $selectedCoils = []; // FOR MULTI-SELECT BOBINAS
     public $bankNote;
     public $bankImage;
     public $isVedBankSelected = false;
@@ -811,7 +812,12 @@ class Sales extends Component
     public function mount()
     {
         if (session()->has("cart")) {
-            $this->cart = collect(session("cart"));
+            $this->cart = collect(session("cart"))->map(function($item) {
+                if (!isset($item['id'])) {
+                    $item['id'] = uniqid() . ($item['pid'] ?? 'old');
+                }
+                return $item;
+            });
         } else {
             $this->cart = new Collection;
         }
@@ -1493,15 +1499,8 @@ class Sales extends Component
 
              $query = \App\Models\ProductItem::where('product_id', $product->id)
                 ->where('warehouse_id', $targetWarehouseId)
-                ->whereNotIn('id', $cartItemIds);
-
-             // If check_stock_reservation is TRUE, show ONLY available.
-             // If FALSE, show available OR reserved.
-             if ($this->config->check_stock_reservation) {
-                 $query->where('status', 'available');
-             } else {
-                 $query->whereIn('status', ['available', 'reserved']);
-             }
+                ->whereNotIn('id', $cartItemIds)
+                ->where('status', 'available');
 
              $this->availableVariableItems = $query->get();
 
@@ -1543,14 +1542,8 @@ class Sales extends Component
              }
              
              $this->selectedVariableProduct = $product;
-             Log::info("Sales::AddProduct - Executing JS to show modal");
-             // Force open modal via direct JS execution (Livewire v3)
-             $this->js("
-                console.log('Backend ordered modal open'); 
-                var modal = $('#variableItemModal');
-                if(modal.length) { modal.modal('show'); } 
-                else { alert('Modal not found!'); }
-             ");
+             $this->selectedCoils = []; // Reset selection every time modal opens
+             $this->dispatch('show-variable-modal');
              return;
         }
 
@@ -1995,22 +1988,54 @@ class Sales extends Component
 
 
 
-    public function removeItem($id)
+    public function removeItem($id, $index = null)
     {
-        $this->cart = $this->cart->reject(function ($product) use ($id) {
-            return $product['pid'] === $id || $product['id'] === $id;
+        // Force cart to be a collection and Reset keys to be sequential
+        $this->cart = collect($this->cart)->values();
+        
+        // 1. Find the item using all possible identifiers
+        $indexFound = $this->cart->search(function($item) use ($id) {
+            return (isset($item['id']) && $item['id'] == $id) || 
+                   (isset($item['product_item_id']) && $item['product_item_id'] == $id) ||
+                   (isset($item['pid']) && $item['pid'] == $id);
         });
+
+        if ($indexFound !== false) {
+            $itemToRemove = $this->cart[$indexFound];
+            
+            // Restore status for variable items
+            if (isset($itemToRemove['product_item_id'])) {
+                $pi = \App\Models\ProductItem::find($itemToRemove['product_item_id']);
+                if ($pi && $pi->status === 'reserved') {
+                    $pi->status = 'available';
+                    $pi->save();
+                }
+            }
+
+            // Remove purely by index discovered from our search
+            $this->cart->forget($indexFound);
+            // Re-sequence the collection to keep things clean
+            $this->cart = $this->cart->values();
+            $removed = true;
+        } else {
+            $removed = false;
+        }
 
         $this->recalculateFreightTotal();
         $this->save();
         $this->dispatch('refresh');
-        $this->dispatch('noty', msg: 'PRODUCTO ELIMINADO');
+        
+        if ($removed) {
+            $this->dispatch('noty', msg: 'PRODUCTO ELIMINADO');
+        } else {
+            $this->dispatch('noty', msg: 'NO SE ENCONTRÓ EL PRODUCTO EN EL CARRITO', type: 'warning');
+        }
     }
 
     public $pendingUpdateUid = null;
     public $maxAvailableQty = 0;
 
-    public function addVariableItem($itemId)
+    public function addVariableItem($itemId, $closeModal = true)
     {
         $item = \App\Models\ProductItem::find($itemId);
         if (!$item) {
@@ -2018,7 +2043,6 @@ class Sales extends Component
             return;
         }
 
-        // Check status based on configuration
         // Check status based on configuration
         $isValidStatus = false;
         
@@ -2106,17 +2130,50 @@ class Sales extends Component
         $this->save();
         $this->dispatch('refresh');
         
+        if ($closeModal) {
+            $this->showVariableModal = false;
+            $this->availableVariableItems = [];
+            $this->selectedVariableProduct = null;
+            $this->selectedCoils = [];
+            
+            // Force close modal via JS
+            $this->js("$('#variableItemModal').modal('hide');");
+            
+            $this->dispatch('noty', msg: 'ITEM AGREGADO AL CARRITO');
+        }
+        
+        $this->search3 = '';
+        $this->products = [];
+    }
+
+    public function addSelectedCoils()
+    {
+        if (empty($this->selectedCoils)) {
+            $this->dispatch('noty', msg: 'No has seleccionado ninguna bobina.', type: 'warning');
+            return;
+        }
+
+        $itemsToAdd = array_filter($this->selectedCoils, fn($val) => $val === true || $val === "true" || $val === 1);
+        
+        if (empty($itemsToAdd)) {
+            $this->dispatch('noty', msg: 'No has seleccionado ninguna bobina.', type: 'warning');
+            return;
+        }
+
+        $count = 0;
+        foreach ($itemsToAdd as $itemId => $selected) {
+            if ($selected) {
+                $this->addVariableItem($itemId, false);
+                $count++;
+            }
+        }
+
+        $this->selectedCoils = [];
         $this->showVariableModal = false;
         $this->availableVariableItems = [];
         $this->selectedVariableProduct = null;
-        
-        // Force close modal via JS
         $this->js("$('#variableItemModal').modal('hide');");
-        //$this->dispatch('close-variable-modal');
-        
-        $this->dispatch('noty', msg: 'ITEM AGREGADO AL CARRITO');
-        $this->search3 = '';
-        $this->products = [];
+        $this->dispatch('noty', msg: "{$count} ITEMS AGREGADOS AL CARRITO");
     }
 
     #[On('forceAddProduct')]
@@ -2398,6 +2455,22 @@ class Sales extends Component
 
     public function clear()
     {
+        // Ensure cart is a collection
+        if (!($this->cart instanceof \Illuminate\Support\Collection)) {
+            $this->cart = collect($this->cart);
+        }
+
+        // RESTORE: Set any reserved variable items back to 'available' before clearing cart
+        foreach ($this->cart as $item) {
+            if (isset($item['product_item_id'])) {
+                $pi = \App\Models\ProductItem::find($item['product_item_id']);
+                if ($pi && $pi->status === 'reserved') {
+                    $pi->status = 'available';
+                    $pi->save();
+                }
+            }
+        }
+
         $this->cart = new Collection;
         $this->driver_id = null;
         $this->save();
@@ -3273,7 +3346,8 @@ class Sales extends Component
                     'exchange_rate' => $primaryCurrency->exchange_rate,
                     'created_at' => Carbon::now(),
                     'discount' => 0,
-                    'warehouse_id' => $item['warehouse_id'] ?? null // Store warehouse ID
+                    'warehouse_id' => $item['warehouse_id'] ?? null, // Store warehouse ID
+                    'metadata' => isset($item['product_item_id']) ? json_encode(['product_item_id' => $item['product_item_id']]) : null
                 ];
             })->toArray();
 
@@ -3684,6 +3758,23 @@ class Sales extends Component
                         ];
                     })->toArray();
 
+                    // RESTORE: Set items that were in the order but are being removed back to 'available'
+                    $oldDetails = OrderDetail::where('order_id', $order->id)->get();
+                    $newItemIds = $cart->pluck('product_item_id')->filter()->toArray();
+
+                    foreach ($oldDetails as $oldDetail) {
+                        if ($oldDetail->metadata) {
+                            $meta = json_decode($oldDetail->metadata, true);
+                            if (isset($meta['product_item_id']) && !in_array($meta['product_item_id'], $newItemIds)) {
+                                $pi = \App\Models\ProductItem::find($meta['product_item_id']);
+                                if ($pi && $pi->status === 'reserved') {
+                                    $pi->status = 'available';
+                                    $pi->save();
+                                }
+                            }
+                        }
+                    }
+
                     // Elimina los detalles existentes antes de insertar los nuevos
                     OrderDetail::where('order_id', $order->id)->delete();
                     OrderDetail::insert($details);
@@ -3933,16 +4024,15 @@ class Sales extends Component
                 }
 
                 // Restaurar item variable (status -> available)
-                if($detail->metadata) { // Check metadata via model or query? SaleDetail table might NOT have metadata yet? 
-                     // Wait, I only added metadata to ORDER_DETAILS. 
-                     // Did I add it to SALE_DETAILS? Checks Step 2544... found `2024_10_18_..._create_sale_details_table.php`.
-                     // I did NOT add metadata to sale_details in Step 2542! I only added it to order_details!
-                     // If SaleDetail doesn't have metadata, we can't restore it here easily.
-                     // However, SaleDetail creation (Step 2588 view) does NOT seem to save metadata to SaleDetail.
-                     // I need to add metadata to SaleDetail too if we want to support cancelling PAID sales containing bobinas.
-                     // For now, let's assume OrderDetail is the main focus for "Pending Orders".
-                     // IF the user cancels a PAID sale, the stock increments but the item status might remain 'sold'.
-                     // I should address this.
+                if($detail->metadata) {
+                    $meta = json_decode($detail->metadata, true);
+                    if (isset($meta['product_item_id'])) {
+                        $pi = \App\Models\ProductItem::find($meta['product_item_id']);
+                        if ($pi) {
+                            $pi->status = 'available';
+                            $pi->save();
+                        }
+                    }
                 }
             }
 

@@ -166,12 +166,12 @@
         </div>
     </div>
 
-    <div class="modal fade" id="modalVariableItem" tabindex="-1" role="dialog" wire:ignore.self>
+    <div class="modal fade" id="variableItemModal" tabindex="-1" role="dialog" wire:ignore.self>
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content border-0" style="border-radius: 15px;">
                 <div class="modal-header bg-dark text-white" style="border-radius: 15px 15px 0 0;">
                     <h5 class="modal-title">Agregar Item / Bobina</h5>
-                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" onclick="$('#modalVariableItem').modal('hide')">
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" onclick="$('#variableItemModal').modal('hide')">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
@@ -193,7 +193,7 @@
                     </div>
                 </div>
                 <div class="modal-footer border-0 p-4">
-                    <button type="button" class="btn btn-light px-4" data-dismiss="modal" onclick="$('#modalVariableItem').modal('hide')" style="border-radius: 8px;">Cerrar</button>
+                    <button type="button" class="btn btn-light px-4" data-dismiss="modal" onclick="$('#variableItemModal').modal('hide')" style="border-radius: 8px;">Cerrar</button>
                     <button type="button" class="btn btn-primary px-4" wire:click="addVariableItem" style="border-radius: 8px;">Agregar Item</button>
                 </div>
             </div>
@@ -216,7 +216,7 @@
             });
             
             Livewire.on('show-variable-modal', () => {
-                 $('#modalVariableItem').modal('show');
+                 $('#variableItemModal').modal('show');
                  setTimeout(() => {
                      $('#vw_weight').focus();
                  }, 500);

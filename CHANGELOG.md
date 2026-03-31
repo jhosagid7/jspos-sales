@@ -1,3 +1,9 @@
+## [1.9.29] - 2026-03-31
+- **Individual en Carrito (Ventas/Compras)**: Se implementó una lógica de eliminación basada en índices y UIDs únicos en el resumen de venta, permitiendo que múltiples bobinas o productos iguales coexistan como filas independientes y puedan ser eliminados uno a uno sin afectar al resto de la familia de productos.
+- **Trazabilidad de Inventario**: Al eliminar un ítem o cancelar la venta/compra, el estado de los productos variables (`ProductItem`) se restaura automáticamente a "**Disponible**" en la base de datos, garantizando una integridad absoluta del stock físico en todo momento.
+- **Estabilidad de Interfaz**: Se resolvieron errores de reactividad de Livewire (`PropertyNotFoundException` y desajustes de índices) en el resumen de venta, facilitando un flujo de trabajo fluido y sin interrupciones técnicas.
+- **Unificación de Modales**: Se estandarizaron los identificadores de modales en el módulo de compras para resolver conflictos de DOM al añadir productos por peso/unidad (`variableItemModal`).
+
 ## [1.9.28] - 2026-03-30
 - **Transparencia en Pagos Zelle**: Se eliminó la etiqueta "Desconocido" en todos los canales de reporte (Arqueo en Vivo, PDF de Venta Diaria, PDF de Arqueo y Ticket Térmico). Ahora el sistema carga forzosamente el nombre del remitente y la referencia bancaria para cada transacción Zelle, garantizando la trazabilidad financiera total solicitada por la gerencia.
 - **Segregación de NC Antiguas**: Se implementó una lógica que detecta si una Nota de Crédito pertenece a una factura de días anteriores. Estas NC aparecerán etiquetadas como "**Venta Antigua**" y no afectarán el arqueo de ventas de hoy, resolviendo la discrepancia de los $36.71 detectada en la auditoría técnica.

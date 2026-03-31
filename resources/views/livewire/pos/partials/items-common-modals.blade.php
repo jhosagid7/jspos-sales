@@ -47,6 +47,12 @@
                         <table class="table table-striped table-hover mb-0">
                             <thead class="thead-light">
                                 <tr>
+                                    <th width="50" class="text-center">
+                                        <div class="custom-control custom-checkbox ml-2">
+                                            <input type="checkbox" class="custom-control-input" id="checkAllCoils" onclick="toggleAllCoils(this)">
+                                            <label class="custom-control-label" for="checkAllCoils"></label>
+                                        </div>
+                                    </th>
                                     <th>ID</th>
                                     <th>Color</th>
                                     <th>Peso (Kg)</th>
@@ -57,25 +63,55 @@
                                 @if(isset($availableVariableItems) && count($availableVariableItems) > 0)
                                     @foreach($availableVariableItems as $item)
                                         <tr>
+                                            <td class="text-center">
+                                                <div class="custom-control custom-checkbox ml-2">
+                                                    <input type="checkbox" 
+                                                           wire:model.live="selectedCoils.{{ $item->id }}" 
+                                                           class="custom-control-input coil-checkbox" 
+                                                           id="coil-{{ $item->id }}">
+                                                    <label class="custom-control-label" for="coil-{{ $item->id }}"></label>
+                                                </div>
+                                            </td>
                                             <td>#{{ $item->id }}</td>
                                             <td>{{ $item->color ?? 'N/A' }}</td>
-                                            <td class="font-weight-bold">{{ floatval($item->quantity) }}</td>
+                                            <td class="font-weight-bold text-primary">{{ floatval($item->quantity) }}</td>
                                             <td>
-                                                <button wire:click="addVariableItem({{ $item->id }})" class="btn btn-sm btn-success">
-                                                    <i class="fas fa-plus"></i> Seleccionar
+                                                <button wire:click="addVariableItem({{ $item->id }})" class="btn btn-sm btn-outline-success border-0">
+                                                    <i class="fas fa-plus"></i>
                                                 </button>
                                             </td>
                                         </tr>
                                     @endforeach
                                 @else
                                     <tr>
-                                        <td colspan="4" class="text-center text-muted">No hay items disponibles</td>
+                                        <td colspan="5" class="text-center py-4 text-muted">
+                                            <i class="fas fa-info-circle mr-1"></i> No hay items disponibles
+                                        </td>
                                     </tr>
                                 @endif
                             </tbody>
                         </table>
                     </div>
                 </div>
+                <div class="modal-footer bg-light d-flex justify-content-between p-2">
+                    <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">Cerrar</button>
+                    <div>
+                        <button wire:click="addSelectedCoils" class="btn btn-primary px-4 shadow-sm">
+                            <i class="fas fa-check-double mr-1"></i> Facturar Seleccionados
+                        </button>
+                    </div>
+                </div>
+
+                <script>
+                    function toggleAllCoils(source) {
+                        const checkboxes = document.querySelectorAll('.coil-checkbox');
+                        checkboxes.forEach(checkbox => {
+                            // Find the Livewire component and update the property
+                            const id = checkbox.id.replace('coil-', '');
+                            @this.set('selectedCoils.' + id, source.checked);
+                        });
+                    }
+                </script>
             </div>
         </div>
     </div>

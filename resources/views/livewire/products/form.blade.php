@@ -850,6 +850,21 @@
                         </div>
                     </div>
 
+                    {{-- Variable Items Tab (Bobinas) --}}
+                    <div class="tab-pane fade {{ $tab == 9 ? 'active show' : '' }}" id="variable-items" role="tabpanel">
+                        <div class="sidebar-body">
+                            @if($editing && $form->product_id > 0)
+                                @livewire('product-items-manager', ['productId' => $form->product_id], key('items-manager-' . $form->product_id))
+                            @else
+                                <div class="text-center py-5">
+                                    <i class="fa fa-cubes fa-3x mb-3 text-muted"></i>
+                                    <h5>Gestión de Bobinas</h5>
+                                    <p>Guarda el producto primero para poder gestionar sus bobinas individuales.</p>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+
                     {{-- Statistics Tab --}}
                     <div class="tab-pane fade {{ $tab == 8 ? 'active show' : '' }}" id="statistics" role="tabpanel">
                         <div class="sidebar-body">

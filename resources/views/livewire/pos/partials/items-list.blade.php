@@ -383,7 +383,7 @@
                                 </td>
                                 <td>{{ $primarySymbol }}{{ formatMoney($item['total']) }}</td>
                                 <td>
-                                    <button wire:click.prevent="removeItem({{ $item['pid'] }})" class="btn btn-danger btn-sm" title="Eliminar"><i class="fas fa-trash"></i></button>
+                                    <button wire:click.prevent="removeItem('{{ $item['id'] ?? $item['pid'] }}', {{ $loop->index }})" class="btn btn-danger btn-sm" title="Eliminar"><i class="fas fa-trash"></i></button>
                                 </td>
                             </tr>
                         @empty

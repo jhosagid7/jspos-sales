@@ -89,7 +89,7 @@
             if(modal.length > 0) {
                 modal.modal('show');
             } else {
-                alert('Error: Modal not found in DOM');
+                console.warn('Error: Variable Modal not found in DOM for show-variable-modal event');
             }
         });
 

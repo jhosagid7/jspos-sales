@@ -18,7 +18,8 @@ class SaleDetail extends Model
         'sale_price', 
         'discount',
         'freight_amount',
-        'exchange_rate'
+        'exchange_rate',
+        'metadata'
     ];
 
     public function sale()
