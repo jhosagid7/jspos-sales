@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('order_details', function (Blueprint $table) {
-            $table->text('metadata')->nullable()->after('exchange_rate');
-        });
+        if (!Schema::hasColumn('order_details', 'metadata')) {
+            Schema::table('order_details', function (Blueprint $table) {
+                $table->text('metadata')->nullable();
+            });
+        }
     }
 
     /**
