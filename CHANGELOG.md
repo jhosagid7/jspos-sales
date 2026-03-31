@@ -1,3 +1,6 @@
+## [1.9.33] - 2026-03-31
+- **Mejora de Experiencia de Usuario (Catálogo)**: Se añadió un retraso (debounce) de 500ms en los campos de Costo, Incremento, Margen y Precio de Venta. Esto evita que el sistema borre o sobreescriba lo que el usuario está escribiendo antes de terminar el ingreso de datos, permitiendo una edición de precios más fluida y sin interrupciones.
+
 ## [1.9.32] - 2026-03-31
 - **Reinicio Automático de Base de Datos**: Se ha forzado esta nueva versión para garantizar que el sistema ejecute obligatoriamente cualquier migración pendiente (ID de bobinas, metadatos) en los clientes que se quedaron en un estado intermedio.
 - **Limpieza de Caché Interna**: Se añadió una directiva de limpieza de caché automática durante el proceso de actualización para asegurar que los componentes de Livewire reflejen los cambios inmediatamente.
