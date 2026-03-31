@@ -248,7 +248,7 @@
                                             <label class="form-label">Costo de Compra</label>
                                             <div class="input-group">
                                                 <span class="input-group-text">$</span>
-                                                <input wire:model="form.cost" x-model="cost" @input="calculatePercents()" class="form-control numerico" type="number" placeholder="0.0000" step="0.0001">
+                                                <input x-model="cost" @input.debounce.500ms="calculatePercents()" class="form-control numerico" type="number" placeholder="0.0000" step="0.0001">
                                             </div>
                                         </div>
                                         {{-- markup (NEW) --}}
@@ -256,7 +256,7 @@
                                             <label class="form-label"><i class="fa fa-arrow-up text-success"></i> Incremento (%)</label>
                                             <div class="input-group">
                                                 <span class="input-group-text">%</span>
-                                                <input x-model="markup" @input="calculatePriceFromMarkup()" class="form-control text-success font-weight-bold" type="number" placeholder="0.00" step="0.01">
+                                                <input x-model="markup" @input.debounce.500ms="calculatePriceFromMarkup()" class="form-control text-success font-weight-bold" type="number" placeholder="0.00" step="0.01">
                                             </div>
                                             <small class="text-muted" style="font-size: 0.65rem;">Costo + %</small>
                                         </div>
@@ -265,7 +265,7 @@
                                             <label class="form-label"><i class="fa fa-chart-pie text-secondary"></i> Margen Ganancia</label>
                                             <div class="input-group">
                                                 <span class="input-group-text">%</span>
-                                                <input x-model="margin" @input="calculatePriceFromMargin()" class="form-control text-secondary font-weight-bold" type="number" placeholder="0.00" step="0.01">
+                                                <input x-model="margin" @input.debounce.500ms="calculatePriceFromMargin()" class="form-control text-secondary font-weight-bold" type="number" placeholder="0.00" step="0.01">
                                             </div>
                                             <small class="text-muted" style="font-size: 0.65rem;">Ganado / P. Ventas</small>
                                         </div>
@@ -274,7 +274,7 @@
                                             <label class="form-label text-primary font-weight-bold">Precio de Venta</label>
                                             <div class="input-group">
                                                 <span class="input-group-text bg-primary text-white">$</span>
-                                                <input wire:model="form.price" x-model="price" @input="calculatePercents()" class="form-control text-primary font-weight-bold" type="number" placeholder="0.0000" step="0.0001">
+                                                <input x-model="price" @input.debounce.500ms="calculatePercents()" class="form-control text-primary font-weight-bold" type="number" placeholder="0.0000" step="0.0001">
                                             </div>
                                         </div>
                                     </div>
