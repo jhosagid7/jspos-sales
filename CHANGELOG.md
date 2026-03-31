@@ -1,3 +1,11 @@
+## [1.9.32] - 2026-03-31
+- **Reinicio Automático de Base de Datos**: Se ha forzado esta nueva versión para garantizar que el sistema ejecute obligatoriamente cualquier migración pendiente (ID de bobinas, metadatos) en los clientes que se quedaron en un estado intermedio.
+- **Limpieza de Caché Interna**: Se añadió una directiva de limpieza de caché automática durante el proceso de actualización para asegurar que los componentes de Livewire reflejen los cambios inmediatamente.
+
+## [1.9.31] - 2026-03-31
+- **Corrección Crítica (Auto-Update SQL)**: Se implementó un middleware de **Auto-Migración** que detecta cambios en el esquema de la base de datos tras una actualización de código. Esto resuelve el error `Unknown column 'metadata'` de forma totalmente transparente para el cliente sin necesidad de comandos manuales.
+- **Persistencia de Bobinas**: Se añadieron las columnas `metadata` faltantes en las tablas `sale_details` y `order_details` para garantizar el registro exacto de las bobinas físicas en cada pedido y venta.
+
 ## [1.9.30] - 2026-03-31
 - **Corrección Crítica (Auto-Update SQL)**: Se implementó un middleware de **Auto-Migración** que detecta cambios en el esquema de la base de datos tras una actualización de código. Esto resuelve el error `Unknown column 'metadata'` de forma totalmente transparente para el cliente sin necesidad de comandos manuales.
 - **Persistencia de Bobinas**: Se añadieron las columnas `metadata` faltantes en las tablas `sale_details` y `order_details` para garantizar el registro exacto de las bobinas físicas en cada pedido y venta.
