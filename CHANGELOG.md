@@ -1,4 +1,5 @@
-## v1.9.28 (31/03/2026) - Auditoría dbcliente y Segregación de NC
+## v1.9.28 (31/03/2026) - Auditoría dbcliente y Transparencia Zelle
+- **Transparencia en Pagos Zelle**: Se eliminó la etiqueta "Desconocido" en todos los canales de reporte (Arqueo en Vivo, PDF de Venta Diaria, PDF de Arqueo y Ticket Térmico). Ahora el sistema carga forzosamente el nombre del remitente y la referencia bancaria para cada transacción Zelle, garantizando la trazabilidad financiera total solicitada por la gerencia.
 - **Segregación de NC Antiguas**: Se implementó una lógica que detecta si una Nota de Crédito pertenece a una factura de días anteriores. Estas NC aparecerán etiquetadas como "**Venta Antigua**" y no afectarán el arqueo de ventas de hoy, resolviendo la discrepancia de los $36.71 detectada en la auditoría técnica.
 - **Impacto en Arqueo**: Las NC de días anteriores marcadas como "Reducción de Deuda" o "Billetera" ya no restan de la responsabilidad física del cajero hoy, manteniendo el arqueo perfectamente sincronizado con el dinero real en caja.
 - **Etiquetas en PDF**: Se añadió la columna "Afecta Caja" en la tabla de NC del reporte diario para total transparencia para el cliente.
