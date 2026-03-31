@@ -1,3 +1,7 @@
+## [1.9.30] - 2026-03-31
+- **Corrección Crítica (Auto-Update SQL)**: Se implementó un middleware de **Auto-Migración** que detecta cambios en el esquema de la base de datos tras una actualización de código. Esto resuelve el error `Unknown column 'metadata'` de forma totalmente transparente para el cliente sin necesidad de comandos manuales.
+- **Persistencia de Bobinas**: Se añadieron las columnas `metadata` faltantes en las tablas `sale_details` y `order_details` para garantizar el registro exacto de las bobinas físicas en cada pedido y venta.
+
 ## [1.9.29] - 2026-03-31
 - **Individual en Carrito (Ventas/Compras)**: Se implementó una lógica de eliminación basada en índices y UIDs únicos en el resumen de venta, permitiendo que múltiples bobinas o productos iguales coexistan como filas independientes y puedan ser eliminados uno a uno sin afectar al resto de la familia de productos.
 - **Trazabilidad de Inventario**: Al eliminar un ítem o cancelar la venta/compra, el estado de los productos variables (`ProductItem`) se restaura automáticamente a "**Disponible**" en la base de datos, garantizando una integridad absoluta del stock físico en todo momento.
