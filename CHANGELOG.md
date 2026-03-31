@@ -1,12 +1,14 @@
-## v1.9.28 (31/03/2026) - Auditoría dbcliente y Transparencia Zelle
+## [1.9.28] - 2026-03-30
 - **Transparencia en Pagos Zelle**: Se eliminó la etiqueta "Desconocido" en todos los canales de reporte (Arqueo en Vivo, PDF de Venta Diaria, PDF de Arqueo y Ticket Térmico). Ahora el sistema carga forzosamente el nombre del remitente y la referencia bancaria para cada transacción Zelle, garantizando la trazabilidad financiera total solicitada por la gerencia.
 - **Segregación de NC Antiguas**: Se implementó una lógica que detecta si una Nota de Crédito pertenece a una factura de días anteriores. Estas NC aparecerán etiquetadas como "**Venta Antigua**" y no afectarán el arqueo de ventas de hoy, resolviendo la discrepancia de los $36.71 detectada en la auditoría técnica.
 - **Impacto en Arqueo**: Las NC de días anteriores marcadas como "Reducción de Deuda" o "Billetera" ya no restan de la responsabilidad física del cajero hoy, manteniendo el arqueo perfectamente sincronizado con el dinero real en caja.
 - **Etiquetas en PDF**: Se añadió la columna "Afecta Caja" en la tabla de NC del reporte diario para total transparencia para el cliente.
 
-## v1.9.27 (31/03/2026) - Corrección de Arqueo y Transparencia
+## [1.9.27] - 2026-03-30
 - **Transparencia en Facturas**: Se añadió el desglose de "EFECTIVO USD" en la descripción del reporte PDF para facturas mixtas, asegurando que la suma de pagos coincida visualmente con la columna de Dólares.
 - **Sincronización de Totales**: Se repararon los acumuladores de pie de página (Neto, Dólares, Créditos, VED, COP) para garantizar que coincidan exactamente con la suma de las transacciones individuales.
+
+## [1.9.26] - 2026-03-30
 
 ### Fixed
 - **Reporte de Ventas Diarias (Matemática)**: Corregido un bug crítico donde el "Total Contado" del encabezado se sobreescribía con el "Total Bruto", causando reportes de ingresos inflados que no reflejaban la realidad de la caja.
