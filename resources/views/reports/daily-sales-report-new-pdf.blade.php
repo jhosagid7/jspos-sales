@@ -418,10 +418,10 @@
                 <th>Fecha</th>
                 <th>NC Número</th>
                 <th>Factura Orig.</th>
-                <th>Cliente</th>
-                <th class="text-right">Monto (USD)</th>
+                <th>Monto (USD)</th>
+                <th>Método</th>
+                <th>Afecta Caja</th>
                 <th>Solicitante</th>
-                <th>Aprobador</th>
                 <th>Motivo</th>
             </tr>
         </thead>
@@ -430,24 +430,40 @@
                 <tr>
                     <td>{{ $return->created_at->format('d/m/Y') }}</td>
                     <td>{{ $return->id }}</td>
-                    <td>{{ $return->sale->invoice_number ?? $return->sale_id }}</td>
-                    <td><span class="desc-text">{{ strtoupper($return->customer->name ?? $return->sale->customer->name ?? 'N/A') }}</span></td>
+                    <td @if($return->is_old_sale ?? false) style="color: #b30000; font-weight: bold;" @endif>
+                        {{ $return->sale->invoice_number ?? $return->sale_id }}
+                        @if($return->is_old_sale ?? false) <br><small>(Venta Antigua)</small> @endif
+                    </td>
                     <td class="text-right">
                         @php $rate = ($return->sale && $return->sale->primary_exchange_rate > 0) ? $return->sale->primary_exchange_rate : 1; @endphp
                         {{ number_format($return->total_returned / $rate, 4) }}
                     </td>
+                    <td><span class="desc-text">{{ strtoupper($return->refund_method ?? 'N/A') }}</span></td>
+                    <td class="text-center">
+                        @if($return->is_old_sale ?? false)
+                            <span style="color: #888; font-size: 6pt;">NO (Venta Antigua)</span>
+                        @else
+                            <span style="color: #006400; font-weight: bold;">SÍ</span>
+                        @endif
+                    </td>
                     <td><span class="desc-text">{{ $return->requester->name ?? 'N/A' }}</span></td>
-                    <td><span class="desc-text">{{ $return->approver->name ?? 'N/A' }}</span></td>
                     <td><span class="desc-text">{{ $return->reason }}</span></td>
                 </tr>
             @endforeach
         </tbody>
         <tfoot>
             <tr style="border-top: 2px solid #000; font-weight: bold;">
-                <td colspan="4" class="text-right">TOTAL NC:</td>
+                <td colspan="3" class="text-right">TOTAL NC HOY:</td>
                 <td class="text-right">{{ number_format($summary['total_nc_raw'] ?? 0, 4) }}</td>
-                <td colspan="3"></td>
+                <td colspan="4"></td>
             </tr>
+            @if(($summary['total_nc_old'] ?? 0) > 0)
+            <tr style="color: #777;">
+                <td colspan="3" class="text-right">TOTAL NC VENTAS ANTIGUAS (Info):</td>
+                <td class="text-right">{{ number_format($summary['total_nc_old'], 4) }}</td>
+                <td colspan="4" style="font-size: 6.5pt; font-style: italic;">* No descuenta de las ventas de hoy.</td>
+            </tr>
+            @endif
         </tfoot>
     </table>
     @endif

@@ -151,12 +151,12 @@ class CashCount extends Component
             });
 
             // 4. Process Standalone Payments (Credit payments)
-            $payments = \App\Models\Payment::whereBetween('created_at', [$dFrom, $dTo])
+            $payments = \App\Models\Payment::with(['zelleRecord', 'bankRecord'])->whereBetween('created_at', [$dFrom, $dTo])
                 ->when($this->user_id != 0, function ($qry) {
                     $qry->where('user_id', $this->user_id);
                 })
                 ->where('status', 'approved')
-                ->select('id', 'pay_way', 'amount', 'bank', 'currency', 'exchange_rate', 'primary_exchange_rate')
+                ->select('id', 'pay_way', 'amount', 'bank', 'currency', 'exchange_rate', 'primary_exchange_rate', 'zelle_record_id', 'bank_record_id')
                 ->get();
 
             $this->totalPaymentsCash = $payments->where('pay_way', 'cash')->sum(function($p) use ($primaryRate) {
@@ -260,7 +260,7 @@ class CashCount extends Component
         $saleIds = $sales->pluck('id')->toArray();
 
         // Query payment details for these sales
-        $paymentDetails = SalePaymentDetail::whereIn('sale_id', $saleIds)->get();
+        $paymentDetails = SalePaymentDetail::with(['zelleRecord', 'bankRecord'])->whereIn('sale_id', $saleIds)->get();
 
         // Group payment details by sale to determine payment method
         $paymentsBySale = $paymentDetails->groupBy('sale_id');
@@ -298,7 +298,7 @@ class CashCount extends Component
                         }
                         $aggregated['deposit'][$bankName][$currency] += $paymentDetail->amount;
                     } elseif ($category == 'zelle') {
-                         $sender = 'Desconocido';
+                         $sender = 'Desconocido (ID: ' . ($paymentDetail->zelle_record_id ?? 'N/A') . ')';
                          if ($paymentDetail->zelleRecord) {
                              $sender = $paymentDetail->zelleRecord->sender_name . ' (Ref: ' . $paymentDetail->zelleRecord->reference . ')';
                          }
@@ -387,10 +387,10 @@ class CashCount extends Component
                 }
                 $aggregated['deposit'][$bankName][$currency] += $payment->amount;
             } elseif ($payWay == 'zelle') {
-                 $sender = 'Desconocido';
-                 if ($payment->zelleRecord) {
-                     $sender = $payment->zelleRecord->sender_name . ' (Ref: ' . $payment->zelleRecord->reference . ')';
-                 }
+                  $sender = 'Desconocido (ID: ' . ($payment->zelle_record_id ?? 'N/A') . ')';
+                  if ($payment->zelleRecord) {
+                      $sender = $payment->zelleRecord->sender_name . ' (Ref: ' . $payment->zelleRecord->reference . ')';
+                  }
                  if (!isset($aggregated['zelle'][$sender])) {
                      $aggregated['zelle'][$sender] = 0;
                  }

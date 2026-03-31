@@ -128,7 +128,7 @@ class ReportController extends Controller
             $dTo = \Carbon\Carbon::parse($dateTo)->endOfDay();
         }
 
-        $sales = \App\Models\Sale::with(['customer', 'details', 'user', 'paymentDetails.bankRecord.bank'])
+        $sales = \App\Models\Sale::with(['customer', 'details', 'user', 'paymentDetails.zelleRecord', 'paymentDetails.bankRecord.bank'])
             ->when($searchFolio, function($q) use ($searchFolio) {
                 $q->where('id', 'like', "%{$searchFolio}%")
                   ->orWhere('invoice_number', 'like', "%{$searchFolio}%");
@@ -366,32 +366,42 @@ class ReportController extends Controller
             $totalDivisaPaid += $saleDivisaPaid;
             
             $grandTotalNeto += $sale->total_usd;
-            
             if($sale->status != 'paid') {
                 $grandTotalCredit += max(0, $netSaleUSD - $salePaidUSD);
                 $summary['total_credito'] += max(0, $netSaleUSD - $salePaidUSD);
             }
         }
 
-        $totalNCRaw = 0;
+        // Handle returns (NC)
+        $totalNCRawToday = 0;
+        $totalNCRawOld   = 0;
+        $reportDate = $dFrom->format('Y-m-d');
+
         foreach ($returns as $ret) {
             if (!$ret->sale) continue;
+            $saleDate = \Carbon\Carbon::parse($ret->sale->created_at)->format('Y-m-d');
             $saleCurrCode = strtoupper($ret->sale->primary_currency_code ?? 'USD');
             $rt_rate = $ret->sale->primary_exchange_rate > 0 ? $ret->sale->primary_exchange_rate : 1;
             $retAmtUSD = $ret->total_returned / $rt_rate;
-            $totalNCRaw += $retAmtUSD;
 
-            // Physical Count (Right Table) - only if cash actually left the drawer
-            if ($ret->refund_method !== 'wallet' && $ret->refund_method !== 'debt_reduction') {
+            if ($saleDate === $reportDate) {
+                $totalNCRawToday += $retAmtUSD;
+            } else {
+                $totalNCRawOld += $retAmtUSD;
+                $ret->is_old_sale = true; // Flag for Blade
+            }
+
+            // Physical Count (Right Table) - only if cash actually left the drawer TODAY
+            if ($ret->refund_method === 'cash') {
                 if (isset($totalsByCurrencyPhys[$saleCurrCode])) {
                     $totalsByCurrencyPhys[$saleCurrCode] -= $ret->total_returned;
                 }
             }
         }
 
-        $summary['total_nc_raw'] = $totalNCRaw;
-        $summary['total_divisa'] = $totalDivisaPaid - $totalNCRaw; // Net for top summary
-        $summary['total_final']  = $summary['total_contado'] + $summary['total_flete'] + $summary['total_credito'] - $totalNCRaw;
+        $summary['total_nc_raw'] = $totalNCRawToday;
+        $summary['total_divisa'] = $totalDivisaPaid - $totalNCRawToday; // Net for top summary
+        $summary['total_final']  = $summary['total_contado'] + $summary['total_flete'] + $summary['total_credito'] - $totalNCRawToday;
 
         $totalWalletAddedUSD = \App\Models\SaleReturn::whereBetween('created_at', [$dFrom, $dTo])
             ->where('refund_method', 'wallet')
@@ -403,17 +413,24 @@ class ReportController extends Controller
             });
             
         // Explicitly add NC category for the left table summary
-        if ($totalNCRaw > 0.0001) {
-            $totalsByCategory['(-) DEVOLUCIONES (NC)'] = -$totalNCRaw;
+        if ($totalNCRawToday > 0.0001) {
+            $totalsByCategory['(-) DEVOLUCIONES (NC HOY)'] = -$totalNCRawToday;
+        }
+
+        if ($totalNCRawOld > 0.0001) {
+            $totalsByCategory['NC FACT. ANTIGUAS (NO AFECTA CAJA)'] = 0; // Info only
+            $summary['total_nc_old'] = $totalNCRawOld; // Added for Blade
         }
 
         if ($totalWalletAddedUSD > 0.0001) {
+            // Only relevant if it was for a sale made TODAY
+            // But to avoid complexity, we can show it as custody if it's physical cash staying in drawer
             $totalsByCategory['(+) CUSTODIA (NC BILLETERA)'] = $totalWalletAddedUSD;
         }
 
         $salesSubtotal = 0;
         foreach ($totalsByCategory as $k => $v) {
-            if (!str_contains(strtoupper($k), 'BILLETERA')) {
+            if (!str_contains(strtoupper($k), 'BILLETERA') && !str_contains(strtoupper($k), 'ANTIGUAS')) {
                 $salesSubtotal += $v;
             }
         }
@@ -421,12 +438,13 @@ class ReportController extends Controller
         $grandTotalIncomeUSD = $salesSubtotal + $totalWalletAddedUSD;
 
 
-        // Adjust totalsByCurrency to show NET amounts (subtract returns per currency)
+        // Adjust totalsByCurrency to show NET amounts (subtract returns TODAY per currency)
         foreach ($returns as $ret) {
             if (!$ret->sale) continue;
+            $saleDate = \Carbon\Carbon::parse($ret->sale->created_at)->format('Y-m-d');
+            if ($saleDate !== $reportDate) continue; 
+            
             $saleCurrCode = $ret->sale->primary_currency_code ?? 'USD';
-            $rt_rate = $ret->sale->primary_exchange_rate > 0 ? $ret->sale->primary_exchange_rate : 1;
-            // total_returned is in sale currency units
             if (isset($totalsByCurrency[$saleCurrCode])) {
                 $totalsByCurrency[$saleCurrCode] -= $ret->total_returned;
             }
@@ -656,7 +674,7 @@ class ReportController extends Controller
         });
 
         $saleIds = $sales->pluck('id');
-        $paymentDetails = SalePaymentDetail::whereIn('sale_id', $saleIds)->get();
+        $paymentDetails = SalePaymentDetail::with(['zelleRecord', 'bankRecord'])->whereIn('sale_id', $saleIds)->get();
         
         $totalNCUSD = \App\Models\SaleReturn::whereBetween('created_at', [$dFrom, $dTo])
             ->where('status', 'approved')
@@ -689,12 +707,12 @@ class ReportController extends Controller
             return $totalUSD * $primaryRate;
         });
 
-        $payments = Payment::whereBetween('created_at', [$dFrom, $dTo])
+        $payments = Payment::with(['zelleRecord', 'bankRecord'])->whereBetween('created_at', [$dFrom, $dTo])
             ->when($user_id != 0, function ($qry) use ($user_id) {
                 $qry->where('user_id', $user_id);
             })
             ->where('status', 'approved')
-            ->select('id', 'pay_way', 'amount', 'bank', 'currency', 'exchange_rate', 'primary_exchange_rate')
+            ->select('id', 'pay_way', 'amount', 'bank', 'currency', 'exchange_rate', 'primary_exchange_rate', 'zelle_record_id', 'bank_record_id')
             ->get();
 
         $totalPayments = $payments->sum(function($payment) use ($primaryRate) {
