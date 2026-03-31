@@ -298,7 +298,7 @@ class CashCount extends Component
                         }
                         $aggregated['deposit'][$bankName][$currency] += $paymentDetail->amount;
                     } elseif ($category == 'zelle') {
-                         $sender = 'Desconocido (ID: ' . ($paymentDetail->zelle_record_id ?? 'N/A') . ')';
+                         $sender = 'Desconocido';
                          if ($paymentDetail->zelleRecord) {
                              $sender = $paymentDetail->zelleRecord->sender_name . ' (Ref: ' . $paymentDetail->zelleRecord->reference . ')';
                          }
