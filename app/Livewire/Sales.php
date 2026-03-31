@@ -2640,6 +2640,7 @@ class Sales extends Component
                 // Load outstanding invoices (credit sales with pending balance)
                 $outstandingSales = \App\Models\Sale::where('customer_id', $customer['id'])
                     ->where('credit_days', '>', 0)
+                    ->whereNotIn('status', ['returned', 'voided', 'paid']) // Exclude non-active and already paid debt
                     ->with(['payments' => function($q) {
                         $q->where('status', 'approved');
                     }])

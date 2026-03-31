@@ -54,9 +54,18 @@
                                     <div class="mt-3">
                                         <span class="f-14"><b>Estatus</b></span>
                                         <select wire:model.live='status' class="form-control">
-                                            <option value="0">Todos</option>
+                                            <option value="0">Todos los Pendientes</option>
                                             <option value="pending">Pendiente</option>
                                             <option value="paid">Pagado</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <span class="f-14"><b>Vencimiento</b></span>
+                                        <select wire:model.live='overdue_filter' class="form-control">
+                                            <option value="all">Todos</option>
+                                            <option value="overdue">Vencidos (Rojo)</option>
+                                            <option value="in_time">Al Día (Verde)</option>
                                         </select>
                                     </div>
 
@@ -122,7 +131,7 @@
                                             <span class="text-white badge badge-light-dark ms-1 f-14">Total
                                                 por
                                                 Cobrar:
-                                                ${{ $totales }}</span>
+                                                ${{ number_format($totales, 4) }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -194,10 +203,10 @@
                                                         </td>
                                                         <td class="text-capitalize">{{ $sale->customer->name }}</td>
                                                         <td style="background-color: rgb(210, 243, 252)">
-                                                            ${{ number_format($finalTotalUSD, 2) }}
+                                                            ${{ number_format($finalTotalUSD, 4) }}
                                                         </td>
                                                         <td>
-                                                            ${{ number_format($totalPaidUSD + $initialPaidUSD, 2) }}
+                                                            ${{ number_format($totalPaidUSD + $initialPaidUSD, 4) }}
                                                             @if($sale->payments->where('status', 'pending')->count() > 0)
                                                                 <br>
                                                                 <span class="badge badge-warning text-white mt-1" title="Contiene pagos pendientes por aprobar">
@@ -207,13 +216,13 @@
                                                         </td>
                                                         <td class="text-warning font-weight-bold">
                                                             @if($totalReturnsUSD > 0)
-                                                                ${{ number_format($totalReturnsUSD, 2) }}
+                                                                ${{ number_format($totalReturnsUSD, 4) }}
                                                             @else
-                                                                $0.00
+                                                                $0.0000
                                                             @endif
                                                         </td>
                                                         <td style="background-color: beige">
-                                                            ${{ number_format($saldoUSD, 2) }}
+                                                            ${{ number_format($saldoUSD, 4) }}
                                                         </td>
                                                         <td>
                                                             @if($sale->status == 'paid')
@@ -244,7 +253,7 @@
                                                                 class="btn btn-info btn-sm" title="Ver Historial">
                                                                 <i class="fas fa-list"></i> Historial
                                                             </button>
-                                                            @if($sale->status != 'paid' && $saldoUSD > 0.01)
+                                                            @if($sale->status != 'paid' && $sale->status != 'returned' && $sale->status != 'voided' && $saldoUSD > 0.01)
                                                             @can('payments.register_direct')
                                                                 <button
                                                                     wire:click.prevent="initPayment({{ $sale->id }}, '{{ $sale->customer->name }}')"

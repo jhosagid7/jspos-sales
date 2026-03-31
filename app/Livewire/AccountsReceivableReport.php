@@ -35,6 +35,7 @@ class AccountsReceivableReport extends Component
     public $sellers = [], $seller_id;
     public $users = [], $user_id; // New properties
     public $groupBy = 'customer_id'; // Default group by
+    public $overdue_filter = 'all';
     
     public $showPdfModal = false;
     public $pdfUrl = null;
@@ -112,10 +113,22 @@ class AccountsReceivableReport extends Component
         }
 
         try {
-            $query = Sale::with(['customer', 'payments', 'returns'])
+            $query = Sale::with(['customer', 'payments', 'returns', 'paymentDetails'])
                 ->where('type', 'credit')
+                ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated']) // Full exclusion of inactive invoices
                 ->when($this->status != 0, function ($query) {
                     $query->where('status', $this->status);
+                })
+                ->when($this->status == 0, function ($query) {
+                    $query->where('status', '<>', 'paid'); // Hide paid by default
+                })
+                ->when($this->overdue_filter != 'all', function ($query) {
+                    $sql = "DATEDIFF(NOW(), DATE_ADD(COALESCE(delivered_at, created_at), INTERVAL credit_days DAY))";
+                    if ($this->overdue_filter == 'overdue') {
+                        $query->whereRaw("$sql > 0");
+                    } elseif ($this->overdue_filter == 'in_time') {
+                        $query->whereRaw("$sql <= 0");
+                    }
                 })
                 ->when($this->customer != null, function ($query) {
                     $query->where('customer_id', $this->customer['id']);
@@ -153,70 +166,53 @@ class AccountsReceivableReport extends Component
                 $query->whereBetween('created_at', [$dFrom, $dTo]);
             }
 
-            $sales = $query->orderBy('id', 'desc')->paginate($this->pagination);
-
-            // Calculate total pending balance in USD
-            $this->totales = $sales->getCollection()->sum(function($sale) {
-                // Calculate Paid Amount from Payments
-                $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected', 'voided'])->sum(function($payment) {
-                    $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
-                    $amountUSD = $payment->amount / $rate;
-                    
-                    // Add Discount / Subtract Surcharge
-                    $discountVal = $payment->discount_applied ?? 0; // Already in USD
-                    
-                    if ($payment->rule_type === 'overdue') {
-                        return $amountUSD - $discountVal;
-                    } else {
-                        return $amountUSD + $discountVal;
-                    }
+            // --- CALCULATE GLOBAL TOTALS BEFORE PAGINATION ---
+            // We get a copy of the query results for totals to avoid breaking pagination
+            $allSalesToTotal = $query->get();
+            
+            $this->totales = $allSalesToTotal->sum(function($sale) {
+                $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected', 'voided'])->sum(function($payment) use ($sale) {
+                    $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : ($payment->currency == 'USD' ? 1 : ($sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1));
+                    return $payment->amount / $rate;
                 });
                 
-                // Also consider initial payment details if any (though usually for credit sales it's mostly abonos)
                 $initialPaidUSD = $sale->paymentDetails->sum(function($detail) {
                     $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
                     return $detail->amount / $rate;
                 });
 
-                // Calculate Returns applied to debt
-                $totalReturnsOrig = $sale->returns->where('refund_method', 'debt_reduction')->sum('total_returned');
-                $exchangeRateReturns = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
-                $totalReturnsUSD = $totalReturnsOrig / $exchangeRateReturns;
+                $totalReturnsUSD = $sale->returns->where('refund_method', 'debt_reduction')->where('status', 'approved')->sum(function($ret) use ($sale) {
+                    $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                    return $ret->total_returned / $rate;
+                });
 
-                // Calculate total USD if missing
-                $totalUSD = $sale->total_usd;
-                if (!$totalUSD || $totalUSD == 0) {
-                    $exchangeRate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
-                    $totalUSD = $sale->total / $exchangeRate;
-                }
-
-                return max(0, $totalUSD - ($totalPaidUSD + $initialPaidUSD + $totalReturnsUSD));
+                $totalUSD = $sale->total_usd > 0 ? $sale->total_usd : ($sale->primary_exchange_rate > 0 ? $sale->total / $sale->primary_exchange_rate : $sale->total);
+                return max(0, round($totalUSD - ($totalPaidUSD + $initialPaidUSD + $totalReturnsUSD), 4));
             });
 
-            // Calculate Total Sale (Total Value of the sales, not just debt)
-            $totalSale = $sales->getCollection()->sum(function($sale) {
+            $totalSale = $allSalesToTotal->sum(function($sale) {
                  $exchangeRate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
                  return $sale->total_usd > 0 ? $sale->total_usd : $sale->total / $exchangeRate;
             });
 
-            // Calculate Total Cost
-            $saleIds = $sales->getCollection()->pluck('id');
+            $allSaleIds = $allSalesToTotal->pluck('id');
             $totalCost = DB::table('sale_details')
                 ->join('products', 'sale_details.product_id', '=', 'products.id')
-                ->whereIn('sale_details.sale_id', $saleIds)
+                ->whereIn('sale_details.sale_id', $allSaleIds)
                 ->sum(DB::raw('sale_details.quantity * products.cost'));
 
-            // Calculate Profit and Margin
             $profit = $totalSale - $totalCost;
             $margin = $totalSale > 0 ? ($profit / $totalSale) * 100 : 0;
 
-            // Update Header
-            $map = "TOTAL COSTO $" . number_format($totalCost, 2);
-            $child = "TOTAL VENTA $" . number_format($totalSale, 2);
-            $rest = " GANANCIA: $" . number_format($profit, 2) . " / MARGEN: " . number_format($margin, 2) . "%";
+            $map = "TOTAL COSTO $" . number_format($totalCost, 4);
+            $child = "TOTAL VENTA $" . number_format($totalSale, 4);
+            $rest = " GANANCIA: $" . number_format($profit, 4) . " / MARGEN: " . number_format($margin, 2) . "%";
 
             session(['map' => $map, 'child' => $child, 'rest' => $rest, 'pos' => 'Reporte de Cuentas por Cobrar']);
             $this->dispatch('update-header', map: $map, child: $child, rest: $rest);
+
+            // --- FINAL PAGINATION FOR DISPLAY ---
+            $sales = $query->orderBy('id', 'desc')->paginate($this->pagination);
 
             return $sales;
 
@@ -225,54 +221,6 @@ class AccountsReceivableReport extends Component
             return [];
         }
     }
-
-    // ... (initPayment, doPayment, cancelPay, historyPayments, printHistory methods remain unchanged)
-    // NOTE: Since I am overwriting, I need to include these methods if they exist in the original file.
-    // The previous view_file showed lines 114 comment saying methods remain unchanged, but I need the actual code.
-    // Wait, I need to check if those methods were in the file.
-    // Step 4248 showed lines 1-214. The file ends at line 214.
-    // Line 114 in Step 4248 was just a comment I added in my thought process or the file view?
-    // Ah, Step 4248 output shows:
-    // 113: 
-    // 114:     // ... (initPayment, doPayment, cancelPay, historyPayments, printHistory methods remain unchanged)
-    // This means the file content I saw in Step 4248 ALREADY had that comment and MISSING methods?
-    // NO. Step 4248 output shows the file content.
-    // Let me re-examine Step 4248 carefully.
-    // It seems I might have misread the output or the file was truncated in the view?
-    // "Total Lines: 214".
-    // "Showing lines 1 to 214".
-    // Lines 113-115 in Step 4248:
-    // 113: 
-    // 114:     // ... (initPayment, doPayment, cancelPay, historyPayments, printHistory methods remain unchanged)
-    // 115: 
-    // This suggests the file on disk ALREADY has that comment and is missing the methods?
-    // Or did I hallucinate the file content in the previous turn?
-    // Let me check Step 4231.
-    // Step 4231 also shows the same.
-    // Wait, did I overwrite it with a comment in a previous step?
-    // No, I haven't successfully written to it yet.
-    // Let me check Step 4145 (AccountReceivableReport.php view).
-    // I didn't view it in step 4145.
-    // I viewed it in Step 4231 and 4248.
-    // Both show the comment.
-    // This implies the file on disk DOES NOT have the methods `initPayment`, `doPayment`, etc., OR they are hidden in that comment line which is actually code?
-    // No, it's a comment.
-    // If the file on disk is missing those methods, then the component is broken.
-    // BUT, the user was using it.
-    // Maybe I should check `AccountsReceivableReport.php` again, but look for those methods specifically.
-    // If they are not there, I should not try to add them back unless I have the code.
-    // However, if the file I read has that comment, it means the file I read was ALREADY truncated or modified to have that comment.
-    // Did I modify it?
-    // I tried to modify it in Step 4227, 4235, 4240, 4244, 4252. All failed.
-    // So the file should be intact.
-    // Why does `view_file` show `// ... (initPayment...`?
-    // Is it possible `view_file` output was summarized by the system?
-    // "The above content shows the entire, complete file contents of the requested file."
-    // This is strange.
-    // Let me check `c:/laragon/www/jspos-sales/app/Livewire/AccountsReceivableReport.php` again using `read_resource` or just `view_file` but specifically looking for `initPayment`.
-    
-    // I will abort the overwrite for a second and verify the file content properly.
-    // I cannot risk deleting methods I don't see.
 
     public function getPdfParams()
     {
@@ -283,6 +231,7 @@ class AccountsReceivableReport extends Component
             'dateFrom' => $this->dateFrom,
             'dateTo' => $this->dateTo,
             'status' => $this->status,
+            'overdue_filter' => $this->overdue_filter,
             'groupBy' => $this->groupBy,
             'searchFactura' => $this->searchFactura,
         ];

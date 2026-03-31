@@ -1016,15 +1016,16 @@ class ReportController extends Controller
         $status = $request->get('status');
         $groupBy = $request->get('groupBy', 'customer_id');
         $searchFactura = $request->get('searchFactura');
+        $overdue_filter = $request->get('overdue_filter', 'all');
 
         // Security check matching Livewire component
         if (!auth()->user()->can('sales.view_all')) {
             $user_id = auth()->id();
         }
 
-        $query = Sale::with(['customer', 'details', 'user', 'paymentDetails'])
+        $query = Sale::with(['customer', 'details', 'user', 'paymentDetails', 'payments', 'returns'])
             ->where('type', 'credit')
-            ->where('status', '<>', 'returned');
+            ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated']);
 
         if ($customer_id) {
             $query->where('customer_id', $customer_id);
@@ -1060,6 +1061,22 @@ class ReportController extends Controller
         
         if ($status && $status != '0') {
             $query->where('status', $status);
+        } else {
+            // Default: Hide paid invoices for Accounts Receivable
+            $query->where('status', '<>', 'paid');
+        }
+
+        if ($overdue_filter != 'all') {
+            $query->where(function($q) use ($overdue_filter) {
+                // Force the same date reference as PHP to avoid environment mismatches
+                $today = \Carbon\Carbon::today()->format('Y-m-d');
+                $sql = "DATEDIFF('$today', DATE_ADD(COALESCE(delivered_at, created_at), INTERVAL credit_days DAY))";
+                if ($overdue_filter == 'overdue') {
+                    $q->whereRaw("$sql > 0");
+                } elseif ($overdue_filter == 'in_time') {
+                    $q->whereRaw("$sql <= 0");
+                }
+            });
         }
 
         $sales = $query->orderBy('id', 'asc')->get();
@@ -1072,6 +1089,10 @@ class ReportController extends Controller
         $grandTotalDebt = 0;
 
         foreach ($sales as $sale) {
+            // Use the model's logic for consistency
+            $daysOverdue = (int)$sale->days_overdue;
+            $dueDate = Carbon::parse($sale->delivered_at ?? $sale->created_at)->addDays($sale->credit_days ?? 0);
+            
             $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected', 'voided'])->sum(function($payment) use ($sale) {
                 $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : ($payment->currency == 'USD' ? 1 : ($sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1));
                 return $payment->amount / $rate;
@@ -1092,10 +1113,11 @@ class ReportController extends Controller
                 $totalUSD = $sale->total / $exchangeRate;
             }
 
-            $balance = max(0, $totalUSD - ($totalPaidUSD + $initialPaidUSD + $totalReturnsUSD));
-            $balance_before_nc = max(0, $totalUSD - ($totalPaidUSD + $initialPaidUSD));
+            $balance = round($totalUSD - ($totalPaidUSD + $initialPaidUSD + $totalReturnsUSD), 4);
+            $balance_before_nc = round($totalUSD - ($totalPaidUSD + $initialPaidUSD), 4);
 
-            if ($status != 'paid' && $balance < 0.01) continue;
+            // Logic Fix: Skip if no debt and not specifically looking for paid ones
+            if (($status == '0' || empty($status) || $status != 'paid') && $balance < 0.0001) continue;
 
              $key = '';
              $name = '';
@@ -1126,18 +1148,12 @@ class ReportController extends Controller
                  ];
              }
  
-             $dueDate = clone $sale->created_at;
-             $dueDate->addDays(30);
-             if($sale->customer && $sale->customer->payment_terms) {
-                 $dueDate = $sale->created_at->copy()->addDays(intval($sale->customer->payment_terms));
-             }
-
-             $daysOverdue = 0;
-             if ($sale->days_overdue !== null) {
-                 $daysOverdue = intval($sale->days_overdue);
-             } else {
-                 $daysOverdue = floor(Carbon::now()->diffInDays($dueDate, false) * -1); 
-             }
+             // Use the model's official logic for absolute consistency
+             $daysOverdue = (int)$sale->days_overdue;
+             
+             // Calculate DueDate exactly like the model does
+             $startDate = $sale->delivered_at ? \Carbon\Carbon::parse($sale->delivered_at) : \Carbon\Carbon::parse($sale->created_at);
+             $dueDate = $startDate->copy()->addDays($sale->credit_days ?? 0);
 
              $creditNotes = [];
              $sum_nc = 0;
@@ -1160,9 +1176,10 @@ class ReportController extends Controller
                  'operation' => 'Factura',
                  'date' => $sale->created_at->format('d/m/Y'),
                  'due_date' => $dueDate->format('d/m/Y'),
-                 'days' => $daysOverdue * -1, 
+                 'days' => $daysOverdue, 
                  'doc_no' => str_pad($sale->invoice_number ?? $sale->id, 8, '0', STR_PAD_LEFT),
                  'description' => 'Factnr:' .  ($sale->invoice_number ?? $sale->id) . ' Doc:' . str_pad($sale->invoice_number ?? $sale->id, 8, '0', STR_PAD_LEFT),
+                 'customer_name' => $sale->customer->name ?? 'N/A',
                  'total' => $totalUSD,
                  'balance' => $balance_before_nc, // This is explicitly passed instead of $balance to make visual sums accurate
                  'credit_notes' => $creditNotes
@@ -1184,7 +1201,7 @@ class ReportController extends Controller
         $time = Carbon::now()->format('h:i a');
         $seller_name = $seller_id ? \App\Models\User::find($seller_id)->name : null;
 
-        $pdf = Pdf::loadView('reports.accounts-receivable-pdf', compact('data', 'config', 'user', 'date', 'time', 'groupBy', 'grandTotalDebt', 'seller_name'))
+        $pdf = Pdf::loadView('reports.accounts-receivable-pdf', compact('data', 'config', 'user', 'date', 'time', 'groupBy', 'grandTotalDebt', 'seller_name', 'overdue_filter'))
             ->setPaper('a4', 'portrait');
 
         if ($request->has('download')) {

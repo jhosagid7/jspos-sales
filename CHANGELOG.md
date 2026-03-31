@@ -1,3 +1,9 @@
+## [1.9.34] - 2026-03-31
+- **Integridad Financiera (Deuda de Clientes)**: Se corrigió un error crítico en el Punto de Venta (POS) donde las facturas marcadas como `returned` (devueltas) o `voided` (anuladas) seguían sumando al saldo total del cliente. Ahora el sistema las excluye automáticamente para garantizar que la deuda mostrada sea 100% real y vigente.
+- **Sincronización Web-PDF (Cuentas por Cobrar)**: Se unificaron los filtros de exclusión de estatus en todo el ecosistema de reportes. Las facturas anuladas, devueltas o canceladas ahora desaparecen consistentemente tanto del tablero interactivo como del reporte impreso.
+- **Blindaje de Cobros**: Se eliminó la visibilidad del botón "Pagar" para facturas inactivas en el reporte de Cuentas por Cobrar, evitando intentos de cobro sobre documentos ya procesados comercialmente.
+- **Precisión en Totales de Reporte**: Se refactorizó el motor de cálculo del reporte de Cuentas por Cobrar para que los totales de cabecera (Costo, Venta, Ganancia, Deuda) reflejen la suma global de TODOS los resultados filtrados, corrigiendo el bug anterior que solo calculaba basándose en los registros de la página actual.
+
 ## [1.9.33] - 2026-03-31
 - **Mejora de Experiencia de Usuario (Catálogo)**: Se añadió un retraso (debounce) de 500ms en los campos de Costo, Incremento, Margen y Precio de Venta. Esto evita que el sistema borre o sobreescriba lo que el usuario está escribiendo antes de terminar el ingreso de datos, permitiendo una edición de precios más fluida y sin interrupciones.
 
