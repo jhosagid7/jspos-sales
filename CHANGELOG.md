@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.9.39] - 2026-04-01
+### Added
+- **Automatización de Oficina:** Se implementó un "Override" de automatización para usuarios con rol de oficina. Ahora, al realizar operaciones administrativas, el sistema ignora las restricciones de fletes y comisiones foráneas, permitiendo una gestión centralizada sin bloqueos de permisos.
+
+### Fixed
+- **Búsqueda Visual:** Corregido el error de renderizado en el buscador de productos que impedía la selección rápida mediante teclado en dispositivos táctiles.
+- **Automatización de Precios:** Corregida la jerarquía de precios en el POS para que los incrementos (comisión, flete y diferencial) se activen automáticamente al seleccionar un cliente.
+- **Vendedores Foráneos:** Eliminada la restricción de visibilidad de fletes que afectaba a usuarios con permisos limitados.
+- **Persistencia de Precios:** Mejorada la hidratación del componente para mantener los precios inflados tras recargar la página.
+
 ## [1.9.38] - 2026-04-01
 ### Fixed
 - **Búsqueda Visual:** Corregido el error de renderizado en el buscador de productos que impedía la selección rápida mediante teclado en dispositivos táctiles.

@@ -1034,12 +1034,16 @@ class Sales extends Component
             }
 
             // AUTO-RE-ENABLE Commissions and Freight during hydration (Render/F5)
-            $hasCustomerConfig = ($this->customerConfig && ($this->customerConfig->commission_percent > 0 || $this->customerConfig->freight_percent > 0 || $this->customerConfig->exchange_diff_percent > 0));
-            $hasSellerConfig = ($this->sellerConfig && ($this->sellerConfig->commission_percent > 0 || $this->sellerConfig->freight_percent > 0 || $this->sellerConfig->exchange_diff_percent > 0));
+            // CRITICAL: ONLY force-enable if the user CANNOT manage adjustments (Foreign Seller logic)
+            // This prevents "auto-reactivation" for office users who want to toggle them off manually.
+            if (!Auth::user()->can('sales.manage_adjustments')) {
+                $hasCustomerConfig = ($this->customerConfig && ($this->customerConfig->commission_percent > 0 || $this->customerConfig->freight_percent > 0 || $this->customerConfig->exchange_diff_percent > 0));
+                $hasSellerConfig = ($this->sellerConfig && ($this->sellerConfig->commission_percent > 0 || $this->sellerConfig->freight_percent > 0 || $this->sellerConfig->exchange_diff_percent > 0));
 
-            if ($hasCustomerConfig || $hasSellerConfig) {
-                $this->applyCommissions = true;
-                $this->applyFreight = true;
+                if ($hasCustomerConfig || $hasSellerConfig) {
+                    $this->applyCommissions = true;
+                    $this->applyFreight = true;
+                }
             }
         }
         $orders = $this->getOrdersWithDetails();
