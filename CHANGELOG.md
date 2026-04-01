@@ -1,3 +1,6 @@
+## [1.9.36] - 2026-04-01
+- **HOTFIX: Visibilidad de Vendedores Foráneos**: Se corrigió el error que impedía visualizar y asignar vendedores con el rol `Vendedor foraneo` al crear o editar clientes. Ahora la lista desplegable unifica a todos los asesores comerciales independientemente de su categoría (Local o Foráneo).
+
 ## [1.9.35] - 2026-04-01
 - **Optimización de Comisiones (Fecha de Entrega)**: Se implementó una nueva lógica de cálculo para los días transcurridos. Ahora el sistema prioriza la fecha de entrega real (`delivered_at`) registrada por el chofer. En caso de no existir, se otorga automáticamente 1 día de gracia sobre la fecha de factura, protegiendo al vendedor ante retrasos administrativos.
 - **Seguridad en Comisiones (Estados de Venta)**: Se blindó el módulo de comisiones y sus reportes PDF para excluir automáticamente facturas con estados no válidos (`returned`, `voided`, `cancelled`, `anulated`), evitando pagos sobre ventas no concretadas.

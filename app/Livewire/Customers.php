@@ -86,7 +86,7 @@ class Customers extends Component
 
     public function render()
     {
-        $this->sellers = \App\Models\User::permission('system.is_seller')->get();
+        $this->sellers = \App\Models\User::role(['Vendedor', 'Vendedor foraneo'])->get();
         
         return view('livewire.customers.customers', [
             'customers' => $this->loadCustomers()
