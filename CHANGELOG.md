@@ -1,3 +1,10 @@
+## [1.9.35] - 2026-04-01
+- **Optimización de Comisiones (Fecha de Entrega)**: Se implementó una nueva lógica de cálculo para los días transcurridos. Ahora el sistema prioriza la fecha de entrega real (`delivered_at`) registrada por el chofer. En caso de no existir, se otorga automáticamente 1 día de gracia sobre la fecha de factura, protegiendo al vendedor ante retrasos administrativos.
+- **Seguridad en Comisiones (Estados de Venta)**: Se blindó el módulo de comisiones y sus reportes PDF para excluir automáticamente facturas con estados no válidos (`returned`, `voided`, `cancelled`, `anulated`), evitando pagos sobre ventas no concretadas.
+- **Privacidad y Permisos de Comisiones**: Se implementaron los nuevos permisos `commissions.view_all` y `commissions.view_own`. Ahora los vendedores foráneos solo pueden ver sus propias comisiones en las notificaciones, el dashboard y el módulo principal, mientras que los administradores conservan la visión global.
+- **Automatización de Actualización**: Se incluyó una migración de base de datos que registra automáticamente los nuevos permisos durante el proceso de actualización, garantizando que la funcionalidad esté lista sin comandos manuales.
+- **Precisión en Pagos de Cuentas por Cobrar**: Se habilitó el campo "Fecha de Pago" como obligatorio para todos los pagos en efectivo (independientemente de la moneda), permitiendo registrar la fecha real del recibo físico para una auditoría financiera exacta.
+
 ## [1.9.34] - 2026-03-31
 - **Integridad Financiera (Deuda de Clientes)**: Se corrigió un error crítico en el Punto de Venta (POS) donde las facturas marcadas como `returned` (devueltas) o `voided` (anuladas) seguían sumando al saldo total del cliente. Ahora el sistema las excluye automáticamente para garantizar que la deuda mostrada sea 100% real y vigente.
 - **Sincronización Web-PDF (Cuentas por Cobrar)**: Se unificaron los filtros de exclusión de estatus en todo el ecosistema de reportes. Las facturas anuladas, devueltas o canceladas ahora desaparecen consistentemente tanto del tablero interactivo como del reporte impreso.

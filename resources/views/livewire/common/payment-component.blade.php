@@ -223,13 +223,14 @@
                                                 </select>
                                             </div>
 
+                                            <div class="col-md-12">
+                                                <label class="form-label">Fecha de Pago</label>
+                                                <input type="date" class="form-control" wire:model.live="paymentDate">
+                                                @error('paymentDate') <span class="text-danger small">{{ $message }}</span> @enderror
+                                            </div>
+
                                             {{-- CASH VED EXTENDED FIELDS --}}
                                             @if(in_array($paymentCurrency, ['VED', 'VES']))
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Fecha de Pago <small class="text-danger">(Requerido para VED)</small></label>
-                                                    <input type="date" class="form-control" wire:model.live="paymentDate">
-                                                    @error('paymentDate') <span class="text-danger small">{{ $message }}</span> @enderror
-                                                </div>
                                                 <div class="col-md-6">
                                                     <label class="form-label">Tasa (Opcional)</label>
                                                     <input type="number" step="0.000001" class="form-control" wire:model.live="customExchangeRate" placeholder="Usar del sistema">

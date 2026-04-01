@@ -434,8 +434,8 @@ class PaymentComponent extends Component
             }
         }
         
-        // Validate Cash VED Date
-        if ($this->paymentMethod == 'cash' && in_array($this->paymentCurrency, ['VED', 'VES'])) {
+        // Validate Cash Payment Date
+        if ($this->paymentMethod == 'cash') {
              $this->validate([
                  'paymentDate' => 'required|date'
              ]);

@@ -41,4 +41,5 @@ reset_system.php
 /whatsapp-api/node_modules
 /whatsapp-api/sessions
 /whatsapp-api/.puppeteer_cache*
+/whatsapp-api/.wwebjs_cache/
 /whatsapp-api/storage/logs

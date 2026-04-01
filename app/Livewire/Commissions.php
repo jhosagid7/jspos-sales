@@ -69,6 +69,7 @@ class Commissions extends Component
         $query = Sale::query()
             ->with(['customer', 'user', 'payments', 'returns'])
             ->where('is_foreign_sale', true)
+            ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated'])
             ->where('applied_commission_percent', '>', 0)
             ->where(function($q) {
                 $q->where('final_commission_amount', '>', 0)
@@ -79,18 +80,21 @@ class Commissions extends Component
         // Filter by Date Range
         $query->whereBetween('created_at', [$this->dateFrom . ' 00:00:00', $this->dateTo . ' 23:59:59']);
 
-        // Filter by Seller
+        // Filter by Visibility
         if ($canViewAll) {
             if ($this->seller_id != 0) {
                 $query->whereHas('customer', function($q) {
                     $q->where('seller_id', $this->seller_id);
                 });
             }
-        } else {
+        } elseif ($user->can('commissions.view_own')) {
             // Force filter by current user
             $query->whereHas('customer', function($q) use ($user) {
                 $q->where('seller_id', $user->id);
             });
+        } else {
+            // No permissions to view anything
+            $query->whereRaw('1 = 0');
         }
 
         // Filter by Status
@@ -284,6 +288,7 @@ class Commissions extends Component
         $query = Sale::query()
             ->with(['customer', 'user', 'payments'])
             ->where('is_foreign_sale', true)
+            ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated'])
             ->where(function($q) {
                 $q->where('final_commission_amount', '>', 0)
                   ->orWhere('commission_status', 'pending_calculation')
@@ -297,16 +302,21 @@ class Commissions extends Component
             // Otherwise apply standard filters
             $query->whereBetween('created_at', [$this->dateFrom . ' 00:00:00', $this->dateTo . ' 23:59:59']);
 
+            // Filter by Visibility
             if ($canViewAll) {
                 if ($this->seller_id != 0) {
                     $query->whereHas('customer', function($q) {
                         $q->where('seller_id', $this->seller_id);
                     });
                 }
-            } else {
+            } elseif ($user->can('commissions.view_own')) {
+                // Force filter by current user
                 $query->whereHas('customer', function($q) use ($user) {
                     $q->where('seller_id', $user->id);
                 });
+            } else {
+                // No permissions to view anything
+                $query->whereRaw('1 = 0');
             }
 
             if ($this->status_filter !== 'all') {

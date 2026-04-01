@@ -23,9 +23,13 @@ class CommissionService
              $threshold1 = 9999; // Essentially no time limit
         }
 
-        // Calculate Days Elapsed
+        // Calculate Start Date: delivered_at if available, otherwise created_at + 1 day (grace period)
+        $startDate = $sale->delivered_at 
+            ? Carbon::parse($sale->delivered_at) 
+            : Carbon::parse($sale->created_at)->addDay();
+
         $reference = $referenceDate ? Carbon::parse($referenceDate) : now();
-        $daysElapsed = Carbon::parse($sale->created_at)->diffInDays($reference);
+        $daysElapsed = $startDate->diffInDays($reference);
 
         // Calculate Effective Sale Total (deducting any returns)
         $sale->loadMissing('returns');

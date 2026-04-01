@@ -77,12 +77,13 @@ class HeaderComposer
         $user = auth()->user();
         $noty_commissions = collect();
         
-        if ($user) {
-            $canManageCommissions = $user->can('gestionar_comisiones');
+        if ($user && ($user->can('commissions.view_all') || $user->can('commissions.view_own'))) {
+            $canViewAll = $user->can('commissions.view_all');
             
             $query = Sale::query()
                 ->where('is_foreign_sale', true)
                 ->where('status', 'paid')
+                ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated'])
                 ->where('commission_status', '!=', 'paid')
                 ->where(function($q) {
                     $q->where('final_commission_amount', '>', 0)
@@ -90,7 +91,7 @@ class HeaderComposer
                       ->orWhereNull('final_commission_amount');
                 });
 
-            if (!$canManageCommissions) {
+            if (!$canViewAll) {
                 $query->whereHas('customer', function($q) use ($user) {
                     $q->where('seller_id', $user->id);
                 });

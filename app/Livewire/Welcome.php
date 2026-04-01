@@ -123,10 +123,11 @@ class Welcome extends Component
         // Actually, let's leave commission logic as is for now to avoid breaking specific commission rules, 
         // as "view_own" for dashboard implies sales data visibility.
 
-        if (auth()->user()->can('commissions.access')) {
+        if (auth()->user()->can('commissions.view_all') || auth()->user()->can('commissions.view_own')) {
             $commissionsQuery = \App\Models\Sale::query() 
                 ->where('is_foreign_sale', true)
                 ->where('status', 'paid')
+                ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated'])
                 ->where('commission_status', '!=', 'paid')
                 ->where(function($q) {
                     $q->where('final_commission_amount', '>', 0)
@@ -135,14 +136,15 @@ class Welcome extends Component
                 });
 
             if (!auth()->user()->can('commissions.view_all')) {
-                  // If they can't view all, filter to their customers (or sales)
-                  // Consistent with Commissions component logic:
+                 // Force filter by view_own logic
                  $commissionsQuery->whereHas('customer', function($q) use ($user) {
                     $q->where('seller_id', $user->id);
                 });
             }
 
             $this->pendingCommissions = $commissionsQuery->sum('final_commission_amount');
+        } else {
+            $this->pendingCommissions = 0;
         }
 
         // Top Suppliers (by Purchase Volume)
