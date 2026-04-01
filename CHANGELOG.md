@@ -1,3 +1,12 @@
+# Changelog
+
+## [1.9.38] - 2026-04-01
+### Fixed
+- **Búsqueda Visual:** Corregido el error de renderizado en el buscador de productos que impedía la selección rápida mediante teclado en dispositivos táctiles.
+- **Automatización de Precios:** Corregida la jerarquía de precios en el POS para que los incrementos (comisión, flete y diferencial) se activen automáticamente al seleccionar un cliente.
+- **Vendedores Foráneos:** Eliminada la restricción de visibilidad de fletes que afectaba a usuarios con permisos limitados.
+- **Persistencia de Precios:** Mejorada la hidratación del componente para mantener los precios inflados tras recargar la página.
+
 ## [1.9.36] - 2026-04-01
 - **HOTFIX: Visibilidad de Vendedores Foráneos**: Se corrigió el error que impedía visualizar y asignar vendedores con el rol `Vendedor foraneo` al crear o editar clientes. Ahora la lista desplegable unifica a todos los asesores comerciales independientemente de su categoría (Local o Foráneo).
 

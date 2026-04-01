@@ -909,19 +909,6 @@ class Sales extends Component
         $this->applyFreight = session('applyFreight', false);
         $this->is_freight_broken_down = session('is_freight_broken_down', false);
         
-        // Foreign Seller Enforce Logic (Override Session)
-        if (!Auth::user()->can('sales.manage_adjustments')) {
-            // We need seller config to know if we can apply commissions
-            // But in mount, we might not have customer/seller loaded yet?
-            // If customer is loaded from session, setCustomer might not be called?
-            // Actually, if session('sale_customer') exists, we should probably check it.
-            // For now, let's just force defaults off if no customer, 
-            // commissions will be re-evaluated when customer is set.
-             $this->applyFreight = false;
-             $this->is_freight_broken_down = false;
-             // applyCommissions depends on seller presence, handled in setCustomer/init
-        }
-
         // Determine Sales View Mode
         // Priority: User Preference > Global Config > Default 'grid'
         $this->salesViewMode = $user->sales_view_mode ?? $this->config->sales_view_mode ?? 'grid';
@@ -1044,6 +1031,15 @@ class Sales extends Component
                 if ($customerDb) {
                     $this->customerConfig = $customerDb->latestCustomerConfig;
                 }
+            }
+
+            // AUTO-RE-ENABLE Commissions and Freight during hydration (Render/F5)
+            $hasCustomerConfig = ($this->customerConfig && ($this->customerConfig->commission_percent > 0 || $this->customerConfig->freight_percent > 0 || $this->customerConfig->exchange_diff_percent > 0));
+            $hasSellerConfig = ($this->sellerConfig && ($this->sellerConfig->commission_percent > 0 || $this->sellerConfig->freight_percent > 0 || $this->sellerConfig->exchange_diff_percent > 0));
+
+            if ($hasCustomerConfig || $hasSellerConfig) {
+                $this->applyCommissions = true;
+                $this->applyFreight = true;
             }
         }
         $orders = $this->getOrdersWithDetails();
@@ -2628,6 +2624,22 @@ class Sales extends Component
                     }
                 }
             }
+
+            // AUTO-ENABLE Commissions and Freight if configurations exist (Automation for Foreign Sellers)
+            $hasCustomerConfig = ($this->customerConfig && ($this->customerConfig->commission_percent > 0 || $this->customerConfig->freight_percent > 0 || $this->customerConfig->exchange_diff_percent > 0));
+            $hasSellerConfig = ($this->sellerConfig && ($this->sellerConfig->commission_percent > 0 || $this->sellerConfig->freight_percent > 0 || $this->sellerConfig->exchange_diff_percent > 0));
+
+            if ($hasCustomerConfig || $hasSellerConfig) {
+                $this->applyCommissions = true;
+                $this->applyFreight = true;
+            } else {
+                $this->applyCommissions = false;
+                $this->applyFreight = false;
+            }
+
+            // Update toggles in session as well
+            session(['applyCommissions' => $this->applyCommissions]);
+            session(['applyFreight' => $this->applyFreight]);
             
             // Load customer-specific discount rules and outstanding invoices
             if(isset($customer['id'])) {
