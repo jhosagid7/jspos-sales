@@ -437,6 +437,14 @@ class PartialPayment extends Component
                 if ($createdBankRecord) {
                     $createdBankRecord->update(['payment_id' => $pay->id]);
                 }
+                // Standardized Rule: Only increment collection sheet total if APPROVED
+                if ($status === 'approved') {
+                    $amountUSD = $amount / ($exchangeRate > 0 ? $exchangeRate : 1);
+                    $sheet = \App\Models\CollectionSheet::find($collectionSheetId);
+                    if ($sheet) {
+                        $sheet->increment('total_amount', $amountUSD);
+                    }
+                }
             }
 
             // Only update sale totals if APPROVED
@@ -507,15 +515,28 @@ class PartialPayment extends Component
                     "Aprobación de pago #{$payment->id} (Ref: {$payment->deposit_number})"
                 );
 
-                // 4. Update Payment & Sale
-                // CRITICAL: Update collection_sheet_id to the CURRENT sheet of the approver (or shared).
-                // This ensures the payment appears in TODAY's report, not the upload day's report.
+                // 4. Handle Collection Sheet Transition
+                $oldSheetId = $payment->collection_sheet_id;
                 $currentSheetId = $this->getOrCreateCollectionSheet();
+                $currentSheet = \App\Models\CollectionSheet::find($currentSheetId);
+
+                // If moving from another sheet, decrement old one (safety)
+                if ($oldSheetId && $oldSheetId != $currentSheetId) {
+                    $oldSheet = \App\Models\CollectionSheet::find($oldSheetId);
+                    if ($oldSheet && $payment->status === 'approved') { // Safety check
+                         $amountUSD = $payment->amount / ($payment->exchange_rate > 0 ? $payment->exchange_rate : 1);
+                         $oldSheet->decrement('total_amount', $amountUSD);
+                    }
+                }
 
                 $payment->update([
                     'status' => 'approved',
                     'collection_sheet_id' => $currentSheetId
                 ]);
+
+                // Increment TODAY'S sheet total
+                $amountUSD = $payment->amount / ($payment->exchange_rate > 0 ? $payment->exchange_rate : 1);
+                $currentSheet->increment('total_amount', $amountUSD);
 
                 // Deduct from wallet if applicable
                 if ($payment->pay_way === 'wallet') {
@@ -621,6 +642,15 @@ class PartialPayment extends Component
                     }
                 }
                 
+                // Revert Collection Sheet total if it was APPROVED
+                if ($payment->collection_sheet_id && $payment->status === 'approved') {
+                    $sheet = \App\Models\CollectionSheet::find($payment->collection_sheet_id);
+                    if ($sheet) {
+                        $amountUSD = $payment->amount / ($payment->exchange_rate > 0 ? $payment->exchange_rate : 1);
+                        $sheet->decrement('total_amount', $amountUSD);
+                    }
+                }
+
                 $payment->delete(); // Delete payment first
                 
                 // Final cleanup: Delete records if they have NO more payments

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.40] - 2026-04-01
+### Corregido
+- **Relación de Pagos:** Se corrigió bug donde pagos aprobados hoy pero subidos ayer aparecían en el reporte de ayer. Ahora al aprobar se mueven a la planilla de hoy.
+- **Sincronización Financiera:** Se unificó la lógica de aprobación entre Cuentas por Cobrar y Pagos Parciales.
+- **Integridad de Caja:** Se añadió el registro de movimiento en caja para aprobaciones administrativas (faltaba en reportes AR).
+- **Planillas de Recaudación:** El total de la planilla (`total_amount`) ahora solo se incrementa al aprobar el pago, garantizando consistencia con los reportes.
+
 ## [1.9.39] - 2026-04-01
 ### Added
 - **Automatización de Oficina:** Se implementó un "Override" de automatización para usuarios con rol de oficina. Ahora, al realizar operaciones administrativas, el sistema ignora las restricciones de fletes y comisiones foráneas, permitiendo una gestión centralizada sin bloqueos de permisos.

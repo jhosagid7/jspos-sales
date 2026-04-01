@@ -509,17 +509,11 @@ class AccountsReceivableReport extends Component
                     $createdBankRecord->update(['payment_id' => $pay->id]);
                 }
 
-                // Update Sheet Total (Only if approved? Or track all? Usually collection tracks money received. 
-                // If pending, maybe not? But Zelle/Bank records were created. 
-                // Let's assume pending payments are NOT in collection sheet until approved? 
-                // Or maybe they are money received but waiting verification?
-                // logic in PartialPayment didn't prevent collection sheet entry. 
-                // But typically 'pending' means might be rejected.
-                // However, I will keep duplicate logic from PartialPayment for now.
-                // In PartialPayment I added collection_sheet_id to create.
-                
-                $amountUSD = $amount / $exchangeRate;
-                $sheet->increment('total_amount', $amountUSD);
+                // Standardized Rule: Only increment collection sheet total if APPROVED
+                if ($status === 'approved') {
+                    $amountUSD = $amount / ($exchangeRate > 0 ? $exchangeRate : 1);
+                    $sheet->increment('total_amount', $amountUSD);
+                }
             }
 
             // Only update sale totals if APPROVED
@@ -549,7 +543,7 @@ class AccountsReceivableReport extends Component
         }
     }
     
-    public function approvePayment($paymentId)
+    public function approvePayment(\App\Services\CashRegisterService $cashRegisterService, $paymentId)
     {
         if (!auth()->user()->can('payments.approve')) {
              $this->dispatch('noty', msg: 'NO TIENES PERMISO PARA APROBAR PAGOS');
@@ -560,13 +554,59 @@ class AccountsReceivableReport extends Component
             DB::beginTransaction();
             $payment = Payment::find($paymentId);
             if ($payment && $payment->status === 'pending') {
-                $payment->update(['status' => 'approved']);
+                
+                // 1. Record Cash Movement
+                $activeRegister = $cashRegisterService->getActiveCashRegister(auth()->id());
+                if (!$activeRegister) {
+                    // Fallback to shared register if enabled
+                    $config = \App\Models\Configuration::first();
+                    if ($config && $config->enable_shared_cash_register) {
+                        $activeRegister = \App\Models\CashRegister::where('status', 'open')->latest()->first();
+                    }
+                }
+
+                if (!$activeRegister) {
+                    throw new \Exception("NO HAY CAJA ABIERTA para recibir este pago. Abra una caja o active el modo compartido.");
+                }
+
+                $cashRegisterService->recordSaleMovement(
+                    $activeRegister->id,
+                    $payment->sale_id,
+                    'sale_payment',
+                    $payment->currency,
+                    $payment->amount,
+                    "Aprobación de pago #{$payment->id} (Ref: {$payment->deposit_number})"
+                );
+
+                // 2. Handle Collection Sheet Transition
+                $oldSheetId = $payment->collection_sheet_id;
+                $currentSheetId = $this->getOrCreateCollectionSheet();
+                $currentSheet = \App\Models\CollectionSheet::find($currentSheetId);
+
+                // If moving from another sheet, decrement old one (safety - ONLY if it was already approved)
+                if ($oldSheetId && $oldSheetId != $currentSheetId && $payment->status === 'approved') {
+                    $oldSheet = \App\Models\CollectionSheet::find($oldSheetId);
+                    if ($oldSheet) {
+                        $amountUSD = $payment->amount / ($payment->exchange_rate > 0 ? $payment->exchange_rate : 1);
+                        $oldSheet->decrement('total_amount', $amountUSD);
+                    }
+                }
+
+                // Update to CURRENT collection sheet
+                $payment->update([
+                    'status' => 'approved',
+                    'collection_sheet_id' => $currentSheetId
+                ]);
+
+                // Increment TODAY'S sheet total (always, as it is now approved)
+                $amountUSD = $payment->amount / ($payment->exchange_rate > 0 ? $payment->exchange_rate : 1);
+                $currentSheet->increment('total_amount', $amountUSD);
                 
                 $sale = Sale::find($payment->sale_id);
                 $this->checkSaleSettlement($sale);
                 
                 DB::commit();
-                $this->dispatch('noty', msg: 'PAGO APROBADO CORRECTAMENTE');
+                $this->dispatch('noty', msg: 'PAGO APROBADO Y REGISTRADO EN CAJA');
                 
                 // Refresh list if viewing history
                 if ($this->pays && count($this->pays) > 0 && $this->pays[0]->sale_id == $sale->id) {
@@ -578,6 +618,7 @@ class AccountsReceivableReport extends Component
             $this->dispatch('noty', msg: 'Error al aprobar: ' . $e->getMessage());
         }
     }
+
 
     public function rejectPayment($paymentId, $reason)
     {
@@ -653,20 +694,20 @@ class AccountsReceivableReport extends Component
                 }
             }
 
-            // Update status to voided
-            $payment->update([
-                'status' => 'voided',
-                'rejection_reason' => $reason
-            ]);
-
-            // Revert Collection Sheet total if linked
-            if ($payment->collection_sheet_id) {
+            // Revert Collection Sheet total if it was APPROVED (BEFORE status update)
+            if ($payment->collection_sheet_id && $payment->status === 'approved') {
                 $sheet = \App\Models\CollectionSheet::find($payment->collection_sheet_id);
                 if ($sheet) {
                     $amountUSD = $payment->amount / ($payment->exchange_rate > 0 ? $payment->exchange_rate : 1);
                     $sheet->decrement('total_amount', $amountUSD);
                 }
             }
+
+            // Update status to voided
+            $payment->update([
+                'status' => 'voided',
+                'rejection_reason' => $reason
+            ]);
 
             // Restore sale status if it was paid
             $sale = Sale::find($payment->sale_id);
@@ -726,8 +767,8 @@ class AccountsReceivableReport extends Component
                     }
                 }
 
-                // Revert Collection Sheet total if linked
-                if ($payment->collection_sheet_id) {
+                // Revert Collection Sheet total if it was APPROVED
+                if ($payment->collection_sheet_id && $payment->status === 'approved') {
                     $sheet = \App\Models\CollectionSheet::find($payment->collection_sheet_id);
                     if ($sheet) {
                         $amountUSD = $payment->amount / ($payment->exchange_rate > 0 ? $payment->exchange_rate : 1);
