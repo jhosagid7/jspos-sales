@@ -204,10 +204,19 @@ trait PrintTrait
                     $printer->text($sale->type == 'credit' ? "FORMA DE PAGO: CRÉDITO" :  "FORMA DE PAGO:  DEPÓSITO" .  "\n");
                 }
 
-                $printer->feed(3);
+                $printer->feed(1);
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
                 $printer->text("$config->leyend\n");
                 $printer->text("$config->website\n");
+                
+                // QR Code for Cloning
+                try {
+                    $printer->qrCode("SALE:" . $sale->id, Printer::QR_ECLEVEL_L, 4);
+                    $printer->text("SCAN PARA CLONAR\n");
+                } catch (\Exception $e) {
+                    \Log::warning("Could not print QR Code: " . $e->getMessage());
+                }
+
                 $printer->feed(3);
                 $printer->cut();
                 $printer->close();
@@ -754,10 +763,19 @@ trait PrintTrait
                     $printer->text($order->type == 'credit' ? "FORMA DE PAGO: CRÉDITO" :  "FORMA DE PAGO:  DEPÓSITO" .  "\n");
                 }
 
-                $printer->feed(3);
+                $printer->feed(1);
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
                 $printer->text("$config->leyend\n");
                 $printer->text("$config->website\n");
+
+                // QR Code for Cloning
+                try {
+                    $printer->qrCode("ORD:" . $order->id, Printer::QR_ECLEVEL_L, 4);
+                    $printer->text("SCAN PARA CLONAR\n");
+                } catch (\Exception $e) {
+                    \Log::warning("Could not print QR Code: " . $e->getMessage());
+                }
+
                 $printer->feed(3);
                 $printer->cut();
                 $printer->close();

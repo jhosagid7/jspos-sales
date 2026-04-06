@@ -81,7 +81,8 @@ trait PdfInvoiceTrait
                         'vendedor_banks' => $sale->customer->seller ? $sale->customer->seller->banks : collect(),
                         'operador'        => $sale->user->name,
                         'footer_code'    => $footerData['footer_code'],
-                        'footer_data'    => $footerData
+                        'footer_data'    => $footerData,
+                        'cloning_qr'     => \DNS2D::getBarcodeHTML("SALE:{$sale->id}", "QRCODE", 2, 2) 
                     ],
                 ]);
 
@@ -263,7 +264,8 @@ trait PdfInvoiceTrait
                         'vendedor_banks' => $sale->customer->seller ? $sale->customer->seller->banks : collect(),
                         'operador'        => $sale->user->name,
                         'footer_code'    => $footerData['footer_code'],
-                        'footer_data'    => $footerData
+                        'footer_data'    => $footerData,
+                        'cloning_qr'     => \DNS2D::getBarcodeHTML("SALE:{$sale->id}", "QRCODE", 2, 2) 
                     ],
                 ]);
 
@@ -404,7 +406,8 @@ trait PdfInvoiceTrait
                         'vendedor_banks' => $sale->customer->seller ? $sale->customer->seller->banks : collect(),
                         'operador'        => $sale->user->name,
                         'footer_code'    => $footerData['footer_code'],
-                        'footer_data'    => $footerData
+                        'footer_data'    => $footerData,
+                        'cloning_qr'     => \DNS2D::getBarcodeHTML("SALE:{$sale->id}", "QRCODE", 2, 2) 
                     ],
                 ]);
 
@@ -567,7 +570,8 @@ trait PdfInvoiceTrait
                         'vendedor_banks' => $sale->customer->seller ? $sale->customer->seller->banks : collect(),
                         'operador'        => $sale->user->name,
                         'footer_code'    => $footerData['footer_code'],
-                        'footer_data'    => $footerData
+                        'footer_data'    => $footerData,
+                        'cloning_qr'     => \DNS2D::getBarcodeHTML("SALE:{$sale->id}", "QRCODE", 2, 2) 
                     ],
                 ]);
 

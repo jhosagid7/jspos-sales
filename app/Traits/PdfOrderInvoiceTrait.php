@@ -66,7 +66,8 @@ trait PdfOrderInvoiceTrait
                         'vendedor_banks' => $order->customer->seller ? $order->customer->seller->banks : collect(),
                         'operador'      => $order->user->name,
                         'footer_code'   => $footerData['footer_code'],
-                        'footer_data'   => $footerData
+                        'footer_data'   => $footerData,
+                        'cloning_qr'    => \DNS2D::getBarcodeHTML("ORD:{$order->id}", "QRCODE", 2, 2) 
                     ],
                 ]);
 
@@ -157,7 +158,8 @@ trait PdfOrderInvoiceTrait
                         'vendedor_banks' => $order->customer->seller ? $order->customer->seller->banks : collect(),
                         'operador'      => $order->user->name,
                         'footer_code'   => $footerData['footer_code'],
-                        'footer_data'   => $footerData
+                        'footer_data'   => $footerData,
+                        'cloning_qr'    => \DNS2D::getBarcodeHTML("ORD:{$order->id}", "QRCODE", 2, 2) 
                     ],
                 ]);
 

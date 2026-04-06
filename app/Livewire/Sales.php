@@ -706,7 +706,23 @@ class Sales extends Component
     function updatedSearch3()
     {
         $search = trim($this->search3);
+        $upperSearch = strtoupper($search);
         
+        // Ultra-Flexible Regex for documents:
+        // SALE -> numbers...
+        // OR / ORD -> numbers...
+        // Ignores any strange character in between (:, ñ, ', etc)
+        if (preg_match('/^(SALE|ORD|OR)[^0-9]*([0-9]+)$/i', $upperSearch, $matches)) {
+            $prefix = strtoupper($matches[1]);
+            // Normalize OR/ORD to ORD
+            $type = ($prefix === 'OR' || $prefix === 'ORD') ? 'ORD' : 'SALE';
+            $id = $matches[2];
+            
+            \Log::info("Ultra-Flexible match: Type $type, ID $id (Source: $upperSearch)");
+            $this->processCloningCode("$type:$id");
+            return;
+        }
+
         if (strlen($search) > 0) {
             $query = Product::with('priceList');
             
@@ -1298,6 +1314,95 @@ class Sales extends Component
         $totalAssignedChangeInInvoice = $totalAssignedChangeInPrimary * $conversionFactor;
         
         return max(0, $totalChangeInInvoice - $totalAssignedChangeInInvoice);
+    }
+
+    public function processCloningCode($code)
+    {
+        $code = strtoupper(trim($code));
+        \Log::info("processCloningCode received: [" . $code . "]");
+        
+        // Visual feedback for the scanner
+        $this->dispatch('noty', msg: 'ESCANEADO: ' . $code);
+        
+        $this->loadFromDocument($code);
+        $this->search3 = '';
+        $this->dispatch('clear-search');
+    }
+
+    public function loadFromDocument($input)
+    {
+        try {
+            $input = trim($input);
+            \Log::info("loadFromDocument starting with input: [" . $input . "]");
+            $parts = explode(':', $input);
+            if (count($parts) < 2) return;
+
+            $type = strtoupper(trim($parts[0]));
+            $id = trim($parts[1]);
+
+            \Log::info("Attempting to clone document type: $type with ID: $id");
+
+            if ($type === 'SALE') {
+                $doc = Sale::with('details')->find($id);
+            } elseif ($type === 'ORD') {
+                $doc = Order::with('details')->find($id);
+            } else {
+                return;
+            }
+
+            if (!$doc) {
+                $this->dispatch('noty', msg: 'DOCUMENTO #' . $id . ' NO ENCONTRADO');
+                \Log::warning("Cloning failed: Document #$id of type $type not found.");
+                return;
+            }
+
+            // Limpiar carrito actual
+            $this->resetExcept('config', 'banks', 'currencies', 'warehouses', 'drivers', 'sellers');
+            $this->clear();
+            session()->forget('sale_customer');
+
+            $details = $doc->details;
+            \Log::info("Cloning document found. Details count: " . count($details));
+
+            // Restaurar Cliente
+            $customer = Customer::find($doc->customer_id);
+            if ($customer) {
+                $this->setCustomer($customer);
+            }
+
+            // Restaurar Configuraciones (Comisiones, Fletes, etc.)
+            $this->applyCommissions = (bool) ($doc->apply_commissions ?? $doc->applied_commission_percent > 0);
+            $this->applyFreight = (bool) ($doc->apply_freight ?? $doc->applied_freight_percent > 0);
+            $this->is_freight_broken_down = (bool) ($doc->is_freight_broken_down ?? false);
+            
+            // Restore Seller Config if present
+            if (isset($doc->seller_config_id)) {
+                $this->sellerConfig_id = $doc->seller_config_id;
+            }
+
+            // Cargar Items
+            foreach ($details as $detail) {
+                $product = Product::find($detail->product_id);
+                if (!$product) continue;
+
+                $metadata = json_decode($detail->metadata, true);
+
+                if (isset($metadata['product_item_id'])) {
+                    // Bobinas (Items variables)
+                    $this->addVariableItem($metadata['product_item_id']);
+                } else {
+                    // Productos Normales (Usará precio actual automáticamente en AddProduct)
+                    $this->AddProduct($product, $detail->quantity, $detail->warehouse_id);
+                }
+            }
+
+            $this->recalculateCartWithSellerConfig();
+            $this->dispatch('noty', msg: 'DOCUMENTO CLONADO CON ÉXITO (PRECIOS ACTUALES)');
+
+        } catch (\Exception $e) {
+            Log::error("Error cloning document: " . $e->getMessage());
+            $this->dispatch('noty', msg: 'ERROR AL CLONAR DOCUMENTO');
+        }
     }
 
     public function loadOrderToCart($orderId)
@@ -2729,8 +2834,7 @@ class Sales extends Component
         
             $this->recalculateCartWithSellerConfig();
             
-            // Success notification (Debug - remove later if annoying)
-            // $this->dispatch('noty', msg: 'Cliente seleccionado: ' . ($customer['name'] ?? 'N/A'));
+            $this->dispatch('noty', msg: 'Cliente seleccionado correctamente');
 
         } catch (\Exception $e) {
             $this->dispatch('noty', msg: 'Error al seleccionar cliente: ' . $e->getMessage());

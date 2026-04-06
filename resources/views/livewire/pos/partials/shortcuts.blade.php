@@ -49,11 +49,16 @@
             Livewire.dispatch('storeOrder');
 
         });
-        listener.simple_combo("shift d", function() {
-            console.log("You pressed alt and z");
-            this.showCustomerCreate();
-            this.closeCustomerCreate();
-
+        listener.simple_combo("shift d", function(e) {
+            // Disable this shortcut if the user is currently typing in ANY input field
+            const activeEl = document.activeElement;
+            if (!activeEl || activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT' || activeEl.isContentEditable) {
+                return;
+            }
+            console.log("Manual trigger: Shift+D - Opening Customer Create Modal");
+            if (typeof showCustomerCreate === 'function') {
+                showCustomerCreate();
+            }
         });
 
 

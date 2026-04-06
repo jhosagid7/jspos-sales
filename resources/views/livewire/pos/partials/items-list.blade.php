@@ -15,6 +15,12 @@
                              });
                          });
 
+                         Livewire.on('clear-search', () => {
+                             this.reset();
+                             const el = document.getElementById('inputSearch');
+                             if (el) el.value = '';
+                         });
+
                          $watch('itemCount', value => {
                              if(value === 0) this.selectedIndex = -1;
                          });
@@ -48,6 +54,26 @@
                     },
 
                     selectItem() {
+                         const searchEl = document.getElementById('inputSearch');
+                         const val = searchEl.value.toUpperCase().trim();
+                         
+                         // Robust Regex matching (Ignores corrupted separators like ', :, spaces)
+                         const match = val.match(/^(SALE|ORD)[^0-9]*([0-9]+)$/i);
+                         
+                         if (match) {
+                             const type = match[1].toUpperCase();
+                             const id = match[2];
+                             const finalCode = type + ':' + id;
+                             
+                             console.log('Detected Scan via Regex:', finalCode);
+                             $wire.set('search3', '', false); 
+                             @this.processCloningCode(finalCode);
+                             this.selectedIndex = -1;
+                             $wire.dispatch('hideResults');
+                             searchEl.value = ''; 
+                             return;
+                         }
+
                          if (this.selectedIndex >= 0 && this.$refs.resultsList) {
                             const activeItem = this.$refs.resultsList.children[this.selectedIndex];
                             if (activeItem && activeItem.dataset.id) {
@@ -60,6 +86,8 @@
                     reset() {
                         this.selectedIndex = -1;
                         $wire.dispatch('hideResults');
+                        // Don't clear search3 here, let Livewire handle it if needed
+                        // or clear it manually if you really want to force no search results
                     }
                 }" 
                 @click.away="reset()" 
@@ -70,7 +98,7 @@
                                 <input type="text" 
                                     wire:model.live.debounce.300ms="search3" 
                                     class="form-control"
-                                    placeholder="[ F1 ] Ingresa nombre o código del producto"
+                                    placeholder="[ F1 ] Ingresa nombre o código del producto o ESCANEA QR"
                                     style="text-transform: capitalize" 
                                     autocomplete="off" 
                                     id="inputSearch"

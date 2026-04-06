@@ -65,10 +65,11 @@ trait UtilTrait
 
             $config = Configuration::first();
 
-            $iva = ($config->vat / 100);
-            $subtotal = ($monto / (1 + $iva));
+            $ivaRate = ($config->vat / 100);
+            $subtotal = ($monto / (1 + $ivaRate));
+            $iva = $monto - $subtotal;
 
-            return array('iva' => round($subtotal * $iva), 'subtotal' => round($subtotal));
+            return array('iva' => round($iva, 2), 'subtotal' => round($subtotal, 2));
         }
 
         return array('iva' => 0, 'subtotal' => 0);

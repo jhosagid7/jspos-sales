@@ -402,10 +402,7 @@
                         @if($invoice->seller->custom_fields['operador'] ?? false)
                             Operador: <b>{{ $invoice->seller->custom_fields['operador'] }}</b><br>
                         @endif
-                        {{ __('invoices::invoice.amount_due') }}: <strong class="text-green title-data">{{ $invoice->formatCurrency($invoice->total_amount) }}</strong>
-
-
-
+                        {{ __('invoices::invoice.amount_due') }}: <strong class="text-green title-data">{{ $invoice->formatCurrency($invoice->total_amount) }}</strong><br>
                             </p>
                     </td>
                 </tr>
@@ -671,9 +668,19 @@
             @endif
 
             {{-- Bottom Box: Disclaimer (Attached to top box) --}}
-            <div style="border: 1px solid #6B7280; border-top: 1px solid #6B7280; margin-top: 0px; background: #ADD8E6; padding: 5px 10px; font-size: 14px; text-transform: uppercase; font-weight: bold; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px; color: #000;">
-                ESTIMADO CLIENTE DESPUES DE OCHO DIAS CALENDARIO NO SE ACEPTAN RECLAMOS NI DEVOLUCIONES
-            </div>
+            {{-- Bottom Box: Disclaimer with QR --}}
+            <table width="100%" style="border: 1px solid #6B7280; border-top: 1px solid #6B7280; margin-top: 0px; background: #ADD8E6; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px; color: #000; border-collapse: collapse;">
+                <tr>
+                    <td width="85%" style="padding: 10px; font-size: 14px; text-transform: uppercase; font-weight: bold;">
+                        ESTIMADO CLIENTE DESPUES DE OCHO DIAS CALENDARIO NO SE ACEPTAN RECLAMOS NI DEVOLUCIONES
+                    </td>
+                    <td width="15%" style="text-align: center; background: #fff; border-top: 1px solid #6B7280; border-left: 1px solid #6B7280; border-bottom-right-radius: 15px; vertical-align: middle; line-height: 0;">
+                        @if($invoice->seller->custom_fields['cloning_qr'] ?? false)
+                            {!! $invoice->seller->custom_fields['cloning_qr'] !!}
+                        @endif
+                    </td>
+                </tr>
+            </table>
         
         @if($invoice->notes)
             <p class="clase_table text-uppercase">

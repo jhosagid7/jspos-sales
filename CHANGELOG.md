@@ -1,3 +1,15 @@
+## [1.9.46] - 2026-04-06
+### Added
+- **Optimización de QR de Clonación**: Rediseño del código QR de clonación (SALE/ORD) con tamaño reducido (2x2) y centrado perfecto en el área de disclaimer. Se eliminó el texto redundante para un acabado más limpio y profesional.
+
+### Fixed
+- **Precisión Financiera (Subtotal)**: Se corrigió la discrepancia de redondeo en el ticket térmico; ahora el Subtotal y el IVA mantienen sus decimales y coinciden exactamente con el Total facturado.
+- **Protección contra Scanner (Atajos)**: Se reforzó el bloqueo del atajo `Shift+D` durante el escaneo de órdenes (ORD) para evitar que se abran modales de cliente de forma accidental.
+- **Diseño de PDFs (Limpieza)**: Se eliminó el campo duplicado de "Total Amount" que aparecía en las cabeceras de los archivos PDF generados.
+
+## [1.9.45] - 2026-04-06
+- **Integridad de Clonación (Scanner)**: Se optimizó el motor de detección de códigos de barra para aceptar el prefijo `ORD:` o `SALE:` con mayor precisión, garantizando que el punto de venta cargue los documentos clonados independientemente de la velocidad del escáner.
+
 ## [1.9.44] - 2026-04-06
 ### Corregido
 - **Persistencia de Órdenes (Pedidos Fantasma)**: Se eliminó el error que mantenía los pedidos en estado "Pendiente" después de facturarlos. Ahora la orden desaparece automáticamente del modal al concretarse la venta, gracias a una nueva lógica de cierre atómico transaccional.
