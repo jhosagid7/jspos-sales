@@ -3673,8 +3673,15 @@ class Sales extends Component
                 }
             }
 
+            // Close the source Order (if any) WITHIN the transaction for atomicity
+            if ($this->order_id) {
+                $this->UpdateStatusOrder($this->order_id, 'processed');
+            }
+
             DB::commit();
 
+            // From here on, side effects (commissions, events) don't block order closure
+            
             // Calculate Commission if paid immediately (Cash/Instant)
             if ($sale->status == 'paid') {
                 \App\Services\CommissionService::calculateCommission($sale);
@@ -3686,9 +3693,8 @@ class Sales extends Component
             // Limpiar la variable de sesión
             session()->forget('payments');
 
-            $this->order_id ? $this->UpdateStatusOrder($this->order_id, 'processed') : '';
-
             $this->dispatch('noty', msg: 'VENTA REGISTRADA CON ÉXITO');
+
             $this->dispatch('close-modalPay', element: $type == 3 ? 'modalDeposit' : ($type == 4 ? 'modalNequi' : 'modalCash'));
             $this->resetExcept('config', 'banks', 'bank', 'warehouses', 'drivers', 'sellers');
             $this->clear();
