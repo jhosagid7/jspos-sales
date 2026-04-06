@@ -50,7 +50,7 @@ trait PdfOrderInvoiceTrait
             $config = Configuration::first();
 
             if ($config) {
-
+                $order->loadMissing(['customer.seller.banks', 'user', 'details.product', 'details.order']);
                 $footerData = $this->getOrderInvoiceFooterData($order);
 
                 $seller = new Party([
@@ -63,6 +63,7 @@ trait PdfOrderInvoiceTrait
                     'custom_fields' => [
                         'email'         => $order->customer->email,
                         'vendedor'      => $order->customer->seller ? $order->customer->seller->name : 'N/A',
+                        'vendedor_banks' => $order->customer->seller ? $order->customer->seller->banks : collect(),
                         'operador'      => $order->user->name,
                         'footer_code'   => $footerData['footer_code'],
                         'footer_data'   => $footerData
@@ -115,7 +116,7 @@ trait PdfOrderInvoiceTrait
                     // ->filename($seller->name . ' ' . $customer->name)
                     ->addItems($items)
                     ->notes($notes)
-                    ->logo($config->logo ? public_path('storage/' . $config->logo) : public_path('logo/logo.jpg'))
+                    ->logo($config->logo && file_exists(public_path('storage/' . $config->logo)) ? public_path('storage/' . $config->logo) : public_path('logo/logo.jpg'))
                     // You can additionally save generated invoice to configured disk
                     ->save('public');
 
@@ -139,8 +140,7 @@ trait PdfOrderInvoiceTrait
             $config = Configuration::first();
 
             if ($config) {
-
-                // $order = Sale::with(['customer', 'user', 'details', 'details.product'])->find($sale->id);
+                $order->loadMissing(['customer.seller.banks', 'user', 'details.product', 'details.order']);
 
                 $footerData = $this->getOrderInvoiceFooterData($order);
 
@@ -154,6 +154,7 @@ trait PdfOrderInvoiceTrait
                     'custom_fields' => [
                         'email'         => $order->customer->email,
                         'vendedor'      => $order->customer->seller ? $order->customer->seller->name : 'N/A',
+                        'vendedor_banks' => $order->customer->seller ? $order->customer->seller->banks : collect(),
                         'operador'      => $order->user->name,
                         'footer_code'   => $footerData['footer_code'],
                         'footer_data'   => $footerData
@@ -206,7 +207,7 @@ trait PdfOrderInvoiceTrait
                     // ->filename($seller->name . ' ' . $customer->name)
                     ->addItems($items)
                     ->notes($notes)
-                    ->logo($config->logo ? public_path('storage/' . $config->logo) : public_path('logo/logo.jpg'))
+                    ->logo($config->logo && file_exists(public_path('storage/' . $config->logo)) ? public_path('storage/' . $config->logo) : public_path('logo/logo.jpg'))
                     // You can additionally save generated invoice to configured disk
                     ->save('public');
 

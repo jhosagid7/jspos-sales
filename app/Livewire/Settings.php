@@ -427,10 +427,37 @@ class Settings extends Component
     public $banks = [];
     public $newBankName;
     public $newBankCurrency;
+    public $newBankAccountNumber;
+    public $newBankCedula;
+    public $newBankPhone;
+    public $account_holder;
+    public $selectedBankId = null; // Para rastrear si estamos editando
 
     public function loadBanks()
     {
         $this->banks = \App\Models\Bank::orderBy('sort')->get();
+    }
+
+    public function editBank($id)
+    {
+        $bank = \App\Models\Bank::find($id);
+        if ($bank) {
+            $this->selectedBankId = $bank->id;
+            $this->newBankName = $bank->name;
+            $this->newBankCurrency = $bank->currency_code;
+            $this->newBankAccountNumber = $bank->account_number;
+            $this->newBankCedula = $bank->cedula;
+            $this->newBankPhone = $bank->phone;
+            $this->account_holder = $bank->account_holder;
+            
+            $this->dispatch('noty', msg: 'Datos del banco cargados para editar');
+        }
+    }
+
+    public function resetBankForm()
+    {
+        $this->reset(['newBankName', 'newBankCurrency', 'newBankAccountNumber', 'newBankCedula', 'newBankPhone', 'account_holder', 'selectedBankId']);
+        $this->resetValidation();
     }
 
     public function addBank()
@@ -438,19 +465,45 @@ class Settings extends Component
         $this->validate([
             'newBankName' => 'required|string|max:255',
             'newBankCurrency' => 'required|string|max:3',
+            'newBankAccountNumber' => 'required|string|max:255',
+            'newBankCedula' => 'required|string|max:255',
+            'newBankPhone' => 'required|string|max:255',
+            'account_holder' => 'required|string|max:255',
+        ], [
+            'newBankAccountNumber.required' => 'El número de cuenta es obligatorio',
+            'newBankCedula.required' => 'La cédula es obligatoria',
+            'newBankPhone.required' => 'El teléfono es obligatorio',
+            'account_holder.required' => 'El titular es obligatorio',
         ]);
 
-        \App\Models\Bank::create([
-            'name' => strtoupper($this->newBankName),
-            'currency_code' => $this->newBankCurrency,
-            'sort' => \App\Models\Bank::count() + 1,
-            'state' => 1
-        ]);
+        if ($this->selectedBankId) {
+            $bank = \App\Models\Bank::find($this->selectedBankId);
+            $bank->update([
+                'name' => strtoupper($this->newBankName),
+                'currency_code' => $this->newBankCurrency,
+                'account_number' => $this->newBankAccountNumber,
+                'cedula' => $this->newBankCedula,
+                'phone' => $this->newBankPhone,
+                'account_holder' => $this->account_holder,
+            ]);
+            $msg = 'Banco actualizado con éxito.';
+        } else {
+            \App\Models\Bank::create([
+                'name' => strtoupper($this->newBankName),
+                'currency_code' => $this->newBankCurrency,
+                'account_number' => $this->newBankAccountNumber,
+                'cedula' => $this->newBankCedula,
+                'phone' => $this->newBankPhone,
+                'account_holder' => $this->account_holder,
+                'sort' => \App\Models\Bank::count() + 1,
+                'state' => 1
+            ]);
+            $msg = 'Banco agregado con éxito.';
+        }
 
-        $this->newBankName = '';
-        $this->newBankCurrency = '';
+        $this->resetBankForm();
         $this->loadBanks();
-        $this->dispatch('noty', msg: 'Banco agregado con éxito.');
+        $this->dispatch('noty', msg: $msg);
     }
 
     public function deleteBank($bankId)

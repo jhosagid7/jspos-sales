@@ -78,6 +78,7 @@ trait PdfInvoiceTrait
                     'custom_fields' => [
                         'email'         => $sale->customer->email,
                         'vendedor'        => $sale->customer->seller ? $sale->customer->seller->name : 'N/A',
+                        'vendedor_banks' => $sale->customer->seller ? $sale->customer->seller->banks : collect(),
                         'operador'        => $sale->user->name,
                         'footer_code'    => $footerData['footer_code'],
                         'footer_data'    => $footerData
@@ -259,6 +260,7 @@ trait PdfInvoiceTrait
                     'custom_fields' => [
                         'email'         => $sale->customer->email,
                         'vendedor'        => $sale->customer->seller ? $sale->customer->seller->name : 'N/A',
+                        'vendedor_banks' => $sale->customer->seller ? $sale->customer->seller->banks : collect(),
                         'operador'        => $sale->user->name,
                         'footer_code'    => $footerData['footer_code'],
                         'footer_data'    => $footerData
@@ -399,6 +401,7 @@ trait PdfInvoiceTrait
                     'custom_fields' => [
                         'email'         => $sale->customer->email,
                         'vendedor'        => $sale->customer->seller ? $sale->customer->seller->name : 'N/A',
+                        'vendedor_banks' => $sale->customer->seller ? $sale->customer->seller->banks : collect(),
                         'operador'        => $sale->user->name,
                         'footer_code'    => $footerData['footer_code'],
                         'footer_data'    => $footerData
@@ -561,6 +564,7 @@ trait PdfInvoiceTrait
                     'custom_fields' => [
                         'email'         => $sale->customer->email,
                         'vendedor'        => $sale->customer->seller ? $sale->customer->seller->name : 'N/A',
+                        'vendedor_banks' => $sale->customer->seller ? $sale->customer->seller->banks : collect(),
                         'operador'        => $sale->user->name,
                         'footer_code'    => $footerData['footer_code'],
                         'footer_data'    => $footerData
@@ -792,7 +796,7 @@ trait PdfInvoiceTrait
     //             $printer->setJustification(Printer::JUSTIFY_CENTER);
     //             $printer->setTextSize(2, 2);
 
-    //             $printer->text(strtoupper($config->business_name) . "\n");
+    //             $printer->text(strtoupper($config->ビジネス_name) . "\n");
 
     //             $printer->setTextSize(1, 1);
     //             $printer->text("$config->address \n");

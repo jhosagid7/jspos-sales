@@ -643,6 +643,43 @@
                 </table>
             </div>
 
+            {{-- Bank Information Box --}}
+            @php
+                $vendedorBanks = $invoice->seller->custom_fields['vendedor_banks'] ?? collect();
+            @endphp
+
+            @if(count($vendedorBanks) > 0)
+            <div style="margin-top: 15px; border: 1px solid #0380b2; border-radius: 10px; overflow: hidden; margin-bottom: 10px;">
+                <div style="background: #0380b2; color: #fff; padding: 5px 10px; font-weight: bold; text-transform: uppercase; font-size: 13px;">
+                    Instrucciones de Pago / Cuentas Bancarias Autorizadas
+                </div>
+                <div style="padding: 10px; background: #f0f9ff;">
+                    <table width="100%" style="font-size: 11px; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th align="left" style="border-bottom: 1px solid #0380b2; padding-bottom: 5px;">Banco</th>
+                                <th align="left" style="border-bottom: 1px solid #0380b2; padding-bottom: 5px;">Titular</th>
+                                <th align="left" style="border-bottom: 1px solid #0380b2; padding-bottom: 5px;">Número de Cuenta</th>
+                                <th align="left" style="border-bottom: 1px solid #0380b2; padding-bottom: 5px;">Documento / Cédula</th>
+                                <th align="left" style="border-bottom: 1px solid #0380b2; padding-bottom: 5px;">Pago Móvil</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($vendedorBanks as $bank)
+                            <tr>
+                                <td style="padding: 5px 0; border-bottom: 1px solid #e5e7eb;">{{ $bank->name }}</td>
+                                <td style="padding: 5px 0; border-bottom: 1px solid #e5e7eb;">{{ $bank->account_holder }}</td>
+                                <td style="padding: 5px 0; border-bottom: 1px solid #e5e7eb;"><strong>{{ $bank->account_number }}</strong></td>
+                                <td style="padding: 5px 0; border-bottom: 1px solid #e5e7eb;">{{ $bank->cedula }}</td>
+                                <td style="padding: 5px 0; border-bottom: 1px solid #e5e7eb;">{{ $bank->phone }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @endif
+
             {{-- Bottom Box: Disclaimer (Attached to top box) --}}
             <div style="border: 1px solid #6B7280; border-top: 1px solid #6B7280; margin-top: 0px; background: #ADD8E6; padding: 5px 10px; font-size: 14px; text-transform: uppercase; font-weight: bold; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px; color: #000;">
                 ESTIMADO CLIENTE DESPUES DE OCHO DIAS CALENDARIO NO SE ACEPTAN RECLAMOS NI DEVOLUCIONES

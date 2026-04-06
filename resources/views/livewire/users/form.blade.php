@@ -77,6 +77,20 @@
                     </li>
                     @endif
                     @endmodule
+
+                    {{-- Tab 6: Bancos (Solo para vendedores) --}}
+                    @if($this->isSeller($user->profile))
+                    <li class="nav-item mb-2">
+                        <a class="nav-link {{ $tab == 6 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                           wire:click.prevent="$set('tab',6)" href="#">
+                            <i class="fa fa-university fa-2x"></i>
+                            <div>
+                                <h6 class="mb-0">Bancos Habilitados</h6>
+                                <small class="{{ $tab == 6 ? 'text-white' : 'text-muted' }}">Cuentas para Facturas</small>
+                            </div>
+                        </a>
+                    </li>
+                    @endif
                 </ul>
             </div>
 
@@ -457,6 +471,149 @@
                         </div>
                     </div>
                     @endmodule
+
+                    {{-- Tab 6: Bancos --}}
+                    @if($this->isSeller($user->profile))
+                    <div class="tab-pane fade {{ $tab == 6 ? 'active show' : '' }}" role="tabpanel">
+                        <div class="sidebar-body">
+                            <div class="row g-2">
+                                <div class="col-sm-12">
+                                    <h6 class="text-info mb-3">
+                                        <i class="fa fa-university"></i> Cuentas Bancarias Autorizadas
+                                    </h6>
+                                    <p class="text-muted small">Seleccione las cuentas que aparecerán en la factura de este vendedor:</p>
+                                </div>
+                                <div class="col-sm-12">
+                                    <div class="row g-3">
+                                        @forelse($allBanks as $bank)
+                                        <div class="col-lg-6 col-md-6 col-sm-12">
+                                            <div class="bank-card-container">
+                                                <input wire:model="selectedBanks" 
+                                                       class="bank-checkbox" 
+                                                       type="checkbox" 
+                                                       value="{{ $bank->id }}" 
+                                                       id="bankSelect{{ $bank->id }}">
+                                                <label class="bank-card-label" for="bankSelect{{ $bank->id }}">
+                                                    <div class="bank-card-header d-flex align-items-center mb-2">
+                                                        <div class="bank-avatar-initial">{{ substr($bank->name, 0, 1) }}</div>
+                                                        <div class="flex-grow-1 ms-2">
+                                                            <strong class="bank-name text-uppercase">{{ $bank->name }}</strong>
+                                                            <span class="badge {{ $bank->currency_code == 'USD' ? 'bg-success' : ($bank->currency_code == 'COP' ? 'bg-warning' : 'bg-primary') }} float-end" style="font-size: 8px;">{{ $bank->currency_code }}</span>
+                                                        </div>
+                                                    </div>
+                                                    @if($bank->account_holder)
+                                                    <div class="bank-holder mb-1">
+                                                        <i class="fa fa-user-circle small text-muted me-1"></i>
+                                                        <span class="small fw-bold text-dark">{{ $bank->account_holder }}</span>
+                                                    </div>
+                                                    @endif
+                                                    <div class="bank-details p-2 bg-light rounded text-center" style="border: 1px dashed #ced4da;">
+                                                        <code class="bank-account-number text-dark" style="font-size: 11px;">{{ $bank->account_number }}</code>
+                                                    </div>
+                                                    @if($bank->phone)
+                                                    <div class="mt-2 text-end">
+                                                        <span class="small badge text-muted bg-white border"><i class="fa fa-mobile ms-1"></i> {{ $bank->phone }}</span>
+                                                    </div>
+                                                    @endif
+                                                    <div class="card-selection-marker">
+                                                        <i class="fa fa-check-circle"></i>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        @empty
+                                        <div class="col-12">
+                                            <div class="alert alert-light-warning text-dark border-warning text-center p-4">
+                                                <div class="mb-2"><i class="fa fa-university fa-3x text-warning opacity-25"></i></div>
+                                                <h6>No hay bancos registrados en el sistema.</h6>
+                                                <p class="small mb-0">Primero configure los bancos en el panel de configuración global.</p>
+                                            </div>
+                                        </div>
+                                        @endforelse
+                                    </div>
+                                </div>
+                                <style>
+                                    .bank-card-container {
+                                        position: relative;
+                                    }
+                                    .bank-checkbox {
+                                        display: none;
+                                    }
+                                    .bank-card-label {
+                                        display: block;
+                                        background: #fff;
+                                        border: 2px solid #e5e7eb;
+                                        border-radius: 12px;
+                                        padding: 15px;
+                                        cursor: pointer;
+                                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                                        position: relative;
+                                        overflow: hidden;
+                                        min-height: 140px;
+                                        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+                                    }
+                                    .bank-card-label:hover {
+                                        border-color: #0380b2;
+                                        transform: translateY(-3px);
+                                        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+                                    }
+                                    .bank-checkbox:checked + .bank-card-label {
+                                        background-color: #f0f9ff;
+                                        border-color: #0380b2;
+                                        box-shadow: 0 0 0 1px #0380b2 inset, 0 8px 16px -4px rgba(3, 128, 178, 0.2);
+                                    }
+                                    .bank-avatar-initial {
+                                        width: 32px;
+                                        height: 32px;
+                                        background: #f3f4f6;
+                                        color: #6b7280;
+                                        border-radius: 50%;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        font-weight: bold;
+                                        font-size: 14px;
+                                        border: 1px solid #e5e7eb;
+                                    }
+                                    .bank-checkbox:checked + .bank-card-label .bank-avatar-initial {
+                                        background: #0380b2;
+                                        color: #fff;
+                                        border-color: #0380b2;
+                                    }
+                                    .card-selection-marker {
+                                        position: absolute;
+                                        top: -20px;
+                                        right: -20px;
+                                        background: #0380b2;
+                                        color: #fff;
+                                        width: 40px;
+                                        height: 40px;
+                                        display: flex;
+                                        align-items: flex-end;
+                                        justify-content: flex-start;
+                                        padding: 5px;
+                                        border-radius: 50%;
+                                        transform: rotate(45deg);
+                                        transition: all 0.3s ease;
+                                        opacity: 0;
+                                    }
+                                    .bank-checkbox:checked + .bank-card-label .card-selection-marker {
+                                        opacity: 1;
+                                        top: -15px;
+                                        right: -15px;
+                                    }
+                                    .card-selection-marker i {
+                                        transform: rotate(-45deg);
+                                        font-size: 14px;
+                                        margin-left: 5px;
+                                        margin-bottom: 5px;
+                                    }
+                                </style>
+
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                 </div>
             </div>
         </div>

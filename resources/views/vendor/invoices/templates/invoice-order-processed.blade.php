@@ -547,9 +547,110 @@
 
 
 
-            <p class="box-disclaimer">
+            {{-- Conditions Block - Compact & Professional --}}
+            @php
+                $footerData = $invoice->seller->custom_fields['footer_data'] ?? [];
+                $usdDiscount = $footerData['usd_discount'] ?? 0;
+                $discountRules = $footerData['discount_rules'] ?? [];
+                $creditDays = $footerData['credit_days'] ?? 0;
+            @endphp
+    
+            {{-- Top Box: Conditions (No bottom border/radius) --}}
+            <div style="margin-bottom: 0px; font-size: 9px; line-height: 1.2; border: 1px solid #6B7280; border-bottom: none; background-color: #f9fafb; padding: 10px; border-top-left-radius: 15px; border-top-right-radius: 15px;">
+                <table width="100%" style="border-collapse: collapse;">
+                    <tr>
+                        <td width="60%" valign="top" style="padding-right: 10px;">
+                            <strong style="color: #0380b2; font-size: 10px; text-transform: uppercase; display: block; margin-bottom: 4px;">Condiciones de Pagos</strong>
+                            
+                            @if($usdDiscount > 0)
+                                <div style="margin-bottom: 3px;">
+                                    <span style="color: #0380b2;">•</span> <strong>Descuento Base:</strong> {{ number_format($usdDiscount, 0) }}% de descuento en divisas.
+                                </div>
+                            @endif
+                
+                            @if(count($discountRules) > 0)
+                                @foreach($discountRules as $rule)
+                                @php
+                                    $dPercent = is_array($rule) ? ($rule['percent'] ?? 0) : ($rule->discount_percentage ?? 0);
+                                    $dDaysTo = is_array($rule) ? ($rule['days'] ?? 0) : ($rule->days_to ?? 0);
+                                    $dDaysFrom = is_array($rule) ? 0 : ($rule->days_from ?? 0);
+                                @endphp
+                
+                                    @if($dDaysFrom == 0)
+                                         <div style="margin-bottom: 3px;">
+                                            <span style="color: #0380b2;">•</span> <strong>{{ number_format($dPercent, 0) }}% Pronto Pago:</strong> primeros <strong>{{ $dDaysTo }}</strong> días.
+                                         </div>
+                                    @else
+                                         <div style="margin-bottom: 3px;">
+                                            <span style="color: #0380b2;">•</span> <strong>{{ number_format($dPercent, 0) }}% Pronto Pago:</strong> días <strong>{{ $dDaysFrom }}</strong> a <strong>{{ $dDaysTo ?? '+' }}</strong>.
+                                         </div>
+                                    @endif
+                                @endforeach
+                            @endif
+                        </td>
+                        
+                        <td width="40%" valign="top" style="border-left: 1px solid #e5e7eb; padding-left: 10px;">
+                            @if($creditDays > 0)
+                            <div style="margin-bottom: 5px;">
+                                <strong>Vencimiento:</strong> {{ $creditDays }} días tras entrega.
+                            </div>
+                            <div>
+                                <strong>Mora:</strong> Aplica después de {{ $creditDays }} días.
+                                <br><span style="color: #6b7280; font-style: italic;">Agradecemos su puntualidad.</span>
+                            </div>
+                            @else
+                            <div style="margin-top: 10px;">
+                                <strong>CONTADO</strong><br>
+                                <span style="color: #6b7280; font-style: italic;">Sin días de crédito.</span>
+                            </div>
+                            @endif
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            {{-- Bank Information Box --}}
+            @php
+                $vendedorBanks = $invoice->seller->custom_fields['vendedor_banks'] ?? collect();
+            @endphp
+    
+            @if(count($vendedorBanks) > 0)
+            <div style="margin-top: 0px; border: 1px solid #0380b2; border-bottom: none; overflow: hidden; background: #f0f9ff;">
+                <div style="background: #0380b2; color: #fff; padding: 5px 10px; font-weight: bold; text-transform: uppercase; font-size: 10px;">
+                    Instrucciones de Pago / Cuentas Bancarias Autorizadas
+                </div>
+                <div style="padding: 10px;">
+                    <table width="100%" style="font-size: 9px; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th align="left" style="border-bottom: 1px solid #0380b2; padding-bottom: 5px;">Banco</th>
+                                <th align="left" style="border-bottom: 1px solid #0380b2; padding-bottom: 5px;">Titular</th>
+                                <th align="left" style="border-bottom: 1px solid #0380b2; padding-bottom: 5px;">Número de Cuenta</th>
+                                <th align="left" style="border-bottom: 1px solid #0380b2; padding-bottom: 5px;">Documento / Cédula</th>
+                                <th align="left" style="border-bottom: 1px solid #0380b2; padding-bottom: 5px;">Pago Móvil</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($vendedorBanks as $bank)
+                            <tr>
+                                <td style="padding: 3px 0; border-bottom: 1px solid #e5e7eb;">{{ $bank->name }}</td>
+                                <td style="padding: 3px 0; border-bottom: 1px solid #e5e7eb;">{{ $bank->account_holder }}</td>
+                                <td style="padding: 3px 0; border-bottom: 1px solid #e5e7eb;"><strong>{{ $bank->account_number }}</strong></td>
+                                <td style="padding: 3px 0; border-bottom: 1px solid #e5e7eb;">{{ $bank->cedula }}</td>
+                                <td style="padding: 3px 0; border-bottom: 1px solid #e5e7eb;">{{ $bank->phone }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @endif
+    
+            {{-- Bottom Box: Disclaimer (Attached to top box) --}}
+            <div style="border: 1px solid #6B7280; border-top: 1px solid #6B7280; margin-top: 0px; background: #ADD8E6; padding: 5px 10px; font-size: 14px; text-transform: uppercase; font-weight: bold; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px; color: #000;">
                 ESTIMADO CLIENTE LOS PRECIOS Y EXISTENCIAS DE LOS PRODUCTOS ESTÁN SUJETOS A CAMBIOS SIN PREVIO AVISO.
-            </p>
+            </div>
+
 
         @if($invoice->notes)
             <p class="clase_table text-uppercase">

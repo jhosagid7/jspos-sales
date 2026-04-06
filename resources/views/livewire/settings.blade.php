@@ -126,7 +126,7 @@
                         
                         {{-- Tab 10: Actualización Masiva de Precios --}}
                         <li class="nav-item mb-2">
-                            <a class="nav-link {{ $tab == 10 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                            <a class="nav-link {{ $tab == 10 ? 'active show' : '' }} d-flex align-items-center gap-4 p-3" 
                                wire:click.prevent="$set('tab', 10)" href="#">
                                 <i class="fa fa-percent fa-2x"></i>
                                 <div>
@@ -504,57 +504,100 @@
                         <div class="tab-pane fade {{ $tab == 4 ? 'active show' : '' }}" id="banks-settings" role="tabpanel"
                             aria-labelledby="banks-settings-tab">
                             <div class="sidebar-body">
-                                <div class="row g-3">
-                                    <div class="col-12">
-                                        <h6 class="mb-3">Agregar Nuevo Banco</h6>
-                                        <div class="row g-2">
-                                            <div class="col-md-5">
-                                                <label>Nombre del Banco</label>
-                                                <input wire:model="newBankName" type="text" class="form-control" placeholder="Nombre">
-                                                @error('newBankName') <span class="text-danger">{{ $message }}</span> @enderror
-                                            </div>
-                                            <div class="col-md-4">
-                                                <label>Moneda del Banco</label>
-                                                <select wire:model="newBankCurrency" class="form-control">
-                                                    <option value="">Seleccione una moneda</option>
-                                                    @foreach ($currencies as $currency)
-                                                        <option value="{{ $currency->code }}">{{ $currency->code }} - {{ $currency->label }}</option>
-                                                    @endforeach
-                                                </select>
-                                                @error('newBankCurrency') <span class="text-danger">{{ $message }}</span> @enderror
-                                            </div>
-                                            <div class="col-md-3 d-flex align-items-end">
-                                                <button wire:click="addBank" class="btn btn-primary w-100">Agregar Banco</button>
-                                            </div>
+                                <div class="col-12">
+                                    <h6 class="mb-3">{{ $selectedBankId ? 'Editar Banco' : 'Agregar Nuevo Banco' }}</h6>
+                                    <div class="row g-2">
+                                        <div class="col-md-3">
+                                            <label>Nombre del Banco</label>
+                                            <input wire:model="newBankName" type="text" class="form-control" placeholder="Nombre (Banesco, Mercantil...)">
+                                            @error('newBankName') <span class="text-danger small">{{ $message }}</span> @enderror
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>Titular de la Cuenta</label>
+                                            <input wire:model="account_holder" type="text" class="form-control" placeholder="Nombre del titular">
+                                            @error('account_holder') <span class="text-danger small">{{ $message }}</span> @enderror
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label>Moneda del Banco</label>
+                                            <select wire:model="newBankCurrency" class="form-control">
+                                                <option value="">Moneda</option>
+                                                @foreach ($currencies as $currency)
+                                                    <option value="{{ $currency->code }}">{{ $currency->code }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('newBankCurrency') <span class="text-danger small">{{ $message }}</span> @enderror
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>Número de Cuenta</label>
+                                            <input wire:model="newBankAccountNumber" type="text" class="form-control" placeholder="0102...">
+                                            @error('newBankAccountNumber') <span class="text-danger small">{{ $message }}</span> @enderror
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label>Cédula de Identidad</label>
+                                            <input wire:model="newBankCedula" type="text" class="form-control" placeholder="V-12345678">
+                                            @error('newBankCedula') <span class="text-danger small">{{ $message }}</span> @enderror
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label>Pago Móvil</label>
+                                            <input wire:model="newBankPhone" type="text" class="form-control" placeholder="0414...">
+                                            @error('newBankPhone') <span class="text-danger small">{{ $message }}</span> @enderror
+                                        </div>
+                                        <div class="col-12 text-end mt-3">
+                                            @if($selectedBankId)
+                                                <button wire:click="resetBankForm" class="btn btn-outline-secondary me-2">
+                                                    Cancelar
+                                                </button>
+                                                <button wire:click="addBank" class="btn btn-info text-white">
+                                                    <i class="fa fa-save me-1"></i> Actualizar Banco
+                                                </button>
+                                            @else
+                                                <button wire:click="addBank" class="btn btn-primary">
+                                                    <i class="fa fa-plus me-1"></i> Agregar Banco
+                                                </button>
+                                            @endif
                                         </div>
                                     </div>
+                                </div>
 
-                                    <div class="col-12">
-                                        <h6 class="mb-3 mt-3">Bancos Configurados</h6>
-                                        <div class="table-responsive">
-                                            <table class="table table-bordered">
-                                                <thead class="bg-light">
+                                <div class="col-12">
+                                    <h6 class="mb-3 mt-3">Bancos Configurados</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-hover table-bordered">
+                                            <thead class="bg-light">
+                                                <tr>
+                                                    <th>Banco</th>
+                                                    <th>Titular</th>
+                                                    <th>Cuenta</th>
+                                                    <th>Cédula</th>
+                                                    <th>Pago Móvil</th>
+                                                    <th>Moneda</th>
+                                                    <th class="text-center">Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach ($banks as $bank)
                                                     <tr>
-                                                        <th>Nombre</th>
-                                                        <th>Moneda</th>
-                                                        <th>Acciones</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @foreach ($banks as $bank)
-                                                        <tr>
-                                                            <td>{{ $bank->name }}</td>
-                                                            <td>{{ $bank->currency_code }}</td>
-                                                            <td>
-                                                                <button wire:click="deleteBank({{ $bank->id }})" class="btn btn-danger btn-sm">
-                                                                    <i class="fa fa-trash"></i> Eliminar
+                                                        <td><strong class="text-primary">{{ $bank->name }}</strong></td>
+                                                        <td>{{ $bank->account_holder }}</td>
+                                                        <td>{{ $bank->account_number }}</td>
+                                                        <td>{{ $bank->cedula }}</td>
+                                                        <td>{{ $bank->phone }}</td>
+                                                        <td><span class="badge bg-light text-dark">{{ $bank->currency_code }}</span></td>
+                                                        <td class="text-center">
+                                                            <div class="btn-group">
+                                                                <button wire:click="editBank({{ $bank->id }})" class="btn btn-outline-primary btn-sm">
+                                                                    <i class="fa fa-edit"></i>
                                                                 </button>
-                                                            </td>
-                                                        </tr>
-                                                    @endforeach
-                                                </tbody>
-                                            </table>
-                                        </div>
+                                                                <button wire:click="deleteBank({{ $bank->id }})" class="btn btn-outline-danger btn-sm"
+                                                                    onclick="confirm('¿Eliminar este banco?') || event.stopImmediatePropagation()">
+                                                                    <i class="fa fa-trash"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
