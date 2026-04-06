@@ -3434,15 +3434,15 @@ class Sales extends Component
                     Log::info("Sales::storeOrder - Found variable item ID: {$item['product_item_id']}");
                     $prodItem = \App\Models\ProductItem::find($item['product_item_id']);
                     if ($prodItem) {
-                        $newStatus = ($sale->status == 'paid') ? 'sold' : 'reserved';
+                        $newStatus = 'sold'; // FIXED: Invoices must always mark as sold to remove from inventory view
                         $prodItem->status = $newStatus;
                         $saved = $prodItem->save();
-                        Log::info("Sales::storeOrder - Updated status for item {$prodItem->id} to {$newStatus}. Result: " . ($saved ? 'true' : 'false'));
+                        Log::info("Sales::Store - Updated status for item {$prodItem->id} to {$newStatus}. Result: " . ($saved ? 'true' : 'false'));
                     } else {
-                        Log::error("Sales::storeOrder - ProductItem not found for ID: {$item['product_item_id']}");
+                        Log::error("Sales::Store - ProductItem not found for ID: {$item['product_item_id']}");
                     }
                 } else {
-                    Log::info("Sales::storeOrder - Item does not have product_item_id");
+                    Log::info("Sales::Store - Item does not have product_item_id");
                 }
             }
 
@@ -4036,8 +4036,20 @@ class Sales extends Component
 
             // Restaurar stock de productos
             foreach ($sale->details as $detail) {
+                $product = $detail->product; // FIXED: Added missing variable definition
                 if ($product && $product->manage_stock == 1) {
                     $product->increment('stock_qty', $detail->quantity);
+                    
+                    // REPAIR: Also restore specific warehouse stock
+                    if ($detail->warehouse_id) {
+                        $whStock = \App\Models\ProductWarehouse::where('product_id', $detail->product_id)
+                            ->where('warehouse_id', $detail->warehouse_id)
+                            ->first();
+
+                        if ($whStock) {
+                            $whStock->increment('stock_qty', $detail->quantity);
+                        }
+                    }
                 }
 
                 // Restaurar item variable (status -> available)
