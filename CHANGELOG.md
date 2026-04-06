@@ -1,3 +1,8 @@
+## [1.9.44] - 2026-04-06
+### Corregido
+- **Persistencia de Órdenes (Pedidos Fantasma)**: Se eliminó el error que mantenía los pedidos en estado "Pendiente" después de facturarlos. Ahora la orden desaparece automáticamente del modal al concretarse la venta, gracias a una nueva lógica de cierre atómico transaccional.
+- **Flujo de Venta Atómica**: Se sincronizó la creación de la factura con el cierre de la orden primaria, eliminando la necesidad de que el cajero borre pedidos manualmente para liberar el stock.
+
 ## [1.9.43] - 2026-04-06
 ### Corregido
 - **Integridad de Inventario (Crédito)**: Se resolvió la discrepancia donde los productos variables vendidos a crédito seguían apareciendo como "Reservados". Ahora, toda Factura (contado o crédito) marca los ítems como "Vendidos" inmediatamente, reflejando su salida física del almacén.
