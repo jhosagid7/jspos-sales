@@ -129,4 +129,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Customer::class, 'seller_id');
     }
+
+    public function banks()
+    {
+        return $this->belongsToMany(Bank::class);
+    }
 }

@@ -19,6 +19,7 @@ class Users extends Component
     public $user_id, $editing, $search, $pagination = 5, $pwd, $confirm_pwd, $temppwd;
     public $tab = 1; // Tab navigation for sidebar form
     public  $role, $roleSelectedId,  $permissionId, $roles = [];
+    public $selectedBanks = []; // Array of bank IDs for this user
     public $commission_percent = 0, $freight_percent = 0, $exchange_diff_percent = 0, $current_batch = '1';
     public $sellerCommission1Threshold, $sellerCommission1Percentage, $sellerCommission2Threshold, $sellerCommission2Percentage;
     public $discountRules = []; // Array of discount rules for this user (seller)
@@ -108,8 +109,10 @@ class Users extends Component
     public function render()
     {
         $users = $this->loadUsers();
+        $allBanks = \App\Models\Bank::orderBy('name')->get();
         return view('livewire.users.users', [
-            'users' => $users
+            'users' => $users,
+            'allBanks' => $allBanks
         ]);
     }
 
@@ -212,6 +215,9 @@ class Users extends Component
 
         // Load discount rules
         $this->loadDiscountRules();
+
+        // Load selected banks
+        $this->selectedBanks = $user->banks->pluck('id')->toArray();
 
         $this->dispatch('init-new');
     }
@@ -317,6 +323,13 @@ class Users extends Component
             \Illuminate\Support\Facades\Log::info('Store: Saving User...');
             $this->user->save();
             \Illuminate\Support\Facades\Log::info('Store: User Saved', ['id' => $this->user->id]);
+
+            // Sync Banks
+            if ($this->isSeller($this->user->profile)) {
+                $this->user->banks()->sync($this->selectedBanks);
+            } else {
+                $this->user->banks()->detach();
+            }
 
             // Assign/Sync Role
             if ($this->user->profile) {

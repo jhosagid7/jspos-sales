@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.9.42] - 2026-04-06
+### Added
+- **Gestión Bancaria (Titulares)**: Se añadió el campo "Titular de la Cuenta" a la estructura de bancos. Ahora se muestra el nombre oficial del dueño de la cuenta en todos los reportes para mayor seguridad en transferencias.
+- **Diseño Premium Responsivo**: Rediseño total del selector de bancos en el formulario de vendedores con cards interactivas, estados dinámicos y soporte **Mobile-First** obligatorio.
+- **Identidad Local (Pago Móvil)**: Se renombró la etiqueta "Teléfono" a "**Pago Móvil**" en todos los formularios de banco y plantillas PDF para una mejor guía de cobranza.
+
+### Fixed
+- **Blindaje de PDFs (Estabilidad)**: Implementado sistema de validación `file_exists` para logos de empresa. El sistema ahora realiza un fallback automático al logo por defecto si el archivo configurado no existe, eliminando errores 500 (pantalla en blanco) al abrir órdenes.
+- **Optimización de Datos (Eager Loading)**: Se corrigió la carga de relaciones en el motor de PDF para asegurar que los bancos del vendedor aparezcan siempre en órdenes pendientes y procesadas.
+
 ## [1.9.41] - 2026-04-06
 ### Corregido
 - **Creación de Usuarios**: Se corrigió un error crítico de base de datos (SQLSTATE 23000) que impedía la creación de usuarios con roles que no son de venta (como el rol de "Driver"). El sistema ahora inicializa automáticamente los campos de configuración de crédito del vendedor con valores por defecto en lugar de nulos, garantizando la integridad de la base de datos en todas las operaciones de guardado.
