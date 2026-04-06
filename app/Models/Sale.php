@@ -223,6 +223,20 @@ class Sale extends Model
                 ->where('status', 'approved')
                 ->where('created_at', '>=', \Carbon\Carbon::now()->subMinute())
                 ->update(['type' => 'settled']);
+
+            // NEW: Update Variable Items to 'sold' if they were previously 'reserved'
+            foreach ($this->details as $detail) {
+                if ($detail->metadata) {
+                    $meta = json_decode($detail->metadata, true);
+                    if (isset($meta['product_item_id'])) {
+                        $pi = \App\Models\ProductItem::find($meta['product_item_id']);
+                        if ($pi && $pi->status === 'reserved') {
+                            $pi->status = 'sold';
+                            $pi->save();
+                        }
+                    }
+                }
+            }
             
             // COMMISSION CALCULATION (Fix: Use Payment Date)
             $lastPaymentDate = $this->payments->where('status', 'approved')->max('payment_date');
