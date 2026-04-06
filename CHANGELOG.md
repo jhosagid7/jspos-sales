@@ -1,4 +1,7 @@
-# Changelog
+## [1.9.43] - 2026-04-06
+### Corregido
+- **Integridad de Inventario (Crédito)**: Se resolvió la discrepancia donde los productos variables vendidos a crédito seguían apareciendo como "Reservados". Ahora, toda Factura (contado o crédito) marca los ítems como "Vendidos" inmediatamente, reflejando su salida física del almacén.
+- **Restauración de Stock (Cancelaciones)**: Se reparó un error crítico en el motor de anulaciones que impedía devolver las cantidades al stock disponible tras cancelar una venta. El sistema ahora garantiza la bidireccionalidad total de los inventarios (Maestro y Depósitos) en procesos de anulación.
 
 ## [1.9.42] - 2026-04-06
 ### Added
