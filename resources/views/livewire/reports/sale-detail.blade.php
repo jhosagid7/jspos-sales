@@ -3,7 +3,7 @@
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <div class="p-1 modal-header bg-info">
-                    <h5 class="modal-title">Detalles de la venta #{{ $sale_id }}</h5>
+                    <h5 class="modal-title">Detalles de la venta #{{ $salesObt->invoice_number ?? $sale_id }}</h5>
                     <button class="py-0 btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 

@@ -1,4 +1,23 @@
-## [1.9.46] - 2026-04-06
+# Changelog
+All notable changes to this project will be documented in this file.
+
+## [1.9.48] - 2026-04-06
+### Added
+- **Garantía Correlativa Sin Saltos**: Se blindó el motor de folios para que use un contador transaccional (`lockForUpdate`). Esto garantiza que **nunca** existan huecos en la numeración (1, 2, 3, 4...), incluso si una transacción falla, manteniendo siempre la concordancia 1:1 con el ID.
+- **Auto-Calibración en Actualización**: Nueva migración de base de datos que alinea automáticamente los contadores de configuración con el ID más alto de las tablas, facilitando la transición automática para todos los clientes.
+
+## [1.9.47] - 2026-04-06
+### Added
+- Feature: Ventas y Órdenes ahora tienen un Folio (invoice_number) armonizado 1:1 con el ID de la base de datos de forma automática.
+- Migración de base de datos integrada para sincronizar números de folio en registros históricos sin intervención manual.
+
+### Fixed
+- **Armonización de Folio vs ID**: Se eliminó el desfase entre el número de venta ("#731") y el folio ("F00000724"). Ahora ambos coincidirán permanentemente (ej: ID 731 = Folio F00000731).
+- **Consistencia en PDF/Reportes**: Se actualizó el motor de reportes y generación de PDFs para que utilicen el folio formateado directamente.
+- **Búsqueda Avanzada**: Se optimizó la búsqueda en los reportes de ventas para que localice registros por ID o Folio indistintamente y con mayor precisión.
+- **Detalle de Venta**: El título del modal de detalles ahora refleja fielmente el folio de facturación.
+
+
 ### Added
 - **Optimización de QR de Clonación**: Rediseño del código QR de clonación (SALE/ORD) con tamaño reducido (2x2) y centrado perfecto en el área de disclaimer. Se eliminó el texto redundante para un acabado más limpio y profesional.
 

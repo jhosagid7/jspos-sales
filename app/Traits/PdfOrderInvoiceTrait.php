@@ -102,7 +102,7 @@ trait PdfOrderInvoiceTrait
                     // in case it was paid
                     ->status(__('invoices::invoice.order_processed'))
                     ->sequence($order->id)
-                    ->serialNumberFormat('{SEQUENCE}')
+                    ->serialNumberFormat($order->order_number)
                     ->seller($seller)
                     ->buyer($customer)
                     // ->date(now()->subWeeks(3))
@@ -194,7 +194,7 @@ trait PdfOrderInvoiceTrait
                     // in case it was paid
                     ->status(__('invoices::invoice.order_pending'))
                     ->sequence($order->id)
-                    ->serialNumberFormat('{SEQUENCE}')
+                    ->serialNumberFormat($order->order_number)
                     ->seller($seller)
                     ->buyer($customer)
                     // ->date(now()->subWeeks(3))

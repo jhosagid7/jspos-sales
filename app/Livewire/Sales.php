@@ -3227,10 +3227,10 @@ class Sales extends Component
             $totalUSD = $this->totalCart / $primaryCurrency->exchange_rate;
 
             // Generate Invoice Number
-            $config = Configuration::lockForUpdate()->first();
-            $config->invoice_sequence += 1;
-            $config->save();
-            $invoiceNumber = 'F' . str_pad($config->invoice_sequence, 8, '0', STR_PAD_LEFT);
+            $config_inv = Configuration::lockForUpdate()->first();
+            $config_inv->invoice_sequence += 1;
+            $config_inv->save();
+            $invoiceNumber = 'F' . str_pad($config_inv->invoice_sequence, 8, '0', STR_PAD_LEFT);
 
             // Get Order Number if exists
             $orderNumber = null;
@@ -3908,10 +3908,10 @@ class Sales extends Component
                 }
             } else {
                 // Generate Order Number
-                $config = Configuration::lockForUpdate()->first();
-                $config->order_sequence += 1;
-                $config->save();
-                $orderNumber = 'P' . str_pad($config->order_sequence, 8, '0', STR_PAD_LEFT);
+                $config_ord = Configuration::lockForUpdate()->first();
+                $config_ord->order_sequence += 1;
+                $config_ord->save();
+                $orderNumber = 'P' . str_pad($config_ord->order_sequence, 8, '0', STR_PAD_LEFT);
 
                 // Crea una nueva orden
                 $order = Order::create([

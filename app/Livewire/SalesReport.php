@@ -98,15 +98,10 @@ class SalesReport extends Component
                 })
                 ->when(!empty(trim($this->searchFactura)), function ($query) {
                     $searchValue = trim($this->searchFactura);
-                    $saleId = 0;
-                    if (is_numeric($searchValue)) {
-                        $saleId = (int)$searchValue;
-                    } elseif (preg_match('/^[Ff]0*([1-9][0-9]*)$/', $searchValue, $matches)) {
-                        $saleId = (int)$matches[1];
-                    }
-                    if ($saleId > 0) {
-                        $query->where('id', $saleId);
-                    }
+                    $query->where(function($q) use ($searchValue) {
+                        $q->where('id', 'like', "%{$searchValue}%")
+                          ->orWhere('invoice_number', 'like', "%{$searchValue}%");
+                    });
                 })
                 ->when($this->type != 0, function ($qry) {
                     $qry->where('type', $this->type);
@@ -134,15 +129,10 @@ class SalesReport extends Component
                 })
                 ->when(!empty(trim($this->searchFactura)), function ($query) {
                     $searchValue = trim($this->searchFactura);
-                    $saleId = 0;
-                    if (is_numeric($searchValue)) {
-                        $saleId = (int)$searchValue;
-                    } elseif (preg_match('/^[Ff]0*([1-9][0-9]*)$/', $searchValue, $matches)) {
-                        $saleId = (int)$matches[1];
-                    }
-                    if ($saleId > 0) {
-                        $query->where('id', $saleId);
-                    }
+                    $query->where(function($q) use ($searchValue) {
+                        $q->where('id', 'like', "%{$searchValue}%")
+                          ->orWhere('invoice_number', 'like', "%{$searchValue}%");
+                    });
                 })
                 ->when($this->type != 0, function ($qry) {
                     $qry->where('type', $this->type);
