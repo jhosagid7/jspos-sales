@@ -304,16 +304,15 @@ class Users extends Component
                 }
             }
 
-            // Defaults for new user if not set
-            if(!$this->user->exists) {
-                // $this->user->profile passed validation, so it has a value (e.g., 'Admin')
-                // validation rules for commission_percentage handled?
-                if($this->user->commission_percentage == null) $this->user->commission_percentage = 0;
-                if($this->user->is_network == null) $this->user->is_network = 0;
-                
-                // Fix: Initialize seller fields for new user
-                if($this->user->seller_allow_credit == null) $this->user->seller_allow_credit = 0;
-            }
+            // Defaults failsafe: Ensure critical DB columns are NOT null before saving to avoid SQL errors
+            if($this->user->commission_percentage == null) $this->user->commission_percentage = 0;
+            if($this->user->is_network == null) $this->user->is_network = 0;
+            if($this->user->seller_allow_credit == null) $this->user->seller_allow_credit = 0;
+            if($this->user->seller_credit_days == null) $this->user->seller_credit_days = 0;
+            if($this->user->seller_credit_limit == null) $this->user->seller_credit_limit = 0;
+            if($this->user->seller_usd_payment_discount == null) $this->user->seller_usd_payment_discount = 0;
+            if($this->user->seller_usd_payment_discount_tag == null) $this->user->seller_usd_payment_discount_tag = 'PD';
+            if($this->user->sales_view_mode == null) $this->user->sales_view_mode = 'grid';
             
             \Illuminate\Support\Facades\Log::info('Store: Saving User...');
             $this->user->save();

@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.9.41] - 2026-04-06
+### Corregido
+- **Creación de Usuarios**: Se corrigió un error crítico de base de datos (SQLSTATE 23000) que impedía la creación de usuarios con roles que no son de venta (como el rol de "Driver"). El sistema ahora inicializa automáticamente los campos de configuración de crédito del vendedor con valores por defecto en lugar de nulos, garantizando la integridad de la base de datos en todas las operaciones de guardado.
+
 ## [1.9.40] - 2026-04-01
 ### Corregido
 - **Relación de Pagos:** Se corrigió bug donde pagos aprobados hoy pero subidos ayer aparecían en el reporte de ayer. Ahora al aprobar se mueven a la planilla de hoy.
