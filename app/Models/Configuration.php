@@ -61,6 +61,8 @@ class Configuration extends Model
         'sales_view_mode',
         'enable_shared_cash_register',
         'price_list_show_info_block',
+        'catalogue_show_prices',
+        'catalogue_show_base_prices',
     ];
 
     protected $casts = [
@@ -69,6 +71,8 @@ class Configuration extends Model
         'is_network' => 'boolean',
         'enable_shared_cash_register' => 'boolean',
         'price_list_show_info_block' => 'boolean',
+        'catalogue_show_prices' => 'boolean',
+        'catalogue_show_base_prices' => 'boolean',
     ];
 
     public function defaultWarehouse()

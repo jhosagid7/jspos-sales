@@ -15,6 +15,7 @@ class Settings extends Component
     public $globalCommission1Threshold, $globalCommission1Percentage, $globalCommission2Threshold, $globalCommission2Percentage;
     public $globalAllowCredit, $globalCreditDays, $globalCreditLimit, $globalUsdPaymentDiscount, $globalUsdPaymentDiscountTag;
     public $enableSharedCashRegister; // Nuevo: Caja Compartida
+    public $catalogueShowPrices, $catalogueShowBasePrices;
     public $discountRules = [];
 
     public $logo, $logo_preview; // Logo properties
@@ -133,6 +134,8 @@ class Settings extends Component
             $this->globalUsdPaymentDiscount = $config->global_usd_payment_discount;
             $this->globalUsdPaymentDiscountTag = $config->global_usd_payment_discount_tag ?? 'PD';
             $this->enableSharedCashRegister = (bool) $config->enable_shared_cash_register;
+            $this->catalogueShowPrices = (bool) $config->catalogue_show_prices;
+            $this->catalogueShowBasePrices = (bool) $config->catalogue_show_base_prices;
             
             // Global Rates
             $this->bcvRate = $config->bcv_rate;
@@ -276,6 +279,8 @@ class Settings extends Component
                 'license_notification_email' => trim($this->licenseNotificationEmail),
                 'license_request_email' => trim($this->licenseRequestEmail),
                 'enable_shared_cash_register' => $this->enableSharedCashRegister ? 1 : 0,
+                'catalogue_show_prices' => $this->catalogueShowPrices ? 1 : 0,
+                'catalogue_show_base_prices' => $this->catalogueShowBasePrices ? 1 : 0,
             ];
 
             // Handle Logo Upload

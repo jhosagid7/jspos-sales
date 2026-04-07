@@ -135,6 +135,17 @@
                                 </div>
                             </a>
                         </li>
+                        {{-- Tab 11: Catálogo --}}
+                        <li class="nav-item mb-2">
+                            <a class="nav-link {{ $tab == 11 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                               wire:click.prevent="$set('tab',11)" href="#">
+                                <i class="fa fa-book fa-2x"></i>
+                                <div>
+                                    <h6 class="mb-0">Catálogo</h6>
+                                    <small class="{{ $tab == 11 ? 'text-white' : 'text-muted' }}">Configuración de PDF</small>
+                                </div>
+                            </a>
+                        </li>
                     </ul>
                 </div>
 
@@ -995,6 +1006,47 @@
                             aria-labelledby="bulk-price-settings-tab">
                             <div class="sidebar-body">
                                 <livewire:settings.bulk-price-update />
+                            </div>
+                        </div>
+
+                        {{-- TAB 11: CONFIGURACIÓN DE CATÁLOGO --}}
+                        <div class="tab-pane fade {{ $tab == 11 ? 'active show' : '' }}" id="catalogue-settings" role="tabpanel"
+                            aria-labelledby="catalogue-settings-tab">
+                            <div class="sidebar-body">
+                                <form class="row g-3">
+                                    <div class="col-12">
+                                        <div class="alert alert-light-primary" role="alert">
+                                            <i class="fas fa-info-circle"></i> Configura la visibilidad de los precios en el catálogo de productos PDF.
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-sm-12 col-md-6">
+                                        <label class="form-label text-uppercase">Precio de Venta</label>
+                                        <div class="form-check form-switch pl-0">
+                                            <div class="custom-control custom-switch">
+                                                <input type="checkbox" class="custom-control-input" id="catalogueShowPrices" wire:model="catalogueShowPrices">
+                                                <label class="custom-control-label" for="catalogueShowPrices">Mostrar precio público en el PDF</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-sm-12 col-md-6">
+                                        <label class="form-label text-uppercase">Precio Base (Referencia)</label>
+                                        <div class="form-check form-switch pl-0">
+                                            <div class="custom-control custom-switch">
+                                                <input type="checkbox" class="custom-control-input" id="catalogueShowBasePrices" wire:model="catalogueShowBasePrices">
+                                                <label class="custom-control-label" for="catalogueShowBasePrices">Mostrar precio base/costo de referencia</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 mt-4">
+                                        <button class="btn btn-primary" wire:click.prevent="saveConfig" wire:loading.attr="disabled">
+                                            <span wire:loading.remove wire:target="saveConfig">Guardar Configuración</span>
+                                            <span wire:loading wire:target="saveConfig">Guardando...</span>
+                                        </button>
+                                    </div>
+                                </form>
                             </div>
                         </div>
 

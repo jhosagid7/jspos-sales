@@ -173,7 +173,17 @@
                                         <div class="product-name">{{ $product->name }}</div>
                                         <div class="product-sku">SKU: {{ $product->sku ?: 'No disponible' }} | {{ $product->presentation ?: 'Unidad' }}</div>
                                         <div class="product-price">
-                                            <span style="font-size: 10pt; font-weight: normal">$</span>{{ number_format($product->price, 2) }}
+                                            @if($config->catalogue_show_prices)
+                                                <div style="margin-bottom: 2px;">
+                                                    <span style="font-size: 10pt; font-weight: normal">$</span>{{ number_format($product->price, 2) }}
+                                                </div>
+                                            @endif
+                                            
+                                            @if($config->catalogue_show_base_prices)
+                                                <div style="font-size: 10pt; color: #4A5568; font-weight: normal; margin-top: 2px;">
+                                                    <span style="font-size: 8pt; color: #A0AEC0;">REF:</span> ${{ number_format($product->cost, 2) }}
+                                                </div>
+                                            @endif
                                         </div>
                                     </div>
                                 </td>
