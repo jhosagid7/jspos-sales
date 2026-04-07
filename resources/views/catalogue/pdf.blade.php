@@ -81,14 +81,14 @@
         .product-card {
             border: 1px solid #E2E8F0;
             border-radius: 8px;
-            padding: 8px;
+            padding: 5px; /* Ultra compact padding */
             background-color: #FFFFFF;
-            min-height: 210px; /* Reduced to eliminate bottom whitespace */
+            min-height: 195px; /* Perfect for 5 rows per page */
         }
         .product-image-container {
             width: 100%;
-            height: 140px; /* Increased to make image more prominent */
-            margin-bottom: 8px;
+            height: 125px; /* Larger than original, smaller than previous polish to fit 5 rows */
+            margin-bottom: 5px;
             background-color: #F8FAFC;
             text-align: center;
             display: block;
@@ -101,20 +101,20 @@
             display: inline-block;
         }
         .product-name {
-            font-size: 9.5pt; /* More compact for density */
+            font-size: 9pt; /* Optimized for 15 per page */
             font-weight: bold;
             color: #1A202C;
-            height: 38px; /* Tightened */
+            height: 34px; /* Tightened for 5 rows */
             overflow: hidden;
             margin-bottom: 2px;
         }
         .product-sku {
-            font-size: 7pt;
+            font-size: 6.5pt;
             color: #718096;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
         }
         .product-price {
-            font-size: 13pt;
+            font-size: 12.5pt;
             font-weight: 800;
             color: #2B6CB0;
         }
@@ -154,13 +154,13 @@
         @if($category->products->count() > 0)
             
             @php
-                // First 9 products for the page with the title (3 rows of 3)
-                $firstNine = $category->products->take(9);
-                // The rest for subsequent pages (12 per page - 4 rows of 3)
-                $remaining = $category->products->slice(9);
+                // First 12 products for the page with the title (4 rows of 3)
+                $firstTwelve = $category->products->take(12);
+                // The rest for subsequent pages (15 per page - 5 rows of 3)
+                $remaining = $category->products->slice(12);
             @endphp
 
-            {{-- First Page of Category (WITH TITLE - MAX 9) --}}
+            {{-- First Page of Category (WITH TITLE - MAX 12) --}}
             <div style="{{ !$firstCategory ? 'page-break-before: always;' : '' }}">
                 <div class="section-header">
                     <h2>{{ $category->name }}</h2>
@@ -168,7 +168,7 @@
                 </div>
 
                 <table class="product-table">
-                    @foreach($firstNine->chunk(3) as $chunk)
+                    @foreach($firstTwelve->chunk(3) as $chunk)
                         <tr>
                             @foreach($chunk as $product)
                                 <td class="product-cell">
@@ -182,14 +182,14 @@
                                         <div class="product-sku">SKU: {{ $product->sku ?: 'No disponible' }} | {{ $product->presentation ?: 'Unidad' }}</div>
                                         <div class="product-price">
                                             @if($config->catalogue_show_prices)
-                                                <div style="margin-bottom: 2px;">
+                                                <div style="margin-bottom: 1px;">
                                                     <span style="font-size: 10pt; font-weight: normal">$</span>{{ number_format($product->price, 2) }}
                                                 </div>
                                             @endif
                                             
                                             @if($config->catalogue_show_base_prices)
-                                                <div style="font-size: 10pt; color: #4A5568; font-weight: normal; margin-top: 2px;">
-                                                    <span style="font-size: 8pt; color: #A0AEC0;">REF:</span> ${{ number_format($product->cost, 2) }}
+                                                <div style="font-size: 9pt; color: #4A5568; font-weight: normal; margin-top: 1px;">
+                                                    <span style="font-size: 7.5pt; color: #A0AEC0;">REF:</span> ${{ number_format($product->cost, 2) }}
                                                 </div>
                                             @endif
                                         </div>
@@ -204,11 +204,11 @@
                 </table>
             </div>
 
-            {{-- Subsequent Pages (WITHOUT TITLE - MAX 12) --}}
-            @foreach($remaining->chunk(12) as $twelveChunk)
+            {{-- Subsequent Pages (WITHOUT TITLE - MAX 15) --}}
+            @foreach($remaining->chunk(15) as $fifteenChunk)
                 <div style="page-break-before: always;">
                     <table class="product-table">
-                        @foreach($twelveChunk->chunk(3) as $rowChunk)
+                        @foreach($fifteenChunk->chunk(3) as $rowChunk)
                             <tr>
                                 @foreach($rowChunk as $product)
                                     <td class="product-cell">
@@ -222,14 +222,14 @@
                                             <div class="product-sku">SKU: {{ $product->sku ?: 'No disponible' }} | {{ $product->presentation ?: 'Unidad' }}</div>
                                             <div class="product-price">
                                                 @if($config->catalogue_show_prices)
-                                                    <div style="margin-bottom: 2px;">
+                                                    <div style="margin-bottom: 1px;">
                                                         <span style="font-size: 10pt; font-weight: normal">$</span>{{ number_format($product->price, 2) }}
                                                     </div>
                                                 @endif
                                                 
                                                 @if($config->catalogue_show_base_prices)
-                                                    <div style="font-size: 10pt; color: #4A5568; font-weight: normal; margin-top: 2px;">
-                                                        <span style="font-size: 8pt; color: #A0AEC0;">REF:</span> ${{ number_format($product->cost, 2) }}
+                                                    <div style="font-size: 9pt; color: #4A5568; font-weight: normal; margin-top: 1px;">
+                                                        <span style="font-size: 7.5pt; color: #A0AEC0;">REF:</span> ${{ number_format($product->cost, 2) }}
                                                     </div>
                                                 @endif
                                             </div>
