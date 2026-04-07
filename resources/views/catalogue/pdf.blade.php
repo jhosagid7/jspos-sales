@@ -81,14 +81,14 @@
         .product-card {
             border: 1px solid #E2E8F0;
             border-radius: 8px;
-            padding: 10px;
+            padding: 8px;
             background-color: #FFFFFF;
-            min-height: 240px; /* Compact height for high density */
+            min-height: 210px; /* Reduced to eliminate bottom whitespace */
         }
         .product-image-container {
             width: 100%;
-            height: 110px; /* Reduced for 4 rows per page */
-            margin-bottom: 10px;
+            height: 140px; /* Increased to make image more prominent */
+            margin-bottom: 8px;
             background-color: #F8FAFC;
             text-align: center;
             display: block;
@@ -101,20 +101,20 @@
             display: inline-block;
         }
         .product-name {
-            font-size: 10pt; /* Slightly smaller for density */
+            font-size: 9.5pt; /* More compact for density */
             font-weight: bold;
             color: #1A202C;
-            height: 40px; /* Limit name height */
+            height: 38px; /* Tightened */
             overflow: hidden;
-            margin-bottom: 5px;
+            margin-bottom: 2px;
         }
         .product-sku {
-            font-size: 7.5pt;
+            font-size: 7pt;
             color: #718096;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
         }
         .product-price {
-            font-size: 14pt;
+            font-size: 13pt;
             font-weight: 800;
             color: #2B6CB0;
         }

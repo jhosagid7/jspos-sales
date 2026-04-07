@@ -7,6 +7,11 @@ All notable changes to this project will be documented in this file.
 - **Optimización de Consultas (Catálogo)**: Se refactorizó la extracción de datos para filtrar solo productos con estatus `available` y omitir categorías vacías, reduciendo la carga de memoria y el tiempo de respuesta del servidor.
 - **DomPDF Acceleration**: Activación de `isFontSubsettingEnabled` y optimización de opciones del motor para un renderizado más fluido de estructuras complejas.
 
+## [1.9.68] - 2026-04-07
+### Changed
+- **Optimización de Impacto Visual (Catálogo)**: Rediseño final de las tarjetas del catálogo. Se amplió el área de imagen a 140px para dar mayor protagonismo al producto y se redujo la altura total de la tarjeta a 210px eliminando espacios en blanco innecesarios.
+- **Dureza de Cuadrícula (12 Cards)**: Ajuste de márgenes y paddings para asegurar que el diseño de alta densidad (12 productos por página) se mantenga equilibrado y profesional, con una tipografía compacta de alta legibilidad.
+
 ## [1.9.67] - 2026-04-07
 ### Changed
 - **Alta Densidad de Cuadrícula (9/12)**: Implementación de un diseño ultra-compacto que permite visualizar 9 productos en páginas con título (3x3) y hasta 12 productos en páginas sin título (3x4). Esto aprovecha al máximo el espacio del papel, ideal para inventarios extensos.
