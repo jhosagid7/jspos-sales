@@ -43,3 +43,6 @@ reset_system.php
 /whatsapp-api/.puppeteer_cache*
 /whatsapp-api/.wwebjs_cache/
 /whatsapp-api/storage/logs
+
+# Temporary backup for nssm update
+nssm/*.bak
