@@ -277,7 +277,7 @@
                                         <td data-container="body" data-bs-toggle="tooltip" data-bs-placement="top"
                                             data-bs-html="true" data-bs-title="<b>Ver los detalles de la venta</b>">
 
-                                            @if($sale->deletion_requested_at)
+                                            @if($sale->deletion_requested_at && $sale->status != 'returned')
                                                 {{-- PENDING APPROVAL STATE --}}
                                                 @can('sales.approve_deletion')
                                                     <button onclick="ConfirmDelete({{ $sale->id }}, '{{ addslashes($sale->deletion_reason ?? '') }}')"

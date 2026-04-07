@@ -274,6 +274,8 @@ class SalesReport extends Component
                     'deletion_approved_by' => $user->id,
                     'deletion_approved_at' => Carbon::now(),
                     'deletion_reason' => $reason ?: $sale->deletion_reason, // Use provided reason or keep existing request reason
+                    'deletion_requested_at' => null, // CLEAR REQUEST STATE
+                    'deletion_requested_by' => null,
                 ]);
 
                 foreach ($sale->details as $detail) {
