@@ -171,6 +171,71 @@ class Purchases extends Component
 
         $this->warehouses = \App\Models\Warehouse::where('is_active', 1)->get();
         $this->warehouse_id = $this->config?->default_warehouse_id ?? ($this->warehouses->first()->id ?? null);
+
+        // Check for cloning via query parameter
+        if (request()->has('clone_id')) {
+            $this->loadFromPurchase(request('clone_id'));
+        }
+    }
+
+    public function loadFromPurchase($id)
+    {
+        $purchase = Purchase::with(['details', 'supplier'])->find($id);
+
+        if ($purchase) {
+            $this->cart = new Collection;
+            $this->notes = "Clonada desde Compra #{$purchase->id}. " . $purchase->notes;
+            $this->flete = $purchase->flete;
+            
+            // Set Supplier in session
+            $supplier_array = [
+                'id' => $purchase->supplier->id,
+                'name' => $purchase->supplier->name,
+                'taxpayer_id' => $purchase->supplier->taxpayer_id
+            ];
+            session(['purchase_supplier' => $supplier_array]);
+            session(['flete' => $purchase->flete]);
+            $this->supplier = $supplier_array;
+
+            foreach ($purchase->details as $detail) {
+                $product = Product::find($detail->product_id);
+                if ($product) {
+                    $item_id = md5($product->id . microtime());
+                    $cartItem = [
+                        'id' => $item_id,
+                        'pid' => $product->id,
+                        'name' => $product->name,
+                        'cost' => $detail->cost,
+                        'qty' => $detail->quantity,
+                        'total' => round($detail->quantity * $detail->cost, 2),
+                        'is_variable' => (bool)$product->is_variable_quantity,
+                        'items' => $detail->metadata ?: [],
+                        'flete' => [
+                            'total_flete' => $detail->flete_total,
+                            'flete_producto' => $detail->flete_product,
+                            'valor_flete' => round($detail->cost + $detail->flete_product, 2),
+                            'nuevo_total' => round(($detail->quantity * $detail->cost) + $detail->flete_total, 2)
+                        ]
+                    ];
+                    $this->cart->push($cartItem);
+                }
+            }
+            $this->save();
+            $this->dispatch('noty', msg: "Compra #{$id} cargada (Modo Clonación)");
+        } else {
+            $this->dispatch('noty', msg: "No se encontró la compra #{$id}", type: 'error');
+        }
+    }
+
+    public function processCloningCode($code)
+    {
+        $code = strtoupper(trim($code));
+        
+        // Flexible Regex for Purchase/Compra/OC
+        if (preg_match('/^(PURCHASE|COMPRA|OC)[^0-9]*([0-9]+)$/i', $code, $matches)) {
+            $id = $matches[2];
+            $this->loadFromPurchase($id);
+        }
     }
 
 

@@ -115,6 +115,9 @@
                                         <button wire:click="getCargoDetail({{ $cargo->id }})" class="btn btn-dark btn-sm" title="Ver Detalles">
                                             <i class="fas fa-list"></i>
                                         </button>
+                                        <a href="{{ route('cargos.create', ['clone_id' => $cargo->id]) }}" class="btn btn-outline-info btn-sm" title="Clonar">
+                                            <i class="fas fa-copy"></i>
+                                        </a>
                                         <a href="{{ route('cargos.pdf', $cargo->id) }}" class="btn btn-outline-danger btn-sm" target="_blank" title="PDF">
                                             <i class="fas fa-file-pdf"></i>
                                         </a>

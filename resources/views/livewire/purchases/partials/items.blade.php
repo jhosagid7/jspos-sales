@@ -1,15 +1,43 @@
 <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px; overflow: hidden;">
     <div class="card-header bg-white border-bottom-0 py-4 px-4">
         <div class="row align-items-center">
-            <div class="col-sm-12 col-md-6">
+            <div class="col-sm-12 col-md-4">
                 <div class="d-flex align-items-center">
                     <span class="text-muted small text-uppercase font-weight-bold mr-3" style="font-size: 0.65rem; white-space: nowrap;">Búsqueda</span>
-                    <div class="flex-grow-1" style="max-width: 450px;">
+                    <div class="flex-grow-1">
                         <livewire:product-search />
                     </div>
                 </div>
             </div>
-            <div class="col-sm-12 col-md-6 text-md-right mt-3 mt-md-0">
+            <div class="col-sm-12 col-md-4">
+                <div class="d-flex align-items-center" x-data="{
+                    selectItem() {
+                        const el = document.getElementById('inputClone');
+                        const val = el.value.toUpperCase().trim();
+                        const match = val.match(/^(PURCHASE|COMPRA|OC)[^0-9]*([0-9]+)$/i);
+                        
+                        if (match) {
+                            const finalCode = match[1].toUpperCase() + ':' + match[2];
+                            @this.processCloningCode(finalCode);
+                            el.value = '';
+                        }
+                    }
+                }">
+                    <span class="text-muted small text-uppercase font-weight-bold mr-3" style="font-size: 0.65rem; white-space: nowrap;">Clonar</span>
+                    <div class="input-group input-group-sm">
+                        <input type="text" 
+                            id="inputClone"
+                            class="form-control border-0 bg-light" 
+                            placeholder="PURCHASE:ID"
+                            style="border-radius: 8px;"
+                            @keydown.enter.prevent="selectItem()">
+                        <div class="input-group-append">
+                            <span class="input-group-text bg-light border-0 text-info"><i class="fas fa-copy"></i></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-4 text-md-right mt-3 mt-md-0">
                 <div class="btn-group shadow-sm" style="border-radius: 10px; overflow: hidden;">
                     <button onclick="processOrder()" type="button" class="btn btn-dark text-white border-0 py-2 px-3" style="font-size: 0.75rem;">
                         <i class="fas fa-list-alt mr-2"></i> ORDENES

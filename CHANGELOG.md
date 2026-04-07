@@ -1,10 +1,18 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [1.9.50] - 2026-04-06
+## [1.9.51] - 2026-04-07
+### Added
+- **Estandarización de Clonación (Shortcuts)**: Se unificó el motor de clonación en todos los módulos (Ventas, Compras, Cargos y Descargos). Ahora el sistema reconoce sinónimos en español como `ENTRADA:`, `SALIDA:`, `COMPRA:`, `AJUSTE:` y `OC:` tanto en el escáner como en el buscador manual, facilitando la carga rápida de mercancía.
+- **Leyenda de Comandos**: Se añadió una tabla de referencia en **Configuración -> Móvil** que detalla todos los códigos de clonación disponibles para guía del usuario.
+- **Buscador de Clientes (Generador de Precios)**: Se implementó un buscador inteligente (TomSelect) en el Generador de Listas de Precios. Los usuarios ahora pueden buscar clientes por nombre, RIF o dirección en lugar de desplazarse por una lista estática, mejorando drásticamente la usabilidad con bases de datos grandes.
+- **Configuración de Bloque de Pagos (PDF)**: Se añadió una opción en la configuración de la Lista de Precios para mostrar u ocultar el bloque informativo de pagos (Vencimiento, Mora y cabecera BCV) en el PDF generado.
+- **Filtrado por Vendedor en Búsqueda**: El buscador de clientes ahora se sincroniza automáticamente con el vendedor seleccionado (modo Administrador), mostrando únicamente los clientes pertenecientes a la cartera del asesor elegido.
+
 ### Fixed
-- Sincronización de estados en la auditoría de eliminación: Se asegura la limpieza automática de solicitudes pendientes (`deletion_requested_at`) al ser aprobadas.
-- Interfaz de Reporte de Ventas: Se ocultan los controles de aprobación (`v`/`x`) en facturas ya marcadas como `returned` para evitar confusión visual.
+- **Integridad de Datos en Clonación**: Se resolvió un error técnico (`TypeError: json_decode`) en el módulo de compras que ocurría al intentar clonar documentos con metadatos complejos.
+
+## [1.9.50] - 2026-04-06
 
 ## [1.9.49] - 2026-04-06
 ### Added

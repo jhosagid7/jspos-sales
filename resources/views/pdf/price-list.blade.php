@@ -35,6 +35,7 @@
 
     {{-- Conditions Block - Full Width --}}
     <div style="width: 100%; margin-bottom: 20px; font-size: 10px; line-height: 1.4; color: #000000;">
+        @if($showInfoBlock)
         <strong>LISTA DE PRECIOS PAGO EN BOLIVARES BCV.</strong><br>
         <br>
         <strong>Nota Informativa de Pagos:</strong><br>
@@ -61,6 +62,8 @@
         Los pagos realizados después de los <strong>{{ $headerData['credit_days'] }}</strong> días de la fecha de entrega generarán un recargo por mora.<br>
         <br>
         @endmodule
+        @endif
+
         <strong style="text-decoration: underline;">LISTA DE PRECIOS SUJETA A CAMBIO SIN PREVIO AVISO.</strong>
     </div>
 

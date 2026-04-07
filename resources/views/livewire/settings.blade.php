@@ -735,6 +735,61 @@
                                             <i class="fas fa-exclamation-triangle"></i> Esta configuración es necesaria solo si accedes por IP (ej. 192.168.x.x). Si usas un dominio seguro (HTTPS), no es necesario.
                                         </div>
                                     </div>
+
+                                    {{-- Cloning Commands Legend --}}
+                                    <div class="col-12 mt-4">
+                                        <div class="card border-0 shadow-sm" style="background: #f8f9fa; border-radius: 15px;">
+                                            <div class="card-body">
+                                                <h5 class="mb-3 text-primary"><i class="fas fa-copy me-2"></i> Leyenda de Comandos de Clonación (Escáner)</h5>
+                                                <p class="text-muted small mb-4">Puedes escanear códigos QR o escribir estos comandos directamente en los buscadores para duplicar documentos.</p>
+                                                
+                                                <div class="table-responsive">
+                                                    <table class="table table-sm table-hover" style="font-size: 0.85rem;">
+                                                        <thead class="text-uppercase text-muted" style="font-size: 0.7rem;">
+                                                            <tr>
+                                                                <th>Documento</th>
+                                                                <th>Comandos Soportados</th>
+                                                                <th>Ejemplo</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <tr>
+                                                                <td><strong>Ventas / Facturas</strong></td>
+                                                                <td><code>VENTA</code>, <code>FACTURA</code>, <code>SALE</code>, <code>VT</code></td>
+                                                                <td class="text-info">VENTA:10</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><strong>Órdenes de Pedido</strong></td>
+                                                                <td><code>ORDEN</code>, <code>ORD</code>, <code>OR</code></td>
+                                                                <td class="text-info">ORDEN:45</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><strong>Cargos / Entradas</strong></td>
+                                                                <td><code>CARGO</code>, <code>ENTRADA</code>, <code>AJUSTE</code></td>
+                                                                <td class="text-info">ENTRADA:15</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><strong>Descargos / Salidas</strong></td>
+                                                                <td><code>DESCARGO</code>, <code>SALIDA</code></td>
+                                                                <td class="text-info">SALIDA:5</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><strong>Compras / OC</strong></td>
+                                                                <td><code>PURCHASE</code>, <code>COMPRA</code>, <code>OC</code></td>
+                                                                <td class="text-info">COMPRA:101</td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                
+                                                <div class="mt-3 p-3 bg-white" style="border-radius: 10px; border-left: 4px solid #007bff;">
+                                                    <small class="text-muted">
+                                                        <strong>Nota:</strong> Los comandos son insensibles a mayúsculas y aceptan separadores como <code>:</code>, <code>-</code> o simplemente el número pegado (ej: <code>venta10</code>).
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

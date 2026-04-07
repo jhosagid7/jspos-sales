@@ -709,16 +709,22 @@ class Sales extends Component
         $upperSearch = strtoupper($search);
         
         // Ultra-Flexible Regex for documents:
-        // SALE -> numbers...
-        // OR / ORD -> numbers...
-        // Ignores any strange character in between (:, ñ, ', etc)
-        if (preg_match('/^(SALE|ORD|OR)[^0-9]*([0-9]+)$/i', $upperSearch, $matches)) {
+        // SALE | VENTA | FACTURA | VT -> numbers...
+        // ORD | ORDEN | OR -> numbers...
+        if (preg_match('/^(SALE|VENTA|FACTURA|VT|ORD|ORDEN|OR)[^0-9]*([0-9]+)$/i', $upperSearch, $matches)) {
             $prefix = strtoupper($matches[1]);
-            // Normalize OR/ORD to ORD
-            $type = ($prefix === 'OR' || $prefix === 'ORD') ? 'ORD' : 'SALE';
+            
+            // Normalize prefixes
+            $isOrder = in_array($prefix, ['ORD', 'ORDEN', 'OR']);
+            $type = $isOrder ? 'ORD' : 'SALE';
             $id = $matches[2];
             
             \Log::info("Ultra-Flexible match: Type $type, ID $id (Source: $upperSearch)");
+            
+            // Reset search immediately to avoid fall-through to product search
+            $this->search3 = '';
+            $this->products = [];
+
             $this->processCloningCode("$type:$id");
             return;
         }

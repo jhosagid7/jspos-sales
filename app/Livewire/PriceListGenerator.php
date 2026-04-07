@@ -16,6 +16,13 @@ class PriceListGenerator extends Component
     public $customers;
     public $customerId;
     
+    protected $listeners = ['selected_customer' => 'handleSelectedCustomer'];
+
+    public function handleSelectedCustomer($id)
+    {
+        $this->customerId = is_array($id) ? $id['id'] : $id;
+    }
+    
     // New Properties for Advanced Features
     public $sellers = [];
     public $selectedSellerId;
@@ -48,6 +55,7 @@ class PriceListGenerator extends Component
         'final_price' => 'Precio'
     ];
     public $selectedColumns = [];
+    public $showInfoBlock = true;
     public $config;
 
     public function mount()
@@ -72,10 +80,11 @@ class PriceListGenerator extends Component
             } else {
                  $this->selectedColumns = $savedColumns;
             }
-        } else {
             // Default columns if nothing saved
             $this->selectedColumns = ['sku', 'name', 'final_price'];
         }
+
+        $this->showInfoBlock = $this->config->price_list_show_info_block ?? true;
 
         // Sanitize selected columns to ensure they are actually available (respecting module conditions)
         $this->selectedColumns = array_values(array_intersect($this->selectedColumns, array_keys($this->availableColumns)));
@@ -129,6 +138,7 @@ class PriceListGenerator extends Component
         }
 
         $this->config->price_list_columns = $this->selectedColumns;
+        $this->config->price_list_show_info_block = $this->showInfoBlock;
         $this->config->save();
 
         $this->dispatch('noty', msg: 'Configuración de columnas guardada correctamente.');
@@ -343,8 +353,9 @@ class PriceListGenerator extends Component
 
         $columns = $this->selectedColumns;
         $columnLabels = $this->availableColumns;
+        $showInfoBlock = $this->showInfoBlock;
 
-        $pdf = Pdf::loadView('pdf.price-list', compact('groupedData', 'date', 'headerData', 'footerCode', 'customer', 'columns', 'columnLabels'));
+        $pdf = Pdf::loadView('pdf.price-list', compact('groupedData', 'date', 'headerData', 'footerCode', 'customer', 'columns', 'columnLabels', 'showInfoBlock'));
         
         $filename = "Lista_Precios_" . now()->format('d-m-Y') . ".pdf";
 

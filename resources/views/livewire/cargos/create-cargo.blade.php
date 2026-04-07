@@ -51,9 +51,36 @@
 
                     <hr>
 
-                    <!-- Buscador -->
+                    <!-- Buscador y Clonación -->
                     <div class="row mb-4">
-                        <div class="col-sm-12">
+                        <div class="col-sm-12 col-md-6">
+                            <div class="form-group" x-data="{
+                                selectItem() {
+                                    const el = document.getElementById('inputClone');
+                                    const val = el.value.toUpperCase().trim();
+                                    const match = val.match(/^(CARGO|ENTRADA|AJUSTE)[^0-9]*([0-9]+)$/i);
+                                    
+                                    if (match) {
+                                        const finalCode = match[1].toUpperCase() + ':' + match[2];
+                                        @this.processCloningCode(finalCode);
+                                        el.value = '';
+                                    }
+                                }
+                            }">
+                                <label>Clonar por Código (Ej: CARGO:10)</label>
+                                <div class="input-group">
+                                    <input type="text" 
+                                        id="inputClone"
+                                        class="form-control" 
+                                        placeholder="Escanea o escribe CARGO:ID..."
+                                        @keydown.enter.prevent="selectItem()">
+                                    <div class="input-group-append">
+                                        <span class="input-group-text bg-info text-white"><i class="fas fa-copy"></i></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-6">
                             <div class="form-group">
                                 <label>Buscar Productos (Nombre o SKU)</label>
                                 <div class="input-group">

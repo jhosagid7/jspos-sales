@@ -24,7 +24,8 @@ class DescargoController extends Controller
             'city'          => $config->city,
             'phone'         => $config->phone,
             'custom_fields' => [
-                'email'     => $config->email,
+                'email'         => $config->email,
+                'cloning_qr'    => \DNS2D::getBarcodeHTML("DESCARGO:{$descargo->id}", "QRCODE", 2, 2),
             ],
         ]);
 

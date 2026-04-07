@@ -109,6 +109,9 @@
                                         <button wire:click="getDescargoDetail({{ $descargo->id }})" class="btn btn-dark btn-sm" title="Ver Detalles">
                                             <i class="fas fa-list"></i>
                                         </button>
+                                        <a href="{{ route('descargos.create', ['clone_id' => $descargo->id]) }}" class="btn btn-outline-info btn-sm" title="Clonar">
+                                            <i class="fas fa-copy"></i>
+                                        </a>
                                         <a href="{{ route('descargos.pdf', $descargo->id) }}" class="btn btn-outline-danger btn-sm" target="_blank" title="PDF">
                                             <i class="fas fa-file-pdf"></i>
                                         </a>

@@ -24,6 +24,15 @@
                                 </div>
                                 @endforeach
                             </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="show_info_block" wire:model="showInfoBlock">
+                                        <label class="custom-control-label font-weight-bold" for="show_info_block">Mostrar Bloque Informativo de Pagos (Vencimiento/Mora) en PDF</label>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="mt-3">
                                 <button wire:click="saveConfig" class="btn btn-primary">Guardar Configuración Predeterminada</button>
                             </div>
@@ -140,16 +149,54 @@
 
                             <div class="row">
                                 <div class="col-md-6">
-                                    <div class="form-group">
+                                    <div class="form-group" wire:ignore>
                                         <label class="font-weight-bold">Seleccionar Cliente (Opcional)</label>
-                                        <select wire:model.live="customerId" class="form-control">
-                                            <option value="">-- Cliente General / Prospecto --</option>
-                                            @foreach($customers as $c)
-                                            <option value="{{ $c->id }}" wire:key="customer-{{ $c->id }}">{{ $c->name }}</option>
-                                            @endforeach
-                                        </select>
+                                        <input type="text" id="inputCustomer" class="form-control" placeholder="Buscar por nombre, RIF o dirección...">
                                         <small class="text-muted">Si selecciona un cliente, se aplicarán sus condiciones específicas (si existen).</small>
                                     </div>
+                                    <script>
+                                        document.addEventListener('livewire:init', () => {
+                                            const tomSel = new TomSelect('#inputCustomer', {
+                                                maxItems: 1,
+                                                valueField: 'id',
+                                                labelField: 'name',
+                                                searchField: ['name', 'address', 'taxpayer_id'],
+                                                load: function(query, callback) {
+                                                    if (!query.length) return callback();
+                                                    const sellerId = @this.get('selectedSellerId') || 0;
+                                                    const url = "{{ route('data.customers') }}" + '?q=' + encodeURIComponent(query) + '&seller_id=' + sellerId;
+                                                    fetch(url)
+                                                        .then(response => response.json())
+                                                        .then(json => {
+                                                            callback(json);
+                                                        }).catch(() => {
+                                                            callback();
+                                                        });
+                                                },
+                                                onChange: function(value) {
+                                                    @this.dispatch('selected_customer', { id: value });
+                                                },
+                                                render: {
+                                                    option: function(item, escape) {
+                                                        const doc = item.taxpayer_id ? ' - ' + escape(item.taxpayer_id) : '';
+                                                        return `<div class="py-1 d-flex">
+                                                            <div>
+                                                                <div class="mb-0">
+                                                                    <span class="text-warning">| ${escape(item.name.toUpperCase())}${doc}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>`;
+                                                    },
+                                                },
+                                            });
+
+                                            // Re-load if seller changes (optional if using remote, but good for clearing)
+                                            Livewire.on('seller_updated', () => {
+                                                tomSel.clear();
+                                                tomSel.clearOptions();
+                                            });
+                                        });
+                                    </script>
                                 </div>
                                 <div class="col-md-6 d-flex align-items-end">
                                     <button wire:click="generate" wire:loading.attr="disabled" class="btn btn-success btn-lg btn-block mb-3">

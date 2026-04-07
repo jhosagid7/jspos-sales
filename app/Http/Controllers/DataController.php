@@ -22,7 +22,9 @@ class DataController extends Controller
               ->orWhere('email', 'like', "%{$valueToSearch}%");
         });
 
-        if (!auth()->user()->can('customers.view_all') && auth()->user()->can('customers.view_own')) {
+        if ($request->has('seller_id') && $request->seller_id > 0) {
+            $query->where('seller_id', $request->seller_id);
+        } elseif (!auth()->user()->can('customers.view_all') && auth()->user()->can('customers.view_own')) {
             $query->where('seller_id', auth()->user()->id);
         }
 

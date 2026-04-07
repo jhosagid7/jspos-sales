@@ -23,10 +23,11 @@ class PurchaseController extends Controller
             'address'       => $config->address,
             'phone'         => $config->phone,
             'custom_fields' => [
-                'CC/NIT'    => $config->taxpayer_id,
-                'email'     => $config->email,
-                'city'      => $config->city,
+                'CC/NIT'        => $config->taxpayer_id,
+                'email'         => $config->email,
+                'city'          => $config->city,
                 'operador'      => $purchase->user->name,
+                'cloning_qr'    => \DNS2D::getBarcodeHTML("PURCHASE:{$purchase->id}", "QRCODE", 2, 2),
             ],
         ]);
 

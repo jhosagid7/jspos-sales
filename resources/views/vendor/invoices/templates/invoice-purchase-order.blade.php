@@ -317,6 +317,21 @@
             </div>
         @endif
 
+        {{-- Footer area for cloning --}}
+        <table width="100%" style="border: 1px solid #6B7280; border-top: 1px solid #6B7280; margin-top: 10px; background: #ADD8E6; border-radius: 15px; color: #000; border-collapse: collapse;">
+            <tr>
+                <td width="85%" style="padding: 10px; font-size: 14px; text-transform: uppercase; font-weight: bold;">
+                    ESTE DOCUMENTO ES UNA ORDEN DE COMPRA. PUEDE SER CLONADA ESCANEANDO EL CÓDIGO QR.
+                </td>
+                <td width="15%" style="text-align: center; background: #fff; border-left: 1px solid #6B7280; vertical-align: middle; line-height: 0; padding: 5px;">
+                    @if($invoice->seller->custom_fields['cloning_qr'] ?? false)
+                        {!! $invoice->seller->custom_fields['cloning_qr'] !!}
+                        <br><small style="font-size: 7px; margin-top: 2px;">CLONAR</small>
+                    @endif
+                </td>
+            </tr>
+        </table>
+
         <div style="margin-top: 80px;">
             <table width="100%">
                 <tr>

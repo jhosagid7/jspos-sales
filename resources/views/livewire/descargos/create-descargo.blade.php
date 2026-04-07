@@ -51,25 +51,54 @@
 
                 <hr>
 
-                <!-- Buscador -->
+                <!-- Buscador y Clonación -->
                 <div class="row mb-4">
-                    <div class="col-sm-12">
+                    <div class="col-sm-12 col-md-6">
+                        <div class="form-group" x-data="{
+                            selectItem() {
+                                const el = document.getElementById('inputClone');
+                                const val = el.value.toUpperCase().trim();
+                                const match = val.match(/^(DESCARGO|SALIDA)[^0-9]*([0-9]+)$/i);
+                                
+                                if (match) {
+                                    const finalCode = match[1].toUpperCase() + ':' + match[2];
+                                    @this.processCloningCode(finalCode);
+                                    el.value = '';
+                                }
+                            }
+                        }">
+                            <label>Clonar por Código (Ej: DESCARGO:5)</label>
+                            <div class="input-group">
+                                <input type="text" 
+                                    id="inputClone"
+                                    class="form-control" 
+                                    placeholder="Escanea o escribe DESCARGO:ID..."
+                                    @keydown.enter.prevent="selectItem()">
+                                <div class="input-group-append">
+                                    <span class="input-group-text bg-info text-white"><i class="fas fa-copy"></i></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-12 col-md-6">
                         <div class="form-group">
                             <label>Buscar Productos (Nombre o SKU)</label>
                             <div class="input-group">
                                 <input type="text" 
-                                       wire:model.live="search" 
-                                       wire:keydown.arrow-down="keyDown('ArrowDown')"
-                                       wire:keydown.arrow-up="keyDown('ArrowUp')"
-                                       wire:keydown.enter="keyDown('Enter')"
-                                       class="form-control" 
-                                       placeholder="Escribe para buscar..." 
-                                       autofocus>
+                                    wire:model.live="search" 
+                                    wire:keydown.arrow-down="keyDown('ArrowDown')"
+                                    wire:keydown.arrow-up="keyDown('ArrowUp')"
+                                    wire:keydown.enter="keyDown('Enter')"
+                                    class="form-control" 
+                                    placeholder="Escribe para buscar..." 
+                                    autofocus>
                                 <div class="input-group-append">
                                     <span class="input-group-text"><i class="fas fa-search"></i></span>
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
 
                         <!-- Resultados de Búsqueda -->
                         @if(count($searchResults) > 0)

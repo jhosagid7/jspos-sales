@@ -55,14 +55,17 @@
                                 <td class="text-center">
                                     <h6>{{ \Carbon\Carbon::parse($purchase->created_at)->format('d-m-Y') }}</h6>
                                 </td>
-                                <td class="text-center">
-                                    <button wire:click.prevent="viewDetails({{$purchase->id}})" class="btn btn-dark btn-sm">
-                                        <i class="fas fa-list"></i>
-                                    </button>
-                                    <a href="{{ route('purchases.pdf', $purchase->id) }}" target="_blank" class="btn btn-info btn-sm">
-                                        <i class="fas fa-print"></i>
-                                    </a>
-                                </td>
+                                    <td class="text-center">
+                                        <button wire:click.prevent="viewDetails({{$purchase->id}})" class="btn btn-dark btn-sm" title="Ver Detalles">
+                                            <i class="fas fa-list"></i>
+                                        </button>
+                                        <a href="{{ url('purchases?clone_id=' . $purchase->id) }}" class="btn btn-outline-info btn-sm" title="Clonar">
+                                            <i class="fas fa-copy"></i>
+                                        </a>
+                                        <a href="{{ route('purchases.pdf', $purchase->id) }}" target="_blank" class="btn btn-info btn-sm" title="Imprimir">
+                                            <i class="fas fa-print"></i>
+                                        </a>
+                                    </td>
                             </tr>
                             @endforeach
                         </tbody>

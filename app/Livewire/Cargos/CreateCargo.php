@@ -31,6 +31,7 @@ class CreateCargo extends Component
         // Default warehouse if exists
         $this->warehouse_id = $this->warehouses->first()->id ?? null;
 
+        // If editing an existing cargo (standard Laragon binding)
         if ($cargo) {
             $cargoObj = \App\Models\Cargo::with('details.product')->find($cargo);
             if ($cargoObj && $cargoObj->status == 'pending') {
@@ -56,6 +57,56 @@ class CreateCargo extends Component
                     }
                 }
             }
+        }
+
+        // If cloning from a clone_id query parameter
+        if (request()->has('clone_id')) {
+            $this->loadFromCargo(request('clone_id'));
+        }
+    }
+
+    public function loadFromCargo($id)
+    {
+        $cargoObj = \App\Models\Cargo::with('details.product')->find($id);
+        if (!$cargoObj) {
+            $this->dispatch('noty', msg: "CARGO #$id NO ENCONTRADO", type: 'error');
+            return;
+        }
+
+        $this->warehouse_id = $cargoObj->warehouse_id;
+        $this->motive = $cargoObj->motive;
+        $this->authorized_by = $cargoObj->authorized_by;
+        $this->comments = $cargoObj->comments;
+        
+        // We do NOT set $this->cargo_id because we want to create a NEW one.
+        
+        $this->cart = []; // Clear current cart before cloning
+        foreach ($cargoObj->details as $item) {
+            if ($item->product) {
+                $this->cart[$item->product_id] = [
+                    'id' => $item->product_id,
+                    'name' => $item->product->name,
+                    'sku' => $item->product->sku,
+                    'cost' => $item->cost,
+                    'quantity' => $item->quantity,
+                    'is_variable' => (bool)$item->product->is_variable_quantity,
+                    'items' => $item->items_json ? json_decode($item->items_json, true) : []
+                ];
+            }
+        }
+        
+        $this->dispatch('noty', msg: "CARGO #$id CLONADO CON ÉXITO");
+    }
+
+    public function processCloningCode($code)
+    {
+        $code = strtoupper(trim($code));
+        
+        // Flexible Regex for Cargo/Entrada/Ajuste
+        if (preg_match('/^(CARGO|ENTRADA|AJUSTE)[^0-9]*([0-9]+)$/i', $code, $matches)) {
+            $id = $matches[2];
+            $this->loadFromCargo($id);
+            $this->search = '';
         }
     }
 

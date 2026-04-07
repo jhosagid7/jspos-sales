@@ -60,6 +60,7 @@ class Configuration extends Model
         'binance_rate',
         'sales_view_mode',
         'enable_shared_cash_register',
+        'price_list_show_info_block',
     ];
 
     protected $casts = [
@@ -67,6 +68,7 @@ class Configuration extends Model
         'production_email_recipients' => 'array',
         'is_network' => 'boolean',
         'enable_shared_cash_register' => 'boolean',
+        'price_list_show_info_block' => 'boolean',
     ];
 
     public function defaultWarehouse()

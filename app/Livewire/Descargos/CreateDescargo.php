@@ -28,6 +28,54 @@ class CreateDescargo extends Component
         $this->warehouses = \App\Models\Warehouse::where('is_active', 1)->get();
         // Default warehouse if exists
         $this->warehouse_id = $this->warehouses->first()->id ?? null;
+
+        // Check for cloning via query parameter
+        if (request()->has('clone_id')) {
+            $this->loadFromDescargo(request('clone_id'));
+        }
+    }
+
+    public function loadFromDescargo($id)
+    {
+        $descargo = \App\Models\Descargo::with('details')->find($id);
+
+        if ($descargo) {
+            $this->cart = [];
+            $this->motive = $descargo->motive;
+            $this->authorized_by = $descargo->authorized_by;
+            $this->comments = "Clonado desde Descargo #{$descargo->id}. " . $descargo->comments;
+            $this->warehouse_id = $descargo->warehouse_id;
+
+            foreach ($descargo->details as $detail) {
+                $product = \App\Models\Product::find($detail->product_id);
+                if ($product) {
+                    $this->cart[$product->id] = [
+                        'id' => $product->id,
+                        'name' => $product->name,
+                        'sku' => $product->sku,
+                        'cost' => $detail->cost,
+                        'quantity' => $detail->quantity,
+                        'is_variable' => (bool)$product->is_variable_quantity,
+                        'items' => $detail->items_json ? json_decode($detail->items_json, true) : []
+                    ];
+                }
+            }
+            $this->dispatch('noty', msg: "Descargo #{$id} cargado (Modo Clonación)");
+        } else {
+            $this->dispatch('noty', msg: "No se encontró el descargo #{$id}", type: 'error');
+        }
+    }
+
+    public function processCloningCode($code)
+    {
+        $code = strtoupper(trim($code));
+        
+        // Flexible Regex: DESCARGO | SALIDA
+        if (preg_match('/^(DESCARGO|SALIDA)[^0-9]*([0-9]+)$/i', $code, $matches)) {
+            $id = $matches[2];
+            $this->loadFromDescargo($id);
+            $this->search = '';
+        }
     }
 
     public function updatedSearch()
