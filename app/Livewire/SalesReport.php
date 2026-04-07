@@ -136,8 +136,8 @@ class SalesReport extends Component
                 })
                 ->when($this->type != 0, function ($qry) {
                     $qry->where('type', $this->type);
-                })
-                ->where('status', '<>', 'returned');
+                });
+                // ->where('status', '<>', 'returned');
 
             $totalSale = $salesQuery->sum('total');
 
@@ -175,8 +175,8 @@ class SalesReport extends Component
                 })
                 ->when($this->type != 0, function ($qry) {
                     $qry->where('sales.type', $this->type);
-                })
-                ->where('sales.status', '<>', 'returned');
+                });
+                // ->where('sales.status', '<>', 'returned');
                 
             $totalCost = $totalCostQuery->sum(DB::raw('sale_details.quantity * products.cost'));
 

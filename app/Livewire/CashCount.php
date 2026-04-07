@@ -96,7 +96,7 @@ class CashCount extends Component
                 ->when($this->user_id != 0, function ($qry) {
                     $qry->where('user_id', $this->user_id);
                 })
-                ->where('status', '<>', 'returned')
+                // ->where('status', '<>', 'returned')
                 ->select('id', 'total', 'cash', 'change', 'type', 'primary_exchange_rate', 'total_usd')
                 ->get();
 
@@ -109,6 +109,7 @@ class CashCount extends Component
                 $saleRate = $sale->primary_exchange_rate ?? $primaryRate;
                 $returnsUSD = \App\Models\SaleReturn::where('sale_id', $sale->id)
                     ->where('status', 'approved')
+                    ->whereBetween('created_at', [$dFrom, $dTo])
                     ->sum('total_returned') / $saleRate;
 
                 $netUSD = ($sale->total / $saleRate) - $returnsUSD;
@@ -342,7 +343,10 @@ class CashCount extends Component
 
             // Subtract ALL returns from the 'cash' category of this sale to get NET physical flow
             // This ensures the breakdown cards in UI match the net final total
-            $saleReturns = \App\Models\SaleReturn::where('sale_id', $sale->id)->where('status', 'approved')->get();
+            $saleReturns = \App\Models\SaleReturn::where('sale_id', $sale->id)
+                ->where('status', 'approved')
+                ->whereBetween('created_at', [$dFrom, $dTo])
+                ->get();
             foreach ($saleReturns as $return) {
                 $currCode = $sale->primary_currency_code ?? $primaryCode;
                 $aggregated['cash'][$currCode] = ($aggregated['cash'][$currCode] ?? 0) - $return->total_returned;

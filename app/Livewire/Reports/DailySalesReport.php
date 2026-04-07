@@ -118,18 +118,20 @@ class DailySalesReport extends Component
                 })
                 ->when($this->type != 0, function ($qry) {
                     $qry->where('type', $this->type);
-                })
-                ->where('status', '<>', 'returned');
+                });
+                // ->where('status', '<>', 'returned');
 
             $totalSale = $salesQuery->sum('total_usd');
             
             // Use the actual collection to calculate accurate net totals for the header
             $allSales = $salesQuery->with('returns')->get();
-            $netTotalUSD = $allSales->sum(function($s) {
-                $retUSD = $s->returns->where('status', 'approved')->sum(function($r) use ($s) {
-                    $rate = $s->primary_exchange_rate > 0 ? $s->primary_exchange_rate : 1;
-                    return $r->total_returned / $rate;
-                });
+            $netTotalUSD = $allSales->sum(function($s) use ($dFrom, $dTo) {
+                $retUSD = $s->returns->where('status', 'approved')
+                    ->whereBetween('created_at', [$dFrom, $dTo])
+                    ->sum(function($r) use ($s) {
+                        $rate = $s->primary_exchange_rate > 0 ? $s->primary_exchange_rate : 1;
+                        return $r->total_returned / $rate;
+                    });
                 return $s->total_usd - $retUSD;
             });
 
@@ -158,8 +160,8 @@ class DailySalesReport extends Component
                 })
                 ->when($this->type != 0, function ($qry) {
                     $qry->where('sales.type', $this->type);
-                })
-                ->where('sales.status', '<>', 'returned');
+                });
+                // ->where('sales.status', '<>', 'returned');
             
             // Subtract returned quantities from total cost
             $totalCost = $totalCostQuery->sum(DB::raw('sale_details.quantity * products.cost'));
@@ -229,7 +231,7 @@ class DailySalesReport extends Component
             ->when($this->type != 0, function ($qry) {
                 $qry->where('type', $this->type);
             })
-            ->where('status', '<>', 'returned')
+            // ->where('status', '<>', 'returned')
             ->orderBy('id', 'desc')
             ->get();
 
@@ -314,6 +316,7 @@ class DailySalesReport extends Component
                       ->orWhere('status', 'aprobado')
                       ->orWhere('status', 'APPROVED');
                 })
+                ->whereBetween('created_at', [$dFrom, $dTo])
                 ->get();
             
             $retAmtUSD = 0;
@@ -411,9 +414,7 @@ class DailySalesReport extends Component
             $summary['total_divisa'] += ($salePaidUSD - $vedUSD);
 
             $summary['total_contado'] += $salePaidUSD;
-            if($sale->status != 'paid') {
-                $summary['total_credito'] += max(0, $netSaleUSD - $salePaidUSD);
-            }
+            $summary['total_credito'] += max(0, $netSaleUSD - $salePaidUSD);
         }
 
         // Final Summary Adjustments for the TOP BLOCK

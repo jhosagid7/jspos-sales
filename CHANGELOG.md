@@ -1,6 +1,16 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.54] - 2026-04-07
+### Added
+- **Inmutabilidad de Reportes Financieros**: Se implementó una lógica de "Snapshot Temporal" en los reportes de Ventas Diarias, Arqueo de Caja y Reportes de Ventas.
+    - **Inmutabilidad Histórica**: Los reportes generados en el pasado ahora son inmutables. El pago de un crédito futuro o una devolución posterior no alterarán los totales de días cerrados anteriormente.
+    - **Cálculo de Créditos Estático**: La suma de créditos en el reporte se basa en el estado de la deuda al momento de la creación de la venta, garantizando la consistencia de la auditoría.
+    - **Filtrado Temporal de Devoluciones**: Las devoluciones ahora solo afectan los reportes del día en que se procesaron, evitando que reduzcan retrospectivamente las ventas netas de periodos pasados.
+
+### Fixed
+- **Consistencia en Arqueo de Caja**: Se unificó la lógica de cálculo entre la vista de Livewire y el PDF del Arqueo para evitar discrepancias en los totales de moneda extranjera y pagos recibidos.
+
 ## [1.9.53] - 2026-04-07
 ### Added
 - **Optimización Crítica de POS**: Reducción drástica del tiempo de carga inicial (~8s a <1s) mediante:
