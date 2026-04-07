@@ -3,6 +3,7 @@
         <div class="col-sm-12">
             <div class="widget widget-chart-one">
                 <div class="widget-heading">
+                    <h4 class="card-title">
                         <b>{{ $cargo_id ? 'Editar Cargo / Ajuste de Entrada' : 'Crear Nuevo Cargo / Ajuste de Entrada' }}</b>
                     </h4>
                     <ul class="tabs tab-pills">

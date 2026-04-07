@@ -23,6 +23,7 @@ class CreateCargo extends Component
     public $selectedIndex = -1;
     
     public $warehouses = [];
+    public $comments;
 
     public $cargo_id = null;
 

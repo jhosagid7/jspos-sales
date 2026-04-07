@@ -253,6 +253,10 @@ class Purchases extends Component
 
     public function render()
     {
+        if (!$this->config) {
+            $this->config = \App\Services\ConfigurationService::getConfig();
+        }
+
         $this->flete =  session('flete', 0);
 
         $this->cart = $this->cart->sortBy('name');
@@ -260,12 +264,12 @@ class Purchases extends Component
         $this->itemsCart = $this->totalItems();
         $this->totalCart = round($this->totalCart() + floatval($this->flete), 2);
 
-        if ($this->config->vat > 0) {
+        if ($this->config && $this->config->vat > 0) {
             $this->iva = $this->config->vat / 100;
             $this->subtotalCart = round($this->subtotalCart() / (1 + $this->iva));
             $this->ivaCart = round(($this->totalCart() / (1 + $this->iva)) * $this->iva);
         } else {
-            $this->iva = $this->config->vat;
+            $this->iva = ($this->config->vat ?? 0);
             $this->subtotalCart = round($this->subtotalCart());
             $this->ivaCart = round(0);
         }

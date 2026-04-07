@@ -258,28 +258,28 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('livewire:initialized', () => {
+            Livewire.on('show-variable-modal', () => {
+                $('#modalVariableItem').modal('show');
+                setTimeout(() => {
+                    $('#vw_weight_desc').focus();
+                }, 500);
+            });
+
+            Livewire.on('focus-weight', () => {
+                setTimeout(() => {
+                    $('#vw_weight_desc').val(''); 
+                    $('#vw_weight_desc').focus();
+                }, 300);
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            window.livewire.on('noty', msg => {
+                noty(msg)
+            });
+        });
+    </script>
 </div>
-
-<script>
-    document.addEventListener('livewire:initialized', () => {
-        Livewire.on('show-variable-modal', () => {
-            $('#modalVariableItem').modal('show');
-            setTimeout(() => {
-                $('#vw_weight_desc').focus();
-            }, 500);
-        });
-
-        Livewire.on('focus-weight', () => {
-            setTimeout(() => {
-                $('#vw_weight_desc').val(''); 
-                $('#vw_weight_desc').focus();
-            }, 300);
-        });
-    });
-
-    document.addEventListener('DOMContentLoaded', function() {
-        window.livewire.on('noty', msg => {
-            noty(msg)
-        });
-    });
-</script>

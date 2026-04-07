@@ -23,6 +23,7 @@ class CreateDescargo extends Component
     public $canCreateDescargo = false;
     
     public $warehouses = [];
+    public $cart = [];
 
     public function mount()
     {
