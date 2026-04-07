@@ -193,7 +193,7 @@ class CashCount extends Component
                 });
 
             // 6. Aggregate by currency for UI
-            $this->salesByCurrency = $this->aggregateSalesByCurrency($sales);
+            $this->salesByCurrency = $this->aggregateSalesByCurrency($sales, $dFrom, $dTo);
             $this->paymentsByCurrency = $this->aggregatePaymentsByCurrency($payments);
 
             // 7. Segregation: Sum Custody Today to have it in the breakdown 
@@ -249,7 +249,7 @@ class CashCount extends Component
     /**
      * Aggregate sales by payment method and currency
      */
-    private function aggregateSalesByCurrency($sales)
+    private function aggregateSalesByCurrency($sales, $dFrom, $dTo)
     {
         $aggregated = [
             'cash' => [],

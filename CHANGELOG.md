@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.73] - 2026-04-07
+### Fixed
+- **Error Crítico en Arqueo (Corte de Caja)**: Corrección del bug `Undefined variable $dFrom` en el componente `CashCount.php`. Se restauró el flujo de datos para el filtrado de devoluciones, permitiendo procesar arqueos sin interrupciones.
+
 ## [1.9.72] - 2026-04-07
 ### Changed
 - **Flujo Continuo Inteligente (Cero Huecos)**: Eliminación de los saltos de página obligatorios por categoría. Ahora las categorías fluyen de forma ininterrumpida, permitiendo que los productos de una nueva sección rellenen los espacios vacíos de la anterior, optimizando al máximo el uso del papel.
