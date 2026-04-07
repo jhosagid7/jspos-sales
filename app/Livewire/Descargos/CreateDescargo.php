@@ -24,8 +24,9 @@ class CreateDescargo extends Component
     
     public $warehouses = [];
     public $cart = [];
+    public $descargo_id = null;
 
-    public function mount()
+    public function mount($descargo = null)
     {
         $this->date = now()->format('Y-m-d\TH:i');
 
@@ -42,6 +43,34 @@ class CreateDescargo extends Component
         // Default warehouse if exists
         $this->warehouse_id = $this->warehouses->first()->id ?? null;
 
+        // If editing an existing descargo
+        if ($descargo) {
+            $descargoObj = \App\Models\Descargo::with('details.product')->find($descargo);
+            if ($descargoObj && $descargoObj->status == 'pending') {
+                $this->descargo_id = $descargoObj->id;
+                $this->warehouse_id = $descargoObj->warehouse_id;
+                $this->motive = $descargoObj->motive;
+                $this->authorized_by = $descargoObj->authorized_by;
+                $this->comments = $descargoObj->comments;
+                $this->date = $descargoObj->date->format('Y-m-d\TH:i');
+
+                // Pre-fill cart
+                foreach ($descargoObj->details as $item) {
+                    if ($item->product) {
+                        $this->cart[$item->product_id] = [
+                            'id' => $item->product_id,
+                            'name' => $item->product->name,
+                            'sku' => $item->product->sku,
+                            'cost' => $item->cost,
+                            'quantity' => $item->quantity,
+                            'is_variable' => (bool)$item->product->is_variable_quantity,
+                            'items' => $item->items_json ? json_decode($item->items_json, true) : []
+                        ];
+                    }
+                }
+            }
+        }
+
         // Check for cloning via query parameter
         if (request()->has('clone_id')) {
             $this->loadFromDescargo(request('clone_id'));
@@ -50,7 +79,7 @@ class CreateDescargo extends Component
 
     public function loadFromDescargo($id)
     {
-        $descargo = \App\Models\Descargo::with('details')->find($id);
+        $descargo = \App\Models\Descargo::with('details.product')->find($id);
 
         if ($descargo) {
             $this->cart = [];
@@ -59,16 +88,18 @@ class CreateDescargo extends Component
             $this->comments = "Clonado desde Descargo #{$descargo->id}. " . $descargo->comments;
             $this->warehouse_id = $descargo->warehouse_id;
 
+            // Important: We do NOT set $this->descargo_id because this is CLONING (new record)
+            $this->descargo_id = null;
+
             foreach ($descargo->details as $detail) {
-                $product = \App\Models\Product::find($detail->product_id);
-                if ($product) {
-                    $this->cart[$product->id] = [
-                        'id' => $product->id,
-                        'name' => $product->name,
-                        'sku' => $product->sku,
+                if ($detail->product) {
+                    $this->cart[$detail->product_id] = [
+                        'id' => $detail->product_id,
+                        'name' => $detail->product->name,
+                        'sku' => $detail->product->sku,
                         'cost' => $detail->cost,
                         'quantity' => $detail->quantity,
-                        'is_variable' => (bool)$product->is_variable_quantity,
+                        'is_variable' => (bool)$detail->product->is_variable_quantity,
                         'items' => $detail->items_json ? json_decode($detail->items_json, true) : []
                     ];
                 }
@@ -108,8 +139,8 @@ class CreateDescargo extends Component
                         $q->where('name', 'like', "%{$token}%")
                           ->orWhere('sku', 'like', "%{$token}%")
                           ->orWhereHas('category', function ($subQuery) use ($token) {
-                              $subQuery->where('name', 'like', "%{$token}%");
-                          });
+                               $subQuery->where('name', 'like', "%{$token}%");
+                           });
                     });
                 }
             }
@@ -255,15 +286,37 @@ class CreateDescargo extends Component
         try {
             \Illuminate\Support\Facades\DB::beginTransaction();
 
-            $descargo = \App\Models\Descargo::create([
-                'warehouse_id' => $this->warehouse_id,
-                'user_id' => auth()->id(),
-                'authorized_by' => $this->authorized_by,
-                'motive' => $this->motive,
-                'date' => $this->date,
-                'comments' => $this->comments,
-                'status' => 'pending',
-            ]);
+            if ($this->descargo_id) {
+                // UPDATE MODE
+                $descargo = \App\Models\Descargo::find($this->descargo_id);
+                if (!$descargo || $descargo->status !== 'pending') {
+                    throw new \Exception("No se puede editar un descargo que ya no es pendiente o no existe.");
+                }
+
+                $descargo->update([
+                    'warehouse_id' => $this->warehouse_id,
+                    'authorized_by' => $this->authorized_by,
+                    'motive' => $this->motive,
+                    'date' => $this->date,
+                    'comments' => $this->comments,
+                ]);
+
+                // Clear old details
+                $descargo->details()->delete();
+                $msg = 'Descargo actualizado correctamente.';
+            } else {
+                // CREATE MODE
+                $descargo = \App\Models\Descargo::create([
+                    'warehouse_id' => $this->warehouse_id,
+                    'user_id' => auth()->id(),
+                    'authorized_by' => $this->authorized_by,
+                    'motive' => $this->motive,
+                    'date' => $this->date,
+                    'comments' => $this->comments,
+                    'status' => 'pending',
+                ]);
+                $msg = 'Descargo registrado. Pendiente de aprobación.';
+            }
 
             foreach ($this->cart as $item) {
                 $detail = \App\Models\DescargoDetail::create([
@@ -280,18 +333,23 @@ class CreateDescargo extends Component
 
             \Illuminate\Support\Facades\DB::commit();
             
-            // Dispatch Events and Notifications
-            event(new \App\Events\DescargoCreated($descargo));
+            // Dispatch Events and Notifications (Only for new records if preferred, or both)
+            if (!$this->descargo_id) {
+                event(new \App\Events\DescargoCreated($descargo));
+                $approvers = \App\Models\User::permission('adjustments.approve_descargo')->get();
+                \Illuminate\Support\Facades\Notification::send($approvers, new \App\Notifications\DescargoCreatedNotification($descargo));
+            }
 
-            $approvers = \App\Models\User::permission('adjustments.approve_descargo')->get();
-            \Illuminate\Support\Facades\Notification::send($approvers, new \App\Notifications\DescargoCreatedNotification($descargo));
+            if ($this->descargo_id) {
+                return redirect()->route('descargos')->with('success', $msg);
+            }
 
-            $this->reset(['cart', 'motive', 'authorized_by', 'comments', 'search']);
-            $this->dispatch('noty', msg: 'Descargo registrado. Pendiente de aprobación.');
+            $this->reset(['cart', 'motive', 'authorized_by', 'comments', 'search', 'descargo_id']);
+            $this->dispatch('noty', msg: $msg);
             
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\DB::rollBack();
-            $this->dispatch('noty', msg: 'Error al registrar descargo: ' . $e->getMessage(), type: 'error');
+            $this->dispatch('noty', msg: 'Error al procesar descargo: ' . $e->getMessage(), type: 'error');
         }
     }
 

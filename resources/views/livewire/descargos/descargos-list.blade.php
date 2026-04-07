@@ -109,6 +109,11 @@
                                         <button wire:click="getDescargoDetail({{ $descargo->id }})" class="btn btn-dark btn-sm" title="Ver Detalles">
                                             <i class="fas fa-list"></i>
                                         </button>
+                                        @if($descargo->status == 'pending')
+                                            <a href="{{ route('descargos.edit', $descargo->id) }}" class="btn btn-info btn-sm" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        @endif
                                         <a href="{{ route('descargos.create', ['clone_id' => $descargo->id]) }}" class="btn btn-outline-info btn-sm" title="Clonar">
                                             <i class="fas fa-copy"></i>
                                         </a>

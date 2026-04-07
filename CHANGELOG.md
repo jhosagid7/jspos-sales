@@ -1,6 +1,17 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.61] - 2026-04-07
+### Added
+- **Soporte de Edición en Descargos**: Se implementó la funcionalidad para modificar descargos en estado "**Pendiente**", unificando el flujo de trabajo con el módulo de Cargos.
+- **Ruta de Edición**: Añadida la ruta `descargos/{descargo}/edit` en el archivo `web.php` para carga dinámica del componente `CreateDescargo`.
+
+### Fixed
+- **Error Multiple Root Elements (Descargos)**: Reestructuración total de la vista `create-descargo.blade.php` para cumplir con el requisito de raíz única de Livewire.
+- **Estabilización de Propiedades**: Corrección de errores `PropertyNotFound` (`$comments`) y `UndefinedVariable` (`$cart`) en los módulos de Cargos y Descargos.
+- **Defensa de Nulidad (ReportController)**: Se parcheó el error `format() on null` en el reporte diario de ventas mediante validación segura de fechas.
+- **Sincronización en Compras**: Eliminación completa de crasheos por configuración nula (`config->vat`) en el componente de compras.
+
 ## [1.9.58] - 2026-04-07
 ### Fixed
 - **Previsualización Vacía**: Se corrigió el error donde el reporte PDF (Previsualizar) salía "Sin datos" o en cero cuando no se seleccionaba una fecha. Ahora, si no hay filtro de fecha activo, el PDF muestra todo el historial de la pantalla actual.

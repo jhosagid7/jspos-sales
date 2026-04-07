@@ -114,6 +114,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('descargos', \App\Livewire\Descargos\DescargosList::class)->name('descargos')->middleware('can:adjustments.create');
     Route::get('descargos/create', \App\Livewire\Descargos\CreateDescargo::class)->name('descargos.create')->middleware('can:adjustments.create');
+    Route::get('descargos/{descargo}/edit', \App\Livewire\Descargos\CreateDescargo::class)->name('descargos.edit')->middleware('can:adjustments.create');
     Route::get('descargos/{descargo}/pdf', [\App\Http\Controllers\DescargoController::class, 'pdf'])->name('descargos.pdf')->middleware('can:adjustments.create');
 
 
