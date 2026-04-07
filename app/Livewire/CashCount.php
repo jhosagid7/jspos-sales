@@ -118,7 +118,12 @@ class CashCount extends Component
 
             // 2. Process Payments details for these sales
             $saleIds = $sales->pluck('id');
-            $paymentDetails = SalePaymentDetail::whereIn('sale_id', $saleIds)->get();
+            $paymentDetails = SalePaymentDetail::whereIn('sale_id', $saleIds)
+                ->whereBetween('created_at', [$dFrom, $dTo])
+                ->get();
+            $changeDetails = SaleChangeDetail::whereIn('sale_id', $saleIds)
+                ->whereBetween('created_at', [$dFrom, $dTo])
+                ->get();
             
             $this->totalWalletUsedToday = $paymentDetails->where('payment_method', 'wallet')->sum('amount_in_primary_currency');
             

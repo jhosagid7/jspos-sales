@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.56] - 2026-04-07
+### Fixed
+- **Inmutabilidad Total de Reportes Financieros**: Se aplicó un "cerrojo" de fecha a todos los movimientos de una venta (Pagos, Vueltos y Devoluciones).
+    - **Pagos Retroactivos**: Se corrigió el error donde los abonos a crédito realizados en fechas futuras afectaban los reportes históricos. Los reportes ahora solo muestran el flujo de dinero que ocurrió **exactamente** en el periodo consultado.
+    - **Sincronización de Arqueo**: El Arqueo de Caja (`CashCount`) ahora filtra rigurosamente los `SalePaymentDetail` por fecha de creación, garantizando que el "Total a Entregar" sea una foto fiel del día.
+
 ## [1.9.55] - 2026-04-07
 ### Added
 - **Optimización de Módulos de Inventario**: Aplicación de patrones de alto rendimiento en los módulos de **Cargos**, **Descargos** y **Compras**.

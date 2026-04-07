@@ -72,7 +72,14 @@ class DailySalesReport extends Component
                 $dTo = Carbon::parse($this->dateTo)->endOfDay();
             }
 
-            $sales = Sale::with(['customer', 'details', 'user', 'paymentDetails', 'changeDetails', 'returns'])
+            $sales = Sale::with([
+                'customer', 
+                'details', 
+                'user', 
+                'paymentDetails' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo]),
+                'changeDetails' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo]),
+                'returns' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo])
+            ])
                 ->when($this->searchFolio, function($q) {
                     $q->where('id', 'like', "%{$this->searchFolio}%")
                       ->orWhere('invoice_number', 'like', "%{$this->searchFolio}%");
@@ -124,10 +131,12 @@ class DailySalesReport extends Component
             $totalSale = $salesQuery->sum('total_usd');
             
             // Use the actual collection to calculate accurate net totals for the header
-            $allSales = $salesQuery->with('returns')->get();
+            $allSales = $salesQuery->with([
+                'returns' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo])
+            ])->get();
+
             $netTotalUSD = $allSales->sum(function($s) use ($dFrom, $dTo) {
                 $retUSD = $s->returns->where('status', 'approved')
-                    ->whereBetween('created_at', [$dFrom, $dTo])
                     ->sum(function($r) use ($s) {
                         $rate = $s->primary_exchange_rate > 0 ? $s->primary_exchange_rate : 1;
                         return $r->total_returned / $rate;
@@ -209,7 +218,14 @@ class DailySalesReport extends Component
             $dTo = Carbon::parse($this->dateTo)->endOfDay();
         }
 
-        $sales = Sale::with(['customer', 'details', 'user', 'paymentDetails', 'changeDetails', 'returns'])
+        $sales = Sale::with([
+                'customer', 
+                'details', 
+                'user', 
+                'paymentDetails' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo]),
+                'changeDetails' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo]),
+                'returns' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo])
+            ])
             ->when($this->searchFolio, function($q) {
                 $q->where('id', 'like', "%{$this->searchFolio}%")
                   ->orWhere('invoice_number', 'like', "%{$this->searchFolio}%");
