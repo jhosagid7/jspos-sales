@@ -120,17 +120,27 @@ class ReportController extends Controller
         $searchFolio = $request->get('searchFolio');
         $groupBy = $request->get('groupBy', 'none');
 
-        $dFrom = $dateFrom ? \Carbon\Carbon::parse($dateFrom)->startOfDay() : \Carbon\Carbon::today()->startOfDay();
-        $dTo = $dateTo ? \Carbon\Carbon::parse($dateTo)->endOfDay() : \Carbon\Carbon::today()->endOfDay();
+        $dFrom = $dateFrom ? \Carbon\Carbon::parse($dateFrom)->startOfDay() : null;
+        $dTo = $dateTo ? \Carbon\Carbon::parse($dateTo)->endOfDay() : null;
 
         $sales = \App\Models\Sale::with([
                 'customer', 
                 'details', 
                 'user', 
-                'paymentDetails' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo])->with(['zelleRecord', 'bankRecord.bank']),
-                'changeDetails' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo]),
-                'returns' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo])
+                'paymentDetails' => function($q) use ($dFrom, $dTo) {
+                    if ($dFrom && $dTo) $q->whereBetween('created_at', [$dFrom, $dTo]);
+                    $q->with(['zelleRecord', 'bankRecord.bank']);
+                },
+                'changeDetails' => function($q) use ($dFrom, $dTo) {
+                    if ($dFrom && $dTo) $q->whereBetween('created_at', [$dFrom, $dTo]);
+                },
+                'returns' => function($q) use ($dFrom, $dTo) {
+                    if ($dFrom && $dTo) $q->whereBetween('created_at', [$dFrom, $dTo]);
+                }
             ])
+            ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
+                $q->whereBetween('created_at', [$dFrom, $dTo]);
+            })
             ->when($searchFolio, function($q) use ($searchFolio) {
                 $q->where('id', 'like', "%{$searchFolio}%")
                   ->orWhere('invoice_number', 'like', "%{$searchFolio}%");
@@ -383,7 +393,7 @@ class ReportController extends Controller
         $totalNCRawOld   = 0;
         
         // Use dFrom if available, otherwise Today (fixes the format() on null crash)
-        $reportDate = ($dFrom ?? Carbon::now())->format('Y-m-d');
+        $reportDate = $dFrom ? $dFrom->format('Y-m-d') : Carbon::now()->format('Y-m-d');
 
         foreach ($returns as $ret) {
             if (!$ret->sale) continue;

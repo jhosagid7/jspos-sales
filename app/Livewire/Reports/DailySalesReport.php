@@ -76,9 +76,15 @@ class DailySalesReport extends Component
                 'customer', 
                 'details', 
                 'user', 
-                'paymentDetails' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo]),
-                'changeDetails' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo]),
-                'returns' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo])
+                'paymentDetails' => function($q) use ($dFrom, $dTo) {
+                    if ($dFrom && $dTo) $q->whereBetween('created_at', [$dFrom, $dTo]);
+                },
+                'changeDetails' => function($q) use ($dFrom, $dTo) {
+                    if ($dFrom && $dTo) $q->whereBetween('created_at', [$dFrom, $dTo]);
+                },
+                'returns' => function($q) use ($dFrom, $dTo) {
+                    if ($dFrom && $dTo) $q->whereBetween('created_at', [$dFrom, $dTo]);
+                }
             ])
                 ->when($this->searchFolio, function($q) {
                     $q->where('id', 'like', "%{$this->searchFolio}%")
@@ -132,7 +138,9 @@ class DailySalesReport extends Component
             
             // Use the actual collection to calculate accurate net totals for the header
             $allSales = $salesQuery->with([
-                'returns' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo])
+                'returns' => function($q) use ($dFrom, $dTo) {
+                    if ($dFrom && $dTo) $q->whereBetween('created_at', [$dFrom, $dTo]);
+                }
             ])->get();
 
             $netTotalUSD = $allSales->sum(function($s) use ($dFrom, $dTo) {
