@@ -136,6 +136,15 @@ class Sales extends Component
     public $searchSeller = '';
     public $sellers = [];
 
+    // Pre-calculated permissions for performance
+    public $canManageAdjustments = false;
+    public $canShowExchangeRate = false;
+    public $canSwitchWarehouse = false;
+    public $decimalPlaces = 2;
+    public $moduleMultiWarehouse = false;
+    public $moduleCredits = false;
+    public $moduleAdvancedPayments = false;
+
 
     public function updatedSelectedPaymentMethod($value)
     {
@@ -328,16 +337,11 @@ class Sales extends Component
     public $selectedChangeAmount; // Monto a dar en esa moneda
     public $totalCartAtPayment; // Total del carrito en el momento del pago (para evitar que cambie durante re-renders)
 
-    public $variableItemStats = [
-        'available' => 0,
-        'reserved' => 0,
-        'total' => 0
-    ];
-
     public $applyCommissions = false; // Toggle for applying commissions
     public $applyFreight = false; // Toggle for applying freight ONLY
     public $is_freight_broken_down = false; // Toggle for breaking down freight
     public $total_freight = 0; // Total freight amount
+
 
     public function updatedApplyCommissions()
     {
@@ -763,7 +767,7 @@ class Sales extends Component
             ->orderByRaw("REPLACE(name, '  ', ' ') ASC");
 
             // Limit results for performance
-            $this->products = $query->with(['productWarehouses.warehouse', 'units'])->take(50)->get();
+            $this->products = $query->with(['productWarehouses.warehouse', 'units', 'category', 'images'])->take(50)->get();
 
             if ($this->products->count() == 0) {
                 $this->dispatch('noty', msg: 'NO EXISTE EL CÓDIGO ESCANEADO PERO PREGUNTELE');
@@ -833,6 +837,20 @@ class Sales extends Component
 
     public function mount()
     {
+        $this->config = ConfigurationService::getConfig();
+        $this->decimalPlaces = ConfigurationService::getDecimalPlaces();
+        
+        // Cache permissions to avoid N+1 in loops
+        $this->canManageAdjustments = auth()->user()->can('sales.manage_adjustments');
+        $this->canShowExchangeRate = auth()->user()->can('sales.show_exchange_rate');
+        $this->canSwitchWarehouse = auth()->user()->can('sales.switch_warehouse');
+        
+        // Cache module status
+        $modules = config('tenant.modules', []);
+        $this->moduleMultiWarehouse = in_array('module_multi_warehouse', $modules);
+        $this->moduleCredits = in_array('module_credits', $modules);
+        $this->moduleAdvancedPayments = in_array('module_advanced_payments', $modules);
+
         if (session()->has("cart")) {
             $this->cart = collect(session("cart"))->map(function($item) {
                 if (!isset($item['id'])) {
@@ -845,8 +863,6 @@ class Sales extends Component
         }
 
         session(['map' => 'Ventas', 'child' => ' Componente ', 'pos' => 'MÓDULO DE VENTAS']);
-
-        $this->config = Configuration::first();
 
         $this->banks = Bank::orderBy('sort')->get();
         if ($this->banks->isNotEmpty()) {
@@ -866,7 +882,7 @@ class Sales extends Component
         }
 
         // If user cannot switch warehouse, restrict the list or just ensure the selected one is enforced
-        if (!$user->can('sales.switch_warehouse')) {
+        if (!$this->canSwitchWarehouse) {
             if ($this->warehouse_id) {
                  // Restrict list to the assigned (or default) warehouse
                 $this->warehouses = $this->warehouses->where('id', $this->warehouse_id);
@@ -998,8 +1014,6 @@ class Sales extends Component
             'payments_count' => count($this->payments),
             'totalCartAtPayment' => $this->totalCartAtPayment
         ]);
-
-        $this->sellers = \App\Models\User::all();
     }
 
     public function render()
@@ -1486,7 +1500,8 @@ class Sales extends Component
             });
 
         if (empty(trim($this->search))) {
-            return $query->whereHas('customer')
+            return $query->with(['customer.seller', 'user'])
+                ->whereHas('customer')
                 ->where('status', 'pending')
                 ->orderBy('id', 'desc')
                 ->paginate($this->pagination);
@@ -3266,7 +3281,7 @@ class Sales extends Component
             if ($userRegister) {
                 $cashRegisterId = $userRegister->id;
             } else {
-                $config = Configuration::first();
+                $config = ConfigurationService::getConfig();
                 if ($config && $config->enable_shared_cash_register) {
                     $lastOpenRegister = \App\Models\CashRegister::where('status', 'open')->latest()->first();
                     if ($lastOpenRegister) {
@@ -3351,7 +3366,7 @@ class Sales extends Component
                 if (!$sellerModel) {
                      $sellerModel = auth()->user();
                 }
-                $globalConfig = \App\Models\Configuration::first();
+                $globalConfig = ConfigurationService::getConfig();
 
                 // 1. Customer config
                 $tier1Days = $customerModel->customer_commission_1_threshold ?? null;
@@ -4233,7 +4248,7 @@ class Sales extends Component
         }
 
         // 3. Global Level
-        $config = Configuration::first();
+        $config = ConfigurationService::getConfig();
         if ($config && $config->global_commission_1_threshold > 0) {
             return $config->global_commission_1_threshold;
         }

@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\User;
 use App\Models\Configuration;
 use App\Models\CreditDiscountRule;
+use App\Services\ConfigurationService;
 
 class CreditConfigService
 {
@@ -19,7 +20,7 @@ class CreditConfigService
      */
     public static function getCreditConfig(Customer $customer, ?User $seller = null): array
     {
-        $globalConfig = Configuration::first();
+        $globalConfig = ConfigurationService::getConfig();
 
         // 1. Resolver Reglas de Descuento (Estrategia de Fallback: Cliente -> Vendedor -> Global)
         // Si el cliente no tiene reglas específicas, hereda las del vendedor o globales.

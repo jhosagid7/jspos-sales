@@ -142,7 +142,7 @@
                                 <li class="p-1 list-group-item list-group-item-action d-flex justify-content-between align-items-center"
                                     data-id="{{ $product->id }}"
                                     :class="{ 'bg-light': selectedIndex === {{ $index }} }"
-                                    @if(Auth::user()->can('sales.manage_adjustments') || $customer)
+                                    @if($canManageAdjustments || $customer)
                                         @click="@this.AddProduct({{ $product->id }}); reset()"
                                         style="cursor: pointer; border-bottom: 1px solid #f0f0f0;"
                                     @else
@@ -159,8 +159,8 @@
                                                             <small class="text-muted">{{ $product->sku }}</small> - {{ Str::limit($product->name, 40) }}
                                                         </h6>
                                                         <span class="badge badge-light text-dark border" style="font-size: 0.85rem;">
-                                                            @if(Auth::user()->can('sales.manage_adjustments') || $customer)
-                                                                @if(Auth::user()->can('sales.manage_adjustments'))
+                                                            @if($canManageAdjustments || $customer)
+                                                                @if($canManageAdjustments)
                                                                     {{ $targetSymbol }}{{ formatMoney($priceInTarget) }} 
                                                                     
                                                                     @php
@@ -175,13 +175,13 @@
                                                                         }
                                                                     @endphp
 
-                                                                    @can('sales.show_exchange_rate')
+                                                                    @if($canShowExchangeRate)
                                                                     @if($bcvPriceList > 0)
                                                                         <span class="d-block text-danger font-weight-bold" style="font-size: 0.75rem;">
                                                                             ${{ formatMoney($bcvPriceList) }} USD/BCV
                                                                         </span>
                                                                     @endif 
-                                                                    @endcan 
+                                                                    @endif 
                                                                     
                                                                     @if(isset($currencies) && $currencies->count() > 1 && $targetCurrency)
                                                                         <div class="text-muted mt-1 d-flex flex-wrap" style="font-size: 0.75rem; gap: 8px;">
@@ -224,13 +224,13 @@
                                                                         }
                                                                     @endphp
 
-                                                                    @can('sales.show_exchange_rate')
+                                                                    @if($canShowExchangeRate)
                                                                     @if($bcvPriceList > 0)
                                                                         <span class="d-block text-danger font-weight-bold" style="font-size: 0.75rem;">
                                                                             ${{ formatMoney($bcvPriceList) }} USD/BCV
                                                                         </span>
                                                                     @endif
-                                                                    @endcan
+                                                                    @endif
                                                                     
                                                                     @if(isset($currencies) && $currencies->count() > 1 && $targetCurrency)
                                                                         <div class="text-muted mt-1 d-flex flex-wrap" style="font-size: 0.75rem; gap: 8px;">
@@ -249,7 +249,7 @@
                                                                         </div>
                                                                     @endif
                                                                 @endif
-                                                                <span class="text-muted ml-1">| Stock: {{ (Auth::user()->can('sales.switch_warehouse') && in_array('module_multi_warehouse', config('tenant.modules', []))) ? $product->productWarehouses->sum('stock_qty') : $product->productWarehouses->where('warehouse_id', $this->warehouse_id)->sum('stock_qty') }}</span>
+                                                                <span class="text-muted ml-1">| Stock: {{ ($canSwitchWarehouse && $moduleMultiWarehouse) ? $product->productWarehouses->sum('stock_qty') : $product->productWarehouses->where('warehouse_id', $this->warehouse_id)->sum('stock_qty') }}</span>
                                                             @else
                                                                 <span class="text-warning"><i class="fas fa-exclamation-circle"></i> Seleccione Cliente</span>
                                                             @endif
@@ -258,8 +258,8 @@
                                                     
                                                     @if($product->productWarehouses->count() > 0)
                                                         @module('module_multi_warehouse')
-                                                        @can('sales.switch_warehouse')
-                                                            @if(Auth::user()->can('sales.manage_adjustments') || $customer)
+                                                        @if($canSwitchWarehouse)
+                                                            @if($canManageAdjustments || $customer)
                                                                 <div class="d-flex flex-wrap mt-1 align-items-center">
                                                                     @foreach($product->productWarehouses as $pw)
                                                                         @if($pw->stock_qty > 0)
@@ -271,7 +271,7 @@
                                                                     @endforeach
                                                                 </div>
                                                             @endif
-                                                        @endcan
+                                                        @endif
                                                         @endmodule
                                                     @endif
                                                 </div>
@@ -332,10 +332,10 @@
                                                 <input class="form-control form-control-sm"
                                                     wire:keydown.enter.prevent="setCustomPrice('{{ $item['id'] }}', $event.target.value )"
                                                     type="text" oninput="justNumber(this)" 
-                                                    value="{{ number_format($item['sale_price'], \App\Services\ConfigurationService::getDecimalPlaces(), '.', '') }}"
-                                                    @cannot('sales.manage_adjustments') readonly @endcannot>
+                                                    value="{{ number_format($item['sale_price'], $decimalPlaces, '.', '') }}"
+                                                    @if(!$canManageAdjustments) readonly @endif>
                                                 
-                                                @can('sales.manage_adjustments')
+                                                @if($canManageAdjustments)
                                                 <div class="input-group-append">
                                                     <button class="btn btn-warning btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                                         <i class="fa fa-info"></i>
@@ -343,7 +343,7 @@
                                                     <div class="dropdown-menu dropdown-menu-right" style="min-width: 250px; z-index: 10000;">
                                                         <a class="dropdown-item" href="javascript:void(0)">
                                                             <div class="d-flex flex-column">
-                                                                <span class="font-weight-bold">{{ $primarySymbol }}{{ number_format($item['sale_price'], \App\Services\ConfigurationService::getDecimalPlaces()) }}</span>
+                                                                <span class="font-weight-bold">{{ $primarySymbol }}{{ number_format($item['sale_price'], $decimalPlaces) }}</span>
                                                                 @if(isset($currencies) && $currencies->count() > 1)
                                                                     <div class="text-muted small">
                                                                         @foreach($currencies as $currency)
@@ -368,10 +368,10 @@
                                                     wire:keydown.enter.prevent="setCustomPrice('{{ $item['id'] }}', $event.target.value )"
                                                     oninput="justNumber(this)" type="text"
                                                     placeholder="{{ $item['sale_price'] }}"
-                                                    value="{{ number_format($item['sale_price'], \App\Services\ConfigurationService::getDecimalPlaces(), '.', '') }}"
-                                                    @cannot('sales.manage_adjustments') readonly @endcannot>
+                                                    value="{{ number_format($item['sale_price'], $decimalPlaces, '.', '') }}"
+                                                    @if(!$canManageAdjustments) readonly @endif>
                                                 
-                                                @can('sales.manage_adjustments')
+                                                @if($canManageAdjustments)
                                                 <div class="input-group-append">
                                                     <button class="btn btn-warning btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                                         <i class="fa fa-list"></i>
@@ -381,7 +381,7 @@
                                                             <a class="dropdown-item" href="javascript:void(0)" 
                                                                wire:click.prevent="setCustomPrice('{{ $item['id'] }}', '{{ $price['price'] }}')">
                                                                 <div class="d-flex flex-column">
-                                                                    <span class="font-weight-bold">{{ $primarySymbol }}{{ number_format($price['price'], \App\Services\ConfigurationService::getDecimalPlaces()) }}</span>
+                                                                    <span class="font-weight-bold">{{ $primarySymbol }}{{ number_format($price['price'], $decimalPlaces) }}</span>
                                                                 </div>
                                                             </a>
                                                             @if(!$loop->last) <div class="dropdown-divider"></div> @endif

@@ -23,15 +23,19 @@ class AutoMigrate
                 if (File::exists($versionFile)) {
                     $currentVersion = trim(File::get($versionFile));
                     
-                    // Use file-based cache key to track migration status per version
-                    $cacheKey = 'migrated_version_' . str_replace('.', '_', $currentVersion);
+                    // Use a simple flat file in storage to track migration status per version
+                    $flagFile = storage_path('framework/migrated_' . str_replace('.', '_', $currentVersion) . '.log');
                     
-                    if (!Cache::store('file')->has($cacheKey)) {
+                    if (!File::exists($flagFile)) {
+                        \Illuminate\Support\Facades\Log::info("AutoMigrate - Start for version: " . $currentVersion);
+                        
                         // Run migrations automatically
                         Artisan::call('migrate', ['--force' => true]);
                         
-                        // Mark as migrated for this version
-                        Cache::store('file')->put($cacheKey, true, now()->addYears(5));
+                        \Illuminate\Support\Facades\Log::info("AutoMigrate - Migration complete");
+                        
+                        // Mark as migrated for this version by creating the flag file
+                        File::put($flagFile, "Migrated on: " . now()->toDateTimeString());
                         
                         // Optional: Clear view/config cache after migration
                         Artisan::call('optimize:clear');

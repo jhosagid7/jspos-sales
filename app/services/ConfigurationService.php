@@ -6,16 +6,23 @@ use App\Models\Configuration;
 
 class ConfigurationService
 {
+    protected static $config;
+
+    public static function getConfig()
+    {
+        if (self::$config === null) {
+            self::$config = Configuration::first();
+        }
+        return self::$config;
+    }
+
     public static function getDecimalPlaces()
     {
-        // Suponiendo que la columna clave se llama 'key' y el valor 'value'
-        return Configuration::first()?->decimals ?? 0;
+        return self::getConfig()?->decimals ?? 0;
     }
 
     public static function getVat()
     {
-
-        // Suponiendo que la columna clave se llama 'key' y el valor 'value'
-        return Configuration::first()?->vat ?? 0;
+        return self::getConfig()?->vat ?? 0;
     }
 }

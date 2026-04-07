@@ -89,8 +89,10 @@ class LicenseService
      */
     public function checkLicense()
     {
-        // Get the latest license
-        $license = License::latest('created_at')->first();
+        // Get the latest license with 1-hour cache to avoid redundant hits per request
+        $license = Cache::remember('active_license_v2', 3600, function () {
+            return License::latest('created_at')->first();
+        });
 
         if (!$license) {
             return [

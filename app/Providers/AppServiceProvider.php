@@ -47,7 +47,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         try {
-            $config = \App\Models\Configuration::first();
+            $config = \App\Services\ConfigurationService::getConfig();
             if ($config) {
                 if (!empty($config->backup_emails)) {
                     config(['backup.notifications.mail.to' => $config->backup_emails]);

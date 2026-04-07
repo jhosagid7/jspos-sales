@@ -1,6 +1,19 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.53] - 2026-04-07
+### Added
+- **Optimización Crítica de POS**: Reducción drástica del tiempo de carga inicial (~8s a <1s) mediante:
+    - **Caché de Permisos**: Los permisos y configuraciones de módulos se calculan ahora una sola vez al cargar (`mount`), eliminando cientos de llamadas redundantes durante el renderizado.
+    - **Servicio de Configuración Centralizado**: Se implementó una capa de caché para los ajustes del sistema, evitando consultas repetitivas a la tabla `configurations`.
+    - **Middleware de Auto-Migración Reforzado**: Se sustituyó el motor de caché por archivos de bandera persistentes (`storage/framework/migrated_*.log`), eliminando la sobrecarga de Artisan en cada petición GET.
+    - **Caché de Licencia**: La verificación de validez de la licencia se redujo de cada petición a una frecuencia de 1 hora mediante `Cache::remember`.
+- **Estandarización de Componentes**: Preparación de la arquitectura para unificar el rendimiento en los módulos de Inventario y Compras bajo el mismo patrón de alta velocidad.
+
+### Fixed
+- **N+1 en Listado de Productos**: Se eliminaron las consultas recurrentes a `Auth::user()->can()` y `config()` dentro de los bucles de Blade, mejorando la respuesta visual del Punto de Venta.
+- **Redundancia en AppServiceProvider**: Optimización del arranque global de la aplicación (Boot) para evitar el acceso directo a la base de datos en peticiones concurrentes.
+
 ## [1.9.51] - 2026-04-07
 ### Added
 - **Estandarización de Clonación (Shortcuts)**: Se unificó el motor de clonación en todos los módulos (Ventas, Compras, Cargos y Descargos). Ahora el sistema reconoce sinónimos en español como `ENTRADA:`, `SALIDA:`, `COMPRA:`, `AJUSTE:` y `OC:` tanto en el escáner como en el buscador manual, facilitando la carga rápida de mercancía.
