@@ -335,9 +335,9 @@
 
                         $grandRawVed += $vedPaid;
 
-                        // 3. Crédito sobre el monto NETO
+                        // 3. Crédito sobre el monto NETO - Basado en saldo del día, no en estado actual
                         $creditUSD = 0;
-                        if($sale->status != 'paid' && $sale->status != 'returned') {
+                        if(($netSaleUSD - $paidToday) > 0.01) {
                             $creditUSD = max(0, $netSaleUSD - $paidToday);
                         }
 
@@ -383,6 +383,9 @@
                                          {{ $payment->payment_method == 'zelle' ? 'Zelle' : ($payment->bank_name ?? 'Banco') }}: {{ $payment->reference_number }} 
                                          <span style="color: #888;">(Tasa: {{ number_format($payment->exchange_rate, 4) }})</span> 
                                          <span style="font-weight: bold;">[${{ number_format($usdEquiv, 4) }}]</span>
+                                         @if($payment->exchange_rate > 1)
+                                            <span style="font-weight: bold; color: #000;">[Bs. {{ number_format($usdEquiv * $payment->exchange_rate, 2) }}]</span>
+                                         @endif
                                      </div>
                                 @endif
                             @endforeach

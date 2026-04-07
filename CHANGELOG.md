@@ -1,6 +1,15 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.57] - 2026-04-07
+### Fixed
+- **Error format() on null**: Se corrigió el crash que ocurría al intentar generar un PDF sin seleccionar primero una fecha en los filtros. El sistema ahora usa la fecha actual por defecto.
+- **Inmutabilidad de Créditos (F622)**: Se rediseñó el cálculo de deudas en los reportes. Ahora se basa en el **Balance Histórico** (Total - Pagos del Día) en lugar del estado actual de la factura. Esto garantiza que las facturas a crédito aparezcan como tales en reportes viejos, incluso si ya fueron pagadas después.
+- **Sello de Inmutabilidad en PDF**: Se replicaron los filtros de relación (Pagos, Vueltos, Devoluciones) en el controlador del PDF (`ReportController`) para que los reportes impresos coincidan exactamente con lo que el usuario ve en pantalla.
+
+### Added
+- **Montos en Bs. (VED) en PDF**: Ahora el desglose de pagos en el reporte diario muestra el equivalente en Bolívares `[Bs. X.XX]` basándose en la tasa de cambio registrada en la transacción.
+
 ## [1.9.56] - 2026-04-07
 ### Fixed
 - **Inmutabilidad Total de Reportes Financieros**: Se aplicó un "cerrojo" de fecha a todos los movimientos de una venta (Pagos, Vueltos y Devoluciones).

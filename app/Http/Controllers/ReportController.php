@@ -120,15 +120,17 @@ class ReportController extends Controller
         $searchFolio = $request->get('searchFolio');
         $groupBy = $request->get('groupBy', 'none');
 
-        $dFrom = null;
-        $dTo = null;
-        $dFrom = null; $dTo = null;
-        if($dateFrom && $dateTo) {
-            $dFrom = \Carbon\Carbon::parse($dateFrom)->startOfDay();
-            $dTo = \Carbon\Carbon::parse($dateTo)->endOfDay();
-        }
+        $dFrom = $dateFrom ? \Carbon\Carbon::parse($dateFrom)->startOfDay() : \Carbon\Carbon::today()->startOfDay();
+        $dTo = $dateTo ? \Carbon\Carbon::parse($dateTo)->endOfDay() : \Carbon\Carbon::today()->endOfDay();
 
-        $sales = \App\Models\Sale::with(['customer', 'details', 'user', 'paymentDetails.zelleRecord', 'paymentDetails.bankRecord.bank'])
+        $sales = \App\Models\Sale::with([
+                'customer', 
+                'details', 
+                'user', 
+                'paymentDetails' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo])->with(['zelleRecord', 'bankRecord.bank']),
+                'changeDetails' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo]),
+                'returns' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo])
+            ])
             ->when($searchFolio, function($q) use ($searchFolio) {
                 $q->where('id', 'like', "%{$searchFolio}%")
                   ->orWhere('invoice_number', 'like', "%{$searchFolio}%");
@@ -366,16 +368,22 @@ class ReportController extends Controller
             $totalDivisaPaid += $saleDivisaPaid;
             
             $grandTotalNeto += $sale->total_usd;
-            if($sale->status != 'paid') {
-                $grandTotalCredit += max(0, $netSaleUSD - $salePaidUSD);
-                $summary['total_credito'] += max(0, $netSaleUSD - $salePaidUSD);
+
+            // Immutable Credit calculation: Total Neto - Payments made during the report range
+            $remainingAsCredit = max(0, $netSaleUSD - $salePaidUSD);
+            if ($remainingAsCredit > 0.01) {
+                $grandTotalCredit += $remainingAsCredit;
+                $summary['total_credito'] += $remainingAsCredit;
+                $sale->is_historical_credit = true; // Flag for PDF if needed
             }
         }
 
         // Handle returns (NC)
         $totalNCRawToday = 0;
         $totalNCRawOld   = 0;
-        $reportDate = $dFrom->format('Y-m-d');
+        
+        // Use dFrom if available, otherwise Today (fixes the format() on null crash)
+        $reportDate = ($dFrom ?? Carbon::now())->format('Y-m-d');
 
         foreach ($returns as $ret) {
             if (!$ret->sale) continue;
