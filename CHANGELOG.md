@@ -7,7 +7,12 @@ All notable changes to this project will be documented in this file.
 - **Optimización de Consultas (Catálogo)**: Se refactorizó la extracción de datos para filtrar solo productos con estatus `available` y omitir categorías vacías, reduciendo la carga de memoria y el tiempo de respuesta del servidor.
 - **DomPDF Acceleration**: Activación de `isFontSubsettingEnabled` y optimización de opciones del motor para un renderizado más fluido de estructuras complejas.
 
-## [1.9.64] - 2026-04-07
+## [1.9.66] - 2026-04-07
+### Changed
+- **Maquetación Dinámica (6/9 Cards)**: Rediseño del flujo de cuadrícula en el PDF. Ahora, las páginas que inician una categoría muestran el título y un máximo de 6 productos para un diseño más aireado y elegante. Las páginas siguientes de la misma categoría se expanden a una cuadrícula de 3x3 (9 productos) para maximizar el aprovechamiento del papel sin perder la legibilidad.
+- **Optimización de Saltos de Página**: Mejora en la lógica de segmentación de colecciones para asegurar transiciones limpias entre los distintos modos de visualización (6 vs 9 productos).
+
+## [1.9.65] - 2026-04-07
 ### Added
 - **Configuración de Catálogo (Precios)**: Se integró una nueva pestaña de "Catálogo" en la configuración del sistema que permite a los usuarios elegir si mostrar u ocultar los precios de venta y los precios base (USD) en el PDF generado. Esta opción es ideal para crear catálogos de marketing sin revelar precios de forma predeterminada.
 - **Interruptores de Visibilidad**: Implementación de controles tipo 'toggle' en el panel de Ajustes para una gestión intuitiva de la visualización de precios en el PDF.
