@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.50] - 2026-04-06
+### Fixed
+- Sincronización de estados en la auditoría de eliminación: Se asegura la limpieza automática de solicitudes pendientes (`deletion_requested_at`) al ser aprobadas.
+- Interfaz de Reporte de Ventas: Se ocultan los controles de aprobación (`v`/`x`) en facturas ya marcadas como `returned` para evitar confusión visual.
+
 ## [1.9.49] - 2026-04-06
 ### Added
 - **Justificación Obligatoria de Anulaciones**: Se implementó un sistema de auditoría que requiere obligatoriamente un motivo para cada anulación o solicitud de borrado.
