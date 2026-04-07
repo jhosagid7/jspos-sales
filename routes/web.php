@@ -90,6 +90,7 @@ Route::middleware('auth')->group(function () {
     Route::get('categories', Categories::class)->name('categories')->middleware('can:categories.index');
     Route::get('products/import', \App\Livewire\ProductImport::class)->name('products.import')->middleware('can:products.import');
     Route::get('products', Products::class)->name('products')->middleware('can:products.index');
+    Route::get('catalogue-pdf', [\App\Http\Controllers\CatalogueController::class, 'generate'])->name('catalogue.pdf')->middleware('can:products.index');
     Route::get('price-groups', PriceGroups::class)->name('price-groups')->middleware('can:products.index');
     Route::get('suppliers', Suppliers::class)->name('suppliers')->middleware('can:suppliers.index');
     Route::get('customers/import', \App\Livewire\CustomerImport::class)->name('customers.import')->middleware('can:customers.import');

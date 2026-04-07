@@ -224,9 +224,15 @@
                         @endcan
                         @can('products.index')
                         <li class="nav-item">
-                            <a href="{{ route('products') }}" class="nav-link">
+                            <a href="{{ route('products') }}" class="nav-link {{ Request::is('products') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Productos</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('catalogue.pdf') }}" target="_blank" class="nav-link">
+                                <i class="far fa-file-pdf nav-icon"></i>
+                                <p>Catálogo PDF</p>
                             </a>
                         </li>
                         <li class="nav-item">

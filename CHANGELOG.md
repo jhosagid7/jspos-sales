@@ -1,6 +1,14 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.62] - 2026-04-07
+### Added
+- **Módulo de Catálogo Premium**: Implementación de un generador de catálogos profesionales en PDF con diseño de alta gama, incluyendo portadas personalizadas, organización por categorías y cuadrícula de productos con imágenes y precios.
+- **Acceso Sidebar**: Integración del acceso directo "Catálogo PDF" con icono descriptivo en el menú lateral para una navegación intuitiva.
+
+### Fixed
+- **Estabilización DomPDF**: Corrección de un error de tipo en la asignación de configuraciones del motor de PDF que impedía el renderizado correcto de imágenes.
+
 ## [1.9.61] - 2026-04-07
 ### Added
 - **Soporte de Edición en Descargos**: Se implementó la funcionalidad para modificar descargos en estado "**Pendiente**", unificando el flujo de trabajo con el módulo de Cargos.
