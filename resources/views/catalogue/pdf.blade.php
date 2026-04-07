@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <title>{{ $title }}</title>
     <style>
-        /* Modern Reset for DomPDF */
+        /* DomPDF Essentials */
         @page {
-            margin: 0px;
+            margin: 1.5cm 1cm 1.5cm 1cm;
         }
         body {
             font-family: 'Helvetica', 'Arial', sans-serif;
@@ -14,225 +14,189 @@
             padding: 0;
             color: #2D3748;
             background-color: #FFFFFF;
-            font-size: 11pt;
-            line-height: 1.5;
+            font-size: 10pt;
+            line-height: 1.4;
         }
 
-        /* Helper Classes */
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
-        .font-bold { font-weight: bold; }
-        .uppercase { text-transform: uppercase; }
-
-        /* Cover Page Styling (Premium Magazine Look) */
-        .page-cover {
-            background-color: #1A202C; /* Deep dark background */
+        /* Cover Page (Modern minimal) */
+        #page-cover {
+            margin: -1.5cm -1cm 0 -1cm; /* Fill the page bleed */
+            background-color: #1A202C;
             color: #FFFFFF;
-            height: 100%;
-            width: 100%;
-            display: block;
+            padding-top: 200px;
+            padding-bottom: 200px;
             text-align: center;
-            padding-top: 250px;
             page-break-after: always;
         }
-        .page-cover img {
-            max-width: 180px;
-            margin-bottom: 40px;
-            border-radius: 12px;
+        #page-cover img {
+            max-width: 220px;
+            margin-bottom: 30px;
         }
-        .page-cover h1 {
-            font-size: 42pt;
-            letter-spacing: 4px;
-            margin: 10px 0;
-            font-weight: 300;
+        #page-cover h1 {
+            font-size: 36pt;
+            margin: 15px 0;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            font-weight: bold;
         }
-        .page-cover h2 {
-            font-size: 16pt;
-            letter-spacing: 2px;
+        #page-cover h2 {
+            font-size: 14pt;
             color: #A0AEC0;
-            margin-top: 5px;
-            font-weight: 400;
-        }
-        .cover-footer {
-            position: absolute;
-            bottom: 60px;
-            width: 100%;
-            font-size: 10pt;
-            color: #718096;
+            font-weight: normal;
+            letter-spacing: 2px;
         }
 
-        /* Section Header Styling */
+        /* Section Header */
         .section-header {
-            background-color: #EDF2F7;
-            padding: 35px 50px;
-            margin-top: 0;
-            page-break-before: always;
-            border-bottom: 4px solid #1A202C;
+            background-color: #F7FAFC;
+            padding: 20px 30px;
+            border-bottom: 3px solid #1A202C;
+            margin-bottom: 20px;
         }
         .section-header h2 {
-            font-size: 24pt;
+            font-size: 22pt;
             margin: 0;
             color: #1A202C;
-            letter-spacing: 1px;
-            font-weight: 700;
+            text-transform: uppercase;
+            font-weight: 800;
         }
         .section-header p {
             margin: 5px 0 0;
-            color: #4A5568;
+            color: #718096;
             font-size: 10pt;
         }
 
-        /* Product Grid (DomPDF reliable table-based layout) */
+        /* Product Table Grid */
         .product-table {
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed;
-            padding: 20px 30px;
+            margin-bottom: 30px;
         }
         .product-cell {
             width: 33.33%;
-            padding: 15px;
-            text-align: center;
+            padding: 10px;
             vertical-align: top;
-            border-bottom: 1px solid #F7FAFC;
         }
         .product-card {
-            background-color: #FFFFFF;
             border: 1px solid #E2E8F0;
-            border-radius: 10px;
-            padding: 15px;
-            height: 380px; /* Fixed height for clean grid rows */
+            border-radius: 8px;
+            padding: 12px;
+            background-color: #FFFFFF;
+            min-height: 340px; /* Force uniformity */
         }
         .product-image-container {
-            height: 180px;
             width: 100%;
-            display: block;
+            height: 170px;
             margin-bottom: 15px;
-            overflow: hidden;
             background-color: #F8FAFC;
-            border-radius: 8px;
+            text-align: center;
+            display: block;
+            border-radius: 6px;
+            overflow: hidden;
         }
         .product-image {
             max-width: 100%;
             max-height: 100%;
-            width: auto;
-            height: auto;
-            object-fit: contain;
-        }
-        .product-info {
-            text-align: left;
+            display: inline-block;
         }
         .product-name {
-            font-size: 13pt;
-            font-weight: 700;
+            font-size: 11pt;
+            font-weight: bold;
             color: #1A202C;
-            height: 48px; /* Two lines height limit */
+            height: 44px; /* Limit name height */
             overflow: hidden;
-            margin-bottom: 4px;
+            margin-bottom: 5px;
         }
-        .product-meta {
-            font-size: 9pt;
+        .product-sku {
+            font-size: 8pt;
             color: #718096;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
         .product-price {
-            font-size: 18pt;
+            font-size: 16pt;
             font-weight: 800;
-            color: #3182CE; /* Vibrant Blue Accent */
-        }
-        .price-currency {
-            font-size: 11pt;
-            font-weight: 400;
-            margin-right: 2px;
+            color: #2B6CB0;
         }
 
-        /* Footer */
-        .footer {
+        /* Global Footer */
+        footer {
             position: fixed;
-            bottom: 15px;
+            bottom: -0.5cm;
             left: 0;
             right: 0;
-            height: 30px;
-            border-top: 1px solid #E2E8F0;
-            padding: 10px 50px;
-            color: #A0AEC0;
+            height: 1cm;
             font-size: 8pt;
+            color: #A0AEC0;
+            text-align: center;
+            border-top: 1px solid #EDF2F7;
+            padding-top: 10px;
         }
         .pagenum:before {
-            content: counter(page);
+             content: counter(page);
         }
     </style>
 </head>
 <body>
 
-    <!-- PORTADA PREMIUM -->
-    <div class="page-cover">
-        <img src="{{ $config->logo ? public_path('storage/'.$config->logo) : public_path('assets/images/logo/logo-icon.png') }}" alt="Business Logo">
+    <!-- PORTADA -->
+    <div id="page-cover">
+        @if($logo)
+            <img src="{{ $logo }}" alt="Logo">
+        @endif
         <h1 class="uppercase">{{ $config->business_name }}</h1>
         <h2>CATÁLOGO DE PRODUCTOS - {{ $date }}</h2>
-        
-        <div class="cover-footer">
-            {{ $config->website }}
-        </div>
     </div>
 
     <!-- CONTENIDO POR CATEGORÍAS -->
+    @php $firstCategory = true; @endphp
     @foreach($categories as $category)
         @if($category->products->count() > 0)
-            <!-- SEPARADOR DE SECCIÓN -->
-            <div class="section-header">
-                <h2 class="uppercase">{{ $category->name }}</h2>
-                <p>{{ $category->products->count() }} Productos disponibles</p>
-            </div>
+            
+            <div style="{{ !$firstCategory ? 'page-break-before: always;' : '' }}">
+                <div class="section-header">
+                    <h2>{{ $category->name }}</h2>
+                    <p>{{ $category->products->count() }} Productos disponibles</p>
+                </div>
 
-            <!-- CUADRÍCULA DE PRODUCTOS -->
-            <table class="product-table">
-                @foreach($category->products->chunk(3) as $chunk)
-                    <tr>
-                        @foreach($chunk as $product)
-                            <td class="product-cell">
-                                <div class="product-card">
-                                    <div class="product-image-container">
-                                        @php
-                                            $imagePath = public_path('noimage.jpg');
-                                            if ($product->images->count() > 0) {
-                                                $fileName = $product->images->last()->file;
-                                                if (file_exists(public_path('storage/products/' . $fileName))) {
-                                                    $imagePath = public_path('storage/products/' . $fileName);
-                                                }
-                                            }
-                                        @endphp
-                                        <img src="{{ $imagePath }}" class="product-image" alt="Producto">
-                                    </div>
-                                    <div class="product-info">
+                <table class="product-table">
+                    @foreach($category->products->chunk(3) as $chunk)
+                        <tr>
+                            @foreach($chunk as $product)
+                                <td class="product-cell">
+                                    <div class="product-card">
+                                        <div class="product-image-container">
+                                            @if($product->image_base64)
+                                                <img src="{{ $product->image_base64 }}" class="product-image" alt="Producto">
+                                            @endif
+                                        </div>
                                         <div class="product-name">{{ $product->name }}</div>
-                                        <div class="product-meta">SKU: {{ $product->sku ?: 'N/A' }} | {{ $product->presentation ?: 'Unidad' }}</div>
+                                        <div class="product-sku">SKU: {{ $product->sku ?: 'No disponible' }} | {{ $product->presentation ?: 'Unidad' }}</div>
                                         <div class="product-price">
-                                            <span class="price-currency">$</span>{{ number_format($product->price, 2) }}
+                                            <span style="font-size: 10pt; font-weight: normal">$</span>{{ number_format($product->price, 2) }}
                                         </div>
                                     </div>
-                                </div>
-                            </td>
-                        @endforeach
-                        {{-- Células vacías para completar la fila si es necesario --}}
-                        @for($i = $chunk->count(); $i < 3; $i++)
-                            <td class="product-cell"></td>
-                        @endfor
-                    </tr>
-                @endforeach
-            </table>
+                                </td>
+                            @endforeach
+                            @for($i = $chunk->count(); $i < 3; $i++)
+                                <td class="product-cell"></td>
+                            @endfor
+                        </tr>
+                    @endforeach
+                </table>
+            </div>
+            @php $firstCategory = false; @endphp
         @endif
     @endforeach
 
-    <!-- PIE DE PÁGINA (Se repite en todas las hojas excepto portada) -->
-    <div class="footer">
+    <footer>
         <table style="width: 100%;">
             <tr>
-                <td style="width: 70%;">{{ $config->business_name }} | {{ $config->phone }} | {{ $config->address }}</td>
-                <td style="width: 30%;" class="text-right">Página <span class="pagenum"></span></td>
+                <td style="width: 80%; text-align: left;">{{ $config->business_name }} | {{ $config->phone }} | {{ $config->address }} | {{ $config->website }}</td>
+                <td style="width: 20%; text-align: right;">Página <span class="pagenum"></span></td>
             </tr>
         </table>
-    </div>
+    </footer>
 
 </body>
 </html>

@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.63] - 2026-04-07
+### Fixed
+- **Motor de Imágenes Catálogo (Base64)**: Se implementó la codificación de imágenes en Base64 directamente en el controlador para garantizar que el logo y las fotos de productos se visualicen siempre en el PDF, independientemente de la configuración de enlaces simbólicos del servidor.
+- **Estabilización de Layout (PDF)**: Eliminación de páginas en blanco redundantes mediante el ajuste de la lógica de saltos de página (`page-break`) y la remoción de atributos de altura que causaban desbordamiento.
+- **Alineación de Cuadrícula**: Se estableció una altura mínima fija para las tarjetas de producto, asegurando una presentación simétrica y profesional incluso con nombres de productos de distinta longitud.
+
 ## [1.9.62] - 2026-04-07
 ### Added
 - **Módulo de Catálogo Premium**: Implementación de un generador de catálogos profesionales en PDF con diseño de alta gama, incluyendo portadas personalizadas, organización por categorías y cuadrícula de productos con imágenes y precios.
