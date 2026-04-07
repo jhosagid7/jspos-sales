@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.58] - 2026-04-07
+### Fixed
+- **Previsualización Vacía**: Se corrigió el error donde el reporte PDF (Previsualizar) salía "Sin datos" o en cero cuando no se seleccionaba una fecha. Ahora, si no hay filtro de fecha activo, el PDF muestra todo el historial de la pantalla actual.
+- **Filtros de Fecha Opcionales**: Se sincronizó la lógica entre la web y el PDF: el "cerrojo" de inmutabilidad solo se activa si el usuario especifica un rango de fechas. Si no hay rango, se muestra el estado completo de las facturas (Totalmente pagas, etc.).
+
 ## [1.9.57] - 2026-04-07
 ### Fixed
 - **Error format() on null**: Se corrigió el crash que ocurría al intentar generar un PDF sin seleccionar primero una fecha en los filtros. El sistema ahora usa la fecha actual por defecto.
