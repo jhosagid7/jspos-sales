@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.65] - 2026-04-07
+### Performance
+- **Caché de Imágenes (Base64)**: Implementación de un sistema de caché de capas (1 día para el logo, 7 días para productos) que almacena la codificación Base64 de las imágenes. Esto elimina la necesidad de re-procesar fotos en cada carga, acelerando drásticamente el tiempo de generación del PDF a partir del segundo uso.
+- **Optimización de Consultas (Catálogo)**: Se refactorizó la extracción de datos para filtrar solo productos con estatus `available` y omitir categorías vacías, reduciendo la carga de memoria y el tiempo de respuesta del servidor.
+- **DomPDF Acceleration**: Activación de `isFontSubsettingEnabled` y optimización de opciones del motor para un renderizado más fluido de estructuras complejas.
+
 ## [1.9.64] - 2026-04-07
 ### Added
 - **Configuración de Catálogo (Precios)**: Se integró una nueva pestaña de "Catálogo" en la configuración del sistema que permite a los usuarios elegir si mostrar u ocultar los precios de venta y los precios base (USD) en el PDF generado. Esta opción es ideal para crear catálogos de marketing sin revelar precios de forma predeterminada.

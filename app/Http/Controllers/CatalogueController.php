@@ -11,7 +11,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class CatalogueController extends Controller
 {
     /**
-     * Generate the professional product catalog PDF with Base64 images for maximum stability.
+     * Generate the professional product catalog PDF with Base64 images and performance caching.
      */
     public function generate(Request $request)
     {
@@ -19,23 +19,30 @@ class CatalogueController extends Controller
         ini_set('memory_limit', '1024M');
         ini_set('max_execution_time', 600);
 
-        // Fetch categories with active products and their images
+        // Fetch only categories that actually have available products
         $categories = Category::with(['products' => function($query) {
-            $query->orderBy('name');
-        }, 'products.images'])->get();
+            $query->where('status', 'available')->orderBy('name');
+        }, 'products.images'])
+        ->get()
+        ->filter(function($category) {
+            return $category->products->count() > 0;
+        });
 
         $config = Configuration::first();
 
-        // Convert Logo to Base64
+        // Convert Logo to Base64 (Cache for 1 day)
         $logoBase64 = null;
         if ($config && $config->logo) {
             $logoPath = storage_path('app/public/' . $config->logo);
             if (file_exists($logoPath)) {
-                $logoBase64 = $this->imageToBase64($logoPath);
+                $cacheKey = 'base64_logo_' . md5($config->logo . filemtime($logoPath));
+                $logoBase64 = cache()->remember($cacheKey, now()->addDay(), function() use ($logoPath) {
+                    return $this->imageToBase64($logoPath);
+                });
             }
         }
         
-        // Fallback for logo if not found in storage
+        // Fallback for logo
         if (!$logoBase64) {
             $fallbackLogo = public_path('assets/images/logo/logo-icon.png');
             if (file_exists($fallbackLogo)) {
@@ -43,7 +50,7 @@ class CatalogueController extends Controller
             }
         }
 
-        // Prepare products with Base64 images to avoid path issues in DomPDF
+        // Prepare products with cached Base64 images
         foreach ($categories as $category) {
             foreach ($category->products as $product) {
                 $product->image_base64 = $this->getProductImageBase64($product);
@@ -58,7 +65,7 @@ class CatalogueController extends Controller
             'date' => date('d/m/Y')
         ];
 
-        // Load the view and set options for DomPDF
+        // Load the view and set options for DomPDF speed
         $pdf = Pdf::loadView('catalogue.pdf', $data);
         
         $pdf->setPaper('a4', 'portrait');
@@ -66,7 +73,9 @@ class CatalogueController extends Controller
         $pdf->setOptions([
             'isHtml5ParserEnabled' => true,
             'isRemoteEnabled'      => true,
-            'defaultFont'          => 'sans-serif'
+            'defaultFont'          => 'sans-serif',
+            'isFontSubsettingEnabled' => true, // Faster font processing
+            'isPhpEnabled' => false
         ]);
 
         return $pdf->stream('catalogo-de-productos-' . date('Y-m-d') . '.pdf');
@@ -87,23 +96,32 @@ class CatalogueController extends Controller
     }
 
     /**
-     * Get the best available image for a product in Base64 format.
+     * Get the best available image for a product in Base64 format (with caching).
      */
     private function getProductImageBase64($product)
     {
-        // Try to get the latest product image from storage
+        // Try to get the latest product image
         if ($product->images->count() > 0) {
-            $fileName = $product->images->last()->file;
+            $imageModel = $product->images->last();
+            $fileName = $imageModel->file;
             $path = storage_path('app/public/products/' . $fileName);
+            
             if (file_exists($path)) {
-                return $this->imageToBase64($path);
+                // Cache key based on product ID and file modification time to ensure freshness
+                $cacheKey = 'base64_img_prod_' . $product->id . '_' . md5($fileName . filemtime($path));
+                
+                return cache()->remember($cacheKey, now()->addDays(7), function() use ($path) {
+                    return $this->imageToBase64($path);
+                });
             }
         }
 
-        // Fallback to noimage.jpg
+        // Fallback to noimage.jpg (cached)
         $noImagePath = public_path('noimage.jpg');
         if (file_exists($noImagePath)) {
-            return $this->imageToBase64($noImagePath);
+            return cache()->remember('base64_noimage_fallback', now()->addMonth(), function() use ($noImagePath) {
+                return $this->imageToBase64($noImagePath);
+            });
         }
 
         return null;
