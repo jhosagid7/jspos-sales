@@ -1,6 +1,14 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.64] - 2026-04-07
+### Added
+- **Configuración de Catálogo (Precios)**: Se integró una nueva pestaña de "Catálogo" en la configuración del sistema que permite a los usuarios elegir si mostrar u ocultar los precios de venta y los precios base (USD) en el PDF generado. Esta opción es ideal para crear catálogos de marketing sin revelar precios de forma predeterminada.
+- **Interruptores de Visibilidad**: Implementación de controles tipo 'toggle' en el panel de Ajustes para una gestión intuitiva de la visualización de precios en el PDF.
+
+### Changed
+- **Plantilla PDF Inteligente**: Mejora de la lógica del generador PDF para responder dinámicamente a la configuración de visibilidad, optimizando el espacio visual cuando los precios están ocultos.
+
 ## [1.9.63] - 2026-04-07
 ### Fixed
 - **Motor de Imágenes Catálogo (Base64)**: Se implementó la codificación de imágenes en Base64 directamente en el controlador para garantizar que el logo y las fotos de productos se visualicen siempre en el PDF, independientemente de la configuración de enlaces simbólicos del servidor.
