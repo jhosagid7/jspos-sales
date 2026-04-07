@@ -1,17 +1,16 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.71] - 2026-04-07
+### Changed
+- **Distribución Uniforme Definitiva (9/12)**: Consolidación del diseño de cuadrículas con 9 productos para páginas con título y 12 productos para páginas sin título. Se restauró el tamaño de imagen a 150px para un mayor impacto visual, manteniendo una altura de tarjeta compacta de 220px que elimina espacios muertos.
+- **Uniformidad Visual**: Refinamiento de márgenes y espaciados internos para que todo el catálogo mantenga un ritmo profesional y equilibrado.
+
 ## [1.9.65] - 2026-04-07
 ### Performance
 - **Caché de Imágenes (Base64)**: Implementación de un sistema de caché de capas (1 día para el logo, 7 días para productos) que almacena la codificación Base64 de las imágenes. Esto elimina la necesidad de re-procesar fotos en cada carga, acelerando drásticamente el tiempo de generación del PDF a partir del segundo uso.
 - **Optimización de Consultas (Catálogo)**: Se refactorizó la extracción de datos para filtrar solo productos con estatus `available` y omitir categorías vacías, reduciendo la carga de memoria y el tiempo de respuesta del servidor.
 - **DomPDF Acceleration**: Activación de `isFontSubsettingEnabled` y optimización de opciones del motor para un renderizado más fluido de estructuras complejas.
-
-## [1.9.69] - 2026-04-07
-### Changed
-- **Ultra-Alta Densidad de Cuadrícula (12/15)**: Rediseño final del sistema de cuadrículas para maximizar el aprovechamiento del papel. Ahora, las páginas con título muestran 12 productos (4 filas de 3) y las hojas sin título se expanden hasta los 15 productos (5 filas de 3), sin dejar espacios en blanco innecesarios.
-- **Optimización de Espacio Visual**: Reducción de la altura mínima de la tarjeta a 195px y estabilización del área de imagen en 125px, logrando un equilibrio perfecto entre cantidad de productos e impacto visual de las fotografías.
-- **Tipografía Ultra-Compacta**: Ajuste de márgenes internos y tamaños de fuente para garantizar una legibilidad profesional en la cuadrícula de 15 productos hoy mismo.
 
 ## [1.9.68] - 2026-04-07
 ### Changed
