@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.72] - 2026-04-07
+### Changed
+- **Flujo Continuo Inteligente (Cero Huecos)**: Eliminación de los saltos de página obligatorios por categoría. Ahora las categorías fluyen de forma ininterrumpida, permitiendo que los productos de una nueva sección rellenen los espacios vacíos de la anterior, optimizando al máximo el uso del papel.
+- **Distribución Orgánica (9/12)**: El layout ahora se adapta dinámicamente: las hojas donde comienza una categoría acomodan naturalmente ~9 productos, mientras que las de transición alcanzan los 12, manteniendo imágenes de alto impacto de 150px.
+- **Jerarquía Visual Protegida**: Implementación de reglas de CSS para evitar títulos huérfanos y filas cortadas, garantizando una lectura profesional en el nuevo modelo continuo hoy mismo.
+
 ## [1.9.71] - 2026-04-07
 ### Changed
 - **Distribución Uniforme Definitiva (9/12)**: Consolidación del diseño de cuadrículas con 9 productos para páginas con título y 12 productos para páginas sin título. Se restauró el tamaño de imagen a 150px para un mayor impacto visual, manteniendo una altura de tarjeta compacta de 220px que elimina espacios muertos.

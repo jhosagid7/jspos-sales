@@ -148,29 +148,19 @@
         <h2>CATÁLOGO DE PRODUCTOS - {{ $date }}</h2>
     </div>
 
-    <!-- CONTENIDO POR CATEGORÍAS -->
-    @php $firstCategory = true; @endphp
+    <!-- CONTENIDO POR CATEGORÍAS (FLUJO CONTINUO) -->
     @foreach($categories as $category)
         @if($category->products->count() > 0)
-            
-            @php
-                // First 9 products for the page with the title (3 rows of 3)
-                $firstNine = $category->products->take(9);
-                // The rest for subsequent pages (12 per page - 4 rows of 3)
-                $remaining = $category->products->slice(9);
-            @endphp
-
-            {{-- First Page of Category (WITH TITLE - MAX 9) --}}
-            <div style="{{ !$firstCategory ? 'page-break-before: always;' : '' }}">
-                <div class="section-header">
+            <div class="category-section" style="page-break-inside: auto; margin-bottom: 10px;">
+                <div class="section-header" style="page-break-after: avoid; margin-top: 10px;">
                     <h2>{{ $category->name }}</h2>
                     <p>{{ $category->products->count() }} Productos disponibles</p>
                 </div>
 
                 <table class="product-table">
-                    @foreach($firstNine->chunk(3) as $chunk)
-                        <tr>
-                            @foreach($chunk as $product)
+                    @foreach($category->products->chunk(3) as $rowChunk)
+                        <tr style="page-break-inside: avoid;">
+                            @foreach($rowChunk as $product)
                                 <td class="product-cell">
                                     <div class="product-card">
                                         <div class="product-image-container">
@@ -196,56 +186,13 @@
                                     </div>
                                 </td>
                             @endforeach
-                            @for($i = $chunk->count(); $i < 3; $i++)
+                            @for($i = $rowChunk->count(); $i < 3; $i++)
                                 <td class="product-cell"></td>
                             @endfor
                         </tr>
                     @endforeach
                 </table>
             </div>
-
-            {{-- Subsequent Pages (WITHOUT TITLE - MAX 12) --}}
-            @foreach($remaining->chunk(12) as $twelveChunk)
-                <div style="page-break-before: always;">
-                    <table class="product-table">
-                        @foreach($twelveChunk->chunk(3) as $rowChunk)
-                            <tr>
-                                @foreach($rowChunk as $product)
-                                    <td class="product-cell">
-                                        <div class="product-card">
-                                            <div class="product-image-container">
-                                                @if($product->image_base64)
-                                                    <img src="{{ $product->image_base64 }}" class="product-image" alt="Producto">
-                                                @endif
-                                            </div>
-                                            <div class="product-name">{{ $product->name }}</div>
-                                            <div class="product-sku">SKU: {{ $product->sku ?: 'No disponible' }} | {{ $product->presentation ?: 'Unidad' }}</div>
-                                            <div class="product-price">
-                                                @if($config->catalogue_show_prices)
-                                                    <div style="margin-bottom: 2px;">
-                                                        <span style="font-size: 10pt; font-weight: normal">$</span>{{ number_format($product->price, 2) }}
-                                                    </div>
-                                                @endif
-                                                
-                                                @if($config->catalogue_show_base_prices)
-                                                    <div style="font-size: 10pt; color: #4A5568; font-weight: normal; margin-top: 2px;">
-                                                        <span style="font-size: 8pt; color: #A0AEC0;">REF:</span> ${{ number_format($product->cost, 2) }}
-                                                    </div>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </td>
-                                @endforeach
-                                @for($i = $rowChunk->count(); $i < 3; $i++)
-                                    <td class="product-cell"></td>
-                                @endfor
-                            </tr>
-                        @endforeach
-                    </table>
-                </div>
-            @endforeach
-
-            @php $firstCategory = false; @endphp
         @endif
     @endforeach
 
