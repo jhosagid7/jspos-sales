@@ -81,14 +81,14 @@
         .product-card {
             border: 1px solid #E2E8F0;
             border-radius: 8px;
-            padding: 12px;
+            padding: 10px;
             background-color: #FFFFFF;
-            min-height: 340px; /* Force uniformity */
+            min-height: 240px; /* Compact height for high density */
         }
         .product-image-container {
             width: 100%;
-            height: 170px;
-            margin-bottom: 15px;
+            height: 110px; /* Reduced for 4 rows per page */
+            margin-bottom: 10px;
             background-color: #F8FAFC;
             text-align: center;
             display: block;
@@ -101,20 +101,20 @@
             display: inline-block;
         }
         .product-name {
-            font-size: 11pt;
+            font-size: 10pt; /* Slightly smaller for density */
             font-weight: bold;
             color: #1A202C;
-            height: 44px; /* Limit name height */
+            height: 40px; /* Limit name height */
             overflow: hidden;
             margin-bottom: 5px;
         }
         .product-sku {
-            font-size: 8pt;
+            font-size: 7.5pt;
             color: #718096;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         .product-price {
-            font-size: 16pt;
+            font-size: 14pt;
             font-weight: 800;
             color: #2B6CB0;
         }
@@ -154,13 +154,13 @@
         @if($category->products->count() > 0)
             
             @php
-                // First 6 products for the page with the title
-                $firstSix = $category->products->take(6);
-                // The rest for subsequent pages (9 per page)
-                $remaining = $category->products->slice(6);
+                // First 9 products for the page with the title (3 rows of 3)
+                $firstNine = $category->products->take(9);
+                // The rest for subsequent pages (12 per page - 4 rows of 3)
+                $remaining = $category->products->slice(9);
             @endphp
 
-            {{-- First Page of Category (WITH TITLE - MAX 6) --}}
+            {{-- First Page of Category (WITH TITLE - MAX 9) --}}
             <div style="{{ !$firstCategory ? 'page-break-before: always;' : '' }}">
                 <div class="section-header">
                     <h2>{{ $category->name }}</h2>
@@ -168,7 +168,7 @@
                 </div>
 
                 <table class="product-table">
-                    @foreach($firstSix->chunk(3) as $chunk)
+                    @foreach($firstNine->chunk(3) as $chunk)
                         <tr>
                             @foreach($chunk as $product)
                                 <td class="product-cell">
@@ -204,11 +204,11 @@
                 </table>
             </div>
 
-            {{-- Subsequent Pages (WITHOUT TITLE - MAX 9) --}}
-            @foreach($remaining->chunk(9) as $nineChunk)
+            {{-- Subsequent Pages (WITHOUT TITLE - MAX 12) --}}
+            @foreach($remaining->chunk(12) as $twelveChunk)
                 <div style="page-break-before: always;">
                     <table class="product-table">
-                        @foreach($nineChunk->chunk(3) as $rowChunk)
+                        @foreach($twelveChunk->chunk(3) as $rowChunk)
                             <tr>
                                 @foreach($rowChunk as $product)
                                     <td class="product-cell">

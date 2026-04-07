@@ -7,6 +7,12 @@ All notable changes to this project will be documented in this file.
 - **Optimización de Consultas (Catálogo)**: Se refactorizó la extracción de datos para filtrar solo productos con estatus `available` y omitir categorías vacías, reduciendo la carga de memoria y el tiempo de respuesta del servidor.
 - **DomPDF Acceleration**: Activación de `isFontSubsettingEnabled` y optimización de opciones del motor para un renderizado más fluido de estructuras complejas.
 
+## [1.9.67] - 2026-04-07
+### Changed
+- **Alta Densidad de Cuadrícula (9/12)**: Implementación de un diseño ultra-compacto que permite visualizar 9 productos en páginas con título (3x3) y hasta 12 productos en páginas sin título (3x4). Esto aprovecha al máximo el espacio del papel, ideal para inventarios extensos.
+- **Rediseño Compacto (Card UI)**: Ajuste de la altura mínima de las tarjetas (a 240px) y del contenedor de imágenes (a 110px) para garantizar que los elementos encajen perfectamente en las nuevas cuadrículas sin desbordar las páginas.
+- **Tipografía Optimizada**: Reducción sutil de tamaños de fuente en nombres y precios para mantener el equilibrio visual en la alta densidad.
+
 ## [1.9.66] - 2026-04-07
 ### Changed
 - **Maquetación Dinámica (6/9 Cards)**: Rediseño del flujo de cuadrícula en el PDF. Ahora, las páginas que inician una categoría muestran el título y un máximo de 6 productos para un diseño más aireado y elegante. Las páginas siguientes de la misma categoría se expanden a una cuadrícula de 3x3 (9 productos) para maximizar el aprovechamiento del papel sin perder la legibilidad.
