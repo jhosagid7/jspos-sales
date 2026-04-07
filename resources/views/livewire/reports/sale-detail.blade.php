@@ -64,6 +64,26 @@
                                 <div><b>Operador:</b> {{ $salesObt->user->name ?? 'N/A' }}</div>
                             </div>
                         </div>
+                        
+                        {{-- Motivo de Anulación / Solicitud --}}
+                        @if($salesObt && $salesObt->deletion_reason)
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <div class="alert alert-light border-danger">
+                                        <h6 class="text-danger fw-bold"><i class="fa fa-info-circle"></i> Motivo de Anulación / Solicitud de Borrado</h6>
+                                        <div class="mb-0 text-dark">{{ $salesObt->deletion_reason }}</div>
+                                        @if($salesObt->deletion_requested_by)
+                                            <div class="mt-2 small text-muted">
+                                                <b>Solicitado por:</b> {{ $salesObt->requester->name ?? 'N/A' }} 
+                                                @if($salesObt->deletion_approved_by)
+                                                    <span class="mx-1">|</span> <b>Aprobado por:</b> {{ $salesObt->approver->name ?? 'N/A' }}
+                                                @endif
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
 
                         {{-- Additional Charges Breakdown --}}
                         @if ($hasExtraCharges && $salesObt->is_foreign_sale)

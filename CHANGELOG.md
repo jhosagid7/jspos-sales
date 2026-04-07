@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.49] - 2026-04-06
+### Added
+- **Justificación Obligatoria de Anulaciones**: Se implementó un sistema de auditoría que requiere obligatoriamente un motivo para cada anulación o solicitud de borrado.
+- **Unificación de Flujo de Borrado**: Se integró un único aviso (SweetAlert) para todos los roles (administradores y operadores), eliminando la posibilidad de "borrados silenciosos".
+- **Transparencia en Reportes**: El motivo de anulación ahora es visible directamente en la tabla del reporte de ventas y en el modal de detalles, incluyendo quién solicitó y quién aprobó la acción.
+
 ## [1.9.48] - 2026-04-06
 ### Added
 - **Garantía Correlativa Sin Saltos**: Se blindó el motor de folios para que use un contador transaccional (`lockForUpdate`). Esto garantiza que **nunca** existan huecos en la numeración (1, 2, 3, 4...), incluso si una transacción falla, manteniendo siempre la concordancia 1:1 con el ID.

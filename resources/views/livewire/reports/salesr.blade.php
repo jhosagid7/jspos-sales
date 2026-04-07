@@ -253,8 +253,18 @@
                                         
                                         <td>{{ $sale->items }}</td>
                                         <td>
-                                            @if($sale->deletion_requested_at)
-                                                <span class="badge badge-warning">Solicitud Borrado</span>
+                                            @if($sale->deletion_requested_at || $sale->status == 'returned')
+                                                @if($sale->deletion_requested_at && $sale->status != 'returned')
+                                                    <span class="badge badge-warning">Solicitud Borrado</span>
+                                                @else
+                                                    <span class="badge badge-danger">returned</span>
+                                                @endif
+
+                                                @if($sale->deletion_reason)
+                                                    <div class="mt-1">
+                                                        <small class="text-dark"><b>Motivo:</b> {{ $sale->deletion_reason }}</small>
+                                                    </div>
+                                                @endif
                                             @else
                                                 <span
                                                     class="badge f-12 {{ $sale->status == 'paid' ? 'badge-success' : ($sale->status == 'return' ? 'badge-warning' : ($sale->status == 'pending' ? 'badge-warning' : 'badge-danger')) }} ">{{ $sale->status }}</span>
@@ -270,7 +280,7 @@
                                             @if($sale->deletion_requested_at)
                                                 {{-- PENDING APPROVAL STATE --}}
                                                 @can('sales.approve_deletion')
-                                                    <button wire:click="DestroySale({{ $sale->id }})"
+                                                    <button onclick="ConfirmDelete({{ $sale->id }}, '{{ addslashes($sale->deletion_reason ?? '') }}')"
                                                         class="border-0 btn btn-outline-success btn-xs" title="Aprobar Eliminación">
                                                         <i class="fas fa-check"></i>
                                                     </button>
@@ -451,48 +461,39 @@
         })
 
 
-        function ConfirmDelete(saleId) {
-            // Determine permission using Blade directive injected into JS variable
-            const canApprove = @json(auth()->user()->can('sales.approve_deletion'));
-
-            if (canApprove) {
-                // Admin Flow: Simple Confirmation
-                swal({
-                    title: '¿Confirmar eliminación?',
-                    text: 'Esta acción eliminará la venta y restaurará el inventario/pagos permanentemente.',
-                    icon: 'warning',
-                    buttons: ["Cancelar", "Sí, eliminar"],
-                    dangerMode: true,
-                }).then((willDelete) => {
-                    if (willDelete) {
-                        Livewire.dispatch('DestroySale', { saleId: saleId });
-                    }
-                });
-            } else {
-                 // Operator Flow: Request with Reason
-                 swal({
-                    title: 'Solicitar Eliminación',
-                    text: 'Por favor ingresa el motivo de la eliminación:',
-                    content: {
-                        element: "input",
-                        attributes: {
-                            placeholder: "Escribe la razón aquí...",
-                            type: "text",
-                        },
+        function ConfirmDelete(saleId, currentReason = '') {
+            swal({
+                title: currentReason ? 'Aprobar Eliminación' : 'Solicitar/Eliminar Venta',
+                text: 'Ingresa el motivo de la eliminación para continuar:',
+                content: {
+                    element: "input",
+                    attributes: {
+                        placeholder: "Escribe la razón aquí...",
+                        type: "text",
+                        value: currentReason, // Pre-fill with existing reason if approving
                     },
-                    icon: 'info',
-                    buttons: ["Cancelar", "Enviar Solicitud"],
-                }).then((reason) => {
-                    if (reason === null) return; // Cancelled
-                    if (reason.trim() === "") {
-                        swal("Debes ingresar un motivo", { icon: "error" });
-                        return;
+                },
+                icon: 'warning',
+                buttons: {
+                    cancel: "Cancelar",
+                    confirm: {
+                        text: currentReason ? "Confirmar y Eliminar" : "Enviar",
+                        closeModal: true,
                     }
-                    
-                    Livewire.dispatch('DestroySale', { saleId: saleId, reason: reason });
-                });
-            }
+                },
+                dangerMode: true,
+            }).then((reason) => {
+                if (reason === null) return; // Cancelled
+                
+                if (reason.trim() === "") {
+                    swal("¡Error!", "Debes ingresar un motivo para proceder", "error");
+                    return;
+                }
+                
+                Livewire.dispatch('DestroySale', { saleId: saleId, reason: reason });
+            });
         }
+
     </script>
 
     <script>

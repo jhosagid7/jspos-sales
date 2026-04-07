@@ -258,6 +258,12 @@ class SalesReport extends Component
 
             // Check if user has permission to approve/force delete
             if ($user->can('sales.approve_deletion')) {
+                // Check if reason is provided OR already exists in a request
+                if (empty($reason) && empty($sale->deletion_reason)) {
+                    $this->dispatch('noty', msg: 'Debes ingresar un motivo para la eliminación');
+                    return;
+                }
+
                 // APPROVE / DELETE FLOW
                 DB::beginTransaction();
 
@@ -267,6 +273,7 @@ class SalesReport extends Component
                     'deleted_at' => Carbon::now(),
                     'deletion_approved_by' => $user->id,
                     'deletion_approved_at' => Carbon::now(),
+                    'deletion_reason' => $reason ?: $sale->deletion_reason, // Use provided reason or keep existing request reason
                 ]);
 
                 foreach ($sale->details as $detail) {
