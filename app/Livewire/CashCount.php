@@ -105,7 +105,7 @@ class CashCount extends Component
             $primaryRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
 
             // 1. Convert all net totals (sale - returns) to primary currency
-            $this->totalSales = $sales->sum(function($sale) use ($primaryRate) {
+            $this->totalSales = $sales->sum(function($sale) use ($primaryRate, $dFrom, $dTo) {
                 $saleRate = $sale->primary_exchange_rate ?? $primaryRate;
                 $returnsUSD = \App\Models\SaleReturn::where('sale_id', $sale->id)
                     ->where('status', 'approved')

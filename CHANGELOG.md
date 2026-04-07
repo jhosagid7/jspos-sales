@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.74] - 2026-04-07
+### Fixed
+- **Resolución Final Arqueo (Closure Scope)**: Corrección del error `Undefined variable $dFrom` en el closure de cálculo de ventas netas de `CashCount.php`. Se garantizó que las fechas de filtrado estén disponibles en todos los bloques de cálculo internos hoy mismo.
+
 ## [1.9.73] - 2026-04-07
 ### Fixed
 - **Error Crítico en Arqueo (Corte de Caja)**: Corrección del bug `Undefined variable $dFrom` en el componente `CashCount.php`. Se restauró el flujo de datos para el filtrado de devoluciones, permitiendo procesar arqueos sin interrupciones.
