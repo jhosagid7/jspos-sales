@@ -17,14 +17,26 @@ class CreateDescargo extends Component
     
     public $search;
     public $searchResults = [];
-    public $cart = [];
     public $selectedIndex = -1;
+    public $primaryVat = 0;
+    public $canApproveDescargo = false;
+    public $canCreateDescargo = false;
     
     public $warehouses = [];
 
     public function mount()
     {
         $this->date = now()->format('Y-m-d\TH:i');
+
+        // Cache Permissions
+        $user = auth()->user();
+        $this->canApproveDescargo = $user->can('adjustments.approve_descargo');
+        $this->canCreateDescargo = $user->can('adjustments.create_descargo');
+
+        // Cache Configuration
+        $config = \App\Services\ConfigurationService::getConfig();
+        $this->primaryVat = $config?->vat ?? 0;
+
         $this->warehouses = \App\Models\Warehouse::where('is_active', 1)->get();
         // Default warehouse if exists
         $this->warehouse_id = $this->warehouses->first()->id ?? null;

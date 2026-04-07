@@ -1,6 +1,13 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.55] - 2026-04-07
+### Added
+- **Optimización de Módulos de Inventario**: Aplicación de patrones de alto rendimiento en los módulos de **Cargos**, **Descargos** y **Compras**.
+    - **Caché de Permisos**: Se eliminaron cientos de consultas redundantes a la base de datos mediante el pre-cálculo de autorizaciones en el método `mount()`.
+    - **Integración de ConfigurationService**: Acceso optimizado a la configuración del IVA y el sistema, reduciendo el overhead en el renderizado de tablas de productos.
+    - **Refactorización de Purchases.php**: Eliminación completa de `Configuration::first()` en el ciclo de `render()`, mejorando drásticamente la fluidez al interactuar con el carrito.
+
 ## [1.9.54] - 2026-04-07
 ### Added
 - **Inmutabilidad de Reportes Financieros**: Se implementó una lógica de "Snapshot Temporal" en los reportes de Ventas Diarias, Arqueo de Caja y Reportes de Ventas.

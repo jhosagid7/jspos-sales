@@ -12,8 +12,10 @@ class CreateCargo extends Component
     public $warehouse_id;
     public $motive;
     public $authorized_by;
-    public $comments;
     public $date;
+    public $primaryVat = 0;
+    public $canApproveCargo = false;
+    public $canCreateCargo = false;
     
     public $search;
     public $searchResults = [];
@@ -27,6 +29,16 @@ class CreateCargo extends Component
     public function mount($cargo = null)
     {
         $this->date = now()->format('Y-m-d\TH:i');
+
+        // Cache Permissions
+        $user = auth()->user();
+        $this->canApproveCargo = $user->can('adjustments.approve_cargo');
+        $this->canCreateCargo = $user->can('adjustments.create_cargo');
+
+        // Cache Configuration
+        $config = \App\Services\ConfigurationService::getConfig();
+        $this->primaryVat = $config?->vat ?? 0;
+
         $this->warehouses = \App\Models\Warehouse::where('is_active', 1)->get();
         // Default warehouse if exists
         $this->warehouse_id = $this->warehouses->first()->id ?? null;

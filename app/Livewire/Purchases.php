@@ -27,6 +27,10 @@ class Purchases extends Component
 
     public $taxCart = 0, $itemsCart, $subtotalCart = 0, $totalCart = 0, $ivaCart = 0, $status = 'paid', $purchaseType = 'cash', $notes;
     public $supplier, $flete;
+    public $primaryVat = 0;
+    public $canApprovePurchase = false;
+    public $canCreatePurchase = false;
+    public $canEditPurchase = false;
     public $search, $productSelected;
     public $iva = 0, $config;
     public $editingProductPrices = [];
@@ -144,7 +148,15 @@ class Purchases extends Component
 
     public function mount()
     {
-        $this->config = Configuration::first();
+        // Cache Configuration
+        $this->config = \App\Services\ConfigurationService::getConfig();
+        $this->iva = ($this->config?->vat ?? 0) / 100;
+
+        // Cache Permissions
+        $user = auth()->user();
+        $this->canApprovePurchase = $user->can('purchase.approve');
+        $this->canCreatePurchase = $user->can('purchase.create');
+        $this->canEditPurchase = $user->can('purchase.edit');
 
         if (session()->has('purchase_order_from_report')) {
             $this->cart = new Collection;
@@ -241,8 +253,6 @@ class Purchases extends Component
 
     public function render()
     {
-
-        $this->config = Configuration::first();
         $this->flete =  session('flete', 0);
 
         $this->cart = $this->cart->sortBy('name');
