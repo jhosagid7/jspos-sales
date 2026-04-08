@@ -56,7 +56,7 @@
         </div>
         @endmodule
         @module('module_commissions')
-        @can('commissions.access')
+        @if(auth()->user()->can('commissions.access') || auth()->user()->can('commissions.view_own') || auth()->user()->can('system.is_foreign_seller'))
         <div class="col-lg col-6">
             <div class="small-box bg-purple">
                 <div class="inner">
@@ -69,7 +69,19 @@
                 <a href="{{ route('commissions') }}" class="small-box-footer">Gestionar <i class="fas fa-arrow-circle-right"></i></a>
             </div>
         </div>
-        @endcan
+        <div class="col-lg col-6">
+            <div class="small-box bg-maroon">
+                <div class="inner">
+                    <h3>${{ number_format($paidCommissionsMonth, 2) }}</h3>
+                    <p>Cobradas este Mes</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-hand-holding-usd"></i>
+                </div>
+                <a href="{{ route('commissions') }}" class="small-box-footer">Ver Historial <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+        </div>
+        @endif
         @endmodule
     </div>
 

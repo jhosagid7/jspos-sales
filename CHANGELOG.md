@@ -3,10 +3,14 @@ All notable changes to this project will be documented in this file.
 
 ## [1.9.75] - 2026-04-08
 ### Added
+- **Dashboard Personalizado para Vendedores Foráneos**: Los vendedores con rol foráneo ahora visualizan sus propias estadísticas financieras y de desempeño de forma automática.
+- **KPIs de Comisiones Pagadas**: Implementación de un nuevo widget en el Dashboard que totaliza las comisiones liquidadas del mes actual.
 - **Diseño Premium de Monto Base**: Implementación de un banner de alto contraste con estética "Dark Mode" para el totalizador neto de órdenes filtradas.
 - **Tipografía Adaptativa**: El monto base ahora utiliza tamaños de fuente calculados dinámicamente (`calc`) para una visualización imponente en desktop y fluida en dispositivos móviles.
 
 ### Fixed
+- **Precisión en Gráficas de Rentabilidad**: Ajuste de los filtros de SQL para incluir a vendedores foráneos en las gráficas de "Top Profit" y "Top Products".
+- **Visibilidad de Configuración Bancaria**: Corrección de la lógica de interfaz que ocultaba las pestañas de Bancos, Crédito y Comisiones a los vendedores con permisos foráneos.
 - **Desbloqueo de Dashboard Administrativo**: Corrección crítica en el motor de redirecciones que bloqueaba el acceso al Dashboard estadístico a usuarios con múltiples roles (Admin + Chofer).
 - **Deduplicación de Vendedores**: Refinamiento del scope de búsqueda para eliminar nombres de usuario duplicados en el Punto de Venta (POS).
 - **Consistencia de Permisos**: Sustitución total de roles "hardcodeados" por permisos técnicos específicos (`system.is_seller`), garantizando la estabilidad del sistema ante cambios de estructura.
@@ -14,6 +18,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - **Responsividad Total (Mobile-First)**: El totalizador de órdenes ahora se apila inteligentemente en pantallas pequeñas para evitar desbordamientos laterales.
 - **Búsqueda Inteligente de Órdenes**: Se independizó la búsqueda de pedidos filtrados de la lógica de búsqueda de productos del carrito, mejorando el flujo de trabajo del cajero.
+- **Acceso a Reportes Propios**: Se flexibilizaron los permisos de visualización para permitir que los vendedores consulten sus propios reportes financieros sin comprometer la seguridad global.
 
 ## [1.9.74] - 2026-04-07
 ### Fixed

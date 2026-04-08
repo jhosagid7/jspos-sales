@@ -497,7 +497,7 @@ class Users extends Component
         // but for now simple query is fine since it's not high frequency loop
         $role = Role::where('name', $roleName)->first();
         if($role) {
-            return $role->hasPermissionTo('system.is_seller');
+            return $role->hasPermissionTo('system.is_seller') || $role->hasPermissionTo('system.is_foreign_seller');
         }
         return false;
     }

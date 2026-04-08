@@ -22,6 +22,7 @@ class Welcome extends Component
     public $profitChartData = [];
     public $topSuppliers = [];
     public $pendingCommissions = 0;
+    public $paidCommissionsMonth = 0;
     public $topSellersChartData = [];
 
     public function mount()
@@ -36,9 +37,18 @@ class Welcome extends Component
     private function getSalesQuery()
     {
         $query = \App\Models\Sale::query();
+        $user = auth()->user();
         
-        if (!auth()->user()->can('sales.view_all') && auth()->user()->can('sales.view_own')) {
-            $query->where('user_id', auth()->id());
+        if (!$user->can('sales.view_all') && $user->can('sales.view_own')) {
+            // Priority: If user is a seller (regular or foreign), filter by their assigned customers
+            if ($user->can('system.is_seller') || $user->can('system.is_foreign_seller')) {
+                $query->whereHas('customer', function($q) use ($user) {
+                    $q->where('seller_id', $user->id);
+                });
+            } else {
+                // Otherwise fallback to sales processed directly by them
+                $query->where('user_id', $user->id);
+            }
         }
         
         return $query;
@@ -46,6 +56,7 @@ class Welcome extends Component
 
     public function fetchDashboardData()
     {
+        $user = auth()->user();
         // KPIs
         $this->totalSalesToday = $this->getSalesQuery()->whereDate('created_at', \Carbon\Carbon::today())->sum('total');
         $this->totalSalesMonth = $this->getSalesQuery()->whereMonth('created_at', \Carbon\Carbon::now()->month)->sum('total');
@@ -68,12 +79,17 @@ class Welcome extends Component
         // Note: For complex joins, we need to apply the condition on the sales table
         $topProductsQuery = \App\Models\SaleDetail::query()
             ->join('sales', 'sale_details.sale_id', '=', 'sales.id')
+            ->join('customers', 'sales.customer_id', '=', 'customers.id')
             ->select('sale_details.product_id', \Illuminate\Support\Facades\DB::raw('sum(sale_details.quantity) as total_qty'))
             ->where('sales.status', 'paid')
             ->whereMonth('sales.created_at', \Carbon\Carbon::now()->month);
 
-        if (!auth()->user()->can('sales.view_all') && auth()->user()->can('sales.view_own')) {
-            $topProductsQuery->where('sales.user_id', auth()->id());
+        if (!$user->can('sales.view_all') && $user->can('sales.view_own')) {
+            if ($user->can('system.is_seller') || $user->can('system.is_foreign_seller')) {
+                $topProductsQuery->where('customers.seller_id', $user->id);
+            } else {
+                $topProductsQuery->where('sales.user_id', $user->id);
+            }
         }
 
         $this->topProducts = $topProductsQuery->groupBy('sale_details.product_id')
@@ -92,7 +108,6 @@ class Welcome extends Component
         // --- Enhanced Data ---
 
         // Pending Commissions
-        $user = auth()->user();
         $canManageCommissions = $user->can('gestionar_comisiones'); // Consider changing this to granular if exists
         
         $commissionsQuery = $this->getSalesQuery() // Reused base query logic
@@ -137,15 +152,29 @@ class Welcome extends Component
                 });
 
             if (!auth()->user()->can('commissions.view_all')) {
-                 // Force filter by view_own logic
+                 // Force filter by view_own logic (for both regular and foreign sellers)
                  $commissionsQuery->whereHas('customer', function($q) use ($user) {
                     $q->where('seller_id', $user->id);
                 });
             }
 
             $this->pendingCommissions = $commissionsQuery->sum('final_commission_amount');
+
+            // Paid Commissions (This Month)
+            $paidCommissionsQuery = \App\Models\Sale::query()
+                ->where('is_foreign_sale', true)
+                ->where('commission_status', 'paid')
+                ->whereMonth('commission_paid_at', \Carbon\Carbon::now()->month);
+
+            if (!auth()->user()->can('commissions.view_all')) {
+                $paidCommissionsQuery->whereHas('customer', function($q) use ($user) {
+                    $q->where('seller_id', $user->id);
+                });
+            }
+            $this->paidCommissionsMonth = $paidCommissionsQuery->sum('commission_payment_amount');
         } else {
             $this->pendingCommissions = 0;
+            $this->paidCommissionsMonth = 0;
         }
 
         // Top Suppliers (by Purchase Volume)
@@ -214,11 +243,12 @@ class Welcome extends Component
             ->whereMonth('sales.created_at', \Carbon\Carbon::now()->month)
             ->whereIn('users.id', \App\Models\User::sellers()->pluck('id'));
 
-        if (!auth()->user()->can('sales.view_all') && auth()->user()->can('sales.view_own')) {
-             // For consistency, if they can only see their own sales, they probably shouldn't see other sellers' stats
-             // But the original query joins on `customers.seller_id`. 
-             // If we strict it to `sales.user_id`, we align with "view_own" sales.
-             $topSellersQuery->where('sales.user_id', auth()->id());
+        if (!$user->can('sales.view_all') && $user->can('sales.view_own')) {
+             if ($user->can('system.is_seller') || $user->can('system.is_foreign_seller')) {
+                 $topSellersQuery->where('customers.seller_id', $user->id);
+             } else {
+                 $topSellersQuery->where('sales.user_id', $user->id);
+             }
         }
 
         $this->topSellers = $topSellersQuery->groupBy('users.name')
