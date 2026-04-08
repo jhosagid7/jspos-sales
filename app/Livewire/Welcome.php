@@ -26,7 +26,8 @@ class Welcome extends Component
 
     public function mount()
     {
-        if (auth()->user()->hasRole('Driver')) {
+        // Only redirect if they have distribution map but NO access to sales reports
+        if (auth()->user()->can('distribution.map') && !auth()->user()->can('reports.sales')) {
             return redirect()->route('driver.dashboard');
         }
         $this->fetchDashboardData();
@@ -205,18 +206,13 @@ class Welcome extends Component
             ->join('products', 'sale_details.product_id', '=', 'products.id')
             ->join('customers', 'sales.customer_id', '=', 'customers.id')
             ->join('users', 'customers.seller_id', '=', 'users.id')
-            ->join('model_has_roles', function($join) {
-                $join->on('users.id', '=', 'model_has_roles.model_id')
-                     ->where('model_has_roles.model_type', 'App\Models\User');
-            })
-            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
             ->select(
                 'users.name as seller_name',
                 \Illuminate\Support\Facades\DB::raw('SUM((sale_details.sale_price - COALESCE(products.cost, 0)) * sale_details.quantity) as total_profit')
             )
             ->where('sales.status', 'paid')
             ->whereMonth('sales.created_at', \Carbon\Carbon::now()->month)
-            ->where('roles.name', 'Vendedor');
+            ->whereIn('users.id', \App\Models\User::sellers()->pluck('id'));
 
         if (!auth()->user()->can('sales.view_all') && auth()->user()->can('sales.view_own')) {
              // For consistency, if they can only see their own sales, they probably shouldn't see other sellers' stats

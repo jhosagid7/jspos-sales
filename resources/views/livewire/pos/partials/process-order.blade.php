@@ -10,7 +10,7 @@
                     @if ($order_selected_id == null)
                         <div class="faq-form row g-2">
                             <div class="col-md-8">
-                                <input wire:model.defer="search" wire:keydown.enter.prevent="getOrdersWithDetails"
+                                <input wire:model.defer="searchOrder" wire:keydown.enter.prevent="getOrdersWithDetails"
                                     class="form-control form-control-lg" type="text"
                                     placeholder="Buscar por cliente, monto, folio o vendedor..."
                                     id="inputprocessOrderSearch" style="background-color: beige">
@@ -25,6 +25,27 @@
                                 </select>
                             </div>
                         </div>
+
+                         <div class="row mt-2">
+                             <div class="col-md-12">
+                                 <div class="card bg-dark text-white border-0 shadow-lg" style="border-radius: 12px; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);">
+                                     <div class="card-body d-flex flex-column flex-sm-row justify-content-between align-items-center py-2 px-3 px-md-4 text-center text-sm-left">
+                                         <div class="d-flex flex-column flex-sm-row align-items-center">
+                                             <div class="p-2 bg-success rounded-circle mb-2 mb-sm-0 mr-sm-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                 <i class="fas fa-calculator text-white fs-5"></i>
+                                             </div>
+                                             <div>
+                                                 <p class="mb-0 text-uppercase fw-bold text-muted" style="font-size: 0.65rem; letter-spacing: 1px;">Monto Base Filtrado (Neto)</p>
+                                                 <h3 class="mb-0 fw-bold text-white d-block d-sm-inline" style="font-size: calc(1.2rem + 0.6vw);">${{ number_format($ordersTotal, 2) }}</h3>
+                                             </div>
+                                         </div>
+                                         <div class="mt-2 mt-sm-0">
+                                             <span class="badge border border-success text-success px-2 py-1" style="border-radius: 15px; font-size: 0.6rem; background: rgba(40, 167, 69, 0.1);">SIN CARGOS ADICIONALES</span>
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>
+                         </div>
 
                         <div class="mt-3 table-responsive">
                             <table class="table table-responsive-md table-hover table-mobile-details" id="tblSalesRpt">

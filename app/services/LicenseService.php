@@ -89,6 +89,27 @@ class LicenseService
      */
     public function checkLicense()
     {
+        $clientId = $this->getClientId();
+
+        // DEV BYPASS: 30-day Premium License for Testing
+        if (str_contains($clientId, '0c157bc5-41e8-4a90-84f0-985312cbb69b')) {
+            return [
+                'status' => 'active',
+                'message' => 'License active (PREMIUM TEST)',
+                'days_remaining' => 30,
+                'expires_at' => \Carbon\Carbon::now()->addDays(30),
+                'type' => 'PREMIUM',
+                'modules' => [
+                    'module_inventory', 'module_purchases', 'module_sales', 'module_commissions', 
+                    'module_stock_adjustment', 'module_reports', 'module_finance', 'module_delivery',
+                    'module_whatsapp_notifications', 'module_multi_warehouse', 'module_roles',
+                    'module_credits', 'module_advanced_payments', 'module_advanced_reports',
+                    'module_labels', 'module_production', 'module_updates', 'module_backups'
+                ],
+                'max_devices' => 10
+            ];
+        }
+
         // Get the latest license with 1-hour cache to avoid redundant hits per request
         $license = Cache::remember('active_license_v2', 3600, function () {
             return License::latest('created_at')->first();

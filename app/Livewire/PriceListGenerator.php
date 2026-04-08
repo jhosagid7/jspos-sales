@@ -92,7 +92,7 @@ class PriceListGenerator extends Component
         // Load Customers and Sellers based on User Role
         $user = Auth::user();
         if ($user->can('sales.configure_price_list')) {
-             $this->sellers = \App\Models\User::role(['Vendedor', 'Vendedor foraneo'])->orderBy('name')->get();
+             $this->sellers = \App\Models\User::sellers()->orderBy('name')->get();
              $this->customers = Customer::orderBy('name')->get();
         } else {
             $this->customers = Customer::where('seller_id', $user->id)->orderBy('name')->get();
@@ -268,7 +268,7 @@ class PriceListGenerator extends Component
             $effectiveSeller = \App\Models\User::find($customer->seller_id);
         } else {
              // Fallback to current user if they are a seller
-             if ($user->hasRole('Vendedor') || $user->hasRole('Vendedor foraneo')) {
+             if ($user->can('system.is_seller') || $user->can('system.is_foreign_seller')) {
                  $effectiveSeller = $user;
              }
         }

@@ -1,6 +1,20 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.75] - 2026-04-08
+### Added
+- **Diseño Premium de Monto Base**: Implementación de un banner de alto contraste con estética "Dark Mode" para el totalizador neto de órdenes filtradas.
+- **Tipografía Adaptativa**: El monto base ahora utiliza tamaños de fuente calculados dinámicamente (`calc`) para una visualización imponente en desktop y fluida en dispositivos móviles.
+
+### Fixed
+- **Desbloqueo de Dashboard Administrativo**: Corrección crítica en el motor de redirecciones que bloqueaba el acceso al Dashboard estadístico a usuarios con múltiples roles (Admin + Chofer).
+- **Deduplicación de Vendedores**: Refinamiento del scope de búsqueda para eliminar nombres de usuario duplicados en el Punto de Venta (POS).
+- **Consistencia de Permisos**: Sustitución total de roles "hardcodeados" por permisos técnicos específicos (`system.is_seller`), garantizando la estabilidad del sistema ante cambios de estructura.
+
+### Changed
+- **Responsividad Total (Mobile-First)**: El totalizador de órdenes ahora se apila inteligentemente en pantallas pequeñas para evitar desbordamientos laterales.
+- **Búsqueda Inteligente de Órdenes**: Se independizó la búsqueda de pedidos filtrados de la lógica de búsqueda de productos del carrito, mejorando el flujo de trabajo del cajero.
+
 ## [1.9.74] - 2026-04-07
 ### Fixed
 - **Resolución Final Arqueo (Closure Scope)**: Corrección del error `Undefined variable $dFrom` en el closure de cálculo de ventas netas de `CashCount.php`. Se garantizó que las fechas de filtrado estén disponibles en todos los bloques de cálculo internos hoy mismo.

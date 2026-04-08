@@ -77,6 +77,7 @@ class Sales extends Component
     public $salesViewMode = 'grid'; // 'grid' or 'list'
 
     public $search = '';
+    public $searchOrder = '';
 
     public $payments = []; // Lista de pagos realizados
     public $paymentAmount; // Monto del pago actual
@@ -144,6 +145,8 @@ class Sales extends Component
     public $moduleMultiWarehouse = false;
     public $moduleCredits = false;
     public $moduleAdvancedPayments = false;
+
+    public $ordersTotal = 0; // Total sum of filtered orders
 
 
     public function updatedSelectedPaymentMethod($value)
@@ -967,7 +970,7 @@ class Sales extends Component
         }
 
         // Load Sellers
-        $this->sellers = \App\Models\User::all(); // Simplified for now, can be role-filtered if needed
+        $this->sellers = \App\Models\User::sellers()->orderBy('name')->get(); 
     }
     
     public function hydrate()
@@ -1429,7 +1432,7 @@ class Sales extends Component
     {
         //limpiamos el carrito
 
-        $this->resetExcept('config', 'banks', 'currencies', 'warehouses');
+        $this->resetExcept('config', 'banks', 'currencies', 'warehouses', 'sellers', 'drivers', 'invoiceCurrency_id', 'canManageAdjustments');
         $this->clear();
         session()->forget('sale_customer');
 
@@ -1488,6 +1491,7 @@ class Sales extends Component
     public function getOrdersWithDetails()
     {
         $query = Order::with(['customer.seller', 'user'])
+            ->where('status', 'pending')
             ->when(!auth()->user()->can('orders.view_all') && auth()->user()->can('orders.view_own'), function($q) {
                 $q->where('user_id', auth()->id());
             })
@@ -1499,42 +1503,40 @@ class Sales extends Component
                 });
             });
 
-        if (empty(trim($this->search))) {
-            return $query->with(['customer.seller', 'user'])
-                ->whereHas('customer')
-                ->where('status', 'pending')
-                ->orderBy('id', 'desc')
-                ->paginate($this->pagination);
-        } else {
-            $search = strtolower(trim($this->search));
+        $search = strtolower(trim($this->searchOrder));
+        if (!empty($search)) {
+            $query->where(function ($sub) use ($search) {
+                // Búsqueda por el nombre del cliente
+                $sub->whereHas('customer', function ($q2) use ($search) {
+                    $q2->whereRaw("LOWER(name) LIKE ?", ["%{$search}%"])
+                       ->orWhereRaw("LOWER(taxpayer_id) LIKE ?", ["%{$search}%"]);
 
-            return $query->where(function ($sub) use ($search) {
-                    // Búsqueda por el nombre del cliente
-                    $sub->whereHas('customer', function ($q2) use ($search) {
-                        $q2->whereRaw("LOWER(name) LIKE ?", ["%{$search}%"]);
-
-                        // Búsqueda por el nombre del vendedor asignado
-                        $q2->orWhereHas('seller', function ($q3) use ($search) {
-                            $q3->whereRaw("LOWER(name) LIKE ?", ["%{$search}%"]);
-                        });
+                    // Búsqueda por el nombre del vendedor asignado
+                    $q2->orWhereHas('seller', function ($q3) use ($search) {
+                        $q3->whereRaw("LOWER(name) LIKE ?", ["%{$search}%"]);
                     });
+                });
 
-                    // Búsqueda por el ID de la orden o Folio
-                    $sub->orWhere('id', 'LIKE', "%{$search}%")
-                        ->orWhere('order_number', 'LIKE', "%{$search}%");
+                // Búsqueda por el ID de la orden o Folio
+                $sub->orWhere('id', 'LIKE', "%{$search}%")
+                    ->orWhere('order_number', 'LIKE', "%{$search}%");
 
-                    // Búsqueda por el total
-                    $sub->orWhere('total', 'LIKE', "%{$search}%");
+                // Búsqueda por el total
+                $sub->orWhere('total', 'LIKE', "%{$search}%");
 
-                    // Búsqueda por el usuario (operador que realiza la orden)
-                    $sub->orWhereHas('user', function ($q2) use ($search) {
-                        $q2->whereRaw("LOWER(name) LIKE ?", ["%{$search}%"]);
-                    });
-                })
-                ->where('status', $this->status)
-                ->orderBy('id', 'desc')
-                ->paginate($this->pagination);
+                // Búsqueda por el usuario (operador que realiza la orden)
+                $sub->orWhereHas('user', function ($q2) use ($search) {
+                    $q2->whereRaw("LOWER(name) LIKE ?", ["%{$search}%"]);
+                });
+            });
         }
+
+        // Calculate base total (without freight/commissions)
+        $this->ordersTotal = \App\Models\OrderDetail::whereIn('order_id', $query->clone()->pluck('id'))
+            ->sum(DB::raw('sale_price * quantity'));
+
+        return $query->orderBy('id', 'desc')
+            ->paginate($this->pagination);
     }
 
     function getOrderDetail(Order $order)
@@ -3798,9 +3800,15 @@ class Sales extends Component
                 }
             }
 
-            // Close the source Order (if any) WITHIN the transaction for atomicity
+            // Delete the source Order (if any) WITHIN the transaction for atomicity
             if ($this->order_id) {
-                $this->UpdateStatusOrder($this->order_id, 'processed');
+                $sourceOrder = Order::find($this->order_id);
+                if ($sourceOrder) {
+                    // Delete details first (if no cascade)
+                    $sourceOrder->details()->delete();
+                    $sourceOrder->delete();
+                    Log::info("Order {$this->order_id} deleted after successful sale.");
+                }
             }
 
             DB::commit();

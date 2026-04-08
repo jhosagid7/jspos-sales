@@ -66,7 +66,8 @@ Route::prefix('install')->name('install.')->group(function () {
 });
 
 Route::get('/dashboard', function () {
-    if (auth()->user()->hasRole('Driver')) {
+    // If it's a Driver AND NOT an Admin/Super Admin, send to Driver Dashboard
+    if (auth()->user()->hasRole('Driver') && !auth()->user()->hasAnyRole(['Admin', 'Super Admin'])) {
         return redirect()->route('driver.dashboard');
     }
     return redirect()->route('welcome');

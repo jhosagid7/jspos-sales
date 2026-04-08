@@ -127,7 +127,7 @@ class Commissions extends Component
 
         $commissions = $query->orderBy('created_at', 'desc')->paginate($this->pagination);
         
-        $sellers = User::role(['Vendedor', 'Vendedor foraneo'])->get();
+        $sellers = User::sellers()->get();
 
         return view('livewire.commissions.component', [
             'commissions' => $commissions,

@@ -134,4 +134,22 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Bank::class);
     }
+
+    /**
+     * Scope to get all users considered "Sellers" based on permissions.
+     */
+    public function scopeSellers($query)
+    {
+        return $query->select('users.*')
+            ->permission(['system.is_seller', 'system.is_foreign_seller'])
+            ->distinct();
+    }
+
+    /**
+     * Scope to get all users considered "Drivers" based on permissions.
+     */
+    public function scopeDrivers($query)
+    {
+        return $query->permission('distribution.map'); // Or the specific driver permission
+    }
 }
