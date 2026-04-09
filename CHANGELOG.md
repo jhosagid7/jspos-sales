@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.79] - 2026-04-09
+### Fixed
+- **Despliegue de Permisos Automático**: Se añadió una migración dedicada para asegurar que los nuevos permisos del Estado de Cuenta se registren automáticamente en la base datos durante el proceso de actualización del sistema.
+
 ## [1.9.78] - 2026-04-09
 ### Added
 - **Permisos Granulares para Estado de Cuenta**: Se implementó un sistema de seguridad de tres niveles (`index`, `view_all`, `view_own`) para el módulo de Estado de Cuenta Global.
