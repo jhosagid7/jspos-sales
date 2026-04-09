@@ -1,6 +1,15 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.78] - 2026-04-09
+### Added
+- **Permisos Granulares para Estado de Cuenta**: Se implementó un sistema de seguridad de tres niveles (`index`, `view_all`, `view_own`) para el módulo de Estado de Cuenta Global.
+- **Privacidad para Vendedores**: Los usuarios con el permiso `view_own` (asignado por defecto a Vendedores y Vendedores Foráneos) ahora solo pueden buscar y visualizar los estados de cuenta de sus propios clientes asignados.
+- **Validación de Seguridad en PDF**: Se añadió una capa de protección en el controlador de reportes que impide el acceso a documentos PDF de clientes no autorizados, incluso mediante manipulación manual de la URL.
+
+### Improved
+- **Módulo de Asignación**: Se estandarizaron las etiquetas de los permisos dentro de la gestión de roles para facilitar la administración por parte del usuario.
+
 ## [1.9.77] - 2026-04-09
 ### Added
 - **Previsualización Premium de Estado de Cuenta**: Se integró un nuevo botón "Previsualizar" con icono de ojo que abre un visualizador PDF (iframe), permitiendo revisar el estado de cuenta global antes de imprimirlo.
