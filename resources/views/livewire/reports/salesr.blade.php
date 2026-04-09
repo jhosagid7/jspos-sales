@@ -312,6 +312,11 @@
                                                 <i class="fas fa-list"></i>
                                             </button>
 
+                                            <button wire:click.prevent="editDriver({{ $sale->id }})"
+                                                class="border-0 btn btn-outline-dark btn-xs" title="Asignar Chofer">
+                                                <i class="fas fa-truck text-primary"></i>
+                                            </button>
+
                                             @if($sale->driver_id)
                                                 <a class="border-0 btn btn-outline-dark btn-xs"
                                                     href="{{ route('delivery.tracking', $sale->id) }}"
@@ -354,6 +359,37 @@
         @include('livewire.reports.sale-detail')
         @livewire('sales.returns-component')
         @include('livewire.reports.sale-detail-note')
+        
+        {{-- Modal: Assign Driver --}}
+        <div wire:ignore.self class="modal fade" id="modalDriver" tabindex="-1" aria-labelledby="modalDriverLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-dark">
+                        <h5 class="modal-title text-white" id="modalDriverLabel">
+                            <i class="fas fa-truck"></i> Asignar Chofer a Factura #{{ $selectedSaleId }}
+                        </h5>
+                        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Seleccionar Chofer</label>
+                            <select wire:model="driver_id" class="form-control">
+                                <option value="">Ninguno / Sin Chofer</option>
+                                @foreach($drivers as $driver)
+                                    <option value="{{ $driver->id }}">{{ $driver->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                        <button type="button" class="btn btn-primary" wire:click="updateDriver">Actualizar Chofer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     
     <style>
@@ -447,6 +483,13 @@
         })
         document.addEventListener('close-detail-note', event => {
             $('#modalSaleDetailNote').modal('hide')
+        })
+
+        document.addEventListener('show-driver-modal', event => {
+            $('#modalDriver').modal('show')
+        })
+        document.addEventListener('hide-driver-modal', event => {
+            $('#modalDriver').modal('hide')
         })
     </script>
     <script>

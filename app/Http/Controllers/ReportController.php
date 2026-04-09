@@ -508,9 +508,14 @@ class ReportController extends Controller
 
         $dFrom = Carbon::parse($dateFrom)->startOfDay();
         $dTo = Carbon::parse($dateTo)->endOfDay();
+        $selected_ids = $request->get('selected_ids') ? explode(',', $request->get('selected_ids')) : null;
 
         $sales = Sale::with(['customer.seller', 'driver', 'sellerConfig.user', 'paymentDetails'])
             ->whereNotNull('driver_id')
+            ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated'])
+            ->when($selected_ids, function($q) use ($selected_ids) {
+                $q->whereIn('id', $selected_ids);
+            })
             ->whereBetween('created_at', [$dFrom, $dTo])
             ->when($driver_id && $driver_id !== 'all', function($q) use ($driver_id) {
                 $q->where('driver_id', $driver_id);
@@ -631,9 +636,14 @@ class ReportController extends Controller
 
         $dFrom = Carbon::parse($dateFrom)->startOfDay();
         $dTo = Carbon::parse($dateTo)->endOfDay();
+        $selected_ids = $request->get('selected_ids') ? explode(',', $request->get('selected_ids')) : null;
 
         $sales = Sale::with(['customer', 'driver', 'deliveryCollections.payments.currency'])
             ->whereNotNull('driver_id')
+            ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated'])
+            ->when($selected_ids, function($q) use ($selected_ids) {
+                $q->whereIn('id', $selected_ids);
+            })
             ->whereBetween('created_at', [$dFrom, $dTo])
             ->when($driver_id && $driver_id !== 'all', function($q) use ($driver_id) {
                 $q->where('driver_id', $driver_id);

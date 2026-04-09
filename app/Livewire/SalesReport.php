@@ -25,6 +25,7 @@ class SalesReport extends Component
     public $currencies = [];
     public $sellers = [], $seller_id;
     public $customer; // New property for customer filter
+    public $drivers = [], $driver_id, $selectedSaleId;
 
     public function searchData()
     {
@@ -39,6 +40,9 @@ class SalesReport extends Component
         $this->users = User::orderBy('name')->get();
         $this->sellers = User::sellers()->orderBy('name')->get();
         $this->currencies = \App\Models\Currency::orderBy('id')->get();
+        $this->drivers = User::whereHas('roles', function($q) {
+            $q->whereIn('name', ['Driver', 'chofer', 'repartidor', 'Chofer']);
+        })->orderBy('name')->get();
     }
 
     public function render()
@@ -434,5 +438,24 @@ class SalesReport extends Component
         ]);
 
         $this->dispatch('noty', msg: 'Solicitud de eliminación rechazada');
+    }
+
+    public function editDriver($saleId)
+    {
+        $this->selectedSaleId = $saleId;
+        $sale = Sale::findOrFail($saleId);
+        $this->driver_id = $sale->driver_id;
+        $this->dispatch('show-driver-modal');
+    }
+
+    public function updateDriver()
+    {
+        if (!$this->selectedSaleId) return;
+
+        $sale = Sale::findOrFail($this->selectedSaleId);
+        $sale->update(['driver_id' => $this->driver_id ?: null]);
+
+        $this->dispatch('noty', msg: 'Chofer actualizado correctamente');
+        $this->dispatch('hide-driver-modal');
     }
 }

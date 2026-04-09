@@ -1,6 +1,14 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.80] - 2026-04-09
+### Added
+- **Asignación de Chofer Retroactiva**: Se añadió una nueva funcionalidad en el Listado de Ventas que permite asignar o cambiar el chofer de una factura ya existente mediante un botón dedicado.
+- **Selección Manual en Reporte de Despacho**: Se implementó un sistema de casillas de verificación en el Reporte de Despacho para permitir la generación de reportes y hojas de liquidación personalizados con facturas específicas.
+
+### Fixed
+- **Seguridad en Logística**: Se corrigió el bug donde facturas anuladas, devueltas o eliminadas aparecían en el Reporte de Despacho. Ahora el sistema las excluye automáticamente para garantizar la precisión de la carga.
+
 ## [1.9.79] - 2026-04-09
 ### Fixed
 - **Despliegue de Permisos Automático**: Se añadió una migración dedicada para asegurar que los nuevos permisos del Estado de Cuenta se registren automáticamente en la base datos durante el proceso de actualización del sistema.

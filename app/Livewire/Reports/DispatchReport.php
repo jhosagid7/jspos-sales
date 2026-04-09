@@ -20,6 +20,8 @@ class DispatchReport extends Component
     public $drivers = [];
     public $showReport = false;
     
+    public $selectedSales = []; // IDs of selected sales
+    
     public $showPdfModal = false;
     public $pdfUrl = '';
     
@@ -98,6 +100,7 @@ class DispatchReport extends Component
 
         return Sale::with(['customer.seller', 'driver', 'sellerConfig.user'])
             ->whereNotNull('driver_id')
+            ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated'])
             ->whereBetween('created_at', [$dFrom, $dTo])
             ->when($this->driver_id !== 'all', function($q) {
                 $q->where('driver_id', $this->driver_id);
@@ -115,7 +118,19 @@ class DispatchReport extends Component
     public function generateReport()
     {
         $this->showReport = true;
+        $this->selectedSales = []; // Reset selection on new query
         $this->resetPage();
+    }
+
+    public function selectSale($id, $checked)
+    {
+        if ($checked) {
+            if (!in_array($id, $this->selectedSales)) {
+                $this->selectedSales[] = $id;
+            }
+        } else {
+            $this->selectedSales = array_diff($this->selectedSales, [$id]);
+        }
     }
 
     public function openPdfPreview()
@@ -126,7 +141,8 @@ class DispatchReport extends Component
             'driver_id' => $this->driver_id,
             'seller_id' => $this->seller_id,
             'columns' => json_encode($this->columns),
-            'signatures' => json_encode($this->signatures)
+            'signatures' => json_encode($this->signatures),
+            'selected_ids' => !empty($this->selectedSales) ? implode(',', $this->selectedSales) : null
         ];
 
         $this->pdfUrl = route('reports.dispatch.pdf', $params);
@@ -139,7 +155,8 @@ class DispatchReport extends Component
             'dateFrom' => $this->dateFrom,
             'dateTo' => $this->dateTo,
             'driver_id' => $this->driver_id,
-            'seller_id' => $this->seller_id
+            'seller_id' => $this->seller_id,
+            'selected_ids' => !empty($this->selectedSales) ? implode(',', $this->selectedSales) : null
         ];
 
         $this->pdfUrl = route('reports.settlement.pdf', $params);

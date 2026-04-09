@@ -181,8 +181,13 @@
         <!-- Results Table -->
         <div class="col-sm-12 col-md-9">
             <div class="card card-absolute">
-                <div class="card-header bg-dark p-2">
+                <div class="card-header bg-dark p-2 d-flex justify-content-between align-items-center">
                     <h5 class="txt-light mb-0"><i class="fa fa-list"></i> Resultados de Despacho</h5>
+                    @if(count($selectedSales) > 0)
+                        <span class="badge badge-warning ml-2">
+                            {{ count($selectedSales) }} FACTURAS SELECCIONADAS
+                        </span>
+                    @endif
                 </div>
 
                 <div class="card-body">
@@ -190,6 +195,13 @@
                         <table class="table table-hover table-sm">
                             <thead class="thead-light">
                                 <tr class="text-center f-12">
+                                    <th>
+                                        <div class="custom-control custom-checkbox">
+                                            <input type="checkbox" class="custom-control-input" id="checkAll" 
+                                                onclick="let checks = document.querySelectorAll('.check-item'); let allChecked = this.checked; checks.forEach(c => { c.checked = allChecked; @this.selectSale(c.value, allChecked) })">
+                                            <label class="custom-control-label" for="checkAll"></label>
+                                        </div>
+                                    </th>
                                     <th>Chofer</th>
                                     @if($columns['invoice']) <th>Factura</th> @endif
                                     @if($columns['destination']) <th>Entrega</th> @endif
@@ -212,7 +224,14 @@
                                         $freightAmt = $baseAmount * ($sale->applied_freight_percent / 100);
                                         $diffAmt = $baseAmount * ($sale->applied_exchange_diff_percent / 100);
                                     @endphp
-                                    <tr class="text-center f-12">
+                                    <tr class="text-center f-12 {{ in_array($sale->id, $selectedSales) ? 'table-primary' : '' }}">
+                                         <td>
+                                             <div class="custom-control custom-checkbox">
+                                                 <input type="checkbox" class="custom-control-input check-item" id="check_{{ $sale->id }}" 
+                                                     value="{{ $sale->id }}" wire:model.live="selectedSales">
+                                                 <label class="custom-control-label" for="check_{{ $sale->id }}"></label>
+                                             </div>
+                                         </td>
                                          <td>
                                              <a href="{{ route('driver.dashboard', ['driverId' => $sale->driver_id]) }}" class="badge badge-light-primary">
                                                  {{ $sale->driver->name ?? 'N/A' }}
