@@ -91,6 +91,7 @@ class AsignarPermisos extends Component
             'orders' => 'Ordenes Guardadas',
             'payments' => 'Abonos / Pagos',
             'commissions' => 'Comisiones',
+            'customer_statement' => 'Estado de Cuenta',
         ];
         return $map[$key] ?? ucfirst($key);
     }

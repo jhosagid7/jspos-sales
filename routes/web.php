@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Route;
 use App\Livewire\AccountsPayableReport;
 use App\Http\Controllers\DataController;
 use App\Livewire\AccountsReceivableReport;
+use App\Livewire\CustomerStatement;
 use App\Http\Controllers\ProfileController;
 use Symfony\Component\HttpKernel\DataCollector\DataCollector;
 
@@ -96,6 +97,7 @@ Route::middleware('auth')->group(function () {
     Route::get('suppliers', Suppliers::class)->name('suppliers')->middleware('can:suppliers.index');
     Route::get('customers/import', \App\Livewire\CustomerImport::class)->name('customers.import')->middleware('can:customers.import');
     Route::get('customers', Customers::class)->name('customers')->middleware('can:customers.index');
+    Route::get('customer-statement', CustomerStatement::class)->name('customer-statement')->middleware('can:customer_statement.index');
     Route::get('sales', Sales::class)->name('sales')->middleware(['can:sales.index', \App\Http\Middleware\EnsureCashRegisterIsOpen::class]);
 
     Route::get('purchases', Purchases::class)->name('purchases')->middleware(['can:purchases.create', 'module:module_purchases']); // Usually create
@@ -148,6 +150,7 @@ Route::middleware('auth')->group(function () {
         Route::get('accounts-payables', AccountsPayableReport::class)->name('reports.accounts.payables')->middleware(['can:reports.financial', 'module:module_purchases']);
         Route::get('payment-relationship', \App\Livewire\Reports\PaymentRelationshipReport::class)->name('reports.payment.relationship')->middleware(['can:reports.sales', 'module:module_credits']);
         Route::get('collection-relationship/{sheet}/pdf', [\App\Http\Controllers\ReportController::class, 'collectionRelationshipPdf'])->name('reports.collection.relationship.pdf');
+        Route::get('customer-statement/pdf', [\App\Http\Controllers\ReportController::class, 'customerStatementPdf'])->name('reports.customer.statement.pdf');
         Route::get('daily-sales', \App\Livewire\Reports\DailySalesReport::class)->name('reports.daily.sales')->middleware('can:reports.sales');
         Route::get('daily-sales/pdf', [\App\Http\Controllers\ReportController::class, 'dailySalesPdf'])->name('reports.daily.sales.pdf');
         Route::get('commissions', \App\Livewire\CommissionReport::class)->name('reports.commissions')->middleware(['can:reports.sales', 'module:module_commissions']); // reports.commissions?

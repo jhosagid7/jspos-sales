@@ -1,6 +1,17 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.77] - 2026-04-09
+### Added
+- **Previsualización Premium de Estado de Cuenta**: Se integró un nuevo botón "Previsualizar" con icono de ojo que abre un visualizador PDF (iframe), permitiendo revisar el estado de cuenta global antes de imprimirlo.
+- **Diseño de Reporte de Alta Gama**: Implementación de la plantilla `customer-statement-detailed-pdf` basada en el estándar de Relación de Cobros, incluyendo cabecera profesional, trazabilidad de saldo y resumen multimoneda.
+- **Trazabilidad de Facturas en Historial**: Ahora cada pago y devolución en el estado de cuenta indica explícitamente a qué número de factura (`[FACT. #xxx]`) está asociado, facilitando la auditoría de clientes con múltiples deudas.
+
+### Fixed
+- **Sincronización de Buscador TomSelect**: Se corrigió el error donde el texto del buscador de clientes permanecía visible después de limpiar la selección. El componente ahora emite un evento de limpieza que resetea el input visual instantáneamente.
+- **Resumen Completo en PDF**: Se añadió el desglose de "Total Devoluciones" en la tabla de sumatoria del reporte PDF, garantizando paridad total con los totales mostrados en pantalla.
+- **Búsqueda por Factura en Ledger**: Se optimizó el filtro del estado de cuenta para permitir localizar movimientos de pago o de crédito buscando directamente por el número de la factura afectada.
+
 ## [1.9.76] - 2026-04-08
 ### Added
 - **Dashboard Personalizado para Vendedores Foráneos**: Los vendedores con rol foráneo ahora visualizan sus propias estadísticas financieras y de desempeño de forma automática.

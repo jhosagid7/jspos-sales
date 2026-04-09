@@ -246,6 +246,15 @@
                 </li>
                 @endcan
                 
+                @can('customer_statement.index')
+                <li class="nav-item">
+                    <a href="{{ route('customer-statement') }}" class="nav-link {{ Request::is('customer-statement') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-file-invoice-dollar"></i>
+                        <p>ESTADO DE CUENTA</p>
+                    </a>
+                </li>
+                @endcan
+                
                 @module('module_advanced_payments')
                 @canany(['zelle_index', 'bank_index'])
                 <li class="nav-item">

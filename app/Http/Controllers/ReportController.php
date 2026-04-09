@@ -1382,4 +1382,103 @@ class ReportController extends Controller
 
         return $pdf->stream('Kardex_' . $product->sku . '.pdf');
     }
+
+    public function customerStatementPdf(Request $request)
+    {
+        $customerId = $request->get('customer_id');
+        $dateFrom = $request->get('dateFrom') ?: Carbon::now()->startOfMonth()->format('Y-m-d');
+        $dateTo = $request->get('dateTo') ?: Carbon::now()->format('Y-m-d');
+        $search = $request->get('referenceSearch');
+
+        $customer = \App\Models\Customer::findOrFail($customerId);
+        $config = \App\Models\Configuration::first();
+        $user = auth()->user();
+
+        $from = $dateFrom . ' 00:00:00';
+        $to = $dateTo . ' 23:59:59';
+
+        // Bindings for security
+        $cid = (int)$customerId;
+
+        $ledger = DB::table(DB::raw("(
+            SELECT 
+                created_at as t_date, 
+                CAST(COALESCE(invoice_number, id) AS CHAR) as reference, 
+                'VENTA' as concept, 
+                total as debit_native,
+                primary_exchange_rate as rate,
+                (CASE WHEN total_usd > 0 THEN total_usd ELSE total / (CASE WHEN primary_exchange_rate > 0 THEN primary_exchange_rate ELSE 1 END) END) as debit_usd,
+                0 as credit_usd,
+                'SALE' as type
+            FROM sales 
+            WHERE customer_id = $cid AND status NOT IN ('voided', 'returned')
+            AND created_at BETWEEN '$from' AND '$to'
+            " . ($search ? "AND (id LIKE '%$search%' OR invoice_number LIKE '%$search%')" : "") . "
+
+            UNION ALL
+
+            SELECT 
+                payment_date as t_date, 
+                CAST(p.id AS CHAR) as reference, 
+                CONCAT(
+                    'PAGO ', UPPER(p.pay_way), 
+                    COALESCE(CONCAT(' ', UPPER(p.bank)), ''),
+                    COALESCE(CONCAT(' #', p.deposit_number), ''),
+                    ' (', p.currency, ' ', FORMAT(p.amount, 2), ' @ ', FORMAT(p.exchange_rate, 2), ')',
+                    ' ($', FORMAT(p.amount / (CASE WHEN p.exchange_rate > 0 THEN p.exchange_rate ELSE 1 END), 2), ')',
+                    CASE WHEN p.discount_applied > 0 THEN 
+                        CONCAT(' + DESC. ', 
+                            CASE 
+                                WHEN p.rule_type = 'early_payment' OR p.discount_tag LIKE '%Pronto%' THEN 'PP'
+                                WHEN p.rule_type = 'usd_payment' OR p.discount_tag LIKE '%Divisa%' OR p.discount_tag LIKE '%USD%' THEN 'PD'
+                                ELSE UPPER(COALESCE(p.discount_tag, 'DESC'))
+                            END,
+                            '($', FORMAT(p.discount_applied, 2), ')'
+                        ) 
+                    ELSE '' END,
+                    ' [FACT. #', COALESCE(s.invoice_number, CAST(s.id AS CHAR)), ']'
+                ) as concept, 
+                p.amount as debit_native,
+                p.exchange_rate as rate,
+                0 as debit_usd,
+                (
+                    (p.amount / (CASE WHEN p.exchange_rate > 0 THEN p.exchange_rate ELSE 1 END)) 
+                    + (CASE WHEN p.rule_type = 'overdue' THEN -1 ELSE 1 END * COALESCE(p.discount_applied, 0))
+                ) as credit_usd,
+                'PAYMENT' as type
+            FROM payments p
+            JOIN sales s ON p.sale_id = s.id
+            WHERE s.customer_id = $cid AND p.status = 'approved'
+            AND payment_date BETWEEN '$from' AND '$to'
+            " . ($search ? "AND (p.id LIKE '%$search%' OR s.invoice_number LIKE '%$search%' OR s.id LIKE '%$search%')" : "") . "
+
+            UNION ALL
+
+            SELECT 
+                r.created_at as t_date, 
+                CAST(r.id AS CHAR) as reference, 
+                CONCAT('DEVOLUCION [FACT. #', COALESCE(s.invoice_number, CAST(s.id AS CHAR)), '] ', COALESCE(r.reason, '')) as concept, 
+                0 as debit_native,
+                0 as rate,
+                0 as debit_usd,
+                r.total_returned as credit_usd,
+                'RETURN' as type
+            FROM sale_returns r
+            JOIN sales s ON r.sale_id = s.id
+            WHERE r.customer_id = $cid AND r.status = 'approved'
+            AND r.created_at BETWEEN '$from' AND '$to'
+            " . ($search ? "AND (r.id LIKE '%$search%' OR s.invoice_number LIKE '%$search%' OR s.id LIKE '%$search%')" : "") . "
+        ) as combined"))->orderBy('t_date', 'asc')->get();
+
+        $totals = [
+            'totalSales' => $ledger->where('type', 'SALE')->sum('debit_usd'),
+            'totalPayments' => $ledger->where('type', 'PAYMENT')->sum('credit_usd'),
+            'totalReturns' => $ledger->where('type', 'RETURN')->sum('credit_usd'),
+            'balance' => $ledger->sum('debit_usd') - $ledger->sum('credit_usd')
+        ];
+
+        $pdf = Pdf::loadView('reports.customer-statement-detailed-pdf', compact('customer', 'ledger', 'config', 'user', 'dateFrom', 'dateTo', 'totals'));
+        
+        return $pdf->stream('Estado_Cuenta_' . $customer->name . '.pdf');
+    }
 }
