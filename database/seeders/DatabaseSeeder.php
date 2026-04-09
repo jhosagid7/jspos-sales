@@ -38,6 +38,7 @@ class DatabaseSeeder extends Seeder
             ConfigurationSeeder::class,
             WarehouseSeeder::class,
             SaleSeeder::class,
+            AddCustomerStatementPermissionSeeder::class,
         ]);
     }
 }

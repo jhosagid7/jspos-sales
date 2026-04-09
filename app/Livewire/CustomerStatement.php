@@ -38,8 +38,29 @@ class CustomerStatement extends Component
 
     public function mount()
     {
+        if (!auth()->user()->can('customer_statement.index')) {
+            abort(403, 'No tienes permiso para acceder a este módulo.');
+        }
+
         $this->dateFrom = now()->subDays(30)->format('Y-m-d');
         $this->dateTo = now()->format('Y-m-d');
+    }
+
+    private function canViewCustomer($customerId)
+    {
+        if (!$customerId) return false;
+        
+        if (auth()->user()->can('customer_statement.view_all')) {
+            return true;
+        }
+
+        if (auth()->user()->can('customer_statement.view_own')) {
+            return Customer::where('id', $customerId)
+                ->where('seller_id', auth()->id())
+                ->exists();
+        }
+
+        return false;
     }
 
     public function render()
@@ -63,14 +84,15 @@ class CustomerStatement extends Component
               ->orWhere('taxpayer_id', 'like', $searchTerm);
         });
 
-        // Privacy check (Elizabeth and Foreign Sellers)
-        if (!auth()->user()->can('customers.index')) { // Simple check, adjust if needed
-             // If they don't have general index, maybe they only see their own
-        }
-        
-        // Applying the specific request: Foreign sellers (like Elizabeth) see their own
-        if (!auth()->user()->hasRole(['Admin', 'Super Admin', 'Dueño'])) {
+        // Privacy check based on permissions
+        if (auth()->user()->can('customer_statement.view_all')) {
+            // No filter, can see all
+        } elseif (auth()->user()->can('customer_statement.view_own')) {
+            // Limited to own customers
             $query->where('seller_id', auth()->id());
+        } else {
+            // Default safety: if they have neither (but somehow accessed the module), show empty
+            return [];
         }
 
         return $query->take(10)->get();
@@ -85,6 +107,11 @@ class CustomerStatement extends Component
 
     public function selectCustomer($id)
     {
+        if (!$this->canViewCustomer($id)) {
+            $this->dispatch('noty', msg: 'No tienes permiso para ver este cliente.');
+            return;
+        }
+
         $customer = Customer::find($id);
         if ($customer) {
             $this->customerId = $id;
@@ -106,7 +133,13 @@ class CustomerStatement extends Component
 
     public function calculateTotals()
     {
-        if (!$this->customerId) return;
+        if (!$this->customerId || !$this->canViewCustomer($this->customerId)) {
+            $this->totalSales = 0;
+            $this->totalPayments = 0;
+            $this->totalReturns = 0;
+            $this->currentBalance = 0;
+            return;
+        }
 
         $from = $this->dateFrom . ' 00:00:00';
         $to = $this->dateTo . ' 23:59:59';
@@ -152,7 +185,7 @@ class CustomerStatement extends Component
 
     public function getLedgerData()
     {
-        if (!$this->customerId) return [];
+        if (!$this->customerId || !$this->canViewCustomer($this->customerId)) return [];
 
         $cid = $this->customerId;
         $from = $this->dateFrom . ' 00:00:00';

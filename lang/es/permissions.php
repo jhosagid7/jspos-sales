@@ -155,5 +155,7 @@ return [
     'bank_index' => ['name' => 'Ver Bancos', 'description' => 'Permite acceder al módulo de consulta de pagos Bancarios.'],
     'bank_view_details' => ['name' => 'Ver Detalles Banco', 'description' => 'Permite ver la foto y detalles completos del pago Bancario.'],
     'bank_print_pdf' => ['name' => 'Imprimir Banco', 'description' => 'Permite generar el reporte PDF del pago Bancario.'],
-    'customer_statement_index' => ['name' => 'Estado de Cuenta Global', 'description' => 'Permite acceder al historial financiero unificado de cargos, abonos y devoluciones por cliente.'],
+    'customer_statement_index' => ['name' => 'Ver Menú Principal', 'description' => 'Permite ver el botón "Estado de Cuenta" en la barra lateral y acceder al módulo.'],
+    'customer_statement_view_all' => ['name' => 'Ver Todos los Clientes', 'description' => 'Permite consultar el estado de cuenta de cualquier cliente de la base de datos.'],
+    'customer_statement_view_own' => ['name' => 'Ver Clientes Propios', 'description' => 'Limita la consulta solo a los clientes asignados directamente al usuario/vendedor.'],
 ];

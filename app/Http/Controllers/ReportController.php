@@ -1390,7 +1390,23 @@ class ReportController extends Controller
         $dateTo = $request->get('dateTo') ?: Carbon::now()->format('Y-m-d');
         $search = $request->get('referenceSearch');
 
+        if (!auth()->user()->can('customer_statement.index')) {
+            abort(403, 'No tienes permiso para acceder a este reporte.');
+        }
+
         $customer = \App\Models\Customer::findOrFail($customerId);
+
+        // Privacy check
+        if (!auth()->user()->can('customer_statement.view_all')) {
+            if (auth()->user()->can('customer_statement.view_own')) {
+                if ($customer->seller_id !== auth()->id()) {
+                    abort(403, 'No tiene permiso para ver el estado de cuenta de este cliente.');
+                }
+            } else {
+                abort(403, 'No tiene permisos suficientes para consultar estados de cuenta.');
+            }
+        }
+
         $config = \App\Models\Configuration::first();
         $user = auth()->user();
 
