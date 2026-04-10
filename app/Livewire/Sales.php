@@ -34,6 +34,7 @@ use App\Services\ConfigurationService;
 use App\Services\CashRegisterService; // Importar servicio
 use Illuminate\Support\Facades\Auth; // Importar Auth
 use App\Helpers\CurrencyHelper; // Importar Helper
+use App\Models\SaleHistoryLog;
 
 class Sales extends Component
 {
@@ -147,6 +148,9 @@ class Sales extends Component
     public $moduleAdvancedPayments = false;
 
     public $ordersTotal = 0; // Total sum of filtered orders
+
+    public $editing_sale_id = null;
+    public $original_sale_data = null;
 
 
     public function updatedSelectedPaymentMethod($value)
@@ -971,6 +975,12 @@ class Sales extends Component
 
         // Load Sellers
         $this->sellers = \App\Models\User::sellers()->orderBy('name')->get(); 
+
+        // Verificar si se está editando una venta
+        if (session()->has('editing_sale_id')) {
+            $this->loadSaleToEdit(session('editing_sale_id'));
+            session()->forget('editing_sale_id'); // Solo una vez por entrada
+        }
     }
     
     public function hydrate()
@@ -1486,6 +1496,98 @@ class Sales extends Component
         $this->recalculateCartWithSellerConfig();
 
         $this->dispatch('close-process-order');
+    }
+
+    public function loadSaleToEdit($saleId)
+    {
+        try {
+            $sale = Sale::with(['details', 'paymentDetails', 'changeDetails', 'customer'])->find($saleId);
+            
+            if (!$sale) {
+                $this->dispatch('noty', msg: 'VENTA #' . $saleId . ' NO ENCONTRADA');
+                return;
+            }
+
+            // Limpiar estado actual antes de cargar los nuevos datos
+            $this->clear();
+            session()->forget('sale_customer');
+
+            // Guardar ID y snapshot original (DESPUÉS de clear para que no se borren)
+            $this->editing_sale_id = $saleId;
+            $this->original_sale_data = $sale->toJson();
+
+            // Restaurar Cliente
+            if ($sale->customer) {
+                $this->setCustomer($sale->customer);
+            }
+
+            // Restaurar Configuraciones (Comisiones, Fletes, etc.)
+            $this->applyCommissions = (bool) ($sale->applied_commission_percent > 0);
+            $this->applyFreight = (bool) ($sale->applied_freight_percent > 0);
+            $this->is_freight_broken_down = (bool) ($sale->is_freight_broken_down ?? false);
+            
+            if ($sale->seller_config_id) {
+                $this->sellerConfig = \App\Models\SellerConfig::find($sale->seller_config_id);
+            }
+
+            // Cargar Items al Carrito
+            $this->bypassReservation = true; // Permitir cargar items que ya están "vendidos" pero son de ESTA venta
+            
+            foreach ($sale->details as $detail) {
+                $product = Product::find($detail->product_id);
+                if (!$product) continue;
+
+                $metadata = json_decode($detail->metadata, true);
+                
+                // Si es bobina (item variable)
+                if (isset($metadata['product_item_id'])) {
+                    $this->addVariableItem($metadata['product_item_id'], false);
+                } else {
+                    $this->AddProduct($product, $detail->quantity, $detail->warehouse_id);
+                }
+            }
+            $this->bypassReservation = false;
+
+            // Restaurar Pagos
+            $this->payments = [];
+            foreach ($sale->paymentDetails as $p) {
+                $this->payments[] = [
+                    'method' => $p->payment_method,
+                    'amount' => $p->amount,
+                    'currency' => $p->currency_code,
+                    'symbol' => Currency::where('code', $p->currency_code)->value('symbol') ?? '$',
+                    'exchange_rate' => $p->exchange_rate,
+                    'amount_in_primary_currency' => $p->amount_in_primary_currency,
+                    'bank_name' => $p->bank_name,
+                    'account_number' => $p->account_number,
+                    'reference' => $p->reference_number,
+                    'deposit_number' => $p->reference_number,
+                    'phone_number' => $p->phone_number,
+                    'details' => $p->payment_method == 'bank' ? "Banco: {$p->bank_name}, Ref: {$p->reference_number}" : null
+                ];
+            }
+            session(['payments' => $this->payments]);
+
+            // Restaurar Vueltos
+            $this->changeDistribution = [];
+            foreach ($sale->changeDetails as $c) {
+                $this->changeDistribution[] = [
+                    'currency' => $c->currency_code,
+                    'symbol' => Currency::where('code', $c->currency_code)->value('symbol') ?? '$',
+                    'amount' => $c->amount,
+                    'exchange_rate' => $c->exchange_rate,
+                    'amount_in_primary_currency' => $c->amount_in_primary_currency,
+                ];
+            }
+            session(['changeDistribution' => $this->changeDistribution]);
+
+            $this->calculateRemainingAndChange();
+            $this->dispatch('noty', msg: 'EDITANDO VENTA #' . $sale->invoice_number);
+
+        } catch (\Exception $e) {
+            Log::error("Error loading sale to edit: " . $e->getMessage());
+            $this->dispatch('noty', msg: 'ERROR AL CARGAR VENTA PARA EDICIÓN');
+        }
     }
 
     public function getOrdersWithDetails()
@@ -2176,7 +2278,7 @@ class Sales extends Component
         
         // If bypassing reservation (e.g. loading own order), allow reserved
         if ($this->bypassReservation) {
-             if (in_array($item->status, ['available', 'reserved'])) $isValidStatus = true;
+             if (in_array($item->status, ['available', 'reserved', 'sold'])) $isValidStatus = true;
         } else {
             if ($this->config->check_stock_reservation) {
                 // Strict mode: Only available
@@ -2601,6 +2703,11 @@ class Sales extends Component
 
         $this->cart = new Collection;
         $this->driver_id = null;
+        $this->payments = [];
+        $this->changeDistribution = [];
+        $this->editing_sale_id = null;
+        $this->original_sale_data = null;
+        session()->forget(['payments', 'changeDistribution', 'remainingAmount', 'change', 'editing_sale_id']);
         $this->save();
         $this->dispatch('refresh');
     }
@@ -3249,11 +3356,33 @@ class Sales extends Component
             // Calcular total en USD (moneda base) para créditos
             $totalUSD = $this->totalCart / $primaryCurrency->exchange_rate;
 
-            // Generate Invoice Number
-            $config_inv = Configuration::lockForUpdate()->first();
-            $config_inv->invoice_sequence += 1;
-            $config_inv->save();
-            $invoiceNumber = 'F' . str_pad($config_inv->invoice_sequence, 8, '0', STR_PAD_LEFT);
+            // Manage Sale Editing vs Creation
+            $sale = null;
+            if ($this->editing_sale_id) {
+                $sale = Sale::with(['details', 'paymentDetails', 'changeDetails'])->find($this->editing_sale_id);
+                if ($sale) {
+                    // Reversar stock de los items previos antes de procesar los nuevos
+                    $this->reverseStock($sale);
+                    
+                    // Reversar movimientos de caja previos
+                    $this->reversePayments($sale, $cashRegisterService);
+                    
+                    // Eliminar detalles previos para recrearlos con los nuevos datos
+                    $sale->details()->delete();
+                    $sale->paymentDetails()->delete();
+                    $sale->changeDetails()->delete();
+
+                    $invoiceNumber = $sale->invoice_number;
+                }
+            }
+
+            if (!$sale) {
+                // Generate Invoice Number for NEW sales
+                $config_inv = Configuration::lockForUpdate()->first();
+                $config_inv->invoice_sequence += 1;
+                $config_inv->save();
+                $invoiceNumber = 'F' . str_pad($config_inv->invoice_sequence, 8, '0', STR_PAD_LEFT);
+            }
 
             // Get Order Number if exists
             $orderNumber = null;
@@ -3396,13 +3525,12 @@ class Sales extends Component
             }
             // ---------------------------------------------
 
-            $sale = Sale::create([
+            $saleData = [
                 'seller_config_id' => $sellerConfigId,
                 'total' => $totalInInvoiceCurrency,
                 'total_usd' => round($totalUSD, $decimals),
                 'discount' => 0,
                 'items' => $this->itemsCart,
-
                 'customer_id' => $this->customer['id'],
                 'user_id' => Auth()->user()->id,
                 'type' => $saleType,
@@ -3413,7 +3541,6 @@ class Sales extends Component
                 'primary_currency_code' => $currencyCodeForInvoice,
                 'primary_exchange_rate' => $exchangeRateForInvoice,
                 'invoice_number' => $invoiceNumber,
-
                 'order_number' => $orderNumber,
                 'batch_name' => $batchName,
                 'batch_sequence' => $batchSequence,
@@ -3431,7 +3558,22 @@ class Sales extends Component
                 'seller_tier_2_days' => $tier2Days,
                 'seller_tier_2_percent' => $tier2Percent,
                 'driver_id' => $this->driver_id,
-            ]);
+            ];
+
+            if ($this->editing_sale_id && $sale) {
+                $sale->update($saleData);
+                
+                // Registar Log de Auditoría
+                SaleHistoryLog::create([
+                    'sale_id' => $sale->id,
+                    'user_id' => auth()->id(),
+                    'old_data' => json_decode($this->original_sale_data, true),
+                    'new_data' => $sale->load(['details.product'])->toArray(),
+                    'reason' => 'Edición de venta autorizada'
+                ]);
+            } else {
+                $sale = Sale::create($saleData);
+            }
 
             // get cart session
             $cart = collect(session("cart"));
@@ -4335,5 +4477,97 @@ class Sales extends Component
     public function generateCreditNotePdfEndpoint(\App\Models\SaleReturn $saleReturn)
     {
         return $this->generateCreditNotePdf($saleReturn);
+    }
+
+    private function reverseStock(Sale $sale)
+    {
+        foreach ($sale->details as $detail) {
+            $product = $detail->product;
+            if (!$product) continue;
+
+            $qtyToRestore = $detail->quantity;
+            $warehouseId = $detail->warehouse_id;
+
+            // Determine Composite Mode
+            $isComposite = $product->components->count() > 0;
+            $isPreAssembled = $product->is_pre_assembled;
+            $isDynamic = $isComposite && !$isPreAssembled;
+
+            if ($isDynamic) {
+                // Dynamic Mode: Restore Components ONLY
+                foreach ($product->components as $component) {
+                    $componentQtyToRestore = $qtyToRestore * $component->pivot->quantity;
+                    $component->increment('stock_qty', $componentQtyToRestore);
+
+                    if ($warehouseId) {
+                        $compWarehouse = \App\Models\ProductWarehouse::where('product_id', $component->id)
+                            ->where('warehouse_id', $warehouseId)
+                            ->first();
+                        if ($compWarehouse) {
+                            $compWarehouse->increment('stock_qty', $componentQtyToRestore);
+                        }
+                    }
+                }
+            } else {
+                // Normal Product OR Pre-assembled Kit: Restore Product Stock
+                $product->increment('stock_qty', $qtyToRestore);
+
+                if ($warehouseId) {
+                    $productWarehouse = \App\Models\ProductWarehouse::where('product_id', $product->id)
+                        ->where('warehouse_id', $warehouseId)
+                        ->first();
+                    if ($productWarehouse) {
+                        $productWarehouse->increment('stock_qty', $qtyToRestore);
+                    }
+                }
+            }
+
+            // Restore Variable Item Status (Bobinas)
+            if ($detail->metadata) {
+                $meta = json_decode($detail->metadata, true);
+                if (isset($meta['product_item_id'])) {
+                    $prodItem = \App\Models\ProductItem::find($meta['product_item_id']);
+                    if ($prodItem) {
+                        $prodItem->status = 'available';
+                        $prodItem->save();
+                    }
+                }
+            }
+        }
+    }
+
+    private function reversePayments(Sale $sale, CashRegisterService $cashRegisterService)
+    {
+        $register = $cashRegisterService->getActiveCashRegister(Auth::id());
+        if (!$register) {
+            // Si no hay caja abierta, igual debemos intentar revertir si es necesario
+            // pero el servicio usualmente requiere una caja activa.
+            // Para ediciones, asumimos que el usuario tiene una caja abierta para operar.
+             return;
+        }
+
+        // Revertir pagos previos
+        foreach ($sale->paymentDetails as $payment) {
+            $cashRegisterService->recordSaleMovement(
+                $register->id,
+                $sale->id,
+                'sale_edit_reversal',
+                $payment->currency_code,
+                -$payment->amount,
+                "Reversión de pago por edición Venta #{$sale->invoice_number}"
+            );
+        }
+
+        // Revertir vueltos previos
+        foreach ($sale->changeDetails as $change) {
+            $cashRegisterService->recordSaleMovement(
+                $register->id,
+                $sale->id,
+                'sale_edit_reversal',
+                $change->currency_code,
+                $change->amount, // Positivo para devolver a caja
+                "Reversión de vuelto por edición Venta #{$sale->invoice_number}"
+            );
+        }
     }
 }

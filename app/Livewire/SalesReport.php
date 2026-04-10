@@ -26,6 +26,7 @@ class SalesReport extends Component
     public $sellers = [], $seller_id;
     public $customer; // New property for customer filter
     public $drivers = [], $driver_id, $selectedSaleId;
+    public $saleHistory = []; // Para almacenar los logs de auditoria
 
     public function searchData()
     {
@@ -84,12 +85,13 @@ class SalesReport extends Component
 
             $sales = Sale::with([
                 'customer', 
-                'details', 
+                'details.product', 
                 'user', 
                 'paymentDetails' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo]),
                 'changeDetails' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo]),
                 'returns' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo])
             ])
+            ->withCount('history')
                 ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
                     $q->whereBetween('created_at', [$dFrom, $dTo]);
                 })
@@ -242,6 +244,12 @@ class SalesReport extends Component
         $this->details = $sale->details;
         $this->sale_note = $sale->notes; // Populate the sale_note property
         $this->dispatch('show-detail-note');
+    }
+
+    public function getSaleHistory(Sale $sale)
+    {
+        $this->saleHistory = $sale->history()->with('user')->get()->toArray();
+        $this->dispatch('show-history');
     }
 
 
@@ -457,5 +465,22 @@ class SalesReport extends Component
 
         $this->dispatch('noty', msg: 'Chofer actualizado correctamente');
         $this->dispatch('hide-driver-modal');
+    }
+
+    public function editSale($saleId)
+    {
+        $sale = Sale::findOrFail($saleId);
+        $user = auth()->user();
+
+        $canEditAnytime = $user->can('sales.edit_anytime');
+        $canEditTemp = $user->can('sales.edit_temporary') && $sale->is_within_edit_window;
+
+        if (!$canEditAnytime && !$canEditTemp) {
+            $this->dispatch('noty', msg: 'No tienes permiso para editar esta venta o el tiempo límite ha expirado.');
+            return;
+        }
+
+        session(['editing_sale_id' => $saleId]);
+        return redirect()->route('sales');
     }
 }

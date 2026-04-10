@@ -1,6 +1,16 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.81] - 2026-04-10
+### Added
+- **Auditoría de Edición de Ventas**: Se implementó un sistema de historial de cambios ("Caja Negra") que captura el estado anterior y posterior de cada factura editada, incluyendo productos y totales.
+- **Icono Dinámico de Historial**: Se añadió un ícono de reloj azul en el reporte de ventas que solo aparece si la factura ha sido modificada.
+- **Permisos de Auditoría**: Nuevo permiso `sales.view_history` para controlar quién puede ver los registros de cambios.
+- **Configuración de Bloqueo HH:MM:SS**: El tiempo límite para editar ventas ahora permite precisión de segundos, configurable desde los ajustes del sistema.
+
+### Fixed
+- **Captura de Datos en Auditoría**: Se corrigió el formato de almacenamiento de los logs para asegurar que los nombres de productos y precios se visualicen correctamente en el modal de historial.
+
 ## [1.9.80] - 2026-04-09
 ### Added
 - **Asignación de Chofer Retroactiva**: Se añadió una nueva funcionalidad en el Listado de Ventas que permite asignar o cambiar el chofer de una factura ya existente mediante un botón dedicado.

@@ -7,6 +7,14 @@
             <div class="card card-primary card-outline customer-sticky">
                 <div class="card-header">
                     <h3 class="card-title">Resumen</h3>
+                    @if($editing_sale_id)
+                    <div class="badge badge-warning ml-2" style="font-size: 0.8em;">
+                        MODO EDICIÓN #{{ $editing_sale_id }}
+                        <a href="javascript:void(0)" wire:click="clear" class="text-danger ml-1" title="Cancelar Edición">
+                            <i class="fas fa-times-circle"></i>
+                        </a>
+                    </div>
+                    @endif
                     <div class="card-tools">
                         @can('sales.create_customer')
                         <button type="button" class="btn btn-tool" data-toggle="modal" data-target="#modalCustomerCreate">

@@ -365,6 +365,13 @@
                                         </div>
                                     </div>
 
+                                    <div class="col-sm-12 col-md-6">
+                                        <label class="form-label">TIEMPO PARA EDITAR (HH:MM:SS)</label>
+                                        <input wire:model="salesEditTimeout" type="text" class="form-control" placeholder="00:30:00">
+                                        <small class="text-muted">Tiempo máximo para editar facturas (Vendedores). Formato: Horas:Minutos:Segundos.</small>
+                                        @error('salesEditTimeout') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+
                                     <div class="col-sm-12">
                                         <label class="form-label">CODIGO DE CONFIRMACION</label>
                                         <textarea wire:model="confirmationCode" class="form-control" cols="30" rows="2"></textarea>

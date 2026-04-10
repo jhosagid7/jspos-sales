@@ -163,6 +163,19 @@ class Sale extends Model
         // Zero = Due today
         return $dueDate->diffInDays(\Carbon\Carbon::now(), false);
     }
+    public function getIsWithinEditWindowAttribute()
+    {
+        // Voided or returned sales cannot be edited
+        if ($this->status === 'returned' || $this->status === 'voided' || $this->status === 'cancelled' || $this->status === 'anulated') {
+            return false;
+        }
+
+        $config = \App\Models\Configuration::first();
+        $timeoutSeconds = $config->sales_edit_timeout ?? 1800; // default 30 min = 1800s
+        
+        return $this->created_at->addSeconds($timeoutSeconds)->isFuture();
+    }
+
     public function driver()
     {
         return $this->belongsTo(User::class, 'driver_id');
@@ -186,6 +199,11 @@ class Sale extends Model
     public function deliveryCollections()
     {
         return $this->hasMany(DeliveryCollection::class);
+    }
+
+    public function history()
+    {
+        return $this->hasMany(SaleHistoryLog::class)->orderBy('created_at', 'desc');
     }
 
     public function checkSettlement()

@@ -312,10 +312,31 @@
                                                 <i class="fas fa-list"></i>
                                             </button>
 
+                                            @if($sale->history_count > 0)
+                                                @can('sales.view_history')
+                                                <button wire:click.prevent="getSaleHistory({{ $sale->id }})"
+                                                    class="border-0 btn btn-outline-info btn-xs" title="Ver Historial de Cambios">
+                                                    <i class="fas fa-history"></i>
+                                                </button>
+                                                @endcan
+                                            @endif
+
                                             <button wire:click.prevent="editDriver({{ $sale->id }})"
                                                 class="border-0 btn btn-outline-dark btn-xs" title="Asignar Chofer">
                                                 <i class="fas fa-truck text-primary"></i>
                                             </button>
+
+                                            @php
+                                                $canEditAnytime = auth()->user()->can('sales.edit_anytime');
+                                                $canEditTemp = auth()->user()->can('sales.edit_temporary') && $sale->is_within_edit_window;
+                                            @endphp
+
+                                            @if($canEditAnytime || $canEditTemp)
+                                                <button wire:click.prevent="editSale({{ $sale->id }})"
+                                                    class="border-0 btn btn-outline-dark btn-xs" title="Editar Factura">
+                                                    <i class="fas fa-pencil-alt text-warning"></i>
+                                                </button>
+                                            @endif
 
                                             @if($sale->driver_id)
                                                 <a class="border-0 btn btn-outline-dark btn-xs"
@@ -359,6 +380,98 @@
         @include('livewire.reports.sale-detail')
         @livewire('sales.returns-component')
         @include('livewire.reports.sale-detail-note')
+        
+        <!-- Modal Historial de Auditoría -->
+        <div class="modal fade" id="modalHistory" tabindex="-1" role="dialog" wire:ignore.self>
+            <div class="modal-dialog modal-xl" role="document">
+                <div class="modal-content">
+                    <div class="modal-header bg-info text-white">
+                        <h5 class="modal-title">Historial de Cambios - Venta #{{ $sale_id }}</h5>
+                        <button type="button" class="close text-white" data-bs-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        @if(count($saleHistory) > 0)
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped">
+                                    <thead class="bg-light">
+                                        <tr class="text-center">
+                                            <th>Fecha</th>
+                                            <th>Usuario</th>
+                                            <th>Detalle de la Modificación</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($saleHistory as $log)
+                                            <tr>
+                                                <td class="text-center" style="width: 15%;">
+                                                    {{ \Carbon\Carbon::parse($log['created_at'])->format('d/m/Y H:i:s') }}
+                                                </td>
+                                                <td class="text-center" style="width: 15%;">
+                                                    <span class="badge badge-secondary">{{ $log['user']['name'] }}</span>
+                                                </td>
+                                                <td>
+                                                    @php
+                                                        $old = $log['old_data'];
+                                                        $new = $log['new_data'];
+                                                    @endphp
+                                                    
+                                                    <div class="row">
+                                                        <div class="col-md-6 border-right">
+                                                            <div class="bg-light p-2 mb-2"><strong>ESTADO ANTERIOR:</strong></div>
+                                                            <ul class="list-unstyled">
+                                                                @isset($old['details'])
+                                                                    @foreach($old['details'] as $d)
+                                                                        <li>
+                                                                            <i class="fas fa-minus-circle text-danger me-1"></i> 
+                                                                            {{ $d['quantity'] ?? '0' }}x {{ $d['product']['name'] ?? 'Producto' }} 
+                                                                            (${{ number_format($d['sale_price'] ?? 0, 2) }})
+                                                                        </li>
+                                                                    @endforeach
+                                                                    <li class="mt-2 text-primary">
+                                                                        <strong>Total: ${{ number_format($old['total_usd'] ?? $old['total'] ?? 0, 2) }}</strong>
+                                                                    </li>
+                                                                @endisset
+                                                            </ul>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="bg-light p-2 mb-2"><strong>ESTADO ACTUAL:</strong></div>
+                                                            <ul class="list-unstyled">
+                                                                @isset($new['details'])
+                                                                    @foreach($new['details'] as $d)
+                                                                        <li>
+                                                                            <i class="fas fa-plus-circle text-success me-1"></i> 
+                                                                            {{ $d['quantity'] ?? '0' }}x {{ $d['product']['name'] ?? 'Producto' }} 
+                                                                            (${{ number_format($d['sale_price'] ?? 0, 2) }})
+                                                                        </li>
+                                                                    @endforeach
+                                                                    <li class="mt-2 text-primary">
+                                                                        <strong>Total Actual: ${{ number_format($new['total_usd'] ?? $new['total'] ?? 0, 2) }}</strong>
+                                                                    </li>
+                                                                @endisset
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <div class="text-center py-5">
+                                <i class="fas fa-history fa-4x text-muted mb-3"></i>
+                                <p class="text-muted">No se han registrado ediciones para esta venta aún.</p>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
         
         {{-- Modal: Assign Driver --}}
         <div wire:ignore.self class="modal fade" id="modalDriver" tabindex="-1" aria-labelledby="modalDriverLabel" aria-hidden="true">
@@ -541,6 +654,24 @@
 
     <script>
         document.addEventListener('livewire:init', () => {
+            Livewire.on('show-detail', (event) => {
+                $('#modalDetail').modal('show')
+            })
+            Livewire.on('show-detail-note', (event) => {
+                $('#modalDetailNote').modal('show')
+            })
+            Livewire.on('close-detail-note', (event) => {
+                $('#modalDetailNote').modal('hide')
+            })
+            Livewire.on('show-history', (event) => {
+                $('#modalHistory').modal('show')
+            })
+            Livewire.on('show-driver', (event) => {
+                $('#modalDriver').modal('show')
+            })
+            Livewire.on('close-driver', (event) => {
+                $('#modalDriver').modal('hide')
+            })
             Livewire.on('update-header', (data) => {
                 // Actualizar elementos del breadcrumb
                 // data.map -> .rfx (Total Costo)

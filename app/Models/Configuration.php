@@ -63,6 +63,7 @@ class Configuration extends Model
         'price_list_show_info_block',
         'catalogue_show_prices',
         'catalogue_show_base_prices',
+        'sales_edit_timeout',
     ];
 
     protected $casts = [

@@ -11,7 +11,7 @@ class Settings extends Component
     use \Livewire\WithFileUploads;
 
     public $setting_id = 0, $businessName, $phone, $taxpayerId, $vat, $printerName, $website, $leyend, $creditDays = 15, $address, $city, $creditPurchaseDays, $confirmationCode, $decimals;
-    public $checkStockReservation, $salesViewMode;
+    public $checkStockReservation, $salesViewMode, $salesEditTimeout;
     public $globalCommission1Threshold, $globalCommission1Percentage, $globalCommission2Threshold, $globalCommission2Percentage;
     public $globalAllowCredit, $globalCreditDays, $globalCreditLimit, $globalUsdPaymentDiscount, $globalUsdPaymentDiscountTag;
     public $enableSharedCashRegister; // Nuevo: Caja Compartida
@@ -93,6 +93,10 @@ class Settings extends Component
             $this->checkStockReservation = (bool) $config->check_stock_reservation;
             $this->salesViewMode = $config->sales_view_mode;
             $this->defaultWarehouseId = $config->default_warehouse_id;
+            
+            // Convert seconds to HH:MM:SS
+            $seconds = $config->sales_edit_timeout ?? 1800; // default 30 min
+            $this->salesEditTimeout = sprintf('%02d:%02d:%02d', ($seconds / 3600), ($seconds / 60 % 60), $seconds % 60);
             
             // Network Printer
             $this->isNetwork = (bool) $config->is_network;
@@ -267,6 +271,7 @@ class Settings extends Component
                 'check_stock_reservation' => $this->checkStockReservation ? 1 : 0,
                 'sales_view_mode' => $this->salesViewMode,
                 'default_warehouse_id' => $this->defaultWarehouseId,
+                'sales_edit_timeout' => $this->convertToSeconds($this->salesEditTimeout),
                 'backup_emails' => $backupEmailsArray,
                 'purchasing_calculation_mode' => $this->purchasingCalculationMode,
                 'purchasing_coverage_days' => intval($this->purchasingCoverageDays),
@@ -648,6 +653,20 @@ class Settings extends Component
             ->get();
             
         $this->dispatch('show-history-modal');
+    }
+
+    private function convertToSeconds($time)
+    {
+        if (is_numeric($time)) return intval($time);
+        
+        $parts = explode(':', $time);
+        if (count($parts) == 3) {
+            return ($parts[0] * 3600) + ($parts[1] * 60) + $parts[2];
+        } else if (count($parts) == 2) {
+            return ($parts[0] * 60) + $parts[1];
+        }
+        
+        return intval($time);
     }
 }
 
