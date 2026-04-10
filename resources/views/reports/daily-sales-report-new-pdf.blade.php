@@ -353,23 +353,29 @@
                         <td style="white-space: normal;">
                             <div class="desc-text" style="font-weight: bold; border-bottom: 1px dashed #eee; display: block; max-width: none;">{{ strtoupper($sale->customer->name) }} ({{ $sale->customer->taxpayer_id }})</div>
                             @php
+                                $cashBreakdown = [];
                                 $cashInRow = 0;
                                 foreach($sale->paymentDetails as $payment) {
                                     if ($payment->payment_method == 'cash') {
                                         $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
-                                        $cashInRow += ($payment->amount / $rate);
+                                        $amtUSD = $payment->amount / $rate;
+                                        $cashInRow += $amtUSD;
+                                        $cashBreakdown[] = "(Tasa: " . number_format($rate, 4) . " | (" . number_format($payment->amount, 4) . " {$payment->currency_code}) = $" . number_format($amtUSD, 4) . ")";
                                     }
                                 }
                                 // Fallback for legacy cash sales
                                 if($sale->paymentDetails->count() == 0 && $sale->type == 'cash') {
                                     $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
-                                    $cashInRow = ($sale->cash - $sale->change) / $rate;
+                                    $netAmt = $sale->cash - $sale->change;
+                                    $equivUSD = $netAmt / $rate;
+                                    $cashInRow = $equivUSD;
+                                    $cashBreakdown[] = "(Tasa: " . number_format($rate, 4) . " | (" . number_format($netAmt, 4) . " " . ($sale->primary_currency_code ?? 'USD') . ") = $" . number_format($equivUSD, 4) . ")";
                                 }
                             @endphp
 
                             @if($cashInRow > 0.0001)
                                 <div class="pay-info" style="display: block; border-left: 2px solid #28a745; padding-left: 3px; margin-top: 1px;">
-                                    EFECTIVO: <span style="font-weight: bold;">[${{ number_format($cashInRow, 4) }}]</span>
+                                    CASH [{{ implode(', ', $cashBreakdown) }}] = <span style="font-weight: bold;">[${{ number_format($cashInRow, 4) }}]</span>
                                 </div>
                             @endif
 

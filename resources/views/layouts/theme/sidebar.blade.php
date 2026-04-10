@@ -354,7 +354,7 @@
                         <li class="nav-item">
                             <a href="{{ route('reports.payment.relationship') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
-                                <p>Relación de Pagos</p>
+                                <p>Relación de Cobros</p>
                             </a>
                         </li>
                         @endcan

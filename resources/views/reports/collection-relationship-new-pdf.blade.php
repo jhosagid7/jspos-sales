@@ -158,57 +158,104 @@
                 // Union of Payments and Returns filtered by sheet
                 $activity = collect();
                 
-                foreach($payments as $p) {
-                    $isVoided = ($p->status == 'voided');
-                    $description = ($isVoided ? '[ANULADO] ' : '') . strtoupper($p->pay_way);
-                    if ($p->pay_way == 'zelle' && $p->zelleRecord) {
-                        $description .= " (Sender: {$p->zelleRecord->sender_name}, Ref: {$p->zelleRecord->reference})";
-                    } elseif (($p->pay_way == 'bank' || $p->pay_way == 'deposit') && $p->bank) {
-                        $description .= " ({$p->bank}, Ref: {$p->deposit_number})";
-                    } elseif ($p->deposit_number) {
-                        $description .= " (Ref: {$p->deposit_number})";
-                    }
+                $saleGroups = $payments->groupBy('sale_id');
+                
+                foreach($saleGroups as $saleId => $salePayments) {
+                    $cashPayments = $salePayments->where('pay_way', 'cash');
+                    $otherPayments = $salePayments->where('pay_way', '!=', 'cash');
 
-                    if ($isVoided && $p->rejection_reason) {
-                        $description .= " - Motivo: {$p->rejection_reason}";
-                    }
+                    // 1. Process Merged Cash
+                    if ($cashPayments->count() > 0) {
+                        $p = $cashPayments->first();
+                        $isAnyVoided = $cashPayments->contains(fn($cp) => $cp->status == 'voided');
 
-                    if ($p->discount_applied > 0) {
-                        $tag = $p->discount_tag;
-                        if (!$tag) {
-                            $tag = ($p->rule_type == 'usd_payment' ? 'PD' : 'PP');
+                        $breakdown = [];
+                        $totalUsd = 0;
+                        foreach($cashPayments as $cp) {
+                            $isVoided = ($cp->status == 'voided');
+                            $rate = $cp->exchange_rate > 0 ? $cp->exchange_rate : 1;
+                            $amtUsd = $cp->amount / $rate;
+                            $totalUsd += ($isVoided ? 0 : $amtUsd);
+                            
+                            $breakdown[] = "(Tasa: " . number_format($rate, 4) . " | (" . number_format($cp->amount, 4) . " {$cp->currency}) = $" . number_format($amtUsd, 4) . ")";
                         }
-                        $description .= " [Desc. {$tag}: $" . number_format($p->discount_applied, 2) . "]";
+
+                        $description = ($isAnyVoided ? '[ANULADO] ' : '') . "CASH [" . implode(", ", $breakdown) . "] = $" . number_format($totalUsd, 4);
+
+                        $dateEmit = \Carbon\Carbon::parse($p->sale->created_at);
+                        $datePay = \Carbon\Carbon::parse($p->payment_date);
+                        $creditDays = $p->sale->credit_days ?? 0;
+                        $dueDate = $dateEmit->copy()->addDays($creditDays);
+                        $daysDiff = $dueDate->diffInDays($datePay, false);
+
+                        $activity->push([
+                            'type' => 'Pago',
+                            'customer_id' => $p->sale->customer_id,
+                            'customer_name' => $p->sale->customer->name,
+                            'customer_doc' => $p->sale->customer->taxpayer_id,
+                            'date_pay' => $datePay,
+                            'date_emit' => $dateEmit,
+                            'days' => $daysDiff,
+                            'doc_number' => $p->sale->invoice_number ?? $p->sale->id,
+                            'description' => $description,
+                            'monto' => $totalUsd,
+                            'ingreso' => ($isAnyVoided ? 0 : $totalUsd),
+                            'is_voided' => $isAnyVoided,
+                            'sale_id' => $p->sale_id,
+                            'is_merged_cash' => true
+                        ]);
                     }
 
-                    $dateEmit = \Carbon\Carbon::parse($p->sale->created_at);
-                    $datePay = \Carbon\Carbon::parse($p->payment_date);
-                    $creditDays = $p->sale->credit_days ?? 0;
-                    $dueDate = $dateEmit->copy()->addDays($creditDays);
-                    
-                    // Signed difference: PayDate - DueDate
-                    // If payed on 15 and due on 10 -> 5 days late
-                    // If payed on 8 and due on 10 -> -2 days late (early)
-                    $daysDiff = $dueDate->diffInDays($datePay, false);
+                    // 2. Process Others separately
+                    foreach($otherPayments as $p) {
+                        $isVoided = ($p->status == 'voided');
+                        $description = ($isVoided ? '[ANULADO] ' : '') . strtoupper($p->pay_way);
+                        if ($p->pay_way == 'zelle' && $p->zelleRecord) {
+                            $description .= " (Sender: {$p->zelleRecord->sender_name}, Ref: {$p->zelleRecord->reference})";
+                        } elseif (($p->pay_way == 'bank' || $p->pay_way == 'deposit') && $p->bank) {
+                            $description .= " ({$p->bank}, Ref: {$p->deposit_number})";
+                        } elseif ($p->deposit_number) {
+                            $description .= " (Ref: {$p->deposit_number})";
+                        }
 
-                    $activity->push([
-                        'type' => 'Pago',
-                        'customer_id' => $p->sale->customer_id,
-                        'customer_name' => $p->sale->customer->name,
-                        'customer_doc' => $p->sale->customer->taxpayer_id,
-                        'date_pay' => $datePay,
-                        'date_emit' => $dateEmit,
-                        'days' => $daysDiff,
-                        'doc_number' => $p->sale->invoice_number ?? $p->sale->id,
-                        'description' => $description,
-                        'monto' => $p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1),
-                        'ingreso' => ($isVoided || $p->pay_way == 'advance' || $p->pay_way == 'adelanto') ? 0 : ($p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1)),
-                        'is_voided' => $isVoided,
-                        'sale_id' => $p->sale_id,
-                        'raw_amount' => $p->amount,
-                        'currency' => $p->currency,
-                        'rate' => $p->exchange_rate
-                    ]);
+                        if ($isVoided && $p->rejection_reason) {
+                            $description .= " - Motivo: {$p->rejection_reason}";
+                        }
+
+                        if ($p->discount_applied > 0) {
+                            $tag = $p->discount_tag;
+                            if (!$tag) {
+                                $tag = ($p->rule_type == 'usd_payment' ? 'PD' : 'PP');
+                            }
+                            $description .= " [Desc. {$tag}: $" . number_format($p->discount_applied, 2) . "]";
+                        }
+
+                        $dateEmit = \Carbon\Carbon::parse($p->sale->created_at);
+                        $datePay = \Carbon\Carbon::parse($p->payment_date);
+                        $creditDays = $p->sale->credit_days ?? 0;
+                        $dueDate = $dateEmit->copy()->addDays($creditDays);
+                        $daysDiff = $dueDate->diffInDays($datePay, false);
+
+                        $activity->push([
+                            'type' => 'Pago',
+                            'customer_id' => $p->sale->customer_id,
+                            'customer_name' => $p->sale->customer->name,
+                            'customer_doc' => $p->sale->customer->taxpayer_id,
+                            'date_pay' => $datePay,
+                            'date_emit' => $dateEmit,
+                            'days' => $daysDiff,
+                            'doc_number' => $p->sale->invoice_number ?? $p->sale->id,
+                            'description' => $description,
+                            'monto' => $p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1),
+                            'ingreso' => ($isVoided || $p->pay_way == 'advance' || $p->pay_way == 'adelanto') ? 0 : ($p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1)),
+                            'is_voided' => $isVoided,
+                            'sale_id' => $p->sale_id,
+                            'raw_amount' => $p->amount,
+                            'currency' => $p->currency,
+                            'rate' => $p->exchange_rate,
+                            'is_merged_cash' => false
+                        ]);
+                    }
                 }
 
                 foreach($returns as $r) {
@@ -266,8 +313,8 @@
                         <td>{{ $item['doc_number'] }}</td>
                         <td>
                             {{ $item['description'] }}
-                            @if($item['type'] == 'Pago')
-                                <br><small>Tasa: {{ number_format($item['rate'], 2) }} | ({{ number_format($item['raw_amount'], 2) }} {{ $item['currency'] }})</small>
+                            @if($item['type'] == 'Pago' && !($item['is_merged_cash'] ?? false))
+                                <br><small>Tasa: {{ number_format($item['rate'], 4) }} | ({{ number_format($item['raw_amount'], 4) }} {{ $item['currency'] }})</small>
                             @endif
                         </td>
                         <td class="text-right">{{ number_format($item['monto'], 4) }}</td>

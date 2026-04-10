@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <title>Relación de Pagos</title>
+        <title>Relación de Cobros</title>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 
         <style type="text/css" media="screen">
@@ -143,7 +143,7 @@
                     </td>
                     <td class="border-0 text-right" width="25%" style="vertical-align: middle;">
                         <h4 class="text-uppercase report-title">
-                            RELACIÓN DE PAGOS
+                            RELACIÓN DE COBROS
                         </h4>
                         <span style="font-size: 10px; font-weight: bold;">REPORTE</span>
                     </td>
