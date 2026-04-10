@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.82] - 2026-04-10
+### Changed
+- **Renombres de Módulo de Cobros**: Se actualizó la terminología de "Relación de Pagos" a "Relación de Cobros" en todo el sistema, incluyendo menús y encabezados de reportes.
+- **Desglose de Efectivo Multimoneda**: Se implementó una lógica de agrupación de pagos en los reportes (Relación de Cobros y Ventas Diarias) que consolida múltiples pagos de efectivo en diferentes monedas en una sola línea descriptiva detallando Tasa, Monto y Equivalente USD.
+- **Estandarización de Precisión**: Se ajustaron los reportes financieros para trabajar con 4 decimales en tasas y montos dolarizados, garantizando exactitud matemática.
+
 ## [1.9.81] - 2026-04-10
 ### Added
 - **Auditoría de Edición de Ventas**: Se implementó un sistema de historial de cambios ("Caja Negra") que captura el estado anterior y posterior de cada factura editada, incluyendo productos y totales.
