@@ -1507,4 +1507,256 @@ class ReportController extends Controller
         
         return $pdf->stream('Estado_Cuenta_' . $customer->name . '.pdf');
     }
+
+    public function customerPaymentRelationshipPdf(Request $request)
+    {
+        // dd($request->all());
+        $dateFrom = $request->get('dateFrom');
+        $dateTo = $request->get('dateTo');
+        $customer_id = $request->get('customer_id');
+        $invoiceFrom = $request->get('invoice_from');
+        $invoiceTo = $request->get('invoice_to');
+        $sellerIdSelection = $request->get('seller_id');
+        $operatorIdSelection = $request->get('operator_id');
+        $currencySelection = $request->get('currency');
+
+        $query = Payment::query()->with(['sale.customer', 'zelleRecord', 'bankRecord.bank'])->where('status', 'approved');
+
+        if ($dateFrom) {
+            $query->where('payment_date', '>=', Carbon::parse($dateFrom)->startOfDay());
+        }
+        if ($dateTo) {
+            $query->where('payment_date', '<=', Carbon::parse($dateTo)->endOfDay());
+        }
+
+        if ($customer_id) {
+            $query->whereHas('sale', function($q) use ($customer_id) {
+                $q->where('customer_id', $customer_id);
+            });
+        }
+
+        if ($invoiceFrom && $invoiceTo) {
+            $invFrom = 0; $invTo = 0;
+            if (is_numeric($invoiceFrom)) $invFrom = (int)$invoiceFrom;
+            elseif (preg_match('/^[Ff]0*([1-9][0-9]*)$/', $invoiceFrom, $matches)) $invFrom = (int)$matches[1];
+            
+            if (is_numeric($invoiceTo)) $invTo = (int)$invoiceTo;
+            elseif (preg_match('/^[Ff]0*([1-9][0-9]*)$/', $invoiceTo, $matches)) $invTo = (int)$matches[1];
+
+            if ($invFrom > 0 && $invTo > 0) {
+                $query->whereHas('sale', function($q) use ($invFrom, $invTo) {
+                    $q->whereBetween('id', [$invFrom, $invTo]);
+                });
+            }
+        }
+
+        if ($sellerIdSelection != 'all' && $sellerIdSelection != 0) {
+            $query->whereHas('sale.customer', function($q) use ($sellerIdSelection) {
+                $q->where('seller_id', $sellerIdSelection);
+            });
+        }
+
+        if ($operatorIdSelection != 'all' && $operatorIdSelection != 0) {
+            $query->where('user_id', $operatorIdSelection);
+        }
+
+        if ($currencySelection != 'all' && !empty($currencySelection)) {
+            $query->where('currency', $currencySelection);
+        }
+
+        $payments = $query->get();
+
+        $customerIds = $payments->pluck('sale.customer_id')->unique();
+        $returns = collect();
+        if ($customerIds->isNotEmpty()) {
+            $returns = SaleReturn::whereIn('customer_id', $customerIds)
+                ->where('status', 'approved')
+                ->whereBetween('created_at', [
+                    Carbon::parse($dateFrom)->startOfDay(),
+                    Carbon::parse($dateTo)->endOfDay()
+                ])
+                ->with(['sale.customer'])
+                ->get();
+        }
+
+        $activity = collect();
+        $saleGroups = $payments->groupBy('sale_id');
+        
+        foreach($saleGroups as $saleId => $salePayments) {
+            $cashPayments = $salePayments->where('pay_way', 'cash');
+            $otherPayments = $salePayments->where('pay_way', '!=', 'cash');
+
+            if ($cashPayments->count() > 0) {
+                $p = $cashPayments->first();
+                $totalUsd = 0;
+                $descriptions = [];
+                foreach($cashPayments as $cp) {
+                    $rate = $cp->exchange_rate > 0 ? $cp->exchange_rate : 1;
+                    $usdEquivalent = $cp->amount / $rate;
+                    $totalUsd += $usdEquivalent;
+                    $descriptions[] = "[(Tasa: " . number_format($rate, 4) . " | (" . number_format($cp->amount, 4) . " " . $cp->currency . ") = $" . number_format($usdEquivalent, 4) . "]";
+                }
+
+                $activity->push([
+                    'type' => 'Pago',
+                    'sale_id' => $p->sale_id,
+                    'customer_id' => $p->sale->customer_id,
+                    'customer_name' => $p->sale->customer->name,
+                    'customer_doc' => $p->sale->customer->taxpayer_id,
+                    'date_pay' => Carbon::parse($p->payment_date),
+                    'date_emit' => Carbon::parse($p->sale->created_at),
+                    'days' => $this->internalCalculateDays($p->sale, $p->payment_date),
+                    'doc_number' => $p->sale->invoice_number ?? $p->sale->id,
+                    'description' => "CASH " . implode("; ", $descriptions),
+                    'monto' => $totalUsd,
+                    'ingreso' => $totalUsd
+                ]);
+            }
+
+            foreach($otherPayments as $p) {
+                $methodStr = strtoupper($p->pay_way);
+                if ($p->pay_way == 'zelle' && $p->zelleRecord) {
+                    $methodStr .= " (Ref: {$p->zelleRecord->reference})";
+                } elseif (($p->pay_way == 'bank' || $p->pay_way == 'deposit') && $p->bank) {
+                    $methodStr .= ": " . ($p->deposit_number ? "{$p->bank}: {$p->deposit_number}" : "{$p->bank}");
+                }
+
+                $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
+                $usdEquivalent = $p->amount / $rate;
+                $description = "{$methodStr} [(Tasa: " . number_format($rate, 4) . ") | (" . number_format($p->amount, 4) . " " . $p->currency . ") = $" . number_format($usdEquivalent, 4) . "]";
+
+                if ($p->discount_applied > 0) {
+                    $description .= " [Desc: $" . number_format($p->discount_applied, 2) . "]";
+                }
+
+                $activity->push([
+                    'type' => 'Pago',
+                    'sale_id' => $p->sale_id,
+                    'customer_id' => $p->sale->customer_id,
+                    'customer_name' => $p->sale->customer->name,
+                    'customer_doc' => $p->sale->customer->taxpayer_id,
+                    'date_pay' => Carbon::parse($p->payment_date),
+                    'date_emit' => Carbon::parse($p->sale->created_at),
+                    'days' => $this->internalCalculateDays($p->sale, $p->payment_date),
+                    'doc_number' => $p->sale->invoice_number ?? $p->sale->id,
+                    'description' => $description,
+                    'monto' => $usdEquivalent,
+                    'ingreso' => ($p->pay_way == 'advance' || $p->pay_way == 'adelanto') ? 0 : $usdEquivalent
+                ]);
+            }
+        }
+
+        foreach($returns as $r) {
+            $amtUsd = $r->total_returned / ($r->sale->primary_exchange_rate > 0 ? $r->sale->primary_exchange_rate : 1);
+            $activity->push([
+                'type' => 'N/C',
+                'sale_id' => $r->sale_id,
+                'customer_id' => $r->customer_id,
+                'customer_name' => $r->customer->name,
+                'customer_doc' => $r->customer->taxpayer_id,
+                'date_pay' => Carbon::parse($r->created_at),
+                'date_emit' => Carbon::parse($r->sale->created_at),
+                'days' => 0,
+                'doc_number' => $r->sale->invoice_number ?? $r->sale->id,
+                'description' => "N/C #{$r->id}: " . ($r->reason ?? 'Devolución'),
+                'monto' => $amtUsd,
+                'ingreso' => 0
+            ]);
+        }
+
+        $grouped = $activity->sortBy([
+            ['customer_name', 'asc'],
+            ['date_emit', 'asc'],
+            ['sale_id', 'asc'],
+            ['date_pay', 'asc']
+        ])->groupBy(['customer_id', 'sale_id']);
+        
+        $summary = $this->internalCalculateSummary($payments);
+        $totalsByCurrency = [];
+        foreach ($payments->groupBy('currency') as $curr => $group) {
+            $totalsByCurrency[$curr] = $group->sum('amount');
+        }
+
+        $config = Configuration::first();
+        $user = auth()->user();
+        $totalMonto = $activity->sum('monto');
+        $totalIngreso = $activity->sum('ingreso');
+
+        $pdf = Pdf::loadView('reports.customer-payment-relationship-pdf', [
+            'grouped' => $grouped,
+            'summary' => $summary,
+            'totalsByCurrency' => $totalsByCurrency,
+            'config' => $config,
+            'user' => $user,
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+            'totalMonto' => $totalMonto,
+            'totalIngreso' => $totalIngreso,
+            'customer_id' => $customer_id,
+            'invoice_from' => $invoiceFrom,
+            'invoice_to' => $invoiceTo,
+            'seller_id' => $sellerIdSelection,
+            'operator_id' => $operatorIdSelection,
+            'currency' => $currencySelection
+        ])->setPaper('a4', 'landscape');
+
+        if ($request->has('download')) {
+            return $pdf->download('Relacion_Cobros_Cliente_' . now()->format('YmdHis') . '.pdf');
+        }
+
+        return $pdf->stream('Relacion_Cobros_Cliente.pdf');
+    }
+
+    private function internalCalculateDays($sale, $paymentDate)
+    {
+        $dateEmit = Carbon::parse($sale->created_at);
+        $datePay = Carbon::parse($paymentDate);
+        $creditDays = $sale->credit_days ?? 0;
+        $dueDate = $dateEmit->copy()->addDays($creditDays);
+        return $dueDate->diffInDays($datePay, false);
+    }
+
+    private function internalCalculateSummary($payments)
+    {
+        $summary = [];
+        $currencies = Currency::all();
+        $banks = Bank::orderBy('sort')->get();
+        $knownBanks = $banks->pluck('name')->toArray();
+
+        foreach ($currencies as $currency) {
+            $cashPays = $payments->where('pay_way', 'cash')->where('currency', $currency->code);
+            $amt = $cashPays->sum('amount');
+            if ($amt > 0) {
+                $equiv = $cashPays->sum(function($p) { return $p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1); });
+                $summary[] = ['name' => "Efectivo {$currency->code}", 'amount' => $amt, 'equiv' => $equiv];
+            }
+        }
+
+        foreach ($banks as $bank) {
+            $bPays = $payments->whereIn('pay_way', ['bank', 'deposit'])->where('bank', $bank->name);
+            foreach ($bPays->groupBy('currency') as $curr => $group) {
+                $amt = $group->sum('amount');
+                $equiv = $group->sum(function($p) { return $p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1); });
+                $summary[] = ['name' => strtoupper($bank->name) . " ({$curr})", 'amount' => $amt, 'equiv' => $equiv];
+            }
+        }
+
+        $otherBanks = $payments->whereIn('pay_way', ['bank', 'deposit'])->whereNotIn('bank', $knownBanks);
+        foreach ($otherBanks->groupBy(['bank', 'currency']) as $bankName => $currenciesInBank) {
+            foreach($currenciesInBank as $curr => $group) {
+                $amt = $group->sum('amount');
+                $equiv = $group->sum(function($p) { return $p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1); });
+                $summary[] = ['name' => strtoupper($bankName ?: 'OTROS') . " ({$curr})", 'amount' => $amt, 'equiv' => $equiv];
+            }
+        }
+
+        $zellePays = $payments->where('pay_way', 'zelle');
+        if ($zellePays->count() > 0) {
+            $amt = $zellePays->sum('amount');
+            $equiv = $zellePays->sum(function($p) { return $p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1); });
+            $summary[] = ['name' => 'ZELLE', 'amount' => $amt, 'equiv' => $equiv];
+        }
+
+        return $summary;
+    }
 }

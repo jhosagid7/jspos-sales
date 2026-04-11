@@ -1,6 +1,18 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.84] - 2026-04-11
+### Fixed
+- **Previsualización de Reportes**: Corregido bug que impedía la apertura del modal de previsualización en el reporte de Relación de Cobros por Cliente.
+- **UX/Feedback Visual**: Añadidos estados de carga (`wire:loading`) y desactivación de botones durante la generación de PDFs para evitar solicitudes duplicadas.
+- **Estabilidad de PDFs**: Refactorizada la generación de PDFs agrupados para eliminar errores de variables indefinidas y mejorar el rendimiento de renderizado en iframes.
+
+## [1.9.83] - 2026-04-10
+### Added
+- **Relación de Cobros por Cliente**: Módulo dedicado para auditoría de pagos con filtros avanzados por rango de clientes (ID), rango de facturas y fechas.
+- **Reporte PDF de Alta Gama**: Nueva plantilla de impresión agrupada por cliente, con subtotales automáticos, resumen de divisas y liquidación de canales de ingreso.
+- **Permisos y Navegación**: Integrado en la barra lateral bajo la sección de REPORTES y protegido con el nuevo permiso `reports.customer_payment_relationship`.
+
 ## [1.9.82] - 2026-04-10
 ### Changed
 - **Renombres de Módulo de Cobros**: Se actualizó la terminología de "Relación de Pagos" a "Relación de Cobros" en todo el sistema, incluyendo menús y encabezados de reportes.

@@ -158,4 +158,5 @@ return [
     'customer_statement_index' => ['name' => 'Ver Menú Principal', 'description' => 'Permite ver el botón "Estado de Cuenta" en la barra lateral y acceder al módulo.'],
     'customer_statement_view_all' => ['name' => 'Ver Todos los Clientes', 'description' => 'Permite consultar el estado de cuenta de cualquier cliente de la base de datos.'],
     'customer_statement_view_own' => ['name' => 'Ver Clientes Propios', 'description' => 'Limita la consulta solo a los clientes asignados directamente al usuario/vendedor.'],
+    'reports.customer_payment_relationship' => ['name' => 'Rep. Cobros por Cliente', 'description' => 'Acceso al reporte detallado de cobros agrupado por cliente con filtros por factura y fechas.'],
 ];

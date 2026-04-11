@@ -349,16 +349,22 @@
                         </li>
                         @endcan
                         @endmodule
-                        @module('module_credits')
                         @can('reports.sales')
                         <li class="nav-item">
-                            <a href="{{ route('reports.payment.relationship') }}" class="nav-link">
+                            <a href="{{ route('reports.payment.relationship') }}" class="nav-link {{ Request::is('reports/payment-relationship') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Relación de Cobros</p>
                             </a>
                         </li>
                         @endcan
-                        @endmodule
+                        @can('reports.customer_payment_relationship')
+                        <li class="nav-item">
+                            <a href="{{ route('reports.customer.payment.relationship') }}" class="nav-link {{ Request::is('reports/customer-payment-relationship') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Relación Cobros Cliente</p>
+                            </a>
+                        </li>
+                        @endcan
                         @can('cash_register.close')
                         <li class="nav-item">
                             <a href="{{ route('cash.count') }}" class="nav-link">
