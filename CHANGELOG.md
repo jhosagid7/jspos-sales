@@ -1,7 +1,15 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.88] - 2026-04-13
+### Fixed
+- **Restauración de API (Sintaxis)**: Se corrigió un error de sintaxis en el controlador de autenticación que causaba bloqueos del servidor y errores de "TimeoutException" al conectar desde la App.
+
 ## [1.9.87] - 2026-04-13
+### Changed
+- **Unificación de Motor de Login**: El acceso de la App ahora utiliza el mismo motor que el panel web (`Auth::attempt`), garantizando que si el usuario funciona por web, también funcione por App.
+
+## [1.9.86] - 2026-04-13
 ### Changed
 - **Unificación de Motor de Login**: Se cambió el procedimiento de autenticación de la API para usar el mismo motor que el panel web (`Auth::attempt`). Esto garantiza que si el usuario puede entrar por la web, también pueda entrar por la App.
 
