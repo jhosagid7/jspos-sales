@@ -5,6 +5,9 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+import 'dart:io';
 
 void main() {
   runApp(const JSPOSMobile());
@@ -402,7 +405,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     _menuCard('PRODUCTOS', Icons.inventory_2_rounded, const Color(0xFF00B4D8), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CatalogScreen()))),
                     _menuCard('HISTORIAL', Icons.receipt_long_rounded, const Color(0xFF2E7D32), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const OrdersScreen()))),
-                    _menuCard('CLIENTES', Icons.people_alt_rounded, const Color(0xFFF9C74F), () {}),
+                    _menuCard('COBROS', Icons.payments_rounded, const Color(0xFFF9C74F), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentCustomersScreen()))),
                     _menuCard('CONFIG', Icons.settings_suggest_rounded, const Color(0xFFF94144), () {}),
                   ],
                 ),
@@ -1203,6 +1206,287 @@ class _OrdersScreenState extends State<OrdersScreen> {
           const SizedBox(width: 6),
           Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5))
         ]),
+      ),
+    );
+  }
+}
+
+// --- PAYMENT SCREENS ---
+
+class PaymentCustomersScreen extends StatefulWidget {
+  const PaymentCustomersScreen({super.key});
+  @override
+  State<PaymentCustomersScreen> createState() => _PaymentCustomersScreenState();
+}
+
+class _PaymentCustomersScreenState extends State<PaymentCustomersScreen> {
+  final List<Customer> _customers = [];
+  bool _isLoading = false;
+  String _baseUrl = "";
+  final _searchController = TextEditingController();
+
+  @override
+  void initState() { super.initState(); _init(); }
+  _init() async { 
+    final prefs = await SharedPreferences.getInstance(); 
+    _baseUrl = prefs.getString('base_url') ?? "http://192.168.194.66"; 
+    _fetchCustomers(); 
+  }
+
+  Future<void> _fetchCustomers([String search = '']) async {
+    setState(() => _isLoading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final response = await http.get(Uri.parse('$_baseUrl/api/customers?search=$search'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'}).timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) setState(() { _customers.clear(); _customers.addAll((json.decode(response.body) as List).map((e) => Customer.fromJson(e)).toList()); });
+    } catch (e) { debugPrint("Err: $e"); }
+    finally { setState(() => _isLoading = false); }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Seleccionar Cliente', style: TextStyle(fontWeight: FontWeight.bold))),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(15),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(hintText: 'Buscar cliente...', prefixIcon: const Icon(Icons.search), border: OutlineInputBorder(borderRadius: BorderRadius.circular(15))),
+              onChanged: (v) => _fetchCustomers(v),
+            ),
+          ),
+          Expanded(
+            child: _isLoading ? const Center(child: CircularProgressIndicator()) : ListView.builder(
+              itemCount: _customers.length,
+              itemBuilder: (c, i) => ListTile(
+                leading: const CircleAvatar(child: Icon(Icons.person)),
+                title: Text(_customers[i].name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (ctx) => PendingSalesScreen(customer: _customers[i]))),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class PendingSalesScreen extends StatefulWidget {
+  final Customer customer;
+  const PendingSalesScreen({super.key, required this.customer});
+  @override
+  State<PendingSalesScreen> createState() => _PendingSalesScreenState();
+}
+
+class _PendingSalesScreenState extends State<PendingSalesScreen> {
+  List<dynamic> _sales = [];
+  bool _isLoading = false;
+  String _baseUrl = "";
+
+  @override
+  void initState() { super.initState(); _fetchSales(); }
+
+  _fetchSales() async {
+    setState(() => _isLoading = true);
+    final prefs = await SharedPreferences.getInstance();
+    _baseUrl = prefs.getString('base_url') ?? "";
+    final token = prefs.getString('token');
+    try {
+      final res = await http.get(Uri.parse('$_baseUrl/api/sales/pending?customer_id=${widget.customer.id}'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'});
+      if (res.statusCode == 200) setState(() => _sales = json.decode(res.body));
+    } catch (e) { debugPrint("Err Sales: $e"); }
+    finally { setState(() => _isLoading = false); }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Deuda: ${widget.customer.name}')),
+      body: _isLoading ? const Center(child: CircularProgressIndicator()) : _sales.isEmpty ? const Center(child: Text("Sin facturas pendientes")) : ListView.builder(
+        itemCount: _sales.length,
+        itemBuilder: (c, i) {
+          final s = _sales[i];
+          return Card(
+            margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+            child: ListTile(
+              title: Text("Factura: ${s['invoice_number']}", style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text("Fecha: ${s['date']}"),
+              trailing: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text("Deuda: \$${s['debt_usd']}", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text("Total: \$${s['total_usd']}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                ],
+              ),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (ctx) => UploadPaymentForm(saleId: s['id'], invoice: s['invoice_number'], debt: s['debt_usd'].toDouble()))),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class UploadPaymentForm extends StatefulWidget {
+  final int saleId;
+  final String invoice;
+  final double debt;
+  const UploadPaymentForm({super.key, required this.saleId, required this.invoice, required this.debt});
+  @override
+  State<UploadPaymentForm> createState() => _UploadPaymentFormState();
+}
+
+class _UploadPaymentFormState extends State<UploadPaymentForm> {
+  final _amountController = TextEditingController();
+  final _refController = TextEditingController();
+  String _selectedMethod = 'bank';
+  dynamic _selectedBank;
+  dynamic _selectedCurrency;
+  List<dynamic> _banks = [];
+  List<dynamic> _currencies = [];
+  File? _image;
+  bool _isLoading = false;
+  String _baseUrl = "";
+
+  @override
+  void initState() { 
+    super.initState(); 
+    _amountController.text = widget.debt.toStringAsFixed(2);
+    _init(); 
+  }
+  
+  _init() async {
+    final prefs = await SharedPreferences.getInstance();
+    _baseUrl = prefs.getString('base_url') ?? "";
+    final token = prefs.getString('token');
+    try {
+      final res = await http.get(Uri.parse('$_baseUrl/api/payments/form-data'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'});
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body);
+        setState(() {
+           _banks = data['banks'];
+           _currencies = data['currencies'];
+           if (_currencies.isNotEmpty) _selectedCurrency = _currencies.firstWhere((c) => c['code'] == 'USD', orElse: () => _currencies.first);
+           if (_banks.isNotEmpty) _selectedBank = _banks.first;
+        });
+      }
+    } catch (e) { debugPrint("Err Data: $e"); }
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.camera, imageQuality: 70);
+    if (pickedFile != null) setState(() => _image = File(pickedFile.path));
+  }
+
+  Future<void> _submit() async {
+    if (_amountController.text.isEmpty) return;
+    setState(() => _isLoading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      
+      var request = http.MultipartRequest('POST', Uri.parse('$_baseUrl/api/payments/upload'));
+      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['Accept'] = 'application/json';
+      
+      request.fields['sale_id'] = widget.saleId.toString();
+      request.fields['method'] = _selectedMethod;
+      request.fields['amount'] = _amountController.text;
+      request.fields['currency'] = _selectedCurrency['code'];
+      request.fields['payment_date'] = DateFormat('Y-m-d').format(DateTime.now());
+      request.fields['reference'] = _refController.text;
+      if (_selectedMethod == 'bank' && _selectedBank != null) {
+        request.fields['bank_id'] = _selectedBank['id'].toString();
+      }
+
+      if (_image != null) {
+        request.files.add(await http.MultipartFile.fromPath('image', _image!.path));
+      }
+
+      var response = await request.send();
+      if (response.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("PAGO SUBIDO EXITOSAMENTE"), backgroundColor: Colors.green));
+          Navigator.popUntil(context, (route) => route.isFirst);
+        }
+      } else {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error al subir pago"), backgroundColor: Colors.red));
+      }
+    } catch (e) { debugPrint("Err Upload: $e"); }
+    finally { setState(() => _isLoading = false); }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Pagar: ${widget.invoice}')),
+      body: _isLoading ? const Center(child: CircularProgressIndicator()) : SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            DropdownButtonFormField(
+              value: _selectedMethod,
+              decoration: const InputDecoration(labelText: 'Método de Pago', border: OutlineInputBorder()),
+              items: const [
+                DropdownMenuItem(value: 'bank', child: Text('Transferencia / Pago Móvil')),
+                DropdownMenuItem(value: 'zelle', child: Text('Zelle')),
+                DropdownMenuItem(value: 'cash', child: Text('Efectivo')),
+              ],
+              onChanged: (v) => setState(() => _selectedMethod = v.toString()),
+            ),
+            const SizedBox(height: 20),
+            if (_selectedMethod == 'bank') ... [
+              DropdownButtonFormField(
+                value: _selectedBank,
+                decoration: const InputDecoration(labelText: 'Banco Destino', border: OutlineInputBorder()),
+                items: _banks.map((b) => DropdownMenuItem(value: b, child: Text(b['name']))).toList(),
+                onChanged: (v) => setState(() => _selectedBank = v),
+              ),
+              const SizedBox(height: 20),
+            ],
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: TextField(controller: _amountController, decoration: const InputDecoration(labelText: 'Monto', border: OutlineInputBorder()), keyboardType: TextInputType.number),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: DropdownButtonFormField(
+                    value: _selectedCurrency,
+                    decoration: const InputDecoration(labelText: 'Moneda', border: OutlineInputBorder()),
+                    items: _currencies.map((c) => DropdownMenuItem(value: c, child: Text(c['code']))).toList(),
+                    onChanged: (v) => setState(() => _selectedCurrency = v),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            if (_selectedMethod != 'cash') ... [
+              TextField(controller: _refController, decoration: const InputDecoration(labelText: 'Referencia / Confirmación', border: OutlineInputBorder())),
+              const SizedBox(height: 20),
+              InkWell(
+                onTap: _pickImage,
+                child: Container(
+                  height: 150, width: double.infinity,
+                  decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade400)),
+                  child: _image == null ? const Icon(Icons.camera_alt, size: 50, color: Colors.grey) : ClipRRect(borderRadius: BorderRadius.circular(15), child: Image.file(_image!, fit: BoxFit.cover)),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+            SizedBox(
+              width: double.infinity, height: 55,
+              child: ElevatedButton(onPressed: _submit, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A237E), foregroundColor: Colors.white), child: const Text("SUBIR PAGO")),
+            ),
+          ],
+        ),
       ),
     );
   }

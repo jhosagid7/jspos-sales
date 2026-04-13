@@ -38,6 +38,8 @@ dependencies:
   google_fonts: ^8.0.2
   shared_preferences: ^2.5.5
   cached_network_image: ^3.4.1
+  image_picker: ^1.0.7
+  intl: ^1.18.1
 
 dev_dependencies:
   flutter_test:
