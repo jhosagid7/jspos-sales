@@ -134,6 +134,33 @@ class UpdateService
         Artisan::call('migrate', ['--force' => true]);
         // Also run permission seeder to ensure new features are accessible
         Artisan::call('db:seed', ['--class' => 'PermissionSeeder', '--force' => true]);
+
+        // Fix: Manual repair for warehouse_id in order_details if they are null
+        \App\Models\OrderDetail::whereNull('warehouse_id')->update(['warehouse_id' => 1]);
+
+        // Fix: Create personal_access_tokens table if it doesn't exist (Required for Sanctum API)
+        if (!\Illuminate\Support\Facades\Schema::hasTable('personal_access_tokens')) {
+            \Illuminate\Support\Facades\Schema::create('personal_access_tokens', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->id();
+                $table->morphs('tokenable');
+                $table->string('name');
+                $table->string('token', 64)->unique();
+                $table->text('abilities')->nullable();
+                $table->timestamp('last_used_at')->nullable();
+                $table->timestamp('expires_at')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        // Fix: Add sent_at to email_messages if missing (seen in logs)
+        if (\Illuminate\Support\Facades\Schema::hasTable('email_messages')) {
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('email_messages', 'sent_at')) {
+                \Illuminate\Support\Facades\Schema::table('email_messages', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->timestamp('sent_at')->nullable()->after('status');
+                });
+            }
+        }
+
         return true;
     }
 

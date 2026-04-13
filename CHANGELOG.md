@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.90] - 2026-04-13
+### Fixed
+- **Autorreparación de Base de Datos (Sanctum)**: Implementada la creación automática de la tabla `personal_access_tokens` en el proceso de actualización. Esto resuelve el error 500 que impedía el acceso móvil en servidores con esquemas incompletos.
+- **Sincronización de Esquema de Correo**: Adición automática de la columna `sent_at` faltante en la tabla de mensajes.
+
 ## [1.9.89] - 2026-04-13
 ### Added
 - **Telemetría de Autenticación**: Se añadió registro de logs específicos (`Log::info`) para auditar intentos de login desde la App y diagnosticar fallos de credenciales en producción.
