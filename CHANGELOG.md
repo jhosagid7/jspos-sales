@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.92] - 2026-04-13
+### Changed
+- **Limpieza de Diagnóstico**: Eliminadas las herramientas de auditoría temporal (archivos y registros de logs expandidos) tras confirmar la estabilidad de la conexión móvil.
+- **Estabilidad General**: Sistema operativo al 100% en entornos de Desarrollo y Producción.
+
 ## [1.9.91] - 2026-04-13
 ### Added
 - **Auditoría de IP en Login**: Se incluyó el registro de la dirección IP de origen en los logs de autenticación (`Log::info`) para diferenciar y diagnosticar fallos de conexión entre WiFi local y redes externas.
