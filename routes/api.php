@@ -37,6 +37,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders/{id}/logs', [App\Http\Controllers\Api\OrderController::class, 'logs']);
     Route::post('/orders/{id}/send', [App\Http\Controllers\Api\OrderController::class, 'sendToOffice']);
     Route::delete('/orders/{id}', [App\Http\Controllers\Api\OrderController::class, 'destroy']);
+
+    // Payments Upload Module
+    Route::get('/payments/form-data', [App\Http\Controllers\Api\PaymentController::class, 'formData']);
+    Route::get('/sales/pending', [App\Http\Controllers\Api\PaymentController::class, 'pendingSales']);
+    Route::post('/payments/upload', [App\Http\Controllers\Api\PaymentController::class, 'upload']);
 });
 
 
