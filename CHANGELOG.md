@@ -1,6 +1,16 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.85] - 2026-04-13
+### Added
+- **Sincronización de Permisos Automática**: Se integró la ejecución del `PermissionSeeder` dentro del proceso de actualización del sistema para garantizar que el cliente siempre tenga acceso a las nuevas funciones sin comandos manuales.
+
+### Fixed
+- **Integridad de Inventario en Tiempo Real**: Se corrigió el error que permitía la doble venta de productos con stock limitado. Ahora el sistema reserva inventario de CUALQUIER pedido activo (Borrador, En Oficina o Pendiente).
+- **Persistencia de Almacén**: Reparado el bug en el modelo `OrderDetail` que ignoraba el ID del almacén al guardar pedidos móviles, lo que causaba discrepancias en el stock disponible.
+- **Detección de Stock por Defecto**: Los vendedores sin almacén asignado ahora consultan automáticamente el stock de la "Tienda Principal/Oficina" (Almacén 1), evitando que los productos aparezcan erróneamente como agotados.
+
+
 ## [1.9.84] - 2026-04-11
 ### Fixed
 - **Previsualización de Reportes**: Corregido bug que impedía la apertura del modal de previsualización en el reporte de Relación de Cobros por Cliente.

@@ -132,6 +132,8 @@ class UpdateService
     public function runMigrations()
     {
         Artisan::call('migrate', ['--force' => true]);
+        // Also run permission seeder to ensure new features are accessible
+        Artisan::call('db:seed', ['--class' => 'PermissionSeeder', '--force' => true]);
         return true;
     }
 

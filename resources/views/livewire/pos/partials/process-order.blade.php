@@ -7,8 +7,7 @@
                     <button class="py-0 btn-close" type="button" data-dismiss="modal" aria-label="Close" onclick="$('#modalProcessOrder').modal('hide')"></button>
                 </div>
                 <div class="modal-body">
-                    @if ($order_selected_id == null)
-                        <div class="faq-form row g-2">
+                    <div class="faq-form row g-2">
                             <div class="col-md-8">
                                 <input wire:model.defer="searchOrder" wire:keydown.enter.prevent="getOrdersWithDetails"
                                     class="form-control form-control-lg" type="text"
@@ -117,6 +116,16 @@
                                                     <i class="icofont icofont-list fa-2x"></i>
                                                 </button>
                                                 @endcan
+                                                <button wire:click.prevent="getOrderHistory({{ $order->id }})"
+                                                    class="border-0 btn btn-outline-warning btn-xs"
+                                                    title="Ver Historial y Auditoría">
+                                                    <i class="icofont icofont-clock-time fa-2x"></i>
+                                                </button>
+                                                <button wire:click.prevent="revertToDraft({{ $order->id }})"
+                                                    class="border-0 btn btn-outline-info btn-xs"
+                                                    title="Regresar a Borrador (Desbloquear para el vendedor)">
+                                                    <i class="icofont icofont-undo fa-2x"></i>
+                                                </button>
                                                 @can('orders.pdf')
                                                 <a class="border-0 btn btn-outline-dark btn-xs link-offset-2 link-underline link-underline-opacity-0 {{ $order->status == 'returned' ? 'disabled' : '' }}"
                                                     href="{{ route('pos.orders.generatePdfOrderInvoice', $order->id) }}"
@@ -139,17 +148,16 @@
                                     {{ $orders->links() }}
                                 @endif --}}
                             </div>
-                        </div>
-                    @endif
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" type="button" data-dismiss="modal" onclick="$('#modalProcessOrder').modal('hide')">Cerrar</button>
                 </div>
             </div>
-        </div>
-        @include('livewire.pos.partials.order-detail')
-        @include('livewire.pos.partials.order-detail-note')
     </div>
+    @include('livewire.pos.partials.order-detail')
+    @include('livewire.pos.partials.order-detail-note')
+    @include('livewire.pos.partials.order-history')
     <script>
         document.addEventListener('livewire:init', function() {
             $('#modalProcessOrder').on('shown.bs.modal', function() {
@@ -180,6 +188,9 @@
         })
         document.addEventListener('close-detail-note', event => {
             $('#modalOrderDetailNote').modal('hide')
+        })
+        document.addEventListener('show-order-history', event => {
+            $('#modalOrderHistory').modal('show')
         })
     </script>
 </div>

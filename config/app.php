@@ -72,8 +72,7 @@ return [
     |
     */
 
-    'timezone' => 'America/Bogota',
-    //'timezone' => 'America/Caracas',
+    'timezone' => 'America/Caracas',
 
 
     /*

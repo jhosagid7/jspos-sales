@@ -91,6 +91,20 @@
                         </a>
                     </li>
                     @endif
+
+                    {{-- Tab 7: Logística --}}
+                    @if($this->isSeller($user->profile))
+                    <li class="nav-item mb-2">
+                        <a class="nav-link {{ $tab == 7 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                           wire:click.prevent="$set('tab',7)" href="#">
+                            <i class="fa fa-clock fa-2x"></i>
+                            <div>
+                                <h6 class="mb-0">Logística</h6>
+                                <small class="{{ $tab == 7 ? 'text-white' : 'text-muted' }}">Cierre de Pedidos</small>
+                            </div>
+                        </a>
+                    </li>
+                    @endif
                 </ul>
             </div>
 
@@ -610,6 +624,59 @@
                                     }
                                 </style>
 
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Tab 7: Logística --}}
+                    @if($this->isSeller($user->profile))
+                    <div class="tab-pane fade {{ $tab == 7 ? 'active show' : '' }}" role="tabpanel">
+                        <div class="sidebar-body">
+                            <div class="row g-3">
+                                <div class="col-sm-12">
+                                    <h6 class="text-info mb-3">
+                                        <i class="fa fa-truck-moving"></i> Control Logístico de Despacho
+                                    </h6>
+                                    <p class="text-muted small">Configure el periodo de cierre para la recepción de pedidos móviles.</p>
+                                </div>
+
+                                <div class="col-sm-12">
+                                    <div class="form-check form-switch custom-switch-lg">
+                                        <input wire:model="user.is_deadline_active" class="form-check-input" type="checkbox" id="isDeadlineActiveSwitch">
+                                        <label class="form-check-label h6 mb-0" for="isDeadlineActiveSwitch">
+                                            <strong>¿Activar Bloqueo por Horario?</strong>
+                                        </label>
+                                        <small class="d-block text-muted">Si está activo, la App bloqueará el catálogo pasada la hora configurada.</small>
+                                    </div>
+                                    @error('user.is_deadline_active') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+
+                                <div class="col-sm-12 mt-4">
+                                    <label class="form-label font-weight-bold">Fecha y Hora Límite de Pedidos</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa fa-calendar-alt"></i></span>
+                                        <input wire:model="user.order_deadline_at" 
+                                               type="datetime-local" 
+                                               class="form-control"
+                                               style="max-width: 300px;">
+                                    </div>
+                                    <small class="text-info d-block mt-2">
+                                        <i class="fa fa-info-circle"></i> 
+                                        Los vendedores recibirán alertas automáticas en su App antes de llegar a esta hora.
+                                    </small>
+                                    @error('user.order_deadline_at') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+
+                                <div class="col-sm-12 mt-4">
+                                    <div class="alert alert-light-info border-info d-flex align-items-center gap-3">
+                                        <i class="fa fa-shield-alt fa-2x text-info"></i>
+                                        <div>
+                                            <strong>Resumen de Seguridad:</strong><br>
+                                            <span class="small">Pasada esta fecha, desaparecen los botones de "+" y "Editar" en la App del vendedor seleccionado.</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

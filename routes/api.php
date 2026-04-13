@@ -24,3 +24,19 @@ Route::post('print', function (Request $request) {
     Log::info(json_encode($request->name));
     return '200 ok';
 });
+
+// Mobile App Routes
+Route::post('/login', [App\Http\Controllers\Api\AuthController::class, 'login']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [App\Http\Controllers\Api\AuthController::class, 'logout']);
+    Route::get('/products', [App\Http\Controllers\Api\ProductController::class, 'index']);
+    Route::get('/customers', [App\Http\Controllers\Api\CustomerController::class, 'index']);
+    Route::post('/orders', [App\Http\Controllers\Api\OrderController::class, 'store']);
+    Route::get('/orders', [App\Http\Controllers\Api\OrderController::class, 'index']);
+    Route::get('/orders/{id}/logs', [App\Http\Controllers\Api\OrderController::class, 'logs']);
+    Route::post('/orders/{id}/send', [App\Http\Controllers\Api\OrderController::class, 'sendToOffice']);
+    Route::delete('/orders/{id}', [App\Http\Controllers\Api\OrderController::class, 'destroy']);
+});
+
+

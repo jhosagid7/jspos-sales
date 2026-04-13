@@ -47,6 +47,8 @@ class User extends Authenticatable
         'seller_usd_payment_discount_tag',
         'theme',
         'sales_view_mode',
+        'order_deadline_at',
+        'is_deadline_active',
     ];
 
     public function warehouse()
@@ -73,7 +75,17 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'is_network' => 'boolean',
+        'is_deadline_active' => 'boolean',
+        'order_deadline_at' => 'datetime',
     ];
+
+    /**
+     * Format date for datetime-local input
+     */
+    public function getOrderDeadlineAtAttribute($value)
+    {
+        return $value ? \Carbon\Carbon::parse($value)->format('Y-m-d\TH:i') : null;
+    }
 
     public function getThemeAttribute($value)
     {

@@ -61,6 +61,7 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
+            'timezone' => '-04:00',
             'dump' => [
                'dump_binary_path' => env('DB_DUMP_PATH', 'C:\laragon\bin\mysql\mysql-8.0.30-winx64\bin'),
                'useSingleTransaction' => true,

@@ -152,7 +152,7 @@
                                     <div class="w-100">
                                         <div class="d-flex justify-content-between align-items-center">
                                             <div class="d-flex align-items-center w-100">
-                                                <img src="{{ asset($product->photo) }}" alt="img" class="rounded mr-2" style="width: 40px; height: 40px; object-fit: cover;">
+                                                <img src="{{ asset($product->photo) }}" alt="img" class="rounded mr-2" onerror="this.src='{{ asset('noimage.jpg') }}'; this.onerror=null;" style="width: 40px; height: 40px; object-fit: cover;">
                                                 <div class="d-flex flex-column flex-grow-1">
                                                     <div class="d-flex justify-content-between align-items-center">
                                                         <h6 class="mb-0 font-weight-bold text-{{ $product->stock_qty <= 0 ? 'danger' : ($product->stock_qty <= $product->low_stock ? 'warning' : 'success') }}" style="font-size: 1rem;">

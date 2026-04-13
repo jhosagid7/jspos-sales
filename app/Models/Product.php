@@ -130,10 +130,11 @@ class Product extends Model
 
     public function getReservedStock($warehouseId)
     {
+        // Consider as reserved any item in an order that is NOT yet paid/finalized and not returned
         return OrderDetail::where('product_id', $this->id)
             ->where('warehouse_id', $warehouseId)
             ->whereHas('order', function ($query) {
-                $query->where('status', 'pending');
+                $query->whereNotIn('status', ['paid', 'returned', 'cancelled', 'annulled']);
             })
             ->sum('quantity');
     }

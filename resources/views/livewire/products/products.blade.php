@@ -90,7 +90,7 @@
                                                 <div class="product-img">
                                                     <img alt="photo" class="img-fluid rounded img-40"
                                                         src="{{ asset($product->photo) }}"
-                                                        data-src="{{ asset($product->photo) }}">
+                                                        onerror="this.src='{{ asset('noimage.jpg') }}'; this.onerror=null;">
                                                 </div>
                                             </div>
                                         </td>

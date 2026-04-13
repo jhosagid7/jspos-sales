@@ -62,6 +62,8 @@ class Users extends Component
         'user.taxpayer_id' => 'nullable|max:45',
         'user.address' => 'nullable|max:255',
         'user.color' => 'nullable|string|max:7',
+        'user.order_deadline_at' => 'nullable',
+        'user.is_deadline_active' => 'boolean',
     ];
 
     protected $messages = [

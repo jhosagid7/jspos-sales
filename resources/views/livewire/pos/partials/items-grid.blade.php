@@ -303,7 +303,7 @@
                                                 
                                                 <div class="product-image-container">
                                                     @if($product->photo)
-                                                        <img src="{{ asset($product->photo) }}" alt="img" class="product-image">
+                                                        <img src="{{ asset($product->photo) }}" alt="img" class="product-image" onerror="this.src='{{ asset('noimage.jpg') }}'; this.onerror=null;">
                                                     @else
                                                         <div class="product-image d-flex align-items-center justify-content-center text-muted bg-light">
                                                             <i class="fas fa-image fa-3x opacity-50"></i>

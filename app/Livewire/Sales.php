@@ -151,6 +151,7 @@ class Sales extends Component
 
     public $editing_sale_id = null;
     public $original_sale_data = null;
+    public $orderHistory = [];
 
 
     public function updatedSelectedPaymentMethod($value)
@@ -1587,6 +1588,55 @@ class Sales extends Component
         } catch (\Exception $e) {
             Log::error("Error loading sale to edit: " . $e->getMessage());
             $this->dispatch('noty', msg: 'ERROR AL CARGAR VENTA PARA EDICIÓN');
+        }
+    }
+
+    public function getOrderHistory($orderId)
+    {
+        $order = Order::findOrFail($orderId);
+        $this->orderHistory = \App\Models\OrderHistoryLog::where('order_id', $orderId)
+            ->with('user')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->toArray();
+            
+        $this->order_selected_id = $orderId;
+        $this->dispatch('show-order-history');
+    }
+
+    public function revertToDraft($orderId)
+    {
+        try {
+            DB::beginTransaction();
+            $order = Order::findOrFail($orderId);
+            
+            // Record original state for history
+            $originalData = $order->toArray();
+            
+            // Update status back to draft
+            $order->update(['status' => 'draft']);
+            
+            // Log the administrative action
+            \App\Models\OrderHistoryLog::create([
+                'order_id' => $order->id,
+                'user_id' => auth()->id(),
+                'action' => 'reverted_to_draft',
+                'description' => 'Orden devuelta a borrador por administración para edición.',
+                'details' => [
+                    'from_status' => 'pending',
+                    'to_status' => 'draft',
+                    'admin_id' => auth()->id(),
+                    'snapshot' => $originalData
+                ]
+            ]);
+
+            DB::commit();
+            $this->dispatch('noty', msg: 'ORDEN #' . $order->order_number . ' DEVUELTA A BORRADOR');
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Error reverting order to draft: " . $e->getMessage());
+            $this->dispatch('noty', msg: 'ERROR AL REVERTIR ORDEN');
         }
     }
 
@@ -4038,10 +4088,49 @@ class Sales extends Component
                     // Only set user_id if it's missing (unlikely for update) or if we explicitly want to change it (we don't)
                     // So we just don't include it in updateData.
                     
+                    // Load old state for diff calculation
+                    $oldDetails = OrderDetail::with('product')->where('order_id', $order->id)->get();
+                    $cart = collect(session("cart"));
+                    
+                    $changes = [];
+                    $oldItemsMap = $oldDetails->keyBy('product_id');
+                    
+                    // Detect removals
+                    foreach ($oldItemsMap as $pid => $od) {
+                        $stillInCart = $cart->contains(function($item) use ($pid) {
+                            return $item['pid'] == $pid;
+                        });
+                        if (!$stillInCart) {
+                            $changes[] = "QUITÓ: " . ($od->product->name ?? 'Producto');
+                        }
+                    }
+
+                    // Detect additions and qty changes
+                    foreach ($cart as $item) {
+                        $pid = $item['pid'];
+                        if (!$oldItemsMap->has($pid)) {
+                            $changes[] = "AGREGÓ: " . ($item['name'] ?? 'Producto') . " (Cant: " . $item['qty'] . ")";
+                        } else {
+                            $oldQty = $oldItemsMap[$pid]->quantity;
+                            if ($oldQty != $item['qty']) {
+                                $changes[] = "CAMBIÓ: " . ($item['name'] ?? 'Producto') . " ($oldQty -> " . $item['qty'] . ")";
+                            }
+                        }
+                    }
+
+                    // Actualiza la orden existente
                     $order->update($updateData);
 
+                    // Log the changes
+                    \App\Models\OrderHistoryLog::create([
+                        'order_id' => $order->id,
+                        'user_id' => auth()->id(),
+                        'action' => 'edited',
+                        'description' => count($changes) > 0 ? implode(", ", $changes) : 'Orden actualizada desde la web.',
+                        'details' => ['changes' => $changes, 'source' => 'web']
+                    ]);
+
                     // Actualiza los detalles de la orden
-                    $cart = collect(session("cart"));
                     $details = $cart->map(function ($item) use ($order, $decimals) {
                         return [
                             'product_id' => $item['pid'],
@@ -4057,7 +4146,6 @@ class Sales extends Component
                     })->toArray();
 
                     // RESTORE: Set items that were in the order but are being removed back to 'available'
-                    $oldDetails = OrderDetail::where('order_id', $order->id)->get();
                     $newItemIds = $cart->pluck('product_item_id')->filter()->toArray();
 
                     foreach ($oldDetails as $oldDetail) {
@@ -4569,5 +4657,12 @@ class Sales extends Component
                 "Reversión de vuelto por edición Venta #{$sale->invoice_number}"
             );
         }
+    }
+
+    public function resetSelection()
+    {
+        $this->order_selected_id = null;
+        $this->orderHistory = [];
+        $this->details = [];
     }
 }
