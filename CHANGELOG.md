@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.89] - 2026-04-13
+### Added
+- **Telemetría de Autenticación**: Se añadió registro de logs específicos (`Log::info`) para auditar intentos de login desde la App y diagnosticar fallos de credenciales en producción.
+
 ## [1.9.88] - 2026-04-13
 ### Fixed
 - **Restauración de API (Sintaxis)**: Se corrigió un error de sintaxis en el controlador de autenticación que causaba bloqueos del servidor y errores de "TimeoutException" al conectar desde la App.

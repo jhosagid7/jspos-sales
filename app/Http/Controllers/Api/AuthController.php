@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -15,19 +16,26 @@ class AuthController extends Controller
     {
         $request->validate(['email' => 'required|email','password' => 'required','device_name' => 'required']);
 
+        $email = trim(strtolower($request->email));
+        
+        Log::info("Intento de login App: Buscando usuario con email: " . $email);
+
         $credentials = [
-            'email' => trim(strtolower($request->email)),
+            'email' => $email,
             'password' => $request->password,
         ];
 
-        // Use Auth::attempt to ensure consistency with the web login
         if (! Auth::attempt($credentials)) {
+            $userExists = User::where('email', $email)->exists();
+            Log::warning("Fallo de login App: El usuario " . ($userExists ? 'SÍ existe en DB' : 'NO existe en DB') . " pero la clave fue rechazada.");
+            
             return response()->json([
                 'message' => 'Credenciales incorrectas.',
             ], 401);
         }
 
         $user = Auth::user();
+        Log::info("Login App EXITOSO para: " . $user->email);
 
         // Generate the Sanctum token
         $token = $user->createToken($request->device_name)->plainTextToken;
