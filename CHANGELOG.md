@@ -1,6 +1,13 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.86] - 2026-04-13
+### Added
+- **Parche de Robustez en Login**: Implementación de limpieza automática (trim) y conversión a minúsculas para correos en la API, evitando fallos de "Credenciales incorrectas" por errores de teclado móvil.
+
+### Fixed
+- **Sincronización de Stock en Producción**: Integración del comando de reparación de almacenes en el sistema de actualizaciones, asegurando que el inventario se normalice inmediatamente tras la actualización del cliente.
+
 ## [1.9.85] - 2026-04-13
 ### Added
 - **Sincronización de Permisos Automática**: Se integró la ejecución del `PermissionSeeder` dentro del proceso de actualización del sistema para garantizar que el cliente siempre tenga acceso a las nuevas funciones sin comandos manuales.
