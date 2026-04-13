@@ -134,7 +134,7 @@ class Product extends Model
         return OrderDetail::where('product_id', $this->id)
             ->where('warehouse_id', $warehouseId)
             ->whereHas('order', function ($query) {
-                $query->whereNotIn('status', ['paid', 'returned', 'cancelled', 'annulled']);
+                $query->whereNotIn('status', ['paid', 'returned', 'cancelled', 'annulled', 'processed', 'deleted']);
             })
             ->sum('quantity');
     }

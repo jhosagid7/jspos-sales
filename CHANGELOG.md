@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.93] - 2026-04-13
+### Fixed
+- **Depuración de Reservas**: Corregida la lógica de inventario reservado para excluir pedidos en estado `processed` y `deleted`. Esto libera miles de unidades de stock "fantasma" que estaban bloqueadas en la App móvil.
+
 ## [1.9.92] - 2026-04-13
 ### Changed
 - **Limpieza de Diagnóstico**: Eliminadas las herramientas de auditoría temporal (archivos y registros de logs expandidos) tras confirmar la estabilidad de la conexión móvil.
