@@ -10,20 +10,16 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    /**
-     * Handle an incoming authentication request.
-     */
     public function login(Request $request)
     {
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-            'device_name' => 'required',
-        ]);
+        $request->validate(['email' => 'required|email', 'password' => 'required', 'device_name' => 'required']);
 
-        $user = User::where('email', $request->email)->first();
+        $email = trim(strtolower($request->email));
+        $password = trim($request->password);
 
-        if (! $user || ! Hash::check($request->password, $user->password)) {
+        $user = User::where('email', $email)->first();
+
+        if (! $user || ! Hash::check($password, $user->password)) {
             return response()->json([
                 'message' => 'Credenciales incorrectas.',
             ], 401);
