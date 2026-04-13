@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -12,18 +13,25 @@ class AuthController extends Controller
 {
     public function login(Request $request)
     {
-        $request->validate(['email' => 'required|email', 'password' => 'required', 'device_name' => 'required']);
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+            'device_name' => 'required'
+        ]);
 
-        $email = trim(strtolower($request->email));
-        $password = trim($request->password);
+        $credentials = [
+            'email' => trim(strtolower($request->email)),
+            'password' => $request->password,
+        ];
 
-        $user = User::where('email', $email)->first();
-
-        if (! $user || ! Hash::check($password, $user->password)) {
+        // Use Auth::attempt to ensure consistency with the web login
+        if (! Auth::attempt($credentials)) {
             return response()->json([
                 'message' => 'Credenciales incorrectas.',
             ], 401);
         }
+
+        $user = Auth::user();
 
         // Generate the Sanctum token
         $token = $user->createToken($request->device_name)->plainTextToken;

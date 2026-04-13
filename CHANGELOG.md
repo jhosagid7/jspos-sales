@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.87] - 2026-04-13
+### Changed
+- **Unificación de Motor de Login**: Se cambió el procedimiento de autenticación de la API para usar el mismo motor que el panel web (`Auth::attempt`). Esto garantiza que si el usuario puede entrar por la web, también pueda entrar por la App.
+
 ## [1.9.86] - 2026-04-13
 ### Added
 - **Parche de Robustez en Login**: Implementación de limpieza automática (trim) y conversión a minúsculas para correos en la API, evitando fallos de "Credenciales incorrectas" por errores de teclado móvil.
