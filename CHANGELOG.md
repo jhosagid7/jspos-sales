@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.9.91] - 2026-04-13
+### Added
+- **Auditoría de IP en Login**: Se incluyó el registro de la dirección IP de origen en los logs de autenticación (`Log::info`) para diferenciar y diagnosticar fallos de conexión entre WiFi local y redes externas.
+
 ## [1.9.90] - 2026-04-13
 ### Fixed
 - **Autorreparación de Base de Datos (Sanctum)**: Implementada la creación automática de la tabla `personal_access_tokens` en el proceso de actualización. Esto resuelve el error 500 que impedía el acceso móvil en servidores con esquemas incompletos.
