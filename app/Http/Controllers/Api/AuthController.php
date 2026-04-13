@@ -17,8 +17,9 @@ class AuthController extends Controller
         $request->validate(['email' => 'required|email','password' => 'required','device_name' => 'required']);
 
         $email = trim(strtolower($request->email));
+        $ip = $request->ip();
         
-        Log::info("Intento de login App: Buscando usuario con email: " . $email);
+        Log::info("Intento de login App desde IP: [" . $ip . "] Buscando usuario: " . $email);
 
         $credentials = [
             'email' => $email,
@@ -27,7 +28,7 @@ class AuthController extends Controller
 
         if (! Auth::attempt($credentials)) {
             $userExists = User::where('email', $email)->exists();
-            Log::warning("Fallo de login App: El usuario " . ($userExists ? 'SÍ existe en DB' : 'NO existe en DB') . " pero la clave fue rechazada.");
+            Log::warning("Fallo de login App (IP: " . $ip . "): El usuario " . ($userExists ? 'SÍ existe en DB' : 'NO existe en DB') . " pero la clave fue rechazada.");
             
             return response()->json([
                 'message' => 'Credenciales incorrectas.',
@@ -35,7 +36,7 @@ class AuthController extends Controller
         }
 
         $user = Auth::user();
-        Log::info("Login App EXITOSO para: " . $user->email);
+        Log::info("Login App EXITOSO (IP: " . $ip . ") para: " . $user->email);
 
         // Generate the Sanctum token
         $token = $user->createToken($request->device_name)->plainTextToken;
