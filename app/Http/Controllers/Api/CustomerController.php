@@ -43,23 +43,47 @@ class CustomerController extends Controller
 
         $customers = $query->with(['sales' => function($q) {
                 $q->where('type', 'credit')
-                  ->where('status', 'pending');
+                  ->where('status', 'pending')
+                  ->with(['payments', 'returns']);
             }])
             ->orderBy('name', 'asc')
-            ->limit(200) // Increased limit to be safer
+            ->limit(200)
             ->get();
 
         $formatted = $customers->map(function ($c) {
-            $totalDebt = 0;
+            $totalDebtUSD = 0;
             $hasOverdue = false;
-            $pendingSales = [];
+            $pendingCount = 0;
 
             foreach ($c->sales as $sale) {
-                $debt = $sale->debt;
-                if ($debt > 0.05) { // Real debt threshold
-                    $totalDebt += $debt;
-                    $pendingSales[] = $sale;
-                    if ($sale->days_overdue > 0) {
+                // USD Debt logic (mirrored from PaymentController)
+                $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected'])->sum(function($p) {
+                    $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
+                    $amountUSD = $p->amount / $rate; 
+                    $discountVal = $p->discount_applied ?? 0;
+                    return ($p->rule_type === 'overdue') ? ($amountUSD - $discountVal) : ($amountUSD + $discountVal);
+                });
+                
+                $initialPaidUSD = $sale->paymentDetails->sum(function($detail) {
+                    $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
+                    return $detail->amount / $rate;
+                });
+
+                $totalReturnsUSD = $sale->returns->where('refund_method', 'debt_reduction')->sum('total_returned') / ($sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1);
+                
+                $totalUSD = $sale->total_usd ?: ($sale->total / ($sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1));
+                
+                $debtUSD = max(0, $totalUSD - ($totalPaidUSD + $initialPaidUSD + $totalReturnsUSD));
+
+                if ($debtUSD > 0.05) {
+                    $totalDebtUSD += $debtUSD;
+                    $pendingCount++;
+                    
+                    // Overdue check
+                    $startDate = $sale->delivered_at ? \Carbon\Carbon::parse($sale->delivered_at) : \Carbon\Carbon::parse($sale->created_at);
+                    $creditDays = $sale->credit_days ?? ($sale->customer->credit_days ?? 0);
+                    $dueDate = $startDate->copy()->addDays($creditDays);
+                    if ($dueDate->isPast() && !$dueDate->isToday()) {
                         $hasOverdue = true;
                     }
                 }
@@ -68,8 +92,8 @@ class CustomerController extends Controller
             return [
                 'id' => $c->id,
                 'name' => $c->name,
-                'total_debt' => round($totalDebt, 2),
-                'pending_count' => count($pendingSales),
+                'total_debt' => round($totalDebtUSD, 2),
+                'pending_count' => $pendingCount,
                 'has_overdue' => $hasOverdue
             ];
         });

@@ -1,6 +1,10 @@
 # Changelog - JSPOS Mobile
 All notable changes to the mobile application will be documented in this file.
 
+## [1.1.15] - 2026-04-14
+### Fixed
+- **Sincronización de Deuda**: Unificada la lógica de cálculo entre el listado general y el detalle de factura para evitar discrepancias en clientes con transacciones multimoneda.
+
 ## [1.1.14] - 2026-04-14
 ### Fixed
 - **Vencimientos**: Corregido error que mostraba vencimiento 'null' y ajustada la polaridad de los d\u00edas (+ para mora, - para d\u00edas restantes) para coincidir con est\u00e1ndares del sistema.

@@ -1,3 +1,7 @@
+## [1.9.99] - 2026-04-14
+### Fixed
+- **API Clientes**: Unificada la l\u00f3gica de c\u00e1lculo de deuda (USD) con la vista detallada para evitar discrepancias y facturas "ocultas" en el listado general.
+
 ## [1.9.98] - 2026-04-14
 ### Fixed
 - **API Cr\u00e9ditos**: Parche de robustez para el c\u00e1lculo de vencimientos (fallback a d\u00edas de cr\u00e9dito del cliente y carga de relaci\u00f3n).
