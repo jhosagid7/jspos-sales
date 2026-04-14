@@ -1,6 +1,10 @@
 # Changelog - JSPOS Mobile
 All notable changes to the mobile application will be documented in this file.
 
+## [1.1.14] - 2026-04-14
+### Fixed
+- **Vencimientos**: Corregido error que mostraba vencimiento 'null' y ajustada la polaridad de los d\u00edas (+ para mora, - para d\u00edas restantes) para coincidir con est\u00e1ndares del sistema.
+
 ## [1.1.13] - 2026-04-14
 ### Added
 - **Trazabilidad de Vencimientos**: Las facturas pendientes ahora muestran fecha de emisión, fecha de vencimiento y un semáforo visual de días de mora o días restantes.

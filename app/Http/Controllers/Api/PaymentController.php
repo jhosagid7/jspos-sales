@@ -29,7 +29,7 @@ class PaymentController extends Controller
         $sales = Sale::where('customer_id', $customerId)
             ->where('type', 'credit')
             ->where('status', 'pending')
-            ->with(['payments', 'returns'])
+            ->with(['payments', 'returns', 'customer'])
             ->orderBy('id', 'desc')
             ->get();
 
@@ -55,11 +55,16 @@ class PaymentController extends Controller
             
             $debtUSD = max(0, $totalUSD - ($totalPaidUSD + $initialPaidUSD + $totalReturnsUSD));
 
-            // Overdue logic
+            // Overdue logic: Robust calculation
             $startDate = $sale->delivered_at ? \Carbon\Carbon::parse($sale->delivered_at) : \Carbon\Carbon::parse($sale->created_at);
-            $creditDays = $sale->credit_days ?? 0;
+            // Get credit days from sale, fallback to customer, fallback to 0
+            $creditDays = $sale->credit_days ?? ($sale->customer->credit_days ?? 0);
             $dueDate = $startDate->copy()->addDays($creditDays);
-            $daysOverdue = (int) $dueDate->diffInDays(\Carbon\Carbon::now(), false);
+            
+            // Standardize signs using startOfDay to be precise: positive = overdue, negative = remaining
+            $now = \Carbon\Carbon::now()->startOfDay();
+            $due = $dueDate->copy()->startOfDay();
+            $daysOverdue = (int) $due->diffInDays($now, false);
 
             return [
                 'id' => $sale->id,

@@ -1,3 +1,7 @@
+## [1.9.98] - 2026-04-14
+### Fixed
+- **API Cr\u00e9ditos**: Parche de robustez para el c\u00e1lculo de vencimientos (fallback a d\u00edas de cr\u00e9dito del cliente y carga de relaci\u00f3n).
+
 ## [1.9.97] - 2026-04-14
 ### Added
 - **API Cr\u00e9ditos**: Inclusi\u00f3n de metadatos de trazabilidad en ventas pendientes (fecha de emisi\u00f3n, vencimiento y c\u00e1lculo de mora).
