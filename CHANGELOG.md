@@ -1,3 +1,8 @@
+## [1.9.96] - 2026-04-14
+### Fixed
+- **API Seguridad**: Unificación de criterios de visibilidad para roles de Admin y Super Admin en el módulo de clientes.
+- **API Performance**: Implementación de filtrado SQL para deudores y morosos, eliminando el límite de 100 resultados previos al filtrado.
+
 ## [1.9.95] - 2026-04-14
 ### Added
 - **API Auditoría**: Nuevos campos `issuer_name`, `zelle_image` y `bank_image` en la tabla de pagos para soporte de auditoría extendida.

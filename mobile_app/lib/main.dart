@@ -1252,31 +1252,25 @@ class _PaymentCustomersScreenState extends State<PaymentCustomersScreen> {
     _fetchCustomers(); 
   }
 
-  Future<void> _fetchCustomers([String search = '']) async {
+  Future<void> _fetchCustomers([String search = '', String? filter]) async {
     setState(() => _isLoading = true);
+    final currentFilter = filter ?? _currentFilter;
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
-      final response = await http.get(Uri.parse('$_baseUrl/api/customers?search=$search'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'}).timeout(const Duration(seconds: 15));
+      // Pass the filter to the API
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/customers?search=$search&filter=$currentFilter'), 
+        headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'}
+      ).timeout(const Duration(seconds: 15));
+      
       if (response.statusCode == 200) setState(() { 
         _allCustomers.clear(); 
         _allCustomers.addAll((json.decode(response.body) as List).map((e) => Customer.fromJson(e)).toList()); 
-        _applyFilters();
+        _filteredCustomers = List.from(_allCustomers);
       });
     } catch (e) { debugPrint("Err: $e"); }
     finally { setState(() => _isLoading = false); }
-  }
-
-  void _applyFilters() {
-    setState(() {
-      if (_currentFilter == 'all') {
-        _filteredCustomers = List.from(_allCustomers);
-      } else if (_currentFilter == 'debt') {
-        _filteredCustomers = _allCustomers.where((c) => c.totalDebt > 0).toList();
-      } else if (_currentFilter == 'overdue') {
-        _filteredCustomers = _allCustomers.where((c) => c.hasOverdue).toList();
-      }
-    });
   }
 
   @override
@@ -1381,7 +1375,10 @@ class _PaymentCustomersScreenState extends State<PaymentCustomersScreen> {
   Widget _filterChip(String label, String code, IconData icon, Color color) {
     bool active = _currentFilter == code;
     return GestureDetector(
-      onTap: () { setState(() => _currentFilter = code); _applyFilters(); },
+      onTap: () { 
+        setState(() => _currentFilter = code); 
+        _fetchCustomers(_searchController.text, code); 
+      },
       child: Container(
         margin: const EdgeInsets.only(right: 10),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),

@@ -1,6 +1,10 @@
 # Changelog - JSPOS Mobile
 All notable changes to the mobile application will be documented in this file.
 
+## [1.1.12] - 2026-04-14
+### Improved
+- **Filtrado Remoto**: Las pestañas "CON DEUDA" y "VENCIDOS" ahora solicitan datos filtrados directamente al servidor, garantizando visibilidad total de la cartera global para administradores.
+
 ## [1.1.11] - 2026-04-14
 ### Added
 - **Financial Audit Trail**: Added mandatory `issuer_name` and voucher date for Zelle and Bank payments.
