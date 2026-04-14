@@ -55,10 +55,18 @@ class PaymentController extends Controller
             
             $debtUSD = max(0, $totalUSD - ($totalPaidUSD + $initialPaidUSD + $totalReturnsUSD));
 
+            // Overdue logic
+            $startDate = $sale->delivered_at ? \Carbon\Carbon::parse($sale->delivered_at) : \Carbon\Carbon::parse($sale->created_at);
+            $creditDays = $sale->credit_days ?? 0;
+            $dueDate = $startDate->copy()->addDays($creditDays);
+            $daysOverdue = (int) $dueDate->diffInDays(\Carbon\Carbon::now(), false);
+
             return [
                 'id' => $sale->id,
                 'invoice_number' => $sale->invoice_number ?? "F-" . str_pad($sale->id, 6, '0', STR_PAD_LEFT),
                 'date' => $sale->created_at->format('Y-m-d'),
+                'due_date' => $dueDate->format('Y-m-d'),
+                'days_overdue' => $daysOverdue,
                 'total_usd' => round($totalUSD, 2),
                 'debt_usd' => round($debtUSD, 2),
                 'total_display' => round($totalUSD * $primaryCurrency->exchange_rate, 2),

@@ -1,6 +1,10 @@
 # Changelog - JSPOS Mobile
 All notable changes to the mobile application will be documented in this file.
 
+## [1.1.13] - 2026-04-14
+### Added
+- **Trazabilidad de Vencimientos**: Las facturas pendientes ahora muestran fecha de emisión, fecha de vencimiento y un semáforo visual de días de mora o días restantes.
+
 ## [1.1.12] - 2026-04-14
 ### Improved
 - **Filtrado Remoto**: Las pestañas "CON DEUDA" y "VENCIDOS" ahora solicitan datos filtrados directamente al servidor, garantizando visibilidad total de la cartera global para administradores.

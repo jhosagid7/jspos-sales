@@ -1458,7 +1458,21 @@ class _PendingSalesScreenState extends State<PendingSalesScreen> {
                       const SizedBox(width: 15),
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text("Venta: ${s['invoice_number']}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-                        Text("Fecha: ${s['date']}", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                        Text("Emi: ${s['date']} | Venc: ${s['due_date']}", style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold)),
+                        if (s['days_overdue'] != null) ... [
+                           const SizedBox(height: 2),
+                           Text(
+                             s['days_overdue'] > 0 
+                              ? "VENCIDA HACE ${s['days_overdue']} DÍAS" 
+                              : (s['days_overdue'] == 0 ? "VENCE HOY" : "POR VENCER EN ${s['days_overdue'].abs()} DÍAS"),
+                             style: TextStyle(
+                               color: s['days_overdue'] > 0 ? Colors.red : (s['days_overdue'] == 0 ? Colors.orange : Colors.blue),
+                               fontWeight: FontWeight.w900,
+                               fontSize: 9,
+                               letterSpacing: 0.5
+                             ),
+                           )
+                        ]
                       ])),
                       IconButton(
                         icon: const Icon(Icons.history_rounded, color: Color(0xFF00B4D8)),

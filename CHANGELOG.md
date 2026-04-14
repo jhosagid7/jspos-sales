@@ -1,3 +1,7 @@
+## [1.9.97] - 2026-04-14
+### Added
+- **API Cr\u00e9ditos**: Inclusi\u00f3n de metadatos de trazabilidad en ventas pendientes (fecha de emisi\u00f3n, vencimiento y c\u00e1lculo de mora).
+
 ## [1.9.96] - 2026-04-14
 ### Fixed
 - **API Seguridad**: Unificación de criterios de visibilidad para roles de Admin y Super Admin en el módulo de clientes.
