@@ -1541,6 +1541,38 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
     finally { setState(() => _isLoading = false); }
   }
 
+  /// Returns the currency symbol for a given currency code
+  String _currencySymbol(String? code) {
+    switch (code?.toUpperCase()) {
+      case 'VED':
+      case 'VES':
+      case 'VEF':
+        return 'Bs.';
+      case 'COP':
+        return 'COP';
+      case 'EUR':
+        return '€';
+      case 'USD':
+        return '\$';
+      default:
+        return code ?? '\$';
+    }
+  }
+
+  /// Calculates and formats the USD equivalent of a payment
+  String _usdEquivalent(dynamic p) {
+    final double amount = double.tryParse(p['amount'].toString()) ?? 0;
+    final double rate = double.tryParse(p['exchange_rate']?.toString() ?? '1') ?? 1;
+    final String currency = p['currency']?.toString().toUpperCase() ?? 'USD';
+
+    if (currency == 'USD') {
+      return '\$${amount.toStringAsFixed(2)}';
+    }
+    // Convert to USD: original_amount / exchange_rate
+    final double usd = rate > 0 ? amount / rate : amount;
+    return '\$${usd.toStringAsFixed(2)}';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1552,7 +1584,12 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
           final p = _history[i];
           final bool isReturn = p['type'] == 'return';
           Color statusCol = p['status'] == 'approved' ? Colors.green : (p['status'] == 'rejected' ? Colors.red : Colors.orange);
-          
+
+          final String currency = p['currency']?.toString().toUpperCase() ?? 'USD';
+          final double amount = double.tryParse(p['amount'].toString()) ?? 0;
+          final double rate = double.tryParse(p['exchange_rate']?.toString() ?? '1') ?? 1;
+          final bool isNonUSD = currency != 'USD' && !isReturn;
+
           return Card(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
             margin: const EdgeInsets.only(bottom: 12),
@@ -1575,12 +1612,30 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                   )
                 ),
                 title: Text(
-                  "${p['method'].toString().toUpperCase()} - \$${p['amount']}", 
+                  // Show method + USD equivalent (always in USD for comparison)
+                  "${p['method'].toString().toUpperCase()} - ${_usdEquivalent(p)}", 
                   style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF1B263B), fontSize: 13)
                 ),
-                subtitle: Text(
-                  "Fecha: ${p['date']}\nRef: ${p['reference'] ?? 'N/A'}",
-                  style: const TextStyle(fontSize: 10, color: Colors.grey)
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Fecha: ${p['date']}\nRef: ${p['reference'] ?? 'N/A'}",
+                      style: const TextStyle(fontSize: 10, color: Colors.grey)
+                    ),
+                    // Show original currency amount if not USD
+                    if (isNonUSD) Padding(
+                      padding: const EdgeInsets.only(top: 3),
+                      child: Text(
+                        "${_currencySymbol(currency)} ${amount.toStringAsFixed(2)} $currency",
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: statusCol.withOpacity(0.8),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 trailing: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -1601,6 +1656,17 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                        children: [
                          const Divider(height: 1),
                          const SizedBox(height: 15),
+                         // Equivalente en USD (siempre visible si no es USD)
+                         if (isNonUSD) _detailRow(
+                           "Equivalente USD",
+                           _usdEquivalent(p),
+                           highlight: true,
+                         ),
+                         // Monto original en moneda local
+                         if (isNonUSD) _detailRow(
+                           "Monto Original",
+                           "${_currencySymbol(currency)} ${amount.toStringAsFixed(2)}",
+                         ),
                          if (p['bank'] != null) _detailRow("Banco / Plataforma", p['bank'].toString()),
                          if (p['issuer_name'] != null) _detailRow("Nombre del Emisor", p['issuer_name'].toString()),
                          if (p['exchange_rate'] != null) _detailRow("Tasa Aplicada", "x ${p['exchange_rate']}"),
@@ -1621,14 +1687,21 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
     );
   }
 
-  Widget _detailRow(String label, String val) {
+  Widget _detailRow(String label, String val, {bool highlight = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
-          Text(val, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1B263B))),
+          Text(
+            val, 
+            style: TextStyle(
+              fontSize: 11, 
+              fontWeight: FontWeight.bold, 
+              color: highlight ? const Color(0xFF00B4D8) : const Color(0xFF1B263B)
+            )
+          ),
         ],
       ),
     );
