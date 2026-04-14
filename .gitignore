@@ -46,3 +46,6 @@ reset_system.php
 
 # Temporary backup for nssm update
 nssm/*.bak
+
+# Mobile App Binaries
+*.apk

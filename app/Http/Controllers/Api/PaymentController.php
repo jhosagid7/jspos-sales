@@ -118,7 +118,8 @@ class PaymentController extends Controller
                 'status' => 'pending',
                 'bank' => $request->bank_id ? Bank::find($request->bank_id)->name : null,
                 'deposit_number' => $request->reference,
-                'payment_date' => $request->payment_date,
+                'payment_date' => $request->payment_date ?? now(),
+                'issuer_name' => $request->issuer_name,
                 'zelle_image' => ($request->method === 'zelle') ? $imagePath : null,
                 'bank_image' => ($request->method === 'bank') ? $imagePath : null,
             ]);
@@ -147,5 +148,51 @@ class PaymentController extends Controller
             'banks' => Bank::orderBy('sort')->get(),
             'currencies' => Currency::all()
         ]);
+    }
+
+    public function history(Request $request)
+    {
+        $saleId = $request->input('sale_id');
+        if (!$saleId) return response()->json(['message' => 'ID de venta requerido'], 422);
+
+        $sale = Sale::find($saleId);
+        if (!$sale) return response()->json(['message' => 'Venta no encontrada'], 404);
+
+        $payments = Payment::where('sale_id', $saleId)
+            ->get()
+            ->map(function ($p) {
+                return [
+                    'id' => $p->id,
+                    'type' => 'payment',
+                    'method' => $p->pay_way,
+                    'amount' => $p->amount,
+                    'currency' => $p->currency,
+                    'reference' => $p->deposit_number,
+                    'status' => $p->status,
+                    'date' => $p->payment_date,
+                    'exchange_rate' => $p->exchange_rate,
+                    'issuer_name' => $p->issuer_name,
+                    'bank' => $p->bank,
+                    'created_at' => $p->created_at
+                ];
+            });
+
+        $returns = $sale->returns->map(function ($r) {
+            return [
+                'id' => $r->id,
+                'type' => 'return',
+                'method' => 'Nota de Crédito',
+                'amount' => $r->total_returned,
+                'currency' => 'USD', // Returns are usually stored in primary currency
+                'reference' => 'N/C-' . $r->id,
+                'status' => $r->status,
+                'date' => $r->created_at->format('Y-m-d'),
+                'created_at' => $r->created_at
+            ];
+        });
+
+        $combined = $payments->concat($returns)->sortByDesc('created_at')->values();
+
+        return response()->json($combined);
     }
 }

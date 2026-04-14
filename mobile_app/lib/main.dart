@@ -73,8 +73,25 @@ class Product {
 class Customer {
   final int id;
   final String name;
-  Customer({required this.id, required this.name});
-  factory Customer.fromJson(Map<String, dynamic> json) => Customer(id: int.parse(json['id'].toString()), name: json['name']);
+  final double totalDebt;
+  final int pendingCount;
+  final bool hasOverdue;
+
+  Customer({
+    required this.id, 
+    required this.name, 
+    this.totalDebt = 0.0, 
+    this.pendingCount = 0, 
+    this.hasOverdue = false
+  });
+
+  factory Customer.fromJson(Map<String, dynamic> json) => Customer(
+    id: int.parse(json['id'].toString()), 
+    name: json['name'],
+    totalDebt: json['total_debt'] != null ? double.parse(json['total_debt'].toString()) : 0.0,
+    pendingCount: json['pending_count'] ?? 0,
+    hasOverdue: json['has_overdue'] == true || json['has_overdue'] == 1,
+  );
 }
 
 class CartItem {
@@ -1220,9 +1237,11 @@ class PaymentCustomersScreen extends StatefulWidget {
 }
 
 class _PaymentCustomersScreenState extends State<PaymentCustomersScreen> {
-  final List<Customer> _customers = [];
+  final List<Customer> _allCustomers = [];
+  List<Customer> _filteredCustomers = [];
   bool _isLoading = false;
   String _baseUrl = "";
+  String _currentFilter = 'all'; // 'all', 'debt', 'overdue'
   final _searchController = TextEditingController();
 
   @override
@@ -1239,37 +1258,145 @@ class _PaymentCustomersScreenState extends State<PaymentCustomersScreen> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final response = await http.get(Uri.parse('$_baseUrl/api/customers?search=$search'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'}).timeout(const Duration(seconds: 15));
-      if (response.statusCode == 200) setState(() { _customers.clear(); _customers.addAll((json.decode(response.body) as List).map((e) => Customer.fromJson(e)).toList()); });
+      if (response.statusCode == 200) setState(() { 
+        _allCustomers.clear(); 
+        _allCustomers.addAll((json.decode(response.body) as List).map((e) => Customer.fromJson(e)).toList()); 
+        _applyFilters();
+      });
     } catch (e) { debugPrint("Err: $e"); }
     finally { setState(() => _isLoading = false); }
+  }
+
+  void _applyFilters() {
+    setState(() {
+      if (_currentFilter == 'all') {
+        _filteredCustomers = List.from(_allCustomers);
+      } else if (_currentFilter == 'debt') {
+        _filteredCustomers = _allCustomers.where((c) => c.totalDebt > 0).toList();
+      } else if (_currentFilter == 'overdue') {
+        _filteredCustomers = _allCustomers.where((c) => c.hasOverdue).toList();
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Seleccionar Cliente', style: TextStyle(fontWeight: FontWeight.bold))),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        title: const Text('Registrar Abono', style: TextStyle(fontWeight: FontWeight.w900)),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Color(0xFF00B4D8)),
+      ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(15),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(hintText: 'Buscar cliente...', prefixIcon: const Icon(Icons.search), border: OutlineInputBorder(borderRadius: BorderRadius.circular(15))),
-              onChanged: (v) => _fetchCustomers(v),
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+            decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(bottom: Radius.circular(30))),
+            child: Column(
+              children: [
+                TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Buscar cliente...', 
+                    prefixIcon: const Icon(Icons.search, color: Color(0xFF00B4D8)), 
+                    filled: true,
+                    fillColor: const Color(0xFFF1F3F5),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none)
+                  ),
+                  onChanged: (v) => _fetchCustomers(v),
+                ),
+                const SizedBox(height: 15),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _filterChip('TODOS', 'all', Icons.people_rounded, Colors.blue),
+                      _filterChip('CON DEUDA', 'debt', Icons.money_off_rounded, Colors.orange),
+                      _filterChip('VENCIDOS', 'overdue', Icons.warning_amber_rounded, Colors.red),
+                    ],
+                  ),
+                )
+              ],
             ),
+          ),
+          const Padding(
+            padding: EdgeInsets.only(top: 20, left: 25, right: 25, bottom: 10),
+            child: Row(children: [Text("Resultados", style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF1B263B), fontSize: 16))]),
           ),
           Expanded(
             child: _isLoading ? const Center(child: CircularProgressIndicator()) : ListView.builder(
-              itemCount: _customers.length,
-              itemBuilder: (c, i) => ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.person)),
-                title: Text(_customers[i].name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (ctx) => PendingSalesScreen(customer: _customers[i]))),
-              ),
+              itemCount: _filteredCustomers.length,
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              itemBuilder: (c, i) {
+                final cust = _filteredCustomers[i];
+                Color statusColor = cust.hasOverdue ? Colors.red : (cust.totalDebt > 0 ? Colors.orange : const Color(0xFF00B4D8));
+                
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 15),
+                  decoration: BoxDecoration(
+                    color: Colors.white, 
+                    borderRadius: BorderRadius.circular(25), 
+                    border: cust.hasOverdue ? Border.all(color: Colors.red.withOpacity(0.3), width: 1.5) : null,
+                    boxShadow: [BoxShadow(color: statusColor.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    leading: Container(
+                      padding: const EdgeInsets.all(12), 
+                      decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(18)), 
+                      child: Icon(cust.hasOverdue ? Icons.priority_high_rounded : Icons.person, color: statusColor)
+                    ),
+                    title: Text(cust.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF1B263B))),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 4),
+                        if (cust.totalDebt > 0) ... [
+                          Row(
+                            children: [
+                              Text('\$${cust.totalDebt.toStringAsFixed(2)}', style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 13)),
+                              const SizedBox(width: 8),
+                              Text('(${cust.pendingCount} fact.)', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                            ],
+                          )
+                        ] else ... [
+                          const Text("Sin facturas pendientes", style: TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.bold)),
+                        ]
+                      ],
+                    ),
+                    trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (ctx) => PendingSalesScreen(customer: cust))),
+                  ),
+                );
+              },
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _filterChip(String label, String code, IconData icon, Color color) {
+    bool active = _currentFilter == code;
+    return GestureDetector(
+      onTap: () { setState(() => _currentFilter = code); _applyFilters(); },
+      child: Container(
+        margin: const EdgeInsets.only(right: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: active ? color : color.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: active ? color : color.withOpacity(0.2))
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: active ? Colors.white : color),
+            const SizedBox(width: 8),
+            Text(label, style: TextStyle(color: active ? Colors.white : color, fontWeight: FontWeight.w900, fontSize: 11)),
+          ],
+        ),
       ),
     );
   }
@@ -1305,28 +1432,193 @@ class _PendingSalesScreenState extends State<PendingSalesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Deuda: ${widget.customer.name}')),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        title: Text(widget.customer.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Color(0xFF00B4D8)),
+      ),
       body: _isLoading ? const Center(child: CircularProgressIndicator()) : _sales.isEmpty ? const Center(child: Text("Sin facturas pendientes")) : ListView.builder(
         itemCount: _sales.length,
+        padding: const EdgeInsets.all(15),
         itemBuilder: (c, i) {
           final s = _sales[i];
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-            child: ListTile(
-              title: Text("Factura: ${s['invoice_number']}", style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text("Fecha: ${s['date']}"),
-              trailing: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text("Deuda: \$${s['debt_usd']}", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16)),
-                  Text("Total: \$${s['total_usd']}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                ],
-              ),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (ctx) => UploadPaymentForm(saleId: s['id'], invoice: s['invoice_number'], debt: s['debt_usd'].toDouble()))),
+          double total = (s['total_usd'] as num).toDouble();
+          double debt = (s['debt_usd'] as num).toDouble();
+          double paid = total - debt;
+          
+          return Container(
+            margin: const EdgeInsets.only(bottom: 15),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(30), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 8))]),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFF1B263B).withOpacity(0.05), borderRadius: BorderRadius.circular(15)), child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF1B263B))),
+                      const SizedBox(width: 15),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text("Venta: ${s['invoice_number']}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                        Text("Fecha: ${s['date']}", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                      ])),
+                      IconButton(
+                        icon: const Icon(Icons.history_rounded, color: Color(0xFF00B4D8)),
+                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (ctx) => PaymentHistoryScreen(saleId: s['id'], invoice: s['invoice_number']))),
+                      )
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                  decoration: BoxDecoration(color: const Color(0xFFF1F3F5).withOpacity(0.5), borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30))),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _smallStat('TOTAL', '\$${total.toStringAsFixed(2)}', Colors.grey),
+                      _smallStat('ABONADO', '\$${paid.toStringAsFixed(2)}', Colors.green),
+                      _smallStat('DEBE', '\$${debt.toStringAsFixed(2)}', Colors.red, isBold: true),
+                      ElevatedButton(
+                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (ctx) => UploadPaymentForm(saleId: s['id'], invoice: s['invoice_number'], debt: debt))),
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00B4D8), foregroundColor: Colors.white, shape: const CircleBorder(), padding: EdgeInsets.zero, minimumSize: const Size(40, 40)),
+                        child: const Icon(Icons.add, size: 20),
+                      )
+                    ],
+                  ),
+                )
+              ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _smallStat(String label, String val, Color color, {bool isBold = false}) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+       Text(label, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 0.5)),
+       Text(val, style: TextStyle(fontSize: 12, fontWeight: isBold ? FontWeight.w900 : FontWeight.w700, color: color)),
+    ]);
+  }
+}
+
+class PaymentHistoryScreen extends StatefulWidget {
+  final int saleId;
+  final String invoice;
+  const PaymentHistoryScreen({super.key, required this.saleId, required this.invoice});
+  @override
+  State<PaymentHistoryScreen> createState() => _PaymentHistoryScreenState();
+}
+
+class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
+  List<dynamic> _history = [];
+  bool _isLoading = false;
+
+  @override
+  void initState() { super.initState(); _fetchHistory(); }
+
+  _fetchHistory() async {
+    setState(() => _isLoading = true);
+    final prefs = await SharedPreferences.getInstance();
+    final baseUrl = prefs.getString('base_url') ?? "";
+    final token = prefs.getString('token');
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/api/payments/history?sale_id=${widget.saleId}'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'});
+      if (res.statusCode == 200) setState(() => _history = json.decode(res.body));
+    } catch (e) { debugPrint("Err Hist: $e"); }
+    finally { setState(() => _isLoading = false); }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Historial: ${widget.invoice}'), backgroundColor: Colors.white, elevation: 0),
+      body: _isLoading ? const Center(child: CircularProgressIndicator()) : _history.isEmpty ? const Center(child: Text("Sin abonos registrados")) : ListView.builder(
+        itemCount: _history.length,
+        padding: const EdgeInsets.all(15),
+        itemBuilder: (c, i) {
+          final p = _history[i];
+          final bool isReturn = p['type'] == 'return';
+          Color statusCol = p['status'] == 'approved' ? Colors.green : (p['status'] == 'rejected' ? Colors.red : Colors.orange);
+          
+          return Card(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+            margin: const EdgeInsets.only(bottom: 12),
+            elevation: 0,
+            color: isReturn ? Colors.cyan.shade50 : Colors.white,
+            child: Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                leading: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: (isReturn ? Colors.blue : statusCol).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(15)
+                  ),
+                  child: Icon(
+                    isReturn ? Icons.assignment_return_rounded : Icons.payments_rounded, 
+                    color: isReturn ? Colors.blue : statusCol,
+                    size: 20
+                  )
+                ),
+                title: Text(
+                  "${p['method'].toString().toUpperCase()} - \$${p['amount']}", 
+                  style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF1B263B), fontSize: 13)
+                ),
+                subtitle: Text(
+                  "Fecha: ${p['date']}\nRef: ${p['reference'] ?? 'N/A'}",
+                  style: const TextStyle(fontSize: 10, color: Colors.grey)
+                ),
+                trailing: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                     const Icon(Icons.expand_more_rounded, size: 18, color: Colors.grey),
+                     const SizedBox(height: 4),
+                     Text(
+                       p['status'].toString().toUpperCase(), 
+                       style: TextStyle(color: statusCol, fontSize: 10, fontWeight: FontWeight.w900)
+                     ),
+                  ],
+                ),
+                children: [
+                  Container(
+                    padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
+                    child: Column(
+                       children: [
+                         const Divider(height: 1),
+                         const SizedBox(height: 15),
+                         if (p['bank'] != null) _detailRow("Banco / Plataforma", p['bank'].toString()),
+                         if (p['issuer_name'] != null) _detailRow("Nombre del Emisor", p['issuer_name'].toString()),
+                         if (p['exchange_rate'] != null) _detailRow("Tasa Aplicada", "x ${p['exchange_rate']}"),
+                         if (p['reference'] != null) _detailRow("Nro Referencia", p['reference'].toString()),
+                         if (isReturn) const Padding(
+                           padding: EdgeInsets.only(top: 8.0),
+                           child: Text("Nota: Este monto fue deducido de la deuda total.", style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: Colors.blue)),
+                         ),
+                       ],
+                    ),
+                  )
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String val) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
+          Text(val, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1B263B))),
+        ],
       ),
     );
   }
@@ -1344,9 +1636,15 @@ class UploadPaymentForm extends StatefulWidget {
 class _UploadPaymentFormState extends State<UploadPaymentForm> {
   final _amountController = TextEditingController();
   final _refController = TextEditingController();
-  String _selectedMethod = 'bank';
+  final _issuerController = TextEditingController();
+  final _rateController = TextEditingController();
+  
+  String _payType = 'bank'; 
+  String _selectedMethod = 'bank'; 
   dynamic _selectedBank;
   dynamic _selectedCurrency;
+  DateTime _paymentDate = DateTime.now();
+  
   List<dynamic> _banks = [];
   List<dynamic> _currencies = [];
   File? _image;
@@ -1371,7 +1669,10 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
         setState(() {
            _banks = data['banks'];
            _currencies = data['currencies'];
-           if (_currencies.isNotEmpty) _selectedCurrency = _currencies.firstWhere((c) => c['code'] == 'USD', orElse: () => _currencies.first);
+           if (_currencies.isNotEmpty) {
+             _selectedCurrency = _currencies.firstWhere((c) => c['code'] == 'USD', orElse: () => _currencies.first);
+             _rateController.text = _selectedCurrency['exchange_rate']?.toString() ?? '1.0';
+           }
            if (_banks.isNotEmpty) _selectedBank = _banks.first;
         });
       }
@@ -1384,35 +1685,42 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
     if (pickedFile != null) setState(() => _image = File(pickedFile.path));
   }
 
+  Future<void> _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context, initialDate: _paymentDate, firstDate: DateTime(2024), lastDate: DateTime.now(),
+      builder: (context, child) => Theme(data: Theme.of(context).copyWith(colorScheme: const ColorScheme.light(primary: Color(0xFF1B263B))), child: child!),
+    );
+    if (picked != null) setState(() => _paymentDate = picked);
+  }
+
   Future<void> _submit() async {
     if (_amountController.text.isEmpty) return;
     setState(() => _isLoading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
-      
       var request = http.MultipartRequest('POST', Uri.parse('$_baseUrl/api/payments/upload'));
       request.headers['Authorization'] = 'Bearer $token';
       request.headers['Accept'] = 'application/json';
       
       request.fields['sale_id'] = widget.saleId.toString();
-      request.fields['method'] = _selectedMethod;
+      request.fields['method'] = _payType == 'cash' ? 'cash' : _selectedMethod;
       request.fields['amount'] = _amountController.text;
       request.fields['currency'] = _selectedCurrency['code'];
-      request.fields['payment_date'] = DateFormat('Y-m-d').format(DateTime.now());
+      request.fields['exchange_rate'] = _rateController.text;
+      request.fields['payment_date'] = DateFormat('yyyy-MM-dd').format(_paymentDate);
       request.fields['reference'] = _refController.text;
-      if (_selectedMethod == 'bank' && _selectedBank != null) {
+      request.fields['issuer_name'] = _issuerController.text;
+
+      if (_payType == 'bank' && _selectedMethod == 'bank' && _selectedBank != null) {
         request.fields['bank_id'] = _selectedBank['id'].toString();
       }
-
-      if (_image != null) {
-        request.files.add(await http.MultipartFile.fromPath('image', _image!.path));
-      }
+      if (_image != null) request.files.add(await http.MultipartFile.fromPath('image', _image!.path));
 
       var response = await request.send();
       if (response.statusCode == 200) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("PAGO SUBIDO EXITOSAMENTE"), backgroundColor: Colors.green));
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("PAGO SUBIDO CORRECTAMENTE"), backgroundColor: Colors.green));
           Navigator.popUntil(context, (route) => route.isFirst);
         }
       } else {
@@ -1424,69 +1732,116 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
 
   @override
   Widget build(BuildContext context) {
+    bool isVED = _selectedCurrency != null && _selectedCurrency['code'] == 'VED';
+    bool isZelle = _payType == 'bank' && _selectedMethod == 'zelle';
+
     return Scaffold(
-      appBar: AppBar(title: Text('Pagar: ${widget.invoice}')),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(title: Text('Abono: ${widget.invoice}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)), backgroundColor: Colors.white, elevation: 0),
       body: _isLoading ? const Center(child: CircularProgressIndicator()) : SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            DropdownButtonFormField(
-              value: _selectedMethod,
-              decoration: const InputDecoration(labelText: 'Método de Pago', border: OutlineInputBorder()),
-              items: const [
-                DropdownMenuItem(value: 'bank', child: Text('Transferencia / Pago Móvil')),
-                DropdownMenuItem(value: 'zelle', child: Text('Zelle')),
-                DropdownMenuItem(value: 'cash', child: Text('Efectivo')),
-              ],
-              onChanged: (v) => setState(() => _selectedMethod = v.toString()),
+            Container(
+              padding: const EdgeInsets.all(25), width: double.infinity,
+              decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF1B263B), Color(0xFF415A77)], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(30)),
+              child: Column(children: [
+                const Text('Monto Pendiente', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+                Text('\$${widget.debt.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900)),
+              ]),
             ),
-            const SizedBox(height: 20),
-            if (_selectedMethod == 'bank') ... [
+            const SizedBox(height: 30),
+            _sectionTitle("Método de Pago"),
+            const SizedBox(height: 15),
+            Row(children: [
+               Expanded(child: _methodButton('Efectivo', Icons.payments_rounded, Colors.green, _payType == 'cash', () => setState(() => _payType = 'cash'))),
+               const SizedBox(width: 15),
+               Expanded(child: _methodButton('Banco / Zelle', Icons.account_balance_rounded, const Color(0xFF00B4D8), _payType == 'bank', () => setState(() => _payType = 'bank'))),
+            ]),
+            const SizedBox(height: 25),
+            _sectionTitle("Datos del Pago"),
+            const SizedBox(height: 15),
+            Row(children: [
+              Expanded(flex: 2, child: _textField(_amountController, "Monto", Icons.attach_money_rounded, numeric: true)),
+              const SizedBox(width: 10),
+              Expanded(child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade300)),
+                  child: DropdownButtonHideUnderline(child: DropdownButton(
+                      value: _selectedCurrency, isExpanded: true, items: _currencies.map((c) => DropdownMenuItem(value: c, child: Text(c['code'].toString(), style: const TextStyle(fontWeight: FontWeight.bold)))).toList(),
+                      onChanged: (dynamic v) => setState(() {
+                        _selectedCurrency = v;
+                        _rateController.text = v['exchange_rate']?.toString() ?? '1.0';
+                      }),
+                  )))),
+            ]),
+            const SizedBox(height: 15),
+            InkWell(
+              onTap: _selectDate,
+              child: Container(
+                padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade300)),
+                child: Row(children: [
+                  const Icon(Icons.calendar_month_rounded, color: Colors.grey), const SizedBox(width: 15),
+                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      const Text("Fecha de Pago / Vaucher", style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                      Text(DateFormat('dd/MM/yyyy').format(_paymentDate), style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ]),
+                  const Spacer(), const Icon(Icons.edit_calendar_rounded, color: Color(0xFF00B4D8), size: 20),
+                ]),
+              ),
+            ),
+            const SizedBox(height: 15),
+            if (isVED) ... [_textField(_rateController, "Tasa de Cambio", Icons.trending_up_rounded, numeric: true), const SizedBox(height: 15)],
+            if (_payType == 'bank') ... [
               DropdownButtonFormField(
-                value: _selectedBank,
-                decoration: const InputDecoration(labelText: 'Banco Destino', border: OutlineInputBorder()),
-                items: _banks.map((b) => DropdownMenuItem(value: b, child: Text(b['name']))).toList(),
-                onChanged: (v) => setState(() => _selectedBank = v),
+                value: _selectedMethod,
+                decoration: InputDecoration(labelText: 'Plataforma', filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none), prefixIcon: const Icon(Icons.layers_rounded)),
+                items: const [DropdownMenuItem(value: 'bank', child: Text('Transferencia / Pago Móvil')), DropdownMenuItem(value: 'zelle', child: Text('Zelle'))],
+                onChanged: (v) => setState(() => _selectedMethod = v.toString()),
               ),
-              const SizedBox(height: 20),
-            ],
-            Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: TextField(controller: _amountController, decoration: const InputDecoration(labelText: 'Monto', border: OutlineInputBorder()), keyboardType: TextInputType.number),
+              const SizedBox(height: 15),
+              if (_selectedMethod == 'bank' && _banks.isNotEmpty) ... [
+                DropdownButtonFormField(
+                  value: _selectedBank,
+                  decoration: InputDecoration(labelText: 'Banco Destino', filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none), prefixIcon: const Icon(Icons.account_balance_rounded)),
+                  items: _banks.map((b) => DropdownMenuItem(value: b, child: Text(b['name'].toString(), overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)))).toList(),
+                  onChanged: (v) => setState(() => _selectedBank = v),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: DropdownButtonFormField(
-                    value: _selectedCurrency,
-                    decoration: const InputDecoration(labelText: 'Moneda', border: OutlineInputBorder()),
-                    items: _currencies.map((c) => DropdownMenuItem(value: c, child: Text(c['code']))).toList(),
-                    onChanged: (v) => setState(() => _selectedCurrency = v),
-                  ),
-                ),
+                const SizedBox(height: 15),
               ],
-            ),
-            const SizedBox(height: 20),
-            if (_selectedMethod != 'cash') ... [
-              TextField(controller: _refController, decoration: const InputDecoration(labelText: 'Referencia / Confirmación', border: OutlineInputBorder())),
-              const SizedBox(height: 20),
-              InkWell(
-                onTap: _pickImage,
-                child: Container(
-                  height: 150, width: double.infinity,
-                  decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade400)),
-                  child: _image == null ? const Icon(Icons.camera_alt, size: 50, color: Colors.grey) : ClipRRect(borderRadius: BorderRadius.circular(15), child: Image.file(_image!, fit: BoxFit.cover)),
-                ),
-              ),
-              const SizedBox(height: 20),
+              _textField(_refController, "Nro de Referencia", Icons.tag_rounded, numeric: true),
+              const SizedBox(height: 15),
+              if (isZelle) ... [_textField(_issuerController, "Nombre del Emisor (Titular)", Icons.person_rounded), const SizedBox(height: 15)],
             ],
-            SizedBox(
-              width: double.infinity, height: 55,
-              child: ElevatedButton(onPressed: _submit, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A237E), foregroundColor: Colors.white), child: const Text("SUBIR PAGO")),
+            const SizedBox(height: 10),
+            _sectionTitle("Comprobante (Foto)"),
+            const SizedBox(height: 15),
+            InkWell(
+              onTap: _pickImage,
+              child: Container(
+                width: double.infinity, height: 150, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.shade300)),
+                child: _image == null ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.camera_alt_rounded, size: 40, color: Colors.grey), Text(isZelle ? "Foto Obligatoria" : "Tomar Foto del Vaucher", style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 12))]) : ClipRRect(borderRadius: BorderRadius.circular(20), child: Image.file(_image!, fit: BoxFit.cover)),
+              ),
             ),
+            const SizedBox(height: 40),
+            SizedBox(width: double.infinity, height: 60, child: ElevatedButton(onPressed: _submit, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B263B), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))), child: const Text("NOTIFICAR PAGO", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)))),
+            const SizedBox(height: 30),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String title) => Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF1B263B)));
+  Widget _textField(TextEditingController controller, String label, IconData icon, {bool numeric = false}) => TextField(controller: controller, keyboardType: numeric ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text, decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon, size: 20), filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none)));
+
+  Widget _methodButton(String label, IconData icon, Color color, bool isSelected, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        decoration: BoxDecoration(color: isSelected ? color : Colors.white, borderRadius: BorderRadius.circular(20), border: isSelected ? null : Border.all(color: Colors.grey.shade300)),
+        child: Column(children: [Icon(icon, color: isSelected ? Colors.white : color, size: 30), const SizedBox(height: 8), Text(label, style: TextStyle(color: isSelected ? Colors.white : const Color(0xFF1B263B), fontWeight: FontWeight.w900, fontSize: 12))]),
       ),
     );
   }

@@ -42,6 +42,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/payments/form-data', [App\Http\Controllers\Api\PaymentController::class, 'formData']);
     Route::get('/sales/pending', [App\Http\Controllers\Api\PaymentController::class, 'pendingSales']);
     Route::post('/payments/upload', [App\Http\Controllers\Api\PaymentController::class, 'upload']);
+    Route::get('/payments/history', [App\Http\Controllers\Api\PaymentController::class, 'history']);
 });
 
 

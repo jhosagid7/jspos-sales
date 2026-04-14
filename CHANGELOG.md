@@ -1,4 +1,9 @@
-# Changelog
+## [1.9.95] - 2026-04-14
+### Added
+- **API Auditoría**: Nuevos campos `issuer_name`, `zelle_image` y `bank_image` en la tabla de pagos para soporte de auditoría extendida.
+- **Backend/DB**: Ejecución de migración `add_extended_fields_to_payments_table` para garantizar integridad en registros de divisas.
+- **API Optimization**: Endpoint de historial de pagos enriquecido con tasas de cambio y metadatos del emisor.
+
 All notable changes to this project will be documented in this file.
 
 ## [1.9.94] - 2026-04-13

@@ -16,7 +16,10 @@ class Payment extends Model
         'discount_applied', 'discount_percentage', 'discount_reason', 'discount_tag', 'payment_days', 'rule_type',
         'status',
         'rejection_reason',
-        'modification_comment'
+        'modification_comment',
+        'issuer_name',
+        'zelle_image',
+        'bank_image'
     ];
 
     function sale()

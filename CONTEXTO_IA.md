@@ -99,3 +99,24 @@ La IA debe leer este archivo para entender cómo trabajar en este proyecto espec
   3. Ejecutar la descarga, reemplazo de archivos y migraciones (`php artisan migrate`).
   4. Proveer un botón de "Rollback" en el panel de SuperAdmin que restaure el ZIP y el SQL anterior de forma atómica.
 
+
+## 9. Aplicación Móvil (Flutter)
+### 9.1. Entorno de Compilación (CRÍTICO)
+- **Ruta SDK Flutter**: `C:\src\flutter` (Ejecutable: `C:\src\flutter\bin\flutter.bat`).
+- **Directorio del Proyecto**: `mobile_app/`.
+- **Protocolo de Compilación y Release**:
+    1.  **Versión**: Incrementar el `version` en `mobile_app/pubspec.yaml` (tanto el nombre `x.x.x` como el build number `+N`).
+    2.  **Limpieza/Dependencias**: Ejecutar `flutter pub get`.
+    3.  **Build**: Ejecutar `flutter build apk --release --split-per-abi`.
+    4.  **Distribución**: Copiar el archivo de procesadores modernos (`build/app/outputs/flutter-apk/app-arm64-v8a-release.apk`) a la **RAÍZ** del proyecto.
+    5.  **Nomenclatura**: Renombrar el APK siguiendo el patrón: `JSPOS_Mobile_vX.X.X_BreveDescripcion_SuWeb.apk`.
+
+### 9.2. Estándares de Diseño y Estética "Su Web" (OBLIGATORIO)
+Cualquier modificación en la interfaz móvil DEBE seguir estos lineamientos para mantener la categoría Premium:
+- **Tipografía**: Usar `GoogleFonts.outfit()`.
+- **Colores**: Evitar colores planos básicos. Usar gradientes armónicos (ej. `Color(0xFF1A237E)` a `Color(0xFF0D47A1)`).
+- **Componentes**: 
+    - Bordes redondeados pronunciados (mínimo `borderRadius: BorderRadius.circular(20)`).
+    - Sombras suaves (`BoxShadow` con opacidad baja).
+    - Iconografía moderna y consistente.
+- **Interactividad**: Implementar micro-animaciones o feedbacks visuales (SnackBars informativos, loaders personalizados).
