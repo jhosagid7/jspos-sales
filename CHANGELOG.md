@@ -1,3 +1,7 @@
+## [1.9.101] - 2026-04-14
+### Maintenance
+- **Limpieza de Repositorio**: Eliminados los binarios APK del historial de Git. El ZIP de actualización ahora es significativamente más liviano, evitando timeouts en servidores con conexión lenta.
+
 ## [1.9.100] - 2026-04-14
 ### Added
 - **Auditoría de Historial de Órdenes (`orders.view_history`)**: Nuevo permiso para controlar el acceso al registro de auditoría completo de pedidos/órdenes. Se asigna automáticamente a los roles Admin y Super Admin.
