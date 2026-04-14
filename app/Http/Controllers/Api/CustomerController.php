@@ -44,7 +44,7 @@ class CustomerController extends Controller
         $customers = $query->with(['sales' => function($q) {
                 $q->where('type', 'credit')
                   ->where('status', 'pending')
-                  ->with(['payments', 'returns']);
+                  ->with(['payments', 'returns', 'paymentDetails']);
             }])
             ->orderBy('name', 'asc')
             ->limit(200)

@@ -1,6 +1,12 @@
 # Changelog - JSPOS Mobile
 All notable changes to the mobile application will be documented in this file.
 
+## [1.1.16] - 2026-04-14
+### Fixed
+- **Deuda en Listado**: Corregido bug donde clientes con deuda real aparecían como "Sin facturas pendientes" en azul. La causa era que los pagos iniciales del POS (`paymentDetails`) no se cargaban en el cálculo del API de clientes.
+- **Historial de Pagos - Moneda**: El título del pago ya no muestra siempre `$` (dólar). Ahora muestra el equivalente en USD calculado correctamente ( `monto / tasa`).
+- **Historial de Pagos - Monto Original**: Al expandir un pago en moneda local (Bs., COP, etc.), se muestran dos líneas: el equivalente en USD (en celeste) y el monto original con su símbolo correcto (Bs. 15,000 VED).
+
 ## [1.1.15] - 2026-04-14
 ### Fixed
 - **Sincronización de Deuda**: Unificada la lógica de cálculo entre el listado general y el detalle de factura para evitar discrepancias en clientes con transacciones multimoneda.

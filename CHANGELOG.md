@@ -1,3 +1,12 @@
+## [1.9.100] - 2026-04-14
+### Added
+- **Auditoría de Historial de Órdenes (`orders.view_history`)**: Nuevo permiso para controlar el acceso al registro de auditoría completo de pedidos/órdenes. Se asigna automáticamente a los roles Admin y Super Admin.
+- **Auditoría de Historial de Ventas (`sales.view_history`)**: Completada la integración del permiso en la tabla de asignación con etiquetas descriptivas en español.
+- **Migraciones de Permisos**: Ejecutadas automáticamente durante el proceso de actualización del sistema para garantizar que todos los clientes reciban los nuevos permisos sin intervención manual.
+
+### Fixed
+- **Traducciones de Permisos**: Añadidas las etiquetas en español (`lang/es/permissions.php`) para `sales.view_history` y `orders.view_history`, que faltaban en la vista de Asignación de Permisos.
+
 ## [1.9.99] - 2026-04-14
 ### Fixed
 - **API Clientes**: Unificada la l\u00f3gica de c\u00e1lculo de deuda (USD) con la vista detallada para evitar discrepancias y facturas "ocultas" en el listado general.

@@ -18,6 +18,7 @@ return [
     'sales_generate_price_list' => ['name' => 'Generar Lista Precios', 'description' => 'Permite descargar o visualizar las listas de precios configuradas.'],
     'sales_show_exchange_rate' => ['name' => 'Ver Tasa USD/BCV', 'description' => 'Permite ver la referencia de tasa de cambio USD/BCV en ventas y productos.'],
     'sales_reset_credit_snapshot' => ['name' => 'Actualizar Reglas de Crédito', 'description' => 'Permite actualizar las políticas de crédito (descuentos, plazos) de una venta según la configuración actual del cliente.'],
+    'sales.view_history' => ['name' => 'Ver Historial de Ediciones', 'description' => 'Permite ver el registro de auditoría ("caja negra") con todos los cambios realizados a una factura.'],
 
     // Ordenes
     'orders_view_all' => ['name' => 'Ver Todas las Órdenes', 'description' => 'Permite ver órdenes guardadas por cualquier usuario.'],
@@ -27,6 +28,7 @@ return [
     'orders_edit' => ['name' => 'Editar Orden', 'description' => 'Permite modificar una orden guardada.'],
     'orders_details' => ['name' => 'Ver Detalles Orden', 'description' => 'Permite ver los productos que contiene una orden guardada.'],
     'orders_pdf' => ['name' => 'PDF Orden', 'description' => 'Permite generar un PDF de la orden guardada.'],
+    'orders.view_history' => ['name' => 'Ver Historial de Órdenes', 'description' => 'Permite ver el registro de auditoría completo de cambios realizados a una orden/pedido.'],
 
     // Pagos
     'payments_view_all' => ['name' => 'Ver Todos los Pagos', 'description' => 'Permite ver el historial de pagos de todos los clientes/vendedores.'],
