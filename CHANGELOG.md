@@ -1,3 +1,7 @@
+## [1.9.102] - 2026-04-14
+### Fixed
+- **Sistema de Actualización**: Aumentado el timeout de descarga de 5 a 10 minutos y agregado reintento automático (2 intentos) para conexiones lentas o inestables con GitHub CDN.
+
 ## [1.9.101] - 2026-04-14
 ### Maintenance
 - **Limpieza de Repositorio**: Eliminados los binarios APK del historial de Git. El ZIP de actualización ahora es significativamente más liviano, evitando timeouts en servidores con conexión lenta.

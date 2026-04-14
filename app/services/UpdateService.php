@@ -83,19 +83,44 @@ class UpdateService
     public function downloadUpdate($downloadUrl)
     {
         $tempPath = storage_path('app/temp_update.zip');
-        
-        try {
-            $response = Http::withHeaders([
-                'User-Agent' => 'JSPOS-Updater'
-            ])->timeout(300)->sink($tempPath)->get($downloadUrl);
+        $maxAttempts = 2;
+        $lastException = null;
 
-            if (!$response->successful()) {
-                throw new \Exception("Download failed.");
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            try {
+                Log::info("Update download attempt {$attempt} of {$maxAttempts}: {$downloadUrl}");
+                
+                $response = Http::withHeaders([
+                    'User-Agent' => 'JSPOS-Updater'
+                ])
+                ->timeout(600)          // 10 minutes
+                ->connectTimeout(30)    // 30 seconds to connect
+                ->sink($tempPath)
+                ->get($downloadUrl);
+
+                if (!$response->successful()) {
+                    throw new \Exception("Download failed with status: " . $response->status());
+                }
+
+                Log::info("Update downloaded successfully on attempt {$attempt}.");
+                return true;
+
+            } catch (\Exception $e) {
+                $lastException = $e;
+                Log::warning("Download attempt {$attempt} failed: " . $e->getMessage());
+                
+                // Clean partial download before retry
+                if (File::exists($tempPath)) {
+                    File::delete($tempPath);
+                }
+
+                if ($attempt < $maxAttempts) {
+                    sleep(5); // Wait 5 seconds before retry
+                }
             }
-            return true;
-        } catch (\Exception $e) {
-            throw new \Exception("Download failed: " . $e->getMessage());
         }
+
+        throw new \Exception("Download failed after {$maxAttempts} attempts: " . $lastException->getMessage());
     }
 
     public function installUpdate($newVersion = null)
