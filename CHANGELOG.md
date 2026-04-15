@@ -1,3 +1,8 @@
+## [1.10.2] - 2026-04-15
+### Fixed
+- **Web: Detalle de Venta**: Sincronizada la vista de detalles para mostrar correctamente bancos, fechas, titulares y comprobantes de pagos subidos desde la App móvil.
+- **Web: Mapeo de Pagos**: Corregido mapeo de campos directos (`bank_image`, `issuer_name`) para que sean visibles en el historial web.
+
 ## [1.10.1] - 2026-04-15
 ### Fixed
 - **Mobile: Banco/Plataforma**: Corregido bug visual donde aparecía "(null)" en el selector de bancos.

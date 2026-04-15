@@ -321,6 +321,10 @@
                                         'discount_amount' => $pay->discount_applied,
                                         'discount_percentage' => $pay->discount_percentage,
                                         'discount_reason' => $pay->discount_reason,
+                                        'bank_image' => $pay->bank_image,
+                                        'zelle_image' => $pay->zelle_image,
+                                        'issuer_name' => $pay->issuer_name,
+                                        'payment_date' => $pay->payment_date,
                                         'created_at' => $pay->created_at,
                                     ];
 
@@ -379,10 +383,23 @@
                                                         @if($pending->reference) 
                                                             <div><b>Ref:</b> {{ $pending->reference }}</div> 
                                                         @endif
-                                                        @if($pending->bank_name)
-                                                            <div>{{ $pending->bank_name }}</div>
+                                                        @if($pending->bank_name || $pending->bank_record)
+                                                            <div><b>Banco:</b> {{ $pending->bank_name ?? ($pending->bank_record ? $pending->bank_record->bank->name : '') }}</div>
                                                         @endif
-                                                        @if($pending->bank_record && $pending->bank_record->image_path)
+                                                        @if(isset($pending->payment_date))
+                                                            <div><b>Fecha Pago:</b> {{ \Carbon\Carbon::parse($pending->payment_date)->format('d/m/Y') }}</div>
+                                                        @endif
+                                                        @if(isset($pending->issuer_name) && !empty($pending->issuer_name))
+                                                            <div><b>Titular:</b> {{ $pending->issuer_name }}</div>
+                                                        @endif
+
+                                                        @php
+                                                            $directImage = ($pending->method == 'zelle' ? ($pending->zelle_image ?? null) : ($pending->bank_image ?? null));
+                                                        @endphp
+
+                                                        @if($directImage)
+                                                            <a href="{{ asset('storage/' . $directImage) }}" target="_blank" class="text-danger small"><i class="fa fa-image"></i> Ver Comprobante</a>
+                                                        @elseif($pending->bank_record && $pending->bank_record->image_path)
                                                              <a href="{{ asset('storage/' . $pending->bank_record->image_path) }}" target="_blank" class="text-danger small"><i class="fa fa-image"></i> Ver Comprobante</a>
                                                         @elseif($pending->zelle_record && $pending->zelle_record->image_path)
                                                              <a href="{{ asset('storage/' . $pending->zelle_record->image_path) }}" target="_blank" class="text-danger small"><i class="fa fa-image"></i> Ver Comprobante</a>
@@ -473,6 +490,7 @@
                                                             <small>
                                                                 @if($payment->account) <div><b>Cta:</b> {{ $payment->account }}</div> @endif
                                                                 @if($payment->reference) <div><b>Ref:</b> {{ $payment->reference }}</div> @endif
+                                                                @if($payment->issuer_name) <div><b>Titular:</b> {{ $payment->issuer_name }}</div> @endif
                                                                 
                                                                 {{-- Bank Record Details (Date, Note, Image) --}}
                                                                 @if($payment->bank_record)
@@ -489,21 +507,42 @@
                                                                             </a>
                                                                         </div>
                                                                     @endif
+                                                                @elseif(isset($payment->payment_date) || isset($payment->bank_image))
+                                                                    @if($payment->payment_date) <div><b>Fecha Pago:</b> {{ \Carbon\Carbon::parse($payment->payment_date)->format('d/m/Y') }}</div> @endif
+                                                                    @if($payment->bank_image)
+                                                                        <div class="mt-1">
+                                                                            <a href="{{ asset('storage/' . $payment->bank_image) }}" target="_blank" class="text-info">
+                                                                                <i class="fas fa-image"></i> Ver Comprobante
+                                                                            </a>
+                                                                        </div>
+                                                                    @endif
                                                                 @endif
                                                             </small>
-                                                        @elseif ($payment->method == 'zelle' && $payment->zelle_record)
+                                                        @elseif ($payment->method == 'zelle')
                                                             <div class="small">
-                                                                <div><b>Emisor:</b> {{ $payment->zelle_record->sender_name }}</div>
-                                                                <div><b>Fecha:</b> {{ \Carbon\Carbon::parse($payment->zelle_record->zelle_date)->format('d/m/Y') }}</div>
-                                                                @if($payment->zelle_record->reference)
-                                                                    <div><b>Ref:</b> {{ $payment->zelle_record->reference }}</div>
-                                                                @endif
-                                                                @if(!empty($payment->zelle_record->image_path))
-                                                                    <div class="mt-1">
-                                                                        <a href="{{ asset('storage/' . $payment->zelle_record->image_path) }}" target="_blank" class="text-primary">
-                                                                            <i class="fas fa-image"></i> Ver Comprobante
-                                                                        </a>
-                                                                    </div>
+                                                                @if($payment->zelle_record)
+                                                                    <div><b>Emisor:</b> {{ $payment->zelle_record->sender_name }}</div>
+                                                                    <div><b>Fecha:</b> {{ \Carbon\Carbon::parse($payment->zelle_record->zelle_date)->format('d/m/Y') }}</div>
+                                                                    @if($payment->zelle_record->reference)
+                                                                        <div><b>Ref:</b> {{ $payment->zelle_record->reference }}</div>
+                                                                    @endif
+                                                                    @if(!empty($payment->zelle_record->image_path))
+                                                                        <div class="mt-1">
+                                                                            <a href="{{ asset('storage/' . $payment->zelle_record->image_path) }}" target="_blank" class="text-primary">
+                                                                                <i class="fas fa-image"></i> Ver Comprobante
+                                                                            </a>
+                                                                        </div>
+                                                                    @endif
+                                                                @elseif(isset($payment->issuer_name) || isset($payment->zelle_image))
+                                                                    @if($payment->issuer_name) <div><b>Emisor:</b> {{ $payment->issuer_name }}</div> @endif
+                                                                    @if($payment->payment_date) <div><b>Fecha Pago:</b> {{ \Carbon\Carbon::parse($payment->payment_date)->format('d/m/Y') }}</div> @endif
+                                                                    @if($payment->zelle_image)
+                                                                        <div class="mt-1">
+                                                                            <a href="{{ asset('storage/' . $payment->zelle_image) }}" target="_blank" class="text-primary">
+                                                                                <i class="fas fa-image"></i> Ver Comprobante
+                                                                            </a>
+                                                                        </div>
+                                                                    @endif
                                                                 @endif
                                                             </div>
                                                         @endif
