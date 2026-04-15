@@ -1,3 +1,7 @@
+## [1.10.4] - 2026-04-15
+### Fixed
+- **Web: Hotfix**: Corregido error de sintaxis ("unexpected token if") en el modal de historial que bloqueaba el módulo de ventas.
+
 ## [1.10.3] - 2026-04-15
 ### Fixed
 - **Web: Modal Historial**: Sincronizado el modal de historial de pagos (`historypays.blade.php`) para mostrar detalles de pagos móviles (Bancos, Emisores, Comprobantes).

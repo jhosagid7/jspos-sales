@@ -194,7 +194,8 @@
                                             <td data-label="Detalles">
                                                 @php
                                                     $payWay = $pay->pay_way ?? $pay->payment_method;
-                                                                                                @if ($payWay == 'deposit' || $payWay == 'bank')
+                                                @endphp
+                                                @if ($payWay == 'deposit' || $payWay == 'bank')
                                                     @if($pay->bankRecord)
                                                         <div class="small text-left">
                                                             <div><b>Banco:</b> {{ $pay->bankRecord->bank->name ?? ($pay->bank ?? ($pay->bank_name ?? 'N/A')) }}</div>
