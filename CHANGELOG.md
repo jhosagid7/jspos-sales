@@ -1,3 +1,9 @@
+## [1.10.7] - 2026-04-15
+### Added
+- **API: Atribución por Cliente**: Las métricas de rendimiento ahora se basan en el vendedor asignado al Cliente (Customer), permitiendo que las ventas facturadas en oficina se atribuyan correctamente al vendedor foráneo.
+- **Mobile: Desglose de Ventas**: Nueva visualización en el Dashboard que separa "Ventas Cobradas" de "Ventas por Cobrar".
+- **Dashboard: Lógica de Comisiones**: Refinada para mostrar comisiones solo sobre facturas liquidadas (cobradas), mientras que el progreso de meta cuenta el total facturado.
+
 ## [1.10.6] - 2026-04-15
 ### Added
 - **Mobile: Dashboard de Rendimiento**: Nueva pantalla "Mi Rendimiento" con métricas de ventas mensuales, progreso de meta y comisiones acumuladas.

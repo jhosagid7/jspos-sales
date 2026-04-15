@@ -2200,6 +2200,8 @@ class _PerformanceDashboardScreenState extends State<PerformanceDashboardScreen>
     if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     final m = _data['metrics'] ?? {};
     final double sales = (m['total_sales'] ?? 0).toDouble();
+    final double paid = (m['paid_sales'] ?? 0).toDouble();
+    final double pending = (m['pending_sales'] ?? 0).toDouble();
     final double goal = (m['monthly_goal'] ?? 0).toDouble();
     final double comm = (m['total_commission'] ?? 0).toDouble();
     final double progress = (m['goal_progress_percent'] ?? 0).toDouble();
@@ -2241,7 +2243,7 @@ class _PerformanceDashboardScreenState extends State<PerformanceDashboardScreen>
                    child: Stack(
                      fit: StackFit.expand,
                      children: [
-                        CircularProgressIndicator(value: progress / 100, strokeWidth: 12, backgroundColor: Colors.grey.shade100, color: const Color(0xFF00B4D8)),
+                        CircularProgressIndicator(value: (progress / 100).clamp(0.0, 1.0), strokeWidth: 12, backgroundColor: Colors.grey.shade100, color: const Color(0xFF00B4D8)),
                         Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
                            Text('${progress.toStringAsFixed(1)}%', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF1B263B))),
                            const Text('LOGRADO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
@@ -2250,8 +2252,14 @@ class _PerformanceDashboardScreenState extends State<PerformanceDashboardScreen>
                    ),
                  ),
                  const SizedBox(height: 25),
-                 _rowInfo("Ventas del Mes", "\$${sales.toStringAsFixed(2)}", isBold: true),
-                 const Divider(),
+                 _rowInfo("Ventas Totales", "\$${sales.toStringAsFixed(2)}", isBold: true),
+                 const SizedBox(height: 10),
+                 Row(children: [
+                    Expanded(child: _miniInfo("Cobradas", "\$${paid.toStringAsFixed(2)}", Colors.green)),
+                    const SizedBox(width: 10),
+                    Expanded(child: _miniInfo("Por Cobrar", "\$${pending.toStringAsFixed(2)}", Colors.orange)),
+                 ]),
+                 const Divider(height: 30),
                  _rowInfo("Meta Mensual", goal > 0 ? "\$${goal.toStringAsFixed(2)}" : "Sin Meta"),
                ]),
             ),
@@ -2279,6 +2287,16 @@ class _PerformanceDashboardScreenState extends State<PerformanceDashboardScreen>
       ),
     );
   }
+
+  Widget _miniInfo(String label, String value, Color color) => Container(
+    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+    decoration: BoxDecoration(color: color.withOpacity(0.05), borderRadius: BorderRadius.circular(15), border: Border.all(color: color.withOpacity(0.1))),
+    child: Column(children: [
+        Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 4),
+        Text(value, style: TextStyle(color: color.withOpacity(0.8), fontSize: 12, fontWeight: FontWeight.w900)),
+    ]),
+  );
 
   Widget _rowInfo(String label, String value, {bool isBold = false}) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 8),

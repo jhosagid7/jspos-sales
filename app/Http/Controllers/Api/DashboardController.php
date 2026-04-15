@@ -16,29 +16,34 @@ class DashboardController extends Controller
         $startOfMonth = Carbon::now()->startOfMonth();
         $endOfMonth = Carbon::now()->endOfMonth();
 
-        // 1. Total Sales in USD (Current Month)
-        // Note: total_usd is a column in the sales table.
-        $totalSales = Sale::where('user_id', $user->id)
+        // Base query: Sales associated with the salesman through the Customer relationship
+        $baseQuery = Sale::whereHas('customer', function($q) use ($user) {
+                $q->where('seller_id', $user->id);
+            })
             ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
-            ->whereNotIn('status', ['voided', 'cancelled', 'anulated'])
-            ->sum('total_usd');
+            ->whereNotIn('status', ['voided', 'cancelled', 'anulated', 'returned']);
 
-        // 2. Accumulated Commissions (Commissions earned from sales settled this month)
-        // If we want commissions of sales CREATED this month:
-        $totalCommission = Sale::where('user_id', $user->id)
-            ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
+        // 1. Total Sales (Logged/Created this month, regardless of payment status)
+        $totalSales = (clone $baseQuery)->sum('total_usd');
+
+        // 2. Paid Sales (Already settled)
+        $paidSales = (clone $baseQuery)->where('status', 'paid')->sum('total_usd');
+
+        // 3. Pending Sales (Still on credit/debt)
+        $pendingSales = $totalSales - $paidSales;
+
+        // 4. Accumulated Commissions (Only from sales that are ALREADY PAID)
+        $totalCommission = (clone $baseQuery)
+            ->where('status', 'paid')
             ->whereNotNull('final_commission_amount')
             ->sum('final_commission_amount');
 
-        // 3. Goal & Progress
+        // 5. Goal & Progress (Based on Total Sales)
         $monthlyGoal = (float)($user->monthly_goal ?? 0);
         $progress = $monthlyGoal > 0 ? ($totalSales / $monthlyGoal) * 100 : 0;
 
-        // 4. Counts
-        $salesCount = Sale::where('user_id', $user->id)
-            ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
-            ->whereNotIn('status', ['voided', 'cancelled', 'anulated'])
-            ->count();
+        // 6. Counts
+        $salesCount = (clone $baseQuery)->count();
 
         return response()->json([
             'status' => 'success',
@@ -47,6 +52,8 @@ class DashboardController extends Controller
                 'month_name' => Carbon::now()->translatedFormat('F'),
                 'metrics' => [
                     'total_sales' => round($totalSales, 2),
+                    'paid_sales' => round($paidSales, 2),
+                    'pending_sales' => round($pendingSales, 2),
                     'total_commission' => round($totalCommission, 2),
                     'monthly_goal' => $monthlyGoal,
                     'goal_progress_percent' => round($progress, 1),
