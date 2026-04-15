@@ -64,6 +64,7 @@ class Users extends Component
         'user.color' => 'nullable|string|max:7',
         'user.order_deadline_at' => 'nullable',
         'user.is_deadline_active' => 'boolean',
+        'user.monthly_goal' => 'nullable|numeric|min:0',
     ];
 
     protected $messages = [

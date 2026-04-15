@@ -423,7 +423,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _menuCard('PRODUCTOS', Icons.inventory_2_rounded, const Color(0xFF00B4D8), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CatalogScreen()))),
                     _menuCard('HISTORIAL', Icons.receipt_long_rounded, const Color(0xFF2E7D32), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const OrdersScreen()))),
                     _menuCard('COBROS', Icons.payments_rounded, const Color(0xFFF9C74F), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentCustomersScreen()))),
-                    _menuCard('CONFIG', Icons.settings_suggest_rounded, const Color(0xFFF94144), () {}),
+                    _menuCard('RENDIMIENTO', Icons.insights_rounded, const Color(0xFF1B263B), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PerformanceDashboardScreen()))),
                   ],
                 ),
               ),
@@ -2168,4 +2168,135 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
       ),
     );
   }
+}
+
+class PerformanceDashboardScreen extends StatefulWidget {
+  const PerformanceDashboardScreen({super.key});
+  @override
+  State<PerformanceDashboardScreen> createState() => _PerformanceDashboardScreenState();
+}
+
+class _PerformanceDashboardScreenState extends State<PerformanceDashboardScreen> {
+  bool _isLoading = true;
+  Map<String, dynamic> _data = {};
+  String _baseUrl = "";
+
+  @override
+  void initState() { super.initState(); _load(); }
+
+  _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    _baseUrl = prefs.getString('base_url') ?? "";
+    final token = prefs.getString('token');
+    try {
+      final res = await http.get(Uri.parse('$_baseUrl/api/seller/dashboard'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'});
+      if (res.statusCode == 200) setState(() => _data = json.decode(res.body)['data']);
+    } catch (e) { debugPrint("Dashboard Err: $e"); }
+    finally { if (mounted) setState(() => _isLoading = false); }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    final m = _data['metrics'] ?? {};
+    final double sales = (m['total_sales'] ?? 0).toDouble();
+    final double goal = (m['monthly_goal'] ?? 0).toDouble();
+    final double comm = (m['total_commission'] ?? 0).toDouble();
+    final double progress = (m['goal_progress_percent'] ?? 0).toDouble();
+    final int count = m['sales_count'] ?? 0;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        title: const Text('Mi Rendimiento', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+        backgroundColor: Colors.white, elevation: 0, iconTheme: const IconThemeData(color: Color(0xFF00B4D8)),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            // Month Header
+            Container(
+              padding: const EdgeInsets.all(20), width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [Color(0xFF1B263B), Color(0xFF415A77)]),
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: Column(children: [
+                Text(_data['month_name']?.toString().toUpperCase() ?? 'MES ACTUAL', style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                const SizedBox(height: 10),
+                const Text('Progreso de Meta', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+              ]),
+            ),
+            const SizedBox(height: -30),
+            
+            // Goal Circular Card
+            Container(
+               margin: const EdgeInsets.symmetric(horizontal: 20),
+               padding: const EdgeInsets.all(30),
+               decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(35), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10))]),
+               child: Column(children: [
+                 SizedBox(
+                   width: 150, height: 150,
+                   child: Stack(
+                     fit: StackFit.expand,
+                     children: [
+                        CircularProgressIndicator(value: progress / 100, strokeWidth: 12, backgroundColor: Colors.grey.shade100, color: const Color(0xFF00B4D8)),
+                        Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                           Text('${progress.toStringAsFixed(1)}%', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF1B263B))),
+                           const Text('LOGRADO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                        ])),
+                     ],
+                   ),
+                 ),
+                 const SizedBox(height: 25),
+                 _rowInfo("Ventas del Mes", "\$${sales.toStringAsFixed(2)}", isBold: true),
+                 const Divider(),
+                 _rowInfo("Meta Mensual", goal > 0 ? "\$${goal.toStringAsFixed(2)}" : "Sin Meta"),
+               ]),
+            ),
+
+            const SizedBox(height: 25),
+            
+            // Stats Row
+            Row(children: [
+               Expanded(child: _statCard("Comisiones", "\$${comm.toStringAsFixed(2)}", Icons.account_balance_wallet_rounded, const Color(0xFF2E7D32))),
+               const SizedBox(width: 15),
+               Expanded(child: _statCard("Pedidos", "$count", Icons.assignment_turned_in_rounded, const Color(0xFF00B4D8))),
+            ]),
+            
+            const SizedBox(height: 25),
+            Container(
+              padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: const Color(0xFFE9ECEF), borderRadius: BorderRadius.circular(20)),
+              child: const Row(children: [
+                Icon(Icons.info_outline, color: Colors.blueGrey, size: 20),
+                SizedBox(width: 15),
+                Expanded(child: Text("Las comisiones se calculan sobre facturas totalmente pagadas.", style: TextStyle(fontSize: 11, color: Colors.blueGrey, fontStyle: FontStyle.italic))),
+              ]),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _rowInfo(String label, String value, {bool isBold = false}) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+      Text(label, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 13)),
+      Text(value, style: TextStyle(fontWeight: isBold ? FontWeight.w900 : FontWeight.bold, fontSize: 15, color: const Color(0xFF1B263B))),
+    ]),
+  );
+
+  Widget _statCard(String title, String val, IconData icon, Color col) => Container(
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)]),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(icon, color: col, size: 28),
+        const SizedBox(height: 15),
+        Text(title, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 11)),
+        const SizedBox(height: 5),
+        Text(val, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF1B263B))),
+    ]),
+  );
 }

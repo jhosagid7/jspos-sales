@@ -285,6 +285,11 @@
                                     <input wire:model="commission_percent" class="form-control" type="number" step="0.01" min="0" max="100">
                                 </div>
                                 <div class="col-sm-4 form-group mt-3">
+                                    <span class="form-label text-primary"><strong>Meta Mensual (USD)</strong> <i class="fa fa-bullseye"></i></span>
+                                    <input wire:model="user.monthly_goal" class="form-control font-weight-bold" type="number" step="1" min="0">
+                                    <small class="text-muted">Meta de ventas para Dashboard móvil</small>
+                                </div>
+                                <div class="col-sm-4 form-group mt-3">
                                     <span class="form-label">Flete (%)</span>
                                     <input wire:model="freight_percent" class="form-control" type="number" step="0.01" min="0" max="100">
                                 </div>

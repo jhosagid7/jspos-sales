@@ -1,3 +1,9 @@
+## [1.10.6] - 2026-04-15
+### Added
+- **Mobile: Dashboard de Rendimiento**: Nueva pantalla "Mi Rendimiento" con métricas de ventas mensuales, progreso de meta y comisiones acumuladas.
+- **Web: Metas Mensuales**: Campo añadido en la ficha de usuario para configurar objetivos de ventas (USD) por vendedor.
+- **Backend: API Dashboard**: Endpoint de alto rendimiento para el cálculo de KPIs financieros del vendedor.
+
 ## [1.10.5] - 2026-04-15
 ### Added
 - **Mobile: Carga desde Archivo**: Añadida la posibilidad de seleccionar comprobantes desde la galería del dispositivo (útil para vaucher digitales).

@@ -49,6 +49,7 @@ class User extends Authenticatable
         'sales_view_mode',
         'order_deadline_at',
         'is_deadline_active',
+        'monthly_goal',
     ];
 
     public function warehouse()
