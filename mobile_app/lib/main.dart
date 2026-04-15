@@ -2199,11 +2199,12 @@ class _PerformanceDashboardScreenState extends State<PerformanceDashboardScreen>
   Widget build(BuildContext context) {
     if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     final m = _data['metrics'] ?? {};
-    final double sales = (m['total_sales'] ?? 0).toDouble();
-    final double paid = (m['paid_sales'] ?? 0).toDouble();
-    final double pending = (m['pending_sales'] ?? 0).toDouble();
+    final double sales = (m['monthly_sales'] ?? 0).toDouble();
+    final double coll = (m['monthly_collections'] ?? 0).toDouble();
+    final double debt = (m['total_debt'] ?? 0).toDouble();
+    final double commPending = (m['commissions_earned_pending'] ?? 0).toDouble();
+    final double commPaid = (m['commissions_paid_this_month'] ?? 0).toDouble();
     final double goal = (m['monthly_goal'] ?? 0).toDouble();
-    final double comm = (m['total_commission'] ?? 0).toDouble();
     final double progress = (m['goal_progress_percent'] ?? 0).toDouble();
     final int count = m['sales_count'] ?? 0;
 
@@ -2252,12 +2253,12 @@ class _PerformanceDashboardScreenState extends State<PerformanceDashboardScreen>
                    ),
                  ),
                  const SizedBox(height: 25),
-                 _rowInfo("Ventas Totales", "\$${sales.toStringAsFixed(2)}", isBold: true),
+                 _rowInfo("Ventas del Mes", "\$${sales.toStringAsFixed(2)}", isBold: true),
                  const SizedBox(height: 10),
                  Row(children: [
-                    Expanded(child: _miniInfo("Cobradas", "\$${paid.toStringAsFixed(2)}", Colors.green)),
+                    Expanded(child: _miniInfo("Cobranza Mes", "\$${coll.toStringAsFixed(2)}", Colors.green)),
                     const SizedBox(width: 10),
-                    Expanded(child: _miniInfo("Por Cobrar", "\$${pending.toStringAsFixed(2)}", Colors.orange)),
+                    Expanded(child: _miniInfo("Cartera Total", "\$${debt.toStringAsFixed(2)}", Colors.orange)),
                  ]),
                  const Divider(height: 30),
                  _rowInfo("Meta Mensual", goal > 0 ? "\$${goal.toStringAsFixed(2)}" : "Sin Meta"),
@@ -2268,18 +2269,23 @@ class _PerformanceDashboardScreenState extends State<PerformanceDashboardScreen>
             
             // Stats Row
             Row(children: [
-               Expanded(child: _statCard("Comisiones", "\$${comm.toStringAsFixed(2)}", Icons.account_balance_wallet_rounded, const Color(0xFF2E7D32))),
+               Expanded(child: _statCard("Comis. por Cobrar", "\$${commPending.toStringAsFixed(2)}", Icons.account_balance_wallet_rounded, const Color(0xFF2E7D32))),
                const SizedBox(width: 15),
-               Expanded(child: _statCard("Pedidos", "$count", Icons.assignment_turned_in_rounded, const Color(0xFF00B4D8))),
+               Expanded(child: _statCard("Comis. Pagadas", "\$${commPaid.toStringAsFixed(2)}", Icons.check_circle_rounded, const Color(0xFF415A77))),
             ]),
             
+            const SizedBox(height: 25),
+            Row(children: [
+               Expanded(child: _statCard("Facturas del Mes", "$count", Icons.assignment_turned_in_rounded, const Color(0xFF00B4D8))),
+            ]),
+
             const SizedBox(height: 25),
             Container(
               padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: const Color(0xFFE9ECEF), borderRadius: BorderRadius.circular(20)),
               child: const Row(children: [
                 Icon(Icons.info_outline, color: Colors.blueGrey, size: 20),
                 SizedBox(width: 15),
-                Expanded(child: Text("Las comisiones se calculan sobre facturas totalmente pagadas.", style: TextStyle(fontSize: 11, color: Colors.blueGrey, fontStyle: FontStyle.italic))),
+                Expanded(child: Text("Las comisiones se ganan cuando el cliente paga y se liquidan según cronograma de pagos al vendedor.", style: TextStyle(fontSize: 11, color: Colors.blueGrey, fontStyle: FontStyle.italic))),
               ]),
             )
           ],

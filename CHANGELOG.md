@@ -1,3 +1,11 @@
+## [1.10.9] - 2026-04-15
+### Added
+- **Mobile: Dashboard Profesional de Comisiones**: Refactorización completa de métricas para mayor transparencia.
+    - **Comis. por Cobrar**: Saldo que la empresa debe al vendedor (ganado pero pendiente de pago).
+    - **Comis. Pagadas**: Historial de comisiones ya recibidas por el vendedor este mes.
+- **API: Inteligencia de Cobranza**: Ahora el dashboard muestra la **Cobranza Real del Mes** (dinero ingresado de cualquier factura) y la **Cartera Total** (deuda pendiente de todos sus clientes).
+- **UI: Terminología**: Cambio de "Pedidos" a "Ventas" y aclaraciones en indicadores.
+
 ## [1.10.8] - 2026-04-15
 ### Fixed
 - **Web: Hotfix de Reportes**: Corregido error "Undefined property: issuer_name" al visualizar detalles de venta o historial de pagos de registros antiguos o creados en oficina. Se implementó validación robusta para campos opcionales del móvil.
