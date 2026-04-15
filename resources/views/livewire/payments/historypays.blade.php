@@ -194,8 +194,7 @@
                                             <td data-label="Detalles">
                                                 @php
                                                     $payWay = $pay->pay_way ?? $pay->payment_method;
-                                                @endphp
-                                                @if ($payWay == 'deposit' || $payWay == 'bank')
+                                                                                                @if ($payWay == 'deposit' || $payWay == 'bank')
                                                     @if($pay->bankRecord)
                                                         <div class="small text-left">
                                                             <div><b>Banco:</b> {{ $pay->bankRecord->bank->name ?? ($pay->bank ?? ($pay->bank_name ?? 'N/A')) }}</div>
@@ -213,38 +212,67 @@
                                                             @endif
                                                         </div>
                                                     @else
-                                                        <div>
-                                                            <small>
-                                                                @if($pay->account_number) Cta:{{ $pay->account_number }} @endif
-                                                                @if($pay->account_number && ($pay->deposit_number || $pay->reference_number)) / @endif
-                                                                @if($pay->deposit_number || $pay->reference_number) Ref:{{ $pay->reference_number ?? $pay->deposit_number }} @endif
-                                                            </small>
+                                                        <div class="small text-left">
+                                                            @if($pay->bank) <div><b>Banco:</b> {{ $pay->bank }}</div> @endif
+                                                            @if($pay->payment_date) <div><b>Fecha:</b> {{ \Carbon\Carbon::parse($pay->payment_date)->format('d/m/Y') }}</div> @endif
+                                                            @if($pay->issuer_name) <div><b>Titular:</b> {{ $pay->issuer_name }}</div> @endif
+                                                            @if($pay->deposit_number || $pay->reference_number) 
+                                                                <div><b>Ref:</b> {{ $pay->reference_number ?? $pay->deposit_number }}</div> 
+                                                            @endif
+                                                            @if($pay->bank_image)
+                                                                <div class="mt-1">
+                                                                    @can('payments.view_proof')
+                                                                    <a href="{{ asset('storage/' . $pay->bank_image) }}" target="_blank" class="text-primary">
+                                                                        <i class="fas fa-image"></i> Ver Comprobante (Móvil)
+                                                                    </a>
+                                                                    @endcan
+                                                                </div>
+                                                            @endif
                                                         </div>
                                                     @endif
-                                                @elseif ($payWay == 'zelle' && $pay->zelleRecord)
-                                                    <div class="small text-left">
-                                                        <div><b>Emisor:</b> {{ $pay->zelleRecord->sender_name }}</div>
-                                                        <div><b>Fecha:</b> {{ \Carbon\Carbon::parse($pay->zelleRecord->zelle_date)->format('d/m/Y') }}</div>
-                                                        <div><b>Monto Orig.:</b> ${{ number_format($pay->zelleRecord->amount, 2) }}</div>
-                                                        <div><b>Saldo Rest.:</b> ${{ number_format($pay->zelleRecord->remaining_balance, 2) }}</div>
-                                                        @if($pay->zelleRecord->reference)
-                                                            <div><b>Ref:</b> {{ $pay->zelleRecord->reference }}</div>
-                                                        @endif
-                                                        <div class="mt-1">
-                                                            <span class="badge badge-{{ $pay->zelleRecord->remaining_balance <= 0.01 ? 'secondary' : 'success' }}">
-                                                                {{ $pay->zelleRecord->remaining_balance <= 0.01 ? 'Agotado' : 'Disponible' }}
-                                                            </span>
-                                                        </div>
-                                                        @if($pay->zelleRecord->image_path)
+                                                @elseif ($payWay == 'zelle')
+                                                    @if ($pay->zelleRecord)
+                                                        <div class="small text-left">
+                                                            <div><b>Emisor:</b> {{ $pay->zelleRecord->sender_name }}</div>
+                                                            <div><b>Fecha:</b> {{ \Carbon\Carbon::parse($pay->zelleRecord->zelle_date)->format('d/m/Y') }}</div>
+                                                            <div><b>Monto Orig.:</b> ${{ number_format($pay->zelleRecord->amount, 2) }}</div>
+                                                            <div><b>Saldo Rest.:</b> ${{ number_format($pay->zelleRecord->remaining_balance, 2) }}</div>
+                                                            @if($pay->zelleRecord->reference)
+                                                                <div><b>Ref:</b> {{ $pay->zelleRecord->reference }}</div>
+                                                            @endif
                                                             <div class="mt-1">
-                                                                @can('payments.view_proof')
-                                                                <a href="{{ asset('storage/' . $pay->zelleRecord->image_path) }}" target="_blank" class="text-primary">
-                                                                    <i class="fas fa-image"></i> Ver Comprobante
-                                                                </a>
-                                                                @endcan
+                                                                <span class="badge badge-{{ $pay->zelleRecord->remaining_balance <= 0.01 ? 'secondary' : 'success' }}">
+                                                                    {{ $pay->zelleRecord->remaining_balance <= 0.01 ? 'Agotado' : 'Disponible' }}
+                                                                </span>
                                                             </div>
-                                                        @endif
-                                                    </div>
+                                                            @if($pay->zelleRecord->image_path)
+                                                                <div class="mt-1">
+                                                                    @can('payments.view_proof')
+                                                                    <a href="{{ asset('storage/' . $pay->zelleRecord->image_path) }}" target="_blank" class="text-primary">
+                                                                        <i class="fas fa-image"></i> Ver Comprobante
+                                                                    </a>
+                                                                    @endcan
+                                                                </div>
+                                                            @endif
+                                                        </div>
+                                                    @else
+                                                        <div class="small text-left">
+                                                            @if($pay->issuer_name) <div><b>Emisor:</b> {{ $pay->issuer_name }}</div> @endif
+                                                            @if($pay->payment_date) <div><b>Fecha:</b> {{ \Carbon\Carbon::parse($pay->payment_date)->format('d/m/Y') }}</div> @endif
+                                                            @if($pay->deposit_number || $pay->reference_number) 
+                                                                <div><b>Ref:</b> {{ $pay->reference_number ?? $pay->deposit_number }}</div> 
+                                                            @endif
+                                                            @if($pay->zelle_image)
+                                                                <div class="mt-1">
+                                                                    @can('payments.view_proof')
+                                                                    <a href="{{ asset('storage/' . $pay->zelle_image) }}" target="_blank" class="text-primary">
+                                                                        <i class="fas fa-image"></i> Ver Comprobante (Móvil)
+                                                                    </a>
+                                                                    @endcan
+                                                                </div>
+                                                            @endif
+                                                        </div>
+                                                    @endif
                                                 @endif
 
                                             </td>

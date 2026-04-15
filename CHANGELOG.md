@@ -1,7 +1,7 @@
-## [1.10.2] - 2026-04-15
+## [1.10.3] - 2026-04-15
 ### Fixed
-- **Web: Detalle de Venta**: Sincronizada la vista de detalles para mostrar correctamente bancos, fechas, titulares y comprobantes de pagos subidos desde la App móvil.
-- **Web: Mapeo de Pagos**: Corregido mapeo de campos directos (`bank_image`, `issuer_name`) para que sean visibles en el historial web.
+- **Web: Modal Historial**: Sincronizado el modal de historial de pagos (`historypays.blade.php`) para mostrar detalles de pagos móviles (Bancos, Emisores, Comprobantes).
+- **Web: Detalle de Venta**: Sincronizada la vista de detalles y el mapeo de campos directos (`bank_image`, `issuer_name`) para pagos móviles.
 
 ## [1.10.1] - 2026-04-15
 ### Fixed
