@@ -1,3 +1,7 @@
+## [1.10.5] - 2026-04-15
+### Added
+- **Mobile: Carga desde Archivo**: Añadida la posibilidad de seleccionar comprobantes desde la galería del dispositivo (útil para vaucher digitales).
+
 ## [1.10.4] - 2026-04-15
 ### Fixed
 - **Web: Hotfix**: Corregido error de sintaxis ("unexpected token if") en el modal de historial que bloqueaba el módulo de ventas.
