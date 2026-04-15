@@ -214,13 +214,13 @@
                                                         </div>
                                                     @else
                                                         <div class="small text-left">
-                                                            @if($pay->bank) <div><b>Banco:</b> {{ $pay->bank }}</div> @endif
-                                                            @if($pay->payment_date) <div><b>Fecha:</b> {{ \Carbon\Carbon::parse($pay->payment_date)->format('d/m/Y') }}</div> @endif
-                                                            @if($pay->issuer_name) <div><b>Titular:</b> {{ $pay->issuer_name }}</div> @endif
-                                                            @if($pay->deposit_number || $pay->reference_number) 
+                                                            @if(!empty($pay->bank)) <div><b>Banco:</b> {{ $pay->bank }}</div> @endif
+                                                            @if(!empty($pay->payment_date)) <div><b>Fecha:</b> {{ \Carbon\Carbon::parse($pay->payment_date)->format('d/m/Y') }}</div> @endif
+                                                            @if(!empty($pay->issuer_name)) <div><b>Titular:</b> {{ $pay->issuer_name }}</div> @endif
+                                                            @if(!empty($pay->deposit_number) || !empty($pay->reference_number)) 
                                                                 <div><b>Ref:</b> {{ $pay->reference_number ?? $pay->deposit_number }}</div> 
                                                             @endif
-                                                            @if($pay->bank_image)
+                                                            @if(!empty($pay->bank_image))
                                                                 <div class="mt-1">
                                                                     @can('payments.view_proof')
                                                                     <a href="{{ asset('storage/' . $pay->bank_image) }}" target="_blank" class="text-primary">

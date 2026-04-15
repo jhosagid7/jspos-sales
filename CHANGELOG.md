@@ -1,3 +1,7 @@
+## [1.10.8] - 2026-04-15
+### Fixed
+- **Web: Hotfix de Reportes**: Corregido error "Undefined property: issuer_name" al visualizar detalles de venta o historial de pagos de registros antiguos o creados en oficina. Se implementó validación robusta para campos opcionales del móvil.
+
 ## [1.10.7] - 2026-04-15
 ### Added
 - **API: Atribución por Cliente**: Las métricas de rendimiento ahora se basan en el vendedor asignado al Cliente (Customer), permitiendo que las ventas facturadas en oficina se atribuyan correctamente al vendedor foráneo.

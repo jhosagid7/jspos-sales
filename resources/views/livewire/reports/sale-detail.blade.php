@@ -488,9 +488,9 @@
                                                     <td class="text-start">
                                                         @if ($payment->method == 'bank' || $payment->method == 'deposit')
                                                             <small>
-                                                                @if($payment->account) <div><b>Cta:</b> {{ $payment->account }}</div> @endif
-                                                                @if($payment->reference) <div><b>Ref:</b> {{ $payment->reference }}</div> @endif
-                                                                @if($payment->issuer_name) <div><b>Titular:</b> {{ $payment->issuer_name }}</div> @endif
+                                                                @if(!empty($payment->account)) <div><b>Cta:</b> {{ $payment->account }}</div> @endif
+                                                                @if(!empty($payment->reference)) <div><b>Ref:</b> {{ $payment->reference }}</div> @endif
+                                                                @if(!empty($payment->issuer_name)) <div><b>Titular:</b> {{ $payment->issuer_name }}</div> @endif
                                                                 
                                                                 {{-- Bank Record Details (Date, Note, Image) --}}
                                                                 @if($payment->bank_record)
