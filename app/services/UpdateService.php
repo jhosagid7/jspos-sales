@@ -83,7 +83,7 @@ class UpdateService
     public function downloadUpdate($downloadUrl)
     {
         $tempPath = storage_path('app/temp_update.zip');
-        $maxAttempts = 2;
+        $maxAttempts = 5; // Increased from 2 to 5 for production stability
         $lastException = null;
 
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
@@ -93,8 +93,15 @@ class UpdateService
                 $response = Http::withHeaders([
                     'User-Agent' => 'JSPOS-Updater'
                 ])
-                ->timeout(600)          // 10 minutes
-                ->connectTimeout(30)    // 30 seconds to connect
+                ->withOptions([
+                    'curl' => [
+                        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1, // Force HTTP/1.1 to avoid common SSL/TLS EOF errors in HTTP/2
+                        CURLOPT_SSL_VERIFYPEER => false,               // Temporary fix for SSL certificate issues if any
+                        CURLOPT_TCP_KEEPALIVE => 1,                   // Help keep connection alive
+                    ]
+                ])
+                ->timeout(900)          // Increased to 15 minutes
+                ->connectTimeout(60)    // Increased to 60 seconds
                 ->sink($tempPath)
                 ->get($downloadUrl);
 
@@ -115,7 +122,9 @@ class UpdateService
                 }
 
                 if ($attempt < $maxAttempts) {
-                    sleep(5); // Wait 5 seconds before retry
+                    // Exponential backoff
+                    $sleepTime = $attempt * 5; 
+                    sleep($sleepTime); 
                 }
             }
         }

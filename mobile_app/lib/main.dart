@@ -1529,13 +1529,60 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
   @override
   void initState() { super.initState(); _fetchHistory(); }
 
+  void _showReceipt(String? imagePath) {
+    if (imagePath == null || imagePath.isEmpty) return;
+    
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.close_fullscreen_rounded, color: Colors.white, size: 30),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(15),
+              child: CachedNetworkImage(
+                imageUrl: '${_historyUrl.replaceAll('/api/payments/history', '')}/storage/$imagePath',
+                placeholder: (context, url) => const Center(child: CircularProgressIndicator(color: Colors.white)),
+                errorWidget: (context, url, error) => Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.all(40),
+                  child: const Column(
+                    children: [
+                      Icon(Icons.broken_image_rounded, size: 50, color: Colors.grey),
+                      SizedBox(height: 10),
+                      Text("No se pudo cargar la imagen", style: TextStyle(color: Colors.grey)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _historyUrl = "";
+
   _fetchHistory() async {
     setState(() => _isLoading = true);
     final prefs = await SharedPreferences.getInstance();
     final baseUrl = prefs.getString('base_url') ?? "";
+    _historyUrl = '$baseUrl/api/payments/history';
     final token = prefs.getString('token');
     try {
-      final res = await http.get(Uri.parse('$baseUrl/api/payments/history?sale_id=${widget.saleId}'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'});
+      final res = await http.get(Uri.parse('$_historyUrl?sale_id=${widget.saleId}'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'});
       if (res.statusCode == 200) setState(() => _history = json.decode(res.body));
     } catch (e) { debugPrint("Err Hist: $e"); }
     finally { setState(() => _isLoading = false); }
@@ -1576,7 +1623,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Historial: ${widget.invoice}'), backgroundColor: Colors.white, elevation: 0),
+      appBar: AppBar(title: Text('Historial: ${widget.invoice}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)), backgroundColor: Colors.white, elevation: 0),
       body: _isLoading ? const Center(child: CircularProgressIndicator()) : _history.isEmpty ? const Center(child: Text("Sin abonos registrados")) : ListView.builder(
         itemCount: _history.length,
         padding: const EdgeInsets.all(15),
@@ -1587,18 +1634,22 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
 
           final String currency = p['currency']?.toString().toUpperCase() ?? 'USD';
           final double amount = double.tryParse(p['amount'].toString()) ?? 0;
-          final double rate = double.tryParse(p['exchange_rate']?.toString() ?? '1') ?? 1;
+          final double discount = double.tryParse(p['discount_applied']?.toString() ?? '0') ?? 0;
+          final double totalAbono = amount + discount; // Assuming USD for discount
+          
           final bool isNonUSD = currency != 'USD' && !isReturn;
+          final bool hasDiscount = discount > 0;
+          final bool hasImage = p['image'] != null && p['image'].toString().isNotEmpty;
 
           return Card(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-            margin: const EdgeInsets.only(bottom: 12),
+            margin: const EdgeInsets.only(bottom: 15),
             elevation: 0,
             color: isReturn ? Colors.cyan.shade50 : Colors.white,
             child: Theme(
               data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
               child: ExpansionTile(
-                tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 leading: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -1612,27 +1663,23 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                   )
                 ),
                 title: Text(
-                  // Show method + USD equivalent (always in USD for comparison)
-                  "${p['method'].toString().toUpperCase()} - ${_usdEquivalent(p)}", 
+                  isReturn 
+                    ? "N/C - \$${amount.toStringAsFixed(2)}"
+                    : "${p['method'].toString().toUpperCase()} - \$${totalAbono.toStringAsFixed(2)}", 
                   style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF1B263B), fontSize: 13)
                 ),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Fecha: ${p['date']}\nRef: ${p['reference'] ?? 'N/A'}",
-                      style: const TextStyle(fontSize: 10, color: Colors.grey)
+                      "Ref: ${p['reference'] ?? 'N/A'}",
+                      style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)
                     ),
-                    // Show original currency amount if not USD
-                    if (isNonUSD) Padding(
-                      padding: const EdgeInsets.only(top: 3),
+                    if (hasDiscount) Padding(
+                      padding: const EdgeInsets.only(top: 2),
                       child: Text(
-                        "${_currencySymbol(currency)} ${amount.toStringAsFixed(2)} $currency",
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: statusCol.withOpacity(0.8),
-                        ),
+                        "INCLUYE DESC: \$${discount.toStringAsFixed(2)}",
+                        style: const TextStyle(fontSize: 9, color: Colors.green, fontWeight: FontWeight.w900)
                       ),
                     ),
                   ],
@@ -1641,11 +1688,18 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                     const Icon(Icons.expand_more_rounded, size: 18, color: Colors.grey),
-                     const SizedBox(height: 4),
                      Text(
-                       p['status'].toString().toUpperCase(), 
-                       style: TextStyle(color: statusCol, fontSize: 10, fontWeight: FontWeight.w900)
+                       p['date'].toString(), 
+                       style: const TextStyle(color: Colors.grey, fontSize: 9, fontWeight: FontWeight.bold)
+                     ),
+                     const SizedBox(height: 4),
+                     Container(
+                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                       decoration: BoxDecoration(color: statusCol.withOpacity(0.1), borderRadius: BorderRadius.circular(5)),
+                       child: Text(
+                         p['status'].toString().toUpperCase(), 
+                         style: TextStyle(color: statusCol, fontSize: 8, fontWeight: FontWeight.w900)
+                       ),
                      ),
                   ],
                 ),
@@ -1656,24 +1710,48 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                        children: [
                          const Divider(height: 1),
                          const SizedBox(height: 15),
-                         // Equivalente en USD (siempre visible si no es USD)
-                         if (isNonUSD) _detailRow(
-                           "Equivalente USD",
-                           _usdEquivalent(p),
-                           highlight: true,
-                         ),
-                         // Monto original en moneda local
-                         if (isNonUSD) _detailRow(
-                           "Monto Original",
-                           "${_currencySymbol(currency)} ${amount.toStringAsFixed(2)}",
-                         ),
+                         if (isReturn && p['reason'] != null) ... [
+                            _detailRow("Motivo N/C", p['reason'].toString()),
+                            const SizedBox(height: 5),
+                         ],
+                         if (hasDiscount) ... [
+                            _detailRow("Monto Pagado", "${_currencySymbol(currency)} ${amount.toStringAsFixed(2)}"),
+                            _detailRow("Descuento Aplicado", "\$${discount.toStringAsFixed(2)}", highlight: true),
+                            if (p['discount_reason'] != null) _detailRow("Tipo Descuento", p['discount_reason'].toString()),
+                            const Divider(),
+                            _detailRow("Total Abono a Deuda", "\$${totalAbono.toStringAsFixed(2)}", highlight: true),
+                         ] else if (isNonUSD) ... [
+                            _detailRow("Monto en ${currency}", "${_currencySymbol(currency)} ${amount.toStringAsFixed(2)}"),
+                            if (p['exchange_rate'] != null) _detailRow("Tasa de Cambio", "x ${p['exchange_rate']}"),
+                            _detailRow("Equivalente USD", _usdEquivalent(p), highlight: true),
+                         ],
+                         
                          if (p['bank'] != null) _detailRow("Banco / Plataforma", p['bank'].toString()),
-                         if (p['issuer_name'] != null) _detailRow("Nombre del Emisor", p['issuer_name'].toString()),
-                         if (p['exchange_rate'] != null) _detailRow("Tasa Aplicada", "x ${p['exchange_rate']}"),
-                         if (p['reference'] != null) _detailRow("Nro Referencia", p['reference'].toString()),
-                         if (isReturn) const Padding(
-                           padding: EdgeInsets.only(top: 8.0),
-                           child: Text("Nota: Este monto fue deducido de la deuda total.", style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: Colors.blue)),
+                         if (p['issuer_name'] != null) _detailRow("Nombre Titular", p['issuer_name'].toString()),
+                         
+                         const SizedBox(height: 15),
+                         Row(
+                           children: [
+                             if (hasImage) Expanded(
+                               child: ElevatedButton.icon(
+                                 onPressed: () => _showReceipt(p['image']),
+                                 icon: const Icon(Icons.image_search_rounded, size: 18),
+                                 label: const Text("VER COMPROBANTE", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                 style: ElevatedButton.styleFrom(
+                                   backgroundColor: const Color(0xFF1B263B),
+                                   foregroundColor: Colors.white,
+                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                                 ),
+                               ),
+                             ),
+                             if (isReturn) const Expanded(
+                               child: Text(
+                                 "Esta Nota de Crédito ha reducido el saldo deudor de la factura.",
+                                 style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: Colors.blue),
+                                 textAlign: TextAlign.center,
+                               ),
+                             ),
+                           ],
                          ),
                        ],
                     ),
@@ -1689,16 +1767,16 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
 
   Widget _detailRow(String label, String val, {bool highlight = false}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
+      padding: const EdgeInsets.only(bottom: 6.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
+          Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600)),
           Text(
             val, 
             style: TextStyle(
               fontSize: 11, 
-              fontWeight: FontWeight.bold, 
+              fontWeight: FontWeight.w900, 
               color: highlight ? const Color(0xFF00B4D8) : const Color(0xFF1B263B)
             )
           ),
@@ -1778,7 +1856,39 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
   }
 
   Future<void> _submit() async {
-    if (_amountController.text.isEmpty) return;
+    if (_amountController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Ingrese el monto"), backgroundColor: Colors.red));
+      return;
+    }
+
+    bool isVED = _selectedCurrency != null && _selectedCurrency['code'] == 'VED';
+    bool isZelle = _selectedMethod == 'zelle';
+
+    if (_payType == 'bank' && _selectedBank == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Seleccione un banco o plataforma"), backgroundColor: Colors.red));
+      return;
+    }
+
+    if (isVED && _rateController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("La tasa de cambio es obligatoria para VED"), backgroundColor: Colors.red));
+      return;
+    }
+
+    if (_payType == 'bank' && _refController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("El nro de referencia es obligatorio"), backgroundColor: Colors.red));
+      return;
+    }
+
+    if ((isZelle || isVED) && _issuerController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("El nombre del titular/emisor es obligatorio"), backgroundColor: Colors.red));
+      return;
+    }
+
+    if (_image == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("La foto del comprobante/efectivo es obligatoria"), backgroundColor: Colors.red));
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -1804,14 +1914,16 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
       var response = await request.send();
       if (response.statusCode == 200) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("PAGO SUBIDO CORRECTAMENTE"), backgroundColor: Colors.green));
-          Navigator.popUntil(context, (route) => route.isFirst);
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("PAGO NOTIFICADO CORRECTAMENTE"), backgroundColor: Colors.green));
+          Navigator.pop(context); // Go back to history/pending
         }
       } else {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error al subir pago"), backgroundColor: Colors.red));
+        final respStr = await response.stream.bytesToString();
+        final body = json.decode(respStr);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(body['message'] ?? "Error al subir pago"), backgroundColor: Colors.red));
       }
     } catch (e) { debugPrint("Err Upload: $e"); }
-    finally { setState(() => _isLoading = false); }
+    finally { if (mounted) setState(() => _isLoading = false); }
   }
 
   @override
@@ -1821,7 +1933,12 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(title: Text('Abono: ${widget.invoice}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)), backgroundColor: Colors.white, elevation: 0),
+      appBar: AppBar(
+        title: Text('Abono: ${widget.invoice}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)), 
+        backgroundColor: Colors.white, 
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Color(0xFF00B4D8)),
+      ),
       body: _isLoading ? const Center(child: CircularProgressIndicator()) : SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -1836,6 +1953,7 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
               ]),
             ),
             const SizedBox(height: 30),
+            
             _sectionTitle("Método de Pago"),
             const SizedBox(height: 15),
             Row(children: [
@@ -1843,72 +1961,140 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
                const SizedBox(width: 15),
                Expanded(child: _methodButton('Banco / Zelle', Icons.account_balance_rounded, const Color(0xFF00B4D8), _payType == 'bank', () => setState(() => _payType = 'bank'))),
             ]),
+            
             const SizedBox(height: 25),
-            _sectionTitle("Datos del Pago"),
-            const SizedBox(height: 15),
-            Row(children: [
-              Expanded(flex: 2, child: _textField(_amountController, "Monto", Icons.attach_money_rounded, numeric: true)),
-              const SizedBox(width: 10),
-              Expanded(child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade300)),
-                  child: DropdownButtonHideUnderline(child: DropdownButton(
-                      value: _selectedCurrency, isExpanded: true, items: _currencies.map((c) => DropdownMenuItem(value: c, child: Text(c['code'].toString(), style: const TextStyle(fontWeight: FontWeight.bold)))).toList(),
-                      onChanged: (dynamic v) => setState(() {
-                        _selectedCurrency = v;
-                        _rateController.text = v['exchange_rate']?.toString() ?? '1.0';
-                      }),
-                  )))),
-            ]),
-            const SizedBox(height: 15),
-            InkWell(
-              onTap: _selectDate,
-              child: Container(
-                padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade300)),
-                child: Row(children: [
-                  const Icon(Icons.calendar_month_rounded, color: Colors.grey), const SizedBox(width: 15),
-                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      const Text("Fecha de Pago / Vaucher", style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
-                      Text(DateFormat('dd/MM/yyyy').format(_paymentDate), style: const TextStyle(fontWeight: FontWeight.bold)),
+            if (_payType == 'bank') ... [
+              _sectionTitle("Banco / Plataforma"),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5)]),
+                child: DropdownButtonHideUnderline(child: DropdownButton(
+                  value: _selectedBank, isExpanded: true, hint: const Text("Seleccione Banco..."),
+                  items: _banks.map((b) => DropdownMenuItem(value: b, child: Text("${b['name']} (${b['currency']})", style: const TextStyle(fontWeight: FontWeight.bold)))).toList(),
+                  onChanged: (dynamic v) => setState(() {
+                    _selectedBank = v;
+                    _selectedMethod = v['name'].toString().toLowerCase().contains('zelle') ? 'zelle' : 'bank';
+                    
+                    final bankCurrency = _currencies.firstWhere((c) => c['code'] == v['currency'], orElse: () => null);
+                    if (bankCurrency != null) {
+                      _selectedCurrency = bankCurrency;
+                      _rateController.text = bankCurrency['exchange_rate']?.toString() ?? '1.0';
+                    }
+                  }),
+                )),
+              ),
+              const SizedBox(height: 25),
+            ],
+
+            // Shared Data Container
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)]),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                   Row(children: [
+                    Expanded(flex: 2, child: _textField(_amountController, "Monto", Icons.attach_money_rounded, numeric: true)),
+                     const SizedBox(width: 10),
+                     Expanded(child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("Moneda", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                        const SizedBox(height: 5),
+                        if (_payType == 'bank' && _selectedBank != null) 
+                          Container(
+                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12), width: double.infinity, decoration: BoxDecoration(color: const Color(0xFFF1F3F5), borderRadius: BorderRadius.circular(15)),
+                             child: Text(_selectedCurrency?['code'] ?? '---', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1B263B))),
+                          )
+                        else
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12), decoration: BoxDecoration(color: const Color(0xFFF1F3F5), borderRadius: BorderRadius.circular(15)),
+                            child: DropdownButtonHideUnderline(child: DropdownButton(
+                                value: _selectedCurrency, isExpanded: true, 
+                                items: _currencies.map((c) => DropdownMenuItem(value: c, child: Text(c['code'].toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)))).toList(),
+                                onChanged: (dynamic v) => setState(() {
+                                  _selectedCurrency = v;
+                                  _rateController.text = v['exchange_rate']?.toString() ?? '1.0';
+                                }),
+                            ))),
+                      ],
+                    )),
                   ]),
-                  const Spacer(), const Icon(Icons.edit_calendar_rounded, color: Color(0xFF00B4D8), size: 20),
-                ]),
+                  
+                  const SizedBox(height: 15),
+                  InkWell(
+                    onTap: _selectDate,
+                    child: Container(
+                      padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFFF1F3F5), borderRadius: BorderRadius.circular(15)),
+                      child: Row(children: [
+                        const Icon(Icons.calendar_month_rounded, color: Colors.grey, size: 20), const SizedBox(width: 12),
+                        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            const Text("Fecha de Pago", style: TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.bold)),
+                            Text(DateFormat('dd/MM/yyyy').format(_paymentDate), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        ]),
+                        const Spacer(), const Icon(Icons.calendar_today_outlined, color: Color(0xFF00B4D8), size: 16),
+                      ]),
+                    ),
+                  ),
+
+                  if (isVED) ... [
+                    const SizedBox(height: 15),
+                    _textField(_rateController, "Tasa de Cambio (Obligatoria)", Icons.trending_up_rounded, numeric: true),
+                    const Padding(
+                      padding: EdgeInsets.only(top: 5, left: 5),
+                      child: Text("Tasa configurada en el sistema", style: TextStyle(fontSize: 10, color: Color(0xFF00B4D8), fontWeight: FontWeight.bold)),
+                    )
+                  ],
+
+                  if (_payType == 'bank' && _selectedBank != null) ... [
+                    const SizedBox(height: 15),
+                  _textField(_refController, isVED ? "Referencia (Últimos 5 dígitos)" : "Nro de Referencia", Icons.tag_rounded, numeric: true),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 4, left: 5),
+                    child: Text(
+                      "Si el vaucher no tiene referencia, coloque su número de cédula.",
+                      style: TextStyle(fontSize: 8, color: Colors.grey, fontStyle: FontStyle.italic, fontWeight: FontWeight.bold)
+                    ),
+                  ),
+                    if (_selectedMethod == 'zelle' || isVED) ... [
+                      const SizedBox(height: 15),
+                      _textField(_issuerController, "Nombre del Emisor (Titular)", Icons.person_rounded),
+                    ],
+                  ],
+                ],
               ),
             ),
-            const SizedBox(height: 15),
-            if (isVED) ... [_textField(_rateController, "Tasa de Cambio", Icons.trending_up_rounded, numeric: true), const SizedBox(height: 15)],
-            if (_payType == 'bank') ... [
-              DropdownButtonFormField(
-                value: _selectedMethod,
-                decoration: InputDecoration(labelText: 'Plataforma', filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none), prefixIcon: const Icon(Icons.layers_rounded)),
-                items: const [DropdownMenuItem(value: 'bank', child: Text('Transferencia / Pago Móvil')), DropdownMenuItem(value: 'zelle', child: Text('Zelle'))],
-                onChanged: (v) => setState(() => _selectedMethod = v.toString()),
-              ),
-              const SizedBox(height: 15),
-              if (_selectedMethod == 'bank' && _banks.isNotEmpty) ... [
-                DropdownButtonFormField(
-                  value: _selectedBank,
-                  decoration: InputDecoration(labelText: 'Banco Destino', filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none), prefixIcon: const Icon(Icons.account_balance_rounded)),
-                  items: _banks.map((b) => DropdownMenuItem(value: b, child: Text(b['name'].toString(), overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)))).toList(),
-                  onChanged: (v) => setState(() => _selectedBank = v),
-                ),
-                const SizedBox(height: 15),
-              ],
-              _textField(_refController, "Nro de Referencia", Icons.tag_rounded, numeric: true),
-              const SizedBox(height: 15),
-              if (isZelle) ... [_textField(_issuerController, "Nombre del Emisor (Titular)", Icons.person_rounded), const SizedBox(height: 15)],
-            ],
-            const SizedBox(height: 10),
-            _sectionTitle("Comprobante (Foto)"),
+            const SizedBox(height: 25),
+
+            _sectionTitle(_payType == 'cash' ? "Evidencia del Dinero (Foto)" : "Comprobante (Foto)"),
             const SizedBox(height: 15),
             InkWell(
               onTap: _pickImage,
               child: Container(
-                width: double.infinity, height: 150, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.shade300)),
-                child: _image == null ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.camera_alt_rounded, size: 40, color: Colors.grey), Text(isZelle ? "Foto Obligatoria" : "Tomar Foto del Vaucher", style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 12))]) : ClipRRect(borderRadius: BorderRadius.circular(20), child: Image.file(_image!, fit: BoxFit.cover)),
+                width: double.infinity, height: 180, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), border: Border.all(color: Colors.grey.shade200, width: 2)),
+                child: _image == null ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(Icons.camera_enhance_rounded, size: 45, color: _payType == 'cash' ? Colors.green.shade300 : Colors.grey.shade400),
+                  const SizedBox(height: 10),
+                  Text(_payType == 'cash' ? "FOTO OBLIGATORIA DEL EFECTIVO" : "TOMAR FOTO DEL COMPROBANTE", style: TextStyle(color: _payType == 'cash' ? Colors.green.shade700 : Colors.grey.shade500, fontWeight: FontWeight.w900, fontSize: 11))
+                ]) : ClipRRect(borderRadius: BorderRadius.circular(23), child: Image.file(_image!, fit: BoxFit.cover)),
               ),
             ),
+            
             const SizedBox(height: 40),
-            SizedBox(width: double.infinity, height: 60, child: ElevatedButton(onPressed: _submit, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B263B), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))), child: const Text("NOTIFICAR PAGO", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)))),
+            SizedBox(
+              width: double.infinity, height: 65, 
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _submit, 
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _payType == 'cash' ? Colors.green : const Color(0xFF1B263B), 
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                  elevation: 5
+                ), 
+                child: _isLoading 
+                  ? const CircularProgressIndicator(color: Colors.white) 
+                  : const Text("AGREGAR PAGO", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1))
+              )
+            ),
             const SizedBox(height: 30),
           ],
         ),
@@ -1916,8 +2102,30 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
     );
   }
 
-  Widget _sectionTitle(String title) => Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF1B263B)));
-  Widget _textField(TextEditingController controller, String label, IconData icon, {bool numeric = false}) => TextField(controller: controller, keyboardType: numeric ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text, decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon, size: 20), filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none)));
+  Widget _sectionTitle(String title) => Padding(
+    padding: const EdgeInsets.only(left: 5, bottom: 10),
+    child: Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF1B263B))),
+  );
+  
+  Widget _textField(TextEditingController controller, String label, IconData icon, {bool numeric = false}) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+      const SizedBox(height: 5),
+      TextField(
+        controller: controller, 
+        keyboardType: numeric ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text, 
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon, size: 18, color: const Color(0xFF00B4D8)), 
+          filled: true, 
+          fillColor: const Color(0xFFF1F3F5),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+          contentPadding: const EdgeInsets.symmetric(vertical: 12)
+        ),
+      ),
+    ],
+  );
 
   Widget _methodButton(String label, IconData icon, Color color, bool isSelected, VoidCallback onTap) {
     return InkWell(

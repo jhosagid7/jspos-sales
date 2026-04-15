@@ -1,3 +1,15 @@
+## [1.10.0] - 2026-04-15
+### Added
+- **Mobile: Auditoría de Pagos Móviles (Recibos)**: Implementación de visor de imágenes de alta gama (`CachedNetworkImage`) para comprobantes de pago y fotos de evidencia.
+- **Mobile: Transparencia Financiera**: El historial de pagos ahora detalla explícitamente descuentos (Pronto Pago, Divisa), motivos de devolución y conciliación neta de deuda.
+- **Mobile: Validación de Referencias Foráneas**: Los vendedores pueden usar su número de cédula como referencia si el vaucher no tiene una visible, omitiendo la validación de duplicados (paridad con Web).
+- **Mobile: Sincronización de Carga de Pagos**:
+    - Selector dinámico de Bancos/Plataformas con auto-configuración de moneda y tasa.
+    - Campos obligatorios inteligentes según el método (Zelle, VED, COP).
+    - Evidencia fotográfica obligatoria para pagos en efectivo y bancos específicos.
+    - Labels dinámicos adaptados a la moneda (ej. "Últimos 5 dígitos" para VED).
+- **API Auditoría**: Actualizada la lógica de carga para soportar el bypass de referencias foráneas basándose en el ID del vendedor.
+
 ## [1.9.102] - 2026-04-14
 ### Fixed
 - **Sistema de Actualización**: Aumentado el timeout de descarga de 5 a 10 minutos y agregado reintento automático (2 intentos) para conexiones lentas o inestables con GitHub CDN.

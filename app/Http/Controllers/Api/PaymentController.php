@@ -103,9 +103,20 @@ class PaymentController extends Controller
         DB::beginTransaction();
         try {
             $sale = Sale::findOrFail($request->sale_id);
+            $user = Auth::user();
             $primaryCurrency = Currency::where('is_primary', true)->first();
             $paymentCurrency = Currency::where('code', $request->currency)->first();
             
+            // Reference validation (Skip check if it equals User taxpayer_id)
+            if ($request->reference && $request->reference != $user->taxpayer_id) {
+                $exists = Payment::where('deposit_number', $request->reference)
+                    ->where('status', '!=', 'rejected')
+                    ->exists();
+                if ($exists) {
+                    return response()->json(['message' => 'El número de referencia ya ha sido utilizado.'], 422);
+                }
+            }
+
             $exchangeRate = $paymentCurrency ? $paymentCurrency->exchange_rate : 1;
             
             // Image handling (using same logic as PaymentComponent)
@@ -186,6 +197,10 @@ class PaymentController extends Controller
                     'exchange_rate' => $p->exchange_rate,
                     'issuer_name' => $p->issuer_name,
                     'bank' => $p->bank,
+                    'discount_applied' => $p->discount_applied,
+                    'discount_tag' => $p->discount_tag,
+                    'discount_reason' => $p->discount_reason,
+                    'image' => $p->zelle_image ?? $p->bank_image,
                     'created_at' => $p->created_at
                 ];
             });
@@ -196,10 +211,11 @@ class PaymentController extends Controller
                 'type' => 'return',
                 'method' => 'Nota de Crédito',
                 'amount' => $r->total_returned,
-                'currency' => 'USD', // Returns are usually stored in primary currency
-                'reference' => 'N/C-' . $r->id,
+                'currency' => 'USD', 
+                'reference' => 'N/C-' . ($r->return_number ?? $r->id),
                 'status' => $r->status,
                 'date' => $r->created_at->format('Y-m-d'),
+                'reason' => $r->reason,
                 'created_at' => $r->created_at
             ];
         });
