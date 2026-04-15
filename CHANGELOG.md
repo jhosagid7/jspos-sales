@@ -1,3 +1,8 @@
+## [1.10.1] - 2026-04-15
+### Fixed
+- **Mobile: Banco/Plataforma**: Corregido bug visual donde aparecía "(null)" en el selector de bancos.
+- **Mobile: Sincronización**: Corregido el enlace automático de moneda al seleccionar un banco.
+
 ## [1.10.0] - 2026-04-15
 ### Added
 - **Mobile: Auditoría de Pagos Móviles (Recibos)**: Implementación de visor de imágenes de alta gama (`CachedNetworkImage`) para comprobantes de pago y fotos de evidencia.
@@ -8,6 +13,7 @@
     - Campos obligatorios inteligentes según el método (Zelle, VED, COP).
     - Evidencia fotográfica obligatoria para pagos en efectivo y bancos específicos.
     - Labels dinámicos adaptados a la moneda (ej. "Últimos 5 dígitos" para VED).
+- **Mobile: Fixed**: Corregido bug donde el banco mostraba "(null)" en lugar de la moneda activa.
 - **API Auditoría**: Actualizada la lógica de carga para soportar el bypass de referencias foráneas basándose en el ID del vendedor.
 
 ## [1.9.102] - 2026-04-14

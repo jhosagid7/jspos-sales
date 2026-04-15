@@ -1970,12 +1970,12 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
                 padding: const EdgeInsets.symmetric(horizontal: 12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5)]),
                 child: DropdownButtonHideUnderline(child: DropdownButton(
                   value: _selectedBank, isExpanded: true, hint: const Text("Seleccione Banco..."),
-                  items: _banks.map((b) => DropdownMenuItem(value: b, child: Text("${b['name']} (${b['currency']})", style: const TextStyle(fontWeight: FontWeight.bold)))).toList(),
+                  items: _banks.map((b) => DropdownMenuItem(value: b, child: Text("${b['name']} (${b['currency_code'] ?? 'USD'})", style: const TextStyle(fontWeight: FontWeight.bold)))).toList(),
                   onChanged: (dynamic v) => setState(() {
                     _selectedBank = v;
                     _selectedMethod = v['name'].toString().toLowerCase().contains('zelle') ? 'zelle' : 'bank';
                     
-                    final bankCurrency = _currencies.firstWhere((c) => c['code'] == v['currency'], orElse: () => null);
+                    final bankCurrency = _currencies.firstWhere((c) => c['code'] == v['currency_code'], orElse: () => null);
                     if (bankCurrency != null) {
                       _selectedCurrency = bankCurrency;
                       _rateController.text = bankCurrency['exchange_rate']?.toString() ?? '1.0';
