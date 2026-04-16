@@ -1,3 +1,8 @@
+## [1.10.18] - 2026-04-15
+### Added
+- **Inteligencia de Cobranza**: Implementación de Tiers dinámicos en la Cartera. Los vendedores ahora ven su comisión proyectada en USD y alertas de tiempo para no perder el porcentaje de cobranza (incentivo financiero).
+- **API**: Nuevo motor de cálculo de comisiones en tiempo real basado en la configuración individual de cada factura.
+
 ## [1.10.17] - 2026-04-15
 ### Fixed
 - **Lógica de Comisiones**: Restablecido el filtro por mes para las comisiones pendientes. Ahora el saldo vuelve a reflejar únicamente el desempeño del mes actual (vuelve a los valores reales de ~37).
