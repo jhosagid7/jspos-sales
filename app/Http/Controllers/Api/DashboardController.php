@@ -16,43 +16,61 @@ class DashboardController extends Controller
         $startOfMonth = Carbon::now()->startOfMonth();
         $endOfMonth = Carbon::now()->endOfMonth();
 
-        // 1. Total Sales (Created in April - regardless of payment)
+        // 1. Total Sales (Progress towards goal - Matching SalesReport logic)
         $monthlySales = Sale::whereHas('customer', function($q) use ($user) {
                 $q->where('seller_id', $user->id);
             })
+            ->where('is_foreign_sale', true)
             ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
             ->whereNotIn('status', ['voided', 'cancelled', 'anulated', 'returned'])
             ->sum('total_usd');
 
-        // 2. Collections of the Month (Any payment received in April, even for old sales)
-        // Calculating USD amount manually from payments table
+        // 2. Collections of the Month (Strictly approved cash in)
         $monthlyCollections = \App\Models\Payment::whereHas('sale.customer', function($q) use ($user) {
                 $q->where('seller_id', $user->id);
             })
-            ->where('status', 'approved')
+            ->whereIn('status', ['approved', 'settled'])
             ->whereBetween('payment_date', [$startOfMonth, $endOfMonth])
             ->get()
             ->sum(function($p) {
                 $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
-                return ($p->amount / $rate) + ($p->discount_applied ?: 0);
+                // We don't include discounts in "cash in" collection, matching standard income reports
+                return $p->amount / $rate;
             });
 
-        // 3. Total Debt on the Street (All unpaid balance for this salesman's customers)
-        $totalDebt = Sale::whereHas('customer', function($q) use ($user) {
+        // 3. Total Debt on the Street (Matching AccountsReceivableReport exactly)
+        $activeSales = Sale::whereHas('customer', function($q) use ($user) {
                 $q->where('seller_id', $user->id);
             })
-            ->whereNotIn('status', ['voided', 'cancelled', 'anulated', 'returned', 'paid'])
-            ->get()
-            ->sum(function($s) {
-                // We use a simplified calculation here, assuming debt() or similar is available or calculating via payments
-                // For performance in dash, we might want a column, but let's use the model logic for now
-                return $s->total_usd - $s->payments->where('status', 'approved')->sum(function($p) {
-                    $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
-                    return ($p->amount / $rate) + ($p->discount_applied ?: 0);
-                });
+            ->where('type', 'credit')
+            ->whereNotIn('status', ['paid', 'voided', 'cancelled', 'anulated', 'returned'])
+            ->with(['payments', 'returns', 'paymentDetails'])
+            ->get();
+
+        $totalDebt = $activeSales->sum(function($s) {
+            // Approved payments (USD)
+            $totalPaidUSD = $s->payments->whereIn('status', ['approved', 'settled'])->sum(function($p) {
+                $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
+                return $p->amount / $rate;
             });
 
-        // 4. Earned Commissions (Strictly following 'Gestión de Comisiones' web logic)
+            // Initial payments (USD)
+            $initialPaidUSD = $s->paymentDetails->sum(function($detail) {
+                $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
+                return $detail->amount / $rate;
+            });
+
+            // Returns applied to debt reduction (USD)
+            $totalReturnsUSD = $s->returns->where('refund_method', 'debt_reduction')->where('status', 'approved')->sum(function($ret) use ($s) {
+                $rate = $s->primary_exchange_rate > 0 ? $s->primary_exchange_rate : 1;
+                return $ret->total_returned / $rate;
+            });
+
+            $debt = $s->total_usd - ($totalPaidUSD + $initialPaidUSD + $totalReturnsUSD);
+            return max(0, $debt);
+        });
+
+        // 4. Earned Commissions (Owed: Client Paid, Company Pending)
         $commissionsPending = Sale::whereHas('customer', function($q) use ($user) {
                 $q->where('seller_id', $user->id);
             })
@@ -64,7 +82,7 @@ class DashboardController extends Controller
             ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
             ->sum('final_commission_amount');
 
-        // 5. Commissions Already Paid to Salesman (This month - Matching web logic)
+        // 5. Commissions Already Paid to Salesman (This month history)
         $commissionsPaidThisMonth = Sale::whereHas('customer', function($q) use ($user) {
                 $q->where('seller_id', $user->id);
             })

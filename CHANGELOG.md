@@ -1,3 +1,11 @@
+## [1.10.12] - 2026-04-15
+### Fixed
+- **Dashboard: Sincronización Total de Indicadores**: Se refactorizó toda la lógica del Dashboard móvil para ser un espejo exacto del sistema web.
+    - **Cobranza**: Ahora solo suma pagos con estado `approved` o `settled`, excluyendo pagos pendientes de revisión.
+    - **Ventas del Mes**: Ahora incluye el filtro de `is_foreign_sale` y excluye facturas anuladas o devueltas, igual que el reporte de ventas web.
+    - **Cartera (Deuda)**: Se implementó el cálculo matemático estricto del reporte de Cuentas por Cobrar (Venta - Pagos Aprobados - Anticipos - Devoluciones).
+    - **Sostenibilidad**: Se verificó la compatibilidad con el middleware de auto-migración para cambios en la base de datos.
+
 ## [1.10.11] - 2026-04-15
 ### Fixed
 - **API: Sincronización de Comisiones**: Se alineó la lógica del Dashboard con el módulo web "Gestión de Comisiones". 
