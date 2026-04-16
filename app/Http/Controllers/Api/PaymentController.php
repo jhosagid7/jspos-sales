@@ -193,6 +193,7 @@ class PaymentController extends Controller
                     'currency' => $p->currency,
                     'reference' => $p->deposit_number,
                     'status' => $p->status,
+                    'rejection_reason' => $p->rejection_reason, // Added for audit
                     'date' => $p->payment_date,
                     'exchange_rate' => $p->exchange_rate,
                     'issuer_name' => $p->issuer_name,
@@ -223,5 +224,41 @@ class PaymentController extends Controller
         $combined = $payments->concat($returns)->sortByDesc('created_at')->values();
 
         return response()->json($combined);
+    }
+
+    /**
+     * Get a global history of all payments uploaded by the current salesman.
+     */
+    public function globalHistory(Request $request)
+    {
+        $user = $request->user();
+
+        $payments = Payment::where('user_id', $user->id)
+            ->with(['sale.customer'])
+            ->orderBy('created_at', 'desc')
+            ->limit(50)
+            ->get()
+            ->map(function ($p) {
+                return [
+                    'id' => $p->id,
+                    'sale_id' => $p->sale_id,
+                    'invoice_number' => $p->sale->invoice_number ?? "F-{$p->sale_id}",
+                    'customer_name' => $p->sale->customer->name ?? 'N/A',
+                    'method' => $p->pay_way,
+                    'amount' => $p->amount,
+                    'currency' => $p->currency,
+                    'reference' => $p->deposit_number,
+                    'status' => $p->status,
+                    'rejection_reason' => $p->rejection_reason,
+                    'date' => $p->payment_date,
+                    'image' => $p->zelle_image ?? $p->bank_image,
+                    'created_at' => $p->created_at->format('Y-m-d H:i')
+                ];
+            });
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $payments
+        ]);
     }
 }

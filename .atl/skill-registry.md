@@ -1,21 +1,29 @@
-﻿# Skill Registry - jspos-sales
+# Project Skill Registry — jspos-sales
 
-## Core SDD Skills
-- sdd-explore: Investigation and discovery
-- sdd-propose: Change proposals
-- sdd-spec: Specification writing
-- sdd-design: Technical design
-- sdd-tasks: Task breakdown
-- sdd-apply: Implementation
-- sdd-verify: Verification
-- sdd-archive: Archiving and cleanup
+This registry defines mandatory technical standards and behavioral triggers for AI agents working on this repository.
 
-## Project Skills
-- branch-pr: Pull request management
-- issue-creation: Issue management
-- judgment-day: Double-blind review
-- skill-creator: Create new agent skills
+## Compact Rules (Auto-Injected)
 
-## Quality Tools
-- PHPUnit/Pest: Unit and Feature testing
-- Artisan: Laravel CLI tools
+### 🌿 Git & Branching
+- **MANDATORY**: Never work directly on the `develop` or `main` branches. 
+- **FEATURE BRANCHES**: Always create a new branch `feature/[short-description]` before starting ANY technical task, regardless of size.
+
+### 🚀 Release Protocol
+- **MANDATORY**: Before concluding ANY task that involves code changes, you MUST read and follow `.agent/workflows/release.md`.
+- **CHANGELOG**: Never announce a release as complete without verifying the `CHANGELOG.md` entry follows the `## [X.X.X] - YYYY-MM-DD` format.
+- **VERSION**: Ensure `version.txt` is updated BEFORE tagging.
+
+### 🔄 Mobile-Web Synchronicity
+- **CRITICAL**: The mobile app MUST be a mirror of the web system. 
+- **VERIFICATION**: Before modifying or creating any API endpoint in `app/Http/Controllers/Api/`, you MUST read the corresponding Livewire component in `app/Livewire/` (e.g., `SalesReport.php`, `Commissions.php`) to ensure filters and business logic are identical.
+
+### 💾 Persistence & State
+- **AUTO-MIGRATE**: Any database change MUST be accompanied by a version bump in `version.txt` to trigger the `AutoMigrate` middleware.
+
+## Skill Triggers
+
+| Trigger Path | Mandatory Skill / Action |
+|--------------|--------------------------|
+| `app/Http/Controllers/Api/*` | Read corresponding `app/Livewire/*` component first. |
+| `*` (on task completion) | Read and execute `.agent/workflows/release.md`. |
+| `database/migrations/*` | Verify `AutoMigrate.php` compatibility and bump version. |
