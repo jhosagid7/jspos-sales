@@ -1,9 +1,10 @@
 ## [1.10.14] - 2026-04-15
 ### Added
-- **Mobile UI: Pantalla de Detalle de Comisiones**: Visualización detallada de facturas ganadas y pagadas.
-- **Mobile UI: Pantalla de Cartera y Envejecimiento**: Listado de deudas con colores (Azul/Naranja/Rojo) y días de atraso.
-- **Mobile UI: Pantalla de Auditoría de Pagos**: Historial global de gestiones de cobro con estados y motivos de rechazo.
-- **Mobile UI: Menú de Acceso**: Botón de "AUDITORÍA" en el menú principal e interactividad en el Dashboard de Rendimiento.
+- **Mobile App v1.1.23**: Implementación del Dashboard Profesional.
+    - **Pantalla de Detalle de Comisiones**: Visualización detallada de facturas ganadas y pagadas.
+    - **Pantalla de Cartera y Envejecimiento**: Listado de deudas con colores (Azul/Naranja/Rojo) y días de atraso.
+    - **Pantalla de Auditoría de Pagos**: Historial global con estados y motivos de rechazo.
+    - **Menú de Acceso**: Botón de "AUDITORÍA" e interactividad completa en el Dashboard de Rendimiento.
 
 ## [1.10.13] - 2026-04-15
 ### Added
