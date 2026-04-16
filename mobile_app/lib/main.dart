@@ -423,6 +423,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _menuCard('PRODUCTOS', Icons.inventory_2_rounded, const Color(0xFF00B4D8), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CatalogScreen()))),
                     _menuCard('HISTORIAL', Icons.receipt_long_rounded, const Color(0xFF2E7D32), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const OrdersScreen()))),
                     _menuCard('COBROS', Icons.payments_rounded, const Color(0xFFF9C74F), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentCustomersScreen()))),
+                    _menuCard('AUDITORÍA', Icons.fact_check_rounded, const Color(0xFF415A77), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentAuditScreen()))),
                     _menuCard('RENDIMIENTO', Icons.insights_rounded, const Color(0xFF1B263B), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PerformanceDashboardScreen()))),
                   ],
                 ),
@@ -2254,11 +2255,13 @@ class _PerformanceDashboardScreenState extends State<PerformanceDashboardScreen>
                  ),
                  const SizedBox(height: 25),
                  _rowInfo("Ventas del Mes", "\$${sales.toStringAsFixed(2)}", isBold: true),
-                 const SizedBox(height: 10),
-                 Row(children: [
+                        Row(children: [
                     Expanded(child: _miniInfo("Cobranza Mes", "\$${coll.toStringAsFixed(2)}", Colors.green)),
                     const SizedBox(width: 10),
-                    Expanded(child: _miniInfo("Cartera Total", "\$${debt.toStringAsFixed(2)}", Colors.orange)),
+                    Expanded(child: InkWell(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const DebtDetailScreen())),
+                      child: _miniInfo("Cartera Total", "\$${debt.toStringAsFixed(2)}", Colors.orange)
+                    )),
                  ]),
                  const Divider(height: 30),
                  _rowInfo("Meta Mensual", goal > 0 ? "\$${goal.toStringAsFixed(2)}" : "Sin Meta"),
@@ -2269,14 +2272,16 @@ class _PerformanceDashboardScreenState extends State<PerformanceDashboardScreen>
             
             // Stats Row
             Row(children: [
-               Expanded(child: _statCard("Comis. por Cobrar", "\$${commPending.toStringAsFixed(2)}", Icons.account_balance_wallet_rounded, const Color(0xFF2E7D32))),
+               Expanded(child: _statCard("Comis. por Cobrar", "\$${commPending.toStringAsFixed(2)}", Icons.account_balance_wallet_rounded, const Color(0xFF2E7D32), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CommissionDetailScreen())))),
                const SizedBox(width: 15),
-               Expanded(child: _statCard("Comis. Pagadas", "\$${commPaid.toStringAsFixed(2)}", Icons.check_circle_rounded, const Color(0xFF415A77))),
+               Expanded(child: _statCard("Comis. Pagadas", "\$${commPaid.toStringAsFixed(2)}", Icons.check_circle_rounded, const Color(0xFF415A77), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CommissionDetailScreen())))),
             ]),
             
             const SizedBox(height: 25),
             Row(children: [
                Expanded(child: _statCard("Facturas del Mes", "$count", Icons.assignment_turned_in_rounded, const Color(0xFF00B4D8))),
+            ]),
+t Color(0xFF00B4D8))),
             ]),
 
             const SizedBox(height: 25),
@@ -2312,15 +2317,266 @@ class _PerformanceDashboardScreenState extends State<PerformanceDashboardScreen>
     ]),
   );
 
-  Widget _statCard(String title, String val, IconData icon, Color col) => Container(
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)]),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(icon, color: col, size: 28),
-        const SizedBox(height: 15),
-        Text(title, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 11)),
-        const SizedBox(height: 5),
-        Text(val, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF1B263B))),
-    ]),
+  Widget _statCard(String title, String val, IconData icon, Color col, {VoidCallback? onTap}) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(25),
+    child: Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)]),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Icon(icon, color: col, size: 28),
+              if (onTap != null) const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Colors.grey),
+            ],
+          ),
+          const SizedBox(height: 15),
+          Text(title, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 11)),
+          const SizedBox(height: 5),
+          Text(val, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF1B263B))),
+      ]),
+    ),
   );
+}
+
+// --- NEW SCREENS FOR PHASE 2.1 ---
+
+class CommissionDetailScreen extends StatefulWidget {
+  const CommissionDetailScreen({super.key});
+  @override
+  State<CommissionDetailScreen> createState() => _CommissionDetailScreenState();
+}
+
+class _CommissionDetailScreenState extends State<CommissionDetailScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  bool _isLoading = true;
+  List<dynamic> _pending = [];
+  List<dynamic> _paid = [];
+  Map<String, dynamic> _summary = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _load();
+  }
+
+  _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final baseUrl = prefs.getString('base_url') ?? "";
+    final token = prefs.getString('token');
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/api/seller/dashboard/commissions'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'});
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body)['data'];
+        setState(() {
+          _pending = data['pending'];
+          _paid = data['paid'];
+          _summary = data['summary'];
+        });
+      }
+    } catch (e) { debugPrint("Comm Err: $e"); }
+    finally { if (mounted) setState(() => _isLoading = false); }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Detalle de Comisiones', style: TextStyle(fontWeight: FontWeight.bold)),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [Tab(text: 'PENDIENTES'), Tab(text: 'PAGADAS')],
+        ),
+      ),
+      body: _isLoading ? const Center(child: CircularProgressIndicator()) : TabBarView(
+        controller: _tabController,
+        children: [
+          _buildList(_pending, "No tienes comisiones pendientes por cobrar."),
+          _buildList(_paid, "Aún no se han registrado pagos de comisión este mes."),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildList(List<dynamic> list, String emptyMsg) {
+    if (list.isEmpty) return Center(child: Text(emptyMsg, style: const TextStyle(color: Colors.grey)));
+    return ListView.builder(
+      padding: const EdgeInsets.all(15),
+      itemCount: list.length,
+      itemBuilder: (context, i) {
+        final item = list[i];
+        return Card(
+          elevation: 0, margin: const EdgeInsets.only(bottom: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade200)),
+          child: ListTile(
+            title: Text(item['customer_name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            subtitle: Text('Factura: ${item['invoice_number']} | ${item['date']}'),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text('\$${item['commission_amount']}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green, fontSize: 16)),
+                Text('${item['commission_percent']}%', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class DebtDetailScreen extends StatefulWidget {
+  const DebtDetailScreen({super.key});
+  @override
+  State<DebtDetailScreen> createState() => _DebtDetailScreenState();
+}
+
+class _DebtDetailScreenState extends State<DebtDetailScreen> {
+  bool _isLoading = true;
+  List<dynamic> _list = [];
+  Map<String, dynamic> _summary = {};
+
+  @override
+  void initState() { super.initState(); _load(); }
+
+  _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final baseUrl = prefs.getString('base_url') ?? "";
+    final token = prefs.getString('token');
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/api/seller/dashboard/debt'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'});
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body)['data'];
+        setState(() {
+          _list = data['debt_list'];
+          _summary = data['summary'];
+        });
+      }
+    } catch (e) { debugPrint("Debt Err: $e"); }
+    finally { if (mounted) setState(() => _isLoading = false); }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Cartera y Vencimientos', style: TextStyle(fontWeight: FontWeight.bold))),
+      body: _isLoading ? const Center(child: CircularProgressIndicator()) : Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20), color: Colors.orange.shade50,
+            child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+              _sumItem("Total Deuda", "\$${_summary['total_debt_amount']}"),
+              _sumItem("Vencidas", "${_summary['total_overdue_count']}"),
+            ]),
+          ),
+          Expanded(child: ListView.builder(
+            padding: const EdgeInsets.all(15),
+            itemCount: _list.length,
+            itemBuilder: (context, i) {
+              final item = _list[i];
+              Color color = Colors.blue;
+              if (item['aging_color'] == 'orange') color = Colors.orange;
+              if (item['aging_color'] == 'red') color = Colors.red;
+
+              return Card(
+                elevation: 0, margin: const EdgeInsets.only(bottom: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), border: Border.all(color: color.withOpacity(0.3))),
+                child: Padding(
+                  padding: const EdgeInsets.all(15),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                      Expanded(child: Text(item['customer_name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+                      Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Text(item['overdue_days'] > 0 ? '${item['overdue_days']} días' : 'A TIEMPO', style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 10))),
+                    ]),
+                    const SizedBox(height: 10),
+                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                      Text('Factura: ${item['invoice_number']}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                      Text('\$${item['remaining_debt_usd']}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                    ]),
+                  ]),
+                ),
+              );
+            },
+          )),
+        ],
+      ),
+    );
+  }
+
+  Widget _sumItem(String label, String val) => Column(children: [Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)), Text(val, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18))]);
+}
+
+class PaymentAuditScreen extends StatefulWidget {
+  const PaymentAuditScreen({super.key});
+  @override
+  State<PaymentAuditScreen> createState() => _PaymentAuditScreenState();
+}
+
+class _PaymentAuditScreenState extends State<PaymentAuditScreen> {
+  bool _isLoading = true;
+  List<dynamic> _list = [];
+
+  @override
+  void initState() { super.initState(); _load(); }
+
+  _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final baseUrl = prefs.getString('base_url') ?? "";
+    final token = prefs.getString('token');
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/api/payments/history/global'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'});
+      if (res.statusCode == 200) setState(() => _list = json.decode(res.body)['data']);
+    } catch (e) { debugPrint("Audit Err: $e"); }
+    finally { if (mounted) setState(() => _isLoading = false); }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Auditoría de Pagos Subidos', style: TextStyle(fontWeight: FontWeight.bold))),
+      body: _isLoading ? const Center(child: CircularProgressIndicator()) : ListView.builder(
+        padding: const EdgeInsets.all(15),
+        itemCount: _list.length,
+        itemBuilder: (context, i) {
+          final p = _list[i];
+          Color statusCol = Colors.grey;
+          IconData icon = Icons.timer_outlined;
+          if (p['status'] == 'approved' || p['status'] == 'settled') { statusCol = Colors.green; icon = Icons.check_circle; }
+          if (p['status'] == 'rejected') { statusCol = Colors.red; icon = Icons.cancel; }
+
+          return Card(
+            margin: const EdgeInsets.only(bottom: 12), elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade200)),
+            child: Padding(
+              padding: const EdgeInsets.all(15),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Expanded(child: Text(p['customer_name'], style: const TextStyle(fontWeight: FontWeight.bold))),
+                  Text('\$${p['amount']} ${p['currency']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                ]),
+                const SizedBox(height: 5),
+                Text('Factura: ${p['invoice_number']} | ${p['date']}', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                const Divider(height: 20),
+                Row(children: [
+                  Icon(icon, color: statusCol, size: 16),
+                  const SizedBox(width: 8),
+                  Text(p['status'].toString().toUpperCase(), style: TextStyle(color: statusCol, fontWeight: FontWeight.bold, fontSize: 12)),
+                  const Spacer(),
+                  Text(p['method'].toString().toUpperCase(), style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                ]),
+                if (p['status'] == 'rejected' && p['rejection_reason'] != null) Container(
+                  margin: const EdgeInsets.only(top: 10), padding: const EdgeInsets.all(10),
+                  width: double.infinity, decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(10)),
+                  child: Text('Motivo: ${p['rejection_reason']}', style: const TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.bold)),
+                ),
+              ]),
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
