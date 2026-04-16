@@ -238,18 +238,49 @@ class DashboardController extends Controller
             $dueDate = Carbon::parse($baseDate)->addDays($sale->credit_days ?: 0);
             $overdueDays = $today->diffInDays($dueDate, false) * -1; // Positive = Overdue
 
-            // 3. Assign Aging Status & Color
-            $status = 'on_time';
+            // 3. Dynamic Commission Tier Logic
+            $currentCommPercent = (float)$sale->applied_commission_percent;
+            $commAmount = (float)$sale->final_commission_amount;
+            $commStatus = 'safe'; // green/safe
             $color = 'blue';
+            $daysLeftForNextTier = null;
 
             if ($overdueDays > 0) {
-                if ($overdueDays <= 15) {
-                    $status = 'overdue_recent';
-                    $color = 'orange';
-                } else {
-                    $status = 'overdue_critical';
+                // Check against Tier 2 first (the worst case)
+                if ($sale->seller_tier_2_days > 0 && $overdueDays > $sale->seller_tier_2_days) {
+                    $currentCommPercent = 0;
+                    $commAmount = 0;
+                    $commStatus = 'lost';
                     $color = 'red';
+                } 
+                // Check against Tier 1
+                else if ($sale->seller_tier_1_days > 0 && $overdueDays > $sale->seller_tier_1_days) {
+                    $currentCommPercent = (float)$sale->seller_tier_2_percent;
+                    $commAmount = round(($currentCommPercent / 100) * $sale->total_usd, 2);
+                    $commStatus = 'warning';
+                    $color = 'orange';
+                    if ($sale->seller_tier_2_days > 0) {
+                        $daysLeftForNextTier = $sale->seller_tier_2_days - $overdueDays;
+                    }
+                } 
+                else {
+                    // Still in Tier 1 range but Overdue (due date passed)
+                    $currentCommPercent = (float)$sale->seller_tier_1_percent;
+                    $commAmount = round(($currentCommPercent / 100) * $sale->total_usd, 2);
+                    $commStatus = 'due';
+                    $color = 'orange';
+                    if ($sale->seller_tier_1_days > 0) {
+                        $daysLeftForNextTier = $sale->seller_tier_1_days - $overdueDays;
+                    }
                 }
+            } else {
+                // Not overdue yet - Max Commission Safe
+                $currentCommPercent = (float)$sale->seller_tier_1_percent;
+                $commAmount = round(($currentCommPercent / 100) * $sale->total_usd, 2);
+                $commStatus = 'safe';
+                $color = 'blue';
+                // Days remaining until it becomes overdue
+                $daysLeftForNextTier = abs($overdueDays); 
             }
 
             return [
@@ -262,7 +293,10 @@ class DashboardController extends Controller
                 'total_usd' => round($sale->total_usd, 2),
                 'remaining_debt_usd' => $remainingDebt,
                 'overdue_days' => $overdueDays,
-                'aging_status' => $status,
+                'projected_commission_percent' => $currentCommPercent,
+                'projected_commission_amount' => $commAmount,
+                'comm_status' => $commStatus,
+                'days_left_tier' => $daysLeftForNextTier,
                 'aging_color' => $color,
             ];
         })->filter(function($item) {

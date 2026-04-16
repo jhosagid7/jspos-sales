@@ -2499,15 +2499,50 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(15),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                      Expanded(child: Text(item['customer_name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
-                      Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Text(item['overdue_days'] > 0 ? '${item['overdue_days']} días' : 'A TIEMPO', style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 10))),
-                    ]),
-                    const SizedBox(height: 10),
-                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                      Text('Factura: ${item['invoice_number']}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                      Text('\$${item['remaining_debt_usd']}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-                    ]),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(child: Text(item['customer_name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
+                          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), 
+                          child: Text(
+                            item['overdue_days'] > 0 ? '${item['overdue_days']} días mora' : 'A TIEMPO', 
+                            style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 10)
+                          )
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Factura: ${item['invoice_number']}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                        Text('\$${item['remaining_debt_usd']}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF1B263B))),
+                      ],
+                    ),
+                    const Divider(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('COMISIÓN PROYECTADA', style: TextStyle(color: Colors.grey.shade600, fontSize: 9, fontWeight: FontWeight.bold)),
+                            Text('\$${item['projected_commission_amount']} (${item['projected_commission_percent']}%)', style: TextStyle(color: item['comm_status'] == 'lost' ? Colors.red : Colors.green, fontWeight: FontWeight.w900, fontSize: 12)),
+                          ],
+                        ),
+                        if (item['days_left_tier'] != null && item['comm_status'] != 'lost') Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
+                          child: Text(
+                            '¡FALTAN ${item['days_left_tier']} DÍAS!', 
+                            style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w900, fontSize: 10)
+                          ),
+                        ),
+                        if (item['comm_status'] == 'lost') const Text('COMISIÓN PERDIDA', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w900, fontSize: 10)),
+                      ],
+                    ),
                   ]),
                 ),
               );
