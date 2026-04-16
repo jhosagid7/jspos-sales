@@ -1,3 +1,11 @@
+## [1.10.11] - 2026-04-15
+### Fixed
+- **API: Sincronización de Comisiones**: Se alineó la lógica del Dashboard con el módulo web "Gestión de Comisiones". 
+    - Se agregaron filtros de `is_foreign_sale`.
+    - Se excluyeron facturas devueltas, anuladas o canceladas.
+    - Se restringió la visualización a ventas del mes actual para coincidir con la vista web por defecto.
+    - Esto resuelve la discrepancia de montos que reportaba el vendedor.
+
 ## [1.10.10] - 2026-04-15
 ### Fixed
 - **API: Lógica de Comisiones**: Corregido el cálculo de "Comisiones por Cobrar". Ahora solo suma comisiones de facturas que el cliente ya pagó totalmente, pero que la empresa aún no ha liquidado al vendedor. Esto evita montos inflados por ventas a crédito.

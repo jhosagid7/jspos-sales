@@ -52,18 +52,24 @@ class DashboardController extends Controller
                 });
             });
 
-        // 4. Earned Commissions (Owed to salesman: Customer is paid AND company has not paid seller)
+        // 4. Earned Commissions (Strictly following 'Gestión de Comisiones' web logic)
         $commissionsPending = Sale::whereHas('customer', function($q) use ($user) {
                 $q->where('seller_id', $user->id);
             })
-            ->where('status', 'paid') // MANDATORY: Only if client already paid
+            ->where('is_foreign_sale', true)
+            ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated'])
+            ->where('applied_commission_percent', '>', 0)
+            ->where('status', 'paid') 
             ->where('commission_status', 'pending_payment')
+            ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
             ->sum('final_commission_amount');
 
-        // 5. Commissions Already Paid to Salesman (This month)
+        // 5. Commissions Already Paid to Salesman (This month - Matching web logic)
         $commissionsPaidThisMonth = Sale::whereHas('customer', function($q) use ($user) {
                 $q->where('seller_id', $user->id);
             })
+            ->where('is_foreign_sale', true)
+            ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated'])
             ->where('commission_status', 'paid')
             ->whereBetween('commission_paid_at', [$startOfMonth, $endOfMonth])
             ->sum('final_commission_amount');
