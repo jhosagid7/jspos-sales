@@ -1,3 +1,9 @@
+## [1.10.19] - 2026-04-15
+### Fixed
+- **Auditoría Financiera**: Sincronización 1:1 entre los totales del Dashboard y el listado de detalles de comisiones.
+- **UX**: Añadidos subtotales (Pendiente vs Pagado) en la cabecera de la pantalla de detalles para validación rápida.
+- **UI Móvil**: Diferenciación clara entre fecha de venta (pendientes) y fecha de cobro (historial pagado).
+
 ## [1.10.18] - 2026-04-15
 ### Added
 - **Inteligencia de Cobranza**: Implementación de Tiers dinámicos en la Cartera. Los vendedores ahora ven su comisión proyectada en USD y alertas de tiempo para no perder el porcentaje de cobranza (incentivo financiero).
