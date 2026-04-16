@@ -1773,13 +1773,18 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600)),
-          Text(
-            val, 
-            style: TextStyle(
-              fontSize: 11, 
-              fontWeight: FontWeight.w900, 
-              color: highlight ? const Color(0xFF00B4D8) : const Color(0xFF1B263B)
-            )
+          const SizedBox(width: 20),
+          Expanded(
+            child: Text(
+              val, 
+              textAlign: TextAlign.right,
+              maxLines: 5,
+              style: TextStyle(
+                fontSize: 11, 
+                fontWeight: FontWeight.w900, 
+                color: highlight ? const Color(0xFF00B4D8) : const Color(0xFF1B263B)
+              )
+            ),
           ),
         ],
       ),
@@ -2391,15 +2396,24 @@ class _CommissionDetailScreenState extends State<CommissionDetailScreen> with Si
       body: _isLoading ? const Center(child: CircularProgressIndicator()) : TabBarView(
         controller: _tabController,
         children: [
-          _buildList(_pending, "No tienes comisiones pendientes por cobrar."),
-          _buildList(_paid, "Aún no se han registrado pagos de comisión este mes."),
+          _buildList(_pending, "No hay comisiones pendientes", "Todas tus comisiones han sido pagadas.", Icons.account_balance_wallet_outlined),
+          _buildList(_paid, "Sin cobros este mes", "Aún no has recibido pagos de comisiones en este periodo.", Icons.history_edu_rounded),
         ],
       ),
     );
   }
 
-  Widget _buildList(List<dynamic> list, String emptyMsg) {
-    if (list.isEmpty) return Center(child: Text(emptyMsg, style: const TextStyle(color: Colors.grey)));
+  Widget _buildList(List<dynamic> list, String title, String emptyMsg, IconData icon) {
+    if (list.isEmpty) return Center(child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, size: 60, color: Colors.grey.withOpacity(0.3)),
+        const SizedBox(height: 15),
+        Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+        const SizedBox(height: 5),
+        Text(emptyMsg, style: const TextStyle(color: Colors.grey, fontSize: 12), textAlign: TextAlign.center),
+      ],
+    ));
     return ListView.builder(
       padding: const EdgeInsets.all(15),
       itemCount: list.length,

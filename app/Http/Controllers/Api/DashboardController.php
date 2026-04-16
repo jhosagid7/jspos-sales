@@ -70,7 +70,6 @@ class DashboardController extends Controller
             return max(0, $debt);
         });
 
-        // 4. Earned Commissions (Owed: Client Paid, Company Pending)
         $commissionsPending = Sale::whereHas('customer', function($q) use ($user) {
                 $q->where('seller_id', $user->id);
             })
@@ -79,7 +78,6 @@ class DashboardController extends Controller
             ->where('applied_commission_percent', '>', 0)
             ->where('status', 'paid') 
             ->where('commission_status', 'pending_payment')
-            ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
             ->sum('final_commission_amount');
 
         // 5. Commissions Already Paid to Salesman (This month history)
@@ -132,31 +130,31 @@ class DashboardController extends Controller
         $startOfMonth = Carbon::now()->startOfMonth();
         $endOfMonth = Carbon::now()->endOfMonth();
 
-        // 1. Pending (Earned because client paid, but company hasn't paid salesman yet)
-        $pending = Sale::whereHas('customer', function($q) use ($user) {
-                $q->where('seller_id', $user->id);
-            })
-            ->where('is_foreign_sale', true)
-            ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated'])
-            ->where('applied_commission_percent', '>', 0)
-            ->where('status', 'paid') 
-            ->where('commission_status', 'pending_payment')
-            ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
-            ->with('customer')
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function($sale) {
-                return [
-                    'id' => $sale->id,
-                    'invoice_number' => $sale->invoice_number,
-                    'date' => $sale->created_at->format('Y-m-d'),
-                    'customer_name' => $sale->customer->name,
-                    'total_usd' => round($sale->total_usd, 2),
-                    'commission_amount' => round($sale->final_commission_amount, 2),
-                    'commission_percent' => $sale->applied_commission_percent,
-                    'status' => 'pending'
-                ];
-            });
+         // 1. Pending (Earned because client paid, but company hasn't paid salesman yet)
+         $pending = Sale::whereHas('customer', function($q) use ($user) {
+                 $q->where('seller_id', $user->id);
+             })
+             ->where('is_foreign_sale', true)
+             ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated'])
+             ->where('applied_commission_percent', '>', 0)
+             ->where('status', 'paid') 
+             ->where('commission_status', 'pending_payment')
+             // Removed date filter to show all-time pending commissions
+             ->with('customer')
+             ->orderBy('created_at', 'desc')
+             ->get()
+             ->map(function($sale) {
+                 return [
+                     'id' => $sale->id,
+                     'invoice_number' => $sale->invoice_number,
+                     'date' => $sale->created_at->format('Y-m-d'),
+                     'customer_name' => $sale->customer->name,
+                     'total_usd' => round($sale->total_usd, 2),
+                     'commission_amount' => round($sale->final_commission_amount, 2),
+                     'commission_percent' => $sale->applied_commission_percent,
+                     'status' => 'pending'
+                 ];
+             });
 
         // 2. Paid (Already paid by company to salesman this month)
         $paid = Sale::whereHas('customer', function($q) use ($user) {

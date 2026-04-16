@@ -1,3 +1,9 @@
+## [1.10.16] - 2026-04-15
+### Fixed
+- **UI Móvil**: Corrección de texto cortado (overflow) en motivos de Notas de Crédito y abonos.
+- **Lógica de Comisiones**: Ahora se muestran TODAS las comisiones pendientes acumuladas, sin restricción de mes.
+- **UX**: Mejora visual en pestañas vacías con iconos y mensajes descriptivos.
+
 ## [1.10.15] - 2026-04-15
 ### Added
 - **Base de Datos**: Blindaje de migración de índices para evitar errores de duplicidad en producción.
