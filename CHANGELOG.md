@@ -1,10 +1,13 @@
-## [1.10.14] - 2026-04-15
+## [1.10.15] - 2026-04-15
 ### Added
-- **Mobile App v1.1.23**: Implementación del Dashboard Profesional.
+- **Base de Datos**: Blindaje de migración de índices para evitar errores de duplicidad en producción.
+- **Mobile App v1.1.24**: Implementación del Dashboard Profesional (Re-lanzamiento corregido).
     - **Pantalla de Detalle de Comisiones**: Visualización detallada de facturas ganadas y pagadas.
     - **Pantalla de Cartera y Envejecimiento**: Listado de deudas con colores (Azul/Naranja/Rojo) y días de atraso.
     - **Pantalla de Auditoría de Pagos**: Historial global con estados y motivos de rechazo.
     - **Menú de Acceso**: Botón de "AUDITORÍA" e interactividad completa en el Dashboard de Rendimiento.
+
+## [1.10.14] - 2026-04-15
 
 ## [1.10.13] - 2026-04-15
 ### Added
