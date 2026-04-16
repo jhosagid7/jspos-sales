@@ -70,26 +70,14 @@ class DashboardController extends Controller
             return max(0, $debt);
         });
 
-        $commissionsPending = Sale::whereHas('customer', function($q) use ($user) {
-                $q->where('seller_id', $user->id);
-            })
-            ->where('is_foreign_sale', true)
-            ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated'])
-            ->where('applied_commission_percent', '>', 0)
-            ->where('status', 'paid') 
-            ->where('commission_status', 'pending_payment')
-            ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
-            ->sum('final_commission_amount');
+        // 2. Commissions (Earned pending payment by the company)
+        // We match exactly the Web Panel logic via our private helper
+        $commissionsPendingQuery = $this->getCommissionsQuery($user, 'pending');
+        $commissionsPending = (clone $commissionsPendingQuery)->sum('final_commission_amount');
 
-        // 5. Commissions Already Paid to Salesman (This month history)
-        $commissionsPaidThisMonth = Sale::whereHas('customer', function($q) use ($user) {
-                $q->where('seller_id', $user->id);
-            })
-            ->where('is_foreign_sale', true)
-            ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated'])
-            ->where('commission_status', 'paid')
-            ->whereBetween('commission_paid_at', [$startOfMonth, $endOfMonth])
-            ->sum('final_commission_amount');
+        // Commissions Paid (History)
+        $commissionsPaidQuery = $this->getCommissionsQuery($user, 'paid');
+        $commissionsPaidThisMonth = (clone $commissionsPaidQuery)->sum('final_commission_amount');
 
         // Goal & Progress
         $monthlyGoal = (float)($user->monthly_goal ?? 0);
@@ -125,23 +113,38 @@ class DashboardController extends Controller
     /**
      * Get detailed commission breakdown for the mobile app.
      */
-    public function commissions(Request $request)
+    /**
+     * Unified query for commissions to match Web Panel logic.
+     */
+    private function getCommissionsQuery($user, $type = 'all')
     {
-        $user = $request->user();
         $startOfMonth = Carbon::now()->startOfMonth();
         $endOfMonth = Carbon::now()->endOfMonth();
 
-        // 1. Pending (Earned because client paid, but company hasn't paid salesman yet)
-        $pendingQuery = Sale::whereHas('customer', function($q) use ($user) {
-                 $q->where('seller_id', $user->id);
-             })
-             ->where('is_foreign_sale', true)
-             ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated'])
-             ->where('applied_commission_percent', '>', 0)
-             ->where('status', 'paid') 
-             ->where('commission_status', 'pending_payment')
-             ->whereBetween('created_at', [$startOfMonth, $endOfMonth]);
+        $query = Sale::whereHas('customer', function($q) use ($user) {
+                $q->where('seller_id', $user->id);
+            })
+            ->where('is_foreign_sale', true)
+            ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated'])
+            ->where('applied_commission_percent', '>', 0)
+            ->whereBetween('created_at', [$startOfMonth, $endOfMonth]);
 
+        if ($type === 'pending') {
+            $query->where('commission_status', '!=', 'paid')
+                  ->where('final_commission_amount', '>', 0);
+        } elseif ($type === 'paid') {
+            $query->where('commission_status', 'paid');
+        }
+
+        return $query;
+    }
+
+    public function commissions(Request $request)
+    {
+        $user = $request->user();
+
+        // 1. Pending (Matches Web Panel "PENDIENTE")
+        $pendingQuery = $this->getCommissionsQuery($user, 'pending');
         $pending = (clone $pendingQuery)->orderBy('created_at', 'desc')->get()->map(function($sale) {
             return [
                 'id' => $sale->id,
@@ -155,16 +158,9 @@ class DashboardController extends Controller
             ];
         });
 
-        // 2. Paid (Already paid by company to salesman this month)
-        $paidQuery = Sale::whereHas('customer', function($q) use ($user) {
-                 $q->where('seller_id', $user->id);
-             })
-             ->where('is_foreign_sale', true)
-             ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated'])
-             ->where('commission_status', 'paid')
-             ->whereBetween('commission_paid_at', [$startOfMonth, $endOfMonth]);
-
-        $paid = (clone $paidQuery)->orderBy('commission_paid_at', 'desc')->get()->map(function($sale) {
+        // 2. Paid (Matches Web Panel "PAGADA")
+        $paidQuery = $this->getCommissionsQuery($user, 'paid');
+        $paid = (clone $paidQuery)->orderBy('created_at', 'desc')->get()->map(function($sale) {
             return [
                 'id' => $sale->id,
                 'invoice_number' => $sale->invoice_number,
