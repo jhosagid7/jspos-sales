@@ -131,8 +131,8 @@ class DashboardController extends Controller
         $startOfMonth = Carbon::now()->startOfMonth();
         $endOfMonth = Carbon::now()->endOfMonth();
 
-         // 1. Pending (Earned because client paid, but company hasn't paid salesman yet)
-         $pending = Sale::whereHas('customer', function($q) use ($user) {
+        // 1. Pending (Earned because client paid, but company hasn't paid salesman yet)
+        $pendingQuery = Sale::whereHas('customer', function($q) use ($user) {
                  $q->where('seller_id', $user->id);
              })
              ->where('is_foreign_sale', true)
@@ -140,47 +140,43 @@ class DashboardController extends Controller
              ->where('applied_commission_percent', '>', 0)
              ->where('status', 'paid') 
              ->where('commission_status', 'pending_payment')
-             ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
-             ->with('customer')
-             ->orderBy('created_at', 'desc')
-             ->get()
-             ->map(function($sale) {
-                 return [
-                     'id' => $sale->id,
-                     'invoice_number' => $sale->invoice_number,
-                     'date' => $sale->created_at->format('Y-m-d'),
-                     'customer_name' => $sale->customer->name,
-                     'total_usd' => round($sale->total_usd, 2),
-                     'commission_amount' => round($sale->final_commission_amount, 2),
-                     'commission_percent' => $sale->applied_commission_percent,
-                     'status' => 'pending'
-                 ];
-             });
+             ->whereBetween('created_at', [$startOfMonth, $endOfMonth]);
+
+        $pending = (clone $pendingQuery)->orderBy('created_at', 'desc')->get()->map(function($sale) {
+            return [
+                'id' => $sale->id,
+                'invoice_number' => $sale->invoice_number,
+                'date' => $sale->created_at->format('Y-m-d'),
+                'customer_name' => $sale->customer->name,
+                'total_usd' => round($sale->total_usd, 2),
+                'commission_amount' => round($sale->final_commission_amount, 2),
+                'commission_percent' => $sale->applied_commission_percent,
+                'status' => 'pending'
+            ];
+        });
 
         // 2. Paid (Already paid by company to salesman this month)
-        $paid = Sale::whereHas('customer', function($q) use ($user) {
-                $q->where('seller_id', $user->id);
-            })
-            ->where('is_foreign_sale', true)
-            ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated'])
-            ->where('commission_status', 'paid')
-            ->whereBetween('commission_paid_at', [$startOfMonth, $endOfMonth])
-            ->with('customer')
-            ->orderBy('commission_paid_at', 'desc')
-            ->get()
-            ->map(function($sale) {
-                return [
-                    'id' => $sale->id,
-                    'invoice_number' => $sale->invoice_number,
-                    'date' => $sale->created_at->format('Y-m-d'),
-                    'paid_at' => $sale->commission_paid_at ? $sale->commission_paid_at->format('Y-m-d') : null,
-                    'customer_name' => $sale->customer->name,
-                    'total_usd' => round($sale->total_usd, 2),
-                    'commission_amount' => round($sale->final_commission_amount, 2),
-                    'commission_percent' => $sale->applied_commission_percent,
-                    'status' => 'paid'
-                ];
-            });
+        $paidQuery = Sale::whereHas('customer', function($q) use ($user) {
+                 $q->where('seller_id', $user->id);
+             })
+             ->where('is_foreign_sale', true)
+             ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated'])
+             ->where('commission_status', 'paid')
+             ->whereBetween('commission_paid_at', [$startOfMonth, $endOfMonth]);
+
+        $paid = (clone $paidQuery)->orderBy('commission_paid_at', 'desc')->get()->map(function($sale) {
+            return [
+                'id' => $sale->id,
+                'invoice_number' => $sale->invoice_number,
+                'date' => $sale->created_at->format('Y-m-d'),
+                'paid_at' => $sale->commission_paid_at ? $sale->commission_paid_at->format('Y-m-d') : null,
+                'customer_name' => $sale->customer->name,
+                'total_usd' => round($sale->total_usd, 2),
+                'commission_amount' => round($sale->final_commission_amount, 2),
+                'commission_percent' => $sale->applied_commission_percent,
+                'status' => 'paid'
+            ];
+        });
 
         return response()->json([
             'status' => 'success',
@@ -188,9 +184,9 @@ class DashboardController extends Controller
                 'pending' => $pending,
                 'paid' => $paid,
                 'summary' => [
-                    'pending_total' => round($pending->sum('commission_amount'), 2),
-                    'paid_total' => round($paid->sum('commission_amount'), 2),
-                    'total_earned' => round($pending->sum('commission_amount') + $paid->sum('commission_amount'), 2)
+                    'pending_total' => round($pendingQuery->sum('final_commission_amount'), 2),
+                    'paid_total' => round($paidQuery->sum('final_commission_amount'), 2),
+                    'total_earned_this_month' => round($pendingQuery->sum('final_commission_amount') + $paidQuery->sum('final_commission_amount'), 2)
                 ]
             ]
         ]);

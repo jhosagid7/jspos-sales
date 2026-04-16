@@ -2390,20 +2390,43 @@ class _CommissionDetailScreenState extends State<CommissionDetailScreen> with Si
         title: const Text('Detalle de Comisiones', style: TextStyle(fontWeight: FontWeight.bold)),
         bottom: TabBar(
           controller: _tabController,
+          labelColor: const Color(0xFF1B263B),
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: const Color(0xFF00B4D8),
           tabs: const [Tab(text: 'PENDIENTES'), Tab(text: 'PAGADAS')],
         ),
       ),
-      body: _isLoading ? const Center(child: CircularProgressIndicator()) : TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          _buildList(_pending, "No hay comisiones pendientes", "Todas tus comisiones han sido pagadas.", Icons.account_balance_wallet_outlined),
-          _buildList(_paid, "Sin cobros este mes", "Aún no has recibido pagos de comisiones en este periodo.", Icons.history_edu_rounded),
+           if (!_isLoading) Container(
+             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+             decoration: BoxDecoration(color: Colors.white, border: Border(bottom: BorderSide(color: Colors.grey.shade100))),
+             child: Row(
+               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+               children: [
+                 _statMini("Pendiente Mes", "\$${_summary['pending_total'] ?? '0.00'}", Colors.orange),
+                 Container(width: 1, height: 30, color: Colors.grey.shade200),
+                 _statMini("Pagado Mes", "\$${_summary['paid_total'] ?? '0.00'}", Colors.green),
+               ],
+             ),
+           ),
+           Expanded(
+             child: _isLoading ? const Center(child: CircularProgressIndicator()) : TabBarView(
+               controller: _tabController,
+               children: [
+                 _buildList(_pending, "No hay comisiones pendientes", "Todas tus comisiones han sido pagadas.", Icons.account_balance_wallet_outlined, isPaidTab: false),
+                 _buildList(_paid, "Sin cobros este mes", "Aún no has recibido pagos de comisiones en este periodo.", Icons.history_edu_rounded, isPaidTab: true),
+               ],
+             ),
+           ),
         ],
       ),
     );
   }
 
-  Widget _buildList(List<dynamic> list, String title, String emptyMsg, IconData icon) {
+  Widget _statMini(String lbl, String val, Color col) => Column(children: [Text(lbl, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)), Text(val, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: col))]);
+
+  Widget _buildList(List<dynamic> list, String title, String emptyMsg, IconData icon, {required bool isPaidTab}) {
     if (list.isEmpty) return Center(child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -2421,16 +2444,27 @@ class _CommissionDetailScreenState extends State<CommissionDetailScreen> with Si
         final item = list[i];
         return Card(
           elevation: 0, margin: const EdgeInsets.only(bottom: 10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: Colors.grey.shade200)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: Colors.grey.shade100)),
           child: ListTile(
-            title: Text(item['customer_name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-            subtitle: Text('Factura: ${item['invoice_number']} | ${item['date']}'),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+            title: Text(item['customer_name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1B263B))),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Factura: ${item['invoice_number']}', style: const TextStyle(fontSize: 11)),
+                const SizedBox(height: 2),
+                Text(
+                  isPaidTab ? 'Cobrado el: ${item['paid_at']}' : 'Vendido el: ${item['date']}',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isPaidTab ? Colors.green : Colors.grey),
+                ),
+              ],
+            ),
             trailing: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text('\$${item['commission_amount']}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green, fontSize: 16)),
-                Text('${item['commission_percent']}%', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                Text('\$${item['commission_amount']}', style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF1B263B), fontSize: 15)),
+                Text('${item['commission_percent']}%', style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
