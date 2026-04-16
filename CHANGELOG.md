@@ -1,3 +1,10 @@
+## [1.10.13] - 2026-04-15
+### Added
+- **API: Desglose de Comisiones**: Nuevo endpoint para visualizar el detalle de facturas ganadas y cobradas.
+- **API: Reporte de Cartera Detallado**: Nuevo endpoint con lógica de Aging (Semáforo de vencimiento: Azul/Naranja/Rojo).
+- **API: Auditoría de Cobranza**: Nuevo historial global de pagos subidos por el vendedor con visualización de motivos de rechazo.
+- **DB: Optimización de Rendimiento**: Índices agregados a tablas de ventas y pagos para acelerar la carga del Dashboard en móviles.
+
 ## [1.10.12] - 2026-04-15
 ### Fixed
 - **Dashboard: Sincronización Total de Indicadores**: Se refactorizó toda la lógica del Dashboard móvil para ser un espejo exacto del sistema web.
