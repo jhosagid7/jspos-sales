@@ -2281,8 +2281,6 @@ class _PerformanceDashboardScreenState extends State<PerformanceDashboardScreen>
             Row(children: [
                Expanded(child: _statCard("Facturas del Mes", "$count", Icons.assignment_turned_in_rounded, const Color(0xFF00B4D8))),
             ]),
-t Color(0xFF00B4D8))),
-            ]),
 
             const SizedBox(height: 25),
             Container(
@@ -2409,7 +2407,7 @@ class _CommissionDetailScreenState extends State<CommissionDetailScreen> with Si
         final item = list[i];
         return Card(
           elevation: 0, margin: const EdgeInsets.only(bottom: 10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade200)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: Colors.grey.shade200)),
           child: ListTile(
             title: Text(item['customer_name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
             subtitle: Text('Factura: ${item['invoice_number']} | ${item['date']}'),
@@ -2483,7 +2481,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
 
               return Card(
                 elevation: 0, margin: const EdgeInsets.only(bottom: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), border: Border.all(color: color.withOpacity(0.3))),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: color.withOpacity(0.3))),
                 child: Padding(
                   padding: const EdgeInsets.all(15),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -2549,7 +2547,7 @@ class _PaymentAuditScreenState extends State<PaymentAuditScreen> {
 
           return Card(
             margin: const EdgeInsets.only(bottom: 12), elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade200)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: Colors.grey.shade200)),
             child: Padding(
               padding: const EdgeInsets.all(15),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

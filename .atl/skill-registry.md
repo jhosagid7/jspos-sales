@@ -20,6 +20,14 @@ This registry defines mandatory technical standards and behavioral triggers for 
 ### 💾 Persistence & State
 - **AUTO-MIGRATE**: Any database change MUST be accompanied by a version bump in `version.txt` to trigger the `AutoMigrate` middleware.
 
+### 📱 Mobile Compilation Protocol (Flutter)
+- **SDK Path**: `C:\src\flutter\bin\flutter.bat`.
+- **BUILD COMMAND**: `flutter build apk --release --split-per-abi`.
+- **DISTRIBUTION**: Always pick `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk`.
+- **LOCATION**: Move the finalized APK to the project **ROOT**.
+- **NOMENCLATURE**: `JSPOS_Mobile_vX.X.X_BreveDescripcion_SuWeb.apk`.
+- **AESTHETICS**: High-premium feel (GoogleFonts.outfit, gradients, micro-animations, no basic colors).
+
 ## Skill Triggers
 
 | Trigger Path | Mandatory Skill / Action |
