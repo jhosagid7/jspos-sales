@@ -1,3 +1,8 @@
+## [1.10.21] - 2026-04-15
+### Fixed
+- **Sincronización Maestra**: Unificada la lógica de consulta con el panel web (Commissions.php). Ahora el App es un espejo exacto del Módulo de Ventas de la administración.
+- **Auditoría**: Filtros de fecha reajustados para basarse en la creación de facturas, eliminando discrepancias en los montos acumulados.
+
 ## [1.10.19] - 2026-04-15
 ### Fixed
 - **Auditoría Financiera**: Sincronización 1:1 entre los totales del Dashboard y el listado de detalles de comisiones.
