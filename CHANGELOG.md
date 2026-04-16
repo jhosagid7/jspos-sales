@@ -1,3 +1,7 @@
+## [1.10.10] - 2026-04-15
+### Fixed
+- **API: Lógica de Comisiones**: Corregido el cálculo de "Comisiones por Cobrar". Ahora solo suma comisiones de facturas que el cliente ya pagó totalmente, pero que la empresa aún no ha liquidado al vendedor. Esto evita montos inflados por ventas a crédito.
+
 ## [1.10.9] - 2026-04-15
 ### Added
 - **Mobile: Dashboard Profesional de Comisiones**: Refactorización completa de métricas para mayor transparencia.

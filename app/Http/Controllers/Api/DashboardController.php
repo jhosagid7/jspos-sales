@@ -52,14 +52,15 @@ class DashboardController extends Controller
                 });
             });
 
-        // 4. Earned Commissions (Company owes salesman: status = pending_payment)
+        // 4. Earned Commissions (Owed to salesman: Customer is paid AND company has not paid seller)
         $commissionsPending = Sale::whereHas('customer', function($q) use ($user) {
                 $q->where('seller_id', $user->id);
             })
+            ->where('status', 'paid') // MANDATORY: Only if client already paid
             ->where('commission_status', 'pending_payment')
             ->sum('final_commission_amount');
 
-        // 5. Commissions Already Paid to Salesman (This month: status = paid)
+        // 5. Commissions Already Paid to Salesman (This month)
         $commissionsPaidThisMonth = Sale::whereHas('customer', function($q) use ($user) {
                 $q->where('seller_id', $user->id);
             })
