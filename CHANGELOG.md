@@ -1,3 +1,8 @@
+## [1.10.17] - 2026-04-15
+### Fixed
+- **Lógica de Comisiones**: Restablecido el filtro por mes para las comisiones pendientes. Ahora el saldo vuelve a reflejar únicamente el desempeño del mes actual (vuelve a los valores reales de ~37).
+- **Consistencia**: Unificada la lógica de Pendientes entre el Dashboard y la vista de Detalle.
+
 ## [1.10.16] - 2026-04-15
 ### Fixed
 - **UI Móvil**: Corrección de texto cortado (overflow) en motivos de Notas de Crédito y abonos.

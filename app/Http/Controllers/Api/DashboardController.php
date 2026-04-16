@@ -78,6 +78,7 @@ class DashboardController extends Controller
             ->where('applied_commission_percent', '>', 0)
             ->where('status', 'paid') 
             ->where('commission_status', 'pending_payment')
+            ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
             ->sum('final_commission_amount');
 
         // 5. Commissions Already Paid to Salesman (This month history)
@@ -139,7 +140,7 @@ class DashboardController extends Controller
              ->where('applied_commission_percent', '>', 0)
              ->where('status', 'paid') 
              ->where('commission_status', 'pending_payment')
-             // Removed date filter to show all-time pending commissions
+             ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
              ->with('customer')
              ->orderBy('created_at', 'desc')
              ->get()
