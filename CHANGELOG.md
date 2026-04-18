@@ -1,3 +1,10 @@
+## [1.10.22] - 2026-04-18
+### Fixed
+- **Inventario Variable**: La opción de ventas por peso/separado (bobinas) se ha hecho globalmente visible en el formulario de creación/edición de productos independientemente de la configuración de módulos avanzados.
+
+### Added
+- **Auditoría e Inventario**: Se añadió un comando de consola (`stock:zero`) que permite poner en cero todo el inventario de la empresa. Éste procesa inteligentemente las bobinas, borrando únicamente las "disponibles" para permitir un conteo limpio desde cero.
+
 ## [1.10.21] - 2026-04-15
 ### Fixed
 - **Sincronización Maestra**: Unificada la lógica de consulta con el panel web (Commissions.php). Ahora el App es un espejo exacto del Módulo de Ventas de la administración.

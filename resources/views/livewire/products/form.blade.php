@@ -288,7 +288,6 @@
                                         <input class="form-check-input" type="checkbox" id="decimalSwitch" wire:model="form.allow_decimal">
                                         <label class="form-check-label" for="decimalSwitch">Permite Cantidades Decimales (Fraccionable)</label>
                                     </div>
-                                    @module('module_advanced_products')
                                     <div class="form-check form-switch mt-2">
                                         <input class="form-check-input" type="checkbox" id="variableSwitch" wire:model="form.is_variable_quantity">
                                         <label class="form-check-label text-primary font-weight-bold" for="variableSwitch">Venta por Peso/Separado (Bobinas)</label>
@@ -297,7 +296,6 @@
                                             Al vender, deberás seleccionar el item específico.
                                         </small>
                                     </div>
-                                    @endmodule
                                 </div>
                             </form>
                             <div class="mt-3">
