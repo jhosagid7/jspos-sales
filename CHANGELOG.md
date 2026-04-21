@@ -1,3 +1,10 @@
+## [1.10.23] - 2026-04-21
+### Added
+- **Base de Datos**: Añadida prevención de duplicidad en `add_performance_indexes_to_dashboard_tables.php` mediante la comprobación de existencia antes de crear los índices de rendimiento.
+
+### Fixed
+- **API de Pagos**: Estandarización de cálculos temporales en `PaymentController@pendingSales` con `startOfDay()` para calcular vencimientos precisos (Azul/Naranja/Rojo).
+
 ## [1.10.22] - 2026-04-18
 ### Fixed
 - **Inventario Variable**: La opción de ventas por peso/separado (bobinas) se ha hecho globalmente visible en el formulario de creación/edición de productos independientemente de la configuración de módulos avanzados.
