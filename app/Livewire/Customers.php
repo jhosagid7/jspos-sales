@@ -18,6 +18,7 @@ class Customers extends Component
     public $tab = 1; // Active tab (1=General, 2=Commercial, 3=Sales History, 4=Credit Config)
     public $customerCommission1Threshold, $customerCommission1Percentage, $customerCommission2Threshold, $customerCommission2Percentage;
     public $commission_percent = 0, $freight_percent = 0, $exchange_diff_percent = 0, $current_batch = '1';
+    public $password;
     public $discountRules = []; // Array of discount rules for this customer
 
     protected $rules = [
@@ -47,6 +48,7 @@ class Customers extends Component
         'customer.wa_dispatch_mode' => 'nullable|in:auto,manual',
         'customer.email_dispatch_mode' => 'nullable|in:auto,manual',
         'customer.wallet_balance' => 'nullable|numeric|min:0',
+        'password' => 'nullable|min:6|max:20',
     ];
 
     protected $messages = [
@@ -129,6 +131,7 @@ class Customers extends Component
         $this->customer->email_dispatch_mode = 'auto';
         $this->tab = 1; // Reset to first tab
         $this->resetCommissionFields();
+        $this->password = null;
         $this->editing = true;
         $this->dispatch('init-new');
     }
@@ -160,6 +163,7 @@ class Customers extends Component
         $this->loadDiscountRules();
 
         $this->tab = 1; // Reset to first tab
+        $this->password = null;
         $this->editing = true;
     }
 
@@ -191,6 +195,10 @@ class Customers extends Component
             if ($defaultSeller) {
                 $this->customer->seller_id = $defaultSeller->id;
             }
+        }
+
+        if (!empty(trim($this->password))) {
+            $this->customer->password = $this->password;
         }
 
         $this->customer->customer_commission_1_threshold = $this->customerCommission1Threshold;

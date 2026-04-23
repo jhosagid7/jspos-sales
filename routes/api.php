@@ -25,6 +25,32 @@ Route::post('print', function (Request $request) {
     return '200 ok';
 });
 
+// VIP Customer App Routes
+Route::prefix('vip')->group(function () {
+    Route::post('/login', [App\Http\Controllers\Api\Vip\CustomerAuthController::class, 'login']);
+
+    // Protected VIP Routes
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/me', [App\Http\Controllers\Api\Vip\CustomerAuthController::class, 'me']);
+        Route::post('/logout', [App\Http\Controllers\Api\Vip\CustomerAuthController::class, 'logout']);
+        
+        Route::get('/products', [App\Http\Controllers\Api\Vip\ProductController::class, 'index']);
+        Route::get('/orders', [App\Http\Controllers\Api\Vip\OrderController::class, 'index']);
+        Route::post('/orders', [App\Http\Controllers\Api\Vip\OrderController::class, 'store']);
+        Route::get('/orders/{id}/logs', [App\Http\Controllers\Api\Vip\OrderController::class, 'logs']);
+        Route::post('/orders/{id}/send', [App\Http\Controllers\Api\Vip\OrderController::class, 'sendToOffice']);
+        Route::delete('/orders/{id}', [App\Http\Controllers\Api\Vip\OrderController::class, 'destroy']);
+
+        // Payments Upload Module for VIP
+        Route::get('/payments/form-data', [App\Http\Controllers\Api\Vip\PaymentController::class, 'formData']);
+        Route::get('/sales/pending', [App\Http\Controllers\Api\Vip\PaymentController::class, 'pendingSales']);
+        Route::post('/payments/upload', [App\Http\Controllers\Api\Vip\PaymentController::class, 'upload']);
+        Route::get('/payments/upload', [App\Http\Controllers\Api\Vip\PaymentController::class, 'history']); // Used dynamically sometimes
+        Route::get('/payments/history', [App\Http\Controllers\Api\Vip\PaymentController::class, 'history']);
+        Route::get('/payments/history/global', [App\Http\Controllers\Api\Vip\PaymentController::class, 'globalHistory']);
+    });
+});
+
 // Mobile App Routes
 Route::post('/login', [App\Http\Controllers\Api\AuthController::class, 'login']);
 

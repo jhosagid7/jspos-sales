@@ -1,0 +1,76 @@
+2026-04-21 20:37:04 | [POST] PATH: api/vip/login | IP: 192.168.194.58 | USER: NULL
+2026-04-21 20:37:04 | RESPONSE (200): {"status":"success","access_token":"137|H546edFI3IoeAiCzJpUPfvMgV8Gyo4hYidEoDoKmb8fbb285","token_typ
+2026-04-21 20:45:10 | [POST] PATH: api/vip/login | IP: 192.168.194.58 | USER: NULL
+L
+2026-04-21 20:45:15 | RESPONSE (200): [{"id":1,"name":"BANDEJAS A1 EUROPLAST X500UND","sku":"BP03A1E","price":11.37,"stock":147,"reserved_
+2026-04-21 20:45:15 | RESPONSE (200): {"status":"success","access_token":"138|JV8b1ko2dJCtsoTaPfQuz5UzdBijbyKHNU6KLYMS32f9d34e","token_typ
+2026-04-21 20:48:36 | [POST] PATH: api/vip/login | IP: 192.168.194.58 | USER: NULL
+2026-04-21 20:48:37 | RESPONSE (401): {"message":"Credenciales inv\u00e1lidas o acceso no autorizado para esta cuenta."}
+2026-04-21 20:48:51 | [POST] PATH: api/vip/login | IP: 192.168.194.58 | USER: NULL
+2026-04-21 20:48:51 | RESPONSE (200): {"status":"success","access_token":"139|7cwlenGxW5BJUq0lNTSHnhWJ9N6EQeVCyolbaGqm602ecabb","token_typ
+2026-04-21 20:48:53 | [GET] PATH: api/vip/sales/pending | IP: 192.168.194.58 | USER: NULL
+2026-04-21 20:48:53 | RESPONSE (200): [{"id":461,"invoice_number":"F00000461","date":"2026-03-21","due_date":"2026-04-05","days_overdue":1
+2026-04-21 20:49:00 | [GET] PATH: api/vip/payments/history | IP: 192.168.194.58 | USER: NULL
+2026-04-21 20:49:00 | RESPONSE (200): [{"id":456,"type":"payment","method":"cash","amount":"393.28","currency":"USD","reference":"","statu
+2026-04-21 20:49:15 | [GET] PATH: api/vip/payments/history | IP: 192.168.194.58 | USER: NULL
+2026-04-21 20:49:15 | RESPONSE (200): [{"id":453,"type":"payment","method":"cash","amount":"49.64","currency":"USD","reference":"","status
+2026-04-21 20:53:06 | [POST] PATH: api/vip/login | IP: 192.168.194.58 | USER: NULL
+2026-04-21 20:53:07 | RESPONSE (200): {"status":"success","access_token":"140|Lu6KWiiUYL4LdY3w5JvNX4j742VNrw0rwT2Yljrye0bc8541","token_typ
+2026-04-21 20:53:09 | [GET] PATH: api/vip/sales/pending | IP: 192.168.194.58 | USER: NULL
+2026-04-21 20:53:09 | RESPONSE (200): [{"id":461,"invoice_number":"F00000461","date":"2026-03-21","due_date":"2026-04-05","days_overdue":1
+2026-04-21 20:53:12 | [GET] PATH: api/vip/payments/history | IP: 192.168.194.58 | USER: NULL
+2026-04-21 20:53:12 | RESPONSE (200): [{"id":456,"type":"payment","method":"cash","amount":"393.28","currency":"USD","reference":"","statu
+2026-04-21 20:53:20 | [GET] PATH: api/vip/payments/history | IP: 192.168.194.58 | USER: NULL
+2026-04-21 20:53:20 | RESPONSE (200): [{"id":453,"type":"payment","method":"cash","amount":"49.64","currency":"USD","reference":"","status
+2026-04-21 20:53:29 | [GET] PATH: api/vip/payments/history/global | IP: 192.168.194.58 | USER: NULL
+2026-04-21 20:53:29 | RESPONSE (200): {"status":"success","data":[{"id":456,"sale_id":461,"invoice_number":"F00000461","customer_name":"OF
+2026-04-21 21:15:10 | [POST] PATH: api/vip/login | IP: 192.168.194.58 | USER: NULL
+2026-04-21 21:15:10 | RESPONSE (200): {"status":"success","access_token":"141|n8LAA86wdRskd8KMzrgOAOH829YllH5uTgX6dzzH8355c2a4","token_typ
+2026-04-21 21:15:13 | [GET] PATH: api/vip/sales/pending | IP: 192.168.194.58 | USER: NULL
+2026-04-21 21:15:13 | RESPONSE (200): [{"id":461,"invoice_number":"F00000461","date":"2026-03-21","due_date":"2026-04-05","days_overdue":1
+2026-04-21 21:15:46 | [POST] PATH: api/vip/login | IP: 192.168.194.58 | USER: NULL
+2026-04-21 21:15:46 | RESPONSE (401): {"message":"Credenciales inv\u00e1lidas o acceso no autorizado para esta cuenta."}
+2026-04-21 21:15:50 | [POST] PATH: api/vip/login | IP: 192.168.194.58 | USER: NULL
+2026-04-21 21:15:51 | RESPONSE (401): {"message":"Credenciales inv\u00e1lidas o acceso no autorizado para esta cuenta."}
+2026-04-21 21:16:01 | [POST] PATH: api/vip/login | IP: 192.168.194.58 | USER: NULL
+2026-04-21 21:16:01 | RESPONSE (401): {"message":"Credenciales inv\u00e1lidas o acceso no autorizado para esta cuenta."}
+2026-04-21 21:16:17 | [POST] PATH: api/vip/login | IP: 192.168.194.58 | USER: NULL
+2026-04-21 21:16:18 | RESPONSE (200): {"status":"success","access_token":"142|qp4rPIr96QJnjZPe3yoO1ZEX4ycoUoO35zpelhgt86422eee","token_typ
+2026-04-21 21:16:55 | [GET] PATH: api/vip/orders | IP: 192.168.194.58 | USER: NULL
+2026-04-21 21:16:56 | RESPONSE (200): [{"id":253,"order_number":"P00000243","customer_id":115,"user_id":11,"status":"pending","total":"87.
+2026-04-21 21:20:26 | [GET] PATH: api/vip/payments/history/global | IP: 192.168.194.58 | USER: NULL
+2026-04-21 21:20:26 | RESPONSE (200): {"status":"success","data":[{"id":456,"sale_id":461,"invoice_number":"F00000461","customer_name":"OF
+2026-04-21 21:21:54 | [GET] PATH: api/vip/sales/pending | IP: 192.168.194.58 | USER: NULL
+2026-04-21 21:21:54 | RESPONSE (200): [{"id":461,"invoice_number":"F00000461","date":"2026-03-21","due_date":"2026-04-05","days_overdue":1
+2026-04-21 21:21:56 | [GET] PATH: api/vip/payments/form-data | IP: 192.168.194.58 | USER: NULL
+2026-04-21 21:21:56 | RESPONSE (200): {"banks":[{"id":1,"name":"Bancolombia","account_holder":null,"account_number":"","cedula":"","phone"
+2026-04-21 21:23:20 | [POST] PATH: api/vip/payments/upload | IP: 192.168.194.58 | USER: NULL
+2026-04-21 21:23:21 | RESPONSE (200): {"status":"success","message":"Pago subido con \u00e9xito. Pendiente de aprobaci\u00f3n.","payment_i
+2026-04-21 21:23:30 | [GET] PATH: api/vip/payments/history | IP: 192.168.194.58 | USER: NULL
+2026-04-21 21:23:30 | RESPONSE (200): [{"id":464,"type":"payment","method":"zelle","amount":"50.00","currency":"USD","reference":"2136548"
+2026-04-22 18:54:58 | [POST] PATH: api/vip/login | IP: 127.0.0.1 | USER: NULL
+2026-04-22 18:54:58 | [POST] PATH: api/vip/login | IP: 127.0.0.1 | USER: NULL
+2026-04-22 18:54:58 | [POST] PATH: api/vip/login | IP: 127.0.0.1 | USER: NULL
+2026-04-22 18:55:01 | RESPONSE (200): {"status":"success","access_token":"145|Rterc1ps6dpJpjnavPwjlR8prvD2vNUkelr679GC2c8ba532","token_typ
+2026-04-22 18:55:01 | RESPONSE (200): {"status":"success","access_token":"144|0LrBYcDuxIrac4KA6zuyd1yLacgISkNvkOmSfF9363b8e08e","token_typ
+2026-04-22 18:55:01 | RESPONSE (200): {"status":"success","access_token":"143|RxiRqEqQnB9qe65BIiLMzOHaAdlPPyo8UGIIO9kFf3c5b842","token_typ
+2026-04-22 18:55:06 | [POST] PATH: api/vip/login | IP: 127.0.0.1 | USER: NULL
+2026-04-22 18:55:06 | RESPONSE (200): {"status":"success","access_token":"146|EzDzB70FCdxHAZHmGT4y2JVGX9CUpeJkcm0VMm1n44b6f94f","token_typ
+2026-04-22 18:56:43 | [POST] PATH: api/vip/login | IP: 192.168.194.58 | USER: NULL
+2026-04-22 18:56:44 | RESPONSE (200): {"status":"success","access_token":"147|2LQ75Vnlx0hJCmdtWmcYi3x4kOlMiOssmF9wceho73122bbb","token_typ
+2026-04-22 19:11:13 | [POST] PATH: api/vip/login | IP: 192.168.194.58 | USER: NULL
+2026-04-22 19:11:14 | RESPONSE (200): {"status":"success","access_token":"148|Xba9RFwLKOGYBsKRQ4rkTcnauuwTtDQ0td7jlXMNfd626c39","token_typ
+2026-04-22 19:11:23 | [GET] PATH: api/vip/products | IP: 192.168.194.58 | USER: NULL
+2026-04-22 19:11:24 | RESPONSE (200): [{"id":1,"name":"BANDEJAS A1 EUROPLAST X500UND","sku":"BP03A1E","price":11.37,"stock":147,"reserved_
+2026-04-22 19:15:41 | [GET] PATH: api/vip/orders | IP: 192.168.194.58 | USER: NULL
+2026-04-22 19:15:42 | RESPONSE (200): [{"id":253,"order_number":"P00000243","customer_id":115,"user_id":11,"status":"pending","total":"87.
+2026-04-22 19:15:45 | [GET] PATH: api/vip/payments/history/global | IP: 192.168.194.58 | USER: NULL
+2026-04-22 19:15:45 | RESPONSE (200): {"status":"success","data":[{"id":464,"sale_id":461,"invoice_number":"F00000461","customer_name":"OF
+2026-04-22 19:15:47 | [GET] PATH: api/vip/sales/pending | IP: 192.168.194.58 | USER: NULL
+2026-04-22 19:15:47 | RESPONSE (200): [{"id":461,"invoice_number":"F00000461","date":"2026-03-21","due_date":"2026-04-05","days_overdue":1
+2026-04-22 19:15:52 | [GET] PATH: api/vip/payments/history | IP: 192.168.194.58 | USER: NULL
+2026-04-22 19:15:52 | RESPONSE (200): [{"id":464,"type":"payment","method":"zelle","amount":"50.00","currency":"USD","reference":"2136548"
+2026-04-22 19:16:56 | [GET] PATH: api/vip/payments/history/global | IP: 192.168.194.58 | USER: NULL
+2026-04-22 19:16:56 | RESPONSE (200): {"status":"success","data":[{"id":464,"sale_id":461,"invoice_number":"F00000461","customer_name":"OF
+2026-04-22 19:45:23 | [POST] PATH: api/vip/login | IP: 192.168.20.112 | USER: NULL
+2026-04-22 19:45:23 | RESPONSE (200): {"status":"success","access_token":"149|qJwwv4MoAvorWLWCfBXkSs36ZzoOEGLENnfbvCSkbb8dfc43","token_typ

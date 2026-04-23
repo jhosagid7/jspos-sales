@@ -1,0 +1,94 @@
+### Login del VIP
+POST http://jspos-sales.test/api/vip/login
+Content-Type: application/json
+Accept: application/json
+
+{
+    "email": "dalbert@gmail.com",
+    "password": "123456"
+}
+
+### Ver tu Perfil (Requiere el Token devuelto arriba)
+GET http://jspos-sales.test/api/vip/me
+Accept: application/json
+Authorization: Bearer 146|EzDzB70FCdxHAZHmGT4y2JVGX9CUpeJkcm0VMm1n44b6f94f
+
+### Logout del VIP
+POST http://jspos-sales.test/api/vip/logout
+Accept: application/json
+Authorization: Bearer 146|EzDzB70FCdxHAZHmGT4y2JVGX9CUpeJkcm0VMm1n44b6f94f
+
+### Ver mis Órdenes
+GET http://jspos-sales.test/api/vip/orders
+Accept: application/json
+Authorization: Bearer 146|EzDzB70FCdxHAZHmGT4y2JVGX9CUpeJkcm0VMm1n44b6f94f
+
+### Crear una nueva Orden
+POST http://jspos-sales.test/api/vip/orders
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer 146|EzDzB70FCdxHAZHmGT4y2JVGX9CUpeJkcm0VMm1n44b6f94f
+
+{
+    "items": [
+        {
+            "product_id": 1,
+            "quantity": 2,
+            "price": 15.00
+        }
+    ]
+}
+
+### Ver logs de una Orden Específica
+GET http://jspos-sales.test/api/vip/orders/1/logs
+Accept: application/json
+Authorization: Bearer 146|EzDzB70FCdxHAZHmGT4y2JVGX9CUpeJkcm0VMm1n44b6f94f
+
+### Enviar Orden a la Oficina (Procesamiento final)
+POST http://jspos-sales.test/api/vip/orders/1/send
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer 146|EzDzB70FCdxHAZHmGT4y2JVGX9CUpeJkcm0VMm1n44b6f94f
+
+### Eliminar / Cancelar una Orden Incompleta
+DELETE http://jspos-sales.test/api/vip/orders/1
+Accept: application/json
+Authorization: Bearer 146|EzDzB70FCdxHAZHmGT4y2JVGX9CUpeJkcm0VMm1n44b6f94f
+
+### Obtener datos para Formulario de Pagos VIP (Bancos y métodos)
+GET http://jspos-sales.test/api/vip/payments/form-data
+Accept: application/json
+Authorization: Bearer 146|EzDzB70FCdxHAZHmGT4y2JVGX9CUpeJkcm0VMm1n44b6f94f
+
+### Obtener mis Ventas/Deudas Pendientes
+GET http://jspos-sales.test/api/vip/sales/pending
+Accept: application/json
+Authorization: Bearer 146|EzDzB70FCdxHAZHmGT4y2JVGX9CUpeJkcm0VMm1n44b6f94f
+
+### Subir un Pago o Reporte de Transferencia VIP
+POST http://jspos-sales.test/api/vip/payments/upload
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer 146|EzDzB70FCdxHAZHmGT4y2JVGX9CUpeJkcm0VMm1n44b6f94f
+
+{
+    "bank_id": 1,
+    "payment_method": "Transferencia",
+    "amount": 100.00,
+    "reference": "12345678"
+}
+
+### Ver Historial de mis Pagos/Reportes (Mis Pagos Subidos)
+GET http://jspos-sales.test/api/vip/payments/history
+Accept: application/json
+Authorization: Bearer 146|EzDzB70FCdxHAZHmGT4y2JVGX9CUpeJkcm0VMm1n44b6f94f
+
+### Ver Historial Global de mis Pagos Subidos
+GET http://jspos-sales.test/api/vip/payments/history/global
+Accept: application/json
+Authorization: Bearer 146|EzDzB70FCdxHAZHmGT4y2JVGX9CUpeJkcm0VMm1n44b6f94f
+
+### Ver el Catálogo con tus Precios VIP
+GET http://jspos-sales.test/api/vip/products
+Accept: application/json
+Authorization: Bearer 146|EzDzB70FCdxHAZHmGT4y2JVGX9CUpeJkcm0VMm1n44b6f94f

@@ -3,18 +3,21 @@
 namespace App\Models;
 
 use App\Models\Delivery;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Notifications\Notifiable;
 
-class Customer extends Model
+class Customer extends Authenticatable
 {
-    use HasFactory;
+    use HasApiTokens, HasFactory, Notifiable, \Spatie\Permission\Traits\HasRoles;
 
     protected $fillable = [
         'name',
         'address',
         'city',
         'email',
+        'password',
         'phone',
         'taxpayer_id',
         'type',
@@ -41,7 +44,18 @@ class Customer extends Model
         'email_dispatch_mode',
     ];
 
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
     protected $casts = [
+        'password' => 'hashed',
         'allow_credit' => 'boolean',
         'credit_days' => 'integer',
         'credit_limit' => 'decimal:2',

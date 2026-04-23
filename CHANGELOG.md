@@ -1,5 +1,10 @@
-## [1.10.23] - 2026-04-21
+## [1.10.24] - 2026-04-22
 ### Added
+- **Mobile VIP App**: Finalizada la primera versión compilable de la App móvil exclusiva para clientes VIP con interfaz dorada (ícono de carrito VIP), drawer responsivo inferior y lectura de versión dinámica.
+- **REST Client**: Integración de todos los endpoints de autenticación y compras de la API VIP en `rest-client.http` para pruebas directas en el editor.
+- **Backend VIP**: Validación estructural reforzada usando `$request->user()->id` para garantizar seguridad y correcta adjudicación automática de comisiones y logística para ventas a clientes VIP.
+
+## [1.10.23] - 2026-04-21
 - **Base de Datos**: Añadida prevención de duplicidad en `add_performance_indexes_to_dashboard_tables.php` mediante la comprobación de existencia antes de crear los índices de rendimiento.
 
 ### Fixed

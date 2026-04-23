@@ -117,6 +117,12 @@
                                     <input wire:model="customer.email" class="form-control" type="email" placeholder="correo@ejemplo.com">
                                     @error('customer.email') <span class="text-danger">{{ $message }}</span> @enderror
                                 </div>
+                                <div class="col-sm-6 mt-3">
+                                    <label class="form-label">Contraseña (App VIP)</label>
+                                    <input wire:model="password" class="form-control" type="password" placeholder="Solo si tiene acceso a la App VIP">
+                                    <small class="text-muted">Dejar vacío si no se desea cambiar. Mínimo 6 caracteres.</small>
+                                    @error('password') <br><span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
 
                             </div>
                         </div>
