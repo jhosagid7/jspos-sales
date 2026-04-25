@@ -1,3 +1,8 @@
+## [1.10.27] - 2026-04-25
+### Added
+- **Identificación de Dispositivos**: Añadida etiqueta visual "ESTE DISPOSITIVO" en la tabla de gestión para ayudar a los usuarios a configurar el navegador actual correctamente.
+- **Persistencia de Impresoras**: Mejorada la lógica de sincronización al guardar configuraciones de impresoras de red para evitar que los valores vuelvan a estado predeterminado.
+
 ## [1.10.26] - 2026-04-25
 ### Added
 - **SoftDeletes para Productos**: Implementado el sistema de borrado suave nativo de Laravel. Esto permite ocultar productos del POS y buscadores sin romper la integridad de los registros de ventas históricos.

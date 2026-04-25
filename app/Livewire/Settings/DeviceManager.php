@@ -20,9 +20,11 @@ class DeviceManager extends Component
     public $is_network = false, $printer_user = '', $printer_password = '';
     public $printer_host = '', $printer_share = '';
     public $is_editing_printer = false;
+    public $current_token;
 
     public function mount()
     {
+        $this->current_token = \Illuminate\Support\Facades\Cookie::get('device_token');
         $config = \App\Models\Configuration::first();
         $this->access_mode = $config->device_access_mode ?? 'open';
     }
@@ -155,6 +157,10 @@ class DeviceManager extends Component
             $device->printer_user = $this->printer_user;
             $device->printer_password = $this->printer_password;
             $device->save();
+            
+            // Re-fetch or clear vars to ensure UI sync
+            $this->printer_name = $device->printer_name;
+            
             $this->dispatch('noty', msg: 'Configuración de impresora actualizada');
             $this->dispatch('close-modal', 'modalPrinter');
         }

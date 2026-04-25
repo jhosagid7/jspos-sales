@@ -66,8 +66,8 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse ($devices as $device)
-                            <tr>
+                            @foreach ($devices as $device)
+                            <tr @if($device->uuid == $current_token) style="background-color: rgba(26, 188, 156, 0.1);" @endif>
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <div class="mr-2">
@@ -75,6 +75,9 @@
                                                 <i class="fas fa-mobile-alt fa-lg text-primary"></i>
                                             @else
                                                 <i class="fas fa-desktop fa-lg text-info"></i>
+                                            @endif
+                                            @if($device->uuid == $current_token)
+                                                <span class="badge badge-success d-block mt-1" style="font-size: 0.6rem;">ESTE DISPOSITIVO</span>
                                             @endif
                                         </div>
                                         <div>
@@ -136,11 +139,12 @@
                                 </td>
                             </tr>
 
-                            @empty
+                            @endforeach
+                            @if($devices->isEmpty())
                             <tr>
                                 <td colspan="6" class="text-center">No hay dispositivos registrados</td>
                             </tr>
-                            @endforelse
+                            @endif
                         </tbody>
                     </table>
                 </div>
