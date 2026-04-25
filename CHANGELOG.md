@@ -1,3 +1,7 @@
+## [1.10.29] - 2026-04-25
+### Fixed
+- **Estabilidad de Sesión de Dispositivo**: Corregido problema donde los servidores de producción no mantenían la identidad del dispositivo (cookie). Se desactivó el cifrado para la cookie `device_token` y se ajustaron los parámetros de seguridad para permitir su uso en servidores locales (HTTP) sin HTTPS.
+
 ## [1.10.28] - 2026-04-25
 ### Fixed
 - **Migración Robusta**: Corregido error en la actualización de base de datos donde el sistema intentaba crear la columna `deleted_at` si esta ya existía. Ahora la migración es segura y omite el paso si la columna se detecta previamente.

@@ -55,8 +55,19 @@ class CheckDeviceAuthorization
                     'last_accessed_at' => now(),
                 ]);
 
-                // Queue cookie for 10 years
-                \Illuminate\Support\Facades\Cookie::queue($cookieName, $token, 5256000);
+                // Queue cookie for 10 years (5256000 minutes)
+                // Set secure to false if not on HTTPS and use Lax same_site for compatibility
+                \Illuminate\Support\Facades\Cookie::queue(
+                    $cookieName, 
+                    $token, 
+                    5256000, 
+                    '/', 
+                    null, 
+                    $request->isSecure(), 
+                    true, 
+                    false, 
+                    'Lax'
+                );
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error('Device Auth Creation Failed: ' . $e->getMessage());
                 $device = new \App\Models\DeviceAuthorization();
