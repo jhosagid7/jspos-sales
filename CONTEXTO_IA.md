@@ -103,13 +103,15 @@ La IA debe leer este archivo para entender cómo trabajar en este proyecto espec
 ## 9. Aplicación Móvil (Flutter)
 ### 9.1. Entorno de Compilación (CRÍTICO)
 - **Ruta SDK Flutter**: `C:\src\flutter` (Ejecutable: `C:\src\flutter\bin\flutter.bat`).
-- **Directorio del Proyecto**: `mobile_app/`.
+- **Directorio del Proyecto**: `mobile_app/` y `mobile_vip_app/`.
 - **Protocolo de Compilación y Release**:
-    1.  **Versión**: Incrementar el `version` en `mobile_app/pubspec.yaml` (tanto el nombre `x.x.x` como el build number `+N`).
+    1.  **Versión**: Incrementar el `version` en `pubspec.yaml` (tanto el nombre `x.x.x` como el build number `+N`).
     2.  **Limpieza/Dependencias**: Ejecutar `flutter pub get`.
-    3.  **Build**: Ejecutar `flutter build apk --release --split-per-abi`.
-    4.  **Distribución**: Copiar el archivo de procesadores modernos (`build/app/outputs/flutter-apk/app-arm64-v8a-release.apk`) a la **RAÍZ** del proyecto.
-    5.  **Nomenclatura**: Renombrar el APK siguiendo el patrón: `JSPOS_Mobile_vX.X.X_BreveDescripcion_SuWeb.apk`.
+    3.  **Build (LIGERO - Para soportar dispositivos antiguos de 5-6 años)**: NUNCA usar `flutter build apk --release` a secas (esto genera un FAT APK de >50MB). **SIEMPRE** ejecutar: `flutter build apk --release --split-per-abi`.
+    4.  **Distribución**: De los APKs generados, copiar ÚNICAMENTE el archivo de arquitectura de 32 bits compatible hacia atrás (`build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk`) a la **RAÍZ** del proyecto. Este archivo 32-bits (aprox 15MB) corre perfectamente tanto en teléfonos viejos como modernos de 64-bits.
+    5.  **Nomenclatura**: Renombrar el APK copiado siguiendo el patrón:
+        - App Normal: `JSPOS_Mobile_vX.X.X_BreveDescripcion_SuWeb.apk`
+        - App VIP/Clientes: `JSPOS_Mobile_VIP_vX.X.X_AppClientes_SuWeb.apk`
 
 ### 9.2. Estándares de Diseño y Estética "Su Web" (OBLIGATORIO)
 Cualquier modificación en la interfaz móvil DEBE seguir estos lineamientos para mantener la categoría Premium:
