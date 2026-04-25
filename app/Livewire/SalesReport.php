@@ -301,6 +301,16 @@ class SalesReport extends Component
                     $product = $detail->product;
                     if (!$product) continue;
 
+                    // RESTORE PRODUCT ITEM (BOBINAS/REELS)
+                    $meta = json_decode($detail->metadata, true);
+                    if ($meta && isset($meta['product_item_id'])) {
+                        $pi = \App\Models\ProductItem::find($meta['product_item_id']);
+                        if ($pi) {
+                            $pi->status = 'available';
+                            $pi->save();
+                        }
+                    }
+
                     // Calculate quantity to restore based on conversion factor if it was stored
                     // For now, use the detail quantity directly as it matches the deduction logic in Sales::storeOrder
                     $qtyToRestore = $detail->quantity;

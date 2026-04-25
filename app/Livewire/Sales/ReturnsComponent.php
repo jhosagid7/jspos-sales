@@ -285,8 +285,20 @@ class ReturnsComponent extends Component
                 $saleDetail = SaleDetail::find($item->sale_detail_id);
                 
                 if ($item->stock_action === 'returned_to_stock') {
-                    if ($saleDetail && $saleDetail->warehouse_id) {
-                        $targetWarehouseId = $saleDetail->warehouse_id;
+                    if ($saleDetail) {
+                         // RESTORE PRODUCT ITEM (BOBINAS/REELS)
+                        $meta = json_decode($saleDetail->metadata, true);
+                        if ($meta && isset($meta['product_item_id'])) {
+                            $pi = \App\Models\ProductItem::find($meta['product_item_id']);
+                            if ($pi) {
+                                $pi->status = 'available';
+                                $pi->save();
+                            }
+                        }
+
+                        if ($saleDetail->warehouse_id) {
+                            $targetWarehouseId = $saleDetail->warehouse_id;
+                        }
                     }
                 } else {
                     // Merma/Damaged - Finding the designated warehouse logic should be here or from the original request
