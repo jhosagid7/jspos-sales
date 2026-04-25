@@ -107,8 +107,8 @@ La IA debe leer este archivo para entender cómo trabajar en este proyecto espec
 - **Protocolo de Compilación y Release**:
     1.  **Versión**: Incrementar el `version` en `pubspec.yaml` (tanto el nombre `x.x.x` como el build number `+N`).
     2.  **Limpieza/Dependencias**: Ejecutar `flutter pub get`.
-    3.  **Build (LIGERO - Para soportar dispositivos antiguos de 5-6 años)**: NUNCA usar `flutter build apk --release` a secas (esto genera un FAT APK de >50MB). **SIEMPRE** ejecutar: `flutter build apk --release --split-per-abi`.
-    4.  **Distribución**: De los APKs generados, copiar ÚNICAMENTE el archivo de arquitectura de 32 bits compatible hacia atrás (`build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk`) a la **RAÍZ** del proyecto. Este archivo 32-bits (aprox 15MB) corre perfectamente tanto en teléfonos viejos como modernos de 64-bits.
+    3.  **Build**: NUNCA usar `flutter build apk --release` a secas (esto genera un FAT APK de >50MB). **SIEMPRE** ejecutar: `flutter build apk --release --split-per-abi`.
+    4.  **Distribución**: De los APKs generados, copiar ÚNICAMENTE el archivo de procesadores modernos (`build/app/outputs/flutter-apk/app-arm64-v8a-release.apk`) a la **RAÍZ** del proyecto. Este archivo 64-bits (aprox 18MB) es el estándar desde hace 5-6 años y corre en la inmensa mayoría de dispositivos.
     5.  **Nomenclatura**: Renombrar el APK copiado siguiendo el patrón:
         - App Normal: `JSPOS_Mobile_vX.X.X_BreveDescripcion_SuWeb.apk`
         - App VIP/Clientes: `JSPOS_Mobile_VIP_vX.X.X_AppClientes_SuWeb.apk`
