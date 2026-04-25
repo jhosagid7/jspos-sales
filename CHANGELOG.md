@@ -1,3 +1,7 @@
+## [1.10.30] - 2026-04-25
+### Fixed
+- **Doble Persistencia de Identidad**: Implementado sistema de respaldo en Sesión (Server-side) para la identificación de dispositivos. Esto resuelve problemas en redes locales donde los navegadores rechazan cookies persistentes. Ahora, si la cookie falla, el sistema recupera el ID de la sesión activa y restaura la configuración automáticamente.
+
 ## [1.10.29] - 2026-04-25
 ### Fixed
 - **Estabilidad de Sesión de Dispositivo**: Corregido problema donde los servidores de producción no mantenían la identidad del dispositivo (cookie). Se desactivó el cifrado para la cookie `device_token` y se ajustaron los parámetros de seguridad para permitir su uso en servidores locales (HTTP) sin HTTPS.

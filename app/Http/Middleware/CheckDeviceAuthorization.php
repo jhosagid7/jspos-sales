@@ -26,11 +26,16 @@ class CheckDeviceAuthorization
         }
 
         $cookieName = 'device_token';
-        $token = $request->cookie($cookieName);
+        $token = $request->cookie($cookieName) ?? session($cookieName);
         $device = null;
 
         if ($token) {
             $device = \App\Models\DeviceAuthorization::where('uuid', $token)->first();
+            
+            // If found in session but cookie is missing, re-sync cookie
+            if ($device && !$request->cookie($cookieName)) {
+                $this->queueDeviceCookie($token, $request->isSecure());
+            }
         }
 
         if (!$device) {
@@ -55,19 +60,10 @@ class CheckDeviceAuthorization
                     'last_accessed_at' => now(),
                 ]);
 
-                // Queue cookie for 10 years (5256000 minutes)
-                // Set secure to false if not on HTTPS and use Lax same_site for compatibility
-                \Illuminate\Support\Facades\Cookie::queue(
-                    $cookieName, 
-                    $token, 
-                    5256000, 
-                    '/', 
-                    null, 
-                    $request->isSecure(), 
-                    true, 
-                    false, 
-                    'Lax'
-                );
+                // Save to session and queue cookie
+                session([$cookieName => $token]);
+                $this->queueDeviceCookie($token, $request->isSecure());
+
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error('Device Auth Creation Failed: ' . $e->getMessage());
                 $device = new \App\Models\DeviceAuthorization();
@@ -101,5 +97,23 @@ class CheckDeviceAuthorization
         }
 
         return $next($request);
+    }
+
+    /**
+     * Helper to queue device cookie with consistent parameters
+     */
+    private function queueDeviceCookie($token, $isSecure)
+    {
+        \Illuminate\Support\Facades\Cookie::queue(
+            'device_token', 
+            $token, 
+            5256000, 
+            '/', 
+            null, 
+            $isSecure, 
+            false, // httpOnly = false so JS can potentially see it if needed for debugging
+            false, 
+            'Lax'
+        );
     }
 }
