@@ -1,3 +1,7 @@
+## [1.10.28] - 2026-04-25
+### Fixed
+- **Migración Robusta**: Corregido error en la actualización de base de datos donde el sistema intentaba crear la columna `deleted_at` si esta ya existía. Ahora la migración es segura y omite el paso si la columna se detecta previamente.
+
 ## [1.10.27] - 2026-04-25
 ### Added
 - **Identificación de Dispositivos**: Añadida etiqueta visual "ESTE DISPOSITIVO" en la tabla de gestión para ayudar a los usuarios a configurar el navegador actual correctamente.
