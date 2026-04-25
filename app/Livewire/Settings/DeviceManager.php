@@ -24,7 +24,7 @@ class DeviceManager extends Component
 
     public function mount()
     {
-        $this->current_token = \Illuminate\Support\Facades\Cookie::get('device_token');
+        $this->current_token = \Illuminate\Support\Facades\Cookie::get('device_token') ?? session('device_token');
         $config = \App\Models\Configuration::first();
         $this->access_mode = $config->device_access_mode ?? 'open';
     }

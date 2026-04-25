@@ -1,3 +1,7 @@
+## [1.10.31] - 2026-04-25
+### Fixed
+- **Unificación de Identidad**: Vinculada la lógica de detección de dispositivos en el componente visual y el trait de impresión con el sistema de respaldo en sesión. Esto asegura que la etiqueta "ESTE DISPOSITIVO" sea visible de forma consistente tanto en desarrollo como en producción.
+
 ## [1.10.30] - 2026-04-25
 ### Fixed
 - **Doble Persistencia de Identidad**: Implementado sistema de respaldo en Sesión (Server-side) para la identificación de dispositivos. Esto resuelve problemas en redes locales donde los navegadores rechazan cookies persistentes. Ahora, si la cookie falla, el sistema recupera el ID de la sesión activa y restaura la configuración automáticamente.

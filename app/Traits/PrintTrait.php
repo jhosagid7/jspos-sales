@@ -27,7 +27,7 @@ trait PrintTrait
         $printerWidth = '80mm';
         
         // 1. Check Device Authorization
-        $deviceToken = \Illuminate\Support\Facades\Cookie::get('device_token');
+        $deviceToken = \Illuminate\Support\Facades\Cookie::get('device_token') ?? session('device_token');
         $isNetwork = false;
         $printerUser = null;
         $printerPassword = null;
