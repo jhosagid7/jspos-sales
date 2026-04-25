@@ -4,7 +4,7 @@
 - **Sincronización de Licencias**: Eliminado un bypass de desarrollo ("DEV BYPASS") atascado para UUIDs específicos que causaba que la interfaz visual siempre mostrara "30 días restantes" a pesar de activar códigos temporales superiores.
 - **Caché del Sistema**: Implementada una limpieza inmediata de caché (`Cache::forget`) al activar o renovar permisos, forzando la visualización en tiempo real de los módulos habilitados sin tener que esperar a su expiración natural.
 
-### App Móvil (VIP 1.1.1)
+### App Móvil (VIP 1.1.5)
 - **Autorización de Cuentas (MyPurchases)**: Subsanado un error clave donde la sección de "Compras" no enviaba el Access Token (`token` vs `api_token`) causando denegaciones 401 por parte de la API.
 - **Precisión Monetaria**: El total de compra ahora se mapea correctamente a la variable del servidor (`total`) en lugar de arrojar pantallas en $0.00 debido a inconsistencias del modelo.
 
