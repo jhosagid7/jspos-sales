@@ -38,8 +38,26 @@ class CheckDeviceAuthorization
             }
         }
 
+        if (!$token) {
+            // Capa 3: Buscar por Huella Digital (IP + UserAgent)
+            // Solo si no tenemos token en cookie ni sesión
+            $fingerprintMatch = \App\Models\DeviceAuthorization::where('ip_address', $request->ip())
+                ->where('user_agent', $request->userAgent())
+                ->orderBy('last_accessed_at', 'desc')
+                ->first();
+
+            if ($fingerprintMatch) {
+                $token = $fingerprintMatch->uuid;
+                $device = $fingerprintMatch;
+                
+                // Restaurar identidad en cookie y sesión
+                session([$cookieName => $token]);
+                $this->queueDeviceCookie($token, $request->isSecure());
+            }
+        }
+
         if (!$device) {
-            // New Device
+            // New Device - Solo si no se encontró por ninguna capa
             $token = (string) \Illuminate\Support\Str::uuid();
             $config = \App\Models\Configuration::first();
             $status = ($config && $config->device_access_mode === 'restricted') ? 'pending' : 'approved';

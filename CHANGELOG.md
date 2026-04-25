@@ -1,3 +1,8 @@
+## [1.10.32] - 2026-04-25
+### Fixed
+- **Identificación por Huella Digital**: Añadido sistema de reconocimiento de dispositivos basado en IP y User-Agent (Fingerprint) como capa de seguridad final. Esto evita la creación duplicada de dispositivos cuando se pierden las cookies y asegura que las restricciones de acceso (bloqueos) sean efectivas y persistentes.
+- **Detección de IP**: Ajustada la configuración de TrustProxies para mejorar la visibilidad de IPs reales en redes locales.
+
 ## [1.10.31] - 2026-04-25
 ### Fixed
 - **Unificación de Identidad**: Vinculada la lógica de detección de dispositivos en el componente visual y el trait de impresión con el sistema de respaldo en sesión. Esto asegura que la etiqueta "ESTE DISPOSITIVO" sea visible de forma consistente tanto en desarrollo como en producción.
