@@ -1,3 +1,12 @@
+## [1.10.26] - 2026-04-25
+### Added
+- **SoftDeletes para Productos**: Implementado el sistema de borrado suave nativo de Laravel. Esto permite ocultar productos del POS y buscadores sin romper la integridad de los registros de ventas históricos.
+- **Comando Artisan**: Creado `php artisan products:cleanup` para realizar purgas masivas de inventario (basadas en stock o precio) de forma segura mediante SoftDeletes.
+
+### Fixed
+- **Restauración de Stock (Bobinas)**: Corregida la lógica al eliminar ventas o procesar devoluciones para productos con peso separado (bobinas/reels). Ahora, el sistema libera automáticamente la bobina específica (ProductItem) y la devuelve al estado "Disponible".
+- **Relaciones con Productos**: Actualizados todos los modelos de detalle (Ventas, Compras, Órdenes, Producción, etc.) para incluir `->withTrashed()`, garantizando que las facturas antiguas sigan mostrando el nombre del producto aunque este haya sido "eliminado".
+
 ## [1.10.25] - 2026-04-25
 ### Fixed
 - **Estabilidad de UI Global (Header)**: Corregido un crash crítico ("Attempt to read property 'name' on null") en el menú superior que bloqueaba el acceso de los usuarios. El error ocurría cuando el motor de notificaciones intentaba renderizar alertas de compras, créditos o comisiones asociadas a proveedores o clientes eliminados.
