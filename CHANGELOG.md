@@ -1,3 +1,13 @@
+## [1.10.25] - 2026-04-25
+### Fixed
+- **Estabilidad de UI Global (Header)**: Corregido un crash crítico ("Attempt to read property 'name' on null") en el menú superior que bloqueaba el acceso de los usuarios. El error ocurría cuando el motor de notificaciones intentaba renderizar alertas de compras, créditos o comisiones asociadas a proveedores o clientes eliminados.
+- **Sincronización de Licencias**: Eliminado un bypass de desarrollo ("DEV BYPASS") atascado para UUIDs específicos que causaba que la interfaz visual siempre mostrara "30 días restantes" a pesar de activar códigos temporales superiores.
+- **Caché del Sistema**: Implementada una limpieza inmediata de caché (`Cache::forget`) al activar o renovar permisos, forzando la visualización en tiempo real de los módulos habilitados sin tener que esperar a su expiración natural.
+
+### App Móvil (VIP 1.1.1)
+- **Autorización de Cuentas (MyPurchases)**: Subsanado un error clave donde la sección de "Compras" no enviaba el Access Token (`token` vs `api_token`) causando denegaciones 401 por parte de la API.
+- **Precisión Monetaria**: El total de compra ahora se mapea correctamente a la variable del servidor (`total`) en lugar de arrojar pantallas en $0.00 debido a inconsistencias del modelo.
+
 ## [1.10.24] - 2026-04-22
 ### Added
 - **Mobile VIP App**: Finalizada la primera versión compilable de la App móvil exclusiva para clientes VIP con interfaz dorada (ícono de carrito VIP), drawer responsivo inferior y lectura de versión dinámica.

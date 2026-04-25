@@ -92,7 +92,7 @@
                         <div class="media">
                             <div class="media-body">
                                 <h3 class="dropdown-item-title font-weight-bold">
-                                    {{ $npurchase->supplier->name }}
+                                    {{ $npurchase->supplier?->name ?? 'Proveedor Desconocido' }}
                                     <span class="float-right text-sm text-danger"><i class="fas fa-clock"></i> {{ app('fun')->overdue($npurchase->created_at, now()) - $credit_purchase_days }}d</span>
                                 </h3>
                                 <p class="text-sm">Compra #{{ $npurchase->id }}</p>
@@ -127,7 +127,7 @@
                         <div class="media">
                             <div class="media-body">
                                 <h3 class="dropdown-item-title font-weight-bold">
-                                    {{ $nsale->customer->name }}
+                                    {{ $nsale->customer?->name ?? 'Cliente Desconocido' }}
                                     <span class="float-right text-sm text-danger"><i class="fas fa-clock"></i> {{ app('fun')->overdue($nsale->created_at, now()) - $credit_days }}d</span>
                                 </h3>
                                 <p class="text-sm">Venta #{{ $nsale->id }}</p>
@@ -162,7 +162,7 @@
                         <div class="media">
                             <div class="media-body">
                                 <h3 class="dropdown-item-title font-weight-bold">
-                                    {{ $ncomm->customer->name ?? 'Cliente N/A' }}
+                                    {{ $ncomm->customer?->name ?? 'Cliente N/A' }}
                                     <span class="float-right text-sm text-success">
                                         ${{ number_format($ncomm->final_commission_amount ?? 0, 2) }}
                                     </span>

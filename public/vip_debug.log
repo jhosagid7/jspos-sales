@@ -74,3 +74,31 @@ L
 2026-04-22 19:16:56 | RESPONSE (200): {"status":"success","data":[{"id":464,"sale_id":461,"invoice_number":"F00000461","customer_name":"OF
 2026-04-22 19:45:23 | [POST] PATH: api/vip/login | IP: 192.168.20.112 | USER: NULL
 2026-04-22 19:45:23 | RESPONSE (200): {"status":"success","access_token":"149|qJwwv4MoAvorWLWCfBXkSs36ZzoOEGLENnfbvCSkbb8dfc43","token_typ
+2026-04-22 20:16:33 | [POST] PATH: api/vip/login | IP: 192.168.20.104 | USER: NULL
+2026-04-22 20:16:33 | RESPONSE (200): {"status":"success","access_token":"150|c12ZWiNVip8dvzvyfs75R3YdEAgPb2BmOUjYPLO3b00dd0b8","token_typ
+2026-04-22 20:16:37 | [GET] PATH: api/vip/products | IP: 192.168.20.104 | USER: NULL
+2026-04-22 20:16:38 | RESPONSE (200): [{"id":1,"name":"BANDEJAS A1 EUROPLAST X500UND","sku":"BP03A1E","price":11.37,"stock":147,"reserved_
+2026-04-22 20:16:59 | [GET] PATH: api/vip/products | IP: 192.168.20.104 | USER: NULL
+2026-04-22 20:16:59 | RESPONSE (200): [{"id":1,"name":"BANDEJAS A1 EUROPLAST X500UND","sku":"BP03A1E","price":11.37,"stock":147,"reserved_
+2026-04-23 12:18:48 | [GET] PATH: api/vip/sales/pending | IP: 127.0.0.1 | USER: NULL
+2026-04-23 12:18:50 | [GET] PATH: api/vip/sales/pending | IP: 127.0.0.1 | USER: NULL
+2026-04-23 12:18:51 | RESPONSE (200): [{"id":461,"invoice_number":"F00000461","date":"2026-03-21","due_date":"2026-04-05","days_overdue":1
+2026-04-23 12:18:51 | RESPONSE (200): [{"id":461,"invoice_number":"F00000461","date":"2026-03-21","due_date":"2026-04-05","days_overdue":1
+2026-04-23 12:19:33 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: NULL
+2026-04-23 12:19:34 | RESPONSE (200): [{"id":1,"name":"BANDEJAS A1 EUROPLAST X500UND","sku":"BP03A1E","price":11.37,"stock":147,"reserved_
+2026-04-23 12:20:09 | [GET] PATH: api/vip/sales | IP: 127.0.0.1 | USER: NULL
+2026-04-23 12:20:09 | RESPONSE (200): [{"id":461,"invoice_number":"F00000461","order_number":null,"total":"2959.45","is_freight_broken_dow
+2026-04-23 12:21:47 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: NULL
+2026-04-23 12:21:47 | RESPONSE (200): [{"id":1,"name":"BANDEJAS A1 EUROPLAST X500UND","sku":"BP03A1E","price":11.37,"stock":147,"reserved_
+2026-04-23 12:21:48 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: NULL
+2026-04-23 12:21:48 | RESPONSE (200): [{"id":1,"name":"BANDEJAS A1 EUROPLAST X500UND","sku":"BP03A1E","price":11.37,"stock":147,"reserved_
+2026-04-23 12:21:54 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: NULL
+2026-04-23 12:21:54 | RESPONSE (200): [{"id":1,"name":"BANDEJAS A1 EUROPLAST X500UND","sku":"BP03A1E","price":11.37,"stock":147,"reserved_
+2026-04-23 12:22:06 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: NULL
+2026-04-23 12:22:06 | RESPONSE (200): [{"id":1,"name":"BANDEJAS A1 EUROPLAST X500UND","sku":"BP03A1E","price":11.37,"stock":147,"reserved_
+2026-04-23 12:22:07 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: NULL
+2026-04-23 12:22:07 | RESPONSE (200): [{"id":1,"name":"BANDEJAS A1 EUROPLAST X500UND","sku":"BP03A1E","price":11.37,"stock":147,"reserved_
+2026-04-23 12:22:11 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: NULL
+2026-04-23 12:22:11 | RESPONSE (200): [{"id":1,"name":"BANDEJAS A1 EUROPLAST X500UND","sku":"BP03A1E","price":11.37,"stock":147,"reserved_
+2026-04-23 12:22:39 | [GET] PATH: api/vip/payments/history | IP: 127.0.0.1 | USER: NULL
+2026-04-23 12:22:40 | RESPONSE (422): {"message":"ID de venta requerido"}

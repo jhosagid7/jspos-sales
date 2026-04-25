@@ -83,8 +83,14 @@ GET http://jspos-sales.test/api/vip/payments/history
 Accept: application/json
 Authorization: Bearer 146|EzDzB70FCdxHAZHmGT4y2JVGX9CUpeJkcm0VMm1n44b6f94f
 
-### Ver Historial Global de mis Pagos Subidos
-GET http://jspos-sales.test/api/vip/payments/history/global
+### Obtener histórico de pagos de forma global y por vendedor (requiere token y user_id es detectado del auth)
+GET {{baseUrl}}/api/vip/payments/history/global
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### Obtener mis compras reales (Facturas)
+GET {{baseUrl}}/api/vip/sales
+Authorization: Bearer {{token}}
 Accept: application/json
 Authorization: Bearer 146|EzDzB70FCdxHAZHmGT4y2JVGX9CUpeJkcm0VMm1n44b6f94f
 

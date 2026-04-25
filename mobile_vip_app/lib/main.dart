@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'screens/my_purchases_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
@@ -472,8 +473,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   childAspectRatio: 1.2,
                   children: [
                     _menuCard('PRODUCTOS', Icons.inventory_2_rounded, const Color(0xFF00B4D8), () => Navigator.push(context, MaterialPageRoute(builder: (context) => CatalogScreen(baseUrl: _baseUrl)))),
-                    _menuCard('HISTORIAL', Icons.receipt_long_rounded, const Color(0xFF2E7D32), () => Navigator.push(context, MaterialPageRoute(builder: (context) => OrdersScreen(baseUrl: _baseUrl)))),
-                    _menuCard('MIS DEUDAS', Icons.account_balance_wallet_rounded, const Color(0xFFF9C74F), () => Navigator.push(context, MaterialPageRoute(builder: (context) => PendingSalesScreen(baseUrl: _baseUrl, customer: Customer(id: _userId, name: _userName))))),
+                    _menuCard('Pedidos', Icons.list_alt, Colors.orange, () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => OrdersScreen(baseUrl: _baseUrl)));
+                    }),
+                    _menuCard('Mis Compras', Icons.local_mall_outlined, Colors.green, () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => MyPurchasesScreen(baseUrl: _baseUrl)));
+                    }),
+                    _menuCard('Mis Deudas', Icons.account_balance_wallet, Colors.redAccent, () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => PendingSalesScreen(baseUrl: _baseUrl, customer: Customer(id: _userId, name: _userName))));
+                    }),
                     _menuCard('AUDITORÍA', Icons.fact_check_rounded, const Color(0xFF415A77), () => Navigator.push(context, MaterialPageRoute(builder: (context) => PaymentAuditScreen(baseUrl: _baseUrl)))),
                   ],
                 ),

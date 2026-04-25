@@ -41,6 +41,9 @@ Route::prefix('vip')->group(function () {
         Route::post('/orders/{id}/send', [App\Http\Controllers\Api\Vip\OrderController::class, 'sendToOffice']);
         Route::delete('/orders/{id}', [App\Http\Controllers\Api\Vip\OrderController::class, 'destroy']);
 
+        // Sales (Purchases) Module
+        Route::get('/sales', [App\Http\Controllers\Api\Vip\SaleController::class, 'index']);
+
         // Payments Upload Module for VIP
         Route::get('/payments/form-data', [App\Http\Controllers\Api\Vip\PaymentController::class, 'formData']);
         Route::get('/sales/pending', [App\Http\Controllers\Api\Vip\PaymentController::class, 'pendingSales']);
