@@ -1,3 +1,7 @@
+## [1.10.34] - 2026-04-27
+### Fixed
+- **Restauración de Visibilidad de IPs**: Rehabilitada la configuración de TrustProxies para asegurar que las IPs reales de los equipos sean visibles en el panel de gestión de dispositivos, manteniendo la estabilidad de identidad de la versión anterior.
+
 ## [1.10.33] - 2026-04-27
 ### Fixed
 - **Reversión a Lógica Estable**: Restaurado el sistema de autorización de dispositivos a su estado original más estable. Se ha vuelto a habilitar el cifrado nativo de cookies de Laravel y se ha eliminado la lógica de huella digital (IP+UA) que causaba colisiones de identidad en redes locales. Se mantiene el respaldo en sesión para mayor durabilidad.
