@@ -8,6 +8,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
+import 'dart:math';
 
 void main() {
   runApp(const JSPOSMobile());
@@ -116,9 +117,31 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   String _baseUrl = 'http://192.168.194.66';
 
+  String _deviceToken = "";
+
   @override
-  void initState() { super.initState(); _loadSettings(); }
-  _loadSettings() async { final prefs = await SharedPreferences.getInstance(); setState(() { _baseUrl = prefs.getString('base_url') ?? 'http://192.168.194.66'; _emailController.text = prefs.getString('last_email') ?? ''; }); }
+  void initState() { super.initState(); _init(); }
+  _init() async { 
+    final prefs = await SharedPreferences.getInstance(); 
+    
+    String token = prefs.getString('device_token') ?? '';
+    if (token.isEmpty) {
+      token = 'SELL-${DateTime.now().millisecondsSinceEpoch}-${_generateRandomString(4)}';
+      await prefs.setString('device_token', token);
+    }
+
+    setState(() { 
+      _baseUrl = prefs.getString('base_url') ?? 'http://192.168.194.66'; 
+      _emailController.text = prefs.getString('last_email') ?? ''; 
+      _deviceToken = token;
+    }); 
+  }
+
+  String _generateRandomString(int length) {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    final rand = Random();
+    return List.generate(length, (index) => chars[rand.nextInt(chars.length)]).join();
+  }
 
   Future<void> _showSettings() async {
     final controller = TextEditingController(text: _baseUrl);
@@ -153,8 +176,11 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/api/login'),
-        headers: {'Accept': 'application/json'},
-        body: {'email': _emailController.text, 'password': _passwordController.text, 'device_name': 'MobileApp'},
+        headers: {
+          'Accept': 'application/json',
+          'X-Device-Token': _deviceToken
+        },
+        body: {'email': _emailController.text, 'password': _passwordController.text, 'device_name': 'Mobile (Seller)'},
       ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
@@ -270,7 +296,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final baseUrl = prefs.getString('base_url');
-      final response = await http.get(Uri.parse('$baseUrl/api/user'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'}).timeout(const Duration(seconds: 10));
+      final response = await http.get(Uri.parse('$baseUrl/api/user'), headers: {
+        'Authorization': 'Bearer $token', 
+        'Accept': 'application/json',
+        'X-Device-Token': prefs.getString('device_token') ?? ''
+      }).timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
         final user = json.decode(response.body);
         await prefs.setString('deadline', user['order_deadline_at'] ?? '');
@@ -585,7 +615,11 @@ class _CatalogScreenState extends State<CatalogScreen> {
       final token = prefs.getString('token');
       String url = '$_baseUrl/api/products?search=$search';
       if (_selectedCustomer != null) url += '&customer_id=${_selectedCustomer!.id}';
-      final response = await http.get(Uri.parse(url), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'}).timeout(const Duration(seconds: 15));
+      final response = await http.get(Uri.parse(url), headers: {
+        'Authorization': 'Bearer $token', 
+        'Accept': 'application/json',
+        'X-Device-Token': prefs.getString('device_token') ?? ''
+      }).timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) setState(() { _products.clear(); _products.addAll((json.decode(response.body) as List).map((e) => Product.fromJson(e)).toList()); });
       else setState(() => _errorMessage = "Err Server: ${response.statusCode}");
     } catch (e) { setState(() => _errorMessage = "Err: $e"); }

@@ -1,3 +1,9 @@
+## [1.10.36] - 2026-04-27
+### Added
+- **Soporte para Apps Móviles**: Integración de APKs de Vendedores y VIP en el módulo de gestión de dispositivos.
+- **Auditoría de Identidad Móvil**: Registro automático de celulares con bloqueo remoto opcional mediante el Modo Restringido.
+- **API Security Layer**: Middleware adaptado para responder con JSON (403) en terminales móviles no autorizados.
+
 ## [1.10.35] - 2026-04-27
 ### Fixed
 - **Limpieza Automática de Dispositivos**: Implementada la purga automática de la tabla de autorizaciones durante el proceso de actualización. Esto obliga a todos los PCs a re-identificarse bajo la nueva lógica de UUID estable.

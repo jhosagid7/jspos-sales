@@ -20,20 +20,23 @@ class CheckDeviceAuthorization
             return $next($request);
         }
 
-        // Exclude public routes and login/logout
-        if ($request->is('login', 'logout', 'register', 'password/*', 'access-denied')) {
+        // Exclude public routes and login/logout (Both Web and API)
+        if ($request->is('login', 'logout', 'register', 'password/*', 'access-denied', 'api/login', 'api/vip/login')) {
             return $next($request);
         }
 
         $cookieName = 'device_token';
-        $token = $request->cookie($cookieName) ?? session($cookieName);
+        $headerName = 'X-Device-Token';
+
+        // Check for token in Cookie, Session, or Custom Header (Apps)
+        $token = $request->cookie($cookieName) ?? session($cookieName) ?? $request->header($headerName);
         $device = null;
 
         if ($token) {
             $device = \App\Models\DeviceAuthorization::where('uuid', $token)->first();
             
-            // If found in session but cookie is missing, re-sync cookie
-            if ($device && !$request->cookie($cookieName)) {
+            // If found but cookie is missing (and it's a web request), re-sync cookie
+            if ($device && !$request->expectsJson() && !$request->cookie($cookieName)) {
                 $this->queueDeviceCookie($token);
             }
         }
@@ -44,7 +47,7 @@ class CheckDeviceAuthorization
             $config = \App\Models\Configuration::first();
             $status = ($config && $config->device_access_mode === 'restricted') ? 'pending' : 'approved';
             
-            // Si el admin ya está logueado, aprobamos de entrada
+            // Bypass for Admins (if already logged in)
             if (auth()->check() && auth()->user()->hasAnyRole(['Admin', 'Super Admin'])) {
                 $status = 'approved';
             }
@@ -65,9 +68,11 @@ class CheckDeviceAuthorization
                     'last_accessed_at' => now(),
                 ]);
 
-                // Save to session and queue cookie
-                session([$cookieName => $token]);
-                $this->queueDeviceCookie($token);
+                // Save to session and queue cookie if it's a web request
+                if (!$request->expectsJson()) {
+                    session([$cookieName => $token]);
+                    $this->queueDeviceCookie($token);
+                }
 
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error('Device Auth Creation Failed: ' . $e->getMessage());
@@ -76,7 +81,7 @@ class CheckDeviceAuthorization
                 $device->uuid = $token;
             }
         } else {
-            // Existing Device - Update info (only if changed or time passed)
+            // Existing Device - Update info
             try {
                 if (!$device->last_accessed_at || $device->last_accessed_at->diffInMinutes(now()) >= 60) {
                     $device->update([
@@ -90,11 +95,20 @@ class CheckDeviceAuthorization
         }
 
         if ($device->status !== 'approved') {
-            // Seguridad: Si el usuario ya inició sesión y es Admin/Super Admin, 
-            // aprobamos el dispositivo automáticamente para evitar bloqueos del administrador.
+            // Check if we can auto-approve this device because the user is an Admin
             if (auth()->check() && auth()->user()->hasAnyRole(['Admin', 'Super Admin'])) {
                 $device->update(['status' => 'approved']);
             } else {
+                // If it's an API request, return JSON instead of Redirect
+                if ($request->expectsJson() || $request->is('api/*')) {
+                    return response()->json([
+                        'message' => 'Dispositivo no autorizado.',
+                        'device_uuid' => $device->uuid,
+                        'status' => $device->status,
+                        'ip' => $request->ip()
+                    ], 403);
+                }
+
                 return redirect()->route('access.denied', ['device_uuid' => $device->uuid]);
             }
         }
