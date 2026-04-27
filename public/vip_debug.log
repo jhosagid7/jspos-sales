@@ -108,3 +108,7 @@ L
 2026-04-25 17:41:29 | RESPONSE (401): {"message":"Credenciales inv\u00e1lidas o acceso no autorizado para esta cuenta."}
 2026-04-25 17:41:30 | [POST] PATH: api/vip/login | IP: 192.168.194.58 | USER: NULL
 2026-04-25 17:41:30 | RESPONSE (401): {"message":"Credenciales inv\u00e1lidas o acceso no autorizado para esta cuenta."}
+2026-04-27 15:41:21 | [POST] PATH: api/vip/login | IP: 192.168.194.58 | USER: NULL
+2026-04-27 15:41:22 | RESPONSE (200): {"status":"success","access_token":"83|aCfCMvRyXoBaWvzKnf5CM9sGb3hLL1ULINheR0as156a642c","token_type
+2026-04-27 15:41:25 | [GET] PATH: api/vip/me | IP: 192.168.194.58 | USER: NULL
+2026-04-27 15:41:25 | RESPONSE (200): {"status":"success","customer":{"id":115,"name":"OF-13. DALBERT RAMIREZ VERA ","address":"ENTRE AV 6

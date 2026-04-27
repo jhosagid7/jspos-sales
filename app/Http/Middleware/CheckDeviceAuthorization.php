@@ -42,8 +42,8 @@ class CheckDeviceAuthorization
         }
 
         if (!$device) {
-            // New Device
-            $token = (string) \Illuminate\Support\Str::uuid();
+            // New Device - Use provided token or generate UUID
+            $token = $token ?: (string) \Illuminate\Support\Str::uuid();
             $config = \App\Models\Configuration::first();
             $status = ($config && $config->device_access_mode === 'restricted') ? 'pending' : 'approved';
             

@@ -1,3 +1,7 @@
+## [1.10.37] - 2026-04-27
+### Fixed
+- **Duplicidad en Apps**: Corregido error que generaba múltiples registros de dispositivo para las Apps móviles al no respetar el ID enviado por el cliente.
+
 ## [1.10.36] - 2026-04-27
 ### Added
 - **Soporte para Apps Móviles**: Integración de APKs de Vendedores y VIP en el módulo de gestión de dispositivos.
