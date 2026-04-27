@@ -1,3 +1,7 @@
+## [1.10.38] - 2026-04-27
+### Fixed
+- **Creación de Usuarios**: Corregido error SQL (Column cannot be null) al crear usuarios nuevos debido a la falta de valores por defecto en campos de bloqueo por horario y metas mensuales.
+
 ## [1.10.37] - 2026-04-27
 ### Fixed
 - **Duplicidad en Apps**: Corregido error que generaba múltiples registros de dispositivo para las Apps móviles al no respetar el ID enviado por el cliente.

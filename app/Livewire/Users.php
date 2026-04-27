@@ -322,6 +322,8 @@ class Users extends Component
             if($this->user->seller_usd_payment_discount == null) $this->user->seller_usd_payment_discount = 0;
             if($this->user->seller_usd_payment_discount_tag == null) $this->user->seller_usd_payment_discount_tag = 'PD';
             if($this->user->sales_view_mode == null) $this->user->sales_view_mode = 'grid';
+            if($this->user->is_deadline_active == null) $this->user->is_deadline_active = 0;
+            if($this->user->monthly_goal == null) $this->user->monthly_goal = 0;
             
             \Illuminate\Support\Facades\Log::info('Store: Saving User...');
             $this->user->save();
