@@ -34,30 +34,12 @@ class CheckDeviceAuthorization
             
             // If found in session but cookie is missing, re-sync cookie
             if ($device && !$request->cookie($cookieName)) {
-                $this->queueDeviceCookie($token, $request->isSecure());
-            }
-        }
-
-        if (!$token) {
-            // Capa 3: Buscar por Huella Digital (IP + UserAgent)
-            // Solo si no tenemos token en cookie ni sesión
-            $fingerprintMatch = \App\Models\DeviceAuthorization::where('ip_address', $request->ip())
-                ->where('user_agent', $request->userAgent())
-                ->orderBy('last_accessed_at', 'desc')
-                ->first();
-
-            if ($fingerprintMatch) {
-                $token = $fingerprintMatch->uuid;
-                $device = $fingerprintMatch;
-                
-                // Restaurar identidad en cookie y sesión
-                session([$cookieName => $token]);
-                $this->queueDeviceCookie($token, $request->isSecure());
+                $this->queueDeviceCookie($token);
             }
         }
 
         if (!$device) {
-            // New Device - Solo si no se encontró por ninguna capa
+            // New Device
             $token = (string) \Illuminate\Support\Str::uuid();
             $config = \App\Models\Configuration::first();
             $status = ($config && $config->device_access_mode === 'restricted') ? 'pending' : 'approved';
@@ -80,7 +62,7 @@ class CheckDeviceAuthorization
 
                 // Save to session and queue cookie
                 session([$cookieName => $token]);
-                $this->queueDeviceCookie($token, $request->isSecure());
+                $this->queueDeviceCookie($token);
 
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error('Device Auth Creation Failed: ' . $e->getMessage());
@@ -89,23 +71,15 @@ class CheckDeviceAuthorization
                 $device->uuid = $token;
             }
         } else {
-            // Existing Device - Update info only if it's been more than 30 mins
+            // Existing Device - Update info (only if changed or time passed)
             try {
-                if (!$device->last_accessed_at || $device->last_accessed_at->diffInMinutes(now()) >= 30) {
-                    $userAgent = $request->userAgent();
-                    $userAgent = iconv('UTF-8', 'UTF-8//IGNORE', $userAgent);
-                    if (!mb_check_encoding($userAgent, 'UTF-8')) {
-                        $userAgent = 'Unknown User Agent';
-                    }
-
+                if (!$device->last_accessed_at || $device->last_accessed_at->diffInMinutes(now()) >= 60) {
                     $device->update([
                         'ip_address' => $request->ip(),
-                        'user_agent' => $userAgent,
                         'last_accessed_at' => now(),
                     ]);
                 }
             } catch (\Exception $e) {
-                // If update fails, just log it and continue. Do not block the request.
                 \Illuminate\Support\Facades\Log::error('Device Auth Update Failed: ' . $e->getMessage());
             }
         }
@@ -120,18 +94,10 @@ class CheckDeviceAuthorization
     /**
      * Helper to queue device cookie with consistent parameters
      */
-    private function queueDeviceCookie($token, $isSecure)
+    private function queueDeviceCookie($token)
     {
-        \Illuminate\Support\Facades\Cookie::queue(
-            'device_token', 
-            $token, 
-            5256000, 
-            '/', 
-            null, 
-            $isSecure, 
-            false, // httpOnly = false so JS can potentially see it if needed for debugging
-            false, 
-            'Lax'
-        );
+        // Format: Name, Value, Minutes
+        // 5256000 minutes = 10 years
+        \Illuminate\Support\Facades\Cookie::queue('device_token', $token, 5256000);
     }
 }

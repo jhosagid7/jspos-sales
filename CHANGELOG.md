@@ -1,3 +1,7 @@
+## [1.10.33] - 2026-04-27
+### Fixed
+- **Reversión a Lógica Estable**: Restaurado el sistema de autorización de dispositivos a su estado original más estable. Se ha vuelto a habilitar el cifrado nativo de cookies de Laravel y se ha eliminado la lógica de huella digital (IP+UA) que causaba colisiones de identidad en redes locales. Se mantiene el respaldo en sesión para mayor durabilidad.
+
 ## [1.10.32] - 2026-04-25
 ### Fixed
 - **Identificación por Huella Digital**: Añadido sistema de reconocimiento de dispositivos basado en IP y User-Agent (Fingerprint) como capa de seguridad final. Esto evita la creación duplicada de dispositivos cuando se pierden las cookies y asegura que las restricciones de acceso (bloqueos) sean efectivas y persistentes.

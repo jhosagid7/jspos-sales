@@ -102,3 +102,9 @@ L
 2026-04-23 12:22:11 | RESPONSE (200): [{"id":1,"name":"BANDEJAS A1 EUROPLAST X500UND","sku":"BP03A1E","price":11.37,"stock":147,"reserved_
 2026-04-23 12:22:39 | [GET] PATH: api/vip/payments/history | IP: 127.0.0.1 | USER: NULL
 2026-04-23 12:22:40 | RESPONSE (422): {"message":"ID de venta requerido"}
+2026-04-25 17:41:26 | [POST] PATH: api/vip/login | IP: 192.168.194.58 | USER: NULL
+2026-04-25 17:41:27 | RESPONSE (401): {"message":"Credenciales inv\u00e1lidas o acceso no autorizado para esta cuenta."}
+2026-04-25 17:41:28 | [POST] PATH: api/vip/login | IP: 192.168.194.58 | USER: NULL
+2026-04-25 17:41:29 | RESPONSE (401): {"message":"Credenciales inv\u00e1lidas o acceso no autorizado para esta cuenta."}
+2026-04-25 17:41:30 | [POST] PATH: api/vip/login | IP: 192.168.194.58 | USER: NULL
+2026-04-25 17:41:30 | RESPONSE (401): {"message":"Credenciales inv\u00e1lidas o acceso no autorizado para esta cuenta."}
