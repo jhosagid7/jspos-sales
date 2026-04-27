@@ -43,6 +43,11 @@ class CheckDeviceAuthorization
             $token = (string) \Illuminate\Support\Str::uuid();
             $config = \App\Models\Configuration::first();
             $status = ($config && $config->device_access_mode === 'restricted') ? 'pending' : 'approved';
+            
+            // Si el admin ya está logueado, aprobamos de entrada
+            if (auth()->check() && auth()->user()->hasAnyRole(['Admin', 'Super Admin'])) {
+                $status = 'approved';
+            }
 
             try {
                 $userAgent = $request->userAgent();
@@ -85,7 +90,13 @@ class CheckDeviceAuthorization
         }
 
         if ($device->status !== 'approved') {
-            return redirect()->route('access.denied', ['device_uuid' => $device->uuid]);
+            // Seguridad: Si el usuario ya inició sesión y es Admin/Super Admin, 
+            // aprobamos el dispositivo automáticamente para evitar bloqueos del administrador.
+            if (auth()->check() && auth()->user()->hasAnyRole(['Admin', 'Super Admin'])) {
+                $device->update(['status' => 'approved']);
+            } else {
+                return redirect()->route('access.denied', ['device_uuid' => $device->uuid]);
+            }
         }
 
         return $next($request);

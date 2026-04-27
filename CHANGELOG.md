@@ -1,3 +1,9 @@
+## [1.10.35] - 2026-04-27
+### Fixed
+- **Limpieza Automática de Dispositivos**: Implementada la purga automática de la tabla de autorizaciones durante el proceso de actualización. Esto obliga a todos los PCs a re-identificarse bajo la nueva lógica de UUID estable.
+- **Safety Bypass para Administradores**: Se añadió lógica al middleware para que los usuarios con rol Admin o Super Admin sean auto-aprobados al instante. Esto evita el riesgo de que el administrador se quede bloqueado fuera del sistema si tiene activo el "Modo Restringido" tras la limpieza.
+- **Estabilización de Inventario**: Refuerzo preventivo en las migraciones de SoftDeletes para asegurar la integridad de datos en el despliegue masivo.
+
 ## [1.10.34] - 2026-04-27
 ### Fixed
 - **Restauración de Visibilidad de IPs**: Rehabilitada la configuración de TrustProxies para asegurar que las IPs reales de los equipos sean visibles en el panel de gestión de dispositivos, manteniendo la estabilidad de identidad de la versión anterior.
