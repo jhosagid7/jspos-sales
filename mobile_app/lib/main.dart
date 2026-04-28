@@ -603,7 +603,11 @@ class _CatalogScreenState extends State<CatalogScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
-      final response = await http.get(Uri.parse('$_baseUrl/api/customers'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'}).timeout(const Duration(seconds: 15));
+      final response = await http.get(Uri.parse('$_baseUrl/api/customers'), headers: {
+        'Authorization': 'Bearer $token', 
+        'Accept': 'application/json',
+        'X-Device-Token': prefs.getString('device_token') ?? ''
+      }).timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) setState(() { _customers.clear(); _customers.addAll((json.decode(response.body) as List).map((e) => Customer.fromJson(e)).toList()); });
     } catch (e) { debugPrint("Err Clientes: $e"); }
   }
@@ -649,8 +653,13 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
       final response = await http.post(
         Uri.parse('$_baseUrl/api/orders'),
-        headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json', 'Content-Type': 'application/json'},
-                body: json.encode(body),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-Device-Token': prefs.getString('device_token') ?? ''
+        },
+        body: json.encode(body),
       );
 
       if (response.statusCode == 200) {
@@ -997,7 +1006,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
     final token = prefs.getString('token');
     try {
-      final response = await http.get(Uri.parse('$_baseUrl/api/orders'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'}).timeout(const Duration(seconds: 15));
+      final response = await http.get(Uri.parse('$_baseUrl/api/orders'), headers: {
+        'Authorization': 'Bearer $token', 
+        'Accept': 'application/json',
+        'X-Device-Token': prefs.getString('device_token') ?? ''
+      }).timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {
         List all = json.decode(response.body);
         setState(() => _orders = all.where((o) => o['status'] != 'processed').toList());
@@ -1014,7 +1027,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
     try {
-      final response = await http.post(Uri.parse('$_baseUrl/api/orders/$id/send'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'});
+      final response = await http.post(Uri.parse('$_baseUrl/api/orders/$id/send'), headers: {
+        'Authorization': 'Bearer $token', 
+        'Accept': 'application/json',
+        'X-Device-Token': prefs.getString('device_token') ?? ''
+      });
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('PEDIDO ENVIADO A OFICINA'), backgroundColor: Colors.green));
         _fetchOrders();
@@ -1041,7 +1058,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
     try {
-      final response = await http.delete(Uri.parse('$_baseUrl/api/orders/$id'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'});
+      final response = await http.delete(Uri.parse('$_baseUrl/api/orders/$id'), headers: {
+        'Authorization': 'Bearer $token', 
+        'Accept': 'application/json',
+        'X-Device-Token': prefs.getString('device_token') ?? ''
+      });
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('BORRADOR ELIMINADO'), backgroundColor: Colors.red));
         _fetchOrders();
@@ -1057,7 +1078,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
     try {
-      final response = await http.get(Uri.parse('$_baseUrl/api/orders/$id/logs'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'});
+      final response = await http.get(Uri.parse('$_baseUrl/api/orders/$id/logs'), headers: {
+        'Authorization': 'Bearer $token', 
+        'Accept': 'application/json',
+        'X-Device-Token': prefs.getString('device_token') ?? ''
+      });
       if (response.statusCode == 200) {
         final List logs = json.decode(response.body);
         if (mounted) {
@@ -1296,7 +1321,11 @@ class _PaymentCustomersScreenState extends State<PaymentCustomersScreen> {
       // Pass the filter to the API
       final response = await http.get(
         Uri.parse('$_baseUrl/api/customers?search=$search&filter=$currentFilter'), 
-        headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'}
+        headers: {
+          'Authorization': 'Bearer $token', 
+          'Accept': 'application/json',
+          'X-Device-Token': prefs.getString('device_token') ?? ''
+        }
       ).timeout(const Duration(seconds: 15));
       
       if (response.statusCode == 200) setState(() { 
@@ -1455,7 +1484,11 @@ class _PendingSalesScreenState extends State<PendingSalesScreen> {
     _baseUrl = prefs.getString('base_url') ?? "";
     final token = prefs.getString('token');
     try {
-      final res = await http.get(Uri.parse('$_baseUrl/api/sales/pending?customer_id=${widget.customer.id}'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'});
+      final res = await http.get(Uri.parse('$_baseUrl/api/sales/pending?customer_id=${widget.customer.id}'), headers: {
+        'Authorization': 'Bearer $token', 
+        'Accept': 'application/json',
+        'X-Device-Token': prefs.getString('device_token') ?? ''
+      });
       if (res.statusCode == 200) setState(() => _sales = json.decode(res.body));
     } catch (e) { debugPrint("Err Sales: $e"); }
     finally { setState(() => _isLoading = false); }
@@ -1617,7 +1650,11 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
     _historyUrl = '$baseUrl/api/payments/history';
     final token = prefs.getString('token');
     try {
-      final res = await http.get(Uri.parse('$_historyUrl?sale_id=${widget.saleId}'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'});
+      final res = await http.get(Uri.parse('$_historyUrl?sale_id=${widget.saleId}'), headers: {
+        'Authorization': 'Bearer $token', 
+        'Accept': 'application/json',
+        'X-Device-Token': prefs.getString('device_token') ?? ''
+      });
       if (res.statusCode == 200) setState(() => _history = json.decode(res.body));
     } catch (e) { debugPrint("Err Hist: $e"); }
     finally { setState(() => _isLoading = false); }
@@ -1865,7 +1902,11 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
     _baseUrl = prefs.getString('base_url') ?? "";
     final token = prefs.getString('token');
     try {
-      final res = await http.get(Uri.parse('$_baseUrl/api/payments/form-data'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'});
+      final res = await http.get(Uri.parse('$_baseUrl/api/payments/form-data'), headers: {
+        'Authorization': 'Bearer $token', 
+        'Accept': 'application/json',
+        'X-Device-Token': prefs.getString('device_token') ?? ''
+      });
       if (res.statusCode == 200) {
         final data = json.decode(res.body);
         setState(() {
@@ -1967,6 +2008,7 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
       var request = http.MultipartRequest('POST', Uri.parse('$_baseUrl/api/payments/upload'));
       request.headers['Authorization'] = 'Bearer $token';
       request.headers['Accept'] = 'application/json';
+      request.headers['X-Device-Token'] = prefs.getString('device_token') ?? '';
       
       request.fields['sale_id'] = widget.saleId.toString();
       request.fields['method'] = _payType == 'cash' ? 'cash' : _selectedMethod;
@@ -2229,7 +2271,11 @@ class _PerformanceDashboardScreenState extends State<PerformanceDashboardScreen>
     _baseUrl = prefs.getString('base_url') ?? "";
     final token = prefs.getString('token');
     try {
-      final res = await http.get(Uri.parse('$_baseUrl/api/seller/dashboard'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'});
+      final res = await http.get(Uri.parse('$_baseUrl/api/seller/dashboard'), headers: {
+        'Authorization': 'Bearer $token', 
+        'Accept': 'application/json',
+        'X-Device-Token': prefs.getString('device_token') ?? ''
+      });
       if (res.statusCode == 200) setState(() => _data = json.decode(res.body)['data']);
     } catch (e) { debugPrint("Dashboard Err: $e"); }
     finally { if (mounted) setState(() => _isLoading = false); }
@@ -2404,7 +2450,11 @@ class _CommissionDetailScreenState extends State<CommissionDetailScreen> with Si
     final baseUrl = prefs.getString('base_url') ?? "";
     final token = prefs.getString('token');
     try {
-      final res = await http.get(Uri.parse('$baseUrl/api/seller/dashboard/commissions'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'});
+      final res = await http.get(Uri.parse('$baseUrl/api/seller/dashboard/commissions'), headers: {
+        'Authorization': 'Bearer $token', 
+        'Accept': 'application/json',
+        'X-Device-Token': prefs.getString('device_token') ?? ''
+      });
       if (res.statusCode == 200) {
         final data = json.decode(res.body)['data'];
         setState(() {
@@ -2527,7 +2577,11 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     final baseUrl = prefs.getString('base_url') ?? "";
     final token = prefs.getString('token');
     try {
-      final res = await http.get(Uri.parse('$baseUrl/api/seller/dashboard/debt'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'});
+      final res = await http.get(Uri.parse('$baseUrl/api/seller/dashboard/debt'), headers: {
+        'Authorization': 'Bearer $token', 
+        'Accept': 'application/json',
+        'X-Device-Token': prefs.getString('device_token') ?? ''
+      });
       if (res.statusCode == 200) {
         final data = json.decode(res.body)['data'];
         setState(() {
@@ -2642,7 +2696,11 @@ class _PaymentAuditScreenState extends State<PaymentAuditScreen> {
     final baseUrl = prefs.getString('base_url') ?? "";
     final token = prefs.getString('token');
     try {
-      final res = await http.get(Uri.parse('$baseUrl/api/payments/history/global'), headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'});
+      final res = await http.get(Uri.parse('$baseUrl/api/payments/history/global'), headers: {
+        'Authorization': 'Bearer $token', 
+        'Accept': 'application/json',
+        'X-Device-Token': prefs.getString('device_token') ?? ''
+      });
       if (res.statusCode == 200) setState(() => _list = json.decode(res.body)['data']);
     } catch (e) { debugPrint("Audit Err: $e"); }
     finally { if (mounted) setState(() => _isLoading = false); }

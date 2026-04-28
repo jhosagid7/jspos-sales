@@ -1,3 +1,8 @@
+## [1.10.39] - 2026-04-28
+### Fixed
+- **Duplicidad Definitiva en Apps**: Auditoría completa e inyección del header `X-Device-Token` en el 100% de las llamadas al API en las aplicaciones de Vendedores y VIP.
+- **Persistencia de Identidad**: Mejora en la reutilización del token desde SharedPreferences para evitar registros redundantes en el panel administrativo.
+
 ## [1.10.38] - 2026-04-27
 ### Fixed
 - **Creación de Usuarios**: Corregido error SQL (Column cannot be null) al crear usuarios nuevos debido a la falta de valores por defecto en campos de bloqueo por horario y metas mensuales.
