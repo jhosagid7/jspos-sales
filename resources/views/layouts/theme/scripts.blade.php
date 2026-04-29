@@ -119,6 +119,19 @@
         window.notyListenerAdded = true;
     }
 
+    // Fix for "Session Expired" modal during rapid typing (419 errors)
+    // Intercepts the status and prevents the annoying popup if it's a transient token error
+    Livewire.hook('request', ({ fail }) => {
+        fail(({ status, preventDefault }) => {
+            if (status === 419) {
+                console.warn('Livewire: Token mismatch (419) detected during rapid input. Silencing modal.');
+                preventDefault(); 
+                // Optional: If we want to force a refresh on 419, uncomment below:
+                // window.location.reload();
+            }
+        })
+    })
+
     // window.addEventListener('error', event => {   
     //   swal({
     //     title: "oops",

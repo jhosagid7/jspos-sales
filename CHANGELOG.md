@@ -1,4 +1,4 @@
-## [1.10.42] - 2026-04-29
+## [1.10.43] - 2026-04-29
 ### Added
 - **Indicadores de Estado Online**: Implementada visualización en tiempo real (puntos verdes latientes) para dispositivos activos en el Gestor de Dispositivos.
 - **Monitoreo Global**: Añadido contador de dispositivos en línea en la barra de navegación para una supervisión rápida.
@@ -7,6 +7,8 @@
 - **Ventana de Conectividad**: Ajustado el margen de inactividad a 10 minutos para mejorar la estabilidad visual del indicador.
 ### Fixed
 - **Tooltips Informativos**: Añadida información detallada (User Agent y tiempo exacto) al pasar el mouse sobre los dispositivos.
+- **Estabilidad de Sesión**: Implementado silenciador para el error "Session Expired" (419) que ocurría aleatoriamente al escribir rápido en los buscadores.
+- **Optimización de Búsqueda**: Incrementado el tiempo de espera (debounce) en los buscadores a 500ms para reducir la carga del servidor y mejorar la estabilidad en redes locales.
 
 ## [1.10.41] - 2026-04-29
 ### Fixed

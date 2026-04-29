@@ -104,7 +104,7 @@
                         <div class="faq-form w-100">
                             <div class="form-control form-control-lg">
                                 <input type="text" 
-                                    wire:model.live.debounce.300ms="search3" 
+                                    wire:model.live.debounce.500ms="search3" 
                                     class="form-control"
                                     placeholder="[ F1 ] Ingresa nombre o código del producto o ESCANEA QR"
                                     style="text-transform: capitalize" 
