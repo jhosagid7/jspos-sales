@@ -1,3 +1,7 @@
+## [1.10.41] - 2026-04-29
+### Fixed
+- **Limpieza Automática de Dispositivos**: Integrada la purga de registros duplicados en el proceso de migración automática para limpiar el panel de gestión sin intervención manual.
+
 ## [1.10.40] - 2026-04-29
 ### Fixed
 - **Duplicidad de Dispositivos**: Implementada deduplicación por huella digital (IP + User Agent) para reconocer dispositivos móviles sin token persistente.

@@ -49,3 +49,6 @@ nssm/*.bak
 
 # Mobile App Binaries
 *.apk
+
+# Auto-migration logs
+/storage/framework/migrated_*.log
