@@ -41,8 +41,16 @@ class AuthController extends Controller
         // Generate the Sanctum token
         $token = $user->createToken($request->device_name)->plainTextToken;
 
+        // Identify device for the response
+        $device = \App\Models\DeviceAuthorization::where('ip_address', $ip)
+            ->where('user_agent', $request->userAgent() ?? 'Unknown')
+            ->where('status', 'approved')
+            ->orderBy('last_accessed_at', 'desc')
+            ->first();
+
         return response()->json([
             'token' => $token,
+            'device_uuid' => $device ? $device->uuid : null,
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,

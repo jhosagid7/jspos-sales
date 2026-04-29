@@ -1,3 +1,9 @@
+## [1.10.40] - 2026-04-29
+### Fixed
+- **Duplicidad de Dispositivos**: Implementada deduplicación por huella digital (IP + User Agent) para reconocer dispositivos móviles sin token persistente.
+- **Optimización de Base de Datos**: El sistema ya no crea registros de dispositivos innecesarios para peticiones API en modo "Abierto" si no se proporciona un token.
+- **Identidad Móvil**: Se añadió el `device_uuid` a la respuesta del login (Vendedores y VIP) para facilitar la persistencia en las aplicaciones móviles.
+
 ## [1.10.39] - 2026-04-28
 ### Fixed
 - **Duplicidad Definitiva en Apps**: Auditoría completa e inyección del header `X-Device-Token` en el 100% de las llamadas al API en las aplicaciones de Vendedores y VIP.

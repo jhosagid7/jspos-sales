@@ -35,10 +35,18 @@ class CustomerAuthController extends Controller
 
         $token = $customer->createToken('vip-mobile-app')->plainTextToken;
 
+        // Identify device for the response
+        $device = \App\Models\DeviceAuthorization::where('ip_address', $request->ip())
+            ->where('user_agent', $request->userAgent() ?? 'Unknown')
+            ->where('status', 'approved')
+            ->orderBy('last_accessed_at', 'desc')
+            ->first();
+
         return response()->json([
             'status' => 'success',
             'access_token' => $token,
             'token_type' => 'Bearer',
+            'device_uuid' => $device ? $device->uuid : null,
             'customer' => [
                 'id' => $customer->id,
                 'name' => $customer->name,

@@ -41,11 +41,43 @@ class CheckDeviceAuthorization
             }
         }
 
+        // FINGERPRINT FALLBACK: If no device found by token, try to find an existing APPROVED device by IP + UA
+        // This prevents duplication from mobile apps that haven't saved their token yet.
         if (!$device) {
+            $device = \App\Models\DeviceAuthorization::where('ip_address', $request->ip())
+                ->where('user_agent', $request->userAgent() ?? 'Unknown')
+                ->where('status', 'approved')
+                ->orderBy('last_accessed_at', 'desc')
+                ->first();
+            
+            if ($device) {
+                $token = $device->uuid;
+                // If it's a web request, sync the cookie so we don't have to fallback again
+                if (!$request->expectsJson() && !$request->cookie($cookieName)) {
+                    $this->queueDeviceCookie($token);
+                }
+            }
+        }
+
+        if (!$device) {
+            $config = \App\Models\Configuration::first();
+            $isRestricted = ($config && $config->device_access_mode === 'restricted');
+            
+            // OPTIMIZATION: If it's an API request, we don't have a token, and we are NOT in restricted mode,
+            // do NOT create a new device record. This prevents DB clutter from anonymous app requests.
+            // We only create it if it's a Web request (to set cookie) or if it's Restricted (to show 'pending' to admin).
+            if ($request->expectsJson() && !$isRestricted) {
+                // Return a dummy approved device object to allow access without DB record
+                $device = new \App\Models\DeviceAuthorization();
+                $device->status = 'approved';
+                $device->uuid = $token ?: 'anonymous';
+                
+                return $next($request);
+            }
+
             // New Device - Use provided token or generate UUID
             $token = $token ?: (string) \Illuminate\Support\Str::uuid();
-            $config = \App\Models\Configuration::first();
-            $status = ($config && $config->device_access_mode === 'restricted') ? 'pending' : 'approved';
+            $status = $isRestricted ? 'pending' : 'approved';
             
             // Bypass for Admins (if already logged in)
             if (auth()->check() && auth()->user()->hasAnyRole(['Admin', 'Super Admin'])) {
@@ -113,7 +145,14 @@ class CheckDeviceAuthorization
             }
         }
 
-        return $next($request);
+        $response = $next($request);
+
+        // Add the device token to the header for API responses so the app can learn/save it
+        if ($device && $device->uuid && $request->expectsJson() && $response instanceof \Illuminate\Http\Response) {
+            $response->header('X-Device-Token', $device->uuid);
+        }
+
+        return $response;
     }
 
     /**
