@@ -140,5 +140,9 @@ class HeaderComposer
         });
 
         $view->with('updateAvailable', $updateAvailable);
+
+        // Online Devices
+        $online_devices_count = \App\Models\DeviceAuthorization::where('last_accessed_at', '>=', Carbon::now()->subMinutes(10))->count();
+        $view->with('online_devices_count', $online_devices_count);
     }
 }

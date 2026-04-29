@@ -25,4 +25,14 @@ class DeviceAuthorization extends Model
         'last_accessed_at' => 'datetime',
         'is_network' => 'boolean',
     ];
+
+    public function getIsOnlineAttribute()
+    {
+        if (!$this->last_accessed_at) {
+            return false;
+        }
+        return $this->last_accessed_at->diffInMinutes(now()) <= 10;
+    }
+
+    protected $appends = ['is_online'];
 }

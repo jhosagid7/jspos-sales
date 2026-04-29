@@ -1,3 +1,13 @@
+## [1.10.42] - 2026-04-29
+### Added
+- **Indicadores de Estado Online**: Implementada visualización en tiempo real (puntos verdes latientes) para dispositivos activos en el Gestor de Dispositivos.
+- **Monitoreo Global**: Añadido contador de dispositivos en línea en la barra de navegación para una supervisión rápida.
+### Changed
+- **Precisión de Actividad**: Reducido el intervalo de actualización de dispositivos a 2 minutos para garantizar que el estado "En Línea" sea veraz.
+- **Ventana de Conectividad**: Ajustado el margen de inactividad a 10 minutos para mejorar la estabilidad visual del indicador.
+### Fixed
+- **Tooltips Informativos**: Añadida información detallada (User Agent y tiempo exacto) al pasar el mouse sobre los dispositivos.
+
 ## [1.10.41] - 2026-04-29
 ### Fixed
 - **Limpieza Automática de Dispositivos**: Integrada la purga de registros duplicados en el proceso de migración automática para limpiar el panel de gestión sin intervención manual.

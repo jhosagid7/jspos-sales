@@ -70,14 +70,20 @@
                             <tr @if($device->uuid == $current_token) style="background-color: rgba(26, 188, 156, 0.1);" @endif>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        <div class="mr-2">
+                                        <div class="mr-2 position-relative">
                                             @if($device->user_agent && strpos(strtolower($device->user_agent), 'mobile') !== false)
                                                 <i class="fas fa-mobile-alt fa-lg text-primary"></i>
                                             @else
                                                 <i class="fas fa-desktop fa-lg text-info"></i>
                                             @endif
+                                            
+                                            {{-- Status Dot --}}
+                                            <span class="position-absolute {{ $device->is_online ? 'pulse-online' : '' }}" style="top: -5px; right: -5px; height: 10px; width: 10px; background-color: {{ $device->is_online ? '#28a745' : '#6c757d' }}; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.2);" 
+                                                title="{{ $device->is_online ? 'En línea' : 'Desconectado' }}">
+                                            </span>
+
                                             @if($device->uuid == $current_token)
-                                                <span class="badge badge-success d-block mt-1" style="font-size: 0.6rem;">ESTE DISPOSITIVO</span>
+                                                <span class="badge badge-success d-block mt-1" style="font-size: 0.6rem;">ESTE</span>
                                             @endif
                                         </div>
                                         <div>
@@ -85,8 +91,9 @@
                                                 class="form-control form-control-sm border-0 bg-transparent p-0 font-weight-bold" 
                                                 value="{{ $device->name }}"
                                                 wire:change="updateName({{ $device->id }}, $event.target.value)"
+                                                title="Actividad: {{ $device->last_accessed_at ? $device->last_accessed_at->diffForHumans() : 'Nunca' }} | {{ $device->user_agent }}"
                                             >
-                                            <small class="text-muted d-block">{{ $device->uuid }}</small>
+                                            <small class="text-muted d-block" style="font-size: 0.7rem;">{{ $device->uuid }}</small>
                                         </div>
                                     </div>
                                 </td>
@@ -284,6 +291,17 @@
             </div>
         </div>
     </div>
+
+    <style>
+        .pulse-online {
+            animation: pulse-green 2s infinite;
+        }
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+            70% { box-shadow: 0 0 0 6px rgba(40, 167, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+        }
+    </style>
 
     <script>
         document.addEventListener('livewire:initialized', () => {

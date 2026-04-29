@@ -182,6 +182,16 @@
         @endif
         @endmodule
 
+        <!-- Online Devices -->
+        <li class="nav-item d-none d-sm-inline-block">
+            <a class="nav-link" href="{{ route('devices') }}" title="Dispositivos en línea: {{ $online_devices_count }}">
+                <i class="fas fa-plug {{ $online_devices_count > 0 ? 'text-success' : 'text-muted' }}"></i>
+                @if($online_devices_count > 0)
+                    <span class="badge badge-success navbar-badge">{{ $online_devices_count }}</span>
+                @endif
+            </a>
+        </li>
+
         <!-- User Dropdown Menu -->
         <li class="nav-item dropdown">
             <a class="nav-link" data-toggle="dropdown" href="#">

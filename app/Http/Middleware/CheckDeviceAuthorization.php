@@ -115,7 +115,8 @@ class CheckDeviceAuthorization
         } else {
             // Existing Device - Update info
             try {
-                if (!$device->last_accessed_at || $device->last_accessed_at->diffInMinutes(now()) >= 60) {
+                // Update every 2 minutes instead of 60 to allow real-time online status (5m window)
+                if (!$device->last_accessed_at || $device->last_accessed_at->diffInMinutes(now()) >= 2) {
                     $device->update([
                         'ip_address' => $request->ip(),
                         'last_accessed_at' => now(),
