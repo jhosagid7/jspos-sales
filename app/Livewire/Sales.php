@@ -742,37 +742,11 @@ class Sales extends Component
         }
 
         if (strlen($search) > 0) {
-            $query = Product::with('priceList');
+            $query = Product::search($search);
             
-            // Tokenize search terms for multi-word search
-            $tokens = explode(' ', $search);
+            // Results are already ordered and filtered by the scope
             
-            foreach ($tokens as $token) {
-                if (!empty($token)) {
-                    $query->where(function($q) use ($token) {
-                        $q->where('name', 'like', "%{$token}%")
-                          ->orWhere('sku', 'like', "%{$token}%")
-                          ->orWhereHas('category', function ($subQuery) use ($token) {
-                              $subQuery->where('name', 'like', "%{$token}%");
-                          })
-                          ->orWhereHas('tags', function ($subQuery) use ($token) {
-                              $subQuery->where('name', 'like', "%{$token}%");
-                          });
-                    });
-                }
-            }
-            
-            // Limit results for performance
-            // Limit results for performance
-            // Prioritize results: 1. SKU starts with search, 2. Name starts with search, 3. Name contains search, 4. Others (Tags/Categories)
-            $query->orderByRaw("CASE 
-                WHEN sku LIKE ? THEN 1 
-                WHEN name LIKE ? THEN 2 
-                WHEN name LIKE ? THEN 3 
-                ELSE 4 END", 
-                ["{$search}%", "{$search}%", "%{$search}%"]
-            )
-            ->orderByRaw("REPLACE(name, '  ', ' ') ASC");
+            // Results are already ordered and filtered by the scope
 
             // Limit results for performance
             $this->products = $query->with(['productWarehouses.warehouse', 'units', 'category', 'images'])->take(50)->get();

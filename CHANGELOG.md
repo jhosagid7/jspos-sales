@@ -1,3 +1,8 @@
+## [1.10.44] - 2026-04-29
+### Changed
+- **Búsqueda Inteligente (Fuzzy)**: El sistema ahora reconoce dimensiones de productos incluso si se omiten los separadores (ej. buscar "2560" ahora encontrará productos con "25X60" en el nombre o SKU).
+- **Unificación de Búsqueda**: Centralizada la lógica de búsqueda de productos para garantizar el mismo comportamiento inteligente tanto en el Gestor de Productos como en el Módulo de Ventas.
+
 ## [1.10.43] - 2026-04-29
 ### Added
 - **Indicadores de Estado Online**: Implementada visualización en tiempo real (puntos verdes latientes) para dispositivos activos en el Gestor de Dispositivos.

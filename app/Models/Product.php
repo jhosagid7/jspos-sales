@@ -150,17 +150,27 @@ class Product extends Model
         $term = trim($term);
         $tokens = explode(' ', $term);
 
-        $query->with(['category', 'supplier', 'priceList'])
+        $query->with(['category', 'supplier', 'priceList', 'tags'])
             ->where(function ($q) use ($tokens) {
                 foreach ($tokens as $token) {
                     if (!empty($token)) {
-                        $q->where(function ($subQuery) use ($token) {
+                        $cleanToken = preg_replace('/[^0-9a-zA-Z]/', '', $token);
+                        $q->where(function ($subQuery) use ($token, $cleanToken) {
                             $subQuery->where('name', 'like', '%' . $token . '%')
                                 ->orWhere('description', 'like', '%' . $token . '%')
                                 ->orWhere('sku', 'like', '%' . $token . '%')
                                 ->orWhereHas('category', function ($catQuery) use ($token) {
                                     $catQuery->where('name', 'like', '%' . $token . '%');
+                                })
+                                ->orWhereHas('tags', function ($tagQuery) use ($token) {
+                                    $tagQuery->where('name', 'like', '%' . $token . '%');
                                 });
+                            
+                            // Fuzzy match for dimensions (e.g. "2560" matches "25X60")
+                            if (!empty($cleanToken) && strlen($cleanToken) > 1) {
+                                $subQuery->orWhereRaw("REGEXP_REPLACE(name, '[^0-9a-zA-Z]', '') LIKE ?", ["%{$cleanToken}%"])
+                                         ->orWhereRaw("REGEXP_REPLACE(sku, '[^0-9a-zA-Z]', '') LIKE ?", ["%{$cleanToken}%"]);
+                            }
                         });
                     }
                 }
