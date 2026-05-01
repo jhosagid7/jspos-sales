@@ -155,7 +155,9 @@ class Product extends Model
                 foreach ($tokens as $token) {
                     if (!empty($token)) {
                         $cleanToken = preg_replace('/[^0-9a-zA-Z]/', '', $token);
-                        $q->where(function ($subQuery) use ($token, $cleanToken) {
+                        $numericToken = preg_replace('/[^0-9]/', '', $token);
+
+                        $q->where(function ($subQuery) use ($token, $cleanToken, $numericToken) {
                             $subQuery->where('name', 'like', '%' . $token . '%')
                                 ->orWhere('description', 'like', '%' . $token . '%')
                                 ->orWhere('sku', 'like', '%' . $token . '%')
@@ -166,10 +168,16 @@ class Product extends Model
                                     $tagQuery->where('name', 'like', '%' . $token . '%');
                                 });
                             
-                            // Fuzzy match for dimensions (e.g. "2560" matches "25X60")
+                            // Fuzzy match for alphanumeric (removes spaces/symbols)
                             if (!empty($cleanToken) && strlen($cleanToken) > 1) {
                                 $subQuery->orWhereRaw("REGEXP_REPLACE(name, '[^0-9a-zA-Z]', '') LIKE ?", ["%{$cleanToken}%"])
                                          ->orWhereRaw("REGEXP_REPLACE(sku, '[^0-9a-zA-Z]', '') LIKE ?", ["%{$cleanToken}%"]);
+                            }
+
+                            // Fuzzy match for dimensions/numbers (removes letters like 'X' or 'x')
+                            if (!empty($numericToken) && strlen($numericToken) > 1) {
+                                $subQuery->orWhereRaw("REGEXP_REPLACE(name, '[^0-9]', '') LIKE ?", ["%{$numericToken}%"])
+                                         ->orWhereRaw("REGEXP_REPLACE(sku, '[^0-9]', '') LIKE ?", ["%{$numericToken}%"]);
                             }
                         });
                     }

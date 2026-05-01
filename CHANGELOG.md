@@ -1,3 +1,7 @@
+## [1.10.45] - 2026-05-01
+### Changed
+- **Búsqueda Ultra-Inteligente**: Refinada la búsqueda para que al escribir solo números (ej. "2560") el sistema ignore absolutamente cualquier letra (incluyendo la "X") y encuentre las dimensiones exactas. Ahora "2560" encontrará siempre productos de "25X60".
+
 ## [1.10.44] - 2026-04-29
 ### Changed
 - **Búsqueda Inteligente (Fuzzy)**: El sistema ahora reconoce dimensiones de productos incluso si se omiten los separadores (ej. buscar "2560" ahora encontrará productos con "25X60" en el nombre o SKU).
