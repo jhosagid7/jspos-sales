@@ -299,6 +299,12 @@
                     <ul class="nav nav-treeview">
                         @can('reports.sales')
                         <li class="nav-item">
+                            <a href="{{ route('reports.returns') }}" class="nav-link {{ Request::is('reports/returns*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Notas de Crédito</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a href="{{ route('reports.sales') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Ventas</p>
@@ -362,14 +368,6 @@
                             <a href="{{ route('reports.customer.payment.relationship') }}" class="nav-link {{ Request::is('reports/customer-payment-relationship') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Relación Cobros Cliente</p>
-                            </a>
-                        </li>
-                        @endcan
-                        @can('reports.sales')
-                        <li class="nav-item">
-                            <a href="{{ route('reports.returns') }}" class="nav-link {{ Request::is('reports/returns*') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Notas de Crédito</p>
                             </a>
                         </li>
                         @endcan

@@ -1,3 +1,12 @@
+## [1.10.49] - 2026-05-01
+### Changed
+- **Buscador Inteligente**: Se unificó la búsqueda en el Gestor de Notas de Crédito. Ahora permite buscar por Nombre de Cliente, Número de Nota o Factura desde un solo campo general.
+- **Rango de Fecha**: Se aumentó el rango de carga inicial a 90 días para facilitar la visibilidad de movimientos recientes.
+- **Auditoría Detallada**: Ahora se muestra quién solicitó la devolución y quién la aprobó/rechazó directamente en el listado.
+### Fixed
+- **Enlaces de Documentos**: Se corrigieron los enlaces para visualizar el PDF de la Nota de Crédito y la Factura de referencia desde el gestor.
+- **Livewire 3**: Se resolvió el error de renderizado de elementos raíz múltiples que bloqueaba el módulo.
+
 ## [1.10.48] - 2026-05-01
 ### Added
 - **Nuevo Módulo: Gestor de Notas de Crédito**: Implementado un listado centralizado en la sección de Reportes para supervisar todas las devoluciones del sistema.

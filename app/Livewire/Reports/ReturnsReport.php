@@ -25,17 +25,20 @@ class ReturnsReport extends Component
     public $customers = [];
     public $totales = 0;
     public $searchFolio;
+    public $searchCustomer = '';
 
     public function mount()
     {
-        $this->dateFrom = Carbon::now()->startOfMonth()->format('Y-m-d');
-        $this->dateTo = Carbon::now()->endOfMonth()->format('Y-m-d');
-        $this->customers = \App\Models\Customer::orderBy('name')->get();
+        $this->dateFrom = Carbon::now()->subDays(90)->format('Y-m-d'); // Show last 90 days by default
+        $this->dateTo = Carbon::now()->format('Y-m-d');
+        $this->loadCustomers();
     }
 
-    public function searchData()
+    public function loadCustomers()
     {
-        $this->resetPage();
+        // We can keep a list of frequent customers or just all if not too many
+        // For the datalist, we will just pass the names
+        $this->customers = \App\Models\Customer::orderBy('name')->get(['id', 'name']);
     }
 
     public function render()
@@ -49,7 +52,7 @@ class ReturnsReport extends Component
 
     protected function getReturns()
     {
-        $query = SaleReturn::with(['customer', 'sale', 'user', 'approver'])
+        $query = SaleReturn::with(['customer', 'sale', 'user', 'approver', 'requester'])
             ->when($this->status != 'all', function ($q) {
                 $q->where('status', $this->status);
             })
@@ -57,7 +60,15 @@ class ReturnsReport extends Component
                 $q->where('customer_id', $this->customer_id);
             })
             ->when(!empty(trim($this->searchFolio)), function ($q) {
-                $q->where('return_number', 'like', '%' . trim($this->searchFolio) . '%');
+                $q->where(function($sub) {
+                    $sub->where('return_number', 'like', '%' . trim($this->searchFolio) . '%')
+                        ->orWhereHas('customer', function($c) {
+                            $c->where('name', 'like', '%' . trim($this->searchFolio) . '%');
+                        })
+                        ->orWhereHas('sale', function($s) {
+                            $s->where('invoice_number', 'like', '%' . trim($this->searchFolio) . '%');
+                        });
+                });
             });
 
         if ($this->dateFrom && $this->dateTo) {
