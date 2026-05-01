@@ -1,3 +1,11 @@
+## [1.10.51] - 2026-05-01
+### Added
+- **Reorganización UX/UI del Menú**: Rediseño integral de la navegación principal, agrupando más de 17 opciones raíz en 8 módulos lógicos jerárquicos para reducir la carga cognitiva.
+- **Módulos Colapsables**: Implementación de encabezados de módulo interactivos que inician cerrados por defecto, optimizando el espacio vertical y mejorando la limpieza visual del sistema.
+### Changed
+- **Nomenclatura Profesional**: Estandarización de términos técnicos (ej: "Cargos/Descargos" a "Entradas/Salidas de Stock", "Consultas" a "Auditoría de Pagos").
+- **Jerarquía Visual**: Mejora en la distinción de niveles de navegación mediante el uso de iconos diferenciados para sub-menús de nivel 2 y 3.
+
 ## [1.10.50] - 2026-05-01
 ### Added
 - **Estandarización de Notas de Débito**: Rediseño total del PDF de Notas de Débito para lograr paridad 1:1 con el formato de Notas de Crédito (Márgenes, proporciones, fuentes y estética).

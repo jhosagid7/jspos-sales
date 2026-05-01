@@ -74,126 +74,366 @@
                     $canSeeLogistics = auth()->user()->hasRole(['Admin', 'Supervisor', 'Super Admin']) || auth()->user()->can('sales.index');
                 @endphp
 
-                @if($isDriver || $canSeeLogistics)
-                <li class="nav-item">
-                    <a href="{{ route('driver.dashboard') }}" class="nav-link {{ Request::is('driver/dashboard') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-truck-loading"></i>
-                        <p>{{ $isDriver ? 'MI RUTA' : 'LOGÍSTICA / RUTAS' }}</p>
-                    </a>
-                </li>
-                @endif
-                
+                {{-- MÓDULO 1: GESTIÓN COMERCIAL --}}
                 @unlessrole('Driver')
-                
-                @can('sales.index')
                 <li class="nav-item">
-                    <a href="{{ route('sales') }}" class="nav-link {{ Request::is('sales*') ? 'active' : '' }}">
+                    <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-shopping-cart"></i>
-                        <p>VENTAS</p>
-                    </a>
-                </li>
-                @endcan
-                @can('sales.generate_price_list')
-                <li class="nav-item">
-                    <a href="{{ route('price-list.index') }}" class="nav-link {{ Request::is('price-list') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-file-invoice-dollar"></i>
-                        <p>LISTA DE PRECIOS</p>
-                    </a>
-                </li>
-                @endcan
-                @module('module_delivery')
-                @can('distribution.map')
-                <li class="nav-item">
-                    <a href="{{ route('delivery.map') }}" class="nav-link {{ Request::is('delivery/map') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-map-marked-alt"></i>
-                        <p>MAPA CHOFERES</p>
-                    </a>
-                </li>
-                @endcan
-                @endmodule
-                @can('cash_register.close')
-                <li class="nav-item">
-                    <a href="{{ route('cash-register.close') }}" class="nav-link {{ Request::is('cash-register/close') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-cash-register"></i>
-                        <p>CERRAR CAJA</p>
-                    </a>
-                </li>
-                @endcan
-
-                @module('module_purchases')
-                @can('purchases.index')
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="nav-icon fas fa-truck"></i>
                         <p>
-                            COMPRAS
+                            GESTIÓN COMERCIAL
                             <i class="right fas fa-angle-left"></i>
                         </p>
                     </a>
                     <ul class="nav nav-treeview">
+                        @can('sales.index')
                         <li class="nav-item">
-                            <a href="{{ route('purchases') }}" class="nav-link {{ Request::is('purchases') ? 'active' : '' }}">
+                            <a href="{{ route('sales') }}" class="nav-link {{ Request::is('sales*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
-                                <p>Nueva Compra</p>
+                                <p>Ventas (POS)</p>
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a href="{{ route('purchase.list') }}" class="nav-link {{ Request::is('purchase-list') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Listado</p>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-                @endcan
-                @endmodule
+                        @endcan
 
-                @canany(['users.index', 'roles.index', 'permissions.assign'])
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="nav-icon fas fa-users"></i>
-                        <p>
-                            PERSONAL
-                            <i class="right fas fa-angle-left"></i>
-                        </p>
-                    </a>
-                    <ul class="nav nav-treeview">
-                        @can('users.index')
-                        <li class="nav-item">
-                            <a href="{{ route('users') }}" class="nav-link">
+                        @module('module_purchases')
+                        @can('purchases.index')
+                        <li class="nav-item {{ Request::is('purchases*') || Request::is('purchase-list*') ? 'menu-open' : '' }}">
+                            <a href="#" class="nav-link {{ Request::is('purchases*') || Request::is('purchase-list*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
-                                <p>Usuarios</p>
+                                <p>
+                                    Compras
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="{{ route('purchases') }}" class="nav-link {{ Request::is('purchases') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Nueva Compra</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('purchase.list') }}" class="nav-link {{ Request::is('purchase-list') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Historial</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        @endcan
+                        @endmodule
+
+                        @can('sales.generate_price_list')
+                        <li class="nav-item">
+                            <a href="{{ route('price-list.index') }}" class="nav-link {{ Request::is('price-list') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Lista de Precios</p>
                             </a>
                         </li>
                         @endcan
-                        @module('module_roles')
-                        @can('roles.index')
+
+                        @module('module_commissions')
+                        @can('reports.commissions')
                         <li class="nav-item">
-                            <a href="{{ route('roles') }}" class="nav-link">
+                            <a href="{{ route('commissions') }}" class="nav-link {{ Request::is('commissions') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
-                                <p>Roles y Permisos</p>
-                            </a>
-                        </li>
-                        @endcan
-                        @can('permissions.assign')
-                        <li class="nav-item">
-                            <a href="{{ route('asignar') }}" class="nav-link">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Asignación</p>
+                                <p>Comisiones</p>
                             </a>
                         </li>
                         @endcan
                         @endmodule
                     </ul>
                 </li>
-                @endcan
+                @endunlessrole
 
-                @canany(['customers.index', 'categories.index', 'suppliers.index', 'products.index'])
+                {{-- MÓDULO 2: LOGÍSTICA Y DESPACHO --}}
+                @if($isDriver || $canSeeLogistics)
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-truck"></i>
+                        <p>
+                            LOGÍSTICA Y DESPACHO
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('driver.dashboard') }}" class="nav-link {{ Request::is('driver/dashboard') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>{{ $isDriver ? 'MI RUTA' : 'Logística / Rutas' }}</p>
+                            </a>
+                        </li>
+                        @module('module_delivery')
+                        @can('distribution.map')
+                        <li class="nav-item">
+                            <a href="{{ route('delivery.map') }}" class="nav-link {{ Request::is('delivery/map') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Mapa Choferes</p>
+                            </a>
+                        </li>
+                        @endcan
+                        @can('reports.sales')
+                        <li class="nav-item">
+                            <a href="{{ route('reports.dispatch') }}" class="nav-link {{ Request::is('reports/dispatch*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Relación de Despacho</p>
+                            </a>
+                        </li>
+                        @endcan
+                        @endmodule
+                    </ul>
+                </li>
+                @endif
+
+                {{-- MÓDULO 3: INVENTARIO Y PRODUCCIÓN --}}
+                @unlessrole('Driver')
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-boxes"></i>
+                        <p>
+                            INVENTARIO Y PRODUCCIÓN
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        @can('products.index')
+                        <li class="nav-item {{ Request::is('products*') || Request::is('catalogue*') || Request::is('price-groups*') ? 'menu-open' : '' }}">
+                            <a href="#" class="nav-link {{ Request::is('products*') || Request::is('catalogue*') || Request::is('price-groups*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Productos
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="{{ route('products') }}" class="nav-link {{ Request::is('products') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Listado Maestro</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('catalogue.pdf') }}" target="_blank" class="nav-link">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Catálogo PDF</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('price-groups') }}" class="nav-link {{ Request::is('price-groups') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Grupos de Precio</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        @endcan
+
+                        @can('inventory.index')
+                        <li class="nav-item {{ Request::is('inventories*') || Request::is('cargos*') || Request::is('descargos*') || Request::is('transfers*') || Request::is('requisition*') ? 'menu-open' : '' }}">
+                            <a href="#" class="nav-link {{ Request::is('inventories*') || Request::is('cargos*') || Request::is('descargos*') || Request::is('transfers*') || Request::is('requisition*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Gestión de Stock
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="{{ route('inventories') }}" class="nav-link {{ Request::is('inventories') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Stock General</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('cargos') }}" class="nav-link {{ Request::is('cargos*') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Entradas (Ajuste)</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('descargos') }}" class="nav-link {{ Request::is('descargos*') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Salidas (Ajuste)</p>
+                                    </a>
+                                </li>
+                                @module('module_multi_warehouse')
+                                <li class="nav-item">
+                                    <a href="{{ route('transfers') }}" class="nav-link {{ Request::is('transfers') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Traspasos</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('requisition') }}" class="nav-link {{ Request::is('requisition') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Requisiciones</p>
+                                    </a>
+                                </li>
+                                @endmodule
+                            </ul>
+                        </li>
+                        @endcan
+
+                        @module('module_production')
+                        @can('production.index')
+                        <li class="nav-item">
+                            <a href="{{ route('production.index') }}" class="nav-link {{ Request::is('production*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Producción</p>
+                            </a>
+                        </li>
+                        @endcan
+                        @endmodule
+
+                        @module('module_labels')
+                        @can('products.labels')
+                        <li class="nav-item">
+                            <a href="{{ route('labels.index') }}" class="nav-link {{ Request::is('labels') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Etiquetas</p>
+                            </a>
+                        </li>
+                        @endcan
+                        @endmodule
+                    </ul>
+                </li>
+                @endunlessrole
+
+                {{-- MÓDULO 4: FINANZAS Y AUDITORÍA --}}
+                @unlessrole('Driver')
+                @canany(['cash_register.close', 'customer_statement.index', 'reports.financial', 'zelle_index', 'bank_index'])
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-file-invoice-dollar"></i>
+                        <p>
+                            FINANZAS Y AUDITORÍA
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        @can('cash_register.close')
+                        <li class="nav-item {{ Request::is('cash-register*') || Request::is('cash-count*') ? 'menu-open' : '' }}">
+                            <a href="#" class="nav-link {{ Request::is('cash-register*') || Request::is('cash-count*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Control de Caja
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="{{ route('cash-register.close') }}" class="nav-link {{ Request::is('cash-register/close') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Cerrar Caja</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('cash.count') }}" class="nav-link">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Historial Arqueos</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        @endcan
+
+                        <li class="nav-item {{ Request::is('reports/accounts-*') || Request::is('customer-statement*') || Request::is('reports/returns*') || Request::is('pos/debit-notes*') ? 'menu-open' : '' }}">
+                            <a href="#" class="nav-link {{ Request::is('reports/accounts-*') || Request::is('customer-statement*') || Request::is('reports/returns*') || Request::is('pos/debit-notes*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Cartera y Crédito
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                @can('reports.financial')
+                                <li class="nav-item">
+                                    <a href="{{ route('reports.accounts.receivable') }}" class="nav-link">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Cuentas por Cobrar</p>
+                                    </a>
+                                </li>
+                                @endcan
+                                @can('customer_statement.index')
+                                <li class="nav-item">
+                                    <a href="{{ route('customer-statement') }}" class="nav-link {{ Request::is('customer-statement') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Estado de Cuenta</p>
+                                    </a>
+                                </li>
+                                @endcan
+                                @can('reports.sales')
+                                <li class="nav-item">
+                                    <a href="{{ route('reports.returns') }}" class="nav-link {{ Request::is('reports/returns*') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Notas de Crédito</p>
+                                    </a>
+                                </li>
+                                @endcan
+                                @can('manage_debit_notes')
+                                <li class="nav-item">
+                                    <a href="{{ route('pos.debit-notes') }}" class="nav-link">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Notas de Débito</p>
+                                    </a>
+                                </li>
+                                @endcan
+                                @module('module_purchases')
+                                @can('reports.financial')
+                                <li class="nav-item">
+                                    <a href="{{ route('reports.accounts.payables') }}" class="nav-link">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Cuentas por Pagar</p>
+                                    </a>
+                                </li>
+                                @endcan
+                                @endmodule
+                            </ul>
+                        </li>
+
+                        @module('module_advanced_payments')
+                        @canany(['zelle_index', 'bank_index'])
+                        <li class="nav-item {{ Request::is('consultation*') ? 'menu-open' : '' }}">
+                            <a href="#" class="nav-link {{ Request::is('consultation*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Auditoría Pagos
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                @can('zelle_index')
+                                <li class="nav-item">
+                                    <a href="{{ route('consultation.zelle') }}" class="nav-link {{ Request::is('consultation/zelle*') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Pagos Zelle</p>
+                                    </a>
+                                </li>
+                                @endcan
+                                @can('bank_index')
+                                <li class="nav-item">
+                                    <a href="{{ route('consultation.bank') }}" class="nav-link {{ Request::is('consultation/bank*') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Pagos Bancarios</p>
+                                    </a>
+                                </li>
+                                @endcan
+                            </ul>
+                        </li>
+                        @endcan
+                        @endmodule
+                    </ul>
+                </li>
+                @endcanany
+                @endunlessrole
+
+                {{-- MÓDULO 5: ENTIDADES Y MAESTROS --}}
+                @unlessrole('Driver')
+                @canany(['customers.index', 'suppliers.index', 'categories.index', 'inventory.index'])
                 <li class="nav-item">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-folder"></i>
                         <p>
-                            CATALOGOS
+                            REGISTROS MAESTROS
                             <i class="right fas fa-angle-left"></i>
                         </p>
                     </a>
@@ -206,14 +446,6 @@
                             </a>
                         </li>
                         @endcan
-                        @can('categories.index')
-                        <li class="nav-item">
-                            <a href="{{ route('categories') }}" class="nav-link">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Categorías</p>
-                            </a>
-                        </li>
-                        @endcan
                         @can('suppliers.index')
                         <li class="nav-item">
                             <a href="{{ route('suppliers') }}" class="nav-link">
@@ -222,371 +454,274 @@
                             </a>
                         </li>
                         @endcan
-                        @can('products.index')
+                        @can('categories.index')
                         <li class="nav-item">
-                            <a href="{{ route('products') }}" class="nav-link {{ Request::is('products') ? 'active' : '' }}">
+                            <a href="{{ route('categories') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
-                                <p>Productos</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('catalogue.pdf') }}" target="_blank" class="nav-link">
-                                <i class="far fa-file-pdf nav-icon"></i>
-                                <p>Catálogo PDF</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('price-groups') }}" class="nav-link {{ Request::is('price-groups') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Grupos de Precio</p>
+                                <p>Categorías</p>
                             </a>
                         </li>
                         @endcan
-                    </ul>
-                </li>
-                @endcan
-                
-                @can('customer_statement.index')
-                <li class="nav-item">
-                    <a href="{{ route('customer-statement') }}" class="nav-link {{ Request::is('customer-statement') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-file-invoice-dollar"></i>
-                        <p>ESTADO DE CUENTA</p>
-                    </a>
-                </li>
-                @endcan
-                
-                @module('module_advanced_payments')
-                @canany(['zelle_index', 'bank_index'])
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="nav-icon fas fa-search-dollar"></i>
-                        <p>
-                            CONSULTAS
-                            <i class="right fas fa-angle-left"></i>
-                        </p>
-                    </a>
-                    <ul class="nav nav-treeview">
-                        @can('zelle_index')
-                        <li class="nav-item">
-                            <a href="{{ route('consultation.zelle') }}" class="nav-link {{ Request::is('consultation/zelle*') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Pagos Zelle</p>
-                            </a>
-                        </li>
-                        @endcan
-                        @can('bank_index')
-                        <li class="nav-item">
-                            <a href="{{ route('consultation.bank') }}" class="nav-link {{ Request::is('consultation/bank*') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Pagos Bancarios</p>
-                            </a>
-                        </li>
-                        @endcan
-                    </ul>
-                </li>
-                @endcan
-                @endmodule
-
-                @canany(['reports.sales', 'reports.purchases', 'reports.financial', 'reports.stock'])
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="nav-icon fas fa-chart-bar"></i>
-                        <p>
-                            REPORTES
-                            <i class="right fas fa-angle-left"></i>
-                        </p>
-                    </a>
-                    <ul class="nav nav-treeview">
-                        @can('reports.sales')
-                        <li class="nav-item">
-                            <a href="{{ route('reports.returns') }}" class="nav-link {{ Request::is('reports/returns*') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Notas de Crédito</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('reports.sales') }}" class="nav-link">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Ventas</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('reports.daily.sales') }}" class="nav-link">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Ventas Diarias</p>
-                            </a>
-                        </li>
-                        @module('module_delivery')
-                        <li class="nav-item">
-                            <a href="{{ route('reports.dispatch') }}" class="nav-link {{ Request::is('reports/dispatch*') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Relación de Despacho</p>
-                            </a>
-                        </li>
-                        @endmodule
-                        @endcan
-                        @module('module_purchases')
-                        @can('reports.purchases')
-                        <li class="nav-item">
-                            <a href="{{ route('reports.purchases') }}" class="nav-link">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Compras</p>
-                            </a>
-                        </li>
-                        @endcan
-                        @endmodule
-                        @module('module_credits')
-                        @can('reports.financial')
-                        <li class="nav-item">
-                            <a href="{{ route('reports.accounts.receivable') }}" class="nav-link">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Cuentas por Cobrar</p>
-                            </a>
-                        </li>
-                        @can('manage_debit_notes')
-                        <li class="nav-item">
-                            <a href="{{ route('pos.debit-notes') }}" class="nav-link">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Notas de Débito</p>
-                            </a>
-                        </li>
-                        @endcan
-                        @endcan
-                        @endmodule
-                        @module('module_purchases')
-                        @can('reports.financial')
-                        <li class="nav-item">
-                            <a href="{{ route('reports.accounts.payables') }}" class="nav-link">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Cuentas por Pagar</p>
-                            </a>
-                        </li>
-                        @endcan
-                        @endmodule
-                        @can('reports.sales')
-                        <li class="nav-item">
-                            <a href="{{ route('reports.payment.relationship') }}" class="nav-link {{ Request::is('reports/payment-relationship') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Relación de Cobros</p>
-                            </a>
-                        </li>
-                        @endcan
-                        @can('reports.customer_payment_relationship')
-                        <li class="nav-item">
-                            <a href="{{ route('reports.customer.payment.relationship') }}" class="nav-link {{ Request::is('reports/customer-payment-relationship') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Relación Cobros Cliente</p>
-                            </a>
-                        </li>
-                        @endcan
-                        @can('cash_register.close')
-                        <li class="nav-item">
-                            <a href="{{ route('cash.count') }}" class="nav-link">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Corte de Caja</p>
-                            </a>
-                        </li>
-                        @endcan
-                        <li class="nav-item">
-                            <a href="{{ route('reports.best.sellers') }}" class="nav-link">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Más Vendidos</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('reports.inventory') }}" class="nav-link {{ Request::is('reports/inventory*') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Inventario Stock</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('reports.movements') }}" class="nav-link {{ Request::is('reports/movements*') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Movimientos Producto</p>
-                            </a>
-                        </li>
-                        @module('module_advanced_reports')
-                        <li class="nav-item">
-                            <a href="{{ route('reports.rotation') }}" class="nav-link">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Rotación</p>
-                            </a>
-                        </li>
-                        @endmodule
-                    </ul>
-                </li>
-                @endcan
-
-                @module('module_commissions')
-                @can('reports.commissions')
-                <li class="nav-item">
-                    <a href="{{ route('commissions') }}" class="nav-link {{ Request::is('commissions') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-hand-holding-usd"></i>
-                        <p>COMISIONES</p>
-                    </a>
-                </li>
-                @endcan
-                @endmodule
-
-                @module('module_labels')
-                @can('products.labels')
-                <li class="nav-item">
-                    <a href="{{ route('labels.index') }}" class="nav-link {{ Request::is('labels') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-tags"></i>
-                        <p>ETIQUETAS</p>
-                    </a>
-                </li>
-                @endcan
-                @endmodule
-
-                @module('module_production')
-                @can('production.index')
-                <li class="nav-item">
-                    <a href="{{ route('production.index') }}" class="nav-link {{ Request::is('production*') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-industry"></i>
-                        <p>PRODUCCIÓN</p>
-                    </a>
-                </li>
-                @endcan
-                @endmodule
-
-                @can('inventory.index')
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="nav-icon fas fa-boxes"></i>
-                        <p>
-                            INVENTARIOS
-                            <i class="right fas fa-angle-left"></i>
-                        </p>
-                    </a>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a href="{{ route('inventories') }}" class="nav-link {{ Request::is('inventories') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Inventario General</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('cargos') }}" class="nav-link {{ Request::is('cargos*') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Cargos / Ajustes</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('descargos') }}" class="nav-link {{ Request::is('descargos*') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Descargos / Salidas</p>
-                            </a>
-                        </li>
                         @module('module_multi_warehouse')
+                        @can('inventory.index')
                         <li class="nav-item">
                             <a href="{{ route('warehouses') }}" class="nav-link {{ Request::is('warehouses') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
-                                <p>Depósitos</p>
+                                <p>Depósitos / Almacenes</p>
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a href="{{ route('transfers') }}" class="nav-link {{ Request::is('transfers') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Traspasos</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('requisition') }}" class="nav-link {{ Request::is('requisition') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Requisición</p>
-                            </a>
-                        </li>
+                        @endcan
                         @endmodule
                     </ul>
                 </li>
-                @endcan
+                @endcanany
+                @endunlessrole
 
-                @can('settings.index')
+                {{-- MÓDULO 6: CENTRO DE REPORTES --}}
+                @unlessrole('Driver')
+                @canany(['reports.sales', 'reports.purchases', 'reports.financial', 'reports.stock'])
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-chart-line"></i>
+                        <p>
+                            CENTRO DE REPORTES
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item {{ Request::is('reports/sales*') || Request::is('reports/daily-sales*') || Request::is('reports/payment-relationship*') || Request::is('reports/customer-payment*') ? 'menu-open' : '' }}">
+                            <a href="#" class="nav-link {{ Request::is('reports/sales*') || Request::is('reports/daily-sales*') || Request::is('reports/payment-relationship*') || Request::is('reports/customer-payment*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Ventas y Cobros
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                @can('reports.sales')
+                                <li class="nav-item">
+                                    <a href="{{ route('reports.sales') }}" class="nav-link">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Reporte de Ventas</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('reports.daily.sales') }}" class="nav-link">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Ventas Diarias</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('reports.payment.relationship') }}" class="nav-link">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Relación de Cobros</p>
+                                    </a>
+                                </li>
+                                @endcan
+                                @can('reports.customer_payment_relationship')
+                                <li class="nav-item">
+                                    <a href="{{ route('reports.customer.payment.relationship') }}" class="nav-link">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Cobros por Cliente</p>
+                                    </a>
+                                </li>
+                                @endcan
+                            </ul>
+                        </li>
+
+                        <li class="nav-item {{ Request::is('reports/inventory*') || Request::is('reports/movements*') || Request::is('reports/best-sellers*') || Request::is('reports/rotation*') ? 'menu-open' : '' }}">
+                            <a href="#" class="nav-link {{ Request::is('reports/inventory*') || Request::is('reports/movements*') || Request::is('reports/best-sellers*') || Request::is('reports/rotation*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Stock y Desempeño
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="{{ route('reports.inventory') }}" class="nav-link">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Inventario Actual</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('reports.movements') }}" class="nav-link">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Kardex (Movimientos)</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('reports.best.sellers') }}" class="nav-link">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Más Vendidos</p>
+                                    </a>
+                                </li>
+                                @module('module_advanced_reports')
+                                <li class="nav-item">
+                                    <a href="{{ route('reports.rotation') }}" class="nav-link">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Rotación de Stock</p>
+                                    </a>
+                                </li>
+                                @endmodule
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+                @endcanany
+                @endunlessrole
+
+                {{-- MÓDULO 7: ADMINISTRACIÓN Y CONFIGURACIÓN --}}
+                @unlessrole('Driver')
                 <li class="nav-item">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-cogs"></i>
                         <p>
-                            SISTEMA
+                            ADMINISTRACIÓN
                             <i class="right fas fa-angle-left"></i>
                         </p>
                     </a>
                     <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a href="{{ route('settings') }}" class="nav-link {{ Request::is('settings') ? 'active' : '' }}">
+                        @canany(['users.index', 'roles.index', 'permissions.assign'])
+                        <li class="nav-item {{ Request::is('users*') || Request::is('roles*') || Request::is('asignar*') ? 'menu-open' : '' }}">
+                            <a href="#" class="nav-link {{ Request::is('users*') || Request::is('roles*') || Request::is('asignar*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
-                                <p>Configuración</p>
+                                <p>
+                                    Equipo de Trabajo
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
                             </a>
+                            <ul class="nav nav-treeview">
+                                @can('users.index')
+                                <li class="nav-item">
+                                    <a href="{{ route('users') }}" class="nav-link">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Usuarios</p>
+                                    </a>
+                                </li>
+                                @endcan
+                                @module('module_roles')
+                                @can('roles.index')
+                                <li class="nav-item">
+                                    <a href="{{ route('roles') }}" class="nav-link">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Roles y Permisos</p>
+                                    </a>
+                                </li>
+                                @endcan
+                                @can('permissions.assign')
+                                <li class="nav-item">
+                                    <a href="{{ route('asignar') }}" class="nav-link">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Asignación</p>
+                                    </a>
+                                </li>
+                                @endcan
+                                @endmodule
+                            </ul>
                         </li>
-                        @module('module_updates')
-                        @can('settings.update')
-                        <li class="nav-item">
-                            <a href="{{ route('updates') }}" class="nav-link {{ Request::is('updates') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Actualizaciones</p>
-                            </a>
-                        </li>
-                        @endcan
-                        @endmodule
-                        @module('module_backups')
-                        @can('settings.backups')
-                        <li class="nav-item">
-                            <a href="{{ route('backups') }}" class="nav-link {{ Request::is('backups') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Copias de Seguridad</p>
-                            </a>
-                        </li>
-                        @endcan
-                        @endmodule
+                        @endcanany
+
+                        @can('settings.index')
                         <li class="nav-item">
                             <a href="{{ route('devices') }}" class="nav-link {{ Request::is('devices') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Dispositivos</p>
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a href="{{ route('settings.whatsapp') }}" class="nav-link {{ Request::is('settings/whatsapp*') && !Request::is('settings/whatsapp-outbox*') ? 'active' : '' }}">
-                                <i class="fab fa-whatsapp nav-icon"></i>
-                                <p>WhatsApp Config</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('settings.whatsapp_outbox') }}" class="nav-link {{ Request::is('settings/whatsapp-outbox*') ? 'active' : '' }}">
-                                <i class="fas fa-inbox nav-icon"></i>
-                                <p>WhatsApp Bandeja</p>
-                            </a>
-                        </li>
-                        <li class="nav-item border-top pt-2">
-                            <a href="{{ route('settings.email') }}" class="nav-link {{ Request::is('settings/email*') && !Request::is('settings/email-outbox*') ? 'active' : '' }}">
-                                <i class="fas fa-envelope nav-icon"></i>
-                                <p>Email Config</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('settings.email_outbox') }}" class="nav-link {{ Request::is('settings/email-outbox*') ? 'active' : '' }}">
-                                <i class="fas fa-mail-bulk nav-icon"></i>
-                                <p>Email Bandeja</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="javascript:void(0)" onclick="Livewire.dispatch('trigger-license-modal')" class="nav-link">
+
+                        <li class="nav-item {{ Request::is('settings/whatsapp*') || Request::is('settings/email*') ? 'menu-open' : '' }}">
+                            <a href="#" class="nav-link {{ Request::is('settings/whatsapp*') || Request::is('settings/email*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
-                                <p>Licencia</p>
+                                <p>
+                                    Mensajería
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
                             </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="{{ route('settings.whatsapp') }}" class="nav-link">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>WhatsApp Config</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('settings.whatsapp_outbox') }}" class="nav-link">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>WA Bandeja</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('settings.email') }}" class="nav-link">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Email Config</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('settings.email_outbox') }}" class="nav-link">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Email Bandeja</p>
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
-                        @role('Super Admin')
-                        <li class="nav-item">
-                            <a href="{{ route('settings.license_generator') }}" class="nav-link {{ Request::is('settings/license-generator*') ? 'active' : '' }}">
-                                <i class="fas fa-key nav-icon"></i>
-                                <p>SaaS Generador</p>
+
+                        <li class="nav-item {{ Request::is('settings') || Request::is('updates*') || Request::is('backups*') || Request::is('settings/license-generator*') ? 'menu-open' : '' }}">
+                            <a href="#" class="nav-link {{ Request::is('settings') || Request::is('updates*') || Request::is('backups*') || Request::is('settings/license-generator*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Ajustes Globales
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
                             </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="{{ route('settings') }}" class="nav-link {{ Request::is('settings') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Configuración</p>
+                                    </a>
+                                </li>
+                                @module('module_updates')
+                                @can('settings.update')
+                                <li class="nav-item">
+                                    <a href="{{ route('updates') }}" class="nav-link {{ Request::is('updates') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Actualizaciones</p>
+                                    </a>
+                                </li>
+                                @endcan
+                                @endmodule
+                                @module('module_backups')
+                                @can('settings.backups')
+                                <li class="nav-item">
+                                    <a href="{{ route('backups') }}" class="nav-link {{ Request::is('backups') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Respaldos</p>
+                                    </a>
+                                </li>
+                                @endcan
+                                @endmodule
+                                <li class="nav-item">
+                                    <a href="javascript:void(0)" onclick="Livewire.dispatch('trigger-license-modal')" class="nav-link">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Licencia</p>
+                                    </a>
+                                </li>
+                                @role('Super Admin')
+                                <li class="nav-item">
+                                    <a href="{{ route('settings.license_generator') }}" class="nav-link {{ Request::is('settings/license-generator*') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Generador SaaS</p>
+                                    </a>
+                                </li>
+                                @endrole
+                            </ul>
                         </li>
-                        @endrole
+                        @endcan
                     </ul>
                 </li>
-                @endcan
-
                 @endunlessrole
+
             </ul>
         </nav>
         <!-- /.sidebar-menu -->
