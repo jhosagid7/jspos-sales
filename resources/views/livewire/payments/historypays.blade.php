@@ -98,6 +98,84 @@
                                         $sale_for_history = $saleIdForHistory ? \App\Models\Sale::with(['paymentDetails.currency', 'returns'])->find($saleIdForHistory) : null;
                                     @endphp
 
+                                    {{-- DEBIT NOTES (INCREMENTS) --}}
+                                    @if($sale_for_history && $sale_for_history->debitNotes->count() > 0)
+                                        @foreach($sale_for_history->debitNotes as $initDn)
+                                            @php
+                                                $currencyName = match($initDn->currency) {
+                                                    'USD' => 'Dólar (USD)',
+                                                    'COP' => 'Pesos (COP)',
+                                                    'VES' => 'Bolívares (VES)',
+                                                    'VED' => 'Bolívares (VED)',
+                                                    default => $initDn->currency
+                                                };
+                                                $rate = $initDn->exchange_rate > 0 ? $initDn->exchange_rate : 1;
+                                                $amountInUSD = $initDn->amount / $rate;
+                                            @endphp
+                                            <tr style="background-color: #f0f8ff;">
+                                                <td data-label="Folio">
+                                                    <div class="d-flex align-items-center">
+                                                        {{ $initDn->debit_number }}
+                                                        <span class="badge badge-primary ms-2" style="font-size: 0.6rem;">INCREMENTO</span>
+                                                        @if($initDn->status == 'voided')
+                                                            <span class="badge badge-dark ms-2" style="font-size: 0.6rem; background-color: #6c757d;">ANULADO</span>
+                                                        @endif
+
+                                                    </div>
+                                                </td>
+                                                <td data-label="Método">
+                                                    <span class="badge badge-primary" style="background-color: #007bff;">Nota de Débito</span>
+                                                </td>
+                                                <td data-label="Moneda">{{ $currencyName }}</td>
+                                                <td data-label="Monto" style="background-color: rgb(228, 243, 253)">
+                                                    <b>{{ number_format($initDn->amount, 2) }}</b>
+                                                </td>
+                                                <td data-label="Tasa">{{ number_format($rate, 2) }}</td>
+                                                <td data-label="Equiv. $">
+                                                    <b>${{ number_format($amountInUSD, 2) }}</b>
+                                                </td>
+                                                <td data-label="Detalles">
+                                                    <div class="small text-muted">{{ $initDn->concept }}</div>
+                                                </td>
+                                                <td data-label="Fecha">{{ \Carbon\Carbon::parse($initDn->created_at)->format('d-m-Y') }}</td>
+                                                <td data-label="Acciones">
+                                                    <div class="d-flex flex-column gap-1">
+                                                        <a href="{{ route('debit-note.pdf', $initDn->id) }}" target="_blank" class="btn btn-default btn-sm" title="Ver PDF">
+                                                            <i class="fas fa-file-pdf text-danger"></i>
+                                                        </a>
+
+                                                        @if($initDn->status !== 'voided')
+                                                            @can('payments.void_anytime')
+                                                            <button class="btn btn-danger btn-sm mt-1"
+                                                                type="button"
+                                                                x-on:click="
+                                                                    swal({
+                                                                        title: 'Anular Nota de Débito',
+                                                                        text: '¿Estás seguro de ANULAR esta nota de débito? El saldo de la factura se reducirá. Indica el motivo:',
+                                                                        content: 'input',
+                                                                        buttons: {
+                                                                            cancel: { text: 'Cancelar', visible: true, closeModal: true, value: null },
+                                                                            confirm: { text: 'Sí, Anular', value: true, visible: true, closeModal: true }
+                                                                        },
+                                                                        dangerMode: true,
+                                                                    }).then((value) => {
+                                                                        if (value === null) return;
+                                                                        if (value === '') { swal('Error', '¡Debes escribir un motivo!', 'error'); return; }
+                                                                        $wire.voidDebitNote({{ $initDn->id }}, value);
+                                                                    })
+                                                                "
+                                                                title="Anular Nota de Débito">
+                                                                <i class="fas fa-ban"></i>
+                                                            </button>
+                                                            @endcan
+                                                        @endif
+                                                    </div>
+
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    @endif
+
                                     {{-- INITIAL PAYMENTS --}}
                                     @if($sale_for_history && $sale_for_history->paymentDetails->count() > 0)
                                         @foreach($sale_for_history->paymentDetails as $initPay)

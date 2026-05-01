@@ -595,8 +595,7 @@
 
 
             <p class="box-disclaimer">
-                ESTIMADO CLIENTE DESPUES DE OCHO DIAS CALENDARIO NO SE ACEPTAN RECLAMOS NI
-                DEVOLUCIONES
+                
             </p>
 
         @if($invoice->notes)

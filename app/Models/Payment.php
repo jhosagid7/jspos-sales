@@ -10,7 +10,7 @@ class Payment extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id', 'sale_id', 'amount', 'currency', 'exchange_rate', 'primary_exchange_rate', 
+        'user_id', 'sale_id', 'debit_note_id', 'amount', 'currency', 'exchange_rate', 'primary_exchange_rate', 
         'pay_way', 'type', 'bank', 'account_number', 'deposit_number', 'phone_number', 
         'payment_date', 'zelle_record_id', 'bank_record_id', 'collection_sheet_id',
         'discount_applied', 'discount_percentage', 'discount_reason', 'discount_tag', 'payment_days', 'rule_type',
@@ -25,6 +25,11 @@ class Payment extends Model
     function sale()
     {
         return $this->belongsTo(Sale::class);
+    }
+
+    function debitNote()
+    {
+        return $this->belongsTo(DebitNote::class);
     }
 
     function payments()

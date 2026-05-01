@@ -19,6 +19,7 @@ class ZelleRecord extends Model
         'remaining_balance',
         'customer_id',
         'sale_id',
+        'debit_note_id',
         'invoice_total',
         'payment_type'
     ];
@@ -37,5 +38,10 @@ class ZelleRecord extends Model
     public function salePaymentDetails()
     {
         return $this->hasMany(SalePaymentDetail::class);
+    }
+
+    public function debitNote()
+    {
+        return $this->belongsTo(DebitNote::class);
     }
 }

@@ -84,8 +84,11 @@ class AccountsReceivableReport extends Component
         // $this->customer =  session('sale_customer', null);
         $this->customer = session('account_customer', null);
 
+        $reportData = $this->getReport();
+
         return view('livewire.reports.accounts-receivable-report', [
-            'sales' => $this->getReport()
+            'sales' => $reportData['sales'] ?? [],
+            'debitNotes' => $reportData['debitNotes'] ?? []
         ]);
     }
 
@@ -201,6 +204,24 @@ class AccountsReceivableReport extends Component
                 return max(0, round($totalUSD - ($totalPaidUSD + $initialPaidUSD + $totalReturnsUSD), 4));
             });
 
+            // --- ADD DEBIT NOTES TO TOTALS ---
+            $debitNotesQuery = \App\Models\DebitNote::query()
+                ->where('status', 'pending')
+                ->when($this->customer != null, function ($query) {
+                    $query->where('customer_id', $this->customer['id']);
+                })
+                ->when($this->dateFrom != null && $this->dateTo != null, function ($query) {
+                    $dFrom = Carbon::parse($this->dateFrom)->startOfDay();
+                    $dTo = Carbon::parse($this->dateTo)->endOfDay();
+                    $query->whereBetween('created_at', [$dFrom, $dTo]);
+                });
+
+            $totalDebitNotesUSD = $debitNotesQuery->get()->sum(function($dn) {
+                return $dn->amount / ($dn->exchange_rate > 0 ? $dn->exchange_rate : 1);
+            });
+
+            $this->totales += $totalDebitNotesUSD;
+
             $totalSale = $allSalesToTotal->sum(function($sale) {
                  $exchangeRate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
                  return $sale->total_usd > 0 ? $sale->total_usd : $sale->total / $exchangeRate;
@@ -225,7 +246,13 @@ class AccountsReceivableReport extends Component
             // --- FINAL PAGINATION FOR DISPLAY ---
             $sales = $query->orderBy('id', 'desc')->paginate($this->pagination);
 
-            return $sales;
+            // Only show debit notes that are NOT linked to a sale (e.g. Saldo Inicial)
+            $debitNotes = $debitNotesQuery->whereNull('sale_id')->orderBy('id', 'desc')->get();
+
+            return [
+                'sales' => $sales,
+                'debitNotes' => $debitNotes
+            ];
 
         } catch (\Exception $th) {
             $this->dispatch('noty', msg: "Error al intentar obtener el reporte \n {$th->getMessage()}");
@@ -373,30 +400,94 @@ class AccountsReceivableReport extends Component
             canUpload: $canUpload,
             canPay: $canPay,
             customerId: $sale->customer->id ?? $sale->customer_id,
-            walletBalance: $sale->customer->wallet_balance ?? 0
+            walletBalance: $sale->customer->wallet_balance ?? 0,
+            metadata: ['sale_id' => $sale_id]
         );
     }
     
     #[On('payment-uploaded')]
-    public function handlePaymentUploaded($payments, $change, $changeDistribution) 
+    public function handlePaymentUploaded($payments, $change, $changeDistribution, $metadata = [], $debitNotes = []) 
     {
-         $this->processPayment($payments, 'pending');
+         $this->processPayment($payments, 'pending', $metadata, $debitNotes);
     }
 
     #[On('payment-completed')]
-    public function handlePaymentCompleted($payments, $change, $changeDistribution)
+    public function handlePaymentCompleted($payments, $change, $changeDistribution, $metadata = [], $debitNotes = [])
     {
-        $this->processPayment($payments, 'approved');
+        $this->processPayment($payments, 'approved', $metadata, $debitNotes);
     }
 
-    public function processPayment($payments, $status)
+    public function initDebitNotePayment($note_id, $customer)
     {
-        if (!$this->sale_id) return;
+        $note = \App\Models\DebitNote::find($note_id);
+        if (!$note) {
+            $this->dispatch('noty', msg: 'Nota de Débito no encontrada');
+            return;
+        }
+
+        $this->sale_id = null; // Clear sale id to avoid confusion
+
+        $debtUSD = $note->amount / ($note->exchange_rate > 0 ? $note->exchange_rate : 1);
+        
+        $primaryCurrency = \App\Models\Currency::where('is_primary', true)->first();
+        $debtInPrimary = $debtUSD * ($primaryCurrency ? $primaryCurrency->exchange_rate : 1);
+
+        $this->dispatch('initPayment', 
+            total: $debtInPrimary, 
+            currency: 'USD', 
+            customer: $customer, 
+            allowPartial: true,
+            adjustment: null,
+            allowDiscounts: false,
+            usdDiscountPercent: 0,
+            fixedUsdDiscountAmount: 0,
+            canUpload: auth()->user()->can('payments.upload'),
+            canPay: auth()->user()->can('payments.register_direct'),
+            customerId: $note->customer_id,
+            walletBalance: $note->customer->wallet_balance ?? 0,
+            metadata: ['debit_note_id' => $note_id]
+        );
+    }
+
+    public function processPayment($payments, $status, $metadata = [], $debitNotes = [])
+    {
+        $saleId = $this->sale_id;
+        $debitNoteId = $metadata['debit_note_id'] ?? null;
+
+        if (!$saleId && !$debitNoteId) {
+            Log::warning("AccountsReceivableReport::processPayment - No target identified", ['sale_id' => $saleId, 'metadata' => $metadata]);
+            return;
+        }
 
         DB::beginTransaction();
         try {
-            $sale = Sale::find($this->sale_id);
+            $sale = $saleId ? Sale::find($saleId) : null;
+            $debitNote = $debitNoteId ? \App\Models\DebitNote::find($debitNoteId) : null;
+            
+            $customerId = $sale ? $sale->customer_id : ($debitNote ? $debitNote->customer_id : null);
+            
+            if (!$customerId) throw new \Exception("Cliente no identificado");
+
             $primaryCurrency = \App\Models\Currency::where('is_primary', true)->first();
+            
+            // --- HANDLE MANUAL DEBIT NOTES ---
+            foreach ($debitNotes as $dn) {
+                $lastNote = \App\Models\DebitNote::latest('id')->first();
+                $nextNumber = $lastNote ? $lastNote->id + 1 : 1;
+                $debitNumber = 'ND-' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+
+                \App\Models\DebitNote::create([
+                    'debit_number' => $debitNumber,
+                    'customer_id' => $customerId,
+                    'user_id' => auth()->id(),
+                    'sale_id' => $saleId,
+                    'amount' => $dn['amount'],
+                    'currency' => $dn['currency'] ?? ($primaryCurrency ? $primaryCurrency->code : 'USD'),
+                    'exchange_rate' => $dn['exchange_rate'],
+                    'concept' => $dn['reason'],
+                    'status' => 'pending'
+                ]);
+            }
             
             foreach ($payments as $payment) {
                 $amount = $payment['amount'];
@@ -451,10 +542,11 @@ class AccountsReceivableReport extends Component
                             'image_path' => $payment['zelle_image'] ?? null,
                             'status' => $remaining <= 0.01 ? 'used' : 'partial',
                             'remaining_balance' => max(0, $remaining),
-                            'customer_id' => $sale->customer_id,
-                            'sale_id' => $sale->id,
-                            'invoice_total' => $sale->total,
-                            'payment_type' => $amountUsed >= ($sale->total - 0.01) ? 'full' : 'partial'
+                            'customer_id' => $customerId,
+                            'sale_id' => $sale ? $sale->id : null,
+                            'debit_note_id' => $debitNote ? $debitNote->id : null,
+                            'invoice_total' => $sale ? $sale->total : $amountUsed,
+                            'payment_type' => $sale ? ($amountUsed >= ($sale->total - 0.01) ? 'full' : 'partial') : 'full'
                         ]);
                         
                         $zelleRecordId = $zelleRecord->id;
@@ -476,8 +568,9 @@ class AccountsReceivableReport extends Component
                             'note' => $payment['bank_note'] ?? null,
                             'status' => 'used',
                             'remaining_balance' => 0,
-                            'customer_id' => $sale->customer_id,
-                            'sale_id' => $sale->id,
+                            'customer_id' => $customerId,
+                            'sale_id' => $sale ? $sale->id : null,
+                            'debit_note_id' => $debitNote ? $debitNote->id : null,
                         ]);
                         $bankRecordId = $createdBankRecord->id;
                      } catch (\Exception $e) {
@@ -491,7 +584,8 @@ class AccountsReceivableReport extends Component
 
                 $pay = Payment::create([
                     'user_id' => Auth()->user()->id,
-                    'sale_id' => $this->sale_id,
+                    'sale_id' => $saleId ?: null,
+                    'debit_note_id' => $debitNoteId ?: null,
                     'amount' => floatval($amount),
                     'currency' => $currencyCode,
                     'exchange_rate' => $exchangeRate,
@@ -529,7 +623,8 @@ class AccountsReceivableReport extends Component
 
             // Only update sale totals if APPROVED
             if ($status === 'approved') {
-                 $this->checkSaleSettlement($sale);
+                 if ($sale) $this->checkSaleSettlement($sale);
+                 if ($debitNote) $debitNote->update(['status' => 'paid']);
             }
 
             DB::commit();
@@ -580,14 +675,24 @@ class AccountsReceivableReport extends Component
                     throw new \Exception("NO HAY CAJA ABIERTA para recibir este pago. Abra una caja o active el modo compartido.");
                 }
 
-                $cashRegisterService->recordSaleMovement(
-                    $activeRegister->id,
-                    $payment->sale_id,
-                    'sale_payment',
-                    $payment->currency,
-                    $payment->amount,
-                    "Aprobación de pago #{$payment->id} (Ref: {$payment->deposit_number})"
-                );
+                if ($payment->debit_note_id) {
+                    $cashRegisterService->recordDebitNoteMovement(
+                        $activeRegister->id,
+                        $payment->debit_note_id,
+                        $payment->currency,
+                        $payment->amount,
+                        "Aprobación de pago #{$payment->id} (Nota Débito)"
+                    );
+                } else {
+                    $cashRegisterService->recordSaleMovement(
+                        $activeRegister->id,
+                        $payment->sale_id,
+                        'sale_payment',
+                        $payment->currency,
+                        $payment->amount,
+                        "Aprobación de pago #{$payment->id} (Ref: {$payment->deposit_number})"
+                    );
+                }
 
                 // 2. Handle Collection Sheet Transition
                 $oldSheetId = $payment->collection_sheet_id;
@@ -608,6 +713,14 @@ class AccountsReceivableReport extends Component
                     'status' => 'approved',
                     'collection_sheet_id' => $currentSheetId
                 ]);
+
+                if ($payment->debit_note_id) {
+                    $payment->debitNote->update(['status' => 'paid']);
+                }
+
+                if ($payment->sale_id) {
+                    $this->checkSaleSettlement($payment->sale);
+                }
 
                 // Increment TODAY'S sheet total (always, as it is now approved)
                 $amountUSD = $payment->amount / ($payment->exchange_rate > 0 ? $payment->exchange_rate : 1);
@@ -737,6 +850,48 @@ class AccountsReceivableReport extends Component
             $this->dispatch('noty', msg: 'Error al anular: ' . $e->getMessage());
         }
     }
+
+    public function voidDebitNote($id, $reason)
+    {
+        $dn = \App\Models\DebitNote::find($id);
+        if (!$dn) return;
+
+        // Permission check
+        if (!auth()->user()->can('payments.void_anytime')) {
+             $this->dispatch('noty', msg: 'NO TIENES PERMISO PARA ANULAR NOTAS DE DÉBITO');
+             return;
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $dn->update([
+                'status' => 'voided',
+                'concept' => $dn->concept . ' (ANULADA: ' . $reason . ')'
+            ]);
+
+            // Restore sale status
+            if ($dn->sale_id) {
+                $sale = Sale::find($dn->sale_id);
+                if ($sale) {
+                    $this->checkSaleSettlement($sale);
+                }
+            }
+
+            DB::commit();
+            $this->dispatch('noty', msg: 'Nota de Débito anulada correctamente');
+            
+            // Refresh history if open
+            if (isset($this->history_sale_id) && $this->history_sale_id) {
+                $this->historyPayments($this->history_sale_id);
+            }
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->dispatch('noty', msg: 'Error: ' . $e->getMessage());
+        }
+    }
+
 
 
     public function deletePayment($paymentId)
@@ -1052,9 +1207,9 @@ class AccountsReceivableReport extends Component
         $this->editPaymentRate = 1;
         $this->editPaymentComment = '';
     }
-    function historyPayments($sale_id) // Changed type hint to $sale_id for flexibility or keep object if using implicit binding
+    function historyPayments($sale_id)
     {
-        $sale = Sale::find($sale_id);
+        $sale = Sale::with(['payments', 'returns', 'debitNotes'])->find($sale_id);
         if ($sale) {
             $this->history_sale_id = $sale->id;
             $this->pays = $sale->payments;

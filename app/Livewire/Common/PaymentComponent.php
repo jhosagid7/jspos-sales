@@ -99,6 +99,14 @@ class PaymentComponent extends Component
     public $manualCreditAmount;
     public $manualCreditReason;
 
+    // Manual Debit Note
+    public $manualDebitAmount;
+    public $manualDebitReason;
+    public $debitNotes = [];
+    public $totalDebitNotes = 0;
+
+
+    public $metadata = [];
 
     protected $listeners = ['initPayment'];
 
@@ -115,7 +123,7 @@ class PaymentComponent extends Component
     }
 
     #[On('initPayment')]
-    public function initPayment($total, $currency = 'COP', $customer = '', $allowPartial = false, $adjustment = null, $allowDiscounts = false, $usdDiscountPercent = 0, $fixedUsdDiscountAmount = 0, $canUpload = false, $canPay = false, $customerId = null, $walletBalance = 0)
+    public function initPayment($total, $currency = 'COP', $customer = '', $allowPartial = false, $adjustment = null, $allowDiscounts = false, $usdDiscountPercent = 0, $fixedUsdDiscountAmount = 0, $canUpload = false, $canPay = false, $customerId = null, $walletBalance = 0, $metadata = [])
     {
         Log::info('PaymentComponent::initPayment Received', [
             'total' => $total,
@@ -125,7 +133,8 @@ class PaymentComponent extends Component
             'canUpload' => $canUpload,
             'canPay' => $canPay,
             'customerId' => $customerId,
-            'walletBalance' => $walletBalance
+            'walletBalance' => $walletBalance,
+            'metadata' => $metadata
         ]);
 
         $this->totalToPay = floatval($total);
@@ -142,6 +151,7 @@ class PaymentComponent extends Component
         $this->canPay = $canPay;
         $this->customerId = $customerId;
         $this->walletBalance = floatval($walletBalance);
+        $this->metadata = $metadata;
         
         // 1. Inicializar USD Discount si califica
         if ($this->allowDiscounts && $this->fixedUsdDiscountAmount > 0) {
@@ -167,6 +177,7 @@ class PaymentComponent extends Component
         }
 
         $this->payments = [];
+        $this->debitNotes = [];
         $this->changeDistribution = [];
         $this->calculateTotals();
         $this->resetPaymentForm();
@@ -224,6 +235,8 @@ class PaymentComponent extends Component
         
         $this->manualCreditAmount = null;
         $this->manualCreditReason = null;
+        $this->manualDebitAmount = null;
+        $this->manualDebitReason = null;
         $this->walletAmount = null;
         
         // Keep paymentCurrency and paymentMethod as is for better UX
@@ -632,6 +645,54 @@ class PaymentComponent extends Component
         $this->calculateTotals();
     }
 
+    public function addDebitNote()
+    {
+        // Permission check (using same as debit notes module)
+        if (!auth()->user()->can('manage_debit_notes')) {
+            $this->dispatch('noty', msg: 'No tienes permiso para crear notas de débito.');
+            return;
+        }
+
+        $this->validate([
+            'manualDebitAmount' => 'required|numeric|min:0.01',
+            'manualDebitReason' => 'required|string|min:3'
+        ]);
+
+        $currency = $this->currencies->firstWhere('code', $this->paymentCurrency);
+        $exchangeRate = $currency ? $currency->exchange_rate : 1;
+        $symbol = $currency ? $currency->symbol : '$';
+
+        $primaryCurrency = $this->currencies->firstWhere('is_primary', 1);
+        $amountInUSD = $this->manualDebitAmount / ($exchangeRate ?: 1);
+        
+        if ($currency && $currency->is_primary) {
+            $amountInPrimary = $this->manualDebitAmount;
+        } else {
+            $amountInPrimary = $amountInUSD * $primaryCurrency->exchange_rate;
+        }
+
+        $this->debitNotes[] = [
+            'amount' => $this->manualDebitAmount,
+            'currency' => $this->paymentCurrency,
+            'symbol' => $symbol,
+            'exchange_rate' => $exchangeRate,
+            'amount_in_primary' => $amountInPrimary,
+            'reason' => $this->manualDebitReason
+        ];
+
+        $this->manualDebitAmount = null;
+        $this->manualDebitReason = null;
+        
+        $this->calculateTotals();
+    }
+
+    public function removeDebitNote($index)
+    {
+        unset($this->debitNotes[$index]);
+        $this->debitNotes = array_values($this->debitNotes);
+        $this->calculateTotals();
+    }
+
     public function removePayment($index)
     {
         unset($this->payments[$index]);
@@ -663,6 +724,7 @@ class PaymentComponent extends Component
     public function calculateTotals()
     {
         $this->totalPaid = array_sum(array_column($this->payments, 'amount_in_primary'));
+        $this->totalDebitNotes = array_sum(array_column($this->debitNotes, 'amount_in_primary'));
         
         // Analyze Payment Currencies
         $hasPayments = !empty($this->payments);
@@ -748,11 +810,31 @@ class PaymentComponent extends Component
              $this->usdAdjustment = null;
         }
 
-        $this->remaining = max(0, $targetToPay - $this->totalPaid);
-        $this->change = max(0, $this->totalPaid - $targetToPay);
+        $this->remaining = max(0, ($targetToPay + $this->totalDebitNotes) - $this->totalPaid);
+        $this->change = max(0, $this->totalPaid - ($targetToPay + $this->totalDebitNotes));
     }
     
     // ... addChangeDistribution ...
+
+    public function submitDebitNoteOnly()
+    {
+        if ($this->totalDebitNotes <= 0) {
+            $this->dispatch('noty', msg: 'No hay incrementos para procesar');
+            return;
+        }
+
+        $this->dispatch('payment-completed', 
+            payments: [],
+            change: 0,
+            changeDistribution: [],
+            metadata: $this->metadata,
+            debitNotes: $this->debitNotes
+        );
+
+        $this->resetPaymentForm();
+        $this->dispatch('close-payment-modal');
+        $this->dispatch('noty', msg: 'Incremento(s) procesado(s) correctamente');
+    }
 
     public function submit($action = 'pay')
     {
@@ -838,13 +920,17 @@ class PaymentComponent extends Component
             $this->dispatch('payment-uploaded', 
                 payments: $this->payments, 
                 change: $this->change, 
-                changeDistribution: $this->changeDistribution
+                changeDistribution: $this->changeDistribution,
+                metadata: $this->metadata,
+                debitNotes: $this->debitNotes
             );
         } else {
             $this->dispatch('payment-completed', 
                 payments: $this->payments, 
                 change: $this->change, 
-                changeDistribution: $this->changeDistribution
+                changeDistribution: $this->changeDistribution,
+                metadata: $this->metadata,
+                debitNotes: $this->debitNotes
             );
         }
         

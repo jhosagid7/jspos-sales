@@ -17,6 +17,7 @@ class BankRecord extends Model
         'image_path',
         'note',
         'sale_id',
+        'debit_note_id',
         'payment_id',
         'status', 
         'remaining_balance'
@@ -41,5 +42,10 @@ class BankRecord extends Model
     public function salePaymentDetails()
     {
         return $this->hasMany(SalePaymentDetail::class);
+    }
+
+    public function debitNote()
+    {
+        return $this->belongsTo(DebitNote::class);
     }
 }

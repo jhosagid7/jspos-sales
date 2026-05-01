@@ -199,6 +199,16 @@
                                             </button>
                                         </div>
                                         @endcan
+
+                                        @can('manage_debit_notes')
+                                        <div class="col-12 mt-2">
+                                            <button type="button" wire:click="$set('paymentMethod', 'debit_note')"
+                                                class="btn w-100 btn-pay-method {{ $paymentMethod === 'debit_note' ? 'btn-danger' : 'btn-outline-danger' }}">
+                                                <i class="fa fa-file-invoice-dollar fa-lg me-2"></i>
+                                                Nota de Débito Manual (Incremento)
+                                            </button>
+                                        </div>
+                                        @endcan
                                     </div>
                                 </div>
                             </div>
@@ -521,6 +531,37 @@
                                             </div>
                                         </div>
                                     @endif
+
+                                    {{-- DEBIT NOTE --}}
+                                    @if($paymentMethod === 'debit_note')
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <div class="alert alert-danger py-2 small mb-0 bg-opacity-10 text-danger border-danger">
+                                                    <i class="fa fa-info-circle me-1"></i> Esto generará una Nota de Débito manual que <strong>incrementará</strong> la deuda del cliente.
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Monto del Incremento</label>
+                                                <div class="input-group">
+                                                    <select class="form-select" style="max-width: 100px;" wire:model.live="paymentCurrency">
+                                                        @foreach($currencies as $curr)
+                                                            <option value="{{ $curr->code }}">{{ $curr->code }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                    <input class="form-control" type="number" step="0.01" wire:model="manualDebitAmount" placeholder="0.00" wire:keydown.enter="addDebitNote">
+                                                </div>
+                                                @error('manualDebitAmount') <span class="text-danger small">{{ $message }}</span> @enderror
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Concepto</label>
+                                                <input class="form-control" type="text" wire:model="manualDebitReason" placeholder="Ej: Recargo por mora, Reajuste" wire:keydown.enter="addDebitNote">
+                                                @error('manualDebitReason') <span class="text-danger small">{{ $message }}</span> @enderror
+                                            </div>
+                                            <div class="col-12">
+                                                <button class="btn btn-danger w-100" wire:click="addDebitNote">Aplicar Incremento / ND</button>
+                                            </div>
+                                        </div>
+                                    @endif
  
                                 </div>
                             </div>
@@ -545,7 +586,7 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                @forelse($payments as $index => $p)
+                                                @foreach($payments as $index => $p)
                                                     <tr>
                                                         <td>
                                                             <span class="badge {{ $p['method'] == 'credit_note' ? 'bg-warning text-dark' : ($p['method'] == 'wallet' ? 'bg-warning' : 'bg-secondary') }}">
@@ -568,15 +609,33 @@
                                                         <td>{{ $symbol }}{{ number_format($p['amount_in_primary'], 2) }}</td>
                                                         <td>
                                                             <button class="btn btn-danger btn-sm" wire:click="removePayment({{ $index }})">
+                                                                 <i class="fa fa-trash"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+
+                                                @foreach($debitNotes as $index => $dn)
+                                                    <tr class="table-danger">
+                                                        <td>
+                                                            <span class="badge bg-danger">INCREMENTO / ND</span>
+                                                            <br><small>Concepto: {{ $dn['reason'] }}</small>
+                                                        </td>
+                                                        <td>{{ $dn['symbol'] }}{{ number_format($dn['amount'], 2) }}</td>
+                                                        <td>{{ $symbol }}{{ number_format($dn['amount_in_primary'], 2) }}</td>
+                                                        <td>
+                                                            <button class="btn btn-danger btn-sm" wire:click="removeDebitNote({{ $index }})">
                                                                 <i class="fa fa-trash"></i>
                                                             </button>
                                                         </td>
                                                     </tr>
-                                                @empty
+                                                @endforeach
+
+                                                @if(empty($payments) && empty($debitNotes))
                                                     <tr>
-                                                        <td colspan="4" class="text-center py-3 text-muted">No hay pagos agregados</td>
+                                                        <td colspan="4" class="text-center py-3 text-muted">No hay pagos o incrementos agregados</td>
                                                     </tr>
-                                                @endforelse
+                                                @endif
                                             </tbody>
                                         </table>
                                     </div>
@@ -641,6 +700,12 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="$('#modalPayment').modal('hide')">Cancelar</button>
                     
+                    @if($totalDebitNotes > 0 && $totalPaid <= 0)
+                        <button type="button" class="btn btn-danger" wire:click="submitDebitNoteOnly">
+                            <i class="fa fa-plus-circle me-2"></i>Confirmar Solo Incremento
+                        </button>
+                    @endif
+
                     @if($canPay)
                         <button type="button" class="btn btn-primary" wire:click="submit('pay')" {{ ($remaining > 0.01 && !$allowPartialPayment) ? 'disabled' : '' }}>
                             <i class="fa fa-check me-2"></i>Confirmar Pago

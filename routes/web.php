@@ -98,6 +98,7 @@ Route::middleware('auth')->group(function () {
     Route::get('customers/import', \App\Livewire\CustomerImport::class)->name('customers.import')->middleware('can:customers.import');
     Route::get('customers', Customers::class)->name('customers')->middleware('can:customers.index');
     Route::get('customer-statement', CustomerStatement::class)->name('customer-statement')->middleware('can:customer_statement.index');
+    Route::get('debit-note/{note}/pdf', [\App\Http\Controllers\DebitNoteController::class, 'pdf'])->name('debit-note.pdf')->middleware('can:manage_debit_notes');
     Route::get('sales', Sales::class)->name('sales')->middleware(['can:sales.index', \App\Http\Middleware\EnsureCashRegisterIsOpen::class]);
 
     Route::get('purchases', Purchases::class)->name('purchases')->middleware(['can:purchases.create', 'module:module_purchases']); // Usually create
@@ -146,6 +147,7 @@ Route::middleware('auth')->group(function () {
         Route::get('sales', SalesReport::class)->name('reports.sales')->middleware('can:reports.sales');
         Route::get('purchases', PurchasesReport::class)->name('reports.purchases')->middleware(['can:reports.purchases', 'module:module_purchases']);
         Route::get('accounts-receivable', AccountsReceivableReport::class)->name('reports.accounts.receivable')->middleware(['can:reports.financial', 'module:module_credits']);
+        Route::get('debit-notes', \App\Livewire\DebitNotes::class)->name('pos.debit-notes')->middleware(['can:manage_debit_notes', 'module:module_credits']);
         Route::get('accounts-receivable/pdf', [\App\Http\Controllers\ReportController::class, 'accountsReceivablePdf'])->name('reports.accounts.receivable.pdf')->middleware(['can:reports.financial', 'module:module_credits']);
         Route::get('accounts-payables', AccountsPayableReport::class)->name('reports.accounts.payables')->middleware(['can:reports.financial', 'module:module_purchases']);
         Route::get('payment-relationship', \App\Livewire\Reports\PaymentRelationshipReport::class)->name('reports.payment.relationship')->middleware(['can:reports.sales', 'module:module_credits']);

@@ -137,6 +137,51 @@
                                 </div>
                                 <div class="card-body">
                                     <div class="table-responsive">
+                                        @if(count($debitNotes) > 0)
+                                        <div class="alert alert-info py-2 mb-3">
+                                            <h6 class="mb-1"><i class="fas fa-info-circle"></i> <b>Notas de Débito Pendientes</b> (Cargos Manuales / Reajustes)</h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-bordered bg-white mb-0">
+                                                    <thead>
+                                                        <tr class="text-center">
+                                                            <th>Folio</th>
+                                                            <th>Cliente</th>
+                                                            <th>Concepto</th>
+                                                            <th>Monto</th>
+                                                            <th>Fecha</th>
+                                                            <th>Acción</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach($debitNotes as $dn)
+                                                        <tr class="text-center">
+                                                            <td><b>{{ $dn->debit_number }}</b></td>
+                                                            <td>{{ $dn->customer->name }}</td>
+                                                            <td><small>{{ $dn->concept }}</small></td>
+                                                            <td class="text-primary font-weight-bold">
+                                                                {{ $dn->currency }} {{ number_format($dn->amount, 2) }}
+                                                                @if($dn->currency != 'USD')
+                                                                    <br><small class="text-muted">($ {{ number_format($dn->amount / $dn->exchange_rate, 2) }})</small>
+                                                                @endif
+                                                            </td>
+                                                            <td>{{ \Carbon\Carbon::parse($dn->created_at)->format('d-m-Y') }}</td>
+                                                            <td>
+                                                                <div class="d-flex gap-1 justify-content-center">
+                                                                    <button wire:click.prevent="initDebitNotePayment({{ $dn->id }}, '{{ $dn->customer->name }}')" class="btn btn-success btn-xs" title="Cobrar esta nota">
+                                                                        <i class="fas fa-hand-holding-usd"></i> Cobrar
+                                                                    </button>
+                                                                    <a href="{{ route('debit-note.pdf', $dn->id) }}" target="_blank" class="btn btn-default btn-xs" title="Ver PDF">
+                                                                        <i class="fas fa-file-pdf text-danger"></i>
+                                                                    </a>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                        @endif
                                         <table class="table table-dashed">
                                             <thead>
                                                 <tr class="text-center">
@@ -145,6 +190,7 @@
                                                     <th>Total</th>
                                                     <th>Abonado</th>
                                                     <th>N/C</th>
+                                                    <th>N/D</th>
                                                     <th>Saldo</th>
                                                     <th>Días Vencidos</th>
                                                     <th>Estatus</th>
@@ -179,6 +225,12 @@
                                                         $exchangeRateReturns = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
                                                         $totalReturnsUSD = $totalReturnsOrig / $exchangeRateReturns;
 
+                                                        // Calculate Debit Notes (ND)
+                                                        $totalDebitNotesUSD = $sale->debitNotes->where('status', '<>', 'voided')->sum(function($dn) {
+                                                            $rate = $dn->exchange_rate > 0 ? $dn->exchange_rate : 1;
+                                                            return $dn->amount / $rate;
+                                                        });
+
                                                         // Total applied to debt (Payments + NC)
                                                         $totalAbonadoUSD = $totalPaidUSD + $initialPaidUSD + $totalReturnsUSD;
                                                         
@@ -186,7 +238,7 @@
                                                         $exchangeRate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
                                                         $finalTotalUSD = $sale->total_usd > 0 ? $sale->total_usd : $sale->total / $exchangeRate;
                                                         
-                                                        $saldoUSD = max(0, $finalTotalUSD - $totalAbonadoUSD);
+                                                        $saldoUSD = max(0, ($finalTotalUSD + $totalDebitNotesUSD) - $totalAbonadoUSD);
                                                     @endphp
                                                     <tr class="text-center">
                                                         <td>
@@ -198,6 +250,14 @@
                                                                    class="ms-1" 
                                                                    title="{{ $isManual ? 'Nota de Crédito (Ajuste)' : 'Nota de Crédito (Devolución)' }} #{{ $return->id }}">
                                                                     <i class="fas fa-file-invoice" style="color: {{ $isManual ? '#fd7e14' : '#ffc107' }};"></i>
+                                                                </a>
+                                                            @endforeach
+                                                            @foreach ($sale->debitNotes as $dn)
+                                                                <a href="{{ route('debit-note.pdf', $dn->id) }}" 
+                                                                   target="_blank" 
+                                                                   class="ms-1" 
+                                                                   title="Nota de Débito (Incremento) #{{ $dn->debit_number }}">
+                                                                    <i class="fas fa-file-invoice" style="color: #007bff;"></i>
                                                                 </a>
                                                             @endforeach
                                                         </td>
@@ -225,6 +285,13 @@
                                                                 <span class="badge badge-warning text-white mt-1" title="Hay Notas de Crédito pendientes por aprobar">
                                                                     <i class="fas fa-clock"></i> N/C por aprobar
                                                                 </span>
+                                                            @endif
+                                                        </td>
+                                                        <td class="text-primary font-weight-bold">
+                                                            @if($totalDebitNotesUSD > 0)
+                                                                ${{ number_format($totalDebitNotesUSD, 4) }}
+                                                            @else
+                                                                $0.0000
                                                             @endif
                                                         </td>
                                                         <td style="background-color: beige">

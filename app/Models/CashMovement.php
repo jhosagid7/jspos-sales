@@ -12,8 +12,10 @@ class CashMovement extends Model
     protected $fillable = [
         'cash_register_id',
         'sale_id',
-        'type', // opening, sale_payment, sale_change, adjustment, closing
+        'debit_note_id',
+        'type', // opening, sale_payment, sale_change, adjustment, closing, debit_note_payment
         'currency_code',
+        'exchange_rate',
         'amount',
         'amount_in_primary_currency',
         'balance_after',
@@ -34,5 +36,10 @@ class CashMovement extends Model
     public function sale()
     {
         return $this->belongsTo(Sale::class);
+    }
+
+    public function debitNote()
+    {
+        return $this->belongsTo(DebitNote::class);
     }
 }

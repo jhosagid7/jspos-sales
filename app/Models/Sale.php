@@ -113,6 +113,11 @@ class Sale extends Model
         return $this->hasMany(SaleReturn::class);
     }
 
+    public function debitNotes()
+    {
+        return $this->hasMany(DebitNote::class);
+    }
+
     //scopes
     // public function scopeWithDebt($query)
     // {
@@ -232,9 +237,15 @@ class Sale extends Model
         $exchangeRateReturns = $this->primary_exchange_rate > 0 ? $this->primary_exchange_rate : 1;
         $totalReturnsUSD = $totalReturnsOrig / $exchangeRateReturns;
         
+        $totalDebitNotesUSD = $this->debitNotes->where('status', '<>', 'voided')->sum(function($dn) {
+            $rate = $dn->exchange_rate > 0 ? $dn->exchange_rate : 1;
+            return $dn->amount / $rate;
+        });
+
         $grandTotalPaidUSD = $currentTotalPaidUSD + $initialPaidUSD + $totalReturnsUSD;
+        $targetTotalUSD = $this->total_usd + $totalDebitNotesUSD;
         
-        if ($grandTotalPaidUSD >= ($this->total_usd - 0.01)) {
+        if ($grandTotalPaidUSD >= ($targetTotalUSD - 0.01)) {
             $this->update(['status' => 'paid']);
             
             Payment::where('sale_id', $this->id)

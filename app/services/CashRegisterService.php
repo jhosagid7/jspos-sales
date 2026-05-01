@@ -157,6 +157,36 @@ class CashRegisterService
     }
 
     /**
+     * Registrar movimiento por nota de débito
+     */
+    public function recordDebitNoteMovement($cashRegisterId, $debitNoteId, $currencyCode, $amount, $description = null)
+    {
+        $currency = Currency::where('code', $currencyCode)->firstOrFail();
+        $primaryCurrency = Currency::where('is_primary', true)->first();
+        
+        // Calcular valor en moneda principal
+        $amountInPrimary = $amount;
+        if (!$currency->is_primary) {
+            $amountInPrimary = $amount / $currency->exchange_rate * $primaryCurrency->exchange_rate;
+        }
+
+        // Calcular saldo anterior
+        $currentBalance = $this->getBalance($cashRegisterId, $currencyCode);
+        
+        return CashMovement::create([
+            'cash_register_id' => $cashRegisterId,
+            'debit_note_id' => $debitNoteId,
+            'type' => 'debit_note_payment', 
+            'currency_code' => $currencyCode,
+            'amount' => $amount, 
+            'amount_in_primary_currency' => $amountInPrimary,
+            'exchange_rate' => $currency->exchange_rate, 
+            'balance_after' => $currentBalance + $amount,
+            'description' => $description
+        ]);
+    }
+
+    /**
      * Cerrar caja
      */
     public function closeRegister($cashRegisterId, array $countedAmounts, $notes = null)

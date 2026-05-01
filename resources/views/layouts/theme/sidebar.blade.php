@@ -343,6 +343,14 @@
                                 <p>Cuentas por Cobrar</p>
                             </a>
                         </li>
+                        @can('manage_debit_notes')
+                        <li class="nav-item">
+                            <a href="{{ route('pos.debit-notes') }}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Notas de Débito</p>
+                            </a>
+                        </li>
+                        @endcan
                         @endcan
                         @endmodule
                         @module('module_purchases')

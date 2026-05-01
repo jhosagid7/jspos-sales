@@ -1,3 +1,12 @@
+## [1.10.50] - 2026-05-01
+### Added
+- **Estandarización de Notas de Débito**: Rediseño total del PDF de Notas de Débito para lograr paridad 1:1 con el formato de Notas de Crédito (Márgenes, proporciones, fuentes y estética).
+- **Anulación de Incrementos**: Implementada la capacidad de anular Notas de Débito directamente desde el historial de pagos, con recálculo automático de saldos de factura y trazabilidad de motivos.
+### Changed
+- **Simplificación de Documentos**: Se eliminaron los avisos legales de límites de reclamo (8 días) en todos los formatos de impresión (Facturas Pagas, Notas de Crédito y Notas de Débito) para un diseño más limpio y profesional.
+### Fixed
+- **Layout de PDF**: Corregidos problemas de superposición de texto y desbordamiento de páginas en el formato de Notas de Débito.
+
 ## [1.10.49] - 2026-05-01
 ### Changed
 - **Buscador Inteligente**: Se unificó la búsqueda en el Gestor de Notas de Crédito. Ahora permite buscar por Nombre de Cliente, Número de Nota o Factura desde un solo campo general.

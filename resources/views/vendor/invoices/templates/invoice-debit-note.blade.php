@@ -259,6 +259,9 @@
         color:#ea5340
     }
     .text-green{
+        color:#77b632
+    }
+    .text-blue{
         color:#0380b2
     }
 
@@ -273,6 +276,9 @@
     }
     .cool-green {
         color:#77b632;
+    }
+    .cool-blue {
+        color:#0380b2;
     }
     .title-data{
         font-size:14px;
@@ -321,9 +327,9 @@
                             <strong>{{ $invoice->name }}</strong>
                         </h4>
                     </td>
-                    <td class="clearfix pl-0 border-0 invoice-details"  width="15%">
-                        <p > <strong class="remission-title text-green">{{ $invoice->getSerialNumber() }}</strong>
-                        <b> <br>{{ __('invoices::invoice.remission') }}</b>
+                    <td class="clearfix pl-0 border-0 invoice-details" width="15%">
+                        <p > <strong class="remission-title text-blue">{{ $invoice->getSerialNumber() }}</strong>
+                        <b> <br>NOTA DE DÉBITO</b>
                         </p>
 
 
@@ -387,7 +393,7 @@
 
                             <p class="buyer-name">
                                 @if($invoice->status)
-                                    <strong class="title-data text-green">{{ $invoice->status }}</strong>
+                                    <strong class="title-data text-blue">{{ $invoice->status }}</strong>
                                 <br>
                                 @endif
 
@@ -402,7 +408,7 @@
                         @if($invoice->seller->custom_fields['operador'] ?? false)
                             Operador: <b>{{ $invoice->seller->custom_fields['operador'] }}</b><br>
                         @endif
-                        {{ __('invoices::invoice.amount_due') }}: <strong class="text-green title-data">{{ $invoice->formatCurrency($invoice->total_amount) }}</strong><br>
+                        {{ __('invoices::invoice.amount_due') }}: <strong class="text-blue title-data">{{ $invoice->formatCurrency($invoice->total_amount) }}</strong><br>
                             </p>
                     </td>
                 </tr>
@@ -413,16 +419,6 @@
 
         <hr>
         <table class="table table-items">
-            @php
-                $columns = 5; // #, Description, Quantity, Price, Subtotal
-                if($invoice->hasItemReference) $columns++;
-                if($invoice->hasItemCode) $columns++;
-                if($invoice->hasItemUnits) $columns++;
-                if($invoice->hasItemDiscount) $columns++;
-                if($invoice->hasItemTax) $columns++;
-                
-                $colspan = $columns - 2;
-            @endphp
 
             <thead>
                 <tr>
@@ -502,7 +498,7 @@
                 {{-- Summary --}}
                 @if($invoice->hasItemOrInvoiceDiscount())
                     <tr>
-                        <td colspan="{{ $colspan }}" class="border-0"></td>
+                        <td colspan="{{ $invoice->table_columns - 2 }}" class="border-0"></td>
                         <td class="pl-0 text-right">{{ __('invoices::invoice.total_discount') }}</td>
                         <td class="pr-0 text-right">
                             {{ $invoice->formatCurrency($invoice->total_discount) }}
@@ -511,7 +507,7 @@
                 @endif
                 @if($invoice->taxable_amount)
                     <tr>
-                        <td colspan="{{ $colspan }}" class="border-0"></td>
+                        <td colspan="{{ $invoice->table_columns - 2 }}" class="border-0"></td>
                         <td class="pl-0 text-right">{{ __('invoices::invoice.taxable_amount') }}</td>
                         <td class="pr-0 text-right">
                             {{ $invoice->formatCurrency($invoice->taxable_amount) }}
@@ -520,7 +516,7 @@
                 @endif
                 @if($invoice->tax_rate)
                     <tr>
-                        <td colspan="{{ $colspan }}" class="border-0"></td>
+                        <td colspan="{{ $invoice->table_columns - 2 }}" class="border-0"></td>
                         <td class="pl-0 text-right">{{ __('invoices::invoice.tax_rate') }}</td>
                         <td class="pr-0 text-right">
                             {{ $invoice->tax_rate }}%
@@ -529,7 +525,7 @@
                 @endif
                 @if($invoice->hasItemOrInvoiceTax())
                     <tr>
-                        <td colspan="{{ $colspan }}" class="border-0"></td>
+                        <td colspan="{{ $invoice->table_columns - 2 }}" class="border-0"></td>
                         <td class="pl-0 text-right">{{ __('invoices::invoice.total_taxes') }}</td>
                         <td class="pr-0 text-right">
                             {{ $invoice->formatCurrency($invoice->total_taxes) }}
@@ -538,7 +534,7 @@
                 @endif
                 @if($invoice->shipping_amount)
                     <tr>
-                        <td colspan="{{ $colspan }}" class="border-0"></td>
+                        <td colspan="{{ $invoice->table_columns - 2 }}" class="border-0"></td>
                         <td class="pl-0 text-right">{{ __('invoices::invoice.shipping') }}</td>
                         <td class="pr-0 text-right">
                             {{ $invoice->formatCurrency($invoice->shipping_amount) }}
@@ -546,7 +542,7 @@
                     </tr>
                 @endif
                     <tr>
-                        <td colspan="{{ $colspan }}" class="border-0"></td>
+                        <td colspan="{{ $invoice->table_columns - 2 }}" class="border-0"></td>
                         <td class="pl-0 title-data text-right"><strong>{{ __('invoices::invoice.total_amount') }}</strong></td>
                         <td class="pr-0 text-right total-amount">
                             {{ $invoice->formatCurrency($invoice->total_amount) }}
@@ -558,16 +554,16 @@
         <table class="table">
             <thead>
                 <th>
-                    <td colspan="{{ $colspan }}" width="60%" class="border-0" text-center><hr class="hr"></td>
+                    <td colspan="{{ $invoice->table_columns - 2 }}" width="60%" class="border-0" text-center><hr class="hr"></td>
                 </th>
             </thead>
             <tbody>
                 <th>
                     <td class="text-center">FIRMA, SELLO Y FECHA DE RECIBO</td>
                 </th>
-            </tbody>
+            <tbody>
         </table>
-
+        
         <p class="text-center" style="font-size: 9px; color: #555; margin-top: 5px;">
             {{ $invoice->seller->custom_fields['footer_code'] ?? '' }}
         </p>
@@ -640,7 +636,7 @@
                 </table>
             </div>
 
-            {{-- Bank Information Box --}}
+            {{-- Bank Information Box - Optional for Debit Notes --}}
             @php
                 $vendedorBanks = $invoice->seller->custom_fields['vendedor_banks'] ?? collect();
             @endphp
@@ -664,11 +660,11 @@
                         <tbody>
                             @foreach($vendedorBanks as $bank)
                             <tr>
-                                <td style="padding: 5px 0; border-bottom: 1px solid #e5e7eb;">{{ $bank->name }}</td>
-                                <td style="padding: 5px 0; border-bottom: 1px solid #e5e7eb;">{{ $bank->account_holder }}</td>
-                                <td style="padding: 5px 0; border-bottom: 1px solid #e5e7eb;"><strong>{{ $bank->account_number }}</strong></td>
-                                <td style="padding: 5px 0; border-bottom: 1px solid #e5e7eb;">{{ $bank->cedula }}</td>
-                                <td style="padding: 5px 0; border-bottom: 1px solid #e5e7eb;">{{ $bank->phone }}</td>
+                                <td style="padding: 3px 0; border-bottom: 1px solid #e5e7eb;">{{ $bank->name }}</td>
+                                <td style="padding: 3px 0; border-bottom: 1px solid #e5e7eb;">{{ $bank->account_holder }}</td>
+                                <td style="padding: 3px 0; border-bottom: 1px solid #e5e7eb;"><strong>{{ $bank->account_number }}</strong></td>
+                                <td style="padding: 3px 0; border-bottom: 1px solid #e5e7eb;">{{ $bank->cedula }}</td>
+                                <td style="padding: 3px 0; border-bottom: 1px solid #e5e7eb;">{{ $bank->phone }}</td>
                             </tr>
                             @endforeach
                         </tbody>
@@ -677,7 +673,6 @@
             </div>
             @endif
 
-            {{-- Bottom Box: Disclaimer (Attached to top box) --}}
             {{-- Bottom Box: Disclaimer with QR --}}
             <table width="100%" style="border: 1px solid #6B7280; border-top: 1px solid #6B7280; margin-top: 0px; background: #ADD8E6; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px; color: #000; border-collapse: collapse;">
                 <tr>
@@ -691,32 +686,21 @@
                     </td>
                 </tr>
             </table>
-
+        
         @if($invoice->notes)
             <p class="clase_table text-uppercase">
                 <b>{{ __('invoices::invoice.notes') }}:</b> {!! $invoice->notes !!}
             </p>
         @endif
 
-
-
+        @if(($invoice->seller->custom_fields['footer_data']['credit_days'] ?? 0) > 0)
+        <p>
+            {{ __('invoices::invoice.pay_until') }}: {{ $invoice->getPayUntilDate() }}
+        </p>
+        @endif
 
         <script type="text/php">
             if (isset($pdf)) {
-                /*
-                // Footer Code (Moved to body)
-                $code = "{{ $invoice->seller->custom_fields['footer_code'] ?? '' }}";
-                if (!empty($code)) {
-                    $size = 9;
-                    $font = $fontMetrics->getFont("Verdana");
-                    $x = 36;
-                    $y = $pdf->get_height() - 25;
-                    $color = array(0.5, 0.5, 0.5);
-                    $pdf->page_text($x, $y, $code, $font, $size, $color);
-                }
-                */
-
-                // Page Numbers
                 if ($PAGE_COUNT > 1) {
                     $text = "{{ __('invoices::invoice.page') }} {PAGE_NUM} / {PAGE_COUNT}";
                     $size = 10;

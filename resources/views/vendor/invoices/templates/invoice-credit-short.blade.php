@@ -672,7 +672,7 @@
             <table width="100%" style="border: 1px solid #6B7280; border-top: 1px solid #6B7280; margin-top: 0px; background: #ADD8E6; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px; color: #000; border-collapse: collapse;">
                 <tr>
                     <td width="85%" style="padding: 10px; font-size: 14px; text-transform: uppercase; font-weight: bold;">
-                        ESTIMADO CLIENTE DESPUES DE OCHO DIAS CALENDARIO NO SE ACEPTAN RECLAMOS NI DEVOLUCIONES
+                        
                     </td>
                     <td width="15%" style="text-align: center; background: #fff; border-top: 1px solid #6B7280; border-left: 1px solid #6B7280; border-bottom-right-radius: 15px; vertical-align: middle; line-height: 0;">
                         @if($invoice->seller->custom_fields['cloning_qr'] ?? false)
