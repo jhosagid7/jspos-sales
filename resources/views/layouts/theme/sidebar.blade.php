@@ -365,6 +365,14 @@
                             </a>
                         </li>
                         @endcan
+                        @can('reports.sales')
+                        <li class="nav-item">
+                            <a href="{{ route('reports.returns') }}" class="nav-link {{ Request::is('reports/returns*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Notas de Crédito</p>
+                            </a>
+                        </li>
+                        @endcan
                         @can('cash_register.close')
                         <li class="nav-item">
                             <a href="{{ route('cash.count') }}" class="nav-link">

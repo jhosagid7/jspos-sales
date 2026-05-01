@@ -1,3 +1,12 @@
+## [1.10.48] - 2026-05-01
+### Added
+- **Nuevo Módulo: Gestor de Notas de Crédito**: Implementado un listado centralizado en la sección de Reportes para supervisar todas las devoluciones del sistema.
+- **Funcionalidades de Gestión**:
+    - Filtros por fecha, cliente y estado (Pendiente, Aprobado, Rechazado).
+    - Capacidad de aprobación/rechazo masivo desde una sola vista.
+    - Acceso rápido a la factura original vinculada a la nota de crédito.
+    - Resumen de totales retornados según los filtros aplicados.
+
 ## [1.10.47] - 2026-05-01
 ### Added
 - **Gestión de Devoluciones**: Se habilitó la capacidad de **Aprobar** o **Rechazar** Notas de Crédito pendientes directamente desde el Historial de Pagos de cada factura.

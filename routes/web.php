@@ -158,6 +158,7 @@ Route::middleware('auth')->group(function () {
         Route::get('rotation', \App\Livewire\Reports\RotationReport::class)->name('reports.rotation')->middleware(['can:reports.stock', 'module:module_advanced_reports']);
         Route::get('dispatch', DispatchReport::class)->name('reports.dispatch')->middleware(['can:reports.sales', 'module:module_delivery']);
         Route::get('dispatch/pdf', [\App\Http\Controllers\ReportController::class, 'dispatchPdf'])->name('reports.dispatch.pdf')->middleware(['can:reports.sales', 'module:module_delivery']);
+        Route::get('returns', \App\Livewire\Reports\ReturnsReport::class)->name('reports.returns')->middleware('can:reports.sales');
         Route::get('settlement/pdf', [\App\Http\Controllers\ReportController::class, 'settlementPdf'])->name('reports.settlement.pdf')->middleware(['can:reports.sales', 'module:module_delivery']);
         Route::get('purchases/{purchase}/pdf', [\App\Http\Controllers\PurchaseController::class, 'pdf'])->name('purchases.pdf')->middleware(['can:purchases.index', 'module:module_purchases']);
         Route::get('reports/inventory', \App\Livewire\Reports\InventoryReport::class)->name('reports.inventory')->middleware(['can:reports.sales']);
