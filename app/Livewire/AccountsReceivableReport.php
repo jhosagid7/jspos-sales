@@ -173,7 +173,14 @@ class AccountsReceivableReport extends Component
             $this->totales = $allSalesToTotal->sum(function($sale) {
                 $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected', 'voided'])->sum(function($payment) use ($sale) {
                     $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : ($payment->currency == 'USD' ? 1 : ($sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1));
-                    return $payment->amount / $rate;
+                    $amountUSD = $payment->amount / $rate;
+                    
+                    $discountUSD = $payment->discount_applied ?? 0;
+                    if ($payment->rule_type === 'overdue') {
+                        return $amountUSD - $discountUSD;
+                    } else {
+                        return $amountUSD + $discountUSD;
+                    }
                 });
                 
                 $initialPaidUSD = $sale->paymentDetails->sum(function($detail) {

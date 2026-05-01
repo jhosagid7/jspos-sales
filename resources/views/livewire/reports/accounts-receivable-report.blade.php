@@ -175,7 +175,7 @@
                                                         });
 
                                                         // Calculate Returns (NC) applied to debt
-                                                        $totalReturnsOrig = $sale->returns->where('refund_method', 'debt_reduction')->sum('total_returned');
+                                                        $totalReturnsOrig = $sale->returns->where('refund_method', 'debt_reduction')->where('status', 'approved')->sum('total_returned');
                                                         $exchangeRateReturns = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
                                                         $totalReturnsUSD = $totalReturnsOrig / $exchangeRateReturns;
 
@@ -219,6 +219,12 @@
                                                                 ${{ number_format($totalReturnsUSD, 4) }}
                                                             @else
                                                                 $0.0000
+                                                            @endif
+                                                            @if($sale->returns->where('refund_method', 'debt_reduction')->where('status', 'pending')->count() > 0)
+                                                                <br>
+                                                                <span class="badge badge-warning text-white mt-1" title="Hay Notas de Crédito pendientes por aprobar">
+                                                                    <i class="fas fa-clock"></i> N/C por aprobar
+                                                                </span>
                                                             @endif
                                                         </td>
                                                         <td style="background-color: beige">

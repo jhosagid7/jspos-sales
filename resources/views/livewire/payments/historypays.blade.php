@@ -93,7 +93,48 @@
                                         $totalApprovedInPrimary = 0;
                                         $totalPendingInPrimary = 0;
                                         $primaryCurrency = \App\Models\Currency::where('is_primary', true)->first();
+                                        
+                                        $saleIdForHistory = $history_sale_id ?? ($pays[0]->sale_id ?? null);
+                                        $sale_for_history = $saleIdForHistory ? \App\Models\Sale::with(['paymentDetails.currency', 'returns'])->find($saleIdForHistory) : null;
                                     @endphp
+
+                                    {{-- INITIAL PAYMENTS --}}
+                                    @if($sale_for_history && $sale_for_history->paymentDetails->count() > 0)
+                                        @foreach($sale_for_history->paymentDetails as $initPay)
+                                            @php
+                                                $currencyName = $initPay->currency->name ?? $initPay->currency_id;
+                                                $rate = $initPay->exchange_rate > 0 ? $initPay->exchange_rate : 1;
+                                                $amountInUSD = $initPay->amount / $rate;
+                                                $amountInPrimary = $amountInUSD * $primaryCurrency->exchange_rate;
+                                                $totalApprovedInPrimary += $amountInPrimary;
+                                            @endphp
+                                            <tr style="background-color: #f8f9fa;">
+                                                <td data-label="Folio">
+                                                    <div class="d-flex align-items-center">
+                                                        INIT-{{ $initPay->id }}
+                                                        <span class="badge badge-success ms-2" style="font-size: 0.6rem;">INICIAL</span>
+                                                    </div>
+                                                </td>
+                                                <td data-label="Método">
+                                                    <span class="badge badge-info">Pago Inicial</span>
+                                                </td>
+                                                <td data-label="Moneda">{{ $currencyName }}</td>
+                                                <td data-label="Monto" style="background-color: rgb(228, 243, 253)">
+                                                    <b>{{ number_format($initPay->amount, 2) }}</b>
+                                                </td>
+                                                <td data-label="Tasa">{{ number_format($rate, 2) }}</td>
+                                                <td data-label="Equiv. $">
+                                                    <b>${{ number_format($amountInUSD, 2) }}</b>
+                                                </td>
+                                                <td data-label="Detalles">
+                                                    <small class="text-muted">Abono realizado al registrar la venta</small>
+                                                </td>
+                                                <td data-label="Fecha">{{ app('fun')->dateFormat($sale_for_history->created_at) }}</td>
+                                                <td data-label="Acciones"></td>
+                                            </tr>
+                                        @endforeach
+                                    @endif
+
                                     @foreach ($pays as $pay)
                                         @php
                                             // Determinar nombre del método
@@ -127,7 +168,16 @@
                                             // Convertir a USD primero (base)
                                             $rate = $pay->exchange_rate > 0 ? $pay->exchange_rate : 1;
                                             $amountInUSD = $pay->amount / $rate;
-                                            $amountInPrimary = $amountInUSD * $primaryCurrency->exchange_rate;
+                                            
+                                            // Include discount in the total accounted for the sale
+                                            $discountUSD = $pay->discount_applied ?? 0;
+                                            if ($pay->rule_type === 'overdue') {
+                                                $effectiveUSD = $amountInUSD - $discountUSD;
+                                            } else {
+                                                $effectiveUSD = $amountInUSD + $discountUSD;
+                                            }
+                                            
+                                            $amountInPrimary = $effectiveUSD * $primaryCurrency->exchange_rate;
                                             
                                             if (isset($pay->status) && $pay->status == 'pending') {
                                                 $totalPendingInPrimary += $amountInPrimary;
@@ -386,22 +436,31 @@
                                     
                                     {{-- CREDIT NOTES / RETURNS --}}
                                     @php
-                                        $saleIdForReturns = $history_sale_id ?? null;
-                                        $sale_for_returns = $saleIdForReturns ? \App\Models\Sale::find($saleIdForReturns) : null;
-                                        $returnsForHistory = $sale_for_returns ? $sale_for_returns->returns->where('refund_method', 'debt_reduction')->where('status', 'approved') : collect([]);
+                                        $returnsForHistory = $sale_for_history ? $sale_for_history->returns->where('refund_method', 'debt_reduction') : collect([]);
                                     @endphp
                                     @foreach($returnsForHistory as $return)
                                         @php
-                                            $rate = $sale_for_returns->primary_exchange_rate > 0 ? $sale_for_returns->primary_exchange_rate : 1;
+                                            $rate = $sale_for_history->primary_exchange_rate > 0 ? $sale_for_history->primary_exchange_rate : 1;
                                             $equivUsd = $return->total_returned / $rate;
                                             $amountInPrimary = $equivUsd * $primaryCurrency->exchange_rate;
-                                            $totalApprovedInPrimary += $amountInPrimary;
+                                            
+                                            if ($return->status == 'approved') {
+                                                $totalApprovedInPrimary += $amountInPrimary;
+                                            } elseif ($return->status == 'pending') {
+                                                $totalPendingInPrimary += $amountInPrimary;
+                                            }
                                         @endphp
                                         <tr>
                                             <td data-label="Folio">
                                                 <div class="d-flex align-items-center">
                                                     N/C-{{ $return->return_number }}
-                                                    <span class="badge badge-success ms-2" style="font-size: 0.6rem;">APROBADO</span>
+                                                    @if($return->status == 'approved')
+                                                        <span class="badge badge-success ms-2" style="font-size: 0.6rem;">APROBADO</span>
+                                                    @elseif($return->status == 'pending')
+                                                        <span class="badge badge-warning text-dark ms-2" style="font-size: 0.6rem;">PENDIENTE</span>
+                                                    @else
+                                                        <span class="badge badge-danger ms-2" style="font-size: 0.6rem;">{{ strtoupper($return->status) }}</span>
+                                                    @endif
                                                 </div>
                                             </td>
                                             <td data-label="Método">

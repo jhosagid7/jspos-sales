@@ -1,3 +1,9 @@
+## [1.10.46] - 2026-05-01
+### Fixed
+- **Reporte Cuentas por Cobrar**: Se sincronizó la lógica de cálculo de saldo para que solo descuente Notas de Crédito aprobadas, evitando saldos falsos de $0.00 cuando hay devoluciones pendientes.
+- **Historial de Pagos**: Se incluyeron los "Pagos Iniciales" y las "Notas de Crédito Pendientes" en el desglose de movimientos para total transparencia hacia el cliente.
+- **UI**: Se agregó un indicador visual (badge) en el reporte de cuentas por cobrar para alertar sobre Notas de Crédito que esperan aprobación.
+
 ## [1.10.45] - 2026-05-01
 ### Changed
 - **Búsqueda Ultra-Inteligente**: Refinada la búsqueda para que al escribir solo números (ej. "2560") el sistema ignore absolutamente cualquier letra (incluyendo la "X") y encuentre las dimensiones exactas. Ahora "2560" encontrará siempre productos de "25X60".
