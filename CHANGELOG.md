@@ -1,3 +1,8 @@
+## [1.10.47] - 2026-05-01
+### Added
+- **Gestión de Devoluciones**: Se habilitó la capacidad de **Aprobar** o **Rechazar** Notas de Crédito pendientes directamente desde el Historial de Pagos de cada factura.
+- **Flujo de Trabajo**: Al aprobar una Nota de Crédito, el sistema ahora actualiza automáticamente el saldo de la deuda, restaura el stock al almacén correspondiente y libera los ítems (bobinas) asociados.
+
 ## [1.10.46] - 2026-05-01
 ### Fixed
 - **Reporte Cuentas por Cobrar**: Se sincronizó la lógica de cálculo de saldo para que solo descuente Notas de Crédito aprobadas, evitando saldos falsos de $0.00 cuando hay devoluciones pendientes.

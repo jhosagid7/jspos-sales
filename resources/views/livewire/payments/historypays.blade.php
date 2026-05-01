@@ -479,9 +479,32 @@
                                             </td>
                                             <td data-label="Fecha"> {{ app('fun')->dateFormat($return->created_at) }}</td>
                                             <td data-label="Acciones">
-                                                <div class="text-center text-muted">
-                                                    <small><i class="fas fa-info-circle"></i> Referencia interna</small>
-                                                </div>
+                                                @if($return->status == 'pending')
+                                                    @can('sales.approve_return')
+                                                        <div class="d-flex gap-1 justify-content-center">
+                                                            <button class="btn btn-success btn-sm"
+                                                                wire:click="approveReturn({{ $return->id }})" 
+                                                                wire:confirm="¿Estás seguro de aprobar esta devolución? El saldo de la factura se reducirá y la mercancía volverá al inventario."
+                                                                title="Aprobar Devolución">
+                                                                <i class="fas fa-check"></i>
+                                                            </button>
+                                                            <button class="btn btn-danger btn-sm"
+                                                                wire:click="rejectReturn({{ $return->id }})" 
+                                                                wire:confirm="¿Estás seguro de rechazar esta devolución?"
+                                                                title="Rechazar Devolución">
+                                                                <i class="fas fa-times"></i>
+                                                            </button>
+                                                        </div>
+                                                    @else
+                                                        <div class="text-center text-muted">
+                                                            <small><i class="fas fa-clock"></i> Esperando aprobación</small>
+                                                        </div>
+                                                    @endcan
+                                                @else
+                                                    <div class="text-center text-muted">
+                                                        <small><i class="fas fa-info-circle"></i> Referencia interna</small>
+                                                    </div>
+                                                @endif
                                             </td>
                                         </tr>
                                     @endforeach
