@@ -1,3 +1,8 @@
+## [1.10.53] - 2026-05-02
+### Fixed
+- **Error 500 Post-Instalación**: Resolución de `ParseError` crítico causado por desbalanceo de directivas Blade (`@canany`) en el sidebar.
+- **Integridad de Vistas**: Limpieza y recompilación automática de la caché de vistas para asegurar la estabilidad inmediata tras la instalación.
+
 ## [1.10.52] - 2026-05-02
 ### Added
 - **Instalador Híbrido Profesional**: Nueva lógica de detección automática de método de instalación (Git vs Manual) y verificación de dependencias proactiva.

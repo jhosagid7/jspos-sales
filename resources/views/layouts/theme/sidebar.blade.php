@@ -419,7 +419,7 @@
                                 @endcan
                             </ul>
                         </li>
-                        @endcan
+                        @endcanany
                         @endmodule
                     </ul>
                 </li>
