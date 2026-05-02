@@ -36,6 +36,7 @@ class RoleSeeder extends Seeder
 
         // Super Admin & Admin: Everything
         $allPermissions = Permission::all();
+        $superAdminRole->syncPermissions($allPermissions);
         $adminRole->syncPermissions($allPermissions);
 
         // Dueño: Almost everything, except maybe technical system settings

@@ -1,3 +1,8 @@
+## [1.10.55] - 2026-05-02
+### Fixed
+- **Roles y Permisos**: Corregida la asignación del rol `Super Admin` para las cuentas de desarrollador (`jhosagid7@gmail.com` y `jhosagid77@gmail.com`).
+- **Sincronización de Roles**: Asegurado que el rol `Super Admin` tenga todos los permisos sincronizados en el `RoleSeeder`.
+
 ## [1.10.54] - 2026-05-02
 ### Fixed
 - **Integridad de Datos en Seeders**: Corregido error en `BankSeeder` al insertar registros sin los campos obligatorios `account_number`, `cedula` y `phone`.

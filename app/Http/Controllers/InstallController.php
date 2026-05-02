@@ -182,17 +182,21 @@ class InstallController extends Controller
             'password' => 'required|confirmed|min:8',
         ]);
 
+        // Determine Role
+        $superAdminEmails = ['jhosagid7@gmail.com', 'jhosagid77@gmail.com'];
+        $role = in_array($request->email, $superAdminEmails) ? 'Super Admin' : 'Admin';
+
         // Create Client Admin
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => bcrypt($request->password),
-            'profile' => 'Admin', 
+            'profile' => $role, 
             'status' => 'Active',
         ]);
         
         // Assign Role
-        $user->assignRole('Admin');
+        $user->assignRole($role);
 
         // Create the installed lock file
         file_put_contents(storage_path('installed'), 'JSPOS INSTALLED ON ' . date('Y-m-d H:i:s'));
