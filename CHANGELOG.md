@@ -1,3 +1,7 @@
+## [1.10.54] - 2026-05-02
+### Fixed
+- **Integridad de Datos en Seeders**: Corregido error en `BankSeeder` al insertar registros sin los campos obligatorios `account_number`, `cedula` y `phone`.
+
 ## [1.10.53] - 2026-05-02
 ### Fixed
 - **Error 500 Post-Instalación**: Resolución de `ParseError` crítico causado por desbalanceo de directivas Blade (`@canany`) en el sidebar.

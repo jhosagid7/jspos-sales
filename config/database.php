@@ -63,7 +63,25 @@ return [
             ]) : [],
             'timezone' => '-04:00',
             'dump' => [
-               'dump_binary_path' => env('DB_DUMP_PATH', 'C:\laragon\bin\mysql\mysql-8.0.30-winx64\bin'),
+               'dump_binary_path' => env('DB_DUMP_PATH', (function() {
+                    // Autodetect Laragon MySQL/MariaDB paths
+                    foreach (['mysql', 'mariadb'] as $type) {
+                        $basePath = 'C:\laragon\bin\\' . $type . '\\';
+                        if (is_dir($basePath)) {
+                            $dirs = glob($basePath . '*', GLOB_ONLYDIR);
+                            if (!empty($dirs)) {
+                                rsort($dirs); // Get highest version first
+                                foreach ($dirs as $dir) {
+                                    if (is_dir($dir . DIRECTORY_SEPARATOR . 'bin')) {
+                                        return $dir . DIRECTORY_SEPARATOR . 'bin';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // Fallback to common path if nothing found
+                    return 'C:\laragon\bin\mysql\mysql-8.0.30-winx64\bin';
+               })()),
                'useSingleTransaction' => true,
                'timeout' => 60 * 5, // 5 minute timeout
             ],
