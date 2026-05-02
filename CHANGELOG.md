@@ -1,3 +1,11 @@
+## [1.10.52] - 2026-05-02
+### Added
+- **Instalador Híbrido Profesional**: Nueva lógica de detección automática de método de instalación (Git vs Manual) y verificación de dependencias proactiva.
+- **Arquitectura de Datos Maestros**: Implementación de `MasterDataSeeder` para despliegues limpios de producción, eliminando la necesidad de datos transaccionales de prueba.
+- **Manual de Instalación**: Inclusión de `INSTALLATION_GUIDE.md` con documentación técnica paso a paso para usuarios y desarrolladores.
+### Changed
+- **Lógica de Migración**: Automatización de generación de `APP_KEY` y optimización de la secuencia de despliegue en el instalador visual.
+
 ## [1.10.51] - 2026-05-01
 ### Added
 - **Reorganización UX/UI del Menú**: Rediseño integral de la navegación principal, agrupando más de 17 opciones raíz en 8 módulos lógicos jerárquicos para reducir la carga cognitiva.

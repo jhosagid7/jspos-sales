@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\User;
 use App\Services\LicenseService;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\File;
 
 class InstallController extends Controller
 {
@@ -20,30 +21,54 @@ class InstallController extends Controller
 
     public function index()
     {
-        // Redirect to the first incomplete step
+        // Check if already installed
+        if (File::exists(storage_path('installed'))) {
+            return redirect('/');
+        }
         return redirect()->route('install.step1');
     }
 
-    // Step 1: Requirements
+    /**
+     * Identifies if the installation is via Git or Manual Copy
+     */
+    protected function getInstallationMethod()
+    {
+        if (File::isDirectory(base_path('.git'))) {
+            return 'Git Clone (Profesional)';
+        }
+        return 'Copia Manual (Standard)';
+    }
+
+    /**
+     * Checks if composer dependencies are present
+     */
+    protected function checkDependencies()
+    {
+        return File::isDirectory(base_path('vendor'));
+    }
+
+    // Step 1: Requirements & Method Detection
     public function step1()
     {
         $requirements = [
-            'PHP Version >= 8.1' => version_compare(phpversion(), '8.1.0', '>='),
-            'BCMath Extension' => extension_loaded('bcmath'),
-            'Ctype Extension' => extension_loaded('ctype'),
-            'JSON Extension' => extension_loaded('json'),
-            'Mbstring Extension' => extension_loaded('mbstring'),
-            'OpenSSL Extension' => extension_loaded('openssl'),
-            'PDO Extension' => extension_loaded('pdo'),
-            'Tokenizer Extension' => extension_loaded('tokenizer'),
-            'XML Extension' => extension_loaded('xml'),
-            'Storage Writable' => is_writable(storage_path()),
-            'Bootstrap Cache Writable' => is_writable(base_path('bootstrap/cache')),
+            'Versión de PHP >= 8.1' => version_compare(phpversion(), '8.1.0', '>='),
+            'Extensión BCMath' => extension_loaded('bcmath'),
+            'Extensión Ctype' => extension_loaded('ctype'),
+            'Extensión JSON' => extension_loaded('json'),
+            'Extensión Mbstring' => extension_loaded('mbstring'),
+            'Extensión OpenSSL' => extension_loaded('openssl'),
+            'Extensión PDO' => extension_loaded('pdo'),
+            'Extensión Tokenizer' => extension_loaded('tokenizer'),
+            'Extensión XML' => extension_loaded('xml'),
+            'Storage con Permisos de Escritura' => is_writable(storage_path()),
+            'Bootstrap Cache con Permisos de Escritura' => is_writable(base_path('bootstrap/cache')),
         ];
 
-        $allMet = !in_array(false, $requirements);
+        $installationMethod = $this->getInstallationMethod();
+        $hasVendor = $this->checkDependencies();
+        $allMet = !in_array(false, $requirements) && $hasVendor;
 
-        return view('install.requirements', compact('requirements', 'allMet'));
+        return view('install.requirements', compact('requirements', 'allMet', 'installationMethod', 'hasVendor'));
     }
 
     // Step 2: Database
@@ -95,7 +120,7 @@ class InstallController extends Controller
         return redirect()->route('install.step3');
     }
 
-    // Step 3: Migrations
+    // Step 3: Migrations & Master Data
     public function step3()
     {
         return view('install.migrations');
@@ -104,9 +129,22 @@ class InstallController extends Controller
     public function runMigrations()
     {
         try {
-            Artisan::call('migrate:fresh', ['--seed' => true, '--force' => true]);
+            // Generate App Key if not exists
+            if (empty(config('app.key'))) {
+                Artisan::call('key:generate', ['--force' => true]);
+            }
+
+            // Run Migrations
+            Artisan::call('migrate', ['--force' => true]);
+
+            // Run Master Data Seeder (Professional/Production Mode)
+            Artisan::call('db:seed', [
+                '--class' => 'MasterDataSeeder',
+                '--force' => true
+            ]);
+
         } catch (\Exception $e) {
-            return back()->with('error', 'Error al migrar: ' . $e->getMessage());
+            return back()->with('error', 'Error en migración/seed: ' . $e->getMessage());
         }
 
         return redirect()->route('install.step4');
@@ -149,20 +187,17 @@ class InstallController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => bcrypt($request->password),
-            'profile' => 'Admin', // Assuming 'Admin' is the role name for business owner
+            'profile' => 'Admin', 
             'status' => 'Active',
         ]);
         
-        // Assign Role (assuming Spatie Permission)
-        // Note: The Seeder already created roles.
-        // We need to ensure 'Admin' role exists or use a specific 'Business Owner' role if you prefer.
-        // For now, using 'Admin' as per UserSeeder.
+        // Assign Role
         $user->assignRole('Admin');
 
         // Create the installed lock file
         file_put_contents(storage_path('installed'), 'JSPOS INSTALLED ON ' . date('Y-m-d H:i:s'));
 
-        // Mark as installed
+        // Mark as installed in ENV
         $this->writeEnv(['APP_INSTALLED' => 'true']);
 
         return view('install.finish');
@@ -176,26 +211,30 @@ class InstallController extends Controller
     protected function writeEnv(array $data)
     {
         $path = base_path('.env');
+        
+        // If .env doesn't exist, try to copy from .env.example
+        if (!file_exists($path) && file_exists(base_path('.env.example'))) {
+            File::copy(base_path('.env.example'), $path);
+        }
+
         if (file_exists($path)) {
             $content = file_get_contents($path);
             foreach ($data as $key => $value) {
-                // If key exists, replace it
                 if (preg_match("/^{$key}=.*/m", $content)) {
                     $content = preg_replace("/^{$key}=.*/m", "{$key}=" . ($value ?? ''), $content);
                 } else {
-                    // If key doesn't exist, append it
                     $content .= "\n{$key}=" . ($value ?? '');
                 }
             }
             file_put_contents($path, $content);
         }
     }
+
     public function downloadShortcut()
     {
         $appUrl = request()->root();
         $appName = config('app.name', 'JSPOS Sales');
         
-        // Batch script content
         $content = <<<EOT
 @echo off
 set "URL={$appUrl}"
@@ -203,7 +242,6 @@ set "NAME={$appName}"
 
 echo Creando acceso directo para %NAME%...
 
-:: Create VBS script to create shortcut
 echo Set oWS = WScript.CreateObject("WScript.Shell") > "%temp%\CreateShortcut.vbs"
 echo sLinkFile = oWS.ExpandEnvironmentStrings("%USERPROFILE%\Desktop\" & "%NAME%.lnk") >> "%temp%\CreateShortcut.vbs"
 echo Set oLink = oWS.CreateShortcut(sLinkFile) >> "%temp%\CreateShortcut.vbs"
@@ -212,7 +250,6 @@ echo oLink.Arguments = "--app=" & "%URL%" >> "%temp%\CreateShortcut.vbs"
 echo oLink.IconLocation = "chrome.exe" >> "%temp%\CreateShortcut.vbs"
 echo oLink.Save >> "%temp%\CreateShortcut.vbs"
 
-:: Run VBS
 cscript //nologo "%temp%\CreateShortcut.vbs"
 del "%temp%\CreateShortcut.vbs"
 
@@ -221,7 +258,6 @@ echo Acceso directo creado exitosamente en el Escritorio.
 echo Abriendo sistema...
 echo.
 
-:: Launch the app immediately
 start "" "chrome.exe" --app="%URL%"
 
 pause
