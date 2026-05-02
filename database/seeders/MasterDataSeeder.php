@@ -19,6 +19,7 @@ class MasterDataSeeder extends Seeder
             CurrencySeeder::class,
             PermissionSeeder::class,
             RoleSeeder::class,
+            UserSeeder::class,
             
             // Initial Resources
             WarehouseSeeder::class,

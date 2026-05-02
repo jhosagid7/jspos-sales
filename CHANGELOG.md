@@ -1,3 +1,7 @@
+## [1.10.56] - 2026-05-02
+### Fixed
+- **Instalación Automática**: Incluido `UserSeeder` en el `MasterDataSeeder` para garantizar que las cuentas de desarrollador se creen siempre por defecto en instalaciones limpias.
+
 ## [1.10.55] - 2026-05-02
 ### Fixed
 - **Roles y Permisos**: Corregida la asignación del rol `Super Admin` para las cuentas de desarrollador (`jhosagid7@gmail.com` y `jhosagid77@gmail.com`).
