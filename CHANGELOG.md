@@ -1,3 +1,12 @@
+## [1.10.58] - 2026-05-02
+### Security
+- **Restauración de Privacidad**: Re-activado el filtro de seguridad que oculta las cuentas de `Super Admin` para los usuarios con rango `Admin` estándar o inferior.
+
+## [1.10.57] - 2026-05-02
+### Fixed
+- **Visibilidad de Super Admin**: Corregido componente `AsignarPermisos` para que las cuentas de `Super Admin` sean visibles incluso si se entra como un `Admin` estándar.
+- **Robustez de Seeders**: Asegurada la creación de cuentas de soporte técnico por defecto.
+
 ## [1.10.56] - 2026-05-02
 ### Fixed
 - **Instalación Automática**: Incluido `UserSeeder` en el `MasterDataSeeder` para garantizar que las cuentas de desarrollador se creen siempre por defecto en instalaciones limpias.
