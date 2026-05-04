@@ -39,6 +39,11 @@
                             </button>
                             @endcan
 
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" id="showDeleted" wire:model.live="showDeleted">
+                                <label class="form-check-label" for="showDeleted">Ver Eliminados</label>
+                            </div>
+
                             @can('products.import')
                             <a href="{{ route('products.import') }}" class="btn btn-success ms-2" title="Importar desde Excel">
                                 <i class="fa fa-file-excel-o"></i> Importar
@@ -143,22 +148,30 @@
                                             <td class="text-center">
                                                 <div class="btn-group btn-group-pill" role="group"
                                                     aria-label="Basic example">
-                                                    @can('products.edit')
-                                                    <button class="btn btn-light btn-sm"
-                                                        wire:click="Edit({{ $product->id }})"><i
-                                                            class="fa fa-edit fa-2x"></i>
-
-                                                    </button>
-                                                    @endcan
-                                                    @can('products.delete')
-                                                    @if (!$product->sales()->exists() && !$product->purchases()->exists())
-                                                        <button class="btn btn-light btn-sm"
-                                                            onclick="Confirm({{ $product->id }})">
-                                                            <i class="fa fa-trash fa-2x"></i>
+                                                    @if($product->deleted_at)
+                                                        @can('products.edit')
+                                                        <button class="btn btn-warning btn-sm"
+                                                            wire:click="Restore({{ $product->id }})" title="Restaurar">
+                                                            <i class="fa fa-undo fa-2x"></i>
                                                         </button>
-                                                    @endif
-                                                    @endcan
+                                                        @endcan
+                                                    @else
+                                                        @can('products.edit')
+                                                        <button class="btn btn-light btn-sm"
+                                                            wire:click="Edit({{ $product->id }})"><i
+                                                                class="fa fa-edit fa-2x"></i>
 
+                                                        </button>
+                                                        @endcan
+                                                        @can('products.delete')
+                                                        @if (!$product->sales()->exists() && !$product->purchases()->exists())
+                                                            <button class="btn btn-light btn-sm"
+                                                                onclick="Confirm({{ $product->id }})">
+                                                                <i class="fa fa-trash fa-2x"></i>
+                                                            </button>
+                                                        @endif
+                                                        @endcan
+                                                    @endif
                                                 </div>
 
                                             </td>

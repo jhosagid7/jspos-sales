@@ -24,7 +24,7 @@ class Products extends Component
     public PostProduct $form;
 
     //operational properties
-    public $search, $editing, $tab = 1, $categories, $suppliers, $btnCreateCategory = false, $btnCreateSupplier = false, $catalogueName, $pagination = 6;
+    public $search, $editing, $tab = 1, $categories, $suppliers, $btnCreateCategory = false, $btnCreateSupplier = false, $catalogueName, $pagination = 6, $showDeleted = false;
     public $search_component = '', $component_search_results = [], $stats = [];
 
 
@@ -73,10 +73,16 @@ class Products extends Component
         //php artisan config:cache
 
         try {
+            $query = Product::query();
+            
+            if ($this->showDeleted) {
+                $query->onlyTrashed();
+            }
+
             if (!empty($this->search)) {
-                return Product::search(trim($this->search))->orderBy('id')->paginate($this->pagination);
+                return $query->search(trim($this->search))->orderBy('id')->paginate($this->pagination);
             } else {
-                return Product::with(['category', 'supplier', 'priceList'])->orderBy('id')->paginate($this->pagination);
+                return $query->with(['category', 'supplier', 'priceList'])->orderBy('id')->paginate($this->pagination);
             }
         } catch (\Exception $th) {
             $this->dispatch('noty', msg: "Error al buscar el producto: {$th->getMessage()}");
@@ -466,6 +472,21 @@ class Products extends Component
             }
         } catch (\Exception $th) {
             $this->dispatch('noty', msg: "Error al intentar eliminar el producto \n {$th->getMessage()}");
+        }
+    }
+
+
+    public function Restore($id)
+    {
+        $this->authorize('products.edit');
+        try {
+            $product = Product::withTrashed()->find($id);
+            if ($product) {
+                $product->restore();
+                $this->dispatch('noty', msg: 'PRODUCTO RESTAURADO CORRECTAMENTE');
+            }
+        } catch (\Exception $th) {
+            $this->dispatch('noty', msg: "Error al intentar restaurar el producto \n {$th->getMessage()}");
         }
     }
 

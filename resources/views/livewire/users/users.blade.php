@@ -54,7 +54,7 @@
                                         </td>
                                         <td>{{ $objUser->profile == 0 ? '' : $objUser->profile }}</td>
                                         <td class="text-center">
-                                            @if (Auth::user()->hasRole('Admin'))
+                                            @if (Auth::user()->hasRole('Super Admin') || Auth::user()->hasRole('Admin') || Auth::user()->hasRole('ADMIN'))
                                                 <div class="btn-group btn-group-pill" role="group">
                                                     @can('users.edit')
                                                     <button class="btn btn-light btn-sm"
@@ -68,7 +68,7 @@
                                                             class="fa fa-trash fa-2x"></i></button>
                                                     @endcan
                                                 </div>
-                                            @elseif (!$objUser->hasRole('Admin'))
+                                            @elseif (!$objUser->hasRole('Admin') && !$objUser->hasRole('Super Admin') && !$objUser->hasRole('ADMIN'))
                                                 <div class="btn-group btn-group-pill" role="group">
                                                     @can('users.edit')
                                                     <button class="btn btn-light btn-sm"
