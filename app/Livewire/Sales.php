@@ -55,6 +55,7 @@ class Sales extends Component
     public $customerConfig = null; // Store active customer config
     public $creditConfig = []; // Store customer credit configuration (Cliente > Vendedor > Global)
     //register customer
+    public $trends; // Initialized as collection in mount/loadBuyingTrends
     public $cname, $caddress, $ccity, $cemail, $cphone, $ctaxpayerId, $ctype = 'Consumidor Final';
 
     //pay properties
@@ -822,6 +823,7 @@ class Sales extends Component
 
     public function mount()
     {
+        $this->trends = collect();
         $this->config = ConfigurationService::getConfig();
         $this->decimalPlaces = ConfigurationService::getDecimalPlaces();
         
@@ -1368,7 +1370,13 @@ class Sales extends Component
             }
 
             // Limpiar carrito actual
-            $this->resetExcept('config', 'banks', 'currencies', 'warehouses', 'drivers', 'sellers');
+            $this->resetExcept(
+                'config', 'banks', 'bank', 'warehouses', 'warehouse_id', 'trends', 
+                'invoiceCurrency_id', 'invoiceExchangeRate', 'displayCurrency',
+                'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
+                'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
+                'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies'
+            );
             $this->clear();
             session()->forget('sale_customer');
 
@@ -1419,8 +1427,13 @@ class Sales extends Component
     public function loadOrderToCart($orderId)
     {
         //limpiamos el carrito
-
-        $this->resetExcept('config', 'banks', 'currencies', 'warehouses', 'sellers', 'drivers', 'invoiceCurrency_id', 'canManageAdjustments');
+        $this->resetExcept(
+            'config', 'banks', 'bank', 'warehouses', 'warehouse_id', 'trends', 
+            'invoiceCurrency_id', 'invoiceExchangeRate', 'displayCurrency',
+            'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
+            'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
+            'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies'
+        );
         $this->clear();
         session()->forget('sale_customer');
 
@@ -1707,6 +1720,25 @@ class Sales extends Component
     public $availableVariableItems = [];
     public $selectedVariableProduct = null;
 
+    public function loadBuyingTrends()
+    {
+        if (!$this->customer || !isset($this->customer['id']) || !$this->warehouse_id) {
+            $this->trends = collect();
+            return;
+        }
+
+        $service = app(\App\Services\BuyingTrendService::class);
+        $this->trends = $service->getTrends($this->customer['id'], $this->warehouse_id);
+    }
+
+    public function addToCartFromTrend($productId)
+    {
+        $product = Product::find($productId);
+        if ($product) {
+            $this->AddProduct($product);
+        }
+    }
+
     function AddProduct(Product $product, $qty = 1, $warehouseId = null)
     {
         // Guard Clause: Foreign Sellers MUST select a customer first
@@ -1938,7 +1970,12 @@ class Sales extends Component
 
         $customerConfig = $this->customerConfig;
 
-        if (($this->sellerConfig || $customerConfig) && $this->applyCommissions) {
+        // Regla de Moneda para Reglas de Precio (USD/COP únicamente)
+        $currency = collect($this->currencies)->firstWhere('id', $this->invoiceCurrency_id);
+        $currencyCode = $currency ? strtoupper($currency->code) : '';
+        $isUsdOrCop = in_array($currencyCode, ['USD', 'COP']);
+
+        if (($this->sellerConfig || $customerConfig) && ($this->applyCommissions || $this->applyFreight) && $isUsdOrCop) {
             
             // Priority 1: Customer Config
             $commissionPercent = $customerConfig && $customerConfig->commission_percent > 0 ? $customerConfig->commission_percent : ($this->sellerConfig ? $this->sellerConfig->commission_percent : 0);
@@ -2203,7 +2240,11 @@ class Sales extends Component
         $freight = 0;
         $diff = 0;
 
-        if ($this->applyCommissions) {
+        $currency = collect($this->currencies)->firstWhere('id', $this->invoiceCurrency_id);
+        $currencyCode = $currency ? strtoupper($currency->code) : '';
+        $isUsdOrCop = in_array($currencyCode, ['USD', 'COP']);
+
+        if (($this->applyCommissions || $this->applyFreight) && $isUsdOrCop) {
             
             if ($this->sellerConfig || $this->customerConfig) {
                  $activeComm = ($this->customerConfig && $this->customerConfig->commission_percent > 0) ? $this->customerConfig->commission_percent : ($this->sellerConfig->commission_percent ?? 0);
@@ -2214,7 +2255,7 @@ class Sales extends Component
             }
         }
 
-        if ($this->applyCommissions || $this->applyFreight) {
+        if (($this->applyCommissions || $this->applyFreight) && $isUsdOrCop) {
             $freightTotal = $this->calculateFreight($product, $qty, $basePriceInPrimary); // Returns TOTAL freight amount for the qty
             
             // Convert Total Freight to Per Unit for the formula
@@ -2341,11 +2382,15 @@ class Sales extends Component
         $basePriceInPrimary = $product->price * $exchangeRate;
 
         // Apply markup if configured
-        if ($this->sellerConfig && $this->applyCommissions) {
-             $comm = ($basePriceInPrimary * $this->sellerConfig->commission_percent) / 100;
-             $freight = ($basePriceInPrimary * $this->sellerConfig->freight_percent) / 100;
-             $diff = ($basePriceInPrimary * $this->sellerConfig->exchange_diff_percent) / 100;
-             $salePrice = $basePriceInPrimary + $comm + $freight + $diff;
+        $currency = collect($this->currencies)->firstWhere('id', $this->invoiceCurrency_id);
+        $currencyCode = $currency ? strtoupper($currency->code) : '';
+        $isUsdOrCop = in_array($currencyCode, ['USD', 'COP']);
+
+        if ($this->sellerConfig && ($this->applyCommissions || $this->applyFreight) && $isUsdOrCop) {
+            $comm = ($basePriceInPrimary * $this->sellerConfig->commission_percent) / 100;
+            $freight = ($basePriceInPrimary * $this->sellerConfig->freight_percent) / 100;
+            $diff = ($basePriceInPrimary * $this->sellerConfig->exchange_diff_percent) / 100;
+            $salePrice = $basePriceInPrimary + $comm + $freight + $diff;
         } else {
             $salePrice = $basePriceInPrimary;
         }
@@ -2752,7 +2797,13 @@ class Sales extends Component
     #[On('cancelSale')]
     function cancelSale()
     {
-        $this->resetExcept('config', 'banks', 'warehouses');
+        $this->resetExcept(
+            'config', 'banks', 'warehouses', 'warehouse_id', 'trends', 
+            'invoiceCurrency_id', 'invoiceExchangeRate', 'displayCurrency',
+            'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
+            'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
+            'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies'
+        );
         $this->clear();
         session()->forget('sale_customer');
 
@@ -2998,6 +3049,8 @@ class Sales extends Component
                 $this->applyFreight = false;
                 $this->is_freight_broken_down = false;
             }
+
+            $this->loadBuyingTrends();
         
             $this->recalculateCartWithSellerConfig();
             
@@ -4008,7 +4061,13 @@ class Sales extends Component
             $this->dispatch('noty', msg: 'VENTA REGISTRADA CON ÉXITO');
 
             $this->dispatch('close-modalPay', element: $type == 3 ? 'modalDeposit' : ($type == 4 ? 'modalNequi' : 'modalCash'));
-            $this->resetExcept('config', 'banks', 'bank', 'warehouses', 'drivers', 'sellers');
+            $this->resetExcept(
+                'config', 'banks', 'bank', 'warehouses', 'warehouse_id', 'trends', 
+                'invoiceCurrency_id', 'invoiceExchangeRate', 'displayCurrency',
+                'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
+                'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
+                'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies'
+            );
             $this->clear();
             session()->forget('sale_customer');
             
@@ -4222,7 +4281,13 @@ class Sales extends Component
                  // Let's check initPayment instead.
             }
 
-            $this->resetExcept('config', 'banks', 'bank', 'currencies', 'warehouses', 'drivers', 'sellers');
+            $this->resetExcept(
+                'config', 'banks', 'bank', 'warehouses', 'warehouse_id', 'trends', 
+                'invoiceCurrency_id', 'invoiceExchangeRate', 'displayCurrency',
+                'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
+                'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
+                'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies'
+            );
             $this->clear();
             session()->forget('sale_customer');
             // Obtener el último registro insertado

@@ -60,6 +60,8 @@ class Sale extends Model
         'seller_tier_1_percent',
         'seller_tier_2_days',
         'seller_tier_2_percent',
+        'created_at',
+        'updated_at'
     ];
 
     protected $casts = [

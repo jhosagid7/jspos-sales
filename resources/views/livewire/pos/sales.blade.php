@@ -295,6 +295,9 @@
                                 <span class="input-group-text"><i class="fas fa-user"></i></span>
                             </div>
                         </div>
+
+                        {{-- Intelligent Suggestions --}}
+                        @include('livewire.pos.partials.buying-trends')
                     </div>
 
                     @php

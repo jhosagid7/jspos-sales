@@ -1,3 +1,13 @@
+## [1.10.63] - 2026-05-04
+### Added
+- **Buying Trends (Sugerencias Inteligentes)**: Implementada la carga automática de sugerencias de productos basadas en el historial del cliente (últimos 90 días) al seleccionarlo en el POS.
+- **UI de Tendencias**: Reubicación del panel de sugerencias a la parte superior de la barra lateral (debajo del buscador de clientes) para garantizar visibilidad inmediata sin necesidad de scroll.
+
+### Fixed
+- **Persistencia de Entorno**: Corregido bug crítico donde la cancelación de una venta (`cancelSale`) reseteaba el ID del almacén y permisos de usuario, impidiendo que las sugerencias volvieran a cargar tras el reset.
+- **Estabilidad de Propiedades**: Asegurada la inicialización de la propiedad `trends` como colección para evitar errores de renderizado en el primer inicio.
+- **Aislamiento de Pruebas**: Configuración de `phpunit.xml` para utilizar una base de datos de pruebas dedicada (`jspos_test`), protegiendo la integridad de los datos de desarrollo.
+
 ## [1.10.62] - 2026-05-04
 ### Fixed
 - **Lógica de Precios**: Restringida la aplicación de Reglas de Precio (Tiers/Mayoreo) únicamente a transacciones en USD y COP. Para otras monedas, el sistema ahora revierte automáticamente al precio base del producto.
