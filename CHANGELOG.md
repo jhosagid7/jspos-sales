@@ -1,3 +1,8 @@
+## [1.10.64] - 2026-05-04
+### Fixed
+- **UI de Tendencias**: Implementada persistencia del estado de colapso mediante `wire:ignore.self`. El panel de sugerencias ahora mantiene su estado (abierto/cerrado) correctamente frente a las actualizaciones de Livewire.
+- **UX**: Mejora en el diseño y transiciones del botón de colapso para una experiencia más fluida.
+
 ## [1.10.63] - 2026-05-04
 ### Added
 - **Buying Trends (Sugerencias Inteligentes)**: Implementada la carga automática de sugerencias de productos basadas en el historial del cliente (últimos 90 días) al seleccionarlo en el POS.

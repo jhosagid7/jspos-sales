@@ -1,11 +1,11 @@
 @if($customer && count($trends) > 0)
-<div class="card card-outline card-success shadow-sm mt-3 animate__animated animate__fadeIn" style="border-radius: 15px; overflow: hidden;">
+<div class="card card-outline card-success shadow-sm mt-3 animate__animated animate__fadeIn" style="border-radius: 15px; overflow: hidden;" wire:ignore.self>
     <div class="card-header bg-white border-bottom-0">
         <h3 class="card-title text-success font-weight-bold">
             <i class="fas fa-fire mr-2"></i> Sugerencias para {{ explode(' ', $customer['name'])[0] }}
         </h3>
         <div class="card-tools">
-            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+            <button type="button" class="btn btn-tool text-success" data-card-widget="collapse" style="transition: transform 0.3s ease;">
                 <i class="fas fa-minus"></i>
             </button>
         </div>
