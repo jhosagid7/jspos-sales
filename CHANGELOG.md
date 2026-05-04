@@ -1,11 +1,12 @@
-## [1.10.59] - 2026-05-04
+## [1.10.61] - 2026-05-04
 ### Fixed
-- **Edición de Usuarios**: Corregida lógica de autorización en la vista de usuarios que impedía a los Super Admins editar registros si no tenían asignado el rol "Admin" explícitamente.
-### Added
-- **Restauración de Productos**: Implementada funcionalidad para ver productos eliminados (Soft Deletes) y restaurarlos directamente desde la interfaz de administración.
-- **Filtro de Eliminados**: Añadido interruptor "Ver Eliminados" en el módulo de Inventario -> Productos.
+- **UI de Productos**: Mejorado el diseño del botón de "Importar" y la separación de los botones de acción en la cabecera del módulo de productos.
 
-## [1.10.58] - 2026-05-02
+## [1.10.60] - 2026-05-04
+### Changed
+- **Diseño de Interfaz**: Rediseñado el interruptor "Ver Eliminados" con un estilo de cápsula (Pill) y mejores márgenes para evitar amontonamiento.
+
+## [1.10.59] - 2026-05-04
 ### Security
 - **Restauración de Privacidad**: Re-activado el filtro de seguridad que oculta las cuentas de `Super Admin` para los usuarios con rango `Admin` estándar o inferior.
 

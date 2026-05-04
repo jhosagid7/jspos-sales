@@ -24,31 +24,38 @@
                         </div>
 
 
-                        <div class="d-flex gap-2">
+                        <div class="d-flex align-items-center gap-3">
                             {{-- search --}}
-                            <div class="job-filter mb-2">
+                            <div class="job-filter mb-0">
                                 <div class="faq-form">
                                     <input wire:model.live='search' class="form-control" type="text"
                                         placeholder="Buscar.."><i class="search-icon" data-feather="search"></i>
                                 </div>
                             </div>
 
-                            @can('products.create')
-                            <button class="btn btn-primary" wire:click='addNew'>
-                                <i class="fa fa-plus"></i> Nuevo
-                            </button>
-                            @endcan
-
-                            <div class="form-check form-switch mt-2">
-                                <input class="form-check-input" type="checkbox" id="showDeleted" wire:model.live="showDeleted">
-                                <label class="form-check-label" for="showDeleted">Ver Eliminados</label>
+                            <div class="d-flex align-items-center bg-light-warning px-3 py-1 rounded-pill" style="border: 1px solid #ffc10745;">
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" id="showDeleted" wire:model.live="showDeleted" style="cursor:pointer;">
+                                    <label class="form-check-label text-dark mb-0 ms-1" for="showDeleted" style="cursor:pointer; font-weight: 500; font-size: 13px;">
+                                        Ver Eliminados
+                                    </label>
+                                </div>
                             </div>
 
-                            @can('products.import')
-                            <a href="{{ route('products.import') }}" class="btn btn-success ms-2" title="Importar desde Excel">
-                                <i class="fa fa-file-excel-o"></i> Importar
-                            </a>
-                            @endcan
+                            <div class="d-flex align-items-center gap-2">
+                                @can('products.create')
+                                <button class="btn btn-primary" wire:click='addNew'>
+                                    <i class="fa fa-plus"></i> Nuevo
+                                </button>
+                                @endcan
+
+                                @can('products.import')
+                                <a href="{{ route('products.import') }}" class="btn btn-success" title="Importar desde Excel">
+                                    <i class="fa fa-file-excel-o"></i> Importar
+                                </a>
+                                @endcan
+                            </div>
+                        </div>
 
                             {{-- <button class="btn btn-info" type="button" data-bs-toggle="modal"
                                 data-bs-target="#modalProduct">Tooltips and popovers</button> --}}
