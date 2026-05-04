@@ -257,6 +257,9 @@ class Sales extends Component
                 $this->invoiceExchangeRate = $currency->exchange_rate;
                 $this->displayCurrency = $currency;
                 session(['invoiceCurrency_id' => $value]);
+
+                // Recalcular precios del carrito al cambiar la moneda (Reglas de precio pueden variar)
+                $this->recalculateCartPrices();
             }
         }
     }
@@ -2121,6 +2124,14 @@ class Sales extends Component
         $price = $product->price;
         $tiers = $product->priceTiers;
 
+        // Reglas de precio por volumen solo aplican para USD o COP
+        $currency = collect($this->currencies)->firstWhere('id', $this->invoiceCurrency_id);
+        $currencyCode = $currency ? strtoupper($currency->code) : '';
+
+        if ($currencyCode !== 'USD' && $currencyCode !== 'COP') {
+            return $price;
+        }
+
         if ($tiers && $tiers->count() > 0) {
             // If the product belongs to a price group, sum quantities of ALL group members in the cart
             if ($product->price_group_id) {
@@ -2157,9 +2168,11 @@ class Sales extends Component
         foreach ($cartArray as &$item) {
             $productModel = \App\Models\Product::find($item['pid']);
             if ($productModel) {
-                 // Recalculate based on current toggle state using BASE PRICE to avoid compounding
-                 $baseForCalc = $item['base_price'] ?? $item['sale_price'];
+                 // Recalcular el precio base usando la lógica de Tiers + Moneda
+                 $baseForCalc = $this->determinePrice($productModel, $item['qty']);
+                 
                  $result = $this->Calculator($baseForCalc, $item['qty'], $productModel);
+                 $item['base_price'] = $baseForCalc; // Actualizar base_price para futuras referencias
                  $item['sale_price'] = $result['sale_price'];
                  $item['tax'] = $result['iva'];
                  $item['total'] = $result['total'];

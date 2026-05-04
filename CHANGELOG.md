@@ -1,3 +1,8 @@
+## [1.10.62] - 2026-05-04
+### Fixed
+- **Lógica de Precios**: Restringida la aplicación de Reglas de Precio (Tiers/Mayoreo) únicamente a transacciones en USD y COP. Para otras monedas, el sistema ahora revierte automáticamente al precio base del producto.
+- **Recalculación de Carrito**: Implementada la actualización automática de precios en el carrito al cambiar la moneda de facturación en el POS.
+
 ## [1.10.61] - 2026-05-04
 ### Fixed
 - **UI de Productos**: Mejorado el diseño del botón de "Importar" y la separación de los botones de acción en la cabecera del módulo de productos.
