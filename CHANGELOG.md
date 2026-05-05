@@ -1,3 +1,10 @@
+## [1.10.67] - 2026-05-05
+### Added
+- **Acuerdos Comerciales**: Implementado sistema de documentación de acuerdos para Clientes y Vendedores Foráneos.
+- **Historial de Acuerdos**: Los acuerdos se guardan como parte del historial de configuración, permitiendo auditar cambios en los términos pactados.
+- **Integración POS**: Visualización automática de los acuerdos comerciales vigentes del cliente y vendedor en la barra lateral del Punto de Venta para informar al operador.
+- **UI de Historial**: Actualización de los paneles de consulta de historial (Clientes/Vendedores) para incluir el campo de Acuerdo y el número de Lote.
+
 ## [1.10.66] - 2026-05-05
 ### Fixed
 - **Persistencia de Productos**: Corregido bug que impedía guardar la configuración de Flete y Reglas de Precio en la edición de productos. Se unificó la lógica de detección de módulos para usar la configuración global en lugar de la sesión, evitando reseteos accidentales de campos avanzados.

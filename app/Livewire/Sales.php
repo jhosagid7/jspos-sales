@@ -153,6 +153,8 @@ class Sales extends Component
     public $editing_sale_id = null;
     public $original_sale_data = null;
     public $orderHistory = [];
+    public $customerAgreement = null;
+    public $sellerAgreement = null;
 
 
     public function updatedSelectedPaymentMethod($value)
@@ -2930,6 +2932,7 @@ class Sales extends Component
                 $customerDb = \App\Models\Customer::find($customer['id']);
                 if($customerDb) {
                     $this->customerConfig = $customerDb->latestCustomerConfig;
+                    $this->customerAgreement = $this->customerConfig ? $this->customerConfig->agreement : null;
                 }
             }
 
@@ -2937,6 +2940,7 @@ class Sales extends Component
                 $seller = \App\Models\User::find($customer['seller_id']);
                 if($seller) {
                     $this->sellerConfig = $seller->latestSellerConfig;
+                    $this->sellerAgreement = $this->sellerConfig ? $this->sellerConfig->agreement : null;
                     $customer['seller_name'] = $seller->name;
                     
                     // Load seller discount rules

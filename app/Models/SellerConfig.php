@@ -14,7 +14,8 @@ class SellerConfig extends Model
         'commission_percent',
         'freight_percent',
         'exchange_diff_percent',
-        'current_batch'
+        'current_batch',
+        'agreement'
     ];
 
     public function user()

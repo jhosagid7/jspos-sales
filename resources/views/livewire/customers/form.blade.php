@@ -172,6 +172,12 @@
                                     <input wire:model="current_batch" class="form-control" type="text" placeholder="Heredado">
                                 </div>
 
+                                <div class="col-sm-12 mt-3">
+                                    <label class="form-label text-info"><strong>Acuerdo Comercial</strong></label>
+                                    <textarea wire:model="agreement" class="form-control" rows="4" placeholder="Escriba aquí los términos acordados con este cliente..."></textarea>
+                                    <small class="text-muted">Este acuerdo se mostrará al operador en el POS durante la venta.</small>
+                                </div>
+
                                 <div class="col-sm-12 mt-4">
                                     <h6 class="text-info">Sobrescribir Comisiones por Días (Opcional)</h6>
                                     <small class="text-muted">Dejar en blanco para usar la configuración del vendedor o global.</small>

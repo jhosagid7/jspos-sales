@@ -180,6 +180,28 @@
                         
                         
                         @if($sellerConfig || $customerConfig)
+                            {{-- ACUERDOS COMERCIALES --}}
+                            @if($customerAgreement || $sellerAgreement)
+                                <div class="mt-3 mb-2 p-2 rounded" style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-left: 4px solid #17a2b8;">
+                                    <h6 class="text-info font-weight-bold mb-2" style="font-size: 0.85rem;">
+                                        <i class="fas fa-file-contract mr-1"></i> ACUERDOS COMERCIALES
+                                    </h6>
+                                    
+                                    @if($customerAgreement)
+                                        <div class="mb-2">
+                                            <small class="text-uppercase font-weight-bold d-block" style="font-size: 0.7rem; color: #6c757d;">CLIENTE:</small>
+                                            <div class="p-1 rounded bg-white border" style="font-size: 0.8rem; white-space: pre-wrap; max-height: 100px; overflow-y: auto;">{{ $customerAgreement }}</div>
+                                        </div>
+                                    @endif
+
+                                    @if($sellerAgreement)
+                                        <div>
+                                            <small class="text-uppercase font-weight-bold d-block" style="font-size: 0.7rem; color: #6c757d;">VENDEDOR:</small>
+                                            <div class="p-1 rounded bg-white border" style="font-size: 0.8rem; white-space: pre-wrap; max-height: 100px; overflow-y: auto;">{{ $sellerAgreement }}</div>
+                                        </div>
+                                    @endif
+                                </div>
+                            @endif
                             @php
                                 $alertClass = 'alert-success'; // Default: no debt or all current
                                 if(isset($customer['total_debt']) && $customer['total_debt'] > 0) {

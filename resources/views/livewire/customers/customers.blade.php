@@ -123,6 +123,7 @@
                                     <th>Flete %</th>
                                     <th>Diferencial %</th>
                                     <th>Lote</th>
+                                    <th>Acuerdo</th>
                                 </tr>
                             </thead>
                             <tbody wire:key="history-table-{{ $viewingCustomerId }}">
@@ -134,6 +135,13 @@
                                         <td>{{ number_format($record->freight_percent, 2) }}%</td>
                                         <td>{{ number_format($record->exchange_diff_percent, 2) }}%</td>
                                         <td>{{ $record->current_batch }}</td>
+                                        <td>
+                                            @if($record->agreement)
+                                                <span title="{{ $record->agreement }}">{{ Str::limit($record->agreement, 30) }}</span>
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </td>
                                     </tr>
                                 @empty
                                     <tr>

@@ -303,6 +303,12 @@
                                 </div>
 
                                 <div class="col-sm-12 mt-3">
+                                    <label class="form-label text-info"><strong>Acuerdo Comercial con el Vendedor</strong></label>
+                                    <textarea wire:model="agreement" class="form-control" rows="4" placeholder="Escriba aquí los términos acordados con este vendedor..."></textarea>
+                                    <small class="text-muted">Este acuerdo se mostrará al operador en el POS durante la venta.</small>
+                                </div>
+
+                                <div class="col-sm-12 mt-3">
                                     <h6 class="text-info">Sobrescribir Comisiones (Opcional)</h6>
                                 </div>
                                 

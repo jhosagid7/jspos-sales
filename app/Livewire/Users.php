@@ -20,7 +20,7 @@ class Users extends Component
     public $tab = 1; // Tab navigation for sidebar form
     public  $role, $roleSelectedId,  $permissionId, $roles = [];
     public $selectedBanks = []; // Array of bank IDs for this user
-    public $commission_percent = 0, $freight_percent = 0, $exchange_diff_percent = 0, $current_batch = '1';
+    public $commission_percent = 0, $freight_percent = 0, $exchange_diff_percent = 0, $current_batch = '1', $agreement;
     public $sellerCommission1Threshold, $sellerCommission1Percentage, $sellerCommission2Threshold, $sellerCommission2Percentage;
     public $discountRules = []; // Array of discount rules for this user (seller)
     
@@ -206,11 +206,13 @@ class Users extends Component
             $this->freight_percent = $latestConfig->freight_percent;
             $this->exchange_diff_percent = $latestConfig->exchange_diff_percent;
             $this->current_batch = $latestConfig->current_batch;
+            $this->agreement = $latestConfig->agreement;
         } else {
             $this->commission_percent = 0;
             $this->freight_percent = 0;
             $this->exchange_diff_percent = 0;
             $this->current_batch = '1';
+            $this->agreement = '';
         }
 
         // CRITICAL: Reload roles for the dropdown
@@ -366,7 +368,8 @@ class Users extends Component
                     'commission_percent' => $commPercent,
                     'freight_percent' => $freightPercent,
                     'exchange_diff_percent' => $diffPercent,
-                    'current_batch' => $batch
+                    'current_batch' => $batch,
+                    'agreement' => $this->agreement
                 ]);
                 
                 // Save discount rules within transaction (if seller)
@@ -470,7 +473,8 @@ class Users extends Component
                 'commission_percent' => $this->commission_percent ?? 0,
                 'freight_percent' => $this->freight_percent ?? 0,
                 'exchange_diff_percent' => $this->exchange_diff_percent ?? 0,
-                'current_batch' => $this->current_batch ?? '1'
+                'current_batch' => $this->current_batch ?? '1',
+                'agreement' => $this->agreement
             ]);
         }
         $this->dispatch('noty', msg: 'COMISIONES ACTUALIZADAS');

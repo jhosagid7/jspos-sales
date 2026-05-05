@@ -15,6 +15,7 @@ class CustomerConfig extends Model
         'freight_percent',
         'exchange_diff_percent',
         'current_batch',
+        'agreement',
     ];
 
     public function customer()

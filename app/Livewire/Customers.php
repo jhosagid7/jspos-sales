@@ -17,7 +17,7 @@ class Customers extends Component
     public $editing;
     public $tab = 1; // Active tab (1=General, 2=Commercial, 3=Sales History, 4=Credit Config)
     public $customerCommission1Threshold, $customerCommission1Percentage, $customerCommission2Threshold, $customerCommission2Percentage;
-    public $commission_percent = 0, $freight_percent = 0, $exchange_diff_percent = 0, $current_batch = '1';
+    public $commission_percent = 0, $freight_percent = 0, $exchange_diff_percent = 0, $current_batch = '1', $agreement;
     public $password;
     public $discountRules = []; // Array of discount rules for this customer
 
@@ -152,11 +152,13 @@ class Customers extends Component
             $this->freight_percent = $latestConfig->freight_percent;
             $this->exchange_diff_percent = $latestConfig->exchange_diff_percent;
             $this->current_batch = $latestConfig->current_batch;
+            $this->agreement = $latestConfig->agreement;
         } else {
             $this->commission_percent = 0;
             $this->freight_percent = 0;
             $this->exchange_diff_percent = 0;
             $this->current_batch = '1';
+            $this->agreement = '';
         }
 
         // Load discount rules
@@ -248,7 +250,8 @@ class Customers extends Component
             $latestConfig->commission_percent != $this->commission_percent ||
             $latestConfig->freight_percent != $this->freight_percent ||
             $latestConfig->exchange_diff_percent != $this->exchange_diff_percent ||
-            $latestConfig->current_batch != $this->current_batch;
+            $latestConfig->current_batch != $this->current_batch ||
+            $latestConfig->agreement != $this->agreement;
 
         if ($hasConfigChanges) {
             \App\Models\CustomerConfig::create([
@@ -257,6 +260,7 @@ class Customers extends Component
                 'freight_percent' => $this->freight_percent ?? 0,
                 'exchange_diff_percent' => $this->exchange_diff_percent ?? 0,
                 'current_batch' => $this->current_batch ?? '1',
+                'agreement' => $this->agreement,
             ]);
         }
 
