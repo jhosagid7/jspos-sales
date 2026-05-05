@@ -385,7 +385,7 @@ class Sales extends Component
     {
         // PAGO A CRÉDITO
         if ($this->selectedPaymentMethod === 'credit') {
-            if (!in_array('module_credits', session('tenant.modules', []))) {
+            if (!in_array('module_credits', config('tenant.modules', []))) {
                 $this->dispatch('noty', msg: 'ACCESO DENEGADO: Módulo de Créditos no activo.');
                 return;
             }

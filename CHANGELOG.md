@@ -1,3 +1,7 @@
+## [1.10.66] - 2026-05-05
+### Fixed
+- **Persistencia de Productos**: Corregido bug que impedía guardar la configuración de Flete y Reglas de Precio en la edición de productos. Se unificó la lógica de detección de módulos para usar la configuración global en lugar de la sesión, evitando reseteos accidentales de campos avanzados.
+
 ## [1.10.65] - 2026-05-05
 ### Fixed
 - **Lógica de Precios (Flete y Comisiones)**: Eliminada la restricción de moneda para el cálculo de Extras Comerciales. El sistema ahora aplica correctamente el flete y las comisiones en todas las monedas configuradas (incluyendo VED/Bolívares), garantizando la rentabilidad en ventas multimoneda.

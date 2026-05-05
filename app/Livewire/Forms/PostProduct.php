@@ -123,7 +123,7 @@ class PostProduct extends Form
 
     private function cleanUnauthorizedFeatures()
     {
-        $modules = session('tenant.modules', []);
+        $modules = config('tenant.modules', []);
 
         if (!in_array('module_advanced_products', $modules)) {
             $this->values = [];
