@@ -1975,7 +1975,7 @@ class Sales extends Component
         $currencyCode = $currency ? strtoupper($currency->code) : '';
         $isUsdOrCop = in_array($currencyCode, ['USD', 'COP']);
 
-        if (($this->sellerConfig || $customerConfig) && ($this->applyCommissions || $this->applyFreight) && $isUsdOrCop) {
+        if (($this->sellerConfig || $customerConfig) && ($this->applyCommissions || $this->applyFreight)) {
             
             // Priority 1: Customer Config
             $commissionPercent = $customerConfig && $customerConfig->commission_percent > 0 ? $customerConfig->commission_percent : ($this->sellerConfig ? $this->sellerConfig->commission_percent : 0);
@@ -2244,7 +2244,7 @@ class Sales extends Component
         $currencyCode = $currency ? strtoupper($currency->code) : '';
         $isUsdOrCop = in_array($currencyCode, ['USD', 'COP']);
 
-        if (($this->applyCommissions || $this->applyFreight) && $isUsdOrCop) {
+        if ($this->applyCommissions || $this->applyFreight) {
             
             if ($this->sellerConfig || $this->customerConfig) {
                  $activeComm = ($this->customerConfig && $this->customerConfig->commission_percent > 0) ? $this->customerConfig->commission_percent : ($this->sellerConfig->commission_percent ?? 0);
@@ -2255,7 +2255,7 @@ class Sales extends Component
             }
         }
 
-        if (($this->applyCommissions || $this->applyFreight) && $isUsdOrCop) {
+        if ($this->applyCommissions || $this->applyFreight) {
             $freightTotal = $this->calculateFreight($product, $qty, $basePriceInPrimary); // Returns TOTAL freight amount for the qty
             
             // Convert Total Freight to Per Unit for the formula
