@@ -1,3 +1,10 @@
+## [1.10.68] - 2026-05-06
+### Added
+- **Permisos Granulares**: Implementados nuevos permisos para controlar el acceso a configuraciones críticas.
+- **Seguridad en Clientes**: Añadidos permisos `customers.edit_commercial_config` y `customers.edit_credit_config` para restringir quién puede modificar comisiones y reglas de crédito en el formulario de clientes.
+- **Seguridad en Vendedores**: Añadidos permisos `users.edit_commercial_config` y `users.edit_credit_config` para proteger la configuración comercial propia de cada vendedor.
+- **Seeder de Permisos**: Nuevo seeder `AddGranularConfigPermissionsSeeder` para la creación automática de estos permisos y su asignación al rol administrativo.
+
 ## [1.10.67] - 2026-05-05
 ### Added
 - **Acuerdos Comerciales**: Implementado sistema de documentación de acuerdos para Clientes y Vendedores Foráneos.

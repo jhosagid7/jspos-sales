@@ -49,6 +49,7 @@
                     {{-- Tab 4: Comisiones (Solo para vendedores) --}}
                     @module('module_commissions')
                     @if($this->isSeller($user->profile))
+                    @can('users.edit_commercial_config')
                     <li class="nav-item mb-2">
                         <a class="nav-link {{ $tab == 4 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                            wire:click.prevent="$set('tab',4)" href="#">
@@ -59,12 +60,14 @@
                             </div>
                         </a>
                     </li>
+                    @endcan
                     @endif
                     @endmodule
                     
                     {{-- Tab 5: Config. Crédito (Solo para vendedores) --}}
                     @module('module_credits')
                     @if($this->isSeller($user->profile))
+                    @can('users.edit_credit_config')
                     <li class="nav-item mb-2">
                         <a class="nav-link {{ $tab == 5 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                            wire:click.prevent="$set('tab',5)" href="#">
@@ -75,6 +78,7 @@
                             </div>
                         </a>
                     </li>
+                    @endcan
                     @endif
                     @endmodule
 
@@ -274,6 +278,7 @@
 
                     {{-- Tab 4: Comisiones --}}
                     @module('module_commissions')
+                    @can('users.edit_commercial_config')
                     <div class="tab-pane fade {{ $tab == 4 ? 'active show' : '' }}" role="tabpanel">
                         <div class="sidebar-body">
                              <div class="row mt-3">
@@ -338,10 +343,12 @@
                             </div>
                         </div>
                     </div>
+                    @endcan
                     @endmodule
 
                     {{-- Tab 5: Config. Crédito --}}
                     @module('module_credits')
+                    @can('users.edit_credit_config')
                     <div class="tab-pane fade {{ $tab == 5 ? 'active show' : '' }}" role="tabpanel">
                         <div class="sidebar-body">
                             <div class="row g-2">
@@ -495,6 +502,7 @@
                             </div>
                         </div>
                     </div>
+                    @endcan
                     @endmodule
 
                     {{-- Tab 6: Bancos --}}

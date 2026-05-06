@@ -26,6 +26,7 @@
                     </li>
                     {{-- Tab 2: Configuración Comercial --}}
                     @module('module_commissions')
+                    @can('customers.edit_commercial_config')
                     <li class="nav-item mb-2">
                         <a class="nav-link {{ $tab == 2 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                            wire:click.prevent="$set('tab',2)" href="#">
@@ -36,6 +37,7 @@
                             </div>
                         </a>
                     </li>
+                    @endcan
                     @endmodule
                     {{-- Tab 3: Historial de Ventas (Solo en edición) --}}
                     @if($editing && $customer->id > 0)
@@ -52,6 +54,7 @@
                     @endif
                     {{-- Tab 4: Configuración de Crédito --}}
                     @module('module_credits')
+                    @can('customers.edit_credit_config')
                     <li class="nav-item mb-2">
                         <a class="nav-link {{ $tab == 4 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                            wire:click.prevent="$set('tab',4)" href="#">
@@ -62,6 +65,7 @@
                             </div>
                         </a>
                     </li>
+                    @endcan
                     @endmodule
                     {{-- Tab 5: Notificaciones (WhatsApp) --}}
                     @module('module_whatsapp')
@@ -130,6 +134,7 @@
 
                     {{-- Tab 2: Configuración Comercial --}}
                     @module('module_commissions')
+                    @can('customers.edit_commercial_config')
                     <div class="tab-pane fade {{ $tab == 2 ? 'active show' : '' }}" role="tabpanel">
                         <div class="sidebar-body">
                             <div class="row g-2">
@@ -207,6 +212,7 @@
                             </div>
                         </div>
                     </div>
+                    @endcan
                     @endmodule
 
                     {{-- Tab 3: Historial de Ventas --}}
@@ -288,6 +294,7 @@
 
                     {{-- Tab 4: Configuración de Crédito --}}
                     @module('module_credits')
+                    @can('customers.edit_credit_config')
                     <div class="tab-pane fade {{ $tab == 4 ? 'active show' : '' }}" role="tabpanel">
                         <div class="sidebar-body">
                             <div class="row g-2">
@@ -443,6 +450,7 @@
                             </div>
                         </div>
                     </div>
+                    @endcan
                     @endmodule
 
                     {{-- Tab 5: Notificaciones WhatsApp --}}
