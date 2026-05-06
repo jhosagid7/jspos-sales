@@ -126,6 +126,8 @@ class AsignarPermisos extends Component
                 'labels' => 'Generar Etiquetas',
                 'void_today' => 'Anular pagos del día',
                 'void_anytime' => 'Anular cualquier pago',
+                'edit_commercial_config' => 'Editar Configuración Comercial',
+                'edit_credit_config' => 'Editar Configuración de Crédito',
              ];
 
              return $map[$name] ?? $map[$action] ?? ucfirst(str_replace('_', ' ', $action));

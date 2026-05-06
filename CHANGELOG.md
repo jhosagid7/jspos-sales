@@ -1,3 +1,7 @@
+## [1.10.69] - 2026-05-06
+### Changed
+- **Traducciones de Permisos**: Añadidas etiquetas en español para los nuevos permisos granulares (`Editar Configuración Comercial` y `Editar Configuración de Crédito`) en el módulo de Asignación de Permisos.
+
 ## [1.10.68] - 2026-05-06
 ### Added
 - **Permisos Granulares**: Implementados nuevos permisos para controlar el acceso a configuraciones críticas.
