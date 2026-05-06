@@ -130,6 +130,12 @@ class PermissionSeeder extends Seeder
 
             // Distribution
             'distribution.map', // Driver map access
+
+            // Granular Config Permissions
+            'customers.edit_commercial_config',
+            'customers.edit_credit_config',
+            'users.edit_commercial_config',
+            'users.edit_credit_config',
         ];
 
         // Ensure permissions exist

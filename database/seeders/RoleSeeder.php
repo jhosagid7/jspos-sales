@@ -70,6 +70,9 @@ class RoleSeeder extends Seeder
             'orders.view_all', 'orders.add_to_cart', 'orders.delete', 'orders.edit', 'orders.details', 'orders.pdf',
             'payments.view_all','payments.pay', 'payments.history', 'payments.print_receipt', 'payments.view_proof', 'payments.print_history',
             'payments.approve', 'payments.register_direct',
+            // Granular Config Permissions
+            'customers.edit_commercial_config', 'customers.edit_credit_config',
+            'users.edit_commercial_config', 'users.edit_credit_config',
         ])->get();
         $managerRole->syncPermissions($managerPermissions);
 

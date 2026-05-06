@@ -1,3 +1,8 @@
+## [1.10.70] - 2026-05-06
+### Added
+- **Automatización de Permisos**: Configurado el `UpdateService` para que los nuevos permisos se creen y asignen automáticamente a los roles administrativos al instalar la actualización. Ya no es necesario ejecutar seeders manualmente en producción.
+- **Integración en Seeders Base**: Incorporados los permisos granulares de configuración en `PermissionSeeder` y `RoleSeeder` para garantizar la consistencia del sistema.
+
 ## [1.10.69] - 2026-05-06
 ### Changed
 - **Traducciones de Permisos**: Añadidas etiquetas en español para los nuevos permisos granulares (`Editar Configuración Comercial` y `Editar Configuración de Crédito`) en el módulo de Asignación de Permisos.
