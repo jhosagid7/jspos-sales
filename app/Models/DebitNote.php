@@ -40,4 +40,25 @@ class DebitNote extends Model
     {
         return $this->hasMany(Payment::class);
     }
+
+    public function getDebtAttribute()
+    {
+        $totalPaidUSD = $this->payments->whereNotIn('status', ['pending', 'rejected', 'voided'])->sum(function($payment) {
+            $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
+            return $payment->amount / $rate;
+        });
+        
+        $totalUSD = $this->amount / ($this->exchange_rate > 0 ? $this->exchange_rate : 1);
+        
+        return max(0, round($totalUSD - $totalPaidUSD, 4));
+    }
+
+    public function checkSettlement()
+    {
+        if ($this->debt <= 0.01) {
+            $this->update(['status' => 'paid']);
+        } else {
+            $this->update(['status' => 'pending']);
+        }
+    }
 }

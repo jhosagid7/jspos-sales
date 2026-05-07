@@ -1,3 +1,7 @@
+## [1.10.73] - 2026-05-07
+### Fixed
+- **Pagos Parciales en Notas de Débito**: Corregido error que marcaba las Notas de Débito como pagadas al recibir cualquier abono parcial. Se implementó una validación de saldo (`checkSettlement`) que mantiene la nota en estado pendiente hasta que la deuda sea liquidada en su totalidad.
+
 ## [1.10.72] - 2026-05-07
 ### Improved
 - **Lógica de Pagos en Notas de Débito**: Mejorada la asociación de pagos para Notas de Débito vinculadas a facturas. Ahora, si una nota de débito tiene una factura asociada, el pago se vincula automáticamente a ambas, permitiendo que el abono contribuya a la liquidación de la deuda de la factura original. Las notas de débito manuales (sin factura) siguen procesándose de forma independiente con `sale_id` nulo.

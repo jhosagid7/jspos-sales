@@ -629,7 +629,7 @@ class AccountsReceivableReport extends Component
             // Only update sale totals if APPROVED
             if ($status === 'approved') {
                  if ($sale) $this->checkSaleSettlement($sale);
-                 if ($debitNote) $debitNote->update(['status' => 'paid']);
+                 if ($debitNote) $debitNote->checkSettlement();
             }
 
             DB::commit();
@@ -720,7 +720,7 @@ class AccountsReceivableReport extends Component
                 ]);
 
                 if ($payment->debit_note_id) {
-                    $payment->debitNote->update(['status' => 'paid']);
+                    $payment->debitNote->checkSettlement();
                 }
 
                 if ($payment->sale_id) {
