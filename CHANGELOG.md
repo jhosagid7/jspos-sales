@@ -1,3 +1,11 @@
+## [1.10.72] - 2026-05-07
+### Improved
+- **Lógica de Pagos en Notas de Débito**: Mejorada la asociación de pagos para Notas de Débito vinculadas a facturas. Ahora, si una nota de débito tiene una factura asociada, el pago se vincula automáticamente a ambas, permitiendo que el abono contribuya a la liquidación de la deuda de la factura original. Las notas de débito manuales (sin factura) siguen procesándose de forma independiente con `sale_id` nulo.
+
+## [1.10.71] - 2026-05-07
+### Fixed
+- **Error de Integridad en Pagos**: Corregido el error `sale_id cannot be null` al registrar pagos para Notas de Débito manuales. Se hizo la columna `sale_id` opcional en la base de datos y se protegieron los componentes Livewire contra valores nulos.
+
 ## [1.10.70] - 2026-05-06
 ### Added
 - **Automatización de Permisos**: Configurado el `UpdateService` para que los nuevos permisos se creen y asignen automáticamente a los roles administrativos al instalar la actualización. Ya no es necesario ejecutar seeders manualmente en producción.

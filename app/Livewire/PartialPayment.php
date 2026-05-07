@@ -554,15 +554,19 @@ class PartialPayment extends Component
                     }
                 }
                 
-                $sale = Sale::find($payment->sale_id);
-                $this->checkSaleSettlement($sale);
+                $sale = $payment->sale_id ? Sale::find($payment->sale_id) : null;
+                if ($sale) {
+                    $this->checkSaleSettlement($sale);
+                }
                 
                 DB::commit();
                 $this->dispatch('noty', msg: 'PAGO APROBADO Y REGISTRADO EN CAJA');
                 event(new \App\Events\PaymentReceived($payment, $payment->amount, $sale));
                 
                 // Refresh list
-                $this->pays = $sale->payments; 
+                if ($sale) {
+                    $this->pays = $sale->payments; 
+                }
                 $this->dispatch('refresh-history'); 
             }
         } catch (\Exception $e) {

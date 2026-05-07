@@ -453,6 +453,12 @@ class AccountsReceivableReport extends Component
     {
         $saleId = $this->sale_id;
         $debitNoteId = $metadata['debit_note_id'] ?? null;
+        $debitNote = $debitNoteId ? \App\Models\DebitNote::find($debitNoteId) : null;
+
+        // Si la nota de débito tiene una factura asociada, vinculamos el pago también a esa factura
+        if (!$saleId && $debitNote && $debitNote->sale_id) {
+            $saleId = $debitNote->sale_id;
+        }
 
         if (!$saleId && !$debitNoteId) {
             Log::warning("AccountsReceivableReport::processPayment - No target identified", ['sale_id' => $saleId, 'metadata' => $metadata]);
@@ -462,7 +468,6 @@ class AccountsReceivableReport extends Component
         DB::beginTransaction();
         try {
             $sale = $saleId ? Sale::find($saleId) : null;
-            $debitNote = $debitNoteId ? \App\Models\DebitNote::find($debitNoteId) : null;
             
             $customerId = $sale ? $sale->customer_id : ($debitNote ? $debitNote->customer_id : null);
             
@@ -726,14 +731,16 @@ class AccountsReceivableReport extends Component
                 $amountUSD = $payment->amount / ($payment->exchange_rate > 0 ? $payment->exchange_rate : 1);
                 $currentSheet->increment('total_amount', $amountUSD);
                 
-                $sale = Sale::find($payment->sale_id);
-                $this->checkSaleSettlement($sale);
+                $sale = $payment->sale_id ? Sale::find($payment->sale_id) : null;
+                if ($sale) {
+                    $this->checkSaleSettlement($sale);
+                }
                 
                 DB::commit();
                 $this->dispatch('noty', msg: 'PAGO APROBADO Y REGISTRADO EN CAJA');
                 
                 // Refresh list if viewing history
-                if ($this->pays && count($this->pays) > 0 && $this->pays[0]->sale_id == $sale->id) {
+                if ($sale && $this->pays && count($this->pays) > 0 && ($this->pays[0]->sale_id ?? null) == $sale->id) {
                      $this->pays = $sale->payments; 
                 }
             }
