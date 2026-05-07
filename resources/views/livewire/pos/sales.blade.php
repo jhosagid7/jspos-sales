@@ -8,11 +8,13 @@
                 <div class="card-header">
                     <h3 class="card-title">Resumen</h3>
                     @if($editing_sale_id)
-                    <div class="badge badge-warning ml-2" style="font-size: 0.8em;">
-                        MODO EDICIÓN #{{ $editing_sale_id }}
-                        <a href="javascript:void(0)" wire:click="clear" class="text-danger ml-1" title="Cancelar Edición">
-                            <i class="fas fa-times-circle"></i>
-                        </a>
+                    <div class="ml-2">
+                        <span class="badge badge-warning p-2 shadow-sm border border-dark" style="font-size: 0.85em; cursor: default;">
+                            <i class="fas fa-edit mr-1"></i> EDITANDO #{{ $editing_sale_id }}
+                            <a href="javascript:void(0)" wire:click="clear" class="text-danger ml-2" title="Cancelar Edición" style="text-decoration: none;">
+                                <i class="fas fa-times-circle"></i>
+                            </a>
+                        </span>
                     </div>
                     @endif
                     <div class="card-tools">
@@ -448,7 +450,14 @@
 
                     @can('payments.methods')
                         <hr>
-                        <h6 class="text-center font-weight-bold mb-3">Método de Pago</h6>
+                        @if($editing_sale_id)
+                            <div class="alert alert-warning p-2 mb-3 shadow-sm border-warning text-center">
+                                <h6 class="font-weight-bold mb-1 text-dark"><i class="fas fa-save mr-1"></i> MODO EDICIÓN ACTIVO</h6>
+                                <p class="small mb-0 text-dark">Al guardar se actualizará la factura #{{ $editing_sale_id }}</p>
+                            </div>
+                        @else
+                            <h6 class="text-center font-weight-bold mb-3">Método de Pago</h6>
+                        @endif
                         <div class="row justify-content-center">
                             @can('payments.method_cash')
                                 <div class="col-4 text-center mb-2" wire:click="initPayment(1)" style="cursor: pointer;">

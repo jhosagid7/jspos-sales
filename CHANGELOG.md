@@ -1,3 +1,10 @@
+## [1.10.74] - 2026-05-07
+### Fixed
+- **Flexibilidad en Edición de Ventas**: Restaurada la capacidad de editar todo tipo de facturas (Contado y Crédito), permitiendo cambios en la modalidad de pago y ajustes totales, manteniendo el flujo de pago original mediante modal.
+- **Validación de Stock en Edición**: Sigue activa la mejora que impide bloqueos por falta de stock físico al editar ítems que ya pertenecen a la factura actual.
+- **Restauración de Metadata de Pagos**: Corregido el error `zelle_sender` al editar ventas con pagos electrónicos, asegurando que toda la información de auditoría se preserve durante el proceso.
+- **Corrección de Error en Movimientos de Caja**: Solucionado el error `Data truncated for column 'type'` mediante la expansión de la columna en la base de datos.
+
 ## [1.10.73] - 2026-05-07
 ### Fixed
 - **Pagos Parciales en Notas de Débito**: Corregido error que marcaba las Notas de Débito como pagadas al recibir cualquier abono parcial. Se implementó una validación de saldo (`checkSettlement`) que mantiene la nota en estado pendiente hasta que la deuda sea liquidada en su totalidad.

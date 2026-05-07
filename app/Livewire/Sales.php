@@ -152,6 +152,8 @@ class Sales extends Component
 
     public $editing_sale_id = null;
     public $original_sale_data = null;
+    public $originalSaleItems = [];
+    public $originalPaymentType = null;
     public $orderHistory = [];
     public $customerAgreement = null;
     public $sellerAgreement = null;
@@ -1494,7 +1496,7 @@ class Sales extends Component
     public function loadSaleToEdit($saleId)
     {
         try {
-            $sale = Sale::with(['details', 'paymentDetails', 'changeDetails', 'customer'])->find($saleId);
+            $sale = Sale::with(['details', 'paymentDetails.zelleRecord', 'paymentDetails.bankRecord', 'changeDetails', 'customer'])->find($saleId);
             
             if (!$sale) {
                 $this->dispatch('noty', msg: 'VENTA #' . $saleId . ' NO ENCONTRADA');
@@ -1508,6 +1510,13 @@ class Sales extends Component
             // Guardar ID y snapshot original (DESPUÉS de clear para que no se borren)
             $this->editing_sale_id = $saleId;
             $this->original_sale_data = $sale->toJson();
+
+            // Mapear cantidades originales por producto y almacén para validación de stock
+            $this->originalSaleItems = $sale->details->groupBy('product_id')->map(function($details) {
+                return $details->groupBy('warehouse_id')->map->sum('quantity');
+            })->toArray();
+
+            $this->originalPaymentType = ($sale->status == 'Paid') ? 1 : 2;
 
             // Restaurar Cliente
             if ($sale->customer) {
@@ -1544,7 +1553,7 @@ class Sales extends Component
             // Restaurar Pagos
             $this->payments = [];
             foreach ($sale->paymentDetails as $p) {
-                $this->payments[] = [
+                $paymentArr = [
                     'method' => $p->payment_method,
                     'amount' => $p->amount,
                     'currency' => $p->currency_code,
@@ -1558,6 +1567,25 @@ class Sales extends Component
                     'phone_number' => $p->phone_number,
                     'details' => $p->payment_method == 'bank' ? "Banco: {$p->bank_name}, Ref: {$p->reference_number}" : null
                 ];
+
+                // Restaurar Metadata de Zelle para evitar error de array key
+                if ($p->payment_method == 'zelle' && $p->zelleRecord) {
+                    $paymentArr['zelle_sender'] = $p->zelleRecord->sender_name;
+                    $paymentArr['zelle_date'] = $p->zelleRecord->zelle_date;
+                    $paymentArr['zelle_amount'] = $p->zelleRecord->amount;
+                    $paymentArr['zelle_image'] = $p->zelleRecord->image_path;
+                    $paymentArr['reference'] = $p->zelleRecord->reference;
+                }
+
+                // Restaurar Metadata de Banco (VED logic)
+                if ($p->payment_method == 'bank' && $p->bankRecord) {
+                    $paymentArr['bank_id'] = $p->bankRecord->bank_id;
+                    $paymentArr['bank_reference'] = $p->bankRecord->reference;
+                    $paymentArr['bank_date'] = $p->bankRecord->date;
+                    $paymentArr['bank_global_amount'] = $p->bankRecord->amount;
+                }
+
+                $this->payments[] = $paymentArr;
             }
             session(['payments' => $this->payments]);
 
@@ -1865,6 +1893,13 @@ class Sales extends Component
                 // Check warehouse stock for component (if warehouse selected)
                 if ($targetWarehouseId) {
                     $compStockInWarehouse = $component->stockIn($targetWarehouseId);
+                    
+                    // AJUSTE: Si se está editando una venta, sumar la cantidad original de este componente (vía el padre)
+                    if ($this->editing_sale_id && isset($this->originalSaleItems[$product->id][$targetWarehouseId])) {
+                        $originalParentQty = $this->originalSaleItems[$product->id][$targetWarehouseId];
+                        $compStockInWarehouse += ($originalParentQty * $component->pivot->quantity);
+                    }
+
                      if ($component->manage_stock && $compStockInWarehouse < $requiredQty) {
                          $this->dispatch('noty', msg: "Stock insuficiente en almacén para el componente: {$component->name}");
                          return;
@@ -1879,6 +1914,11 @@ class Sales extends Component
         
         if ($product->manage_stock == 1 && !$isDynamic) {
             $stock = $product->stockIn($targetWarehouseId);
+
+            // AJUSTE: Si se está editando una venta, sumar la cantidad original de este producto para permitir la carga/edición
+            if ($this->editing_sale_id && isset($this->originalSaleItems[$product->id][$targetWarehouseId])) {
+                $stock += $this->originalSaleItems[$product->id][$targetWarehouseId];
+            }
 
             // FIX: Handle Legacy Data (Global Stock > 0 but no Warehouse Entry)
             if ($stock == 0 && $product->stock_qty > 0 && $product->productWarehouses()->count() == 0) {
@@ -2597,6 +2637,13 @@ class Sales extends Component
                 $itemWarehouseId = $oldItem['warehouse_id'] ?? null;
                 if ($itemWarehouseId) {
                     $compStockInWarehouse = $component->stockIn($itemWarehouseId);
+
+                    // AJUSTE: Si se está editando una venta, sumar la cantidad original de este componente (vía el padre)
+                    if ($this->editing_sale_id && isset($this->originalSaleItems[$product->id][$itemWarehouseId])) {
+                        $originalParentQty = $this->originalSaleItems[$product->id][$itemWarehouseId];
+                        $compStockInWarehouse += ($originalParentQty * $component->pivot->quantity);
+                    }
+
                      if ($component->manage_stock && $compStockInWarehouse < $requiredQty) {
                          $this->dispatch('noty', msg: "Stock insuficiente en almacén para el componente: {$component->name}");
                          return;
@@ -2615,6 +2662,11 @@ class Sales extends Component
             // Validate against the specific warehouse of the item
             $itemWarehouseId = $oldItem['warehouse_id'] ?? null;
             $stockInWarehouse = $product->stockIn($itemWarehouseId);
+
+            // AJUSTE: Si se está editando una venta, sumar la cantidad original de este producto para permitir la carga/edición
+            if ($this->editing_sale_id && isset($this->originalSaleItems[$product->id][$itemWarehouseId])) {
+                $stockInWarehouse += $this->originalSaleItems[$product->id][$itemWarehouseId];
+            }
 
             if ($stockInWarehouse < $newQty) {
                 $this->dispatch('noty', msg: 'No hay suficiente stock para el producto: ' . $product->name);
@@ -2791,9 +2843,28 @@ class Sales extends Component
         $this->changeDistribution = [];
         $this->editing_sale_id = null;
         $this->original_sale_data = null;
-        session()->forget(['payments', 'changeDistribution', 'remainingAmount', 'change', 'editing_sale_id']);
+        $this->originalSaleItems = [];
+        $this->originalPaymentType = null;
+        session()->forget(['payments', 'changeDistribution', 'remainingAmount', 'change', 'editing_sale_id', 'sale_customer']);
         $this->save();
         $this->dispatch('refresh');
+    }
+
+    public function saveEdit(CashRegisterService $cashRegisterService)
+    {
+        if (!$this->editing_sale_id) {
+            return;
+        }
+
+        // El usuario solo quiere editar créditos (Status Pending y no liquidado)
+        // Ya validamos esto en loadSaleToEdit, pero re-validamos por seguridad
+        if ($this->originalPaymentType == 2) {
+            $this->payType = 2; // Crédito
+            $this->Store($cashRegisterService);
+        } else {
+            // Si de alguna forma llegó aquí siendo de contado, usamos el flujo normal
+            $this->initPayment(1);
+        }
     }
 
     #[On('cancelSale')]
