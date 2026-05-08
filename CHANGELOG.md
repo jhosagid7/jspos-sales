@@ -1,3 +1,11 @@
+## [1.11.0] - 2026-05-08
+### Added
+- **Nueva App Soplados (Manufactura)**: Lanzamiento oficial de la aplicación móvil para operarios de planta.
+    - **Gestión de Turnos**: Apertura y cierre de turnos Diurnos/Nocturnos sincronizados con el backend.
+    - **Registro de Producción**: Captura de insumos consumidos (Preformas/Tapas) y registro de producto terminado (1ra, 2da y Merma) con descuento automático de stock.
+    - **Logística Inversa**: Recepción de traspasos rechazados por distribuidoras para reintegro inmediato a planta.
+    - **Branding Soplados**: Identidad visual industrial con colores Azul/Gris y nuevo icono de botellón.
+
 ## [1.10.74] - 2026-05-07
 ### Fixed
 - **Flexibilidad en Edición de Ventas**: Restaurada la capacidad de editar todo tipo de facturas (Contado y Crédito), permitiendo cambios en la modalidad de pago y ajustes totales, manteniendo el flujo de pago original mediante modal.

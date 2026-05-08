@@ -29,7 +29,7 @@
                             <th>Destino</th>
                             <th>Items</th>
                             <th>Estado</th>
-                            <th>Nota</th>
+                            <th>Nota / Rechazo</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
@@ -42,24 +42,42 @@
                             <td>{{ $transfer->toWarehouse->name }}</td>
                             <td>{{ $transfer->details->count() }}</td>
                             <td>
-                                <span class="badge badge-{{ $transfer->status == 'completed' ? 'success' : ($transfer->status == 'pending' ? 'warning' : 'danger') }}">
-                                    {{ ucfirst($transfer->status) }}
-                                </span>
+                                @if($transfer->status == 'completed')
+                                    <span class="badge badge-success">Completado</span>
+                                @elseif($transfer->status == 'completed_partial')
+                                    <span class="badge badge-info">Parcial</span>
+                                @elseif($transfer->status == 'dispatched')
+                                    <span class="badge badge-primary">Despachado</span>
+                                @elseif($transfer->status == 'pending')
+                                    <span class="badge badge-warning">Pendiente</span>
+                                @elseif($transfer->status == 'rejected')
+                                    <span class="badge badge-danger">Rechazado</span>
+                                @endif
                             </td>
-                            <td>{{ $transfer->note }}</td>
+                            <td>
+                                {{ $transfer->note }}
+                                @if($transfer->rejection_reason)
+                                    <br><small class="text-danger">Motivo Rechazo: {{ $transfer->rejection_reason }}</small>
+                                @endif
+                            </td>
                             <td>
                                 @if($transfer->status == 'pending')
-                                    <button wire:click="finalizeTransfer({{ $transfer->id }})" 
-                                            wire:confirm="¿Está seguro de completar este traspaso? Esto sumará el stock al destino."
-                                            class="btn btn-success btn-sm" title="Completar Traspaso">
-                                        <i class="fas fa-check"></i>
+                                    <button wire:click="dispatchTransferFromWeb({{ $transfer->id }})" 
+                                            wire:confirm="¿Despachar mercancía? Esto restará el stock del origen."
+                                            class="btn btn-warning btn-sm" title="Despachar">
+                                        <i class="fas fa-truck"></i> Despachar
+                                    </button>
+                                @elseif($transfer->status == 'dispatched')
+                                    <button wire:click="openReceiveModal({{ $transfer->id }})" 
+                                            class="btn btn-success btn-sm" title="Recibir Traspaso">
+                                        <i class="fas fa-check-double"></i> Recibir
                                     </button>
                                 @endif
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="7" class="text-center">No hay traspasos registrados</td>
+                            <td colspan="8" class="text-center">No hay traspasos registrados</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -162,10 +180,58 @@
         </div>
         <div class="card-footer text-right">
             <button wire:click="cancel" class="btn btn-secondary">Cancelar</button>
-            <button wire:click="saveTransfer" class="btn btn-primary">Guardar Traspaso</button>
+            <button wire:click="saveTransfer" class="btn btn-primary">Crear Traspaso</button>
         </div>
     </div>
     @endif
+
+    <!-- Modal for Receiving -->
+    <div wire:ignore.self class="modal fade" id="receiveModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-success">
+                    <h5 class="modal-title text-white">Recibir Traspaso</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Revise la mercancía que llegó y confirme la cantidad que se ingresará al almacén.</p>
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Enviado</th>
+                                <th width="150">Recibido (Aceptado)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($receiving_details as $detailId => $detail)
+                            <tr>
+                                <td>{{ $detail['product_name'] }}</td>
+                                <td class="text-center"><b>{{ $detail['requested'] }}</b></td>
+                                <td>
+                                    <input type="number" class="form-control" 
+                                           wire:model="receiving_details.{{ $detailId }}.received"
+                                           max="{{ $detail['requested'] }}" min="0">
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                    
+                    <div class="form-group mt-3">
+                        <label>Motivo de Rechazo (Opcional, llenar si rechazó algo)</label>
+                        <textarea class="form-control" wire:model="rejection_reason" rows="2" placeholder="Ej: Faltaron 5 botellones..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                    <button type="button" wire:click="finalizeTransfer" class="btn btn-success">Guardar y Completar</button>
+                </div>
+            </div>
+        </div>
+    </div>
     
     @push('my-scripts')
     <script>
@@ -174,7 +240,16 @@
                 noty(msg)
             })
             Livewire.on('error', (msg) => {
-                noty(msg, 2) // 2 for error/warning
+                noty(msg, 2)
+            })
+            Livewire.on('msg', (msg) => {
+                noty(msg)
+            })
+            Livewire.on('show-receive-modal', () => {
+                $('#receiveModal').modal('show')
+            })
+            Livewire.on('hide-receive-modal', () => {
+                $('#receiveModal').modal('hide')
             })
         })
     </script>

@@ -275,11 +275,28 @@
 
                         @module('module_production')
                         @can('production.index')
-                        <li class="nav-item">
-                            <a href="{{ route('production.index') }}" class="nav-link {{ Request::is('production*') ? 'active' : '' }}">
+                        <li class="nav-item {{ Request::is('production*') ? 'menu-open' : '' }}">
+                            <a href="#" class="nav-link {{ Request::is('production*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
-                                <p>Producción</p>
+                                <p>
+                                    Producción
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
                             </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="{{ route('production.index') }}" class="nav-link {{ Request::is('production') || Request::is('production/create*') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Registros Antiguos</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('production.report') }}" class="nav-link {{ Request::is('production-report') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Reporte Soplados</p>
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
                         @endcan
                         @endmodule

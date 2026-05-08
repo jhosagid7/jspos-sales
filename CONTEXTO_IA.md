@@ -103,7 +103,7 @@ La IA debe leer este archivo para entender cómo trabajar en este proyecto espec
 ## 9. Aplicación Móvil (Flutter)
 ### 9.1. Entorno de Compilación (CRÍTICO)
 - **Ruta SDK Flutter**: `C:\src\flutter` (Ejecutable: `C:\src\flutter\bin\flutter.bat`).
-- **Directorio del Proyecto**: `mobile_app/` y `mobile_vip_app/`.
+- **Directorio del Proyecto**: `mobile_app/`, `mobile_vip_app/` y `mobile_soplados_app/`.
 - **Protocolo de Compilación y Release**:
     1.  **Versión**: Incrementar el `version` en `pubspec.yaml` (tanto el nombre `x.x.x` como el build number `+N`).
     2.  **Limpieza/Dependencias**: Ejecutar `flutter pub get`.
@@ -112,6 +112,7 @@ La IA debe leer este archivo para entender cómo trabajar en este proyecto espec
     5.  **Nomenclatura**: Renombrar el APK copiado siguiendo el patrón:
         - App Normal: `JSPOS_Mobile_vX.X.X_BreveDescripcion_SuWeb.apk`
         - App VIP/Clientes: `JSPOS_Mobile_VIP_vX.X.X_AppClientes_SuWeb.apk`
+        - App Soplados/Planta: `JSPOS_Mobile_Soplados_vX.X.X_AppManufactura_SuWeb.apk`
 
 ### 9.2. Estándares de Diseño y Estética "Su Web" (OBLIGATORIO)
 Cualquier modificación en la interfaz móvil DEBE seguir estos lineamientos para mantener la categoría Premium:

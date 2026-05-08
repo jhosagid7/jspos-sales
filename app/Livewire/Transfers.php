@@ -128,19 +128,12 @@ class Transfers extends Component
                     'quantity' => $item['qty']
                 ]);
                 
-                // Deduct from source warehouse (Pending transfer logic)
-                // Or just reserve? For now, let's just record it. 
-                // Actual stock movement might happen on "Completion".
-                // But user wants to track stock.
-                // Let's deduct from source immediately to prevent selling it?
-                // Yes, usually "In Transit" means it left the source.
-                
-                $this->updateStock($this->from_warehouse_id, $item['product_id'], -$item['qty']);
+                // We DO NOT deduct stock here anymore. Stock is deducted upon Dispatch.
             }
 
             DB::commit();
             $this->resetUI();
-            $this->dispatch('transfer-added', 'Traspaso Registrado');
+            $this->dispatch('transfer-added', 'Traspaso Registrado (Pendiente)');
 
         } catch (\Exception $e) {
             DB::rollback();
@@ -148,49 +141,121 @@ class Transfers extends Component
         }
     }
 
-    public function updateStock($warehouseId, $productId, $qty)
-    {
-        // Find or create product_warehouse record
-        $stock = DB::table('product_warehouse')
-            ->where('warehouse_id', $warehouseId)
-            ->where('product_id', $productId)
-            ->first();
-
-        if ($stock) {
-            DB::table('product_warehouse')
-                ->where('id', $stock->id)
-                ->update(['stock_qty' => $stock->stock_qty + $qty]);
-        } else {
-            DB::table('product_warehouse')->insert([
-                'warehouse_id' => $warehouseId,
-                'product_id' => $productId,
-                'stock_qty' => $qty,
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
-        }
-    }
-
-    public function finalizeTransfer($transferId)
+    public function dispatchTransferFromWeb($transferId)
     {
         $transfer = Transfer::find($transferId);
-        if (!$transfer || $transfer->status == 'completed') return;
+        if (!$transfer || $transfer->status !== 'pending') return;
 
         DB::beginTransaction();
         try {
-            $transfer->status = 'completed';
-            $transfer->save();
+            $transfer->update(['status' => 'dispatched']);
 
             $details = TransferDetail::where('transfer_id', $transfer->id)->get();
             foreach ($details as $detail) {
-                $this->updateStock($transfer->to_warehouse_id, $detail->product_id, $detail->quantity);
+                $this->updateStock($transfer->from_warehouse_id, $detail->product_id, -$detail->quantity);
             }
 
             DB::commit();
-            $this->dispatch('msg', 'Traspaso completado correctamente');
+            $this->dispatch('msg', 'Traspaso Despachado (Stock descontado del origen)');
         } catch (\Exception $e) {
             DB::rollback();
-            $this->dispatch('error', 'Error al completar el traspaso: ' . $e->getMessage());
+            $this->dispatch('error', 'Error al despachar: ' . $e->getMessage());
+        }
+    }
+
+    public function updateStock($warehouseId, $productId, $qty)
+    {
+        $pw = \App\Models\ProductWarehouse::firstOrCreate(
+            ['product_id' => $productId, 'warehouse_id' => $warehouseId],
+            ['stock_qty' => 0]
+        );
+
+        $pw->stock_qty += $qty;
+        $pw->save();
+
+        $config = \App\Models\Configuration::first();
+        $defaultWarehouseId = $config->default_warehouse_id ?? \App\Models\Warehouse::first()->id ?? 1;
+
+        if ($warehouseId == $defaultWarehouseId) {
+            $product = \App\Models\Product::find($productId);
+            if ($product) {
+                $product->stock_qty += $qty;
+                $product->save();
+            }
+        }
+    }
+
+    // Modal properties for receiving
+    public $receiving_transfer_id;
+    public $receiving_details = [];
+    public $rejection_reason = '';
+
+    public function openReceiveModal($transferId)
+    {
+        $transfer = Transfer::with('details.product')->find($transferId);
+        if (!$transfer || $transfer->status !== 'dispatched') return;
+
+        $this->receiving_transfer_id = $transfer->id;
+        $this->rejection_reason = '';
+        $this->receiving_details = [];
+
+        foreach ($transfer->details as $detail) {
+            $this->receiving_details[$detail->id] = [
+                'product_name' => $detail->product->name,
+                'requested' => $detail->quantity,
+                'received' => $detail->quantity // Default to fully received
+            ];
+        }
+
+        $this->dispatch('show-receive-modal');
+    }
+
+    public function finalizeTransfer()
+    {
+        $transfer = Transfer::find($this->receiving_transfer_id);
+        if (!$transfer || $transfer->status !== 'dispatched') return;
+
+        DB::beginTransaction();
+        try {
+            $hasRejections = false;
+
+            foreach ($this->receiving_details as $detailId => $data) {
+                $detail = TransferDetail::find($detailId);
+                $received = floatval($data['received']);
+                
+                if ($received > $detail->quantity) {
+                    $received = $detail->quantity; // Prevent receiving more than requested
+                }
+                
+                $rejected = $detail->quantity - $received;
+                
+                if ($rejected > 0) {
+                    $hasRejections = true;
+                }
+
+                $detail->update([
+                    'received_quantity' => $received,
+                    'rejected_quantity' => $rejected
+                ]);
+
+                // Add received stock to destination warehouse
+                if ($received > 0) {
+                    $this->updateStock($transfer->to_warehouse_id, $detail->product_id, $received);
+                }
+            }
+
+            $transfer->update([
+                'status' => $hasRejections ? 'completed_partial' : 'completed',
+                'rejection_reason' => $hasRejections ? $this->rejection_reason : null
+            ]);
+
+            DB::commit();
+            $this->dispatch('hide-receive-modal');
+            $this->dispatch('msg', 'Traspaso recibido y procesado correctamente');
+            $this->receiving_transfer_id = null;
+        } catch (\Exception $e) {
+            DB::rollback();
+            $this->dispatch('error', 'Error al recibir el traspaso: ' . $e->getMessage());
         }
     }
 
@@ -216,5 +281,8 @@ class Transfers extends Component
         $this->product_search = '';
         $this->selected_id = 0;
         $this->is_creating = false;
+        $this->receiving_transfer_id = null;
+        $this->receiving_details = [];
+        $this->rejection_reason = '';
     }
 }

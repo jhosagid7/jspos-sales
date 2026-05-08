@@ -82,3 +82,19 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 
+// Soplados Manufacturing App Routes
+Route::prefix('soplados')->middleware('auth:sanctum')->group(function () {
+    // Shifts
+    Route::get('/shifts/current', [App\Http\Controllers\Api\Soplados\ShiftController::class, 'current']);
+    Route::post('/shifts/open', [App\Http\Controllers\Api\Soplados\ShiftController::class, 'open']);
+    Route::post('/shifts/close', [App\Http\Controllers\Api\Soplados\ShiftController::class, 'close']);
+
+    // Production
+    Route::post('/production', [App\Http\Controllers\Api\Soplados\ProductionController::class, 'store']);
+
+    // Transfers
+    Route::get('/transfers/pending', [App\Http\Controllers\Api\Soplados\TransferController::class, 'pending']);
+    Route::post('/transfers/{id}/dispatch', [App\Http\Controllers\Api\Soplados\TransferController::class, 'dispatchTransfer']);
+    Route::get('/transfers/returns/pending', [App\Http\Controllers\Api\Soplados\TransferController::class, 'pendingReturns']);
+    Route::post('/transfers/{id}/returns/receive', [App\Http\Controllers\Api\Soplados\TransferController::class, 'receiveReturn']);
+});
