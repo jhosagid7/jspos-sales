@@ -1,3 +1,8 @@
+## [1.10.79] - 2026-05-11
+### Added
+- **Recepción Parcial en App**: Ahora el operador puede editar la cantidad recibida de cada insumo y agregar un motivo de rechazo/faltante si no llegó la cantidad completa.
+- **Gestión de Stock Precisa**: El stock solo se carga a planta por la cantidad real confirmada en la App, registrando el resto como cantidad rechazada en el sistema.
+
 ## [1.10.78] - 2026-05-11
 ### Fixed
 - **Rutas Web Soplados**: Eliminada restricción de módulo que impedía al administrador ver el panel de "Fórmulas" y "Turnos".

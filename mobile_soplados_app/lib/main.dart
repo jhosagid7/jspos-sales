@@ -1272,19 +1272,52 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
     } catch (e) { debugPrint("Receipts Err: $e"); }
   }
 
-  Future<void> _receiveTransfer(int id) async {
+  // Modal/Partial state
+  Map<int, double> _receivedQtys = {};
+  final Map<int, TextEditingController> _controllers = {};
+  final TextEditingController _reasonController = TextEditingController();
+
+  Future<void> _receiveTransfer(int id, List details) async {
     setState(() => _isLoading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
+
+      // Build items array for API
+      final items = details.map((d) {
+        final detailId = int.parse(d['id'].toString());
+        return {
+          'id': detailId,
+          'received': _receivedQtys[detailId] ?? double.parse(d['quantity'].toString())
+        };
+      }).toList();
+
       final response = await http.post(
         Uri.parse('${widget.baseUrl}/api/soplados/receipts/$id/receive'),
-        headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'}
+        headers: {
+          'Authorization': 'Bearer $token', 
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'items': items,
+          'rejection_reason': _reasonController.text
+        })
       ).timeout(const Duration(seconds: 15));
+
       if (response.statusCode == 200) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Insumos cargados al stock'), backgroundColor: Colors.green));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Recepción procesada'), backgroundColor: Colors.green));
+        }
+        _reasonController.clear();
+        _receivedQtys.clear();
+        _controllers.clear();
         _fetchInventory();
         _fetchReceipts();
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${response.body}'), backgroundColor: Colors.red));
+        }
       }
     } catch (e) { debugPrint("Rec Err: $e"); }
     finally { setState(() => _isLoading = false); }
@@ -1403,6 +1436,8 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                   itemCount: _receipts.length,
                   itemBuilder: (context, index) {
                     final t = _receipts[index];
+                    final List details = t['details'];
+
                     return Card(
                       elevation: 2,
                       margin: const EdgeInsets.only(bottom: 12),
@@ -1415,10 +1450,76 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                           Padding(
                             padding: const EdgeInsets.all(15),
                             child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                ...(t['details'] as List).map((d) => ListTile(dense: true, title: Text(d['product_name']), trailing: Text('${d['quantity']} uds', style: const TextStyle(fontWeight: FontWeight.bold)))),
+                                const Text('Verifique las cantidades recibidas:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                                const SizedBox(height: 10),
+                                ...details.map((d) {
+                                  final detailId = int.parse(d['id'].toString());
+                                  final requested = double.parse(d['quantity'].toString());
+                                  
+                                  // Initialize controllers and values if not set
+                                  if (!_controllers.containsKey(detailId)) {
+                                    _controllers[detailId] = TextEditingController(text: requested.toString());
+                                    _receivedQtys[detailId] = requested;
+                                  }
+
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 10),
+                                    child: Row(
+                                      children: [
+                                        Expanded(child: Text(d['product_name'], style: const TextStyle(fontSize: 13))),
+                                        const SizedBox(width: 10),
+                                        SizedBox(
+                                          width: 100,
+                                          child: TextFormField(
+                                            controller: _controllers[detailId],
+                                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.teal),
+                                            decoration: InputDecoration(
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                              isDense: true,
+                                              suffixText: 'uds',
+                                              suffixStyle: const TextStyle(fontSize: 10),
+                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                              labelText: 'Recibido',
+                                              labelStyle: const TextStyle(fontSize: 10)
+                                            ),
+                                            onChanged: (val) {
+                                              setState(() {
+                                                _receivedQtys[detailId] = double.tryParse(val) ?? requested;
+                                              });
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                                const SizedBox(height: 10),
                                 const Divider(),
-                                SizedBox(width: double.infinity, height: 45, child: ElevatedButton.icon(onPressed: () => _receiveTransfer(t['id']), icon: const Icon(Icons.check, color: Colors.white), label: const Text('CARGAR A PLANTA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))))),
+                                TextFormField(
+                                  controller: _reasonController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Observación / Motivo (Si hay faltante)',
+                                    labelStyle: TextStyle(fontSize: 12),
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
+                                  ),
+                                  maxLines: 2,
+                                ),
+                                const SizedBox(height: 15),
+                                SizedBox(
+                                  width: double.infinity, 
+                                  height: 48, 
+                                  child: ElevatedButton.icon(
+                                    onPressed: () => _receiveTransfer(t['id'], details), 
+                                    icon: const Icon(Icons.check_circle, color: Colors.white), 
+                                    label: const Text('CONFIRMAR Y CARGAR A PLANTA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), 
+                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)))
+                                  )
+                                ),
                               ],
                             ),
                           )

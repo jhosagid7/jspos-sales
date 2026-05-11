@@ -106,31 +106,68 @@ class InventoryController extends Controller
 
     /**
      * Accept a transfer, adding the stock to the plant.
+     * Supports partial receipts.
      */
     public function receiveReceipt(Request $request, $id)
     {
         $transfer = Transfer::with('details')->findOrFail($id);
 
-        if (in_array(strtolower($transfer->status), ['completed', 'received'])) {
-            return response()->json(['success' => false, 'message' => 'Este traspaso ya fue recibido.'], 400);
+        if (in_array(strtolower($transfer->status), ['completed', 'received', 'completed_partial'])) {
+            return response()->json(['success' => false, 'message' => 'Este traspaso ya fue procesado.'], 400);
         }
+
+        $receivedItems = $request->input('items', []); // Array of {id: detail_id, received: qty}
+        $rejectionReason = $request->input('rejection_reason', '');
 
         try {
             DB::beginTransaction();
 
-            // Mark as completed/received
-            $transfer->update([
-                'status' => 'completed',
-                'note' => $transfer->note . ' [Recibido en Planta por App]'
-            ]);
+            $hasRejections = false;
 
-            // Add stock to the plant warehouse
+            // Process each item
             foreach ($transfer->details as $detail) {
-                $this->updateStock($detail->product_id, $transfer->to_warehouse_id, $detail->quantity);
+                // Find received quantity for this detail in the request
+                $received = $detail->quantity; // Default to full
+                foreach ($receivedItems as $ri) {
+                    if ($ri['id'] == $detail->id) {
+                        $received = floatval($ri['received']);
+                        break;
+                    }
+                }
+
+                if ($received > $detail->quantity) $received = $detail->quantity;
+                if ($received < 0) $received = 0;
+
+                $rejected = $detail->quantity - $received;
+                if ($rejected > 0) $hasRejections = true;
+
+                // Update detail
+                $detail->update([
+                    'received_quantity' => $received,
+                    'rejected_quantity' => $rejected
+                ]);
+
+                // Add stock to plant
+                if ($received > 0) {
+                    $this->updateStock($detail->product_id, $transfer->to_warehouse_id, $received);
+                }
+                
+                // Note: Stock return to origin is NOT automatic here.
+                // It follows the business logic where rejections are handled as a separate Return flow.
             }
 
+            // Mark transfer as processed
+            $transfer->update([
+                'status' => $hasRejections ? 'completed_partial' : 'completed',
+                'rejection_reason' => $rejectionReason,
+                'note' => $transfer->note . ($hasRejections ? ' [Recibido Parcial]' : ' [Recibido Total]')
+            ]);
+
             DB::commit();
-            return response()->json(['success' => true, 'message' => 'Insumos recibidos y cargados al inventario de planta.']);
+            return response()->json([
+                'success' => true, 
+                'message' => $hasRejections ? 'Recepción parcial registrada correctamente.' : 'Insumos recibidos y cargados al inventario.'
+            ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
