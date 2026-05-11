@@ -31,8 +31,11 @@ class ShiftController extends Controller
         
         foreach ($stats as $log) {
             foreach ($log->outputs as $out) {
-                if ($out->quality == 1) $good += $out->quantity;
-                else if ($out->quality == 2) $damaged += $out->quantity;
+                if ($out->quality == '1st' || $out->quality == '2nd') {
+                    $good += $out->quantity;
+                } else if ($out->quality == 'damaged') {
+                    $damaged += $out->quantity;
+                }
             }
         }
 

@@ -1,3 +1,7 @@
+## [1.10.81] - 2026-05-11
+### Fixed
+- **Estadísticas del Dashboard**: Corregida la lógica de cálculo en el dashboard móvil. Ahora el rendimiento (Yield), los productos buenos y la merma se calculan correctamente basándose en los registros de producción del turno actual.
+
 ## [1.10.80] - 2026-05-11
 ### Fixed
 - **Visibilidad de Productos en Producción**: Se implementó el auto-etiquetado de productos al configurar recetas. Ahora, cualquier producto con fórmula aparecerá automáticamente en la App sin necesidad de etiquetas manuales.
