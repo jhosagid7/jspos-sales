@@ -41,12 +41,30 @@ class InventoryController extends Controller
             ->whereIn('id', $allIds)
             ->get()
             ->map(function($p) use ($ingredientIds) {
+                // Determine type: Insumo vs Producto Terminado
+                $type = 'Producto Terminado';
+                
+                // Fallback keywords for materials
+                $isMaterial = false;
+                $materialsKeywords = ['PREFORMA', 'TAPA', 'ASA', 'ETIQUETA', 'RESINA', 'LINER', 'TAPON', 'INGREDIENTE'];
+                $nameUpper = strtoupper($p->name);
+                foreach($materialsKeywords as $kw) {
+                    if (strpos($nameUpper, $kw) !== false) {
+                        $isMaterial = true;
+                        break;
+                    }
+                }
+
+                if ($ingredientIds->contains($p->id) || $isMaterial) {
+                    $type = 'Insumo/Materia Prima';
+                }
+
                 return [
                     'id' => $p->id,
                     'name' => $p->name,
                     'sku' => $p->sku,
                     'stock' => $p->productWarehouses->first()->stock_qty ?? 0,
-                    'type' => $ingredientIds->contains($p->id) ? 'Insumo/Materia Prima' : 'Producto Terminado'
+                    'type' => $type
                 ];
             });
 

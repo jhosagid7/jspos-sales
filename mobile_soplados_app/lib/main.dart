@@ -895,11 +895,11 @@ class _ProductionScreenState extends State<ProductionScreen> {
                           child: const Column(children: [
                             Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 40),
                             SizedBox(height: 10),
-                            Text('Sin productos con formula configurada',
+                            Text('Fábrica sin Recetas Configuradas',
                               textAlign: TextAlign.center,
                               style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
                             SizedBox(height: 6),
-                            Text('Ve al panel web > Soplados > Formulas',
+                            Text('Solicite al Administrador configurar las fórmulas en el panel web (Fábrica Soplados > Configuración de Recetas)',
                               textAlign: TextAlign.center,
                               style: TextStyle(fontSize: 12, color: Colors.grey)),
                           ]),

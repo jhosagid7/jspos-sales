@@ -116,9 +116,9 @@ Route::middleware('auth')->group(function () {
     Route::get('production', \App\Livewire\Production\ProductionList::class)->name('production.index')->middleware(['can:production.index', 'module:module_production']);
     Route::get('production/create/{production?}', \App\Livewire\Production\CreateProduction::class)->name('production.create')->middleware(['can:production.create', 'module:module_production']);
     Route::get('production/{id}/pdf', [\App\Http\Controllers\ProductionController::class, 'pdf'])->name('production.pdf')->middleware(['can:production.index', 'module:module_production']);
-    Route::get('production-report', \App\Livewire\ProductionReport::class)->name('production.report')->middleware(['can:production.index', 'module:module_production']);
-    Route::get('soplados/shifts', \App\Livewire\Soplados\ShiftList::class)->name('soplados.shifts')->middleware(['can:production.index', 'module:module_production']);
-    Route::get('soplados/formulas', \App\Livewire\Soplados\Formulas::class)->name('soplados.formulas')->middleware(['can:production.index', 'module:module_production']);
+    Route::get('production-report', \App\Livewire\ProductionReport::class)->name('production.report')->middleware(['can:production.index']);
+    Route::get('soplados/shifts', \App\Livewire\Soplados\ShiftList::class)->name('soplados.shifts')->middleware(['can:production.index']);
+    Route::get('soplados/formulas', \App\Livewire\Soplados\Formulas::class)->name('soplados.formulas')->middleware(['can:production.index']);
 
     Route::get('descargos', \App\Livewire\Descargos\DescargosList::class)->name('descargos')->middleware('can:adjustments.create');
     Route::get('descargos/create', \App\Livewire\Descargos\CreateDescargo::class)->name('descargos.create')->middleware('can:adjustments.create');

@@ -1,3 +1,10 @@
+## [1.10.78] - 2026-05-11
+### Fixed
+- **Rutas Web Soplados**: Eliminada restricción de módulo que impedía al administrador ver el panel de "Fórmulas" y "Turnos".
+- **Clasificación por Palabras Clave**: Añadido fallback para clasificar como Insumo si el nombre contiene (PREFORMA, TAPA, etc.), incluso sin fórmulas configuradas.
+- **Mensajería Coherente**: Actualizados mensajes de error en la App para apuntar correctamente a la ruta del panel web y explicar qué falta.
+- **Permisos Admin**: Verificado y asegurado que los roles Admin/Supervisor tengan acceso total al módulo de Soplados.
+
 ## [1.10.77] - 2026-05-11
 ### Fixed
 - **Sincronización de Almacén**: Corregido error que vinculaba la App de Soplados a la Tienda Principal por falta de configuración. Ahora apunta correctamente a "Planta Soplados".
