@@ -1,3 +1,9 @@
+## [1.10.80] - 2026-05-11
+### Fixed
+- **Visibilidad de Productos en Producción**: Se implementó el auto-etiquetado de productos al configurar recetas. Ahora, cualquier producto con fórmula aparecerá automáticamente en la App sin necesidad de etiquetas manuales.
+- **Deducción de Insumos**: Verificada y estabilizada la lógica de descuento de inventario al registrar producción.
+- **Habilitación de Botón Registrar**: El botón de la App ya no aparecerá deshabilitado si existen recetas configuradas en el panel.
+
 ## [1.10.79] - 2026-05-11
 ### Added
 - **Recepción Parcial en App**: Ahora el operador puede editar la cantidad recibida de cada insumo y agregar un motivo de rechazo/faltante si no llegó la cantidad completa.

@@ -51,8 +51,17 @@ class Formulas extends Component
             ['quantity' => $this->quantity]
         );
 
+        // Auto-tag the finished product so it appears in the Soplados App
+        $product = Product::find($this->product_id);
+        if ($product) {
+            $tag = \App\Models\Tag::firstOrCreate(['name' => 'soplados']);
+            if (!$product->tags()->where('tags.id', $tag->id)->exists()) {
+                $product->tags()->attach($tag->id);
+            }
+        }
+
         $this->reset(['ingredient_id', 'quantity']);
-        $this->dispatch('msg', 'Receta guardada correctamente');
+        $this->dispatch('msg', 'Receta guardada correctamente y producto etiquetado como Soplados');
     }
 
     public function delete($id)
