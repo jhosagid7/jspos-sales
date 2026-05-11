@@ -40,13 +40,13 @@ class InventoryController extends Controller
             }])
             ->whereIn('id', $allIds)
             ->get()
-            ->map(function($p) use ($finishedProductIds) {
+            ->map(function($p) use ($ingredientIds) {
                 return [
                     'id' => $p->id,
                     'name' => $p->name,
                     'sku' => $p->sku,
                     'stock' => $p->productWarehouses->first()->stock_qty ?? 0,
-                    'type' => $finishedProductIds->contains($p->id) ? 'Producto Terminado' : 'Insumo/Materia Prima'
+                    'type' => $ingredientIds->contains($p->id) ? 'Insumo/Materia Prima' : 'Producto Terminado'
                 ];
             });
 

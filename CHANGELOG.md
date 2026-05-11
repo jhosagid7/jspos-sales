@@ -1,3 +1,9 @@
+## [1.10.77] - 2026-05-11
+### Fixed
+- **Sincronización de Almacén**: Corregido error que vinculaba la App de Soplados a la Tienda Principal por falta de configuración. Ahora apunta correctamente a "Planta Soplados".
+- **Categorización de Productos**: Las preformas ahora se clasifican correctamente como **Insumo/Materia Prima** y no como Producto Terminado.
+- **Alertas de Recepción**: Añadida notificación visual (badge) y banner de alerta cuando hay traspasos pendientes de recibir en planta (ej. las 10,000 preformas).
+
 ## [1.10.76] - 2026-05-11
 ### Added
 - **App Soplados (Inventario de Planta)**: 

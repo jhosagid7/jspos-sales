@@ -200,6 +200,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Map<String, dynamic>? _currentShift;
   int _pendingDispatches = 0;
   int _pendingReturns = 0;
+  int _pendingReceipts = 0;
 
   @override
   void initState() { 
@@ -237,6 +238,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         setState(() {
           _pendingDispatches = data['counts']['dispatches'] ?? 0;
           _pendingReturns = data['counts']['returns'] ?? 0;
+          _pendingReceipts = data['counts']['receipts'] ?? 0;
         });
       }
     } catch (e) { debugPrint("Counts Err: $e"); }
@@ -494,8 +496,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Navigator.push(context, MaterialPageRoute(builder: (context) => TransfersScreen(baseUrl: _baseUrl, type: 'returns')));
                     }, _pendingReturns),
                     _menuCard('Inventario\nde Planta', Icons.inventory_rounded, Colors.teal, () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => InventoryScreen(baseUrl: _baseUrl)));
-                    }, 0),
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => InventoryScreen(baseUrl: _baseUrl))).then((_) => _refreshDashboard());
+                    }, _pendingReceipts),
                   ],
                 ),
               ),
@@ -1378,37 +1380,56 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
     if (_isLoading && _receipts.isEmpty) return const Center(child: CircularProgressIndicator());
     return RefreshIndicator(
       onRefresh: _fetchReceipts,
-      child: _receipts.isEmpty
-        ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.local_shipping_outlined, size: 60, color: Colors.grey.shade300), const Text('No hay insumos pendientes de recibir', style: TextStyle(color: Colors.grey))]))
-        : ListView.builder(
-            padding: const EdgeInsets.all(15),
-            itemCount: _receipts.length,
-            itemBuilder: (context, index) {
-              final t = _receipts[index];
-              return Card(
-                elevation: 2,
-                margin: const EdgeInsets.only(bottom: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                child: ExpansionTile(
-                  leading: const CircleAvatar(backgroundColor: Colors.tealAccent, child: Icon(Icons.input, color: Colors.teal)),
-                  title: Text('Carga #${t['id']}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('De: ${t['origin_name']}'),
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(15),
-                      child: Column(
+      child: Column(
+        children: [
+          if (_receipts.isNotEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              color: Colors.amber.shade100,
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.orange),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text('Tienes ${_receipts.length} carga(s) de insumos pendientes por recibir.', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                ],
+              ),
+            ),
+          Expanded(
+            child: _receipts.isEmpty
+              ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.local_shipping_outlined, size: 60, color: Colors.grey.shade300), const Text('No hay insumos pendientes de recibir', style: TextStyle(color: Colors.grey))]))
+              : ListView.builder(
+                  padding: const EdgeInsets.all(15),
+                  itemCount: _receipts.length,
+                  itemBuilder: (context, index) {
+                    final t = _receipts[index];
+                    return Card(
+                      elevation: 2,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      child: ExpansionTile(
+                        leading: const CircleAvatar(backgroundColor: Colors.tealAccent, child: Icon(Icons.input, color: Colors.teal)),
+                        title: Text('Carga #${t['id']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text('De: ${t['origin_name']}'),
                         children: [
-                          ...(t['details'] as List).map((d) => ListTile(dense: true, title: Text(d['product_name']), trailing: Text('${d['quantity']} uds', style: const TextStyle(fontWeight: FontWeight.bold)))),
-                          const Divider(),
-                          SizedBox(width: double.infinity, height: 45, child: ElevatedButton.icon(onPressed: () => _receiveTransfer(t['id']), icon: const Icon(Icons.check, color: Colors.white), label: const Text('CARGAR A PLANTA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))))),
+                          Padding(
+                            padding: const EdgeInsets.all(15),
+                            child: Column(
+                              children: [
+                                ...(t['details'] as List).map((d) => ListTile(dense: true, title: Text(d['product_name']), trailing: Text('${d['quantity']} uds', style: const TextStyle(fontWeight: FontWeight.bold)))),
+                                const Divider(),
+                                SizedBox(width: double.infinity, height: 45, child: ElevatedButton.icon(onPressed: () => _receiveTransfer(t['id']), icon: const Icon(Icons.check, color: Colors.white), label: const Text('CARGAR A PLANTA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))))),
+                              ],
+                            ),
+                          )
                         ],
                       ),
-                    )
-                  ],
+                    );
+                  },
                 ),
-              );
-            },
           ),
+        ],
+      ),
     );
   }
 }

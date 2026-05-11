@@ -30,11 +30,16 @@ class TransferController extends Controller
             })
             ->count();
 
+        $pending_receipts = \App\Models\Transfer::where('to_warehouse_id', $warehouse_id)
+            ->whereIn('status', ['pending', 'Pending', 'dispatched', 'Dispatched'])
+            ->count();
+
         return response()->json([
             'success' => true,
             'counts' => [
                 'dispatches' => $pending_dispatches,
                 'returns' => $pending_returns,
+                'receipts' => $pending_receipts,
             ]
         ]);
     }
