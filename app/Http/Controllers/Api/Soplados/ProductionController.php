@@ -157,6 +157,33 @@ class ProductionController extends Controller
         }
     }
 
+    public function history(Request $request)
+    {
+        $query = \App\Models\ProductionLog::with(['user', 'shift', 'materials.product', 'outputs.product'])
+            ->orderBy('id', 'desc');
+
+        if ($request->date_from) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->date_to) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        $logs = $query->paginate(20);
+
+        // Add calculated stats to each record for the mobile app
+        $logs->getCollection()->transform(function($log) {
+            $data = $log->toArray();
+            $data['stats'] = $log->stats; // Uses the model accessor we added
+            return $data;
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $logs
+        ]);
+    }
+
     private function updateStock($productId, $warehouseId, $quantity)
     {
         $pw = \App\Models\ProductWarehouse::firstOrCreate(

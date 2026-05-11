@@ -92,6 +92,7 @@ Route::prefix('soplados')->middleware('auth:sanctum')->group(function () {
     // Production
     Route::get('/products', [App\Http\Controllers\Api\Soplados\ProductionController::class, 'products']);
     Route::get('/products/{id}/formula', [App\Http\Controllers\Api\Soplados\ProductionController::class, 'formula']);
+    Route::get('/production/history', [App\Http\Controllers\Api\Soplados\ProductionController::class, 'history']);
     Route::post('/production', [App\Http\Controllers\Api\Soplados\ProductionController::class, 'store']);
 
     // Transfers

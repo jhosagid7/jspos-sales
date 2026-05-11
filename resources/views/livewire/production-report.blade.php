@@ -39,6 +39,7 @@
                             <th>Turno / Usuario</th>
                             <th>Insumos Consumidos</th>
                             <th>Producción (Salidas)</th>
+                            <th>Estadísticas</th>
                             <th>Nota</th>
                         </tr>
                     </thead>
@@ -76,11 +77,22 @@
                                     @endforeach
                                 </ul>
                             </td>
+                            <td>
+                                <div class="text-center">
+                                    <h5 class="mb-0 {{ $log->stats['yield'] < 95 ? 'text-danger' : 'text-success' }}">
+                                        {{ number_format($log->stats['yield'], 1) }}%
+                                    </h5>
+                                    <small class="text-muted">
+                                        Buenos: <b>{{ $log->stats['good'] }}</b><br>
+                                        Merma: <b>{{ $log->stats['damaged'] }}</b>
+                                    </small>
+                                </div>
+                            </td>
                             <td>{{ $log->notes }}</td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="5" class="text-center">No se encontraron registros de producción.</td>
+                            <td colspan="6" class="text-center">No se encontraron registros de producción.</td>
                         </tr>
                         @endforelse
                     </tbody>

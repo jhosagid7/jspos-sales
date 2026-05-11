@@ -30,4 +30,20 @@ class ProductionLog extends Model
     {
         return $this->hasMany(ProductionOutput::class);
     }
+
+    public function getStatsAttribute()
+    {
+        $good = $this->outputs->whereIn('quality', ['1st', '2nd'])->sum('quantity');
+        $damaged = $this->outputs->where('quality', 'damaged')->sum('quantity');
+        $materials = $this->materials->sum('quantity');
+        
+        $yield = $materials > 0 ? ($good / $materials) * 100 : 100;
+        
+        return [
+            'good' => $good,
+            'damaged' => $damaged,
+            'materials' => $materials,
+            'yield' => $yield
+        ];
+    }
 }

@@ -498,6 +498,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _menuCard('Inventario\nde Planta', Icons.inventory_rounded, Colors.teal, () {
                       Navigator.push(context, MaterialPageRoute(builder: (context) => InventoryScreen(baseUrl: _baseUrl))).then((_) => _refreshDashboard());
                     }, _pendingReceipts),
+                    _menuCard('Historial de\nProducción', Icons.history_rounded, Colors.purple, () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => ProductionHistoryScreen(baseUrl: _baseUrl)));
+                    }, 0),
                   ],
                 ),
               ),
@@ -1532,6 +1535,183 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
         ],
       ),
     );
+  }
+}
+
+class ProductionHistoryScreen extends StatefulWidget {
+  final String baseUrl;
+  const ProductionHistoryScreen({super.key, required this.baseUrl});
+  @override
+  State<ProductionHistoryScreen> createState() => _ProductionHistoryScreenState();
+}
+
+class _ProductionHistoryScreenState extends State<ProductionHistoryScreen> {
+  List _logs = [];
+  bool _isLoading = true;
+  DateTime _dateFrom = DateTime.now().subtract(const Duration(days: 7));
+  DateTime _dateTo = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchHistory();
+  }
+
+  Future<void> _fetchHistory() async {
+    setState(() => _isLoading = true);
+    try {
+      final token = await _Storage.getToken();
+      final from = "${_dateFrom.year}-${_dateFrom.month.toString().padLeft(2, '0')}-${_dateFrom.day.toString().padLeft(2, '0')}";
+      final to = "${_dateTo.year}-${_dateTo.month.toString().padLeft(2, '0')}-${_dateTo.day.toString().padLeft(2, '0')}";
+      
+      final response = await http.get(
+        Uri.parse('${widget.baseUrl}/api/soplados/production/history?date_from=$from&date_to=$to'),
+        headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 15));
+
+      final data = json.decode(response.body);
+      if (response.statusCode == 200 && data['success'] == true) {
+        setState(() => _logs = data['data']['data']);
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally { setState(() => _isLoading = false); }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        title: const Text('Historial de Producción'),
+        backgroundColor: const Color(0xFF2C3E50),
+        foregroundColor: Colors.white,
+      ),
+      body: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(15),
+            color: Colors.white,
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.calendar_today, size: 16),
+                    label: Text("${_dateFrom.day}/${_dateFrom.month}/${_dateFrom.year}"),
+                    onPressed: () async {
+                      final picked = await showDatePicker(context: context, initialDate: _dateFrom, firstDate: DateTime(2023), lastDate: DateTime.now());
+                      if (picked != null) { setState(() => _dateFrom = picked); _fetchHistory(); }
+                    },
+                  ),
+                ),
+                const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('-')),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.calendar_today, size: 16),
+                    label: Text("${_dateTo.day}/${_dateTo.month}/${_dateTo.year}"),
+                    onPressed: () async {
+                      final picked = await showDatePicker(context: context, initialDate: _dateTo, firstDate: DateTime(2023), lastDate: DateTime.now());
+                      if (picked != null) { setState(() => _dateTo = picked); _fetchHistory(); }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _isLoading 
+              ? const Center(child: CircularProgressIndicator())
+              : _logs.isEmpty
+                ? const Center(child: Text('No hay registros en este periodo'))
+                : ListView.builder(
+                    padding: const EdgeInsets.all(15),
+                    itemCount: _logs.length,
+                    itemBuilder: (context, index) {
+                      final log = _logs[index];
+                      final stats = log['stats'];
+                      final yieldVal = (stats['yield'] as num).toDouble();
+                      
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 15),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        child: ExpansionTile(
+                          leading: CircleAvatar(
+                            backgroundColor: yieldVal >= 95 ? Colors.green.shade100 : Colors.red.shade100,
+                            child: Text("${yieldVal.toInt()}%", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: yieldVal >= 95 ? Colors.green.shade800 : Colors.red.shade800)),
+                          ),
+                          title: Text("#${log['id']} - ${log['shift'] != null ? log['shift']['type'].toString().toUpperCase() : 'N/A'}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text("Por: ${log['user']['name']} | ${log['created_at'].toString().split('T')[0]}"),
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(15),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                    children: [
+                                      _miniStat('Buenos', stats['good'].toString(), Colors.green),
+                                      _miniStat('Merma', stats['damaged'].toString(), Colors.red),
+                                      _miniStat('Insumos', stats['materials'].toString(), Colors.blue),
+                                    ],
+                                  ),
+                                  const Divider(height: 30),
+                                  const Text('PRODUCTOS RESULTANTES:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+                                  ...(log['outputs'] as List).map((o) => Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: Row(
+                                      children: [
+                                        Expanded(child: Text(o['product']['name'] ?? 'Desconocido')),
+                                        Text("${o['quantity']} ", style: const TextStyle(fontWeight: FontWeight.bold)),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: o['quality'] == '1st' ? Colors.green : o['quality'] == '2nd' ? Colors.orange : Colors.red,
+                                            borderRadius: BorderRadius.circular(4)
+                                          ),
+                                          child: Text(o['quality'] == '1st' ? '1RA' : o['quality'] == '2nd' ? '2DA' : 'DAÑ', style: const TextStyle(color: Colors.white, fontSize: 10)),
+                                        )
+                                      ],
+                                    ),
+                                  )),
+                                  if (log['notes'] != null && log['notes'].toString().isNotEmpty) ...[
+                                    const SizedBox(height: 15),
+                                    const Text('NOTAS:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+                                    Text(log['notes'], style: const TextStyle(fontStyle: FontStyle.italic)),
+                                  ]
+                                ],
+                              ),
+                            )
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _miniStat(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(value, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 18)),
+        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+      ],
+    );
+  }
+}
+
+class _Storage {
+  static const String _tokenKey = 'token';
+  static Future<void> saveToken(String token) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_tokenKey, token);
+  }
+  static Future<String?> getToken() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_tokenKey);
   }
 }
 

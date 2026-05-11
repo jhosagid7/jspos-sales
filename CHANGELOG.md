@@ -1,3 +1,10 @@
+## [1.10.82] - 2026-05-11
+### Added
+- **Módulo de Historial de Producción**: 
+    - **Web**: Nueva columna de "Estadísticas / Rendimiento" en la tabla de reportes, mostrando Yield, Buenos y Merma por cada registro.
+    - **App**: Nuevo botón de "Historial de Producción" en el dashboard móvil con filtros por fecha y vista detallada de cada registro (incluyendo insumos y productos resultantes).
+    - **Backend**: Endpoint de historial optimizado con cálculos de rendimiento integrados.
+
 ## [1.10.81] - 2026-05-11
 ### Fixed
 - **Estadísticas del Dashboard**: Corregida la lógica de cálculo en el dashboard móvil. Ahora el rendimiento (Yield), los productos buenos y la merma se calculan correctamente basándose en los registros de producción del turno actual.
