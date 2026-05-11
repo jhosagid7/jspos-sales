@@ -1,10 +1,20 @@
-## [1.11.0] - 2026-05-08
+## [1.10.76] - 2026-05-11
 ### Added
-- **Nueva App Soplados (Manufactura)**: Lanzamiento oficial de la aplicación móvil para operarios de planta.
-    - **Gestión de Turnos**: Apertura y cierre de turnos Diurnos/Nocturnos sincronizados con el backend.
-    - **Registro de Producción**: Captura de insumos consumidos (Preformas/Tapas) y registro de producto terminado (1ra, 2da y Merma) con descuento automático de stock.
-    - **Logística Inversa**: Recepción de traspasos rechazados por distribuidoras para reintegro inmediato a planta.
-    - **Branding Soplados**: Identidad visual industrial con colores Azul/Gris y nuevo icono de botellón.
+- **App Soplados (Inventario de Planta)**: 
+    - Nuevo módulo de **Inventario Real**: Los operadores pueden ver el stock actual de insumos (preformas, tapas) y productos terminados en su almacén.
+    - Sistema de **Recepción de Insumos**: Flujo para confirmar la llegada de materia prima desde el almacén central a la planta.
+    - **Dashboard de Rendimiento**: Visualización en tiempo real de unidades buenas, merma y porcentaje de rendimiento (Yield %) directamente en la App.
+- **Configuración Multi-Fábrica**: 
+    - Implementada configuración dinámica para separar el Almacén de Planta del Almacén de Insumos/Materias Primas.
+    - Soporte para etiquetas (`soplados`) que permiten filtrar productos de forma granular sin afectar las categorías del sistema.
+
+## [1.10.75] - 2026-05-08
+### Added
+- **API Soplados (Logística)**: 
+    - Implementados endpoints de conteo de traspasos para alimentar notificaciones en tiempo real en la App.
+    - Sincronización de almacenes en turnos: Añadida columna `warehouse_id` a la tabla `shifts` y automatización en la apertura de turnos vía API.
+- **Mejoras en Registro de Producción**: El sistema ahora prioriza el almacén vinculado al turno activo para garantizar la trazabilidad del inventario.
+- **Robustez en Traspasos**: El motor de búsqueda de traspasos ahora es insensible a mayúsculas/minúsculas para los estados (`pending`, `partial`, etc.) y cuenta con un fallback de almacén para perfiles de usuario incompletos.
 
 ## [1.10.74] - 2026-05-07
 ### Fixed

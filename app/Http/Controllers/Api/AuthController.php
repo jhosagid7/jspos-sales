@@ -38,6 +38,16 @@ class AuthController extends Controller
         $user = Auth::user();
         Log::info("Login App EXITOSO (IP: " . $ip . ") para: " . $user->email);
 
+        // Permission check for Soplados App
+        if ($request->app_type === 'soplados') {
+            if (!$user->hasPermissionTo('soplados.operator') && !$user->hasPermissionTo('soplados.manager')) {
+                Auth::logout();
+                return response()->json([
+                    'message' => 'No tienes permiso para acceder a la aplicación de Soplados.',
+                ], 403);
+            }
+        }
+
         // Generate the Sanctum token
         $token = $user->createToken($request->device_name)->plainTextToken;
 
@@ -50,12 +60,14 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
+            'access_token' => $token, // Compatibility for older versions
             'device_uuid' => $device ? $device->uuid : null,
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
                 'profile' => $user->profile,
+                'warehouse_id' => $user->warehouse_id,
                 'order_deadline_at' => $user->order_deadline_at,
                 'is_deadline_active' => $user->is_deadline_active,
             ],

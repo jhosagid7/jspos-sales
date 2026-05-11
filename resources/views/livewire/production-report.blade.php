@@ -6,12 +6,28 @@
         <div class="card-body">
             <div class="row mb-4">
                 <div class="col-md-3">
-                    <label>Desde</label>
-                    <input type="date" wire:model.live="dateFrom" class="form-control">
+                    <label class="form-label fw-bold">Desde</label>
+                    <input type="date" wire:model.live="dateFrom" class="form-control border-primary">
                 </div>
                 <div class="col-md-3">
-                    <label>Hasta</label>
-                    <input type="date" wire:model.live="dateTo" class="form-control">
+                    <label class="form-label fw-bold">Hasta</label>
+                    <input type="date" wire:model.live="dateTo" class="form-control border-primary">
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                    <div class="btn-group w-100 shadow-sm">
+                        <div class="btn btn-outline-info text-dark bg-light flex-grow-1">
+                            <h6 class="mb-0">Yield (Rendimiento)</h6>
+                            <h4 class="mb-0 {{ $stats['yield'] < 95 ? 'text-danger' : 'text-success' }}">{{ number_format($stats['yield'], 2) }}%</h4>
+                        </div>
+                        <div class="btn btn-outline-success text-dark bg-light flex-grow-1">
+                            <h6 class="mb-0">Prod. Buena</h6>
+                            <h4 class="mb-0">{{ number_format($stats['totalGood'], 0) }}</h4>
+                        </div>
+                        <div class="btn btn-outline-danger text-dark bg-light flex-grow-1">
+                            <h6 class="mb-0">Dañado (Merma)</h6>
+                            <h4 class="mb-0">{{ number_format($stats['totalDamaged'], 0) }}</h4>
+                        </div>
+                    </div>
                 </div>
             </div>
 

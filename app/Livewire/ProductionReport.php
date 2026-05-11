@@ -31,8 +31,31 @@ class ProductionReport extends Component
 
         $data = $query->paginate($this->pagination);
 
+        // Calculate Summaries for the selected period
+        $summaryQuery = \App\Models\ProductionLog::with(['materials', 'outputs'])
+            ->whereDate('created_at', '>=', $this->dateFrom)
+            ->whereDate('created_at', '<=', $this->dateTo);
+
+        $totalGood = 0;
+        $totalDamaged = 0;
+        $totalMaterials = 0;
+
+        foreach ($summaryQuery->get() as $log) {
+            $totalGood += $log->outputs->whereIn('quality', ['1st', '2nd'])->sum('quantity');
+            $totalDamaged += $log->outputs->where('quality', 'damaged')->sum('quantity');
+            $totalMaterials += $log->materials->sum('quantity');
+        }
+
+        $yield = $totalMaterials > 0 ? ($totalGood / $totalMaterials) * 100 : 0;
+
         return view('livewire.production-report', [
-            'data' => $data
+            'data' => $data,
+            'stats' => [
+                'totalGood' => $totalGood,
+                'totalDamaged' => $totalDamaged,
+                'totalMaterials' => $totalMaterials,
+                'yield' => $yield
+            ]
         ])->extends('layouts.theme.app')->section('content');
     }
 }

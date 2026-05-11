@@ -9,12 +9,21 @@ class Shift extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['type', 'start_time', 'end_time', 'status', 'user_id', 'notes'];
+    protected $fillable = ['type', 'start_time', 'end_time', 'status', 'user_id', 'warehouse_id', 'notes'];
 
     protected $casts = [
         'start_time' => 'datetime',
         'end_time' => 'datetime',
     ];
+
+    public function getTypeAttribute($value)
+    {
+        $types = [
+            'day' => 'Diurno',
+            'night' => 'Nocturno'
+        ];
+        return $types[$value] ?? ucfirst($value);
+    }
 
     public function user()
     {
@@ -24,6 +33,11 @@ class Shift extends Model
     public function users()
     {
         return $this->belongsToMany(User::class, 'shift_users');
+    }
+
+    public function warehouse()
+    {
+        return $this->belongsTo(Warehouse::class);
     }
 
     public function productionLogs()

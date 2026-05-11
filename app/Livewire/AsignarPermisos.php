@@ -92,6 +92,7 @@ class AsignarPermisos extends Component
             'payments' => 'Abonos / Pagos',
             'commissions' => 'Comisiones',
             'customer_statement' => 'Estado de Cuenta',
+            'soplados' => 'Fábrica Soplados',
         ];
         return $map[$key] ?? ucfirst($key);
     }
@@ -128,6 +129,8 @@ class AsignarPermisos extends Component
                 'void_anytime' => 'Anular cualquier pago',
                 'edit_commercial_config' => 'Editar Configuración Comercial',
                 'edit_credit_config' => 'Editar Configuración de Crédito',
+                'operator' => 'Operador (App)',
+                'manager' => 'Manager (Aprobación)',
              ];
 
              return $map[$name] ?? $map[$action] ?? ucfirst(str_replace('_', ' ', $action));

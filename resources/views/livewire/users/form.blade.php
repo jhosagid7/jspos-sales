@@ -156,6 +156,17 @@
                                     @error('confirm_pwd') <span class="text-danger">{{ $message }}</span> @enderror
                                 </div>
                                 <div class="col-sm-12 mt-3">
+                                    <label class="form-label">Almacén / Depósito Asignado <span class="txt-danger">*</span></label>
+                                    <select wire:model="user.warehouse_id" class="form-control">
+                                        <option value="">Seleccione...</option>
+                                        @foreach($allWarehouses as $w)
+                                            <option value="{{ $w->id }}">{{ $w->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    <small class="text-muted">Indispensable para operarios de Soplados y Vendedores móviles.</small>
+                                    @error('user.warehouse_id') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+                                <div class="col-sm-12 mt-3">
                                     <label class="form-label">Estatus <span class="txt-danger">*</span></label>
                                     <select wire:model="user.status" class="form-control">
                                         <option value="Active">Activo</option>

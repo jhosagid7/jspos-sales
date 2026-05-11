@@ -90,11 +90,19 @@ Route::prefix('soplados')->middleware('auth:sanctum')->group(function () {
     Route::post('/shifts/close', [App\Http\Controllers\Api\Soplados\ShiftController::class, 'close']);
 
     // Production
+    Route::get('/products', [App\Http\Controllers\Api\Soplados\ProductionController::class, 'products']);
+    Route::get('/products/{id}/formula', [App\Http\Controllers\Api\Soplados\ProductionController::class, 'formula']);
     Route::post('/production', [App\Http\Controllers\Api\Soplados\ProductionController::class, 'store']);
 
     // Transfers
+    Route::get('/transfers/counts', [App\Http\Controllers\Api\Soplados\TransferController::class, 'counts']);
     Route::get('/transfers/pending', [App\Http\Controllers\Api\Soplados\TransferController::class, 'pending']);
     Route::post('/transfers/{id}/dispatch', [App\Http\Controllers\Api\Soplados\TransferController::class, 'dispatchTransfer']);
     Route::get('/transfers/returns/pending', [App\Http\Controllers\Api\Soplados\TransferController::class, 'pendingReturns']);
     Route::post('/transfers/{id}/returns/receive', [App\Http\Controllers\Api\Soplados\TransferController::class, 'receiveReturn']);
+
+    // Inventory & Receipts
+    Route::get('/inventory', [App\Http\Controllers\Api\Soplados\InventoryController::class, 'index']);
+    Route::get('/receipts/pending', [App\Http\Controllers\Api\Soplados\InventoryController::class, 'pendingReceipts']);
+    Route::post('/receipts/{id}/receive', [App\Http\Controllers\Api\Soplados\InventoryController::class, 'receiveReceipt']);
 });

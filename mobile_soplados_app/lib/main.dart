@@ -106,14 +106,19 @@ class _LoginScreenState extends State<LoginScreen> {
           'Accept': 'application/json',
           'X-Device-Token': _deviceToken
         },
-        body: {'email': _emailController.text, 'password': _passwordController.text, 'device_name': 'Mobile (Soplados)'},
+        body: {
+          'email': _emailController.text, 
+          'password': _passwordController.text, 
+          'device_name': 'Mobile (Soplados)',
+          'app_type': 'soplados'
+        },
       ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final prefs = await SharedPreferences.getInstance();
         await prefs.setInt('user_id', data['user']['id'] ?? 0);
-        await prefs.setString('token', data['access_token'] ?? '');
+        await prefs.setString('token', data['token'] ?? '');
         await prefs.setString('user_name', data['user']['name'] ?? 'Operador Soplados');
         await prefs.setString('last_email', _emailController.text);
         
@@ -193,6 +198,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoading = false;
   
   Map<String, dynamic>? _currentShift;
+  int _pendingDispatches = 0;
+  int _pendingReturns = 0;
 
   @override
   void initState() { 
@@ -208,7 +215,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _appVersion = pkg.version;
       _userName = prefs.getString('user_name') ?? "Operador Soplados"; 
     }); 
-    _fetchCurrentShift();
+    _refreshDashboard();
+  }
+
+  Future<void> _refreshDashboard() async {
+    await _fetchCurrentShift();
+    await _fetchTransferCounts();
+  }
+
+  Future<void> _fetchTransferCounts() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final response = await http.get(Uri.parse('$_baseUrl/api/soplados/transfers/counts'), headers: {
+        'Authorization': 'Bearer $token', 
+        'Accept': 'application/json',
+      }).timeout(const Duration(seconds: 10));
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          _pendingDispatches = data['counts']['dispatches'] ?? 0;
+          _pendingReturns = data['counts']['returns'] ?? 0;
+        });
+      }
+    } catch (e) { debugPrint("Counts Err: $e"); }
   }
 
   Future<void> _fetchCurrentShift() async {
@@ -316,7 +347,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text('Soplados Dashboard', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20)),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchCurrentShift),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _refreshDashboard),
         ],
       ),
       drawer: Drawer(
@@ -339,7 +370,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
       body: RefreshIndicator(
-        onRefresh: _fetchCurrentShift,
+        onRefresh: _refreshDashboard,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
@@ -362,6 +393,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                      const SizedBox(height: 5),
                      Text(_userName, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, height: 1.1), maxLines: 2, overflow: TextOverflow.ellipsis),
                      const SizedBox(height: 25),
+                     if (_currentShift != null && _currentShift!['stats'] != null) ...[
+                        Row(
+                          children: [
+                            _statCircle('Rend.', '${_currentShift!['stats']['yield']}%', Colors.greenAccent),
+                            const SizedBox(width: 15),
+                            _statCircle('Buenos', '${_currentShift!['stats']['good_production']}', Colors.blueAccent),
+                            const SizedBox(width: 15),
+                            _statCircle('Merma', '${_currentShift!['stats']['damaged_production']}', Colors.redAccent),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                     ],
                      _currentShift == null 
                       ? Container(
                           padding: const EdgeInsets.all(15),
@@ -443,10 +486,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         return;
                       }
                       Navigator.push(context, MaterialPageRoute(builder: (context) => ProductionScreen(baseUrl: _baseUrl, shiftId: _currentShift!['id'])));
-                    }),
-                    _menuCard('Traspasos\nRechazados', Icons.assignment_return_rounded, Colors.orange, () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => TransfersScreen(baseUrl: _baseUrl)));
-                    }),
+                    }, 0),
+                    _menuCard('Traspasos\n(Salidas)', Icons.local_shipping_rounded, Colors.indigoAccent, () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => TransfersScreen(baseUrl: _baseUrl, type: 'dispatches')));
+                    }, _pendingDispatches),
+                    _menuCard('Retornos\n(Entradas)', Icons.assignment_return_rounded, Colors.orange, () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => TransfersScreen(baseUrl: _baseUrl, type: 'returns')));
+                    }, _pendingReturns),
+                    _menuCard('Inventario\nde Planta', Icons.inventory_rounded, Colors.teal, () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => InventoryScreen(baseUrl: _baseUrl)));
+                    }, 0),
                   ],
                 ),
               ),
@@ -458,7 +507,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _menuCard(String title, IconData icon, Color color, VoidCallback onTap) {
+  Widget _menuCard(String title, IconData icon, Color color, VoidCallback onTap, int badgeCount) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
@@ -468,16 +517,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))]
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Stack(
+          alignment: Alignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(15),
-              decoration: BoxDecoration(color: color.withOpacity(0.12), shape: BoxShape.circle),
-              child: Icon(icon, color: color, size: 35),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(15),
+                  decoration: BoxDecoration(color: color.withOpacity(0.12), shape: BoxShape.circle),
+                  child: Icon(icon, color: color, size: 35),
+                ),
+                const SizedBox(height: 15),
+                Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.grey.shade800, height: 1.2))
+              ],
             ),
-            const SizedBox(height: 15),
-            Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.grey.shade800, height: 1.2))
+            if (badgeCount > 0)
+              Positioned(
+                top: 15, right: 15,
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                  constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
+                  child: Text('$badgeCount', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statCircle(String label, String value, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(15), border: Border.all(color: color.withOpacity(0.3))),
+        child: Column(
+          children: [
+            Text(value, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(label, style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 10)),
           ],
         ),
       ),
@@ -498,12 +577,32 @@ class ProductSimple {
   );
 }
 
-class ProductionItem {
+class FormulaIngredient {
+  final int ingredientId;
+  final String ingredientName;
+  final double quantityPerUnit;
+  double totalQuantity;
+  FormulaIngredient({
+    required this.ingredientId,
+    required this.ingredientName,
+    required this.quantityPerUnit,
+    required this.totalQuantity,
+  });
+}
+
+class OutputEntry {
   final ProductSimple product;
   double quantity;
-  String quality; // '1st', '2nd', 'damaged'
-  ProductionItem({required this.product, this.quantity = 0.0, this.quality = '1st'});
+  String quality;
+  List<FormulaIngredient> ingredients;
+  OutputEntry({
+    required this.product,
+    required this.quantity,
+    required this.quality,
+    required this.ingredients,
+  });
 }
+
 
 // --- PRODUCTION SCREEN ---
 class ProductionScreen extends StatefulWidget {
@@ -515,266 +614,502 @@ class ProductionScreen extends StatefulWidget {
 }
 
 class _ProductionScreenState extends State<ProductionScreen> {
-  final List<ProductSimple> _allProducts = [];
-  final List<ProductionItem> _materials = [];
-  final List<ProductionItem> _outputs = [];
-  bool _isLoading = false;
+  List<ProductSimple> _availableProducts = [];
+  final List<OutputEntry> _entries = [];
+  bool _isLoadingProducts = false;
+  bool _isSubmitting = false;
   final _notesController = TextEditingController();
+  final _searchController = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-    _fetchProducts();
-  }
+  void initState() { super.initState(); _fetchProducts(); }
 
   Future<void> _fetchProducts() async {
-    setState(() => _isLoading = true);
+    setState(() => _isLoadingProducts = true);
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
-      final response = await http.get(Uri.parse('${widget.baseUrl}/api/products'), headers: {
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-      }).timeout(const Duration(seconds: 15));
-      
+      final response = await http.get(
+        Uri.parse('${widget.baseUrl}/api/soplados/products'),
+        headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {
         final List data = json.decode(response.body);
-        setState(() {
-          _allProducts.clear();
-          _allProducts.addAll(data.map((e) => ProductSimple.fromJson(e)).toList());
-        });
+        setState(() => _availableProducts = data.map((e) => ProductSimple.fromJson(e)).toList());
       }
-    } catch (e) { debugPrint("Fetch Prod Err: $e"); }
-    finally { setState(() => _isLoading = false); }
+    } catch (e) { debugPrint('Fetch products err: $e'); }
+    finally { setState(() => _isLoadingProducts = false); }
   }
 
-  void _addItem(bool isOutput) {
+  Future<List<FormulaIngredient>?> _fetchFormula(int productId, double quantity) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final response = await http.get(
+        Uri.parse('${widget.baseUrl}/api/soplados/products/$productId/formula'),
+        headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List formulaList = data['formula'];
+        return formulaList.map((f) => FormulaIngredient(
+          ingredientId: int.parse(f['ingredient_id'].toString()),
+          ingredientName: f['ingredient_name'],
+          quantityPerUnit: double.parse(f['quantity_per_unit'].toString()),
+          totalQuantity: double.parse(f['quantity_per_unit'].toString()) * quantity,
+        )).toList();
+      } else {
+        final data = json.decode(response.body);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['message'] ?? 'Sin fórmula configurada'), backgroundColor: Colors.orange));
+        return null;
+      }
+    } catch (e) { debugPrint('Formula err: $e'); return null; }
+  }
+
+  void _showAddProductDialog() {
+    ProductSimple? selectedProduct;
+    final qtyController = TextEditingController();
+    String quality = '1st';
+    String searchQuery = '';
+    bool isLoadingFormula = false;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) {
-        ProductSimple? selectedProd;
-        final qtyController = TextEditingController();
-        String quality = '1st';
-
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Agregar ${isOutput ? "Producto Terminado" : "Insumo"}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 15),
-                  DropdownButtonFormField<ProductSimple>(
-                    decoration: const InputDecoration(labelText: 'Producto', border: OutlineInputBorder()),
-                    items: _allProducts.map((p) => DropdownMenuItem(value: p, child: Text(p.name))).toList(),
-                    onChanged: (v) => setModalState(() => selectedProd = v),
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) {
+          final filtered = _availableProducts
+              .where((p) => p.name.toLowerCase().contains(searchQuery.toLowerCase()))
+              .toList();
+          return Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+              left: 20, right: 20, top: 20,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(child: Container(width: 40, height: 4,
+                  decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 16),
+                const Text('Agregar Producto Terminado',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2C3E50))),
+                const SizedBox(height: 16),
+                // Search
+                TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Buscar producto...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
-                  const SizedBox(height: 15),
+                  onChanged: (v) => setModal(() => searchQuery = v),
+                ),
+                const SizedBox(height: 12),
+                if (selectedProduct == null) ...[  
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 200),
+                    decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade200), borderRadius: BorderRadius.circular(12)),
+                    child: filtered.isEmpty
+                      ? const Padding(padding: EdgeInsets.all(20),
+                          child: Center(child: Text('Sin productos con fórmula', style: TextStyle(color: Colors.grey))))
+                      : ListView.separated(
+                          shrinkWrap: true,
+                          itemCount: filtered.length,
+                          separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade100),
+                          itemBuilder: (_, i) => ListTile(
+                            dense: true,
+                            leading: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(color: const Color(0xFF2C3E50).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                              child: const Icon(Icons.inventory_2_outlined, color: Color(0xFF2C3E50), size: 18),
+                            ),
+                            title: Text(filtered[i].name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                            subtitle: filtered[i].sku.isNotEmpty ? Text(filtered[i].sku, style: const TextStyle(fontSize: 11)) : null,
+                            onTap: () => setModal(() { selectedProduct = filtered[i]; searchQuery = ''; }),
+                          ),
+                        ),
+                  ),
+                ] else ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2C3E50).withOpacity(0.08), borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFF2C3E50).withOpacity(0.3)),
+                    ),
+                    child: Row(children: [
+                      const Icon(Icons.check_circle, color: Color(0xFF2C3E50), size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(selectedProduct!.name, style: const TextStyle(fontWeight: FontWeight.bold))),
+                      GestureDetector(onTap: () => setModal(() => selectedProduct = null),
+                        child: const Icon(Icons.close, size: 18, color: Colors.grey)),
+                    ]),
+                  ),
+                  const SizedBox(height: 14),
                   TextField(
                     controller: qtyController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Cantidad', border: OutlineInputBorder()),
-                  ),
-                  if (isOutput) ...[
-                    const SizedBox(height: 15),
-                    const Text('Calidad / Estado'),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _qualityRadio(setModalState, '1st', '1ra Calidad', quality, (v) => quality = v),
-                        _qualityRadio(setModalState, '2nd', '2da Calidad', quality, (v) => quality = v),
-                        _qualityRadio(setModalState, 'damaged', 'Merma', quality, (v) => quality = v),
-                      ],
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: 'Cantidad producida',
+                      prefixIcon: const Icon(Icons.production_quantity_limits),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                  ],
+                  ),
+                  const SizedBox(height: 14),
+                  const Text('Calidad / Estado', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    _qualityChip(setModal, '1st', '1ra Cal.', quality, (v) => quality = v),
+                    const SizedBox(width: 8),
+                    _qualityChip(setModal, '2nd', '2da Cal.', quality, (v) => quality = v),
+                    const SizedBox(width: 8),
+                    _qualityChip(setModal, 'damaged', 'Merma', quality, (v) => quality = v),
+                  ]),
                   const SizedBox(height: 20),
                   SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        if (selectedProd == null || qtyController.text.isEmpty) return;
-                        setState(() {
-                          final item = ProductionItem(
-                            product: selectedProd!,
-                            quantity: double.tryParse(qtyController.text) ?? 0.0,
-                            quality: quality
-                          );
-                          if (isOutput) _outputs.add(item); else _materials.add(item);
-                        });
-                        Navigator.pop(context);
+                    width: double.infinity, height: 50,
+                    child: ElevatedButton.icon(
+                      onPressed: isLoadingFormula ? null : () async {
+                        if (qtyController.text.isEmpty) return;
+                        final qty = double.tryParse(qtyController.text);
+                        if (qty == null || qty <= 0) return;
+                        setModal(() => isLoadingFormula = true);
+                        final ingredients = await _fetchFormula(selectedProduct!.id, qty);
+                        setModal(() => isLoadingFormula = false);
+                        if (ingredients != null) {
+                          setState(() => _entries.add(OutputEntry(
+                            product: selectedProduct!, quantity: qty, quality: quality, ingredients: ingredients)));
+                          if (ctx.mounted) Navigator.pop(ctx);
+                        }
                       },
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2C3E50), foregroundColor: Colors.white),
-                      child: const Text('AGREGAR'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2C3E50), foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: isLoadingFormula
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.add_circle_outline),
+                      label: Text(isLoadingFormula ? 'Calculando...' : 'AGREGAR'),
                     ),
                   ),
-                  const SizedBox(height: 20),
                 ],
-              ),
-            );
-          }
-        );
-      }
+                const SizedBox(height: 8),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
-  Widget _qualityRadio(StateSetter setState, String val, String label, String current, Function(String) onChanged) {
-    return Column(
-      children: [
-        Radio<String>(value: val, groupValue: current, onChanged: (v) { setState(() => onChanged(v!)); }),
-        Text(label, style: const TextStyle(fontSize: 10))
-      ],
+  Widget _qualityChip(StateSetter setModal, String val, String label, String current, Function(String) onChanged) {
+    final selected = current == val;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setModal(() => onChanged(val)),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFF2C3E50) : Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: selected ? const Color(0xFF2C3E50) : Colors.grey.shade300),
+          ),
+          child: Text(label, textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+              color: selected ? Colors.white : Colors.grey.shade700)),
+        ),
+      ),
     );
   }
 
   Future<void> _submit() async {
-    if (_outputs.isEmpty || _materials.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Debe agregar al menos un insumo y un producto')));
+    if (_entries.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Agregue al menos un producto terminado')));
       return;
     }
-
-    setState(() => _isLoading = true);
+    setState(() => _isSubmitting = true);
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
-      
       final body = {
         'shift_id': widget.shiftId,
         'notes': _notesController.text,
-        'materials': _materials.map((m) => {'product_id': m.product.id, 'quantity': m.quantity}).toList(),
-        'outputs': _outputs.map((o) => {'product_id': o.product.id, 'quantity': o.quantity, 'quality': o.quality}).toList(),
+        'outputs': _entries.map((e) => {'product_id': e.product.id, 'quantity': e.quantity, 'quality': e.quality}).toList(),
       };
-
       final response = await http.post(
         Uri.parse('${widget.baseUrl}/api/soplados/production'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: json.encode(body)
+        headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json', 'Content-Type': 'application/json'},
+        body: json.encode(body),
       ).timeout(const Duration(seconds: 20));
-
-      if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (response.statusCode == 200 && data['success'] == true) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Producción registrada con éxito'), backgroundColor: Colors.green));
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Produccion registrada exitosamente'), backgroundColor: Colors.green));
           Navigator.pop(context);
         }
       } else {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${response.body}'), backgroundColor: Colors.red));
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['message'] ?? 'Error al registrar'), backgroundColor: Colors.red));
       }
-    } catch (e) { debugPrint("Submit Err: $e"); }
-    finally { setState(() => _isLoading = false); }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+    } finally { setState(() => _isSubmitting = false); }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('Registro de Producción'),
+        title: const Text('Registro de Produccion'),
         backgroundColor: const Color(0xFF2C3E50),
         foregroundColor: Colors.white,
       ),
-      body: _isLoading && _allProducts.isEmpty 
+      body: _isLoadingProducts
         ? const Center(child: CircularProgressIndicator())
-        : SingleChildScrollView(
-            padding: const EdgeInsets.all(15),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _sectionHeader('INSUMOS (Lo que se usó)', () => _addItem(false)),
-                ..._materials.map((m) => _itemTile(m, () => setState(() => _materials.remove(m)))),
-                const SizedBox(height: 20),
-                _sectionHeader('PRODUCTO TERMINADO (Lo que salió)', () => _addItem(true)),
-                ..._outputs.map((o) => _itemTile(o, () => setState(() => _outputs.remove(o)))),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: _notesController,
-                  decoration: const InputDecoration(labelText: 'Notas / Observaciones', border: OutlineInputBorder()),
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 30),
-                SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _submit,
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700, foregroundColor: Colors.white),
-                    child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('REGISTRAR PRODUCCIÓN', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        : Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(15),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (_availableProducts.isEmpty)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade50, borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.orange.shade200),
+                          ),
+                          child: const Column(children: [
+                            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 40),
+                            SizedBox(height: 10),
+                            Text('Sin productos con formula configurada',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
+                            SizedBox(height: 6),
+                            Text('Ve al panel web > Soplados > Formulas',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          ]),
+                        )
+                      else if (_entries.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 50),
+                          child: Center(child: Column(children: [
+                            Icon(Icons.precision_manufacturing_outlined, size: 60, color: Colors.grey.shade400),
+                            const SizedBox(height: 12),
+                            Text('Sin productos registrados', style: TextStyle(color: Colors.grey.shade600, fontSize: 15)),
+                            const SizedBox(height: 4),
+                            Text('Toca "Agregar Producto" para comenzar',
+                              style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+                          ])),
+                        )
+                      else
+                        ...(_entries.asMap().entries.map((entry) {
+                          final i = entry.key;
+                          final e = entry.value;
+                          final qualityLabel = e.quality == '1st' ? '1ra Calidad' : e.quality == '2nd' ? '2da Calidad' : 'Merma';
+                          final qualityColor = e.quality == '1st' ? Colors.green : e.quality == '2nd' ? Colors.orange : Colors.red;
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            elevation: 2,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF2C3E50),
+                                    borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                                  ),
+                                  child: Row(children: [
+                                    const Icon(Icons.inventory_2, color: Colors.white, size: 18),
+                                    const SizedBox(width: 8),
+                                    Expanded(child: Text(e.product.name,
+                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                                      padding: EdgeInsets.zero, constraints: const BoxConstraints(),
+                                      onPressed: () => setState(() => _entries.removeAt(i)),
+                                    ),
+                                  ]),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(14),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(children: [
+                                        _infoBadge('Cantidad',
+                                          '${e.quantity % 1 == 0 ? e.quantity.toInt() : e.quantity}', Colors.blue),
+                                        const SizedBox(width: 10),
+                                        _infoBadge('Calidad', qualityLabel, qualityColor),
+                                      ]),
+                                      const SizedBox(height: 12),
+                                      Row(children: [
+                                        const Icon(Icons.auto_awesome, size: 14, color: Colors.grey),
+                                        const SizedBox(width: 4),
+                                        Text('Insumos calculados automaticamente',
+                                          style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                                      ]),
+                                      const SizedBox(height: 6),
+                                      ...e.ingredients.map((ing) => Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Row(children: [
+                                          const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
+                                          Expanded(child: Text(ing.ingredientName, style: const TextStyle(fontSize: 13))),
+                                          Text(
+                                            '${ing.totalQuantity % 1 == 0 ? ing.totalQuantity.toInt() : ing.totalQuantity} uds',
+                                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                        ]),
+                                      )),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        })),
+                      if (_entries.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: _notesController,
+                          decoration: InputDecoration(
+                            labelText: 'Notas / Observaciones (opcional)',
+                            prefixIcon: const Icon(Icons.notes),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          maxLines: 2,
+                        ),
+                      ],
+                      const SizedBox(height: 80),
+                    ],
                   ),
-                )
-              ],
-            ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 10, offset: const Offset(0, -3))],
+                ),
+                child: Row(children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _isSubmitting || _availableProducts.isEmpty ? null : _showAddProductDialog,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Agregar Producto'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF2C3E50),
+                        side: const BorderSide(color: Color(0xFF2C3E50)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: (_isSubmitting || _entries.isEmpty) ? null : _submit,
+                      icon: _isSubmitting
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.check_circle_outline),
+                      label: Text(_isSubmitting ? 'Registrando...' : 'REGISTRAR'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green.shade700, foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
+                  ),
+                ]),
+              ),
+            ],
           ),
     );
   }
 
-  Widget _sectionHeader(String title, VoidCallback onAdd) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF2C3E50))),
-        IconButton(onPressed: onAdd, icon: const Icon(Icons.add_circle, color: Color(0xFF2C3E50))),
-      ],
-    );
-  }
-
-  Widget _itemTile(ProductionItem item, VoidCallback onRemove) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 5),
-      child: ListTile(
-        title: Text(item.product.name),
-        subtitle: Text('Cant: ${item.quantity} ${item.quality != '1st' ? "(${item.quality})" : ""}'),
-        trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: onRemove),
+  Widget _infoBadge(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: TextStyle(fontSize: 10, color: color.withOpacity(0.8))),
+          Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color)),
+        ],
       ),
     );
   }
 }
 
-// --- TRANSFERS SCREEN (REJECTIONS / RETURNS) ---
+// --- TRANSFERS SCREEN ---
 class TransfersScreen extends StatefulWidget {
   final String baseUrl;
-  const TransfersScreen({super.key, required this.baseUrl});
+  final String type; // 'dispatches' or 'returns'
+  const TransfersScreen({super.key, required this.baseUrl, required this.type});
   @override
   State<TransfersScreen> createState() => _TransfersScreenState();
 }
 
 class _TransfersScreenState extends State<TransfersScreen> {
-  List<dynamic> _pendingReturns = [];
+  List<dynamic> _transfers = [];
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _fetchReturns();
+    _fetchData();
   }
 
-  Future<void> _fetchReturns() async {
+  Future<void> _fetchData() async {
     setState(() => _isLoading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
-      final response = await http.get(Uri.parse('${widget.baseUrl}/api/soplados/transfers/returns/pending'), headers: {
+      final endpoint = widget.type == 'dispatches' 
+        ? '/api/soplados/transfers/pending' 
+        : '/api/soplados/transfers/returns/pending';
+
+      final response = await http.get(Uri.parse('${widget.baseUrl}$endpoint'), headers: {
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
       }).timeout(const Duration(seconds: 15));
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        setState(() { _pendingReturns = data['transfers']; });
+        setState(() { _transfers = data['transfers']; });
       }
-    } catch (e) { debugPrint("Fetch Returns Err: $e"); }
+    } catch (e) { debugPrint("Fetch Trans Err: $e"); }
     finally { setState(() => _isLoading = false); }
   }
 
-  Future<void> _receiveReturn(int id) async {
+  Future<void> _processAction(int id) async {
     setState(() => _isLoading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
+      final endpoint = widget.type == 'dispatches'
+        ? '/api/soplados/transfers/$id/dispatch'
+        : '/api/soplados/transfers/$id/returns/receive';
+
       final response = await http.post(
-        Uri.parse('${widget.baseUrl}/api/soplados/transfers/$id/returns/receive'),
+        Uri.parse('${widget.baseUrl}$endpoint'),
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
@@ -782,55 +1117,87 @@ class _TransfersScreenState extends State<TransfersScreen> {
       ).timeout(const Duration(seconds: 15));
       
       if (response.statusCode == 200) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mercancía reintegrada correctamente'), backgroundColor: Colors.green));
-        _fetchReturns();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(widget.type == 'dispatches' ? 'Mercancía despachada' : 'Devolución recibida'), 
+            backgroundColor: Colors.green
+          ));
+        }
+        _fetchData();
       } else {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${response.body}'), backgroundColor: Colors.red));
       }
-    } catch (e) { debugPrint("Receive Return Err: $e"); }
+    } catch (e) { debugPrint("Process Trans Err: $e"); }
     finally { setState(() => _isLoading = false); }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDispatch = widget.type == 'dispatches';
+    final themeColor = isDispatch ? Colors.indigoAccent : Colors.orange;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Retornos de Traspaso'),
-        backgroundColor: Colors.orange,
+        title: Text(isDispatch ? 'Despachos Pendientes' : 'Retornos por Recibir'),
+        backgroundColor: themeColor,
         foregroundColor: Colors.white,
       ),
-      body: _isLoading && _pendingReturns.isEmpty 
+      body: _isLoading && _transfers.isEmpty 
         ? const Center(child: CircularProgressIndicator())
         : RefreshIndicator(
-            onRefresh: _fetchReturns,
-            child: _pendingReturns.isEmpty 
-              ? const Center(child: Text('No hay retornos pendientes'))
+            onRefresh: _fetchData,
+            child: _transfers.isEmpty 
+              ? Center(child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(isDispatch ? Icons.local_shipping_outlined : Icons.assignment_return_outlined, size: 60, color: Colors.grey.shade300),
+                    const SizedBox(height: 10),
+                    Text(isDispatch ? 'No hay despachos pendientes' : 'No hay retornos pendientes', style: const TextStyle(color: Colors.grey)),
+                  ],
+                ))
               : ListView.builder(
                   padding: const EdgeInsets.all(10),
-                  itemCount: _pendingReturns.length,
+                  itemCount: _transfers.length,
                   itemBuilder: (context, index) {
-                    final t = _pendingReturns[index];
+                    final t = _transfers[index];
                     return Card(
+                      elevation: 3,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       child: ExpansionTile(
-                        title: Text('Traspaso #${t['id']} - ${t['dest_warehouse_name']}'),
-                        subtitle: Text('Motivo: ${t['rejection_reason'] ?? 'Sin motivo'}'),
+                        leading: CircleAvatar(backgroundColor: themeColor.withOpacity(0.1), child: Icon(isDispatch ? Icons.outbox : Icons.inbox, color: themeColor)),
+                        title: Text('Traspaso #${t['id']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text(isDispatch ? 'Destino: ${t['dest_warehouse_name'] ?? 'General'}' : 'Devolución de: ${t['dest_warehouse_name'] ?? 'General'}'),
                         children: [
                           Padding(
                             padding: const EdgeInsets.all(15),
                             child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                ...(t['details'] as List).map((d) => ListTile(
-                                  dense: true,
-                                  title: Text(d['product_name']),
-                                  trailing: Text('Rechazado: ${d['rejected_qty']}'),
-                                )).toList(),
+                                if (t['rejection_reason'] != null) ...[
+                                  Text('Motivo Rechazo:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.red.shade700)),
+                                  Text(t['rejection_reason'], style: const TextStyle(fontSize: 12)),
+                                  const Divider(),
+                                ],
+                                const Text('Productos:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                ...(t['details'] as List).map((d) {
+                                  final qty = isDispatch ? d['quantity'] : d['rejected_quantity'];
+                                  return ListTile(
+                                    dense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                    title: Text(d['product_name'] ?? 'Producto'),
+                                    trailing: Text('$qty uds', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  );
+                                }).toList(),
                                 const SizedBox(height: 15),
                                 SizedBox(
                                   width: double.infinity,
-                                  child: ElevatedButton(
-                                    onPressed: () => _receiveReturn(t['id']),
-                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                                    child: const Text('CONFIRMAR RECEPCIÓN EN PLANTA', style: TextStyle(color: Colors.white)),
+                                  height: 45,
+                                  child: ElevatedButton.icon(
+                                    onPressed: () => _processAction(t['id']),
+                                    icon: Icon(isDispatch ? Icons.local_shipping : Icons.check_circle, color: Colors.white),
+                                    label: Text(isDispatch ? 'CONFIRMAR DESPACHO' : 'CONFIRMAR RECEPCIÓN', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                    style: ElevatedButton.styleFrom(backgroundColor: themeColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
                                   ),
                                 )
                               ],
@@ -845,5 +1212,206 @@ class _TransfersScreenState extends State<TransfersScreen> {
     );
   }
 }
+
+
+// --- INVENTORY & RECEIPTS SCREEN ---
+class InventoryScreen extends StatefulWidget {
+  final String baseUrl;
+  const InventoryScreen({super.key, required this.baseUrl});
+  @override
+  State<InventoryScreen> createState() => _InventoryScreenState();
+}
+
+class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  List<dynamic> _inventory = [];
+  List<dynamic> _receipts = [];
+  bool _isLoading = false;
+  String _warehouseName = "Planta";
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _fetchInventory();
+    _fetchReceipts();
+  }
+
+  Future<void> _fetchInventory() async {
+    setState(() => _isLoading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final response = await http.get(Uri.parse('${widget.baseUrl}/api/soplados/inventory'), headers: {
+        'Authorization': 'Bearer $token', 'Accept': 'application/json',
+      }).timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() { 
+          _inventory = data['inventory']; 
+          _warehouseName = data['warehouse'] ?? "Planta";
+        });
+      }
+    } catch (e) { debugPrint("Inv Err: $e"); }
+    finally { setState(() => _isLoading = false); }
+  }
+
+  Future<void> _fetchReceipts() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final response = await http.get(Uri.parse('${widget.baseUrl}/api/soplados/receipts/pending'), headers: {
+        'Authorization': 'Bearer $token', 'Accept': 'application/json',
+      }).timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() { _receipts = data['transfers']; });
+      }
+    } catch (e) { debugPrint("Receipts Err: $e"); }
+  }
+
+  Future<void> _receiveTransfer(int id) async {
+    setState(() => _isLoading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final response = await http.post(
+        Uri.parse('${widget.baseUrl}/api/soplados/receipts/$id/receive'),
+        headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'}
+      ).timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Insumos cargados al stock'), backgroundColor: Colors.green));
+        _fetchInventory();
+        _fetchReceipts();
+      }
+    } catch (e) { debugPrint("Rec Err: $e"); }
+    finally { setState(() => _isLoading = false); }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Inventario de Planta', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+            Text(_warehouseName, style: const TextStyle(fontSize: 12, color: Colors.white70)),
+          ],
+        ),
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white60,
+          indicatorColor: Colors.amberAccent,
+          tabs: const [
+            Tab(icon: Icon(Icons.inventory_2_outlined), text: 'STOCK ACTUAL'),
+            Tab(icon: Icon(Icons.input_rounded), text: 'RECIBIR INSUMOS'),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildStockTab(),
+          _buildReceiptsTab(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStockTab() {
+    if (_isLoading && _inventory.isEmpty) return const Center(child: CircularProgressIndicator());
+    final terminados = _inventory.where((i) => i['type'] == 'Producto Terminado').toList();
+    final insumos = _inventory.where((i) => i['type'] != 'Producto Terminado').toList();
+
+    return RefreshIndicator(
+      onRefresh: _fetchInventory,
+      child: ListView(
+        padding: const EdgeInsets.all(15),
+        children: [
+          _sectionHeader('INSUMOS Y MATERIA PRIMA', Icons.category_outlined),
+          if (insumos.isEmpty) const Center(child: Padding(padding: EdgeInsets.all(20), child: Text('No hay insumos registrados', style: TextStyle(color: Colors.grey))))
+          else ...insumos.map((i) => _inventoryCard(i, Colors.orange)),
+          const SizedBox(height: 20),
+          _sectionHeader('PRODUCTOS TERMINADOS', Icons.check_circle_outline),
+          if (terminados.isEmpty) const Center(child: Padding(padding: EdgeInsets.all(20), child: Text('No hay productos en stock', style: TextStyle(color: Colors.grey))))
+          else ...terminados.map((i) => _inventoryCard(i, Colors.blue)),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionHeader(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10, top: 5),
+      child: Row(children: [
+        Icon(icon, size: 16, color: Colors.grey),
+        const SizedBox(width: 8),
+        Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1)),
+      ]),
+    );
+  }
+
+  Widget _inventoryCard(Map i, Color color) {
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
+      child: ListTile(
+        leading: CircleAvatar(backgroundColor: color.withOpacity(0.1), child: Icon(Icons.inventory_2, color: color, size: 20)),
+        title: Text(i['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        subtitle: Text(i['sku'] ?? '', style: const TextStyle(fontSize: 11)),
+        trailing: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+          child: Text('${i['stock']} uds', style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 14)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReceiptsTab() {
+    if (_isLoading && _receipts.isEmpty) return const Center(child: CircularProgressIndicator());
+    return RefreshIndicator(
+      onRefresh: _fetchReceipts,
+      child: _receipts.isEmpty
+        ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.local_shipping_outlined, size: 60, color: Colors.grey.shade300), const Text('No hay insumos pendientes de recibir', style: TextStyle(color: Colors.grey))]))
+        : ListView.builder(
+            padding: const EdgeInsets.all(15),
+            itemCount: _receipts.length,
+            itemBuilder: (context, index) {
+              final t = _receipts[index];
+              return Card(
+                elevation: 2,
+                margin: const EdgeInsets.only(bottom: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                child: ExpansionTile(
+                  leading: const CircleAvatar(backgroundColor: Colors.tealAccent, child: Icon(Icons.input, color: Colors.teal)),
+                  title: Text('Carga #${t['id']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text('De: ${t['origin_name']}'),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(15),
+                      child: Column(
+                        children: [
+                          ...(t['details'] as List).map((d) => ListTile(dense: true, title: Text(d['product_name']), trailing: Text('${d['quantity']} uds', style: const TextStyle(fontWeight: FontWeight.bold)))),
+                          const Divider(),
+                          SizedBox(width: double.infinity, height: 45, child: ElevatedButton.icon(onPressed: () => _receiveTransfer(t['id']), icon: const Icon(Icons.check, color: Colors.white), label: const Text('CARGAR A PLANTA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))))),
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+              );
+            },
+          ),
+    );
+  }
+}
+
 
 

@@ -224,13 +224,14 @@ class Transfers extends Component
                 $received = floatval($data['received']);
                 
                 if ($received > $detail->quantity) {
-                    $received = $detail->quantity; // Prevent receiving more than requested
+                    $received = $detail->quantity;
                 }
                 
                 $rejected = $detail->quantity - $received;
                 
                 if ($rejected > 0) {
                     $hasRejections = true;
+                    // We DO NOT return stock here. The Soplados App operator must receive the return in the App.
                 }
 
                 $detail->update([
@@ -246,16 +247,90 @@ class Transfers extends Component
 
             $transfer->update([
                 'status' => $hasRejections ? 'completed_partial' : 'completed',
-                'rejection_reason' => $hasRejections ? $this->rejection_reason : null
+                'rejection_reason' => $this->rejection_reason
             ]);
 
             DB::commit();
             $this->dispatch('hide-receive-modal');
-            $this->dispatch('msg', 'Traspaso recibido y procesado correctamente');
-            $this->receiving_transfer_id = null;
+            $this->dispatch('msg', 'Traspaso procesado. Los rechazos pendientes aparecerán en la App del operador.');
         } catch (\Exception $e) {
             DB::rollback();
-            $this->dispatch('error', 'Error al recibir el traspaso: ' . $e->getMessage());
+            $this->dispatch('error', 'Error al procesar: ' . $e->getMessage());
+        }
+    }
+
+    public function approveTransfer($id)
+    {
+        $transfer = Transfer::with('details')->find($id);
+        if (!$transfer || $transfer->status !== 'dispatched') return;
+
+        DB::beginTransaction();
+        try {
+            foreach ($transfer->details as $detail) {
+                // Fully received
+                $detail->update([
+                    'received_quantity' => $detail->quantity,
+                    'rejected_quantity' => 0
+                ]);
+                // Add received stock to destination warehouse
+                $this->updateStock($transfer->to_warehouse_id, $detail->product_id, $detail->quantity);
+            }
+
+            $transfer->update([
+                'status' => 'completed',
+                'rejection_reason' => null
+            ]);
+
+            DB::commit();
+            $this->dispatch('msg', 'Traspaso aprobado y mercancía ingresada al destino.');
+        } catch (\Exception $e) {
+            DB::rollback();
+            $this->dispatch('error', 'Error al aprobar: ' . $e->getMessage());
+        }
+    }
+
+    public function rejectTransfer($id)
+    {
+        $transfer = Transfer::with('details')->find($id);
+        if (!$transfer || $transfer->status !== 'dispatched') return;
+
+        DB::beginTransaction();
+        try {
+            foreach ($transfer->details as $detail) {
+                // Fully rejected
+                $detail->update([
+                    'received_quantity' => 0,
+                    'rejected_quantity' => $detail->quantity
+                ]);
+                // We DO NOT return stock here. The operator must confirm the return in the app.
+            }
+
+            $transfer->update([
+                'status' => 'rejected',
+                'rejection_reason' => 'Rechazado completamente'
+            ]);
+
+            DB::commit();
+            $this->dispatch('msg', 'Traspaso rechazado. La devolución aparecerá en la App para el operador.');
+        } catch (\Exception $e) {
+            DB::rollback();
+            $this->dispatch('error', 'Error al rechazar: ' . $e->getMessage());
+        }
+    }
+
+    public function deleteTransfer($id)
+    {
+        $transfer = Transfer::find($id);
+        if (!$transfer || $transfer->status !== 'pending') {
+            $this->dispatch('error', 'Solo se pueden eliminar traspasos en estado pendiente.');
+            return;
+        }
+
+        try {
+            $transfer->delete();
+            $this->dispatch('msg', 'Traspaso eliminado correctamente.');
+        } catch (\Exception $e) {
+            $this->dispatch('error', 'Error al eliminar: ' . $e->getMessage());
         }
     }
 

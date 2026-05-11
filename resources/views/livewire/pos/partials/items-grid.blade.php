@@ -289,7 +289,8 @@
                                     @foreach ($products as $index => $product)
                                         @php
                                             $priceInTarget = $product->price * $targetRate;
-                                            $stockStatus = $product->stock_qty <= 0 ? 'bg-danger text-white' : ($product->stock_qty <= $product->low_stock ? 'bg-warning text-dark' : 'bg-success text-white');
+                                            $localStock = $product->productWarehouses->where('warehouse_id', $this->warehouse_id)->sum('stock_qty');
+                                            $stockStatus = $localStock <= 0 ? 'bg-danger text-white' : ($localStock <= $product->low_stock ? 'bg-warning text-dark' : 'bg-success text-white');
                                         @endphp
                                         
                                         <!-- Grid Column settings: 1 col mobile, 2 col small, 3 col md, 4 col lg -->
@@ -311,7 +312,7 @@
                                                     @endif
                                                     
                                                     <span class="stock-badge {{ $stockStatus }}">
-                                                        Stock: {{ (Auth::user()->can('sales.switch_warehouse') && in_array('module_multi_warehouse', config('tenant.modules', []))) ? $product->productWarehouses->sum('stock_qty') : $product->productWarehouses->where('warehouse_id', $this->warehouse_id)->sum('stock_qty') }}
+                                                        Stock: {{ $localStock }}
                                                     </span>
                                                 </div>
 

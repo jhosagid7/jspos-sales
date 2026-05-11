@@ -824,6 +824,42 @@
                                         </div>
                                     </div>
                                     
+                                    <div class="col-sm-12 col-md-6 mb-3">
+                                        <label class="form-label text-primary fw-bold">ALMACÉN SOPLADOS (PLANTA) <span class="txt-danger">*</span></label>
+                                        <select wire:model="sopladosWarehouseId" class="form-control">
+                                            <option value="">Seleccionar Planta Soplados</option>
+                                            @foreach($warehouses as $warehouse)
+                                                <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        <small class="text-muted">Donde se fabrican botellones y PET.</small>
+                                        @error('sopladosWarehouseId') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <div class="col-sm-12 col-md-6 mb-3">
+                                        <label class="form-label text-info fw-bold">ALMACÉN BOLSAS (PLANTA) <span class="txt-danger">*</span></label>
+                                        <select wire:model="bolsasWarehouseId" class="form-control">
+                                            <option value="">Seleccionar Planta Bolsas</option>
+                                            @foreach($warehouses as $warehouse)
+                                                <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        <small class="text-muted">Donde se fabrican bolsas.</small>
+                                        @error('bolsasWarehouseId') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <div class="col-sm-12 col-md-12 mb-3">
+                                        <label class="form-label text-warning fw-bold">ALMACÉN CENTRAL DE INSUMOS (MATERIA PRIMA)</label>
+                                        <select wire:model="productionMaterialsWarehouseId" class="form-control">
+                                            <option value="">Descontar de la misma Planta (Defecto)</option>
+                                            @foreach($warehouses as $warehouse)
+                                                <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        <small class="text-muted">Si se selecciona, el consumo de materia prima se descontará de aquí, sin importar la planta de producción.</small>
+                                        @error('productionMaterialsWarehouseId') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+
                                     <div class="col-sm-12">
                                         <label class="form-label">DESTINATARIOS (Separados por coma)</label>
                                         <textarea wire:model="productionEmailRecipients" class="form-control" cols="30" rows="2" placeholder="ejemplo@correo.com, jefe@correo.com"></textarea>

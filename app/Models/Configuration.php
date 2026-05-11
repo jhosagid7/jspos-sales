@@ -64,6 +64,9 @@ class Configuration extends Model
         'catalogue_show_prices',
         'catalogue_show_base_prices',
         'sales_edit_timeout',
+        'soplados_warehouse_id',
+        'bolsas_warehouse_id',
+        'production_materials_warehouse_id',
     ];
 
     protected $casts = [

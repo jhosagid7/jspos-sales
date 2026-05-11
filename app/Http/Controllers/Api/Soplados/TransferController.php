@@ -7,14 +7,57 @@ use Illuminate\Http\Request;
 
 class TransferController extends Controller
 {
-    public function pending(Request $request)
+    public function counts()
     {
-        $warehouse_id = $request->warehouse_id;
+        $config = \App\Models\Configuration::first();
+        $soplados_id = $config->soplados_warehouse_id ?? $config->default_warehouse_id ?? 1;
+        $warehouse_id = auth()->user()->warehouse_id ?? $soplados_id;
 
-        $transfers = \App\Models\Transfer::with('details.product')
+        $pending_dispatches = \App\Models\Transfer::where('from_warehouse_id', $warehouse_id)
+            ->where(function($q) {
+                $q->where('status', 'pending')->orWhere('status', 'Pending');
+            })
+            ->count();
+
+        $pending_returns = \App\Models\Transfer::where('from_warehouse_id', $warehouse_id)
+            ->whereIn('status', ['Partial', 'partial', 'Rejected', 'rejected'])
+            ->where(function ($query) {
+                $query->whereNull('note')
+                      ->orWhere('note', 'not like', '%[Devolución Recibida]%');
+            })
+            ->whereHas('details', function ($query) {
+                $query->where('rejected_quantity', '>', 0);
+            })
+            ->count();
+
+        return response()->json([
+            'success' => true,
+            'counts' => [
+                'dispatches' => $pending_dispatches,
+                'returns' => $pending_returns,
+            ]
+        ]);
+    }
+
+    public function pending()
+    {
+        $config = \App\Models\Configuration::first();
+        $soplados_id = $config->soplados_warehouse_id ?? $config->default_warehouse_id ?? 1;
+        $warehouse_id = auth()->user()->warehouse_id ?? $soplados_id;
+
+        $transfers = \App\Models\Transfer::with(['details.product', 'toWarehouse'])
             ->where('from_warehouse_id', $warehouse_id)
-            ->where('status', 'pending')
-            ->get();
+            ->where(function($q) {
+                $q->where('status', 'pending')->orWhere('status', 'Pending');
+            })
+            ->get()
+            ->map(function ($t) {
+                $t->dest_warehouse_name = $t->toWarehouse->name ?? 'General';
+                foreach ($t->details as $d) {
+                    $d->product_name = $d->product->name ?? 'Producto';
+                }
+                return $t;
+            });
 
         return response()->json(['success' => true, 'transfers' => $transfers]);
     }
@@ -23,13 +66,14 @@ class TransferController extends Controller
     {
         $transfer = \App\Models\Transfer::with('details')->findOrFail($id);
 
-        if ($transfer->status !== 'pending') {
+        if (strtolower($transfer->status) !== 'pending') {
             return response()->json(['success' => false, 'message' => 'El traspaso ya no está pendiente.'], 400);
         }
 
         try {
             \Illuminate\Support\Facades\DB::beginTransaction();
 
+            // Use 'dispatched' for consistency with web admin badges
             $transfer->update(['status' => 'dispatched']);
 
             // Deduct stock from origin warehouse
@@ -46,15 +90,15 @@ class TransferController extends Controller
         }
     }
 
-    public function pendingReturns(Request $request)
+    public function pendingReturns()
     {
-        $warehouse_id = $request->warehouse_id;
+        $config = \App\Models\Configuration::first();
+        $soplados_id = $config->soplados_warehouse_id ?? $config->default_warehouse_id ?? 1;
+        $warehouse_id = auth()->user()->warehouse_id ?? $soplados_id;
 
-        // Find transfers that have rejected quantities and haven't been acknowledged by Soplados yet
-        // We use the 'note' field to tag if it was acknowledged to avoid a new database migration
-        $transfers = \App\Models\Transfer::with('details.product')
+        $transfers = \App\Models\Transfer::with(['details.product', 'toWarehouse'])
             ->where('from_warehouse_id', $warehouse_id)
-            ->whereIn('status', ['completed_partial', 'rejected'])
+            ->whereIn('status', ['Partial', 'partial', 'Rejected', 'rejected', 'completed_partial', 'Completed_partial'])
             ->where(function ($query) {
                 $query->whereNull('note')
                       ->orWhere('note', 'not like', '%[Devolución Recibida]%');
@@ -62,7 +106,14 @@ class TransferController extends Controller
             ->whereHas('details', function ($query) {
                 $query->where('rejected_quantity', '>', 0);
             })
-            ->get();
+            ->get()
+            ->map(function ($t) {
+                $t->dest_warehouse_name = $t->toWarehouse->name ?? 'General';
+                foreach ($t->details as $d) {
+                    $d->product_name = $d->product->name ?? 'Producto';
+                }
+                return $t;
+            });
 
         return response()->json(['success' => true, 'transfers' => $transfers]);
     }

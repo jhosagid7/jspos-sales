@@ -44,6 +44,7 @@ class Settings extends Component
     public $newExchangeRate;
     
     public $defaultWarehouseId;
+    public $sopladosWarehouseId, $bolsasWarehouseId, $productionMaterialsWarehouseId;
     public $warehouses = [];
 
     // Global Rates
@@ -93,6 +94,9 @@ class Settings extends Component
             $this->checkStockReservation = (bool) $config->check_stock_reservation;
             $this->salesViewMode = $config->sales_view_mode;
             $this->defaultWarehouseId = $config->default_warehouse_id;
+            $this->sopladosWarehouseId = $config->soplados_warehouse_id;
+        $this->bolsasWarehouseId = $config->bolsas_warehouse_id;
+        $this->productionMaterialsWarehouseId = $config->production_materials_warehouse_id;
             
             // Convert seconds to HH:MM:SS
             $seconds = $config->sales_edit_timeout ?? 1800; // default 30 min
@@ -271,6 +275,9 @@ class Settings extends Component
                 'check_stock_reservation' => $this->checkStockReservation ? 1 : 0,
                 'sales_view_mode' => $this->salesViewMode,
                 'default_warehouse_id' => $this->defaultWarehouseId,
+                'soplados_warehouse_id' => $this->sopladosWarehouseId,
+            'bolsas_warehouse_id' => $this->bolsasWarehouseId,
+            'production_materials_warehouse_id' => $this->productionMaterialsWarehouseId,
                 'sales_edit_timeout' => $this->convertToSeconds($this->salesEditTimeout),
                 'backup_emails' => $backupEmailsArray,
                 'purchasing_calculation_mode' => $this->purchasingCalculationMode,

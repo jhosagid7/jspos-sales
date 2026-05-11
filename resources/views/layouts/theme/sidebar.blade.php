@@ -279,7 +279,7 @@
                             <a href="#" class="nav-link {{ Request::is('production*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>
-                                    Producción
+                                    Producción Bolsas
                                     <i class="right fas fa-angle-left"></i>
                                 </p>
                             </a>
@@ -288,12 +288,6 @@
                                     <a href="{{ route('production.index') }}" class="nav-link {{ Request::is('production') || Request::is('production/create*') ? 'active' : '' }}">
                                         <i class="far fa-dot-circle nav-icon"></i>
                                         <p>Registros Antiguos</p>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a href="{{ route('production.report') }}" class="nav-link {{ Request::is('production-report') ? 'active' : '' }}">
-                                        <i class="far fa-dot-circle nav-icon"></i>
-                                        <p>Reporte Soplados</p>
                                     </a>
                                 </li>
                             </ul>
@@ -311,6 +305,39 @@
                         </li>
                         @endcan
                         @endmodule
+                    </ul>
+                </li>
+                @endunlessrole
+
+                {{-- MÓDULO: FÁBRICA SOPLADOS (BOTELLONES) --}}
+                @unlessrole('Driver')
+                <li class="nav-item {{ Request::is('production-report*') || Request::is('soplados/*') ? 'menu-open' : '' }}">
+                    <a href="#" class="nav-link {{ Request::is('production-report*') || Request::is('soplados/*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-industry"></i>
+                        <p>
+                            FÁBRICA SOPLADOS
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('production.report') }}" class="nav-link {{ Request::is('production-report') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Reporte Producción</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('soplados.formulas') }}" class="nav-link {{ Request::is('soplados/formulas') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Configuración de Recetas</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('soplados.shifts') }}" class="nav-link {{ Request::is('soplados/shifts') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Historial de Turnos</p>
+                            </a>
+                        </li>
                     </ul>
                 </li>
                 @endunlessrole

@@ -39,6 +39,8 @@ class DatabaseSeeder extends Seeder
             WarehouseSeeder::class,
             SaleSeeder::class,
             AddCustomerStatementPermissionSeeder::class,
+            SopladosPermissionsSeeder::class,
+            BolsasPermissionsSeeder::class,
         ]);
     }
 }

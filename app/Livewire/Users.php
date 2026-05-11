@@ -65,6 +65,7 @@ class Users extends Component
         'user.order_deadline_at' => 'nullable',
         'user.is_deadline_active' => 'boolean',
         'user.monthly_goal' => 'nullable|numeric|min:0',
+        'user.warehouse_id' => 'nullable|exists:warehouses,id',
     ];
 
     protected $messages = [
@@ -113,9 +114,11 @@ class Users extends Component
     {
         $users = $this->loadUsers();
         $allBanks = \App\Models\Bank::orderBy('name')->get();
+        $allWarehouses = \App\Models\Warehouse::orderBy('name')->get();
         return view('livewire.users.users', [
             'users' => $users,
-            'allBanks' => $allBanks
+            'allBanks' => $allBanks,
+            'allWarehouses' => $allWarehouses
         ]);
     }
 

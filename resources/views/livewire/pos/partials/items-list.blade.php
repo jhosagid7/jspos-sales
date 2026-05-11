@@ -138,6 +138,8 @@
                             @foreach ($products as $index => $product)
                                 @php
                                     $priceInTarget = $product->price * $targetRate;
+                                    $localStock = $product->productWarehouses->where('warehouse_id', $this->warehouse_id)->sum('stock_qty');
+                                    $stockStatusClass = $localStock <= 0 ? 'danger' : ($localStock <= $product->low_stock ? 'warning' : 'success');
                                 @endphp
                                 <li class="p-1 list-group-item list-group-item-action d-flex justify-content-between align-items-center"
                                     data-id="{{ $product->id }}"
@@ -155,7 +157,7 @@
                                                 <img src="{{ asset($product->photo) }}" alt="img" class="rounded mr-2" onerror="this.src='{{ asset('noimage.jpg') }}'; this.onerror=null;" style="width: 40px; height: 40px; object-fit: cover;">
                                                 <div class="d-flex flex-column flex-grow-1">
                                                     <div class="d-flex justify-content-between align-items-center">
-                                                        <h6 class="mb-0 font-weight-bold text-{{ $product->stock_qty <= 0 ? 'danger' : ($product->stock_qty <= $product->low_stock ? 'warning' : 'success') }}" style="font-size: 1rem;">
+                                                        <h6 class="mb-0 font-weight-bold text-{{ $stockStatusClass }}" style="font-size: 1rem;">
                                                             <small class="text-muted">{{ $product->sku }}</small> - {{ Str::limit($product->name, 40) }}
                                                         </h6>
                                                         <span class="badge badge-light text-dark border" style="font-size: 0.85rem;">
@@ -249,7 +251,7 @@
                                                                         </div>
                                                                     @endif
                                                                 @endif
-                                                                <span class="text-muted ml-1">| Stock: {{ ($canSwitchWarehouse && $moduleMultiWarehouse) ? $product->productWarehouses->sum('stock_qty') : $product->productWarehouses->where('warehouse_id', $this->warehouse_id)->sum('stock_qty') }}</span>
+                                                                <span class="text-muted ml-1">| Stock: {{ $localStock }}</span>
                                                             @else
                                                                 <span class="text-warning"><i class="fas fa-exclamation-circle"></i> Seleccione Cliente</span>
                                                             @endif

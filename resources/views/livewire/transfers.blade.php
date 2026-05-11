@@ -62,15 +62,25 @@
                             </td>
                             <td>
                                 @if($transfer->status == 'pending')
-                                    <button wire:click="dispatchTransferFromWeb({{ $transfer->id }})" 
-                                            wire:confirm="¿Despachar mercancía? Esto restará el stock del origen."
-                                            class="btn btn-warning btn-sm" title="Despachar">
-                                        <i class="fas fa-truck"></i> Despachar
+                                    <button wire:click="deleteTransfer({{ $transfer->id }})" 
+                                            wire:confirm="¿Eliminar este traspaso pendiente?"
+                                            class="btn btn-danger btn-sm" title="Eliminar">
+                                        <i class="fas fa-trash"></i>
                                     </button>
                                 @elseif($transfer->status == 'dispatched')
+                                    <button wire:click="approveTransfer({{ $transfer->id }})" 
+                                            wire:confirm="¿Aprobar y recibir todo el traspaso correctamente?"
+                                            class="btn btn-primary btn-sm" title="Aprobar (Todo OK)">
+                                        <i class="fas fa-check"></i> Aprobar
+                                    </button>
                                     <button wire:click="openReceiveModal({{ $transfer->id }})" 
-                                            class="btn btn-success btn-sm" title="Recibir Traspaso">
-                                        <i class="fas fa-check-double"></i> Recibir
+                                            class="btn btn-info btn-sm" title="Editar / Recibir Parcial">
+                                        <i class="fas fa-edit"></i> Editar
+                                    </button>
+                                    <button wire:click="rejectTransfer({{ $transfer->id }})" 
+                                            wire:confirm="¿Rechazar todo el traspaso? El stock retornará a la planta."
+                                            class="btn btn-warning btn-sm" title="Rechazar Todo">
+                                        <i class="fas fa-times"></i> Rechazar
                                     </button>
                                 @endif
                             </td>
