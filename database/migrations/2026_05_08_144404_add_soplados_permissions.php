@@ -11,7 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // 
+        \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'soplados.operator', 'guard_name' => 'web']);
+        \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'soplados.manager', 'guard_name' => 'web']);
     }
 
     /**
@@ -19,6 +20,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // 
+        \Spatie\Permission\Models\Permission::whereIn('name', ['soplados.operator', 'soplados.manager'])->delete();
     }
 };

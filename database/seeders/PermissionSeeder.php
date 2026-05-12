@@ -123,10 +123,12 @@ class PermissionSeeder extends Seeder
             'settings.logs',
             'settings.update',
             
-            // Production
+            // Production / Soplados
             'production.index',
             'production.create',
             'production.delete',
+            'soplados.operator',
+            'soplados.manager',
 
             // Distribution
             'distribution.map', // Driver map access
