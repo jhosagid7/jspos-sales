@@ -9,7 +9,7 @@ class TransferDetail extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['transfer_id', 'product_id', 'quantity'];
+    protected $fillable = ['transfer_id', 'product_id', 'quantity', 'received_quantity', 'rejected_quantity'];
 
     public function transfer()
     {

@@ -148,7 +148,10 @@ class Transfers extends Component
 
         DB::beginTransaction();
         try {
-            $transfer->update(['status' => 'dispatched']);
+            $transfer->update([
+                'status' => 'dispatched',
+                'dispatched_by_id' => Auth::user()->id
+            ]);
 
             $details = TransferDetail::where('transfer_id', $transfer->id)->get();
             foreach ($details as $detail) {
@@ -247,6 +250,7 @@ class Transfers extends Component
 
             $transfer->update([
                 'status' => $hasRejections ? 'completed_partial' : 'completed',
+                'received_by_id' => Auth::user()->id,
                 'rejection_reason' => $this->rejection_reason
             ]);
 
@@ -278,6 +282,7 @@ class Transfers extends Component
 
             $transfer->update([
                 'status' => 'completed',
+                'received_by_id' => Auth::user()->id,
                 'rejection_reason' => null
             ]);
 
@@ -307,6 +312,7 @@ class Transfers extends Component
 
             $transfer->update([
                 'status' => 'rejected',
+                'received_by_id' => Auth::user()->id,
                 'rejection_reason' => 'Rechazado completamente'
             ]);
 

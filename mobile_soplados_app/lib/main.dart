@@ -498,6 +498,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _menuCard('Inventario\nde Planta', Icons.inventory_rounded, Colors.teal, () {
                       Navigator.push(context, MaterialPageRoute(builder: (context) => InventoryScreen(baseUrl: _baseUrl))).then((_) => _refreshDashboard());
                     }, _pendingReceipts),
+                    _menuCard('Historial de\nTurnos', Icons.history_toggle_off_rounded, Colors.deepPurple, () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => ShiftHistoryScreen(baseUrl: _baseUrl)));
+                    }, 0),
                     _menuCard('Historial de\nProducción', Icons.history_rounded, Colors.purple, () {
                       Navigator.push(context, MaterialPageRoute(builder: (context) => ProductionHistoryScreen(baseUrl: _baseUrl)));
                     }, 0),
@@ -1697,6 +1700,107 @@ class _ProductionHistoryScreenState extends State<ProductionHistoryScreen> {
     return Column(
       children: [
         Text(value, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 18)),
+        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+      ],
+    );
+  }
+}
+
+class ShiftHistoryScreen extends StatefulWidget {
+  final String baseUrl;
+  const ShiftHistoryScreen({super.key, required this.baseUrl});
+  @override
+  State<ShiftHistoryScreen> createState() => _ShiftHistoryScreenState();
+}
+
+class _ShiftHistoryScreenState extends State<ShiftHistoryScreen> {
+  List<dynamic> _shifts = [];
+  bool _isLoading = false;
+
+  @override
+  void initState() { super.initState(); _fetchData(); }
+
+  Future<void> _fetchData() async {
+    setState(() => _isLoading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final response = await http.get(Uri.parse('${widget.baseUrl}/api/soplados/shifts/history'), headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      }).timeout(const Duration(seconds: 15));
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() => _shifts = data['data']['data']);
+      }
+    } catch (e) { debugPrint("Shift History Err: $e"); }
+    finally { setState(() => _isLoading = false); }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Historial de Turnos'), backgroundColor: const Color(0xFF2C3E50), foregroundColor: Colors.white),
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator())
+        : _shifts.isEmpty
+          ? const Center(child: Text('No hay turnos registrados'))
+          : ListView.builder(
+              padding: const EdgeInsets.all(15),
+              itemCount: _shifts.length,
+              itemBuilder: (context, i) {
+                final s = _shifts[i];
+                final stats = s['stats'];
+                final date = s['start_time'].toString().split(' ')[0];
+                final time = s['start_time'].toString().split(' ')[1].substring(0, 5);
+                final status = s['status'] == 'open' ? 'ABIERTO' : 'CERRADO';
+                final operator = s['users'] != null && s['users'].isNotEmpty ? s['users'][0]['name'] : 'N/A';
+                
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 15),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(15),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Turno #${s['id']} - ${s['type'].toString().toUpperCase()}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(color: s['status'] == 'open' ? Colors.green : Colors.grey, borderRadius: BorderRadius.circular(5)),
+                              child: Text(status, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 5),
+                        Text('Operador: $operator', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF2C3E50))),
+                        Text('Fecha: $date  •  Hora: $time', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                        const Divider(height: 25),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _miniStat('Rend.', '${stats['yield']}%', stats['yield'] >= 95 ? Colors.green : Colors.orange),
+                            _miniStat('Buenos', '${stats['good']}', Colors.blue),
+                            _miniStat('Merma', '${stats['damaged']}', Colors.red),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+
+  Widget _miniStat(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(value, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16)),
         Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
       ],
     );

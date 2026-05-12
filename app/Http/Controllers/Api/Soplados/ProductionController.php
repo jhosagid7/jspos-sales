@@ -16,11 +16,8 @@ class ProductionController extends Controller
      */
     public function products()
     {
-        $productIds = ProductionFormula::distinct()->pluck('product_id');
-
-        // Filter products that have a formula AND the tag 'soplados'
-        $products = Product::whereIn('id', $productIds)
-            ->whereHas('tags', function($q) {
+        // Filter products that have the tag 'soplados'
+        $products = Product::whereHas('tags', function($q) {
                 $q->where('name', 'soplados');
             })
             ->orderBy('name')
@@ -118,7 +115,9 @@ class ProductionController extends Controller
 
                 // Add stock for 1st and 2nd quality outputs
                 if (in_array($out['quality'], ['1st', '2nd'])) {
-                    $this->updateStock($out['product_id'], $warehouseId, $out['quantity']);
+                    $product = Product::find($out['product_id']);
+                    $targetId = $product->production_target_id ?? $out['product_id'];
+                    $this->updateStock($targetId, $warehouseId, $out['quantity']);
                 }
 
                 // Accumulate material consumption from formula
@@ -159,7 +158,7 @@ class ProductionController extends Controller
 
     public function history(Request $request)
     {
-        $query = \App\Models\ProductionLog::with(['user', 'shift', 'materials.product', 'outputs.product'])
+        $query = \App\Models\ProductionLog::with(['user', 'shift', 'materials.product', 'outputs.product.productionTarget'])
             ->orderBy('id', 'desc');
 
         if ($request->date_from) {

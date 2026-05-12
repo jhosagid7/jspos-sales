@@ -8,24 +8,48 @@
                     </h4>
                 </div>
                 <div class="widget-content">
-                    <div class="form-group">
+                    <div class="form-group position-relative">
                         <label>Producto Terminado (Botellón)</label>
-                        <select wire:model.live="product_id" class="form-control">
-                            <option value="">Seleccione...</option>
-                            @foreach($products as $p)
-                                <option value="{{ $p->id }}">{{ $p->name }}</option>
-                            @endforeach
-                        </select>
+                        <div class="input-group">
+                            <input type="text" wire:model.live.debounce.300ms="search_product" class="form-control" placeholder="Buscar producto...">
+                            @if($product_id)
+                                <button class="btn btn-outline-danger" wire:click="$set('product_id', null); $set('search_product', '')">
+                                    <i class="fa fa-times"></i>
+                                </button>
+                            @endif
+                        </div>
+                        @if(!empty($product_results))
+                            <ul class="list-group w-100 shadow" style="position: absolute; z-index: 999;">
+                                @foreach($product_results as $p)
+                                    <li wire:click="selectProduct({{ $p->id }}, '{{ $p->name }}')" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" style="cursor: pointer;">
+                                        <span>{{ $p->name }}</span>
+                                        <span class="badge badge-primary">Elegir</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
                     </div>
 
-                    <div class="form-group">
+                    <div class="form-group position-relative">
                         <label>Insumo (Preforma / Tapa)</label>
-                        <select wire:model="ingredient_id" class="form-control">
-                            <option value="">Seleccione...</option>
-                            @foreach($products as $p)
-                                <option value="{{ $p->id }}">{{ $p->name }}</option>
-                            @endforeach
-                        </select>
+                        <div class="input-group">
+                            <input type="text" wire:model.live.debounce.300ms="search_ingredient" class="form-control" placeholder="Buscar insumo...">
+                            @if($ingredient_id)
+                                <button class="btn btn-outline-danger" wire:click="$set('ingredient_id', null); $set('search_ingredient', '')">
+                                    <i class="fa fa-times"></i>
+                                </button>
+                            @endif
+                        </div>
+                        @if(!empty($ingredient_results))
+                            <ul class="list-group w-100 shadow" style="position: absolute; z-index: 999;">
+                                @foreach($ingredient_results as $p)
+                                    <li wire:click="selectIngredient({{ $p->id }}, '{{ $p->name }}')" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" style="cursor: pointer;">
+                                        <span>{{ $p->name }}</span>
+                                        <span class="badge badge-primary">Elegir</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
                     </div>
 
                     <div class="form-group">

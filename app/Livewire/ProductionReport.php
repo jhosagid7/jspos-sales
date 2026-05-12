@@ -19,7 +19,7 @@ class ProductionReport extends Component
 
     public function render()
     {
-        $query = \App\Models\ProductionLog::with(['shift', 'user', 'materials.product', 'outputs.product'])
+        $query = \App\Models\ProductionLog::with(['shift', 'user', 'materials.product', 'outputs.product.productionTarget'])
             ->orderBy('id', 'desc');
 
         if ($this->dateFrom) {

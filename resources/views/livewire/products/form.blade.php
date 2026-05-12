@@ -441,6 +441,43 @@
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            <div class="col-12 mt-3 position-relative">
+                                                <div class="row g-2">
+                                                    <div class="col-12">
+                                                        <label class="form-label m-0">Sumar Stock a Producto (Consolidación de Producción)</label>
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <div class="input-group">
+                                                            <span class="input-group-text"><i class="fa fa-layer-group"></i></span>
+                                                            <input wire:model.live.debounce.300ms="search_target" 
+                                                                   class="form-control" 
+                                                                   type="text" 
+                                                                   placeholder="Buscar producto destino...">
+                                                            @if($form->production_target_id)
+                                                                <button class="btn btn-outline-danger" wire:click.prevent="removeTargetProduct" title="Quitar Destino">
+                                                                    <i class="fa fa-times"></i>
+                                                                </button>
+                                                            @endif
+                                                        </div>
+
+                                                        @if(!empty($target_search_results))
+                                                            <ul class="list-group mt-1 w-100" style="z-index: 1000; position: absolute; max-height: 200px; overflow-y: auto; left: 0; padding: 0 15px;">
+                                                                @foreach($target_search_results as $result)
+                                                                    <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                                                                        style="cursor: pointer;"
+                                                                        wire:click.prevent="setTargetProduct({{ $result->id }}, '{{ $result->name }}')">
+                                                                        <span>{{ $result->name }} ({{ $result->sku }})</span>
+                                                                        <span class="badge badge-primary">Seleccionar</span>
+                                                                    </li>
+                                                                @endforeach
+                                                            </ul>
+                                                        @endif
+                                                        
+                                                        <small class="text-muted">Útil para que la producción de variantes (ej: Colores) se sume a un único producto de inventario general.</small>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 

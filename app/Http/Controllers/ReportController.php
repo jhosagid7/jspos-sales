@@ -977,26 +977,42 @@ class ReportController extends Controller
         $columns = json_decode($request->get('columns'), true) ?? [];
         $signatures = json_decode($request->get('signatures'), true) ?? [];
         $search = $request->get('search');
+        $selected_ids = $request->get('selected_ids') ? explode(',', $request->get('selected_ids')) : [];
+        $selected_warehouses = json_decode($request->get('warehouses'), true) ?? [];
+        $show_total = $request->get('show_total', true);
 
         $products = \App\Models\Product::where('status', 'available')
-            ->when($supplier_id && $supplier_id !== 'all', function ($q) use ($supplier_id) {
+            ->when(!empty($selected_ids), function ($q) use ($selected_ids) {
+                $q->whereIn('id', $selected_ids);
+            })
+            ->when(empty($selected_ids) && $supplier_id && $supplier_id !== 'all', function ($q) use ($supplier_id) {
                 $q->where('supplier_id', $supplier_id);
             })
-            ->when($category_id && $category_id !== 'all', function ($q) use ($category_id) {
+            ->when(empty($selected_ids) && $category_id && $category_id !== 'all', function ($q) use ($category_id) {
                 $q->where('category_id', $category_id);
             })
-            ->when($search, function ($q) use ($search) {
-                $q->where(function($qq) use ($search) {
-                    $qq->where('name', 'like', "%{$search}%")
-                      ->orWhere('sku', 'like', "%{$search}%");
-                });
+            ->when(empty($selected_ids) && $search, function ($query) use ($search) {
+                $tokens = explode(' ', trim($search));
+                foreach ($tokens as $token) {
+                    if (!empty($token)) {
+                        $query->where(function($q) use ($token) {
+                            $q->where('name', 'like', "%{$token}%")
+                              ->orWhere('sku', 'like', "%{$token}%")
+                              ->orWhereHas('category', function ($subQuery) use ($token) {
+                                  $subQuery->where('name', 'like', "%{$token}%");
+                              });
+                        });
+                    }
+                }
             })
-            ->with(['category', 'supplier'])
+            ->with(['category', 'supplier', 'warehouses'])
             ->orderBy('name')
             ->get();
 
         $config = Configuration::first();
         $user = auth()->user();
+
+        $warehouses = \App\Models\Warehouse::whereIn('id', $selected_warehouses)->orderBy('name')->get();
 
         $supplier_name = 'Todos';
         if($supplier_id && $supplier_id !== 'all'){
@@ -1024,8 +1040,10 @@ class ReportController extends Controller
             'signatures' => $signatures,
             'supplier_name' => $supplier_name,
             'category_name' => $category_name,
-            'totals' => $totals
-        ])->setPaper('a4', 'portrait');
+            'totals' => $totals,
+            'warehouses' => $warehouses,
+            'show_total' => $show_total
+        ])->setPaper('a4', count($selected_warehouses) > 2 ? 'landscape' : 'portrait');
 
         if ($request->has('download')) {
             return $pdf->download('Reporte_Inventario.pdf');

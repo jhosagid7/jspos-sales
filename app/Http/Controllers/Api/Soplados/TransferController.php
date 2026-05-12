@@ -20,7 +20,7 @@ class TransferController extends Controller
             ->count();
 
         $pending_returns = \App\Models\Transfer::where('from_warehouse_id', $warehouse_id)
-            ->whereIn('status', ['Partial', 'partial', 'Rejected', 'rejected'])
+            ->whereIn('status', ['Partial', 'partial', 'completed_partial', 'Completed Partial', 'Rejected', 'rejected'])
             ->where(function ($query) {
                 $query->whereNull('note')
                       ->orWhere('note', 'not like', '%[Devolución Recibida]%');
@@ -79,7 +79,10 @@ class TransferController extends Controller
             \Illuminate\Support\Facades\DB::beginTransaction();
 
             // Use 'dispatched' for consistency with web admin badges
-            $transfer->update(['status' => 'dispatched']);
+            $transfer->update([
+                'status' => 'dispatched',
+                'dispatched_by_id' => auth()->id()
+            ]);
 
             // Deduct stock from origin warehouse
             foreach ($transfer->details as $detail) {
@@ -138,7 +141,10 @@ class TransferController extends Controller
             }
 
             // Mark as acknowledged
-            $transfer->update(['note' => $transfer->note . ' [Devolución Recibida]']);
+            $transfer->update([
+                'note' => $transfer->note . ' [Devolución Recibida]',
+                'received_by_id' => auth()->id()
+            ]);
 
             \Illuminate\Support\Facades\DB::commit();
             return response()->json(['success' => true, 'message' => 'Devolución recibida y sumada al inventario.']);

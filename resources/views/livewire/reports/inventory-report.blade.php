@@ -32,6 +32,31 @@
                         <input type="text" wire:model.live.debounce.300ms="search" class="form-control form-control-sm" placeholder="Nombre o SKU...">
                     </div>
 
+                    <hr>
+                    <div class="mb-3">
+                        <label class="f-14 font-weight-bold text-primary"><i class="fa fa-warehouse"></i> Filtro por Depósito</label>
+                        <div class="bg-light p-2 rounded border" style="max-height: 150px; overflow-y: auto;">
+                            @foreach($warehouses as $wh)
+                                <div class="custom-control custom-checkbox mb-1">
+                                    <input type="checkbox" class="custom-control-input" id="wh_{{ $wh->id }}" 
+                                           wire:model.live="selected_warehouses" value="{{ $wh->id }}">
+                                    <label class="custom-control-label f-12" for="wh_{{ $wh->id }}">{{ $wh->name }}</label>
+                                </div>
+                            @endforeach
+                        </div>
+                        <div class="custom-control custom-switch mt-3">
+                            <input type="checkbox" class="custom-control-input" id="showTotalStock" wire:model.live="show_total_stock">
+                            <label class="custom-control-label font-weight-bold" for="showTotalStock">Mostrar Columna Total</label>
+                        </div>
+
+                        <hr>
+
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="showOnlySelected" wire:model.live="show_only_selected">
+                            <label class="custom-control-label font-weight-bold text-primary" for="showOnlySelected">Ver Solo Seleccionados</label>
+                        </div>
+                    </div>
+
                     <div class="mt-4">
                         <button wire:click="openPdfPreview" class="btn btn-primary w-100 shadow-sm text-uppercase">
                             <i class="fas fa-file-pdf"></i> Imprimir Stock
@@ -107,8 +132,21 @@
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-white p-3 border-bottom d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 font-weight-bold text-dark"><i class="fa fa-boxes"></i> Resultados de Inventario</h5>
-                    <div class="badge badge-light-primary p-2">
-                        Total Items: {{ $products->total() }}
+                    <div class="d-flex align-items-center">
+                        @if(count($selected_products) > 0)
+                            <div class="btn-group mr-2">
+                                <button type="button" class="btn btn-sm {{ $show_only_selected ? 'btn-primary' : 'btn-outline-primary' }}" 
+                                        wire:click="$toggle('show_only_selected')" title="Ver solo seleccionados">
+                                    <i class="fa fa-eye{{ $show_only_selected ? '' : '-slash' }}"></i> {{ count($selected_products) }} Seleccionados
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" wire:click="$set('selected_products', [])" title="Limpiar Selección">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </div>
+                        @endif
+                        <div class="badge badge-light-primary p-2">
+                            Total Items: {{ $products->total() }}
+                        </div>
                     </div>
                 </div>
 
@@ -117,11 +155,29 @@
                         <table class="table table-hover table-sm">
                             <thead class="thead-light">
                                 <tr class="f-12 text-center text-uppercase">
+                                    <th style="width: 40px;">
+                                        <div class="custom-control custom-checkbox ml-2">
+                                            <input type="checkbox" class="custom-control-input" id="checkAll" wire:model.live="selectAll">
+                                            <label class="custom-control-label" for="checkAll"></label>
+                                        </div>
+                                    </th>
                                     @if($columns['sku']) <th>SKU</th> @endif
                                     @if($columns['name']) <th class="text-left">Nombre</th> @endif
                                     @if($columns['category']) <th>Categoría</th> @endif
                                     @if($columns['supplier']) <th>Proveedor</th> @endif
-                                    @if($columns['stock']) <th>Stock</th> @endif
+                                    
+                                    {{-- Dinamic Warehouse Columns --}}
+                                    @php
+                                        $activeWhs = $warehouses->whereIn('id', $selected_warehouses);
+                                    @endphp
+                                    @foreach($activeWhs as $wh)
+                                        <th class="bg-light-info text-info">{{ $wh->name }}</th>
+                                    @endforeach
+
+                                    @if($show_total_stock || empty($selected_warehouses))
+                                        <th class="bg-light-primary text-primary">{{ count($selected_warehouses) > 1 ? 'TOTAL' : 'STOCK' }}</th>
+                                    @endif
+
                                     @if($columns['cost']) <th>Costo</th> @endif
                                     @if($columns['price']) <th>Precio</th> @endif
                                     @if($columns['utility_percent']) <th>UT. %</th> @endif
@@ -131,15 +187,40 @@
                             </thead>
                             <tbody>
                                 @forelse ($products as $product)
-                                    <tr class="f-12 text-center align-middle">
+                                <tr class="f-12 text-center align-middle {{ in_array($product->id, $selected_products) ? 'bg-light-primary' : '' }}">
+                                        <td>
+                                            <div class="custom-control custom-checkbox ml-2">
+                                                <input type="checkbox" class="custom-control-input" id="chk_{{ $product->id }}" 
+                                                       wire:model.live="selected_products" value="{{ $product->id }}">
+                                                <label class="custom-control-label" for="chk_{{ $product->id }}"></label>
+                                            </div>
+                                        </td>
                                         @if($columns['sku']) <td class="text-muted">{{ $product->sku }}</td> @endif
                                         @if($columns['name']) <td class="text-left font-weight-bold">{{ $product->name }}</td> @endif
                                         @if($columns['category']) <td>{{ $product->category->name }}</td> @endif
                                         @if($columns['supplier']) <td>{{ $product->supplier->name ?? 'N/A' }}</td> @endif
-                                        @if($columns['stock']) 
+                                        
+                                        {{-- Dinamic Warehouse Values --}}
+                                        @php
+                                            $totalSelected = 0;
+                                        @endphp
+                                        @foreach($activeWhs as $wh)
+                                            @php
+                                                $whStock = $product->warehouses->where('id', $wh->id)->first()->pivot->stock_qty ?? 0;
+                                                $totalSelected += $whStock;
+                                            @endphp
+                                            <td class="font-weight-bold text-info">
+                                                {{ number_format($whStock, 0) }}
+                                            </td>
+                                        @endforeach
+
+                                        @if($show_total_stock || empty($selected_warehouses))
                                             <td>
-                                                <span class="badge {{ $product->stock_qty > 0 ? 'badge-light-success' : 'badge-light-danger' }} font-weight-bold">
-                                                    {{ $product->stock_qty }}
+                                                @php
+                                                    $displayStock = empty($selected_warehouses) ? $product->stock_qty : $totalSelected;
+                                                @endphp
+                                                <span class="badge {{ $displayStock > 0 ? 'badge-light-success' : 'badge-light-danger' }} font-weight-bold">
+                                                    {{ number_format($displayStock, 0) }}
                                                 </span>
                                             </td> 
                                         @endif

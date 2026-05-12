@@ -26,6 +26,7 @@ class Products extends Component
     //operational properties
     public $search, $editing, $tab = 1, $categories, $suppliers, $btnCreateCategory = false, $btnCreateSupplier = false, $catalogueName, $pagination = 6, $showDeleted = false;
     public $search_component = '', $component_search_results = [], $stats = [];
+    public $search_target = '', $target_search_results = [];
 
 
 
@@ -58,6 +59,7 @@ class Products extends Component
 
         return view('livewire.products.products', [
             'products'    => $this->getProducts(),
+            'products_list' => Product::orderBy('name')->get(['id', 'name']),
             'priceGroups' => \App\Models\PriceGroup::orderBy('name')->get(),
         ]);
     }
@@ -116,7 +118,8 @@ class Products extends Component
         $this->form->brand = $product->brand;
         $this->form->presentation = $product->presentation;
         $this->form->supplier_id = $product->supplier_id;
-        $this->form->category_id = $product->category_id;
+        $this->form->production_target_id = $product->production_target_id;
+        $this->search_target = $product->productionTarget->name ?? '';
         $this->form->is_pre_assembled = (bool) $product->is_pre_assembled;
         $this->form->additional_cost = $product->additional_cost;
         $this->form->is_variable_quantity = (bool) $product->is_variable_quantity;
@@ -325,8 +328,7 @@ class Products extends Component
     public function updatedSearchComponent()
     {
         if (strlen($this->search_component) > 2) {
-            $this->component_search_results = Product::where('name', 'like', "%{$this->search_component}%")
-                ->orWhere('sku', 'like', "%{$this->search_component}%")
+            $this->component_search_results = Product::search($this->search_component)
                 ->take(10)
                 ->get();
         } else {
@@ -359,6 +361,31 @@ class Products extends Component
         $this->component_search_results = [];
         $this->calculateCompositeCost();
         $this->dispatch('noty', msg: 'Componente agregado');
+    }
+
+    public function updatedSearchTarget()
+    {
+        if (strlen($this->search_target) > 2) {
+            $this->target_search_results = Product::search($this->search_target)
+                ->take(10)
+                ->get();
+        } else {
+            $this->target_search_results = [];
+        }
+    }
+
+    public function setTargetProduct($productId, $name)
+    {
+        $this->form->production_target_id = $productId;
+        $this->search_target = $name;
+        $this->target_search_results = [];
+    }
+
+    public function removeTargetProduct()
+    {
+        $this->form->production_target_id = null;
+        $this->search_target = '';
+        $this->target_search_results = [];
     }
 
     public function removeComponent($index)

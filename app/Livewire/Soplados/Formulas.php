@@ -13,8 +13,42 @@ class Formulas extends Component
 
     public $product_id, $ingredient_id, $quantity = 1;
     public $search = '';
+    public $search_product = '', $product_results = [];
+    public $search_ingredient = '', $ingredient_results = [];
     public $selected_id;
     private $pagination = 10;
+
+    public function updatedSearchProduct()
+    {
+        if (strlen($this->search_product) > 2) {
+            $this->product_results = Product::search($this->search_product)->take(10)->get();
+        } else {
+            $this->product_results = [];
+        }
+    }
+
+    public function selectProduct($id, $name)
+    {
+        $this->product_id = $id;
+        $this->search_product = $name;
+        $this->product_results = [];
+    }
+
+    public function updatedSearchIngredient()
+    {
+        if (strlen($this->search_ingredient) > 2) {
+            $this->ingredient_results = Product::search($this->search_ingredient)->take(10)->get();
+        } else {
+            $this->ingredient_results = [];
+        }
+    }
+
+    public function selectIngredient($id, $name)
+    {
+        $this->ingredient_id = $id;
+        $this->search_ingredient = $name;
+        $this->ingredient_results = [];
+    }
 
     protected $rules = [
         'product_id' => 'required|exists:products,id',
@@ -60,7 +94,7 @@ class Formulas extends Component
             }
         }
 
-        $this->reset(['ingredient_id', 'quantity']);
+        $this->reset(['ingredient_id', 'quantity', 'search_ingredient', 'ingredient_results']);
         $this->dispatch('msg', 'Receta guardada correctamente y producto etiquetado como Soplados');
     }
 

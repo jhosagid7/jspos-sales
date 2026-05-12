@@ -9,7 +9,7 @@ class Transfer extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['from_warehouse_id', 'to_warehouse_id', 'user_id', 'status', 'note'];
+    protected $fillable = ['from_warehouse_id', 'to_warehouse_id', 'user_id', 'dispatched_by_id', 'received_by_id', 'status', 'note'];
 
     public function fromWarehouse()
     {
@@ -24,6 +24,16 @@ class Transfer extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function dispatchedBy()
+    {
+        return $this->belongsTo(User::class, 'dispatched_by_id');
+    }
+
+    public function receivedBy()
+    {
+        return $this->belongsTo(User::class, 'received_by_id');
     }
 
     public function details()

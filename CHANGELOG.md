@@ -1,3 +1,14 @@
+## [1.10.83] - 2026-05-12
+### Added
+- **Reporte de Inventario / Stock Optimizado**:
+    - **Multi-Depósito Dinámico**: Ahora permite seleccionar uno o varios depósitos para comparar el stock lado a lado en la tabla.
+    - **Búsqueda Inteligente**: Implementada búsqueda por tokens (palabras sueltas). Ejemplo: "azul botellon" encontrará "BOTELLON AZUL".
+    - **Selección Manual para Impresión**: Añadidos checkboxes para seleccionar productos específicos. La selección es acumulativa y persiste al cambiar de búsqueda.
+    - **Vista de Seleccionados**: Nuevo interruptor "Ver Solo Seleccionados" para depurar la lista antes de generar el PDF.
+    - **PDF Dinámico**: El reporte impreso ahora refleja exactamente la selección de depósitos y productos. Cambia automáticamente a orientación horizontal si se seleccionan más de 2 depósitos.
+### Fixed
+- **Módulo de Cargos**: Corregido error `TypeError: string * string` en PHP 8.2 al realizar cálculos de costos y cantidades en el almacén. Se implementó tipado numérico estricto (float casting) para prevenir crashes.
+
 ## [1.10.82] - 2026-05-11
 ### Added
 - **Módulo de Historial de Producción**: 

@@ -66,6 +66,10 @@
                                     @foreach($log->outputs as $out)
                                         <li>
                                             {{ $out->product ? $out->product->name : 'Merma Gral' }}: <b>{{ $out->quantity }}</b>
+                                            @if($out->product && $out->product->production_target_id)
+                                                <br><small class="text-info"><i class="fa fa-arrow-right"></i> Sumado a: {{ $out->product->productionTarget->name ?? 'ID: '.$out->product->production_target_id }}</small>
+                                            @endif
+                                            <br>
                                             @if($out->quality == '1st')
                                                 <span class="badge badge-success">1ra</span>
                                             @elseif($out->quality == '2nd')

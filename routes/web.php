@@ -106,6 +106,7 @@ Route::middleware('auth')->group(function () {
     Route::get('inventories', Inventory::class)->name('inventories')->middleware('can:inventory.index');
     Route::get('warehouses', \App\Livewire\Warehouses::class)->name('warehouses')->middleware('can:warehouses.index');
     Route::get('transfers', \App\Livewire\Transfers::class)->name('transfers')->middleware(['can:transfers.create', 'module:module_multi_warehouse']);
+    Route::get('transfers/{id}/pdf', [\App\Http\Controllers\TransferController::class, 'pdf'])->name('transfers.pdf')->middleware(['can:transfers.create']);
     Route::get('requisition', \App\Livewire\Requisition::class)->name('requisition')->middleware(['can:transfers.create', 'module:module_multi_warehouse']); // Or inventory.index?
     Route::get('cargos', \App\Livewire\Cargos\CargosList::class)->name('cargos')->middleware('can:adjustments.create');
     Route::get('cargos/create', \App\Livewire\Cargos\CreateCargo::class)->name('cargos.create')->middleware('can:adjustments.create');

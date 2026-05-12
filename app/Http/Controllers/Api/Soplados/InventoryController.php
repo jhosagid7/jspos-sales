@@ -147,13 +147,18 @@ class InventoryController extends Controller
                     'rejected_quantity' => $rejected
                 ]);
 
-                // Add stock to plant
+                // 1. Deduct from origin if it wasn't already dispatched (Still Pending)
+                // If it was already 'dispatched', it was already deducted in dispatchTransfer()
+                if (strtolower($transfer->status) === 'pending') {
+                    $this->updateStock($detail->product_id, $transfer->from_warehouse_id, -$detail->quantity);
+                }
+
+                // 2. Add received stock to destination (Plant)
                 if ($received > 0) {
                     $this->updateStock($detail->product_id, $transfer->to_warehouse_id, $received);
                 }
                 
-                // Note: Stock return to origin is NOT automatic here.
-                // It follows the business logic where rejections are handled as a separate Return flow.
+                // Note: Rejected quantities remain out of both inventories until 'receiveReturn' is called.
             }
 
             // Mark transfer as processed

@@ -18,7 +18,7 @@ class PostProduct extends Form
     //#[Validate('unique:products,name', message: 'El nombre ya existe',  onUpdate: false)]
     //#[Validate('unique:products,name', message: 'El nombre ya existe',  onUpdate: false)]
     //#[Validate('unique:productos,name,' . $this->product_id, message: 'El título debe ser único')]
-    public $name, $sku, $description, $type = 'physical', $status = 'available', $cost = 0, $price = 0, $manage_stock = 1, $stock_qty = 0, $low_stock = 0, $category_id = 0, $supplier_id = 0, $product_id = 0, $gallery;
+    public $name, $sku, $description, $type = 'physical', $status = 'available', $cost = 0, $price = 0, $manage_stock = 1, $stock_qty = 0, $low_stock = 0, $category_id = 0, $supplier_id = 0, $product_id = 0, $gallery, $production_target_id;
     public $max_stock = 0, $brand, $presentation, $is_pre_assembled = false, $additional_cost = 0, $stock_details = [], $tags = '', $allow_decimal = false;
     public $is_variable_quantity = false;
     
@@ -172,6 +172,7 @@ class PostProduct extends Form
             'presentation' => $this->presentation,
             'supplier_id' => $this->supplier_id,
             'category_id' => $this->category_id,
+            'production_target_id' => $this->production_target_id ?: null,
             'is_pre_assembled' => $this->is_pre_assembled ? 1 : 0,
             'additional_cost' => $this->additional_cost,
             'allow_decimal' => $this->allow_decimal ? 1 : 0,
@@ -336,6 +337,7 @@ class PostProduct extends Form
             'presentation' => $this->presentation,
             'supplier_id' => $this->supplier_id,
             'category_id' => $this->category_id,
+            'production_target_id' => $this->production_target_id ?: null,
             'is_pre_assembled' => $this->is_pre_assembled ? 1 : 0,
             'additional_cost' => $this->additional_cost,
             'allow_decimal' => $this->allow_decimal ? 1 : 0,

@@ -43,7 +43,7 @@ class ShiftController extends Controller
             'good_production' => $good,
             'damaged_production' => $damaged,
             'total' => $good + $damaged,
-            'yield' => ($good + $damaged) > 0 ? round(($good / ($good + $damaged)) * 100, 2) : 100
+            'yield' => ($good + $damaged) > 0 ? round(($good / ($good + $damaged)) * 100, 2) : 0
         ];
 
         return response()->json(['success' => true, 'shift' => $data]);
@@ -87,6 +87,44 @@ class ShiftController extends Controller
         $shiftData['opened_at'] = $shift->start_time;
 
         return response()->json(['success' => true, 'message' => 'Turno abierto correctamente', 'shift' => $shiftData]);
+    }
+
+    public function history(Request $request)
+    {
+        $query = \App\Models\Shift::with(['users', 'productionLogs.outputs'])
+            ->orderBy('id', 'desc');
+
+        if ($request->date_from) {
+            $query->whereDate('start_time', '>=', $request->date_from);
+        }
+
+        $shifts = $query->paginate(20);
+
+        $shifts->getCollection()->transform(function($shift) {
+            $good = 0;
+            $damaged = 0;
+            
+            foreach ($shift->productionLogs as $log) {
+                foreach ($log->outputs as $out) {
+                    if ($out->quality == '1st' || $out->quality == '2nd') {
+                        $good += $out->quantity;
+                    } else if ($out->quality == 'damaged') {
+                        $damaged += $out->quantity;
+                    }
+                }
+            }
+
+            $data = $shift->toArray();
+            $data['stats'] = [
+                'good' => $good,
+                'damaged' => $damaged,
+                'total' => $good + $damaged,
+                'yield' => ($good + $damaged) > 0 ? round(($good / ($good + $damaged)) * 100, 2) : 0
+            ];
+            return $data;
+        });
+
+        return response()->json(['success' => true, 'data' => $shifts]);
     }
 
     public function close(Request $request)

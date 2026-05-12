@@ -137,7 +137,16 @@
                 @if($columns['name']) <th>NOMBRE PRODUCTO</th> @endif
                 @if($columns['category']) <th style="width: 80px;">CATEGORÍA</th> @endif
                 @if($columns['supplier']) <th style="width: 80px;">PROVEEDOR</th> @endif
-                @if($columns['stock']) <th style="width: 50px;" class="text-center">STOCK</th> @endif
+                
+                {{-- Warehouse Columns --}}
+                @foreach($warehouses as $wh)
+                    <th class="text-center" style="background-color: #e3f2fd; border-color: #64b5f6;">{{ strtoupper($wh->name) }}</th>
+                @endforeach
+
+                @if($show_total || empty($warehouses))
+                    <th style="width: 50px; background-color: #e8f5e9; border-color: #81c784;" class="text-center">{{ count($warehouses) > 1 ? 'TOTAL' : 'STOCK' }}</th>
+                @endif
+
                 @if($columns['physical_inventory']) <th style="width: 60px;" class="text-center">FISICO</th> @endif
                 @if($columns['cost']) <th style="width: 60px;" class="text-right">COSTO</th> @endif
                 @if($columns['price']) <th style="width: 60px;" class="text-right">PRECIO</th> @endif
@@ -153,7 +162,22 @@
                     @if($columns['name']) <td>{{ strtoupper($product->name) }}</td> @endif
                     @if($columns['category']) <td>{{ strtoupper($product->category->name ?? 'N/A') }}</td> @endif
                     @if($columns['supplier']) <td>{{ strtoupper($product->supplier->name ?? 'N/A') }}</td> @endif
-                    @if($columns['stock']) <td class="text-center font-bold">{{ $product->stock_qty }}</td> @endif
+                    
+                    {{-- Warehouse Values --}}
+                    @php $rowTotal = 0; @endphp
+                    @foreach($warehouses as $wh)
+                        @php 
+                            $whStock = $product->warehouses->where('id', $wh->id)->first()->pivot->stock_qty ?? 0;
+                            $rowTotal += $whStock;
+                        @endphp
+                        <td class="text-center">{{ number_format($whStock, 0) }}</td>
+                    @endforeach
+
+                    @if($show_total || empty($warehouses))
+                        @php $displayStock = count($warehouses) > 0 ? $rowTotal : $product->stock_qty; @endphp
+                        <td class="text-center font-bold">{{ number_format($displayStock, 0) }}</td>
+                    @endif
+
                     @if($columns['physical_inventory']) 
                         <td class="text-center">
                             <div style="border: 0.5pt solid #999; height: 12px; width: 40px; margin: 0 auto;"></div>
@@ -166,30 +190,47 @@
                             {{ $product->cost > 0 ? number_format((($product->price - $product->cost) / $product->cost) * 100, 2) . '%' : '0%' }}
                         </td> 
                     @endif
-                    @if($columns['valuation_cost']) <td class="text-right">{{ number_format($product->stock_qty * $product->cost, 2) }}</td> @endif
-                    @if($columns['valuation_price']) <td class="text-right font-bold">{{ number_format($product->stock_qty * $product->price, 2) }}</td> @endif
+                    @if($columns['valuation_cost']) <td class="text-right">{{ number_format($displayStock * $product->cost, 2) }}</td> @endif
+                    @if($columns['valuation_price']) <td class="text-right font-bold">{{ number_format($displayStock * $product->price, 2) }}</td> @endif
                 </tr>
             @endforeach
         </tbody>
     </table>
+
+    @php
+        // Recalculate totals for summary based on displayed stock
+        $sumValuationCost = 0;
+        $sumValuationPrice = 0;
+        $sumTotalStock = 0;
+
+        foreach($products as $product) {
+            $currentStock = count($warehouses) > 0 
+                ? $product->warehouses->whereIn('id', $warehouses->pluck('id'))->sum('pivot.stock_qty')
+                : $product->stock_qty;
+            
+            $sumValuationCost += ($currentStock * $product->cost);
+            $sumValuationPrice += ($currentStock * $product->price);
+            $sumTotalStock += $currentStock;
+        }
+    @endphp
 
     <div class="summary-box">
         <table class="summary-table">
             @if($columns['valuation_cost'])
             <tr>
                 <td class="summary-label">TOTAL VALUACIÓN (COSTO):</td>
-                <td class="summary-value">${{ number_format($totals['cost'], 2) }}</td>
+                <td class="summary-value">${{ number_format($sumValuationCost, 2) }}</td>
             </tr>
             @endif
             @if($columns['valuation_price'])
             <tr>
                 <td class="summary-label">TOTAL VALUACIÓN (VENTA):</td>
-                <td class="summary-value">${{ number_format($totals['price'], 2) }}</td>
+                <td class="summary-value">${{ number_format($sumValuationPrice, 2) }}</td>
             </tr>
             @endif
             <tr>
                 <td class="summary-label">TOTAL ITEMS EN STOCK:</td>
-                <td class="summary-value">{{ number_format($totals['items'], 0) }}</td>
+                <td class="summary-value">{{ number_format($sumTotalStock, 0) }}</td>
             </tr>
         </table>
     </div>

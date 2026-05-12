@@ -86,6 +86,7 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::prefix('soplados')->middleware('auth:sanctum')->group(function () {
     // Shifts
     Route::get('/shifts/current', [App\Http\Controllers\Api\Soplados\ShiftController::class, 'current']);
+    Route::get('/shifts/history', [App\Http\Controllers\Api\Soplados\ShiftController::class, 'history']);
     Route::post('/shifts/open', [App\Http\Controllers\Api\Soplados\ShiftController::class, 'open']);
     Route::post('/shifts/close', [App\Http\Controllers\Api\Soplados\ShiftController::class, 'close']);
 

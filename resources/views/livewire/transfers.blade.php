@@ -28,6 +28,8 @@
                             <th>Origen</th>
                             <th>Destino</th>
                             <th>Items</th>
+                            <th class="text-center">Enviado</th>
+                            <th class="text-center">Recibido</th>
                             <th>Estado</th>
                             <th>Nota / Rechazo</th>
                             <th>Acciones</th>
@@ -41,6 +43,15 @@
                             <td>{{ $transfer->fromWarehouse->name }}</td>
                             <td>{{ $transfer->toWarehouse->name }}</td>
                             <td>{{ $transfer->details->count() }}</td>
+                            <td class="text-center">
+                               <b>{{ number_format($transfer->details->sum('quantity'), 0) }}</b>
+                            </td>
+                            <td class="text-center">
+                               <span class="text-success"><b>{{ number_format($transfer->details->sum('received_quantity'), 0) }}</b></span>
+                               @if($transfer->details->sum('rejected_quantity') > 0)
+                                   <span class="text-danger">(-{{ number_format($transfer->details->sum('rejected_quantity'), 0) }})</span>
+                               @endif
+                            </td>
                             <td>
                                 @if($transfer->status == 'completed')
                                     <span class="badge badge-success">Completado</span>
@@ -61,6 +72,9 @@
                                 @endif
                             </td>
                             <td>
+                                <a href="{{ route('transfers.pdf', $transfer->id) }}" target="_blank" class="btn btn-dark btn-sm" title="Ver PDF">
+                                    <i class="fas fa-file-pdf"></i>
+                                </a>
                                 @if($transfer->status == 'pending')
                                     <button wire:click="deleteTransfer({{ $transfer->id }})" 
                                             wire:confirm="¿Eliminar este traspaso pendiente?"

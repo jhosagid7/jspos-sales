@@ -62,8 +62,8 @@ class CreateCargo extends Component
                             'id' => $item->product_id,
                             'name' => $item->product->name,
                             'sku' => $item->product->sku,
-                            'cost' => $item->cost,
-                            'quantity' => $item->quantity,
+                            'cost' => (float)$item->cost,
+                            'quantity' => (float)$item->quantity,
                             'is_variable' => (bool)$item->product->is_variable_quantity,
                             'items' => $item->items_json ? json_decode($item->items_json, true) : []
                         ];
@@ -100,8 +100,8 @@ class CreateCargo extends Component
                     'id' => $item->product_id,
                     'name' => $item->product->name,
                     'sku' => $item->product->sku,
-                    'cost' => $item->cost,
-                    'quantity' => $item->quantity,
+                    'cost' => (float)$item->cost,
+                    'quantity' => (float)$item->quantity,
                     'is_variable' => (bool)$item->product->is_variable_quantity,
                     'items' => $item->items_json ? json_decode($item->items_json, true) : []
                 ];
@@ -183,14 +183,14 @@ class CreateCargo extends Component
 
         if (isset($this->cart[$productId])) {
             if (!$product->is_variable_quantity) {
-                 $this->cart[$productId]['quantity']++;
+                 $this->cart[$productId]['quantity'] = (float)$this->cart[$productId]['quantity'] + 1;
             }
         } else {
             $this->cart[$productId] = [
                 'id' => $product->id,
                 'name' => $product->name,
                 'sku' => $product->sku,
-                'cost' => $product->cost,
+                'cost' => (float)($product->cost ?? 0),
                 'quantity' => $product->is_variable_quantity ? 0 : 1,
                 'is_variable' => (bool)$product->is_variable_quantity,
                 'items' => [] 
@@ -220,14 +220,14 @@ class CreateCargo extends Component
 
         if (isset($this->cart[$this->current_product_id])) {
             $this->cart[$this->current_product_id]['items'][] = [
-                'weight' => $this->vw_weight,
+                'weight' => (float)$this->vw_weight,
                 'color' => $this->vw_color,
                 'batch' => $this->vw_batch
             ];
             
             // Recalculate total weight/quantity
             $totalWeight = collect($this->cart[$this->current_product_id]['items'])->sum('weight');
-            $this->cart[$this->current_product_id]['quantity'] = $totalWeight;
+            $this->cart[$this->current_product_id]['quantity'] = (float)$totalWeight;
         }
 
         $this->reset(['vw_weight', 'vw_color', 'vw_batch']);
@@ -242,14 +242,14 @@ class CreateCargo extends Component
             $this->cart[$productId]['items'] = array_values($this->cart[$productId]['items']);
             
             $totalWeight = collect($this->cart[$productId]['items'])->sum('weight');
-            $this->cart[$productId]['quantity'] = $totalWeight;
+            $this->cart[$productId]['quantity'] = (float)$totalWeight;
         }
     }
 
     public function updateQuantity($productId, $cant)
     {
         if (isset($this->cart[$productId])) {
-            $this->cart[$productId]['quantity'] = $cant;
+            $this->cart[$productId]['quantity'] = is_numeric($cant) ? (float)$cant : 0;
         }
     }
 
