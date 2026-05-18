@@ -170,6 +170,11 @@ class ReturnsReport extends Component
                     );
                     $productWarehouse->stock_qty += $item->quantity_returned;
                     $productWarehouse->save();
+
+                    // Update global product stock
+                    if ($item->product) {
+                        $item->product->increment('stock_qty', $item->quantity_returned);
+                    }
                 }
             }
         }

@@ -157,15 +157,32 @@ class ProductMovementsReport extends Component
             })
             ->sum('quantity');
 
-        // Devoluciones (Ajustes +)
+        // Devoluciones (Ajustes +) - Solo Aprobadas
         $inBefore += DB::table('sale_return_details')
             ->join('sale_details', 'sale_details.id', '=', 'sale_return_details.sale_detail_id')
+            ->join('sale_returns', 'sale_returns.id', '=', 'sale_return_details.sale_return_id')
             ->where('sale_return_details.product_id', $this->product_id)
+            ->where('sale_returns.status', 'approved')
             ->where('sale_return_details.created_at', '<', $start)
             ->when($warehouseId != 'all', function($q) use ($warehouseId) {
                 $q->where('sale_details.warehouse_id', $warehouseId);
             })
             ->sum('quantity_returned');
+
+        // Ventas Anuladas (Entradas por anulación/eliminación)
+        $inBefore += DB::table('sale_details')
+            ->join('sales', 'sales.id', '=', 'sale_details.sale_id')
+            ->where('product_id', $this->product_id)
+            ->where(function($q) {
+                $q->whereNotNull('sales.deleted_at')
+                  ->orWhereNotNull('sales.deletion_approved_at')
+                  ->orWhereIn('sales.status', ['cancelled', 'voided', 'anulated']);
+            })
+            ->where(DB::raw("COALESCE(sales.deletion_approved_at, sales.deleted_at, sales.updated_at)"), '<', $start)
+            ->when($warehouseId != 'all', function($q) use ($warehouseId) {
+                $q->where('sale_details.warehouse_id', $warehouseId);
+            })
+            ->sum('quantity');
 
         // Transferencias (Entrada)
         $inBefore += DB::table('transfer_details')
@@ -223,10 +240,25 @@ class ProductMovementsReport extends Component
                                 })->sum('quantity')
                        + DB::table('sale_return_details')
                                 ->join('sale_details', 'sale_details.id', '=', 'sale_return_details.sale_detail_id')
-                                ->where('sale_return_details.product_id', $this->product_id)->whereBetween('sale_return_details.created_at', [$start, $end])
+                                ->join('sale_returns', 'sale_returns.id', '=', 'sale_return_details.sale_return_id')
+                                ->where('sale_return_details.product_id', $this->product_id)
+                                ->where('sale_returns.status', 'approved')
+                                ->whereBetween('sale_return_details.created_at', [$start, $end])
                                 ->when($warehouseId != 'all', function($q) use ($warehouseId) {
                                     $q->where('sale_details.warehouse_id', $warehouseId);
                                 })->sum('quantity_returned')
+                       + DB::table('sale_details')
+                                ->join('sales', 'sales.id', '=', 'sale_details.sale_id')
+                                ->where('product_id', $this->product_id)
+                                ->where(function($q) {
+                                    $q->whereNotNull('sales.deleted_at')
+                                      ->orWhereNotNull('sales.deletion_approved_at')
+                                      ->orWhereIn('sales.status', ['cancelled', 'voided', 'anulated']);
+                                })
+                                ->whereBetween(DB::raw("COALESCE(sales.deletion_approved_at, sales.deleted_at, sales.updated_at)"), [$start, $end])
+                                ->when($warehouseId != 'all', function($q) use ($warehouseId) {
+                                    $q->where('sale_details.warehouse_id', $warehouseId);
+                                })->sum('quantity')
                        + DB::table('transfer_details')->join('transfers', 'transfers.id', '=', 'transfer_details.transfer_id')
                                 ->where('product_id', $this->product_id)->whereBetween('transfer_details.created_at', [$start, $end])
                                 ->when($warehouseId != 'all', function($q) use ($warehouseId) {
@@ -348,6 +380,7 @@ class ProductMovementsReport extends Component
             ->join('users as u', 'u.id', '=', 'r.user_id')
             ->leftJoin('warehouses as w', 'w.id', '=', 'sd_orig.warehouse_id')
             ->where('rd.product_id', $this->product_id)
+            ->where('r.status', 'approved')
             ->whereBetween('rd.created_at', [$start, $end])
             ->when($warehouseId != 'all', function($q) use ($warehouseId) {
                 $q->where('sd_orig.warehouse_id', $warehouseId);
@@ -360,6 +393,34 @@ class ProductMovementsReport extends Component
                 'c.name as detail',
                 DB::raw("COALESCE(w.name, 'Principal (NC)') as warehouse_name"),
                 'rd.quantity_returned as quantity_in',
+                DB::raw("0 as quantity_out")
+            );
+
+        // Ventas Anuladas - ENTRADA
+        $va = DB::table('sale_details as sd')
+            ->join('sales as s', 's.id', '=', 'sd.sale_id')
+            ->join('customers as c', 'c.id', '=', 's.customer_id')
+            ->leftJoin('users as u', 'u.id', '=', 's.deletion_approved_by')
+            ->leftJoin('users as u2', 'u2.id', '=', 's.user_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'sd.warehouse_id')
+            ->where('sd.product_id', $this->product_id)
+            ->where(function($q) {
+                $q->whereNotNull('s.deleted_at')
+                  ->orWhereNotNull('s.deletion_approved_at')
+                  ->orWhereIn('s.status', ['cancelled', 'voided', 'anulated']);
+            })
+            ->whereBetween(DB::raw("COALESCE(s.deletion_approved_at, s.deleted_at, s.updated_at)"), [$start, $end])
+            ->when($warehouseId != 'all', function($q) use ($warehouseId) {
+                $q->where('sd.warehouse_id', $warehouseId);
+            })
+            ->select(
+                DB::raw("COALESCE(s.deletion_approved_at, s.deleted_at, s.updated_at) as movement_date"),
+                DB::raw("'Venta Anulada (Reingreso)' as type"),
+                's.invoice_number as reference',
+                DB::raw("COALESCE(u.name, u2.name, 'Sistema') as operator"),
+                DB::raw("CONCAT('Anulación: ', COALESCE(s.deletion_reason, 'N/A')) as detail"),
+                'w.name as warehouse_name',
+                'sd.quantity as quantity_in',
                 DB::raw("0 as quantity_out")
             );
 
@@ -413,6 +474,7 @@ class ProductMovementsReport extends Component
             ->unionAll($re)
             ->unionAll($trIn)
             ->unionAll($trOut)
+            ->unionAll($va)
             ->orderBy('movement_date', 'asc')
             ->get();
     }

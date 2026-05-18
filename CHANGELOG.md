@@ -1,3 +1,11 @@
+## [1.10.84] - 2026-05-18
+### Fixed
+- **Reporte de Movimientos de Kardex**:
+    - **Sincronización por Venta Anulada (Reingreso)**: Implementación de un movimiento de reingreso (Entrada) en la fecha exacta en la que se anula o elimina una factura, asegurando consistencia matemática completa entre el Kardex calculado y el stock físico de almacenes.
+    - **Filtro de Devoluciones**: Se restringió la consulta de devoluciones en el reporte para incluir únicamente las Notas de Crédito aprobadas (`approved`), previniendo desbalances por devoluciones pendientes o rechazadas.
+- **Aprobación de Devoluciones**:
+    - **Sincronización de Stock Global**: Se corrigieron los flujos de aprobación en los componentes de Devoluciones, Historial de Pagos y Reporte Histórico para incrementar correctamente el stock global del producto (`products.stock_qty`) al mismo tiempo que el stock físico de cada almacén.
+
 ## [1.10.83] - 2026-05-12
 ### Added
 - **Reporte de Inventario / Stock Optimizado**:
