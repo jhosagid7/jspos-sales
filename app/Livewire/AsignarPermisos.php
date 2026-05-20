@@ -131,6 +131,10 @@ class AsignarPermisos extends Component
                 'edit_credit_config' => 'Editar Configuración de Crédito',
                 'operator' => 'Operador (App)',
                 'manager' => 'Manager (Aprobación)',
+                'products.edit.inventory' => 'Editar Inventario',
+                'products.edit.categories' => 'Editar Categorización',
+                'products.edit.price_rules' => 'Editar Reglas de Precio',
+                'reports.audit' => 'Auditoría de Stock',
              ];
 
              return $map[$name] ?? $map[$action] ?? ucfirst(str_replace('_', ' ', $action));

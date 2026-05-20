@@ -594,6 +594,14 @@
                                         <p>Kardex (Movimientos)</p>
                                     </a>
                                 </li>
+                                @can('reports.audit')
+                                <li class="nav-item">
+                                    <a href="{{ route('reports.audit') }}" class="nav-link">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Auditoría de Stock</p>
+                                    </a>
+                                </li>
+                                @endcan
                                 <li class="nav-item">
                                     <a href="{{ route('reports.best.sellers') }}" class="nav-link">
                                         <i class="far fa-dot-circle nav-icon"></i>

@@ -117,6 +117,7 @@ class Products extends Component
         $this->form->max_stock = $product->max_stock;
         $this->form->brand = $product->brand;
         $this->form->presentation = $product->presentation;
+        $this->form->category_id = $product->category_id;
         $this->form->supplier_id = $product->supplier_id;
         $this->form->production_target_id = $product->production_target_id;
         $this->search_target = $product->productionTarget->name ?? '';

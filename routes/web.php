@@ -171,6 +171,7 @@ Route::middleware('auth')->group(function () {
         Route::get('reports/inventory/pdf', [\App\Http\Controllers\ReportController::class, 'inventoryPdf'])->name('reports.inventory.pdf')->middleware(['can:reports.sales']);
         Route::get('reports/movements', \App\Livewire\Reports\ProductMovementsReport::class)->name('reports.movements')->middleware(['can:reports.stock']);
         Route::get('reports/movements/pdf', [\App\Http\Controllers\ReportController::class, 'productMovementsPdf'])->name('reports.product.movements.pdf')->middleware(['can:reports.stock']);
+        Route::get('reports/audit', \App\Livewire\Reports\AuditReport::class)->name('reports.audit')->middleware(['can:reports.audit']);
         Route::get('customer-payment-relationship', \App\Livewire\Reports\CustomerPaymentRelationshipReport::class)->name('reports.customer.payment.relationship')->middleware('can:reports.customer_payment_relationship');
         Route::get('customer-payment-relationship/pdf', [\App\Http\Controllers\ReportController::class, 'customerPaymentRelationshipPdf'])->name('reports.customer.payment.relationship.pdf')->middleware('can:reports.customer_payment_relationship');
     });

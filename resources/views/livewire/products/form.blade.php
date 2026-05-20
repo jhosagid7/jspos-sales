@@ -88,6 +88,7 @@
                                 <small class="{{ $tab == 5 ? 'text-white' : 'text-muted' }}">Stock y Alertas</small>
                             </div>
                         </a>
+                    </li>
                     @module('module_purchases')
                     <li class="nav-item mb-2">
                         <a class="nav-link {{ $tab == 6 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
@@ -345,6 +346,7 @@
                     <div class="tab-pane fade {{ $tab == 3 ? 'active show' : '' }}" id="category-product"
                         role="tabpanel" aria-labelledby="category-product-tab">
                         <div class="sidebar-body">
+                            <fieldset {{ !auth()->user()->can('products.edit.categories') ? 'disabled' : '' }}>
                             <form>
                                 <div class="row g-lg-4 g-3">
                                     <div class="col-12">
@@ -378,10 +380,12 @@
 
                                             <div class="col-12">
                                                 <div class="category-buton">
+                                                    @can('products.edit.categories')
                                                     <a class="btn button-primary" href="#!"
                                                         wire:click="modal('category')">
                                                         <i class="me-2 fa fa-plus">
                                                         </i>Nueva Categoría </a>
+                                                    @endcan
                                                 </div>
                                             </div>
                                         </div>
@@ -417,10 +421,13 @@
                                             </div>
 
                                             <div class="col-12">
-                                                <div class="category-buton"><a class="btn button-primary"
+                                                <div class="category-buton">
+                                                    @can('products.edit.categories')
+                                                    <a class="btn button-primary"
                                                         href="#!" wire:click="modal('supplier')"><i
                                                             class="me-2 fa fa-plus">
                                                         </i>Nuevo Proveedor </a>
+                                                    @endcan
                                                 </div>
                                             </div>
                                             @endmodule
@@ -484,6 +491,7 @@
                                 </div>
 
                             </form>
+                            </fieldset>
                         </div>
                     </div>
                     <div class="tab-pane fade {{ $tab == 4 ? 'active show' : '' }}" id="pricings" role="tabpanel"
@@ -565,6 +573,7 @@
                     {{-- Inventory Tab --}}
                     <div class="tab-pane fade {{ $tab == 5 ? 'active show' : '' }}" id="inventory" role="tabpanel">
                         <div class="sidebar-body">
+                            <fieldset {{ !auth()->user()->can('products.edit.inventory') ? 'disabled' : '' }}>
                             <form class="row g-3">
                                 <div class="col-sm-12 col-md-6">
                                     <label class="form-label">Administrar Stock</label>
@@ -632,6 +641,7 @@
                                 </div>
                             </div>
                             @endmodule
+                            </fieldset>
                         </div>
                     </div>
 
@@ -773,6 +783,7 @@
                     {{-- Pricing Rules Tab (Freight & Tiers) --}}
                     <div class="tab-pane fade {{ $tab == 10 ? 'active show' : '' }}" id="pricing-rules" role="tabpanel">
                         <div class="sidebar-body">
+                            <fieldset {{ !auth()->user()->can('products.edit.price_rules') ? 'disabled' : '' }}>
                             <h6 class="mb-3">Configuración de Flete</h6>
                             <div class="row g-3 mb-4">
                                 <div class="col-sm-12 col-md-4">
@@ -882,6 +893,7 @@
                                     }
                                 }
                             </script>
+                            </fieldset>
                         </div>
                     </div>
 

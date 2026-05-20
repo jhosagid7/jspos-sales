@@ -1,3 +1,15 @@
+## [1.10.85] - 2026-05-20
+### Added
+- **Auditoría de Sistema**: Nuevo módulo "Auditoría de Stock" (`reports/audit`) para rastrear inserciones, actualizaciones y modificaciones de stock en los productos y depósitos.
+- **Permisos Granulares**: Se agregaron nuevos permisos para proteger vistas y acciones:
+    - `reports.audit`: Acceso al módulo de Auditoría.
+    - `products.edit.inventory`: Permite modificar la pestaña de Inventario (Stock y Alertas).
+    - `products.edit.categories`: Permite modificar la pestaña de Categorización.
+    - `products.edit.price_rules`: Permite modificar la pestaña de Reglas de Precio.
+- **Visualización sin Edición**: Ahora las pestañas protegidas dentro de la edición del producto siempre son visibles, pero el formulario se bloquea (`disabled`) si el usuario no tiene el permiso correspondiente.
+### Fixed
+- **Edición de Producto**: Se corrigió el bug que causaba que el sistema obligara al usuario a seleccionar nuevamente la Categoría al editar un producto debido a una falta de asignación en el componente Livewire.
+
 ## [1.10.84] - 2026-05-18
 ### Fixed
 - **Reporte de Movimientos de Kardex**:
