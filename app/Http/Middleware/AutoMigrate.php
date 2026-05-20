@@ -29,6 +29,13 @@ class AutoMigrate
                     if (!File::exists($flagFile)) {
                         \Illuminate\Support\Facades\Log::info("AutoMigrate - Start for version: " . $currentVersion);
                         
+                        // Auto-install new composer dependencies if any
+                        if (function_exists('exec')) {
+                            $base = base_path();
+                            exec("cd {$base} && composer install --no-interaction --optimize-autoloader 2>&1", $out, $ret);
+                            \Illuminate\Support\Facades\Log::info("AutoMigrate - Composer: " . implode("\n", $out));
+                        }
+                        
                         // Run migrations automatically
                         Artisan::call('migrate', ['--force' => true]);
                         

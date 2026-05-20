@@ -1,3 +1,8 @@
+## [1.10.87] - 2026-05-20
+### Fixed
+- **Despliegue y Actualización Automática**: Se integró `composer install` dentro del middleware `AutoMigrate` para asegurar que los clientes que actualizan por sistema reciban automáticamente las nuevas dependencias sin usar la consola.
+- **Reporte de Auditoría**: Se corrigió un error en el componente Livewire `AuditReport` donde la clase `Activity` no estaba importada correctamente, provocando fallos en pantallas de clientes.
+
 ## [1.10.86] - 2026-05-20
 ### Added
 - **Auditoría de Stock (Etiquetado de Origen)**: Se implementó un nuevo clasificador visual en el reporte de Auditoría para diferenciar automáticamente si un cambio de stock provino de una transacción operativa o de una alteración directa.
