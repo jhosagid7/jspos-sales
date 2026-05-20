@@ -158,7 +158,9 @@ class PostProduct extends Form
             }
         }
 
-        $product =  Product::create([
+        $product = new Product();
+        $product->auditEventContext = 'EDICIÓN MANUAL';
+        $product->fill([
             'name' => $this->name,
             'description' => $this->description,
             'sku' => $this->sku,
@@ -181,6 +183,7 @@ class PostProduct extends Form
             'freight_value' => $this->freight_value,
             'price_group_id' => $this->price_group_id ?: null,
         ]);
+        $product->save();
 
 
 
@@ -241,10 +244,13 @@ class PostProduct extends Form
             $defaultWarehouseId = $config->default_warehouse_id ?? \App\Models\Warehouse::first()->id;
             
             if ($defaultWarehouseId) {
-                \App\Models\ProductWarehouse::updateOrCreate(
-                    ['product_id' => $product->id, 'warehouse_id' => $defaultWarehouseId],
-                    ['stock_qty' => $this->stock_qty]
-                );
+                $pw = \App\Models\ProductWarehouse::firstOrNew([
+                    'product_id' => $product->id, 
+                    'warehouse_id' => $defaultWarehouseId
+                ]);
+                $pw->auditEventContext = 'EDICIÓN MANUAL';
+                $pw->stock_qty = $this->stock_qty;
+                $pw->save();
 
                 // Deduct Components Stock if Pre-assembled
                 if ($this->is_pre_assembled && $this->stock_qty > 0 && !empty($this->product_components)) {
@@ -323,6 +329,7 @@ class PostProduct extends Form
             }
         }
 
+        $product->auditEventContext = 'EDICIÓN MANUAL';
         $product->update([
             'name' => $this->name,
             'description' => $this->description,
@@ -416,10 +423,13 @@ class PostProduct extends Form
             $defaultWarehouseId = $config->default_warehouse_id ?? \App\Models\Warehouse::first()->id;
             
             if ($defaultWarehouseId) {
-                \App\Models\ProductWarehouse::updateOrCreate(
-                    ['product_id' => $product->id, 'warehouse_id' => $defaultWarehouseId],
-                    ['stock_qty' => $this->stock_qty]
-                );
+                $pw = \App\Models\ProductWarehouse::firstOrNew([
+                    'product_id' => $product->id, 
+                    'warehouse_id' => $defaultWarehouseId
+                ]);
+                $pw->auditEventContext = 'EDICIÓN MANUAL';
+                $pw->stock_qty = $this->stock_qty;
+                $pw->save();
 
                 // Adjust Components Stock if Pre-assembled
                 if ($this->is_pre_assembled && !empty($this->product_components)) {

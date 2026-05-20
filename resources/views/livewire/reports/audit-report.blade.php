@@ -93,6 +93,12 @@
                                         @else
                                             <span class="badge badge-secondary">{{ strtoupper($log->event) }}</span>
                                         @endif
+                                        <br>
+                                        @if(isset($log->properties['source']) && $log->properties['source'] == 'EDICIÓN MANUAL')
+                                            <span class="badge badge-danger mt-1"><i class="fa fa-exclamation-triangle"></i> EDICIÓN MANUAL</span>
+                                        @else
+                                            <span class="badge badge-success mt-1"><i class="fa fa-check-circle"></i> SISTEMA</span>
+                                        @endif
                                     </td>
                                     <td>{{ $log->description }}</td>
                                     <td>

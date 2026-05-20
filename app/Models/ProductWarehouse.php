@@ -14,6 +14,8 @@ class ProductWarehouse extends Model
     protected $table = 'product_warehouse';
     protected $fillable = ['product_id', 'warehouse_id', 'stock_qty'];
 
+    public $auditEventContext = 'SISTEMA';
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
@@ -21,6 +23,13 @@ class ProductWarehouse extends Model
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->setDescriptionForEvent(fn(string $eventName) => "Stock en depósito ha sido {$eventName}");
+    }
+
+    public function tapActivity(\Spatie\Activitylog\Models\Activity $activity, string $eventName)
+    {
+        $properties = $activity->properties->toArray();
+        $properties['source'] = $this->auditEventContext ?? 'SISTEMA';
+        $activity->properties = collect($properties);
     }
 
     public function warehouse()

@@ -1,3 +1,9 @@
+## [1.10.86] - 2026-05-20
+### Added
+- **Auditoría de Stock (Etiquetado de Origen)**: Se implementó un nuevo clasificador visual en el reporte de Auditoría para diferenciar automáticamente si un cambio de stock provino de una transacción operativa o de una alteración directa.
+    - **EDICIÓN MANUAL**: Aparecerá en color rojo cuando un usuario modifique el inventario, el costo o el precio forzando el valor desde el formulario de edición directa del producto.
+    - **SISTEMA**: Aparecerá en color verde cuando el stock se modifique como resultado de una operación formal (Ventas, Compras, Cargos, Descargos, Traspasos, etc.), delegando la revisión detallada (como cliente o nro. de documento) al reporte de Kardex.
+
 ## [1.10.85] - 2026-05-20
 ### Added
 - **Auditoría de Sistema**: Nuevo módulo "Auditoría de Stock" (`reports/audit`) para rastrear inserciones, actualizaciones y modificaciones de stock en los productos y depósitos.

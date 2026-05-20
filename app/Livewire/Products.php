@@ -548,10 +548,12 @@ class Products extends Component
             $productId = $this->form->product_id;
 
             // Update DB
-            \App\Models\ProductWarehouse::updateOrCreate(
-                ['product_id' => $productId, 'warehouse_id' => $warehouseId],
-                ['stock_qty' => $newQty]
+            $pw = \App\Models\ProductWarehouse::firstOrNew(
+                ['product_id' => $productId, 'warehouse_id' => $warehouseId]
             );
+            $pw->auditEventContext = 'EDICIÓN MANUAL';
+            $pw->stock_qty = $newQty;
+            $pw->save();
 
             // Update local state
             $this->form->stock_details[$index]['stock'] = $newQty;

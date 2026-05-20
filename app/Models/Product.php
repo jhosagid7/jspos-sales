@@ -13,6 +13,8 @@ class Product extends Model
 {
     use HasFactory, \Illuminate\Database\Eloquent\SoftDeletes, LogsActivity;
 
+    public $auditEventContext = 'SISTEMA';
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
@@ -23,6 +25,13 @@ class Product extends Model
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->setDescriptionForEvent(fn(string $eventName) => "Este producto ha sido {$eventName}");
+    }
+
+    public function tapActivity(\Spatie\Activitylog\Models\Activity $activity, string $eventName)
+    {
+        $properties = $activity->properties->toArray();
+        $properties['source'] = $this->auditEventContext ?? 'SISTEMA';
+        $activity->properties = collect($properties);
     }
 
     protected $fillable = [
