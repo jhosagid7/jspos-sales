@@ -1,3 +1,7 @@
+## [1.10.90] - 2026-05-21
+### Fixed
+- **Historial de Pagos**: Se solucionó un error crítico (`Call to undefined relationship [currency]`) que provocaba que el sistema colapsara al intentar cargar la vista del historial de pagos o facturas cobradas (especialmente al registrar abonos o pagos en monedas como bolívares). Se añadió la relación faltante en el modelo `SalePaymentDetail`.
+
 ## [1.10.89] - 2026-05-21
 ### Fixed
 - **Configuración de Venta (Comisión, Flete, Diferencial)**: Se corrigió la lógica de asignación jerárquica de comisiones en el sistema de Ventas. Ahora, si el cliente tiene configurado *cualquiera* de los tres valores (comisión, flete o diferencial) mayor a cero, el sistema usará en bloque la configuración completa del cliente y anulará la del vendedor, evitando mezclas de porcentajes entre ambos perfiles.
