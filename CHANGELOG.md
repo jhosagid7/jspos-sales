@@ -1,3 +1,7 @@
+## [1.10.92] - 2026-05-21
+### Changed
+- **Impresión de Etiquetas**: Se incrementó el tamaño de la fuente de los textos informativos ("Operador" y "Fecha") y se aplicó formato de texto en negrita al mes y año preimpresos para mejorar su legibilidad al momento de imprimir.
+
 ## [1.10.91] - 2026-05-21
 ### Added
 - **Impresión de Etiquetas**: Se actualizó el formato de la etiqueta de productos generada en PDF. Ahora la fecha preimprime automáticamente el mes y el año actual (`____/mm/yyyy`), dejando únicamente la línea en blanco para el día.

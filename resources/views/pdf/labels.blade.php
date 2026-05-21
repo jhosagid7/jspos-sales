@@ -55,7 +55,7 @@
             word-break: break-word;
         }
         .info-row {
-            font-size: 8px; /* Restored font size */
+            font-size: 10px; /* Increased font size */
             margin: 0;
             width: 100%;
             padding-left: 2px;
@@ -112,7 +112,7 @@
                                         <strong>Operador:</strong> ____________________
                                     </div>
                                     <div class="info-line">
-                                        <strong>Fecha:</strong> ____/{{ date('m/Y') }}
+                                        <strong>Fecha:</strong> <strong>____/{{ date('m/Y') }}</strong>
                                     </div>
                                 </div>
 
