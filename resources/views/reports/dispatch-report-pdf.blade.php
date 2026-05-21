@@ -178,12 +178,12 @@
                     @endforeach
                     <tr style="background-color: #fafafa; font-weight: bold;">
                         <td colspan="{{ collect($columns)->take(3)->filter()->count() }}" class="text-right">Subtotal Vendedor:</td>
-                        @php $skip = collect($columns)->take(3)->filter()->count(); @endphp
-                        
-                        @for($i=0; $i < (collect($columns)->filter()->count() - $skip - 1); $i++)
-                            <td></td>
-                        @endfor
-                        <td class="text-right">{{ number_format($sellerGroup['total_final'], 2) }}</td>
+                        @if($columns['base']) <td class="text-right">{{ number_format($sellerGroup['total_base'], 2) }}</td> @endif
+                        @if($columns['percent']) <td></td> @endif
+                        @if($columns['commission']) <td></td> @endif
+                        @if($columns['freight']) <td></td> @endif
+                        @if($columns['differential']) <td></td> @endif
+                        @if($columns['total']) <td class="text-right">{{ number_format($sellerGroup['total_final'], 2) }}</td> @endif
                         @if($columns['date']) <td></td> @endif
                     </tr>
                 @endforeach
@@ -191,11 +191,12 @@
             <tfoot>
                 <tr style="background-color: #f0f0f0; font-weight: bold; border-top: 1.5pt solid #999;">
                     <td colspan="{{ collect($columns)->take(3)->filter()->count() }}" class="text-right">TOTAL {{ $driverGroup['name'] }}:</td>
-                    @php $skip = collect($columns)->take(3)->filter()->count(); @endphp
-                    @for($i=0; $i < (collect($columns)->filter()->count() - $skip - 1); $i++)
-                        <td></td>
-                    @endfor
-                    <td class="text-right">{{ number_format($driverGroup['total_final'], 2) }}</td>
+                    @if($columns['base']) <td class="text-right">{{ number_format($driverGroup['total_base'], 2) }}</td> @endif
+                    @if($columns['percent']) <td></td> @endif
+                    @if($columns['commission']) <td></td> @endif
+                    @if($columns['freight']) <td></td> @endif
+                    @if($columns['differential']) <td></td> @endif
+                    @if($columns['total']) <td class="text-right">{{ number_format($driverGroup['total_final'], 2) }}</td> @endif
                     @if($columns['date']) <td></td> @endif
                 </tr>
             </tfoot>

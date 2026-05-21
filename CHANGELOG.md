@@ -1,3 +1,7 @@
+## [1.10.88] - 2026-05-21
+### Added
+- **Reporte de Relación de Despacho**: Se actualizó la vista del PDF del reporte para mostrar explícitamente el total de la columna "Base" en las filas de "Subtotal Vendedor" y "TOTAL CHOFER", permitiendo una auditoría más rápida de los montos base.
+
 ## [1.10.87] - 2026-05-20
 ### Fixed
 - **Despliegue y Actualización Automática**: Se integró `composer install` dentro del middleware `AutoMigrate` para asegurar que los clientes que actualizan por sistema reciban automáticamente las nuevas dependencias sin usar la consola.
