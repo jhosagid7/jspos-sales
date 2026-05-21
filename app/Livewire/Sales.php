@@ -3631,21 +3631,22 @@ class Sales extends Component
                     $sellerConfigId = $this->sellerConfig->id;
                 }
                 
-                if ($this->customerConfig && $this->customerConfig->commission_percent > 0) {
+                // Determine if the customer has any configuration applied at all
+                $customerHasConfig = $this->customerConfig && (
+                    $this->customerConfig->commission_percent > 0 ||
+                    $this->customerConfig->freight_percent > 0 ||
+                    $this->customerConfig->exchange_diff_percent > 0
+                );
+
+                if ($customerHasConfig) {
+                    // If customer has at least one configured, take EVERYTHING from the customer
                     $appliedComm = $this->customerConfig->commission_percent;
-                } elseif ($this->sellerConfig) {
-                    $appliedComm = $this->sellerConfig->commission_percent;
-                }
-
-                if ($this->customerConfig && $this->customerConfig->freight_percent > 0) {
                     $appliedFreight = $this->customerConfig->freight_percent;
-                } elseif ($this->sellerConfig) {
-                    $appliedFreight = $this->sellerConfig->freight_percent;
-                }
-
-                if ($this->customerConfig && $this->customerConfig->exchange_diff_percent > 0) {
                     $appliedDiff = $this->customerConfig->exchange_diff_percent;
                 } elseif ($this->sellerConfig) {
+                    // Otherwise, fallback entirely to the seller's config
+                    $appliedComm = $this->sellerConfig->commission_percent;
+                    $appliedFreight = $this->sellerConfig->freight_percent;
                     $appliedDiff = $this->sellerConfig->exchange_diff_percent;
                 }
             }
