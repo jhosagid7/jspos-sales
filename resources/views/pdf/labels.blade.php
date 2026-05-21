@@ -112,7 +112,7 @@
                                         <strong>Operador:</strong> ____________________
                                     </div>
                                     <div class="info-line">
-                                        <strong>Fecha:</strong> ____/____/________
+                                        <strong>Fecha:</strong> ____/{{ date('m/Y') }}
                                     </div>
                                 </div>
 

@@ -1,3 +1,7 @@
+## [1.10.91] - 2026-05-21
+### Added
+- **Impresión de Etiquetas**: Se actualizó el formato de la etiqueta de productos generada en PDF. Ahora la fecha preimprime automáticamente el mes y el año actual (`____/mm/yyyy`), dejando únicamente la línea en blanco para el día.
+
 ## [1.10.90] - 2026-05-21
 ### Fixed
 - **Historial de Pagos**: Se solucionó un error crítico (`Call to undefined relationship [currency]`) que provocaba que el sistema colapsara al intentar cargar la vista del historial de pagos o facturas cobradas (especialmente al registrar abonos o pagos en monedas como bolívares). Se añadió la relación faltante en el modelo `SalePaymentDetail`.
