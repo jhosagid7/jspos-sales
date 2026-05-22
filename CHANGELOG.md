@@ -1,3 +1,7 @@
+## [1.10.94] - 2026-05-22
+### Fixed
+- **Dashboard**: Se resolvió definitivamente el problema de las gráficas en blanco. El conflicto ocurría durante la navegación rápida (SPA) donde el evento de inicio de Livewire ya se había disparado previamente, dejando las gráficas sin ejecutar. Ahora las gráficas se auto-ejecutan directamente al momento de renderizar el componente.
+
 ## [1.10.93] - 2026-05-21
 ### Fixed
 - **Dashboard**: Se corrigió un error que provocaba que las gráficas de "Ventas vs Ganancias" y "Top Vendedores" no se renderizaran (quedaran en blanco) al cargar el Dashboard, debido a un conflicto de sincronización en la carga de la librería de gráficas Highcharts.

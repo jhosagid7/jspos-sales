@@ -264,12 +264,12 @@
     <script>
         let topSellersChart; // Global variable to access the chart
 
-        document.addEventListener('livewire:init', () => {
-            initCharts();
-        });
+        // In Livewire 3 with wire:navigate, livewire:init only fires once per full page load.
+        // We must call it directly so it runs every time the component is injected into the DOM.
+        initCharts();
 
         function initCharts() {
-            if (typeof Highcharts === 'undefined') {
+            if (typeof Highcharts === 'undefined' || !document.getElementById('salesChart')) {
                 setTimeout(initCharts, 100);
                 return;
             }
