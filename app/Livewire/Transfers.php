@@ -111,6 +111,23 @@ class Transfers extends Component
 
         $this->validate($rules, $messages);
 
+        // Validar que los traspasos desde Soplados a la Tienda Principal solo permitan cantidades enteras (bultos completos)
+        $config = \App\Models\Configuration::first();
+        $soplados_warehouse_id = $config->soplados_warehouse_id ?? null;
+        $default_warehouse_id = $config->default_warehouse_id ?? null;
+
+        if ($soplados_warehouse_id && $default_warehouse_id) {
+            if ($this->from_warehouse_id == $soplados_warehouse_id && $this->to_warehouse_id == $default_warehouse_id) {
+                foreach ($this->cart as $item) {
+                    $qty = floatval($item['qty']);
+                    if (floor($qty) != $qty) {
+                        $this->dispatch('error', 'Traspaso bloqueado: Los traspasos desde Soplados a la Tienda Principal solo permiten cantidades enteras (bultos completos). Se detectó ' . $qty . ' en "' . $item['name'] . '". Las unidades sueltas deben quedarse en la planta.');
+                        return;
+                    }
+                }
+            }
+        }
+
         DB::beginTransaction();
         try {
             $transfer = Transfer::create([

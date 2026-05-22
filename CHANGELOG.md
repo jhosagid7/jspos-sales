@@ -1,3 +1,7 @@
+## [1.10.99] - 2026-05-22
+### Added
+- **Soplados (Logística / Traspasos)**: Se implementó la regla de validación para traspasos de inventario (Fase 3). Ahora, cualquier traspaso registrado desde el almacén de Soplados hacia la Tienda Principal (Almacén General) se valida estrictamente en el backend. Si se intenta traspasar una cantidad fraccionada (con decimales) para cualquier producto, el sistema bloqueará la transacción arrojando una alerta indicando que solo se permiten bultos o unidades completas (enteras), garantizando que las unidades sueltas remanentes se queden siempre bajo el control de la planta de producción.
+
 ## [1.10.98] - 2026-05-22
 ### Added
 - **Soplados (App Móvil)**: Se implementó la interfaz de doble entrada para productos de embalaje (bultos) en el modal de registro de producción. Ahora la app móvil detecta automáticamente si el producto requiere empaque basado en su equivalencia (si es > 1 unidad, ej: 200). Muestra dos campos numéricos independientes ("Bultos" y "Unidades Sueltas"), calcula el decimal exacto en tiempo real y lo envía de forma nativa al backend para realizar el descuento correcto de preformas.
