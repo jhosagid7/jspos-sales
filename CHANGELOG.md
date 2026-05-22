@@ -1,3 +1,7 @@
+## [1.10.97] - 2026-05-22
+### Fixed
+- **Soplados**: Se solucionó un error fatal de ejecución (`Attempt to read property "name" on null`) en el listado de recetas (fórmulas) de Soplados (`formulas.blade.php`). El error ocurría al intentar mostrar recetas con productos o ingredientes que habían sido eliminados (soft-deleted). Se integró `withTrashed()` en las relaciones del modelo `ProductionFormula` y validaciones null-safe (`??`) en la plantilla Blade.
+
 ## [1.10.96] - 2026-05-22
 ### Fixed
 - **Dashboard**: Se corrigió un error fatal de renderizado (`Attempt to read property "childNodes" on null`) causado por incompatibilidad de las directivas `@script` de Livewire 3 con el DOM del Dashboard. Se refactorizó la inicialización utilizando el evento global `livewire:navigated` para garantizar que las gráficas se pinten sin romper la estructura HTML del componente.

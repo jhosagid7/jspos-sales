@@ -88,8 +88,8 @@
                             <tbody>
                                 @foreach($formulas as $f)
                                 <tr>
-                                    <td><h6>{{ $f->product->name }}</h6></td>
-                                    <td class="text-center"><h6>{{ $f->ingredient->name }}</h6></td>
+                                    <td><h6>{{ $f->product->name ?? 'Producto Eliminado' }}</h6></td>
+                                    <td class="text-center"><h6>{{ $f->ingredient->name ?? 'Insumo Eliminado' }}</h6></td>
                                     <td class="text-center"><h6>{{ number_format($f->quantity, 2) }}</h6></td>
                                     <td class="text-center">
                                         <button wire:click="delete({{ $f->id }})" class="btn btn-danger btn-sm">
