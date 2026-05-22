@@ -256,16 +256,25 @@
     </div>
 
 
+    @assets
     <script src="https://code.highcharts.com/highcharts.js"></script>
     <script src="https://code.highcharts.com/modules/exporting.js"></script>
     <script src="https://code.highcharts.com/modules/export-data.js"></script>
     <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+    @endassets
 
+    @script
     <script>
         let topSellersChart; // Global variable to access the chart
 
-        // In Livewire 3 with wire:navigate, livewire:init only fires once per full page load.
-        // We must call it directly so it runs every time the component is injected into the DOM.
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            let errStr = "Error: " + msg;
+            let el = document.getElementById('salesChart');
+            if(el) el.innerHTML = "<div style='color:red'>" + errStr + "</div>";
+            return false;
+        };
+
+        // En Livewire 3 con @script, este código se ejecuta en cada inicialización del componente.
         initCharts();
 
         function initCharts() {
@@ -509,4 +518,5 @@
             });
         }
     </script>
+    @endscript
 </div>

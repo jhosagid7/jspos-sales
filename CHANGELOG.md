@@ -1,3 +1,7 @@
+## [1.10.95] - 2026-05-22
+### Fixed
+- **Dashboard**: Se ajustó la integración de la librería de gráficas Highcharts utilizando las directivas `@assets` y `@script` propias de Livewire 3 para asegurar compatibilidad absoluta con el DOM virtual y garantizar el renderizado correcto de las gráficas bajo cualquier flujo de navegación.
+
 ## [1.10.94] - 2026-05-22
 ### Fixed
 - **Dashboard**: Se resolvió definitivamente el problema de las gráficas en blanco. El conflicto ocurría durante la navegación rápida (SPA) donde el evento de inicio de Livewire ya se había disparado previamente, dejando las gráficas sin ejecutar. Ahora las gráficas se auto-ejecutan directamente al momento de renderizar el componente.
