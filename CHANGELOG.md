@@ -1,3 +1,7 @@
+## [1.10.93] - 2026-05-21
+### Fixed
+- **Dashboard**: Se corrigió un error que provocaba que las gráficas de "Ventas vs Ganancias" y "Top Vendedores" no se renderizaran (quedaran en blanco) al cargar el Dashboard, debido a un conflicto de sincronización en la carga de la librería de gráficas Highcharts.
+
 ## [1.10.92] - 2026-05-21
 ### Changed
 - **Impresión de Etiquetas**: Se incrementó el tamaño de la fuente de los textos informativos ("Operador" y "Fecha") y se aplicó formato de texto en negrita al mes y año preimpresos para mejorar su legibilidad al momento de imprimir.

@@ -265,7 +265,16 @@
         let topSellersChart; // Global variable to access the chart
 
         document.addEventListener('livewire:init', () => {
+            initCharts();
+        });
+
+        function initCharts() {
+            if (typeof Highcharts === 'undefined') {
+                setTimeout(initCharts, 100);
+                return;
+            }
             
+            if (!document.getElementById('salesChart')) return;
             const isDarkMode = document.body.classList.contains('dark-mode');
             const textColor = isDarkMode ? '#e4e4e4' : '#333333';
             const axisColor = isDarkMode ? '#6c757d' : '#666666';
@@ -338,11 +347,12 @@
             const topSellersData = @json($topSellersChartData ?? []);
             
             // Initialize Top Sellers Chart
-            topSellersChart = Highcharts.chart('topSellersChart', {
-                chart: {
-                    type: 'bar',
-                    backgroundColor: chartBg
-                },
+            if (document.getElementById('topSellersChart')) {
+                topSellersChart = Highcharts.chart('topSellersChart', {
+                    chart: {
+                        type: 'bar',
+                        backgroundColor: chartBg
+                    },
                 title: {
                     text: '',
                     style: { color: textColor }
@@ -399,8 +409,9 @@
                     data: topSellersData,
                     showInLegend: false
                 }]
-            });
-        });
+                });
+            }
+        }
 
         function changeChartType(type) {
             if (!topSellersChart) return;
