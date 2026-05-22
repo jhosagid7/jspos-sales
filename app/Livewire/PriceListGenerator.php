@@ -207,6 +207,7 @@ class PriceListGenerator extends Component
         }
 
         $products = Product::where('status', 'available')
+            ->where('show_in_sales', true)
             ->with('category')
             ->join('categories', 'products.category_id', '=', 'categories.id')
             ->orderBy('categories.name')

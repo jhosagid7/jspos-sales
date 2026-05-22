@@ -282,9 +282,14 @@
                                 </div>
 
                                 {{-- stock fields moved to Inventory tab --}}
-
-
                                 <div class="col-sm-12 mt-2 mb-2">
+                                     <div class="form-check form-switch mt-2">
+                                         <input class="form-check-input" type="checkbox" id="showInSalesSwitch" wire:model="form.show_in_sales">
+                                         <label class="form-check-label text-primary font-weight-bold" for="showInSalesSwitch">Mostrar en Área de Ventas y Listas de Precios</label>
+                                         <small class="form-text text-muted d-block">
+                                             Si se desactiva (OFF), este producto no aparecerá en el POS (punto de venta), en la aplicación móvil ni en el generador de listas de precios.
+                                         </small>
+                                     </div>
                                     <div class="form-check form-switch mt-2">
                                         <input class="form-check-input" type="checkbox" id="decimalSwitch" wire:model="form.allow_decimal">
                                         <label class="form-check-label" for="decimalSwitch">Permite Cantidades Decimales (Fraccionable)</label>

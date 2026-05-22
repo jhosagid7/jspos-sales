@@ -750,7 +750,7 @@ class Sales extends Component
         }
 
         if (strlen($search) > 0) {
-            $query = Product::search($search);
+            $query = Product::search($search)->where('show_in_sales', true);
             
             // Results are already ordered and filtered by the scope
             

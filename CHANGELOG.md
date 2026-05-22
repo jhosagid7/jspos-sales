@@ -1,3 +1,10 @@
+## [1.10.102] - 2026-05-22
+### Added
+- **Productos (Visibilidad y Ventas)**: Se implementó un nuevo interruptor (Switch/Toggle) en la pestaña "Generales" del formulario de creación y edición de productos ("Mostrar en Área de Ventas y Listas de Precios"). Esto permite a los administradores desactivar (OFF) la visibilidad de cualquier producto.
+- **Punto de Venta (Web POS)**: Se actualizó el buscador del POS web para filtrar y omitir automáticamente cualquier producto que tenga la visibilidad desactivada (`show_in_sales = false`).
+- **Aplicaciones Móviles (Preventa y Clientes VIP)**: Se restringieron los endpoints de la API móvil de vendedores (`Api/ProductController`) y de clientes VIP (`Api/Vip/ProductController`) para que solo muestren y busquen productos con visibilidad activa, previniendo que aparezcan en el catálogo o inventario de la app.
+- **Generador de Listas de Precios**: Se actualizó la consulta en `PriceListGenerator` para excluir de forma automática los productos que tengan el switch en OFF, de modo que no se muestren en la cuadrícula de previsualización ni en los PDFs generados para clientes.
+
 ## [1.10.101] - 2026-05-22
 ### Fixed
 - **Logística (Traspasos - Web)**: Se corrigió un error en el buscador de productos del formulario web de creación de traspasos (`Transfers.php`). Anteriormente, la consulta utilizaba un filtro rígido `like '%término%'` que no encontraba productos si el nombre contenía espacios consecutivos en la base de datos (como `"ENVASE PET 500ML  200UND"`, el cual tiene dos espacios). Se refactorizó el buscador para utilizar el método global de búsqueda inteligente del modelo `Product::search()`, logrando compatibilidad total con búsquedas predictivas por token, tolerando variaciones de espacios y ordenando por relevancia.

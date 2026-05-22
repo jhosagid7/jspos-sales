@@ -32,6 +32,7 @@ class ProductController extends Controller
         $warehouseId = $customer->seller->warehouse_id ?? $globalConfig->default_warehouse_id ?? 1;
 
         $products = Product::query()
+            ->where('show_in_sales', true)
             ->when($search, function ($query, $search) {
                 return $query->search($search);
             })

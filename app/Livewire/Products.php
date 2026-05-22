@@ -125,6 +125,7 @@ class Products extends Component
         $this->form->additional_cost = $product->additional_cost;
         $this->form->is_variable_quantity = (bool) $product->is_variable_quantity;
         $this->form->allow_decimal = (bool) $product->allow_decimal;
+        $this->form->show_in_sales = (bool) $product->show_in_sales;
         $this->form->tags = $product->tags->pluck('name')->implode(',');
         $this->form->values = $product->priceList->toArray();
         

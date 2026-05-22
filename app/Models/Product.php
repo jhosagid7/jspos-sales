@@ -55,9 +55,14 @@ class Product extends Model
         'additional_cost',
         'allow_decimal',
         'is_variable_quantity',
+        'show_in_sales',
         'freight_type',
         'freight_value',
         'price_group_id'
+    ];
+
+    protected $casts = [
+        'show_in_sales' => 'boolean',
     ];
 
     //relationships

@@ -29,11 +29,27 @@ class AutoMigrate
                     if (!File::exists($flagFile)) {
                         \Illuminate\Support\Facades\Log::info("AutoMigrate - Start for version: " . $currentVersion);
                         
-                        // Auto-install new composer dependencies if any
+                        // Auto-install new composer dependencies ONLY if composer.lock has changed
                         if (function_exists('exec')) {
-                            $base = base_path();
-                            exec("cd {$base} && composer install --no-interaction --optimize-autoloader 2>&1", $out, $ret);
-                            \Illuminate\Support\Facades\Log::info("AutoMigrate - Composer: " . implode("\n", $out));
+                            $lockFile = base_path('composer.lock');
+                            $lockHash = File::exists($lockFile) ? md5_file($lockFile) : 'no_lock';
+                            
+                            $hashFile = storage_path('framework/composer_lock.hash');
+                            $savedHash = File::exists($hashFile) ? trim(File::get($hashFile)) : '';
+                            
+                            if ($lockHash !== $savedHash) {
+                                \Illuminate\Support\Facades\Log::info("AutoMigrate - composer.lock changed. Running composer install...");
+                                $base = base_path();
+                                exec("cd {$base} && composer install --no-interaction --optimize-autoloader 2>&1", $out, $ret);
+                                \Illuminate\Support\Facades\Log::info("AutoMigrate - Composer: " . implode("\n", $out));
+                                
+                                // Only save the hash if composer install completed successfully
+                                if (isset($ret) && $ret === 0) {
+                                    File::put($hashFile, $lockHash);
+                                }
+                            } else {
+                                \Illuminate\Support\Facades\Log::info("AutoMigrate - composer.lock has not changed. Skipping composer install.");
+                            }
                         }
                         
                         // Run migrations automatically

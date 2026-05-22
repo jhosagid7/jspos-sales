@@ -21,6 +21,7 @@ class PostProduct extends Form
     public $name, $sku, $description, $type = 'physical', $status = 'available', $cost = 0, $price = 0, $manage_stock = 1, $stock_qty = 0, $low_stock = 0, $category_id = 0, $supplier_id = 0, $product_id = 0, $gallery, $production_target_id;
     public $max_stock = 0, $brand, $presentation, $is_pre_assembled = false, $additional_cost = 0, $stock_details = [], $tags = '', $allow_decimal = false;
     public $is_variable_quantity = false;
+    public $show_in_sales = true;
     
     // Freight & Pricing Rules
     public $freight_type = 'none'; // none, percentage, fixed
@@ -88,6 +89,7 @@ class PostProduct extends Form
             'tags' => 'nullable|string',
             'allow_decimal' => 'boolean',
             'is_variable_quantity' => 'boolean',
+            'show_in_sales' => 'boolean',
             'freight_type' => 'in:none,percentage,fixed',
             'freight_value' => 'numeric|min:0',
             'pricing_tiers' => 'array',
@@ -179,6 +181,7 @@ class PostProduct extends Form
             'additional_cost' => $this->additional_cost,
             'allow_decimal' => $this->allow_decimal ? 1 : 0,
             'is_variable_quantity' => $this->is_variable_quantity ? 1 : 0,
+            'show_in_sales' => $this->show_in_sales ? 1 : 0,
             'freight_type' => $this->freight_type,
             'freight_value' => $this->freight_value,
             'price_group_id' => $this->price_group_id ?: null,
@@ -349,6 +352,7 @@ class PostProduct extends Form
             'additional_cost' => $this->additional_cost,
             'allow_decimal' => $this->allow_decimal ? 1 : 0,
             'is_variable_quantity' => $this->is_variable_quantity ? 1 : 0,
+            'show_in_sales' => $this->show_in_sales ? 1 : 0,
             'freight_type' => $this->freight_type,
             'freight_value' => $this->freight_value,
             'price_group_id' => $this->price_group_id ?: null,
