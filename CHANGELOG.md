@@ -1,3 +1,12 @@
+## [1.10.101] - 2026-05-22
+### Fixed
+- **Logística (Traspasos - Web)**: Se corrigió un error en el buscador de productos del formulario web de creación de traspasos (`Transfers.php`). Anteriormente, la consulta utilizaba un filtro rígido `like '%término%'` que no encontraba productos si el nombre contenía espacios consecutivos en la base de datos (como `"ENVASE PET 500ML  200UND"`, el cual tiene dos espacios). Se refactorizó el buscador para utilizar el método global de búsqueda inteligente del modelo `Product::search()`, logrando compatibilidad total con búsquedas predictivas por token, tolerando variaciones de espacios y ordenando por relevancia.
+
+## [1.10.100] - 2026-05-22
+### Added
+- **Soplados (App Móvil)**: Se incrementó la versión a `1.16.1+9` y se implementó un sistema de notificaciones de error visuales robusto (SnackBar) para la carga de inventario y recibos pendientes. Si el servidor devuelve un error (como `403` por dispositivo no autorizado, `401` por sesión expirada o fallos de conexión de red), la aplicación ya no fallará en silencio dejando la interfaz vacía, sino que alertará de forma inmediata al operador con el código y descripción exacta del problema. Esto permite diagnosticar de manera instantánea fallas de red, problemas de autorización de dispositivos o configuraciones incorrectas de URL.
+- **Soplados (App Móvil - Distribución)**: Se compiló y generó la nueva versión de producción del APK optimizada con soporte completo de 64 bits (`JSPOS_Mobile_Soplados_v1.16.1_AppManufactura_SuWeb.apk`) copiada a la raíz del proyecto para facilitar su descarga e instalación inmediata.
+
 ## [1.10.99] - 2026-05-22
 ### Added
 - **Soplados (Logística / Traspasos)**: Se implementó la regla de validación para traspasos de inventario (Fase 3). Ahora, cualquier traspaso registrado desde el almacén de Soplados hacia la Tienda Principal (Almacén General) se valida estrictamente en el backend. Si se intenta traspasar una cantidad fraccionada (con decimales) para cualquier producto, el sistema bloqueará la transacción arrojando una alerta indicando que solo se permiten bultos o unidades completas (enteras), garantizando que las unidades sueltas remanentes se queden siempre bajo el control de la planta de producción.

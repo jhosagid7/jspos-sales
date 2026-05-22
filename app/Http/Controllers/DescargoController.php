@@ -49,6 +49,13 @@ class DescargoController extends Controller
 
         $notes = $descargo->comments ?? '';
 
+        $logoPath = null;
+        if ($config->logo && file_exists(public_path('storage/' . $config->logo))) {
+            $logoPath = public_path('storage/' . $config->logo);
+        } elseif (file_exists(public_path('logo/logo.jpg'))) {
+            $logoPath = public_path('logo/logo.jpg');
+        }
+
         $invoice = Invoice::make($config->business_name)
             ->template('invoice-descargo') // Using the custom descargo template
             ->name($config->business_name)
@@ -62,8 +69,11 @@ class DescargoController extends Controller
             ->currencyCode('')
             ->currencyDecimals(2)
             ->addItems($items)
-            ->notes($notes)
-            ->logo($config->logo ? public_path('storage/' . $config->logo) : public_path('logo/logo.jpg'));
+            ->notes($notes);
+
+        if ($logoPath) {
+            $invoice->logo($logoPath);
+        }
 
         return $invoice->stream();
     }

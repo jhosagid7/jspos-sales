@@ -47,8 +47,14 @@ class PurchaseController extends Controller
                 ->pricePerUnit($detail->cost)
                 ->quantity($detail->quantity);
         }
-
         $notes = $purchase->notes ?? '';
+
+        $logoPath = null;
+        if ($config->logo && file_exists(public_path('storage/' . $config->logo))) {
+            $logoPath = public_path('storage/' . $config->logo);
+        } elseif (file_exists(public_path('logo/logo.jpg'))) {
+            $logoPath = public_path('logo/logo.jpg');
+        }
 
         $invoice = Invoice::make($config->business_name)
             ->template('invoice-purchase-order')
@@ -63,8 +69,11 @@ class PurchaseController extends Controller
             ->currencyCode('COP')
             ->currencyDecimals(ConfigurationService::getDecimalPlaces())
             ->addItems($items)
-            ->notes($notes)
-            ->logo($config->logo ? public_path('storage/' . $config->logo) : public_path('logo/logo.jpg'));
+            ->notes($notes);
+
+        if ($logoPath) {
+            $invoice->logo($logoPath);
+        }
 
         return $invoice->stream();
     }

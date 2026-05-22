@@ -1391,9 +1391,23 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
           _inventory = data['inventory']; 
           _warehouseName = data['warehouse'] ?? "Planta";
         });
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Error al cargar inventario: ${response.statusCode} - ${response.body}'),
+            backgroundColor: Colors.red,
+          ));
+        }
       }
-    } catch (e) { debugPrint("Inv Err: $e"); }
-    finally { setState(() => _isLoading = false); }
+    } catch (e) { 
+      debugPrint("Inv Err: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error de conexión al cargar inventario: $e'),
+          backgroundColor: Colors.red,
+        ));
+      }
+    } finally { setState(() => _isLoading = false); }
   }
 
   Future<void> _fetchReceipts() async {
@@ -1406,8 +1420,23 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() { _receipts = data['transfers']; });
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Error al cargar recibos: ${response.statusCode}'),
+            backgroundColor: Colors.red,
+          ));
+        }
       }
-    } catch (e) { debugPrint("Receipts Err: $e"); }
+    } catch (e) { 
+      debugPrint("Receipts Err: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error de conexión al cargar recibos: $e'),
+          backgroundColor: Colors.red,
+        ));
+      }
+    }
   }
 
   // Modal/Partial state

@@ -42,8 +42,7 @@ class Transfers extends Component
         // Search products for autocomplete/selection
         $products = [];
         if(strlen($this->product_search) > 0) {
-            $products = Product::where('name', 'like', '%' . $this->product_search . '%')
-                        ->orWhere('sku', 'like', '%' . $this->product_search . '%')
+            $products = Product::search($this->product_search)
                         ->take(5)->get();
         }
 
