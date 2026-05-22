@@ -1,3 +1,7 @@
+## [1.10.96] - 2026-05-22
+### Fixed
+- **Dashboard**: Se corrigió un error fatal de renderizado (`Attempt to read property "childNodes" on null`) causado por incompatibilidad de las directivas `@script` de Livewire 3 con el DOM del Dashboard. Se refactorizó la inicialización utilizando el evento global `livewire:navigated` para garantizar que las gráficas se pinten sin romper la estructura HTML del componente.
+
 ## [1.10.95] - 2026-05-22
 ### Fixed
 - **Dashboard**: Se ajustó la integración de la librería de gráficas Highcharts utilizando las directivas `@assets` y `@script` propias de Livewire 3 para asegurar compatibilidad absoluta con el DOM virtual y garantizar el renderizado correcto de las gráficas bajo cualquier flujo de navegación.

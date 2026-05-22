@@ -256,26 +256,17 @@
     </div>
 
 
-    @assets
     <script src="https://code.highcharts.com/highcharts.js"></script>
     <script src="https://code.highcharts.com/modules/exporting.js"></script>
     <script src="https://code.highcharts.com/modules/export-data.js"></script>
     <script src="https://code.highcharts.com/modules/accessibility.js"></script>
-    @endassets
 
-    @script
     <script>
         let topSellersChart; // Global variable to access the chart
 
-        window.onerror = function(msg, url, lineNo, columnNo, error) {
-            let errStr = "Error: " + msg;
-            let el = document.getElementById('salesChart');
-            if(el) el.innerHTML = "<div style='color:red'>" + errStr + "</div>";
-            return false;
-        };
-
-        // En Livewire 3 con @script, este código se ejecuta en cada inicialización del componente.
-        initCharts();
+        document.addEventListener('livewire:navigated', () => {
+            initCharts();
+        });
 
         function initCharts() {
             if (typeof Highcharts === 'undefined' || !document.getElementById('salesChart')) {
@@ -518,5 +509,4 @@
             });
         }
     </script>
-    @endscript
 </div>
