@@ -678,9 +678,14 @@ class _ProductionScreenState extends State<ProductionScreen> {
   void _showAddProductDialog() {
     ProductSimple? selectedProduct;
     final qtyController = TextEditingController();
+    final bultosController = TextEditingController();
+    final unidadesController = TextEditingController();
     String quality = '1st';
     String searchQuery = '';
     bool isLoadingFormula = false;
+    double equivalency = 1.0;
+    bool isBulkProduct = false;
+    List<FormulaIngredient>? fetchedFormulaIngredients;
 
     showModalBottomSheet(
       context: context,
@@ -691,6 +696,28 @@ class _ProductionScreenState extends State<ProductionScreen> {
           final filtered = _availableProducts
               .where((p) => p.name.toLowerCase().contains(searchQuery.toLowerCase()))
               .toList();
+
+          double calculateDecimal() {
+            if (isBulkProduct) {
+              double b = double.tryParse(bultosController.text) ?? 0.0;
+              double u = double.tryParse(unidadesController.text) ?? 0.0;
+              return b + (u / equivalency);
+            } else {
+              return double.tryParse(qtyController.text) ?? 0.0;
+            }
+          }
+
+          int calculateTotalUnits() {
+            if (isBulkProduct) {
+              double b = double.tryParse(bultosController.text) ?? 0.0;
+              double u = double.tryParse(unidadesController.text) ?? 0.0;
+              return (b * equivalency + u).round();
+            } else {
+              double q = double.tryParse(qtyController.text) ?? 0.0;
+              return q.round();
+            }
+          }
+
           return Container(
             decoration: const BoxDecoration(
               color: Colors.white,
@@ -710,18 +737,18 @@ class _ProductionScreenState extends State<ProductionScreen> {
                 const Text('Agregar Producto Terminado',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2C3E50))),
                 const SizedBox(height: 16),
-                // Search
-                TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Buscar producto...',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                if (selectedProduct == null) ...[
+                  // Search
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Buscar producto...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    onChanged: (v) => setModal(() => searchQuery = v),
                   ),
-                  onChanged: (v) => setModal(() => searchQuery = v),
-                ),
-                const SizedBox(height: 12),
-                if (selectedProduct == null) ...[  
+                  const SizedBox(height: 12),
                   Container(
                     constraints: const BoxConstraints(maxHeight: 200),
                     decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade200), borderRadius: BorderRadius.circular(12)),
@@ -741,7 +768,33 @@ class _ProductionScreenState extends State<ProductionScreen> {
                             ),
                             title: Text(filtered[i].name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                             subtitle: filtered[i].sku.isNotEmpty ? Text(filtered[i].sku, style: const TextStyle(fontSize: 11)) : null,
-                            onTap: () => setModal(() { selectedProduct = filtered[i]; searchQuery = ''; }),
+                            onTap: () async {
+                              setModal(() {
+                                selectedProduct = filtered[i];
+                                isLoadingFormula = true;
+                                searchQuery = '';
+                              });
+                              
+                              final formula = await _fetchFormula(selectedProduct!.id, 1.0);
+                              
+                              setModal(() {
+                                isLoadingFormula = false;
+                                if (formula != null && formula.isNotEmpty) {
+                                  fetchedFormulaIngredients = formula;
+                                  double firstQty = formula.first.quantityPerUnit;
+                                  if (firstQty > 1.0) {
+                                    isBulkProduct = true;
+                                    equivalency = firstQty;
+                                  } else {
+                                    isBulkProduct = false;
+                                    equivalency = 1.0;
+                                  }
+                                } else {
+                                  isBulkProduct = false;
+                                  equivalency = 1.0;
+                                }
+                              });
+                            },
                           ),
                         ),
                   ),
@@ -756,57 +809,130 @@ class _ProductionScreenState extends State<ProductionScreen> {
                       const Icon(Icons.check_circle, color: Color(0xFF2C3E50), size: 20),
                       const SizedBox(width: 8),
                       Expanded(child: Text(selectedProduct!.name, style: const TextStyle(fontWeight: FontWeight.bold))),
-                      GestureDetector(onTap: () => setModal(() => selectedProduct = null),
+                      GestureDetector(
+                        onTap: () => setModal(() {
+                          selectedProduct = null;
+                          fetchedFormulaIngredients = null;
+                          isBulkProduct = false;
+                          qtyController.clear();
+                          bultosController.clear();
+                          unidadesController.clear();
+                        }),
                         child: const Icon(Icons.close, size: 18, color: Colors.grey)),
                     ]),
                   ),
                   const SizedBox(height: 14),
-                  TextField(
-                    controller: qtyController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: InputDecoration(
-                      labelText: 'Cantidad producida',
-                      prefixIcon: const Icon(Icons.production_quantity_limits),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  const Text('Calidad / Estado', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                  const SizedBox(height: 8),
-                  Row(children: [
-                    _qualityChip(setModal, '1st', '1ra Cal.', quality, (v) => quality = v),
-                    const SizedBox(width: 8),
-                    _qualityChip(setModal, '2nd', '2da Cal.', quality, (v) => quality = v),
-                    const SizedBox(width: 8),
-                    _qualityChip(setModal, 'damaged', 'Merma', quality, (v) => quality = v),
-                  ]),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity, height: 50,
-                    child: ElevatedButton.icon(
-                      onPressed: isLoadingFormula ? null : () async {
-                        if (qtyController.text.isEmpty) return;
-                        final qty = double.tryParse(qtyController.text);
-                        if (qty == null || qty <= 0) return;
-                        setModal(() => isLoadingFormula = true);
-                        final ingredients = await _fetchFormula(selectedProduct!.id, qty);
-                        setModal(() => isLoadingFormula = false);
-                        if (ingredients != null) {
-                          setState(() => _entries.add(OutputEntry(
-                            product: selectedProduct!, quantity: qty, quality: quality, ingredients: ingredients)));
-                          if (ctx.mounted) Navigator.pop(ctx);
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2C3E50), foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  if (isLoadingFormula)
+                    const Center(child: Padding(
+                      padding: EdgeInsets.all(20),
+                      child: CircularProgressIndicator(),
+                    ))
+                  else if (fetchedFormulaIngredients == null)
+                    const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: Text('Este producto no tiene una receta configurada.', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                    )
+                  else ...[
+                    if (isBulkProduct) ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: bultosController,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: 'Bultos',
+                                hintText: '0',
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              onChanged: (_) => setModal(() {}),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextField(
+                              controller: unidadesController,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: 'Unidades Sueltas',
+                                hintText: '0',
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              onChanged: (_) => setModal(() {}),
+                            ),
+                          ),
+                        ],
                       ),
-                      icon: isLoadingFormula
-                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.add_circle_outline),
-                      label: Text(isLoadingFormula ? 'Calculando...' : 'AGREGAR'),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Equivalencia: 1 bulto = ${equivalency.toInt()} unidades.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.blue.shade200),
+                        ),
+                        child: Text(
+                          'Total a registrar: ${calculateDecimal().toStringAsFixed(4)} bultos (${calculateTotalUnits()} unidades)',
+                          style: TextStyle(color: Colors.blue.shade800, fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                      ),
+                    ] else ...[
+                      TextField(
+                        controller: qtyController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: InputDecoration(
+                          labelText: 'Cantidad (Unidades)',
+                          prefixIcon: const Icon(Icons.production_quantity_limits),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onChanged: (_) => setModal(() {}),
+                      ),
+                    ],
+                    const SizedBox(height: 14),
+                    const Text('Calidad / Estado', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      _qualityChip(setModal, '1st', '1ra Cal.', quality, (v) => quality = v),
+                      const SizedBox(width: 8),
+                      _qualityChip(setModal, '2nd', '2da Cal.', quality, (v) => quality = v),
+                      const SizedBox(width: 8),
+                      _qualityChip(setModal, 'damaged', 'Merma', quality, (v) => quality = v),
+                    ]),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity, height: 50,
+                      child: ElevatedButton.icon(
+                        onPressed: (isLoadingFormula || fetchedFormulaIngredients == null || calculateDecimal() <= 0)
+                          ? null
+                          : () {
+                              final qty = calculateDecimal();
+                              final finalIngredients = fetchedFormulaIngredients!.map((ing) => FormulaIngredient(
+                                ingredientId: ing.ingredientId,
+                                ingredientName: ing.ingredientName,
+                                quantityPerUnit: ing.quantityPerUnit,
+                                totalQuantity: ing.quantityPerUnit * qty,
+                              )).toList();
+
+                              setState(() => _entries.add(OutputEntry(
+                                product: selectedProduct!, quantity: qty, quality: quality, ingredients: finalIngredients)));
+
+                              Navigator.pop(ctx);
+                            },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2C3E50), foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: const Icon(Icons.add_circle_outline),
+                        label: const Text('AGREGAR'),
+                      ),
                     ),
-                  ),
+                  ],
                 ],
                 const SizedBox(height: 8),
               ],
@@ -928,6 +1054,13 @@ class _ProductionScreenState extends State<ProductionScreen> {
                           final e = entry.value;
                           final qualityLabel = e.quality == '1st' ? '1ra Calidad' : e.quality == '2nd' ? '2da Calidad' : 'Merma';
                           final qualityColor = e.quality == '1st' ? Colors.green : e.quality == '2nd' ? Colors.orange : Colors.red;
+
+                          final hasEquivalency = e.ingredients.isNotEmpty && e.ingredients.first.quantityPerUnit > 1.0;
+                          final eq = hasEquivalency ? e.ingredients.first.quantityPerUnit : 1.0;
+                          final displayQty = hasEquivalency
+                              ? '${e.quantity.toStringAsFixed(4)} bultos (${(e.quantity * eq).round()} uds)'
+                              : '${e.quantity % 1 == 0 ? e.quantity.toInt() : e.quantity} uds';
+
                           return Card(
                             margin: const EdgeInsets.only(bottom: 12),
                             elevation: 2,
@@ -959,8 +1092,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Row(children: [
-                                        _infoBadge('Cantidad',
-                                          '${e.quantity % 1 == 0 ? e.quantity.toInt() : e.quantity}', Colors.blue),
+                                        _infoBadge('Cantidad', displayQty, Colors.blue),
                                         const SizedBox(width: 10),
                                         _infoBadge('Calidad', qualityLabel, qualityColor),
                                       ]),

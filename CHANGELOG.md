@@ -1,3 +1,8 @@
+## [1.10.98] - 2026-05-22
+### Added
+- **Soplados (App Móvil)**: Se implementó la interfaz de doble entrada para productos de embalaje (bultos) en el modal de registro de producción. Ahora la app móvil detecta automáticamente si el producto requiere empaque basado en su equivalencia (si es > 1 unidad, ej: 200). Muestra dos campos numéricos independientes ("Bultos" y "Unidades Sueltas"), calcula el decimal exacto en tiempo real y lo envía de forma nativa al backend para realizar el descuento correcto de preformas.
+- **Soplados (App Móvil)**: Se mejoró la tarjeta visual del listado de producción agregada para mostrar de manera clara el desglose ("X.XXXX bultos (Y uds)") para los productos empacados, elevando la experiencia de usuario (UX) de los operadores.
+
 ## [1.10.97] - 2026-05-22
 ### Fixed
 - **Soplados**: Se solucionó un error fatal de ejecución (`Attempt to read property "name" on null`) en el listado de recetas (fórmulas) de Soplados (`formulas.blade.php`). El error ocurría al intentar mostrar recetas con productos o ingredientes que habían sido eliminados (soft-deleted). Se integró `withTrashed()` en las relaciones del modelo `ProductionFormula` y validaciones null-safe (`??`) en la plantilla Blade.
