@@ -1,3 +1,7 @@
+## [1.10.103] - 2026-05-22
+### Added
+- **Auditoría de Pagos (Zelle)**: Se implementó una nueva herramienta de generación de reportes consolidados en PDF ("PDF de Capturas Filtradas"). Esta función permite exportar un único archivo que compila todas las transacciones de Zelle filtradas (según rango de fechas, estado y remitente), mostrando de forma ordenada la información detallada del pago y el comprobante o captura de pantalla correspondiente en tamaño completo al lado de cada registro.
+
 ## [1.10.102] - 2026-05-22
 ### Added
 - **Productos (Visibilidad y Ventas)**: Se implementó un nuevo interruptor (Switch/Toggle) en la pestaña "Generales" del formulario de creación y edición de productos ("Mostrar en Área de Ventas y Listas de Precios"). Esto permite a los administradores desactivar (OFF) la visibilidad de cualquier producto.

@@ -35,6 +35,13 @@
                              <option value="used">Usado</option>
                          </select>
                     </div>
+                    @can('zelle_print_pdf')
+                    <div class="col-sm-12 col-md-3 d-flex align-items-end">
+                        <a href="{{ route('zelle.filtered.pdf', ['search' => $search, 'date_from' => $dateFrom, 'date_to' => $dateTo, 'status' => $status]) }}" target="_blank" class="btn btn-danger btn-block font-weight-bold">
+                            <i class="fas fa-file-pdf"></i> PDF de Capturas Filtradas
+                        </a>
+                    </div>
+                    @endcan
                 </div>
 
                 <div class="table-responsive">

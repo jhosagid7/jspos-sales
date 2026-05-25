@@ -178,6 +178,7 @@ Route::middleware('auth')->group(function () {
 
     // Consultas
     Route::get('consultation/zelle', \App\Livewire\Consultation\ZelleConsultation::class)->name('consultation.zelle')->middleware(['can:zelle_index', 'module:module_advanced_payments']);
+    Route::get('consultation/zelle/filtered/pdf', [\App\Http\Controllers\PaymentConsultationController::class, 'generateFilteredZellePdf'])->name('zelle.filtered.pdf')->middleware(['can:zelle_print_pdf', 'module:module_advanced_payments']);
     Route::get('consultation/zelle/{id}/pdf', [\App\Http\Controllers\PaymentConsultationController::class, 'generateZellePdf'])->name('zelle.pdf')->middleware(['can:zelle_print_pdf', 'module:module_advanced_payments']);
     
     Route::get('consultation/bank', \App\Livewire\Consultation\BankConsultation::class)->name('consultation.bank')->middleware(['can:bank_index', 'module:module_advanced_payments']);
