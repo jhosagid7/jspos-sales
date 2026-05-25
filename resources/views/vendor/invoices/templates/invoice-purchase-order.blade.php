@@ -197,10 +197,27 @@
                 border: 1px solid #ced4da;
                 background-color: #fff;
             }
+            .watermark {
+                position: fixed;
+                top: 35%;
+                left: 5%;
+                width: 90%;
+                text-align: center;
+                font-size: 80px;
+                color: #ff0000;
+                opacity: 0.12;
+                font-weight: bold;
+                transform: rotate(-45deg);
+                z-index: -1000;
+                text-transform: uppercase;
+            }
         </style>
     </head>
 
     <body>
+        @if(strtolower($invoice->seller->custom_fields['status'] ?? '') === 'pending')
+            <div class="watermark">PENDIENTE</div>
+        @endif
         {{-- Header --}}
         <table class="table mt-1">
             <tbody>

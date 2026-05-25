@@ -1,3 +1,8 @@
+## [1.10.104] - 2026-05-25
+### Added
+- **Reporte de Ajustes e Impresión (Marca de Agua)**: Se implementó una marca de agua diagonal translúcida con la palabra `"PENDIENTE"` en los PDFs de Cargos (Ajustes de Entrada), Descargos (Ajustes de Salida) y Compras (Órdenes de Compra) únicamente cuando la transacción se encuentra en estado pendiente.
+- **Auditoría e Inyección de Estado**: Se adaptó el flujo de datos para inyectar dinámicamente el estado (`status`) de los registros en los metadatos de impresión de los controladores `CargoController`, `DescargoController` y `PurchaseController`.
+
 ## [1.10.103] - 2026-05-22
 ### Added
 - **Auditoría de Pagos (Zelle)**: Se implementó una nueva herramienta de generación de reportes consolidados en PDF ("PDF de Capturas Filtradas"). Esta función permite exportar un único archivo que compila todas las transacciones de Zelle filtradas (según rango de fechas, estado y remitente), mostrando de forma ordenada la información detallada del pago y el comprobante o captura de pantalla correspondiente en tamaño completo al lado de cada registro.

@@ -26,6 +26,7 @@ class CargoController extends Controller
             'custom_fields' => [
                 'email'         => $config->email,
                 'cloning_qr'    => \DNS2D::getBarcodeHTML("CARGO:{$cargo->id}", "QRCODE", 2, 2),
+                'status'        => $cargo->status,
             ],
         ]);
 

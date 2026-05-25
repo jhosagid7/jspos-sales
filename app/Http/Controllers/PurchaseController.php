@@ -28,6 +28,7 @@ class PurchaseController extends Controller
                 'city'          => $config->city,
                 'operador'      => $purchase->user->name,
                 'cloning_qr'    => \DNS2D::getBarcodeHTML("PURCHASE:{$purchase->id}", "QRCODE", 2, 2),
+                'status'        => $purchase->status,
             ],
         ]);
 
