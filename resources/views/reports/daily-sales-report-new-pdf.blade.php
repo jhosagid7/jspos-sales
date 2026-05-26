@@ -374,8 +374,12 @@
                             @endphp
 
                             @if($cashInRow > 0.0001)
+                                @php
+                                    $firstCashPay = $sale->paymentDetails->where('payment_method', 'cash')->first();
+                                    $cashDate = \Carbon\Carbon::parse($firstCashPay->created_at ?? $sale->created_at)->format('d/m/Y');
+                                @endphp
                                 <div class="pay-info" style="display: block; border-left: 2px solid #28a745; padding-left: 3px; margin-top: 1px;">
-                                    CASH [{{ implode(', ', $cashBreakdown) }}] = <span style="font-weight: bold;">[${{ number_format($cashInRow, 4) }}]</span>
+                                    CASH [F. Registro: {{ $cashDate }}] [{{ implode(', ', $cashBreakdown) }}] = <span style="font-weight: bold;">[${{ number_format($cashInRow, 4) }}]</span>
                                 </div>
                             @endif
 
@@ -384,9 +388,16 @@
                                      @php
                                          $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
                                          $usdEquiv = $payment->amount / $rate;
+                                         
+                                         // Resolver fecha del voucher
+                                         if ($payment->payment_method == 'zelle') {
+                                             $vDate = \Carbon\Carbon::parse($payment->zelleRecord->zelle_date ?? $payment->created_at)->format('d/m/Y');
+                                         } else {
+                                             $vDate = \Carbon\Carbon::parse($payment->bankRecord->payment_date ?? $payment->created_at)->format('d/m/Y');
+                                         }
                                      @endphp
                                      <div class="pay-info" style="display: block; border-left: 2px solid #ddd; padding-left: 3px; margin-top: 1px;">
-                                         {{ $payment->payment_method == 'zelle' ? 'Zelle' : ($payment->bank_name ?? 'Banco') }}: {{ $payment->reference_number }} 
+                                         {{ $payment->payment_method == 'zelle' ? 'Zelle' : ($payment->bank_name ?? 'Banco') }}: {{ $payment->reference_number }} [F. Voucher: {{ $vDate }}]
                                          <span style="color: #888;">(Tasa: {{ number_format($payment->exchange_rate, 4) }})</span> 
                                          <span style="font-weight: bold;">[${{ number_format($usdEquiv, 4) }}]</span>
                                          @if($payment->exchange_rate > 1)

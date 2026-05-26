@@ -1,3 +1,11 @@
+## [1.10.105] - 2026-05-26
+### Added
+- **Reportes de Auditoría de Pagos (Fechas de Voucher/Bouche)**: Se implementó la visualización de la fecha real física de pago (fecha del voucher o capture física seleccionada por el usuario al registrar el cobro) en lugar de la fecha de registro en el sistema en las columnas de **Descripción** de dos reportes PDF: **Relación de Cobros** (`collection-relationship-new-pdf.blade.php`) y **Reporte de Ventas Diarias** (`daily-sales-report-new-pdf.blade.php`).
+- **Lógica de Fechas Condicional por Método de Pago**:
+  - Para pagos en **Efectivo (CASH)**: Se muestra la fecha de registro del pago en el sistema (`F. Registro: DD/MM/AAAA`).
+  - Para pagos por **Zelle**: Se extrae y muestra la fecha del capture de Zelle (`F. Voucher: DD/MM/AAAA`).
+  - Para pagos por **Banco/Depósito**: Se extrae y muestra la fecha física del voucher registrada en el formulario (`F. Voucher: DD/MM/AAAA`).
+
 ## [1.10.104] - 2026-05-25
 ### Added
 - **Reporte de Ajustes e Impresión (Marca de Agua)**: Se implementó una marca de agua diagonal translúcida con la palabra `"PENDIENTE"` en los PDFs de Cargos (Ajustes de Entrada), Descargos (Ajustes de Salida) y Compras (Órdenes de Compra) únicamente cuando la transacción se encuentra en estado pendiente.

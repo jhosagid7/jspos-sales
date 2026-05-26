@@ -180,7 +180,8 @@
                             $breakdown[] = "(Tasa: " . number_format($rate, 4) . " | (" . number_format($cp->amount, 4) . " {$cp->currency}) = $" . number_format($amtUsd, 4) . ")";
                         }
 
-                        $description = ($isAnyVoided ? '[ANULADO] ' : '') . "CASH [" . implode(", ", $breakdown) . "] = $" . number_format($totalUsd, 4);
+                        $cashDate = \Carbon\Carbon::parse($p->payment_date ?? $p->created_at)->format('d/m/Y');
+                        $description = ($isAnyVoided ? '[ANULADO] ' : '') . "CASH (F. Registro: {$cashDate}) [" . implode(", ", $breakdown) . "] = $" . number_format($totalUsd, 4);
 
                         $dateEmit = \Carbon\Carbon::parse($p->sale->created_at);
                         $datePay = \Carbon\Carbon::parse($p->payment_date);
@@ -211,11 +212,14 @@
                         $isVoided = ($p->status == 'voided');
                         $description = ($isVoided ? '[ANULADO] ' : '') . strtoupper($p->pay_way);
                         if ($p->pay_way == 'zelle' && $p->zelleRecord) {
-                            $description .= " (Sender: {$p->zelleRecord->sender_name}, Ref: {$p->zelleRecord->reference})";
+                            $vDate = \Carbon\Carbon::parse($p->zelleRecord->zelle_date ?? $p->payment_date ?? $p->created_at)->format('d/m/Y');
+                            $description .= " (Sender: {$p->zelleRecord->sender_name}, Ref: {$p->zelleRecord->reference}, F. Voucher: {$vDate})";
                         } elseif (($p->pay_way == 'bank' || $p->pay_way == 'deposit') && $p->bank) {
-                            $description .= " ({$p->bank}, Ref: {$p->deposit_number})";
+                            $vDate = \Carbon\Carbon::parse($p->bankRecord->payment_date ?? $p->payment_date ?? $p->created_at)->format('d/m/Y');
+                            $description .= " ({$p->bank}, Ref: {$p->deposit_number}, F. Voucher: {$vDate})";
                         } elseif ($p->deposit_number) {
-                            $description .= " (Ref: {$p->deposit_number})";
+                            $vDate = \Carbon\Carbon::parse($p->payment_date ?? $p->created_at)->format('d/m/Y');
+                            $description .= " (Ref: {$p->deposit_number}, F. Voucher: {$vDate})";
                         }
 
                         if ($isVoided && $p->rejection_reason) {
