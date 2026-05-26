@@ -1,3 +1,15 @@
+## [1.10.106] - 2026-05-26
+### Added
+- **Arqueo de Caja (Reporte PDF Detallado - Conciliación Bancaria)**: Se implementó un nuevo reporte PDF de Arqueo Detallado (`cash-count-detailed-pdf.blade.php`) que complementa al reporte resumido existente, diseñado con la estética de la Relación de Cobros.
+- **Switches de Configuración UI (Livewire)**:
+  - `Ver Reporte Detallado`: Alterna entre el PDF resumido y el nuevo detallado.
+  - `Mostrar Resumen de Efectivo`: Permite incluir u ocultar el desglose de efectivo (CASH) para evitar ruido en la conciliación.
+  - `Unificar Ventas y Créditos`: Permite consolidar bancos/Zelle en un único bloque cronológico o mantenerlos separados.
+- **Auditoría e Inyección de Transacciones**:
+  - Clasificación automática del tipo de cobro a crédito (`Abono Parcial`, `Cancelación Deuda`, `Pago Completo`).
+  - Extracción y ordenamiento por fecha real física del voucher (bouche/capture) y visualización del número de factura asociada a cada pago.
+- **Botón Premium**: Añadido el botón de ojo azul `Previsualizar` en el arqueo para abrir el visualizador de corte de caja detallado.
+
 ## [1.10.105] - 2026-05-26
 ### Added
 - **Reportes de Auditoría de Pagos (Fechas de Voucher/Bouche)**: Se implementó la visualización de la fecha real física de pago (fecha del voucher o capture física seleccionada por el usuario al registrar el cobro) en lugar de la fecha de registro en el sistema en las columnas de **Descripción** de dos reportes PDF: **Relación de Cobros** (`collection-relationship-new-pdf.blade.php`) y **Reporte de Ventas Diarias** (`daily-sales-report-new-pdf.blade.php`).

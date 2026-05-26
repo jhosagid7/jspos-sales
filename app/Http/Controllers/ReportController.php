@@ -894,6 +894,263 @@ class ReportController extends Controller
         return $pdf->stream("Corte_Caja_{$dateFrom}.pdf");
     }
 
+    public function cashCountDetailedPdf(Request $request)
+    {
+        $dateFrom = $request->get('dateFrom') ?: Carbon::today()->format('Y/m/d');
+        $dateTo = $request->get('dateTo') ?: Carbon::today()->format('Y/m/d');
+        $user_id = $request->get('user_id', 0);
+        $includeCash = $request->get('includeCash', 1) == 1;
+        $unify = $request->get('unify', 0) == 1;
+
+        $dFrom = Carbon::parse($dateFrom)->startOfDay();
+        $dTo = Carbon::parse($dateTo)->endOfDay();
+
+        $currencies = Currency::orderBy('is_primary', 'desc')->get();
+        $primaryCurrency = $currencies->firstWhere('is_primary', 1);
+        $primaryRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
+        $primaryCode = $primaryCurrency ? $primaryCurrency->code : 'COP';
+        $symbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
+
+        $config = Configuration::first();
+        $user_name = $user_id == 0 ? 'Todos los usuarios' : User::find($user_id)->name;
+
+        // 1. Query Sales matching filters
+        $sales = Sale::whereBetween('created_at', [$dFrom, $dTo])
+                ->when($user_id != 0, function ($qry) use ($user_id) {
+                    $qry->where('user_id', $user_id);
+                })
+                ->where('status', '<>', 'returned')
+                ->whereNull('deletion_approved_at')
+                ->get();
+
+        $saleIds = $sales->pluck('id');
+
+        // Get detailed payments for daily sales
+        $salePaymentDetails = SalePaymentDetail::with(['sale', 'sale.customer', 'zelleRecord', 'bankRecord'])
+            ->whereIn('sale_id', $saleIds)
+            ->whereBetween('created_at', [$dFrom, $dTo])
+            ->get();
+
+        // 2. Query credit payments
+        $creditPayments = Payment::with(['sale', 'sale.customer', 'zelleRecord', 'bankRecord'])
+            ->whereBetween('created_at', [$dFrom, $dTo])
+            ->when($user_id != 0, function ($qry) use ($user_id) {
+                $qry->where('user_id', $user_id);
+            })
+            ->where('status', 'approved')
+            ->get();
+
+        // Helpers to process dates, bank names, and payment types
+        $getVoucherDate = function($payment, $method) {
+            if ($method === 'zelle' && $payment->zelleRecord) {
+                return Carbon::parse($payment->zelleRecord->zelle_date ?? $payment->payment_date ?? $payment->created_at)->format('d/m/Y');
+            }
+            if (($method === 'bank' || $method === 'deposit') && $payment->bankRecord) {
+                return Carbon::parse($payment->bankRecord->payment_date ?? $payment->payment_date ?? $payment->created_at)->format('d/m/Y');
+            }
+            $date = $payment->payment_date ?? $payment->created_at;
+            return Carbon::parse($date)->format('d/m/Y');
+        };
+
+        $getCreditPaymentStatus = function($payment) {
+            if (!$payment->sale) return 'Pago de Deuda';
+            $sale = $payment->sale;
+            if ($sale->debt <= 0.01) {
+                $otherPaysCount = $sale->payments->where('status', 'approved')->where('id', '!=', $payment->id)->count();
+                return $otherPaysCount > 0 ? 'Cancelación Deuda' : 'Pago Completo (Cred)';
+            }
+            return 'Abono Parcial';
+        };
+
+        // Prepare Currency aggregations for Cash if includeCash is ON
+        $cashDetails = [
+            'sales' => [],
+            'credits' => [],
+            'unified' => []
+        ];
+
+        if ($includeCash) {
+            // Process cash from sales
+            foreach($salePaymentDetails->where('payment_method', 'cash') as $pd) {
+                $curr = $pd->currency_code;
+                $cashDetails['sales'][$curr] = ($cashDetails['sales'][$curr] ?? 0) + $pd->amount;
+                $cashDetails['unified'][$curr] = ($cashDetails['unified'][$curr] ?? 0) + $pd->amount;
+            }
+            // Process cash from credits
+            foreach($creditPayments->where('pay_way', 'cash') as $p) {
+                $curr = $p->currency ?? $primaryCode;
+                $cashDetails['credits'][$curr] = ($cashDetails['credits'][$curr] ?? 0) + $p->amount;
+                $cashDetails['unified'][$curr] = ($cashDetails['unified'][$curr] ?? 0) + $p->amount;
+            }
+
+            // Deduct returns for net cash flow to match summary totals
+            $returns = \App\Models\SaleReturn::whereBetween('created_at', [$dFrom, $dTo])
+                ->where('status', 'approved')
+                ->whereIn('sale_id', $saleIds)
+                ->get();
+            foreach ($returns as $ret) {
+                if ($ret->refund_method !== 'wallet' && $ret->refund_method !== 'debt_reduction') {
+                    $curr = $ret->sale->primary_currency_code ?? $primaryCode;
+                    $cashDetails['sales'][$curr] = ($cashDetails['sales'][$curr] ?? 0) - $ret->total_returned;
+                    $cashDetails['unified'][$curr] = ($cashDetails['unified'][$curr] ?? 0) - $ret->total_returned;
+                }
+            }
+        }
+
+        // Structure Detailed Digital Payments (Bancos / Zelle)
+        $digitalPayments = [
+            'sales' => ['bank' => [], 'zelle' => []],
+            'credits' => ['bank' => [], 'zelle' => []],
+            'unified' => ['bank' => [], 'zelle' => []]
+        ];
+
+        // Process Sales Digital Payments
+        foreach($salePaymentDetails->whereIn('payment_method', ['bank', 'deposit', 'zelle']) as $pd) {
+            $method = $pd->payment_method === 'zelle' ? 'zelle' : 'bank';
+            $bankName = $pd->bank_name ?? 'Banco / Otros';
+            $curr = $pd->currency_code;
+            $voucherDate = $getVoucherDate($pd, $pd->payment_method);
+            
+            $item = [
+                'date' => $voucherDate,
+                'raw_date' => $pd->zelleRecord->zelle_date ?? $pd->bankRecord->payment_date ?? $pd->created_at,
+                'origin' => 'VENTA',
+                'ref' => $pd->reference_number ?? 'N/A',
+                'invoice' => $pd->sale->invoice_number ?? $pd->sale->id,
+                'customer' => $pd->sale->customer->name ?? 'Consumidor Final',
+                'type' => 'Pago Venta',
+                'amount' => $pd->amount,
+                'currency' => $curr,
+                'equiv_usd' => $pd->amount / ($pd->exchange_rate > 0 ? $pd->exchange_rate : 1)
+            ];
+
+            if ($method === 'bank') {
+                $digitalPayments['sales']['bank'][$bankName][$curr][] = $item;
+                $digitalPayments['unified']['bank'][$bankName][$curr][] = $item;
+            } else {
+                $digitalPayments['sales']['zelle'][] = $item;
+                $digitalPayments['unified']['zelle'][] = $item;
+            }
+        }
+
+        // Process Credit Digital Payments
+        foreach($creditPayments->whereIn('pay_way', ['bank', 'deposit', 'zelle']) as $p) {
+            $method = $p->pay_way === 'zelle' ? 'zelle' : 'bank';
+            $bankName = $p->bank ?? 'Banco / Otros';
+            $curr = $p->currency ?? $primaryCode;
+            $voucherDate = $getVoucherDate($p, $p->pay_way);
+            $payStatus = $getCreditPaymentStatus($p);
+
+            $item = [
+                'date' => $voucherDate,
+                'raw_date' => $p->zelleRecord->zelle_date ?? $p->bankRecord->payment_date ?? $p->created_at,
+                'origin' => 'CRÉDITO',
+                'ref' => $p->deposit_number ?? 'N/A',
+                'invoice' => $p->sale->invoice_number ?? $p->sale->id ?? 'N/A',
+                'customer' => $p->sale->customer->name ?? 'Cliente Crédito',
+                'type' => $payStatus,
+                'amount' => $p->amount,
+                'currency' => $curr,
+                'equiv_usd' => $p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1)
+            ];
+
+            if ($method === 'bank') {
+                $digitalPayments['credits']['bank'][$bankName][$curr][] = $item;
+                $digitalPayments['unified']['bank'][$bankName][$curr][] = $item;
+            } else {
+                $digitalPayments['credits']['zelle'][] = $item;
+                $digitalPayments['unified']['zelle'][] = $item;
+            }
+        }
+
+        // Sort inside each group chronologically by date
+        $sortItems = function(&$items) {
+            usort($items, function($a, $b) {
+                return strtotime($a['raw_date']) <=> strtotime($b['raw_date']);
+            });
+        };
+
+        // Sort Sales Bank Groups
+        foreach($digitalPayments['sales']['bank'] as $bank => &$currenciesInBank) {
+            foreach($currenciesInBank as $c => &$items) {
+                $sortItems($items);
+            }
+        }
+        $sortItems($digitalPayments['sales']['zelle']);
+
+        // Sort Credits Bank Groups
+        foreach($digitalPayments['credits']['bank'] as $bank => &$currenciesInBank) {
+            foreach($currenciesInBank as $c => &$items) {
+                $sortItems($items);
+            }
+        }
+        $sortItems($digitalPayments['credits']['zelle']);
+
+        // Sort Unified Bank Groups
+        foreach($digitalPayments['unified']['bank'] as $bank => &$currenciesInBank) {
+            foreach($currenciesInBank as $c => &$items) {
+                $sortItems($items);
+            }
+        }
+        $sortItems($digitalPayments['unified']['zelle']);
+
+        // Calculate Grand Totals
+        $grandTotalUSD = 0;
+        
+        // Add Cash Totals in USD
+        if ($includeCash) {
+            foreach($cashDetails['unified'] as $curr => $amt) {
+                $currObj = $currencies->firstWhere('code', $curr);
+                $rate = $currObj ? $currObj->exchange_rate : 1;
+                $grandTotalUSD += $amt / ($rate > 0 ? $rate : 1);
+            }
+        }
+
+        // Add Bank Totals in USD
+        foreach($digitalPayments['unified']['bank'] as $bank => $currenciesInBank) {
+            foreach($currenciesInBank as $c => $items) {
+                foreach($items as $item) {
+                    $grandTotalUSD += $item['equiv_usd'];
+                }
+            }
+        }
+
+        // Add Zelle Totals in USD
+        foreach($digitalPayments['unified']['zelle'] as $item) {
+            $grandTotalUSD += $item['equiv_usd'];
+        }
+
+        $getLabel = function($code) use ($currencies) {
+            $c = $currencies->firstWhere('code', $code);
+            return $c ? $c->label : $code;
+        };
+
+        $convertToPrimary = function($amount, $currencyCode) use ($currencies, $primaryRate) {
+             if ($currencyCode == 'USD') { return $amount * $primaryRate; }
+             $curr = $currencies->firstWhere('code', $currencyCode);
+             if (!$curr) return $amount;
+             $rate = $curr->exchange_rate > 0 ? $curr->exchange_rate : 1;
+             return ($amount / $rate) * $primaryRate;
+        };
+
+        $pdf = Pdf::loadView('reports.cash-count-detailed-pdf', [
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+            'user_name' => $user_name,
+            'includeCash' => $includeCash,
+            'unify' => $unify,
+            'cashDetails' => $cashDetails,
+            'digitalPayments' => $digitalPayments,
+            'grandTotalIncomeUSD' => $grandTotalUSD,
+            'config' => $config,
+            'symbol' => $symbol,
+            'getLabel' => $getLabel,
+            'convertToPrimary' => $convertToPrimary
+        ])->setPaper('a4', 'portrait');
+
+        return $pdf->stream("Corte_Caja_Detallado_{$dateFrom}.pdf");
+    }
+
     private function convertToPrimaryLocal($amount, $currencyCode, $currencies, $primaryRate) {
         if ($currencyCode == 'USD') return $amount * $primaryRate;
         $curr = $currencies->firstWhere('code', $currencyCode);

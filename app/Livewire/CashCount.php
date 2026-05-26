@@ -34,6 +34,9 @@ class CashCount extends Component
     public $totalZelleDetails = [];
     public $showPdfModal = false;
     public $pdfUrl = '';
+    public $showDetailedReport = false;
+    public $includeCash = true;
+    public $unifySalesAndCredits = false;
 
 
     function mount()
@@ -524,6 +527,23 @@ class CashCount extends Component
         ];
 
         $this->pdfUrl = route('reports.cash.count.pdf', $params);
+        $this->showPdfModal = true;
+    }
+
+    public function openDetailedPdfPreview()
+    {
+        $dFrom = $this->dateFrom ?: Carbon::today()->format('Y/m/d');
+        $dTo = $this->dateTo ?: Carbon::today()->format('Y/m/d');
+
+        $params = [
+            'dateFrom' => $dFrom,
+            'dateTo' => $dTo,
+            'user_id' => $this->user_id,
+            'includeCash' => $this->includeCash ? 1 : 0,
+            'unify' => $this->unifySalesAndCredits ? 1 : 0,
+        ];
+
+        $this->pdfUrl = route('reports.cash.count.detailed.pdf', $params);
         $this->showPdfModal = true;
     }
 

@@ -40,6 +40,27 @@
                                         </div>
                                     </div>
 
+                                    <div class="mt-4 border-top pt-3">
+                                        <span class="f-14"><b>Configuración de Impresión</b></span>
+                                        
+                                        <div class="form-check form-switch mt-2">
+                                            <input class="form-check-input" type="checkbox" id="showDetailedReport" wire:model.live="showDetailedReport" style="cursor: pointer;">
+                                            <label class="form-check-label f-14 fw-bold" for="showDetailedReport" style="cursor: pointer; user-select: none;">Ver Reporte Detallado</label>
+                                        </div>
+
+                                        @if($showDetailedReport)
+                                            <div class="form-check form-switch mt-2 ms-2">
+                                                <input class="form-check-input" type="checkbox" id="includeCash" wire:model.live="includeCash" style="cursor: pointer;">
+                                                <label class="form-check-label f-12" for="includeCash" style="cursor: pointer; user-select: none;">Mostrar Efectivo (CASH)</label>
+                                            </div>
+
+                                            <div class="form-check form-switch mt-2 ms-2">
+                                                <input class="form-check-input" type="checkbox" id="unifySalesAndCredits" wire:model.live="unifySalesAndCredits" style="cursor: pointer;">
+                                                <label class="form-check-label f-12" for="unifySalesAndCredits" style="cursor: pointer; user-select: none;">Unificar Ventas y Créditos</label>
+                                            </div>
+                                        @endif
+                                    </div>
+
 
 
                                     <div class="mt-5">
@@ -443,10 +464,17 @@
                         class="btn btn-outline-dark btn-lg {{ $totalSales > 0 ? '' : 'd-none' }}">
                         <i class="icofont icofont-printer"></i> Imprimir Corte
                     </button>
-                    <button title="Generar PDF" wire:click.prevent="openPdfPreview"
-                        class="btn btn-outline-danger btn-lg {{ $totalSales > 0 ? '' : 'd-none' }}">
-                        <i class="icofont icofont-file-pdf"></i> Ver PDF
-                    </button>
+                    @if($showDetailedReport)
+                        <button title="Previsualizar Corte Detallado" wire:click.prevent="openDetailedPdfPreview"
+                            class="btn btn-info btn-lg {{ $totalSales > 0 ? '' : 'd-none' }}" style="background-color: #0284c7; color: white; border-color: #0284c7; font-weight: bold;">
+                            <i class="icofont icofont-eye"></i> Previsualizar
+                        </button>
+                    @else
+                        <button title="Generar PDF" wire:click.prevent="openPdfPreview"
+                            class="btn btn-outline-danger btn-lg {{ $totalSales > 0 ? '' : 'd-none' }}">
+                            <i class="icofont icofont-file-pdf"></i> Ver PDF
+                        </button>
+                    @endif
                 </div>
             </div>
 
