@@ -183,7 +183,7 @@
         
         <!-- EFECTIVO UNIFICADO -->
         @if($includeCash && !empty($cashDetails['unified']))
-            <div class="section-header">💵 Consolidado Global de Efectivo (CASH)</div>
+            <div class="section-header">Consolidado Global de Efectivo (CASH)</div>
             <table class="table">
                 <thead>
                     <tr>
@@ -215,7 +215,7 @@
 
         <!-- BANCOS UNIFICADOS -->
         @if(!empty($digitalPayments['unified']['bank']))
-            <div class="section-header">🏦 Conciliación Global de Bancos</div>
+            <div class="section-header">Conciliación Global de Bancos</div>
             @foreach($digitalPayments['unified']['bank'] as $bank => $currenciesInBank)
                 <div class="sub-header">{{ strtoupper($bank) }}</div>
                 @foreach($currenciesInBank as $curr => $items)
@@ -270,7 +270,7 @@
 
         <!-- ZELLE UNIFICADO -->
         @if(!empty($digitalPayments['unified']['zelle']))
-            <div class="section-header">🟢 Conciliación Global de Zelle (USD)</div>
+            <div class="section-header">Conciliación Global de Zelle (USD)</div>
             <table class="table">
                 <thead>
                     <tr>
@@ -329,7 +329,7 @@
 
         <!-- Efectivo Ventas -->
         @if($includeCash && !empty($cashDetails['sales']))
-            <div class="sub-header">💵 Resumen de Efectivo (CASH) - Ventas</div>
+            <div class="sub-header">Resumen de Efectivo (CASH) - Ventas</div>
             <table class="table">
                 <thead>
                     <tr>
@@ -361,7 +361,7 @@
 
         <!-- Bancos Ventas -->
         @if(!empty($digitalPayments['sales']['bank']))
-            <div class="sub-header">🏦 Detalle Bancario - Ventas</div>
+            <div class="sub-header">Detalle Bancario - Ventas</div>
             @foreach($digitalPayments['sales']['bank'] as $bank => $currenciesInBank)
                 @foreach($currenciesInBank as $curr => $items)
                     <table class="table">
@@ -407,7 +407,7 @@
 
         <!-- Zelle Ventas -->
         @if(!empty($digitalPayments['sales']['zelle']))
-            <div class="sub-header">🟢 Detalle Zelle - Ventas (USD)</div>
+            <div class="sub-header">Detalle Zelle - Ventas (USD)</div>
             <table class="table">
                 <thead>
                     <tr>
@@ -455,7 +455,7 @@
 
         <!-- Efectivo Créditos -->
         @if($includeCash && !empty($cashDetails['credits']))
-            <div class="sub-header">💵 Resumen de Efectivo (CASH) - Recaudo Créditos</div>
+            <div class="sub-header">Resumen de Efectivo (CASH) - Recaudo Créditos</div>
             <table class="table">
                 <thead>
                     <tr>
@@ -487,7 +487,7 @@
 
         <!-- Bancos Créditos -->
         @if(!empty($digitalPayments['credits']['bank']))
-            <div class="sub-header">🏦 Detalle Bancario - Recaudo Créditos</div>
+            <div class="sub-header">Detalle Bancario - Recaudo Créditos</div>
             @foreach($digitalPayments['credits']['bank'] as $bank => $currenciesInBank)
                 @foreach($currenciesInBank as $curr => $items)
                     <table class="table">
@@ -535,7 +535,7 @@
 
         <!-- Zelle Créditos -->
         @if(!empty($digitalPayments['credits']['zelle']))
-            <div class="sub-header">🟢 Detalle Zelle - Recaudo Créditos (USD)</div>
+            <div class="sub-header">Detalle Zelle - Recaudo Créditos (USD)</div>
             <table class="table">
                 <thead>
                     <tr>

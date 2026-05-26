@@ -1,3 +1,8 @@
+## [1.10.108] - 2026-05-26
+### Fixed
+- **Caracteres de Emojis en DomPDF**: Se eliminaron los emojis de todos los títulos y subtítulos del reporte detallado de Arqueo de Caja para evitar el signo de interrogación `?` generado por la falta de soporte de fuentes en la renderización PDF.
+- **Normalización y Coincidencia de Bancos**: Se implementó una lógica de coincidencia y normalización case-insensitive y libre de caracteres especiales para asociar de manera infalible las transacciones con las cuentas bancarias de la base de datos, garantizando que los últimos 6 dígitos del número de cuenta se impriman siempre en el reporte.
+
 ## [1.10.107] - 2026-05-26
 ### Changed
 - **Botones de Arqueo de Caja**: Se restauró la visualización simultánea de todos los botones de acción (`Imprimir Corte`, `Ver PDF` y `Previsualizar`) lado a lado en lugar de ocultar el reporte de PDF estándar cuando se activa el reporte detallado.

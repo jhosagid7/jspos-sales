@@ -965,16 +965,30 @@ class ReportController extends Controller
         $configuredBanks = \App\Models\Bank::all();
         $getBankAccountSuffix = function($bankName, $recordAccountNumber = null) use ($configuredBanks) {
             $accNum = null;
+            
+            // 1. Try to use record account number first (only if it contains at least 6 digits)
             if (!empty($recordAccountNumber)) {
-                $accNum = $recordAccountNumber;
-            } else if (!empty($bankName)) {
-                $match = $configuredBanks->first(function($b) use ($bankName) {
-                    return strcasecmp(trim($b->name), trim($bankName)) === 0;
+                $cleanRec = preg_replace('/[^0-9]/', '', $recordAccountNumber);
+                if (strlen($cleanRec) >= 6) {
+                    $accNum = $recordAccountNumber;
+                }
+            }
+            
+            // 2. If record account number is not valid, look up from configured banks using robust normalization
+            if (empty($accNum) && !empty($bankName)) {
+                $normalizedInput = preg_replace('/[^a-zA-Z0-9]/', '', strtolower(trim($bankName)));
+                
+                $match = $configuredBanks->first(function($b) use ($normalizedInput) {
+                    $normalizedBankName = preg_replace('/[^a-zA-Z0-9]/', '', strtolower(trim($b->name)));
+                    return $normalizedBankName === $normalizedInput;
                 });
+                
                 if ($match && !empty($match->account_number)) {
                     $accNum = $match->account_number;
                 }
             }
+            
+            // 3. Format and return suffix
             if (!empty($accNum)) {
                 $cleanAcc = preg_replace('/[^0-9]/', '', $accNum);
                 if (strlen($cleanAcc) >= 6) {
