@@ -224,12 +224,11 @@
                             <tr>
                                 <th width="12%">F. Voucher</th>
                                 <th width="12%">Procedencia</th>
-                                <th width="12%">Referencia</th>
+                                <th width="14%">Referencia</th>
                                 <th width="12%">Factura</th>
-                                <th width="20%">Cliente</th>
-                                <th width="16%">Tipo de Pago</th>
-                                <th width="16%" class="text-right">Monto {{ $curr }}</th>
-                                <th width="16%" class="text-right">Total en {{ $symbol }}</th>
+                                <th width="26%">Cliente</th>
+                                <th width="12%" class="text-right">Monto {{ $curr }}</th>
+                                <th width="12%" class="text-right">Total en {{ $symbol }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -252,13 +251,12 @@
                                     <td>{{ $item['ref'] }}</td>
                                     <td class="fw-bold">{{ $item['invoice'] }}</td>
                                     <td class="fw-bold">{{ strtoupper($item['customer']) }}</td>
-                                    <td>{{ $item['type'] }}</td>
                                     <td class="text-right">{{ number_format($item['amount'], 2) }}</td>
                                     <td class="text-right fw-bold">{{ $symbol }} {{ number_format($item['equiv_usd'] * $convertToPrimary(1, 'USD'), 4) }}</td>
                                 </tr>
                             @endforeach
                             <tr class="total-row">
-                                <td colspan="6" class="text-right">TOTAL CONCILIADO {{ strtoupper($bank) }} ({{ $curr }}):</td>
+                                <td colspan="5" class="text-right">TOTAL CONCILIADO {{ strtoupper($bank) }} ({{ $curr }}):</td>
                                 <td class="text-right">{{ number_format($subtotalBankCurr, 2) }}</td>
                                 <td class="text-right">{{ $symbol }} {{ number_format($subtotalBankPrimary, 4) }}</td>
                             </tr>
@@ -275,13 +273,12 @@
                 <thead>
                     <tr>
                         <th width="12%">F. Voucher</th>
-                        <th width="12%">Procedencia</th>
+                        <th width="18%">Quien Envía</th>
                         <th width="14%">Referencia</th>
                         <th width="12%">Factura</th>
-                        <th width="20%">Remitente</th>
-                        <th width="16%">Tipo de Pago</th>
-                        <th width="14%" class="text-right">Monto USD</th>
-                        <th width="14%" class="text-right">Total en {{ $symbol }}</th>
+                        <th width="18%">Cliente</th>
+                        <th width="13%" class="text-right">Monto Zelle</th>
+                        <th width="13%" class="text-right">Monto Usado</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -296,22 +293,17 @@
                         @endphp
                         <tr>
                             <td>{{ $item['date'] }}</td>
-                            <td>
-                                <span class="badge {{ $item['origin'] === 'VENTA' ? 'badge-venta' : 'badge-credito' }}">
-                                    {{ $item['origin'] }}
-                                </span>
-                            </td>
+                            <td class="fw-bold">{{ strtoupper($item['zelle_sender']) }}</td>
                             <td>{{ $item['ref'] }}</td>
                             <td class="fw-bold">{{ $item['invoice'] }}</td>
                             <td class="fw-bold">{{ strtoupper($item['customer']) }}</td>
-                            <td>{{ $item['type'] }}</td>
-                            <td class="text-right">{{ number_format($item['amount'], 2) }}</td>
-                            <td class="text-right fw-bold">{{ $symbol }} {{ number_format($item['equiv_usd'] * $convertToPrimary(1, 'USD'), 4) }}</td>
+                            <td class="text-right fw-bold">${{ number_format($item['zelle_total'], 2) }}</td>
+                            <td class="text-right fw-bold">${{ number_format($item['amount'], 2) }}</td>
                         </tr>
                     @endforeach
                     <tr class="total-row">
-                        <td colspan="6" class="text-right">TOTAL CONCILIADO ZELLE (USD):</td>
-                        <td class="text-right">{{ number_format($subtotalZelleCurr, 2) }}</td>
+                        <td colspan="5" class="text-right">TOTAL CONCILIADO ZELLE (USD):</td>
+                        <td class="text-right">${{ number_format($subtotalZelleCurr, 2) }}</td>
                         <td class="text-right">{{ $symbol }} {{ number_format($subtotalZellePrimary, 4) }}</td>
                     </tr>
                 </tbody>
@@ -411,12 +403,13 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th width="15%">F. Voucher</th>
-                        <th width="15%">Referencia</th>
-                        <th width="15%">Factura</th>
-                        <th width="25%">Remitente</th>
-                        <th width="15%" class="text-right">Monto USD</th>
-                        <th width="15%" class="text-right">Total en {{ $symbol }}</th>
+                        <th width="12%">F. Voucher</th>
+                        <th width="18%">Quien Envía</th>
+                        <th width="14%">Referencia</th>
+                        <th width="12%">Factura</th>
+                        <th width="18%">Cliente</th>
+                        <th width="13%" class="text-right">Monto Zelle</th>
+                        <th width="13%" class="text-right">Monto Usado</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -431,16 +424,17 @@
                         @endphp
                         <tr>
                             <td>{{ $item['date'] }}</td>
+                            <td class="fw-bold">{{ strtoupper($item['zelle_sender']) }}</td>
                             <td>{{ $item['ref'] }}</td>
                             <td class="fw-bold">{{ $item['invoice'] }}</td>
                             <td class="fw-bold">{{ strtoupper($item['customer']) }}</td>
-                            <td class="text-right">{{ number_format($item['amount'], 2) }}</td>
-                            <td class="text-right fw-bold">{{ $symbol }} {{ number_format($item['equiv_usd'] * $convertToPrimary(1, 'USD'), 4) }}</td>
+                            <td class="text-right fw-bold">${{ number_format($item['zelle_total'], 2) }}</td>
+                            <td class="text-right fw-bold">${{ number_format($item['amount'], 2) }}</td>
                         </tr>
                     @endforeach
                     <tr class="total-row">
-                        <td colspan="4" class="text-right">SUBTOTAL ZELLE VENTAS (USD):</td>
-                        <td class="text-right">{{ number_format($subtotalZelleSalesCurr, 2) }}</td>
+                        <td colspan="5" class="text-right">SUBTOTAL ZELLE VENTAS (USD):</td>
+                        <td class="text-right">${{ number_format($subtotalZelleSalesCurr, 2) }}</td>
                         <td class="text-right">{{ $symbol }} {{ number_format($subtotalZelleSalesPrimary, 4) }}</td>
                     </tr>
                 </tbody>
@@ -494,12 +488,11 @@
                         <thead>
                             <tr>
                                 <th width="12%">F. Voucher</th>
-                                <th width="12%">Referencia</th>
+                                <th width="14%">Referencia</th>
                                 <th width="12%">Factura</th>
-                                <th width="20%">Cliente</th>
-                                <th width="16%">Tipo de Pago</th>
-                                <th width="14%" class="text-right">Monto {{ $curr }}</th>
-                                <th width="14%" class="text-right">Total en {{ $symbol }}</th>
+                                <th width="26%">Cliente</th>
+                                <th width="18%" class="text-right">Monto {{ $curr }}</th>
+                                <th width="18%" class="text-right">Total en {{ $symbol }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -517,13 +510,12 @@
                                     <td>{{ $item['ref'] }}</td>
                                     <td class="fw-bold">{{ $item['invoice'] }}</td>
                                     <td class="fw-bold">{{ strtoupper($item['customer']) }}</td>
-                                    <td>{{ $item['type'] }}</td>
                                     <td class="text-right">{{ number_format($item['amount'], 2) }}</td>
                                     <td class="text-right fw-bold">{{ $symbol }} {{ number_format($item['equiv_usd'] * $convertToPrimary(1, 'USD'), 4) }}</td>
                                 </tr>
                             @endforeach
                             <tr class="total-row">
-                                <td colspan="5" class="text-right">SUBTOTAL {{ strtoupper($bank) }} RECAUDO ({{ $curr }}):</td>
+                                <td colspan="4" class="text-right">SUBTOTAL {{ strtoupper($bank) }} RECAUDO ({{ $curr }}):</td>
                                 <td class="text-right">{{ number_format($subtotalBankCreditsCurr, 2) }}</td>
                                 <td class="text-right">{{ $symbol }} {{ number_format($subtotalBankCreditsPrimary, 4) }}</td>
                             </tr>
@@ -540,12 +532,12 @@
                 <thead>
                     <tr>
                         <th width="12%">F. Voucher</th>
-                        <th width="12%">Referencia</th>
+                        <th width="18%">Quien Envía</th>
+                        <th width="14%">Referencia</th>
                         <th width="12%">Factura</th>
-                        <th width="20%">Remitente</th>
-                        <th width="16%">Tipo de Pago</th>
-                        <th width="14%" class="text-right">Monto USD</th>
-                        <th width="14%" class="text-right">Total en {{ $symbol }}</th>
+                        <th width="18%">Cliente</th>
+                        <th width="13%" class="text-right">Monto Zelle</th>
+                        <th width="13%" class="text-right">Monto Usado</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -560,17 +552,17 @@
                         @endphp
                         <tr>
                             <td>{{ $item['date'] }}</td>
+                            <td class="fw-bold">{{ strtoupper($item['zelle_sender']) }}</td>
                             <td>{{ $item['ref'] }}</td>
                             <td class="fw-bold">{{ $item['invoice'] }}</td>
                             <td class="fw-bold">{{ strtoupper($item['customer']) }}</td>
-                            <td>{{ $item['type'] }}</td>
-                            <td class="text-right">{{ number_format($item['amount'], 2) }}</td>
-                            <td class="text-right fw-bold">{{ $symbol }} {{ number_format($item['equiv_usd'] * $convertToPrimary(1, 'USD'), 4) }}</td>
+                            <td class="text-right fw-bold">${{ number_format($item['zelle_total'], 2) }}</td>
+                            <td class="text-right fw-bold">${{ number_format($item['amount'], 2) }}</td>
                         </tr>
                     @endforeach
                     <tr class="total-row">
                         <td colspan="5" class="text-right">SUBTOTAL ZELLE RECAUDO (USD):</td>
-                        <td class="text-right">{{ number_format($subtotalZelleCreditsCurr, 2) }}</td>
+                        <td class="text-right">${{ number_format($subtotalZelleCreditsCurr, 2) }}</td>
                         <td class="text-right">{{ $symbol }} {{ number_format($subtotalZelleCreditsPrimary, 4) }}</td>
                     </tr>
                 </tbody>

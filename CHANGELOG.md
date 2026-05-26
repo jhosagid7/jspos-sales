@@ -1,3 +1,9 @@
+## [1.10.109] - 2026-05-26
+### Changed
+- **Campos y Columnas de Zelle**: Se removieron las columnas `Procedencia` y `Tipo de Pago` del bloque de Zelle, y se reemplazaron con el campo `Quien Envía` (nombre del remitente titular de la cuenta Zelle).
+- **Desglose de Montos en Zelle**: Se separó el flujo de dinero en dos columnas explícitas en USD: `Monto Zelle` (monto total original del voucher/recibo) y `Monto Usado` (monto consumido del Zelle para este pago particular), facilitando las búsquedas y auditorías de saldos reutilizables.
+- **Simplificación de Bancos**: Se eliminó la columna `Tipo de Pago` de las tablas bancarias en el reporte detallado para limpiar el diseño visual y dar mayor espacio a los datos clave como cliente y referencias.
+
 ## [1.10.108] - 2026-05-26
 ### Fixed
 - **Caracteres de Emojis en DomPDF**: Se eliminaron los emojis de todos los títulos y subtítulos del reporte detallado de Arqueo de Caja para evitar el signo de interrogación `?` generado por la falta de soporte de fuentes en la renderización PDF.

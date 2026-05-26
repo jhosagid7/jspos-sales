@@ -1055,13 +1055,15 @@ class ReportController extends Controller
                 'date' => $voucherDate,
                 'raw_date' => $pd->zelleRecord->zelle_date ?? $pd->bankRecord->payment_date ?? $pd->created_at,
                 'origin' => 'VENTA',
-                'ref' => $pd->reference_number ?? 'N/A',
+                'ref' => $pd->reference_number ?? ($pd->zelleRecord->reference ?? 'N/A'),
                 'invoice' => $pd->sale->invoice_number ?? $pd->sale->id,
                 'customer' => $pd->sale->customer->name ?? 'Consumidor Final',
                 'type' => 'Pago Venta',
                 'amount' => $pd->amount,
                 'currency' => $curr,
-                'equiv_usd' => $pd->amount / ($pd->exchange_rate > 0 ? $pd->exchange_rate : 1)
+                'equiv_usd' => $pd->amount / ($pd->exchange_rate > 0 ? $pd->exchange_rate : 1),
+                'zelle_sender' => $pd->zelleRecord->sender_name ?? 'N/A',
+                'zelle_total' => $pd->zelleRecord->amount ?? $pd->amount
             ];
 
             if ($method === 'bank') {
@@ -1088,13 +1090,15 @@ class ReportController extends Controller
                 'date' => $voucherDate,
                 'raw_date' => $p->zelleRecord->zelle_date ?? $p->bankRecord->payment_date ?? $p->created_at,
                 'origin' => 'CRÉDITO',
-                'ref' => $p->deposit_number ?? 'N/A',
+                'ref' => $p->deposit_number ?? ($p->zelleRecord->reference ?? 'N/A'),
                 'invoice' => $p->sale->invoice_number ?? $p->sale->id ?? 'N/A',
                 'customer' => $p->sale->customer->name ?? 'Cliente Crédito',
                 'type' => $payStatus,
                 'amount' => $p->amount,
                 'currency' => $curr,
-                'equiv_usd' => $p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1)
+                'equiv_usd' => $p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1),
+                'zelle_sender' => $p->zelleRecord->sender_name ?? 'N/A',
+                'zelle_total' => $p->zelleRecord->amount ?? $p->amount
             ];
 
             if ($method === 'bank') {
