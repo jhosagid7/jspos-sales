@@ -1,3 +1,8 @@
+## [1.10.107] - 2026-05-26
+### Changed
+- **Botones de Arqueo de Caja**: Se restauró la visualización simultánea de todos los botones de acción (`Imprimir Corte`, `Ver PDF` y `Previsualizar`) lado a lado en lugar de ocultar el reporte de PDF estándar cuando se activa el reporte detallado.
+- **Visualización de Cuenta Bancaria**: Se agregó soporte para buscar y mostrar los últimos 6 dígitos del número de cuenta de los bancos configurados (ej: `BANCO (*123456)`) en las cabeceras de bancos del reporte detallado de Arqueo de Caja, permitiendo segregar e identificar saldos de forma inequívoca cuando existen múltiples cuentas de una misma entidad.
+
 ## [1.10.106] - 2026-05-26
 ### Added
 - **Arqueo de Caja (Reporte PDF Detallado - Conciliación Bancaria)**: Se implementó un nuevo reporte PDF de Arqueo Detallado (`cash-count-detailed-pdf.blade.php`) que complementa al reporte resumido existente, diseñado con la estética de la Relación de Cobros.

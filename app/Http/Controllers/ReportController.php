@@ -962,6 +962,29 @@ class ReportController extends Controller
             return 'Abono Parcial';
         };
 
+        $configuredBanks = \App\Models\Bank::all();
+        $getBankAccountSuffix = function($bankName, $recordAccountNumber = null) use ($configuredBanks) {
+            $accNum = null;
+            if (!empty($recordAccountNumber)) {
+                $accNum = $recordAccountNumber;
+            } else if (!empty($bankName)) {
+                $match = $configuredBanks->first(function($b) use ($bankName) {
+                    return strcasecmp(trim($b->name), trim($bankName)) === 0;
+                });
+                if ($match && !empty($match->account_number)) {
+                    $accNum = $match->account_number;
+                }
+            }
+            if (!empty($accNum)) {
+                $cleanAcc = preg_replace('/[^0-9]/', '', $accNum);
+                if (strlen($cleanAcc) >= 6) {
+                    return ' (*' . substr($cleanAcc, -6) . ')';
+                }
+                return ' (*' . $accNum . ')';
+            }
+            return '';
+        };
+
         // Prepare Currency aggregations for Cash if includeCash is ON
         $cashDetails = [
             'sales' => [],
@@ -1011,6 +1034,9 @@ class ReportController extends Controller
             $curr = $pd->currency_code;
             $voucherDate = $getVoucherDate($pd, $pd->payment_method);
             
+            $suffix = $getBankAccountSuffix($bankName, $pd->account_number);
+            $bankKey = $bankName . $suffix;
+
             $item = [
                 'date' => $voucherDate,
                 'raw_date' => $pd->zelleRecord->zelle_date ?? $pd->bankRecord->payment_date ?? $pd->created_at,
@@ -1025,8 +1051,8 @@ class ReportController extends Controller
             ];
 
             if ($method === 'bank') {
-                $digitalPayments['sales']['bank'][$bankName][$curr][] = $item;
-                $digitalPayments['unified']['bank'][$bankName][$curr][] = $item;
+                $digitalPayments['sales']['bank'][$bankKey][$curr][] = $item;
+                $digitalPayments['unified']['bank'][$bankKey][$curr][] = $item;
             } else {
                 $digitalPayments['sales']['zelle'][] = $item;
                 $digitalPayments['unified']['zelle'][] = $item;
@@ -1040,6 +1066,9 @@ class ReportController extends Controller
             $curr = $p->currency ?? $primaryCode;
             $voucherDate = $getVoucherDate($p, $p->pay_way);
             $payStatus = $getCreditPaymentStatus($p);
+
+            $suffix = $getBankAccountSuffix($bankName, $p->account_number);
+            $bankKey = $bankName . $suffix;
 
             $item = [
                 'date' => $voucherDate,
@@ -1055,8 +1084,8 @@ class ReportController extends Controller
             ];
 
             if ($method === 'bank') {
-                $digitalPayments['credits']['bank'][$bankName][$curr][] = $item;
-                $digitalPayments['unified']['bank'][$bankName][$curr][] = $item;
+                $digitalPayments['credits']['bank'][$bankKey][$curr][] = $item;
+                $digitalPayments['unified']['bank'][$bankKey][$curr][] = $item;
             } else {
                 $digitalPayments['credits']['zelle'][] = $item;
                 $digitalPayments['unified']['zelle'][] = $item;

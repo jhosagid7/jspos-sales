@@ -464,15 +464,14 @@
                         class="btn btn-outline-dark btn-lg {{ $totalSales > 0 ? '' : 'd-none' }}">
                         <i class="icofont icofont-printer"></i> Imprimir Corte
                     </button>
+                    <button title="Generar PDF" wire:click.prevent="openPdfPreview"
+                        class="btn btn-outline-danger btn-lg {{ $totalSales > 0 ? '' : 'd-none' }}">
+                        <i class="icofont icofont-file-pdf"></i> Ver PDF
+                    </button>
                     @if($showDetailedReport)
                         <button title="Previsualizar Corte Detallado" wire:click.prevent="openDetailedPdfPreview"
                             class="btn btn-info btn-lg {{ $totalSales > 0 ? '' : 'd-none' }}" style="background-color: #0284c7; color: white; border-color: #0284c7; font-weight: bold;">
                             <i class="icofont icofont-eye"></i> Previsualizar
-                        </button>
-                    @else
-                        <button title="Generar PDF" wire:click.prevent="openPdfPreview"
-                            class="btn btn-outline-danger btn-lg {{ $totalSales > 0 ? '' : 'd-none' }}">
-                            <i class="icofont icofont-file-pdf"></i> Ver PDF
                         </button>
                     @endif
                 </div>
