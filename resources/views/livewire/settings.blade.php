@@ -397,13 +397,17 @@
                                     <div class="card-body">
                                         <h6 class="mb-3 text-primary"><i class="fa fa-globe me-2"></i>Tasas Globales de Referencia</h6>
                                         <div class="row g-3 align-items-end">
-                                            <div class="col-md-4">
+                                            <div class="col-md-3">
                                                 <label class="form-label">Tasa BCV (Bs.)</label>
                                                 <input wire:model="bcvRate" type="number" step="0.000001" class="form-control" placeholder="0.00">
                                             </div>
-                                            <div class="col-md-4">
-                                                <label class="form-label">Tasa Binance (Bs.)</label>
+                                            <div class="col-md-3">
+                                                <label class="form-label">Tasa Binance Real (Bs.)</label>
                                                 <input wire:model="binanceRate" type="number" step="0.000001" class="form-control" placeholder="0.00">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">Ajuste (Bs.)</label>
+                                                <input wire:model="binanceMarkupPoints" type="number" step="0.000001" class="form-control" placeholder="0.00">
                                             </div>
                                             <div class="col-md-4 d-flex gap-2">
                                                 <button wire:click="saveGlobalRates" class="btn btn-success flex-grow-1">
@@ -415,7 +419,7 @@
                                             </div>
                                         </div>
                                         <small class="text-muted mt-2 d-block">
-                                            <i class="fa fa-info-circle"></i> Estas tasas se usarán como referencia precargada al registrar pagos en Bolívares.
+                                            <i class="fa fa-info-circle"></i> Estas tasas y su ajuste se usarán como referencia precargada al registrar pagos en Bolívares.
                                         </small>
                                     </div>
                                 </div>
@@ -1109,30 +1113,44 @@
                 </div>
                 <div class="modal-body">
                     <div class="table-responsive">
-                        <table class="table table-sm table-striped table-hover">
+                        <table class="table table-sm table-striped table-hover align-middle text-center">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Fecha y Hora</th>
-                                    <th>Tipo</th>
-                                    <th>Tasa</th>
+                                    <th>Fecha</th>
+                                    <th>Tasa BCV</th>
+                                    <th>Binance Mañana</th>
+                                    <th>Binance Tarde</th>
+                                    <th>Tasa con Ajuste</th>
                                     <th>Usuario</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($historyRates as $h)
                                     <tr>
-                                        <td>{{ \Carbon\Carbon::parse($h->created_at)->format('d/m/Y h:i A') }}</td>
-                                        <td>
-                                            <span class="badge {{ $h->rate_type == 'BCV' ? 'bg-info' : 'bg-warning text-dark' }}">
-                                                {{ $h->rate_type }}
-                                            </span>
+                                        <td><span class="badge bg-light text-dark fw-bold">{{ $h['date'] }}</span></td>
+                                        <td class="fw-bold text-info">
+                                            {{ $h['bcv'] ? number_format($h['bcv'], 4) . ' Bs.' : '—' }}
                                         </td>
-                                        <td class="fw-bold">{{ number_format($h->rate, 4) }}</td>
-                                        <td>{{ $h->user->name ?? 'Sistema' }}</td>
+                                        <td class="text-secondary">
+                                            {{ $h['binance_real_am'] ? number_format($h['binance_real_am'], 4) . ' Bs.' : '—' }}
+                                        </td>
+                                        <td class="text-secondary">
+                                            {{ $h['binance_real_pm'] ? number_format($h['binance_real_pm'], 4) . ' Bs.' : '—' }}
+                                        </td>
+                                        <td class="fw-bold text-success">
+                                            @if($h['binance_inflated_pm'])
+                                                {{ number_format($h['binance_inflated_pm'], 4) . ' Bs.' }}
+                                            @elseif($h['binance_inflated_am'])
+                                                {{ number_format($h['binance_inflated_am'], 4) . ' Bs.' }}
+                                            @else
+                                                —
+                                            @endif
+                                        </td>
+                                        <td class="text-muted"><i class="fa fa-user-circle me-1"></i>{{ $h['user'] }}</td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="text-center py-3">No hay historial registrado.</td>
+                                        <td colspan="6" class="text-center py-3">No hay historial registrado.</td>
                                     </tr>
                                 @endforelse
                             </tbody>

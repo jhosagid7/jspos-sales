@@ -12,6 +12,7 @@ class ExchangeRateHistory extends Model
     protected $fillable = [
         'rate_type', // 'BCV', 'Binance'
         'rate',
+        'period',
         'user_id',
     ];
 

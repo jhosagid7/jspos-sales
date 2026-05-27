@@ -94,6 +94,17 @@ class PaymentComponent extends Component
     // Custom Rate & History Logic (New)
     public $customExchangeRate;
     public $paymentDate; // Universal payment date field (mandatory for VED/Cash)
+    public $saleId;
+    public $isUSDInvoice = false;
+    public $rateOptions = [];
+
+    // Custom Rate Approval Properties (Phase 4)
+    public $proposedCustomRate;
+    public $customRateReason;
+    public $showCustomRateRequest = false;
+    public $currentApproval = null;
+    public $supervisorEmail = '';
+    public $supervisorPassword = '';
 
     // Manual Credit Note
     public $manualCreditAmount;
@@ -152,6 +163,39 @@ class PaymentComponent extends Component
         $this->customerId = $customerId;
         $this->walletBalance = floatval($walletBalance);
         $this->metadata = $metadata;
+        
+        $this->saleId = $metadata['sale_id'] ?? null;
+        $this->isUSDInvoice = false;
+        $this->rateOptions = [];
+
+        // Reset approval properties
+        $this->proposedCustomRate = null;
+        $this->customRateReason = '';
+        $this->showCustomRateRequest = false;
+        $this->currentApproval = null;
+        $this->supervisorEmail = '';
+        $this->supervisorPassword = '';
+
+        if ($this->saleId) {
+            $sale = \App\Models\Sale::find($this->saleId);
+            if ($sale) {
+                // If applied_exchange_diff_percent is 0 or null, it's a pure USD invoice
+                $this->isUSDInvoice = (floatval($sale->applied_exchange_diff_percent) == 0);
+            }
+
+            // Pre-load existing pending/approved approval request for this user and sale
+            $existing = \App\Models\ExchangeRateApproval::where('sale_id', $this->saleId)
+                ->where('user_id', auth()->id())
+                ->whereIn('status', ['pending', 'approved'])
+                ->latest()
+                ->first();
+            if ($existing) {
+                $this->currentApproval = $existing->toArray();
+                if ($existing->status === 'approved') {
+                    $this->customExchangeRate = floatval($existing->custom_rate);
+                }
+            }
+        }
         
         // 1. Inicializar USD Discount si califica
         if ($this->allowDiscounts && $this->fixedUsdDiscountAmount > 0) {
@@ -263,6 +307,11 @@ class PaymentComponent extends Component
     {
         $this->lookupHistoricalRate();
     }
+
+    public function updatedBankDate()
+    {
+        $this->lookupHistoricalRate();
+    }
     
     // Also trigger lookup if bank/method changes, as currency might change to VED
     public function updatedPaymentCurrency() { $this->lookupHistoricalRate(); }
@@ -286,32 +335,131 @@ class PaymentComponent extends Component
         }
         
         if ($isVED) {
-             $dateToSearch = $this->paymentDate ?: ($this->bankDate ?: date('Y-m-d'));
+              $dateToSearch = $this->paymentMethod === 'cash' 
+                  ? ($this->paymentDate ?: date('Y-m-d')) 
+                  : ($this->bankDate ?: date('Y-m-d'));
+              
+              // If date is empty, default to today
+              if (empty($dateToSearch)) $dateToSearch = date('Y-m-d');
              
-             // If date is empty, default to today
-             if(empty($dateToSearch)) $dateToSearch = date('Y-m-d');
-             
-             // Look up history: Last rate recorded <= end of that day
-             $history = \App\Models\ExchangeRateHistory::where('rate_type', 'BCV') // Assume BCV for now as standard official
-                 ->where('created_at', '<=', \Carbon\Carbon::parse($dateToSearch)->endOfDay())
-                 ->orderBy('created_at', 'desc')
-                 ->first();
-                 
-             if ($history) {
-                $this->customExchangeRate = $history->rate;
-                 // Optional: Flash message? No, too noisy.
+             $dayStart = \Carbon\Carbon::parse($dateToSearch)->startOfDay();
+             $dayEnd = \Carbon\Carbon::parse($dateToSearch)->endOfDay();
+             $options = [];
+
+             if ($this->isUSDInvoice) {
+                 // Facturas sin diferencial (Pure USD): BLOQUEAR BCV por completo.
+                 // Buscar tasas BinanceReal y Binance (Inflada) para ese día específico
+                 $records = \App\Models\ExchangeRateHistory::whereIn('rate_type', ['BinanceReal', 'Binance'])
+                     ->whereBetween('created_at', [$dayStart, $dayEnd])
+                     ->orderBy('created_at', 'asc')
+                     ->get();
+                     
+                 if ($records->isEmpty()) {
+                     // Si no hay cargadas ese día, buscar las últimas registradas en o antes de ese día
+                     $latestReal = \App\Models\ExchangeRateHistory::where('rate_type', 'BinanceReal')
+                         ->where('created_at', '<=', $dayEnd)
+                         ->orderBy('created_at', 'desc')
+                         ->first();
+                         
+                     $latestInflated = \App\Models\ExchangeRateHistory::where('rate_type', 'Binance')
+                         ->where('created_at', '<=', $dayEnd)
+                         ->orderBy('created_at', 'desc')
+                         ->first();
+                         
+                     if ($latestReal) {
+                         $options[] = [
+                             'rate' => floatval($latestReal->rate),
+                             'label' => number_format($latestReal->rate, 2) . ' Bs. (Binance Real)'
+                         ];
+                     }
+                     if ($latestInflated) {
+                         $options[] = [
+                             'rate' => floatval($latestInflated->rate),
+                             'label' => number_format($latestInflated->rate, 2) . ' Bs. (Binance con Ajuste/Contado)'
+                         ];
+                     }
+                 } else {
+                     foreach ($records as $r) {
+                         $labelType = $r->rate_type === 'BinanceReal' ? 'Binance Real' : 'Binance con Ajuste';
+                         $periodLabel = $r->period === 'AM' ? 'Mañana' : 'Tarde';
+                         
+                         // Evitar duplicados
+                         $exists = collect($options)->contains('rate', floatval($r->rate));
+                         if (!$exists) {
+                             $options[] = [
+                                 'rate' => floatval($r->rate),
+                                 'label' => number_format($r->rate, 2) . " Bs. ({$labelType} - {$periodLabel})"
+                             ];
+                         }
+                     }
+                 }
+
+                 // Si la base de datos está totalmente vacía de historial, usar la configuración actual
+                 if (empty($options)) {
+                     $config = \App\Models\Configuration::first();
+                     if ($config) {
+                         $inflated = floatval($config->binance_rate) + floatval($config->binance_markup_points);
+                         $options[] = [
+                             'rate' => floatval($config->binance_rate),
+                             'label' => number_format($config->binance_rate, 2) . ' Bs. (Binance Real Activa)'
+                         ];
+                         if ($inflated != $config->binance_rate) {
+                             $options[] = [
+                                 'rate' => $inflated,
+                                 'label' => number_format($inflated, 2) . ' Bs. (Binance con Ajuste Activa)'
+                             ];
+                         }
+                     }
+                 }
              } else {
-                 // Fallback to current config rate if no history found?
-                 // Or keep empty? 
-                 // Requirement: "PRECARGADA LA TASA BCV QUE CORRESPONDA... SI EL HISTORIAL TIENE REGISTRADO"
-                 // If not found in history for that date, maybe load current Config BCV as fallback?
-                 // Or fallback to current rate.
-                 $config = \App\Models\Configuration::first();
-                 if ($config && $config->bcv_rate) {
-                      $this->customExchangeRate = $config->bcv_rate;
+                 // Facturas con diferencial: Se permite BCV oficial como opción primaria.
+                 $historyBCV = \App\Models\ExchangeRateHistory::where('rate_type', 'BCV')
+                     ->where('created_at', '<=', $dayEnd)
+                     ->orderBy('created_at', 'desc')
+                     ->first();
+                     
+                 $bcvVal = $historyBCV ? floatval($historyBCV->rate) : null;
+                 if (!$bcvVal) {
+                     $config = \App\Models\Configuration::first();
+                     $bcvVal = $config ? floatval($config->bcv_rate) : null;
+                 }
+                 
+                 if ($bcvVal) {
+                     $options[] = [
+                         'rate' => $bcvVal,
+                         'label' => number_format($bcvVal, 2) . ' Bs. (Tasa Oficial BCV)'
+                     ];
+                 }
+                 
+                 // También cargar tasas Binance como alternativas
+                 $records = \App\Models\ExchangeRateHistory::whereIn('rate_type', ['BinanceReal', 'Binance'])
+                     ->whereBetween('created_at', [$dayStart, $dayEnd])
+                     ->orderBy('created_at', 'asc')
+                     ->get();
+                     
+                 foreach ($records as $r) {
+                     $labelType = $r->rate_type === 'BinanceReal' ? 'Binance Real' : 'Binance con Ajuste';
+                     $periodLabel = $r->period === 'AM' ? 'Mañana' : 'Tarde';
+                     
+                     $exists = collect($options)->contains('rate', floatval($r->rate));
+                     if (!$exists) {
+                         $options[] = [
+                             'rate' => floatval($r->rate),
+                             'label' => number_format($r->rate, 2) . " Bs. ({$labelType} - {$periodLabel})"
+                         ];
+                     }
+                 }
+             }
+             
+             $this->rateOptions = $options;
+             if (!empty($options)) {
+                 $exists = collect($options)->contains('rate', floatval($this->customExchangeRate));
+                 if (!$exists) {
+                     $this->customExchangeRate = $options[0]['rate'];
                  }
              }
         } else {
+             $this->rateOptions = [];
              $this->customExchangeRate = null; // Reset if not VED
         }
     }
@@ -934,9 +1082,168 @@ class PaymentComponent extends Component
             );
         }
         
+        // Consumir el token de aprobación si fue aprobado y se usa
+        if ($this->currentApproval && $this->currentApproval['status'] === 'approved') {
+            $approval = \App\Models\ExchangeRateApproval::find($this->currentApproval['id']);
+            if ($approval) {
+                $approval->update(['status' => 'used']);
+            }
+        }
+
         Log::info("PaymentComponent: Event dispatched for action: $action");
         
         $this->dispatch('close-payment-modal');
+    }
+
+    // --- CUSTOM RATE APPROVAL LOOP METHODS (PHASE 4) ---
+
+    public function requestCustomRateApproval()
+    {
+        $this->validate([
+            'proposedCustomRate' => 'required|numeric|min:0.01',
+            'customRateReason' => 'required|string|min:3',
+        ]);
+
+        // Cancel any pending approvals for this sale to avoid duplicates
+        \App\Models\ExchangeRateApproval::where('sale_id', $this->saleId)
+            ->where('user_id', auth()->id())
+            ->where('status', 'pending')
+            ->update(['status' => 'rejected']);
+
+        $approval = \App\Models\ExchangeRateApproval::create([
+            'user_id' => auth()->id(),
+            'sale_id' => $this->saleId,
+            'custom_rate' => $this->proposedCustomRate,
+            'reason' => $this->customRateReason,
+            'status' => 'pending',
+        ]);
+
+        $this->currentApproval = $approval->toArray();
+        $this->showCustomRateRequest = false;
+        $this->dispatch('noty', msg: 'Solicitud de tasa especial enviada al supervisor.');
+    }
+
+    public function checkApprovalStatus()
+    {
+        if ($this->currentApproval && $this->currentApproval['status'] === 'pending') {
+            $approval = \App\Models\ExchangeRateApproval::find($this->currentApproval['id']);
+            if ($approval) {
+                $this->currentApproval = $approval->toArray();
+                if ($approval->status === 'approved') {
+                    $this->customExchangeRate = floatval($approval->custom_rate);
+                    $this->dispatch('noty', msg: 'Tasa especial aprobada por supervisor.');
+                } elseif ($approval->status === 'rejected') {
+                    $this->dispatch('noty', msg: 'Solicitud de tasa especial rechazada por supervisor.');
+                }
+            }
+        }
+    }
+
+    public function approveCustomRateLocally()
+    {
+        $this->validate([
+            'supervisorEmail' => 'required|email',
+            'supervisorPassword' => 'required',
+        ]);
+
+        $supervisor = \App\Models\User::where('email', $this->supervisorEmail)->first();
+        if (!$supervisor || !\Illuminate\Support\Facades\Hash::check($this->supervisorPassword, $supervisor->password)) {
+            $this->addError('supervisorPassword', 'Credenciales de supervisor incorrectas.');
+            return;
+        }
+
+        if (!$supervisor->hasRole('Admin') && !$supervisor->can('payments.approve_custom_rate')) {
+            $this->addError('supervisorEmail', 'El usuario no tiene permisos de aprobación de tasas.');
+            return;
+        }
+
+        // Cancel any pending approvals for this sale to avoid duplicates
+        \App\Models\ExchangeRateApproval::where('sale_id', $this->saleId)
+            ->where('user_id', auth()->id())
+            ->where('status', 'pending')
+            ->update(['status' => 'rejected']);
+
+        $rate = $this->proposedCustomRate ?: ($this->currentApproval['custom_rate'] ?? $this->customExchangeRate);
+        $reason = $this->customRateReason ?: 'Autorización local en sitio por supervisor.';
+
+        if (!$rate) {
+            $this->addError('proposedCustomRate', 'Debe especificar una tasa a aprobar.');
+            return;
+        }
+
+        $approval = \App\Models\ExchangeRateApproval::create([
+            'user_id' => auth()->id(),
+            'approver_id' => $supervisor->id,
+            'sale_id' => $this->saleId,
+            'custom_rate' => $rate,
+            'reason' => $reason,
+            'status' => 'approved',
+            'token' => (string) \Illuminate\Support\Str::uuid(),
+        ]);
+
+        $this->currentApproval = $approval->toArray();
+        $this->customExchangeRate = floatval($approval->custom_rate);
+        $this->showCustomRateRequest = false;
+        
+        $this->supervisorEmail = '';
+        $this->supervisorPassword = '';
+        $this->proposedCustomRate = null;
+        $this->customRateReason = '';
+
+        $this->dispatch('noty', msg: 'Tasa especial autorizada en sitio por el supervisor.');
+    }
+
+    public function approveCustomRateRemotely($approvalId)
+    {
+        if (!auth()->user()->hasRole('Admin') && !auth()->user()->can('payments.approve_custom_rate')) {
+            $this->dispatch('noty', msg: 'No tienes permisos de supervisor.');
+            return;
+        }
+
+        $approval = \App\Models\ExchangeRateApproval::find($approvalId);
+        if ($approval && $approval->status === 'pending') {
+            $approval->update([
+                'status' => 'approved',
+                'approver_id' => auth()->id(),
+                'token' => (string) \Illuminate\Support\Str::uuid(),
+            ]);
+            $this->currentApproval = $approval->toArray();
+            $this->customExchangeRate = floatval($approval->custom_rate);
+            $this->dispatch('noty', msg: 'Solicitud aprobada correctamente.');
+        }
+    }
+
+    public function rejectCustomRateRemotely($approvalId)
+    {
+        if (!auth()->user()->hasRole('Admin') && !auth()->user()->can('payments.approve_custom_rate')) {
+            $this->dispatch('noty', msg: 'No tienes permisos de supervisor.');
+            return;
+        }
+
+        $approval = \App\Models\ExchangeRateApproval::find($approvalId);
+        if ($approval && $approval->status === 'pending') {
+            $approval->update([
+                'status' => 'rejected',
+                'approver_id' => auth()->id(),
+            ]);
+            $this->currentApproval = $approval->toArray();
+            $this->dispatch('noty', msg: 'Solicitud rechazada correctamente.');
+        }
+    }
+
+    public function cancelCustomRateRequest()
+    {
+        if ($this->currentApproval && $this->currentApproval['status'] === 'pending') {
+            $approval = \App\Models\ExchangeRateApproval::find($this->currentApproval['id']);
+            if ($approval) {
+                $approval->update(['status' => 'rejected']);
+            }
+        }
+        $this->currentApproval = null;
+        $this->proposedCustomRate = null;
+        $this->customRateReason = '';
+        $this->showCustomRateRequest = false;
+        $this->dispatch('noty', msg: 'Solicitud cancelada.');
     }
 
     public function render()

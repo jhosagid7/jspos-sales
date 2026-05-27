@@ -241,12 +241,167 @@
 
                                             {{-- CASH VED EXTENDED FIELDS --}}
                                             @if(in_array($paymentCurrency, ['VED', 'VES']))
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Tasa (Opcional)</label>
-                                                    <input type="number" step="0.000001" class="form-control" wire:model.live="customExchangeRate" placeholder="Usar del sistema">
-                                                    @if($customExchangeRate) 
-                                                        <small class="text-info">Tasa personalizada aplicada</small> 
-                                                    @endif
+                                                <div class="col-md-12 mt-2">
+                                                    <div class="card border border-primary border-opacity-25 bg-light bg-opacity-50">
+                                                        <div class="card-body p-3">
+                                                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                                                <label class="form-label mb-0 fw-bold"><i class="fa fa-coins me-1"></i> Tasa de Cambio (VED/Bs.)</label>
+                                                                
+                                                                {{-- Request special rate button --}}
+                                                                @if(empty($currentApproval))
+                                                                    <button type="button" wire:click="$toggle('showCustomRateRequest')" class="btn btn-xs btn-outline-primary border-0 py-0 px-1" style="font-size: 0.75rem;">
+                                                                        <i class="fa fa-key me-1"></i> Solicitar Tasa Especial
+                                                                    </button>
+                                                                @endif
+                                                            </div>
+
+                                                            {{-- Strict Select Dropdown when options are available and not overridden by approved custom rate --}}
+                                                            @if($currentApproval && $currentApproval['status'] === 'approved')
+                                                                <div class="input-group">
+                                                                    <span class="input-group-text bg-success text-white"><i class="fa fa-check-circle"></i></span>
+                                                                    <input type="text" class="form-control fw-bold text-success bg-white" readonly value="{{ number_format($customExchangeRate, 2) }} Bs. (Tasa Especial Aprobada)">
+                                                                    <button type="button" wire:click="cancelCustomRateRequest" class="btn btn-outline-danger" title="Quitar tasa especial">
+                                                                        <i class="fa fa-times"></i>
+                                                                    </button>
+                                                                </div>
+                                                                <small class="text-success mt-1 d-block">
+                                                                    <i class="fa fa-info-circle"></i> Autorizado por: <strong>{{ $currentApproval['approver']['name'] ?? 'Supervisor' }}</strong>. Motivo: <em>"{{ $currentApproval['reason'] }}"</em>
+                                                                </small>
+                                                            @elseif($currentApproval && $currentApproval['status'] === 'pending')
+                                                                {{-- Pending Approval State --}}
+                                                                <div class="alert alert-warning mb-2 py-2 px-3 border-warning" wire:poll.5s="checkApprovalStatus">
+                                                                    <div class="d-flex align-items-center justify-content-between">
+                                                                        <div>
+                                                                            <i class="fa fa-spinner fa-spin me-2"></i>
+                                                                            Solicitud Pendiente: <strong>{{ number_format($currentApproval['custom_rate'], 2) }} VED</strong>
+                                                                            <small class="d-block text-muted">Motivo: "{{ $currentApproval['reason'] }}"</small>
+                                                                        </div>
+                                                                        <button type="button" wire:click="cancelCustomRateRequest" class="btn btn-xs btn-outline-danger border-0">
+                                                                            Cancelar
+                                                                        </button>
+                                                                    </div>
+
+                                                                    {{-- Remote Supervisor Buttons (if logged user is supervisor) --}}
+                                                                    @if(auth()->user()->hasRole('Admin') || auth()->user()->can('payments.approve_custom_rate'))
+                                                                        <div class="mt-2 pt-2 border-top border-warning d-flex gap-2">
+                                                                            <button type="button" wire:click="approveCustomRateRemotely({{ $currentApproval['id'] }})" class="btn btn-xs btn-success text-white py-1">
+                                                                                <i class="fa fa-check me-1"></i> Aprobar Solicitud
+                                                                            </button>
+                                                                            <button type="button" wire:click="rejectCustomRateRemotely({{ $currentApproval['id'] }})" class="btn btn-xs btn-danger py-1">
+                                                                                <i class="fa fa-times me-1"></i> Rechazar
+                                                                            </button>
+                                                                        </div>
+                                                                    @endif
+                                                                </div>
+
+                                                                {{-- On-Site Supervisor credentials verification --}}
+                                                                <div class="border rounded p-2 bg-white mt-2">
+                                                                    <small class="fw-bold text-secondary d-block mb-1"><i class="fa fa-shield-alt me-1"></i> Autorización de Supervisor en Sitio</small>
+                                                                    <div class="row g-1">
+                                                                        <div class="col-6">
+                                                                            <input type="email" class="form-control form-control-sm" placeholder="Email Supervisor" wire:model="supervisorEmail">
+                                                                            @error('supervisorEmail') <small class="text-danger" style="font-size: 0.7rem;">{{ $message }}</small> @enderror
+                                                                        </div>
+                                                                        <div class="col-6">
+                                                                            <input type="password" class="form-control form-control-sm" placeholder="Contraseña PIN" wire:model="supervisorPassword">
+                                                                            @error('supervisorPassword') <small class="text-danger" style="font-size: 0.7rem;">{{ $message }}</small> @enderror
+                                                                        </div>
+                                                                        <div class="col-12 mt-1">
+                                                                            <button type="button" wire:click="approveCustomRateLocally" class="btn btn-sm btn-primary w-100 py-1" style="font-size: 0.75rem;">
+                                                                                <i class="fa fa-fingerprint me-1"></i> Verificar y Autorizar
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            @else
+                                                                {{-- Dropdown Select of rates --}}
+                                                                @if(!empty($rateOptions))
+                                                                    <select class="form-control form-select fw-bold text-primary" wire:model.live="customExchangeRate">
+                                                                        @foreach($rateOptions as $option)
+                                                                            <option value="{{ $option['rate'] }}">{{ $option['label'] }}</option>
+                                                                        @endforeach
+                                                                    </select>
+                                                                @else
+                                                                    {{-- Fallback standard input --}}
+                                                                    <input type="number" step="0.000001" class="form-control text-primary fw-bold" wire:model.live="customExchangeRate" placeholder="Usar del sistema">
+                                                                @endif
+                                                                @if($customExchangeRate) 
+                                                                    <div class="mt-2 d-flex flex-column gap-1 align-items-start text-start">
+                                                                        <small class="text-info"><i class="fa fa-info-circle me-1"></i> Tasa VED activa: <strong>{{ number_format($customExchangeRate, 2) }} Bs.</strong></small>
+                                                                        @if($isUSDInvoice)
+                                                                            <span class="badge bg-warning text-dark py-1 px-2 fw-bold mt-1" style="font-size: 0.72rem; border-radius: 4px; display: inline-block;">
+                                                                                <i class="fa fa-exclamation-triangle me-1"></i> Factura para cobrar en Divisa (Tasa BCV bloqueada)
+                                                                            </span>
+                                                                        @else
+                                                                            <span class="badge bg-success text-white py-1 px-2 fw-bold mt-1" style="font-size: 0.72rem; border-radius: 4px; display: inline-block;">
+                                                                                <i class="fa fa-check-circle me-1"></i> Factura con Diferencial (Permite tasa BCV)
+                                                                            </span>
+                                                                        @endif
+                                                                    </div>
+                                                                @endif
+                                                            @endif
+
+                                                            {{-- Special Rate Request Form (Inline collapsible) --}}
+                                                            @if($showCustomRateRequest && empty($currentApproval))
+                                                                <div class="mt-3 p-3 border rounded bg-white text-start">
+                                                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                                                        <h6 class="mb-0 text-primary" style="font-size: 0.85rem;"><i class="fa fa-key me-1"></i> Solicitar Tasa Especial</h6>
+                                                                        <button type="button" wire:click="$set('showCustomRateRequest', false)" class="btn-close" style="font-size: 0.7rem;"></button>
+                                                                    </div>
+                                                                    <div class="row g-2">
+                                                                        <div class="col-md-6 text-start">
+                                                                            <label class="form-label" style="font-size: 0.75rem;">Tasa Manual Propuesta</label>
+                                                                            <input type="number" step="0.01" class="form-control form-control-sm text-start" placeholder="0.00" wire:model="proposedCustomRate">
+                                                                            @error('proposedCustomRate') <small class="text-danger">{{ $message }}</small> @enderror
+                                                                        </div>
+                                                                        <div class="col-md-6 text-start">
+                                                                            <label class="form-label" style="font-size: 0.75rem;">Supervisor en Sitio (Opcional)</label>
+                                                                            <select class="form-control form-select form-control-sm" style="font-size: 0.75rem;" wire:model="supervisorEmail">
+                                                                                <option value="">(Solicitar Remoto)</option>
+                                                                                @php
+                                                                                    $supervisors = \App\Models\User::all();
+                                                                                @endphp
+                                                                                @foreach($supervisors as $sup)
+                                                                                    @if($sup->hasRole('Admin') || $sup->can('payments.approve_custom_rate'))
+                                                                                        <option value="{{ $sup->email }}">{{ $sup->name }}</option>
+                                                                                    @endif
+                                                                                @endforeach
+                                                                            </select>
+                                                                        </div>
+                                                                        <div class="col-12 text-start">
+                                                                            <label class="form-label" style="font-size: 0.75rem;">Justificación Obligatoria <span class="text-danger">*</span></label>
+                                                                            <textarea class="form-control form-control-sm text-start" rows="2" placeholder="Explique por qué requiere usar una tasa diferente..." wire:model="customRateReason"></textarea>
+                                                                            @error('customRateReason') <small class="text-danger">{{ $message }}</small> @enderror
+                                                                        </div>
+                                                                        
+                                                                        {{-- If supervisor is selected, show password input for local verification --}}
+                                                                        @if($supervisorEmail)
+                                                                            <div class="col-12 text-start">
+                                                                                <label class="form-label" style="font-size: 0.75rem;">Contraseña Supervisor</label>
+                                                                                <input type="password" class="form-control form-control-sm text-start" placeholder="Ingrese clave" wire:model="supervisorPassword">
+                                                                                @error('supervisorPassword') <small class="text-danger">{{ $message }}</small> @enderror
+                                                                            </div>
+                                                                        @endif
+
+                                                                        <div class="col-12 mt-2 d-flex gap-2">
+                                                                            @if($supervisorEmail)
+                                                                                <button type="button" wire:click="approveCustomRateLocally" class="btn btn-sm btn-primary flex-grow-1">
+                                                                                    <i class="fa fa-fingerprint me-1"></i> Autorizar en Sitio
+                                                                                </button>
+                                                                            @else
+                                                                                <button type="button" wire:click="requestCustomRateApproval" class="btn btn-sm btn-warning text-dark flex-grow-1">
+                                                                                    <i class="fa fa-paper-plane me-1"></i> Enviar Solicitud
+                                                                                </button>
+                                                                            @endif
+                                                                            <button type="button" wire:click="$set('showCustomRateRequest', false)" class="btn btn-sm btn-secondary">
+                                                                                Cancelar
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            @endif
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             @endif
 
@@ -418,15 +573,168 @@
                                                     @error('bankDate') <span class="text-danger small">{{ $message }}</span> @enderror
                                                 </div>
 
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Tasa (Opcional)</label>
-                                                    <div class="input-group">
-                                                        <span class="input-group-text"><i class="fas fa-coins"></i></span>
-                                                        <input type="number" step="0.000001" class="form-control" wire:model.live="customExchangeRate" placeholder="Usar del sistema">
+                                                <div class="col-md-12 mt-2">
+                                                    <div class="card border border-primary border-opacity-25 bg-light bg-opacity-50">
+                                                        <div class="card-body p-3 text-start">
+                                                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                                                <label class="form-label mb-0 fw-bold"><i class="fa fa-coins me-1"></i> Tasa de Cambio (VED/Bs.)</label>
+                                                                
+                                                                {{-- Request special rate button --}}
+                                                                @if(empty($currentApproval))
+                                                                    <button type="button" wire:click="$toggle('showCustomRateRequest')" class="btn btn-xs btn-outline-primary border-0 py-0 px-1" style="font-size: 0.75rem;">
+                                                                        <i class="fa fa-key me-1"></i> Solicitar Tasa Especial
+                                                                    </button>
+                                                                @endif
+                                                            </div>
+
+                                                            {{-- Strict Select Dropdown when options are available and not overridden by approved custom rate --}}
+                                                            @if($currentApproval && $currentApproval['status'] === 'approved')
+                                                                <div class="input-group">
+                                                                    <span class="input-group-text bg-success text-white"><i class="fa fa-check-circle"></i></span>
+                                                                    <input type="text" class="form-control fw-bold text-success bg-white text-start" readonly value="{{ number_format($customExchangeRate, 2) }} Bs. (Tasa Especial Aprobada)">
+                                                                    <button type="button" wire:click="cancelCustomRateRequest" class="btn btn-outline-danger" title="Quitar tasa especial">
+                                                                        <i class="fa fa-times"></i>
+                                                                    </button>
+                                                                </div>
+                                                                <small class="text-success mt-1 d-block text-start">
+                                                                    <i class="fa fa-info-circle"></i> Autorizado por: <strong>{{ $currentApproval['approver']['name'] ?? 'Supervisor' }}</strong>. Motivo: <em>"{{ $currentApproval['reason'] }}"</em>
+                                                                </small>
+                                                            @elseif($currentApproval && $currentApproval['status'] === 'pending')
+                                                                {{-- Pending Approval State --}}
+                                                                <div class="alert alert-warning mb-2 py-2 px-3 border-warning" wire:poll.5s="checkApprovalStatus">
+                                                                    <div class="d-flex align-items-center justify-content-between">
+                                                                        <div class="text-start">
+                                                                            <i class="fa fa-spinner fa-spin me-2"></i>
+                                                                            Solicitud Pendiente: <strong>{{ number_format($currentApproval['custom_rate'], 2) }} VED</strong>
+                                                                            <small class="d-block text-muted">Motivo: "{{ $currentApproval['reason'] }}"</small>
+                                                                        </div>
+                                                                        <button type="button" wire:click="cancelCustomRateRequest" class="btn btn-xs btn-outline-danger border-0">
+                                                                            Cancelar
+                                                                        </button>
+                                                                    </div>
+
+                                                                    {{-- Remote Supervisor Buttons (if logged user is supervisor) --}}
+                                                                    @if(auth()->user()->hasRole('Admin') || auth()->user()->can('payments.approve_custom_rate'))
+                                                                        <div class="mt-2 pt-2 border-top border-warning d-flex gap-2">
+                                                                            <button type="button" wire:click="approveCustomRateRemotely({{ $currentApproval['id'] }})" class="btn btn-xs btn-success text-white py-1">
+                                                                                <i class="fa fa-check me-1"></i> Aprobar Solicitud
+                                                                            </button>
+                                                                            <button type="button" wire:click="rejectCustomRateRemotely({{ $currentApproval['id'] }})" class="btn btn-xs btn-danger py-1">
+                                                                                <i class="fa fa-times me-1"></i> Rechazar
+                                                                            </button>
+                                                                        </div>
+                                                                    @endif
+                                                                </div>
+
+                                                                {{-- On-Site Supervisor credentials verification --}}
+                                                                <div class="border rounded p-2 bg-white mt-2 text-start">
+                                                                    <small class="fw-bold text-secondary d-block mb-1"><i class="fa fa-shield-alt me-1"></i> Autorización de Supervisor en Sitio</small>
+                                                                    <div class="row g-1">
+                                                                        <div class="col-6">
+                                                                            <input type="email" class="form-control form-control-sm text-start" placeholder="Email Supervisor" wire:model="supervisorEmail">
+                                                                            @error('supervisorEmail') <small class="text-danger" style="font-size: 0.7rem;">{{ $message }}</small> @enderror
+                                                                        </div>
+                                                                        <div class="col-6">
+                                                                            <input type="password" class="form-control form-control-sm text-start" placeholder="Contraseña PIN" wire:model="supervisorPassword">
+                                                                            @error('supervisorPassword') <small class="text-danger" style="font-size: 0.7rem;">{{ $message }}</small> @enderror
+                                                                        </div>
+                                                                        <div class="col-12 mt-1">
+                                                                            <button type="button" wire:click="approveCustomRateLocally" class="btn btn-sm btn-primary w-100 py-1" style="font-size: 0.75rem;">
+                                                                                <i class="fa fa-fingerprint me-1"></i> Verificar y Autorizar
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            @else
+                                                                {{-- Dropdown Select of rates --}}
+                                                                @if(!empty($rateOptions))
+                                                                    <select class="form-control form-select fw-bold text-primary text-start" wire:model.live="customExchangeRate">
+                                                                        @foreach($rateOptions as $option)
+                                                                            <option value="{{ $option['rate'] }}">{{ $option['label'] }}</option>
+                                                                        @endforeach
+                                                                    </select>
+                                                                @else
+                                                                    {{-- Fallback standard input --}}
+                                                                    <input type="number" step="0.000001" class="form-control text-primary fw-bold text-start" wire:model.live="customExchangeRate" placeholder="Usar del sistema">
+                                                                @endif
+
+                                                                @if($customExchangeRate) 
+                                                                    <div class="mt-2 d-flex flex-column gap-1 align-items-start text-start">
+                                                                        <small class="text-info"><i class="fa fa-info-circle me-1"></i> Tasa VED activa: <strong>{{ number_format($customExchangeRate, 2) }} Bs.</strong></small>
+                                                                        @if($isUSDInvoice)
+                                                                            <span class="badge bg-warning text-dark py-1 px-2 fw-bold mt-1" style="font-size: 0.72rem; border-radius: 4px; display: inline-block;">
+                                                                                <i class="fa fa-exclamation-triangle me-1"></i> Factura para cobrar en Divisa (Tasa BCV bloqueada)
+                                                                            </span>
+                                                                        @else
+                                                                            <span class="badge bg-success text-white py-1 px-2 fw-bold mt-1" style="font-size: 0.72rem; border-radius: 4px; display: inline-block;">
+                                                                                <i class="fa fa-check-circle me-1"></i> Factura con Diferencial (Permite tasa BCV)
+                                                                            </span>
+                                                                        @endif
+                                                                    </div>
+                                                                @endif
+                                                            @endif
+
+                                                            {{-- Special Rate Request Form (Inline collapsible) --}}
+                                                            @if($showCustomRateRequest && empty($currentApproval))
+                                                                <div class="mt-3 p-3 border rounded bg-white text-start">
+                                                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                                                        <h6 class="mb-0 text-primary" style="font-size: 0.85rem;"><i class="fa fa-key me-1"></i> Solicitar Tasa Especial</h6>
+                                                                        <button type="button" wire:click="$set('showCustomRateRequest', false)" class="btn-close" style="font-size: 0.7rem;"></button>
+                                                                    </div>
+                                                                    <div class="row g-2">
+                                                                        <div class="col-md-6 text-start">
+                                                                            <label class="form-label" style="font-size: 0.75rem;">Tasa Manual Propuesta</label>
+                                                                            <input type="number" step="0.01" class="form-control form-control-sm text-start" placeholder="0.00" wire:model="proposedCustomRate">
+                                                                            @error('proposedCustomRate') <small class="text-danger">{{ $message }}</small> @enderror
+                                                                        </div>
+                                                                        <div class="col-md-6 text-start">
+                                                                            <label class="form-label" style="font-size: 0.75rem;">Supervisor en Sitio (Opcional)</label>
+                                                                            <select class="form-control form-select form-control-sm" style="font-size: 0.75rem;" wire:model="supervisorEmail">
+                                                                                <option value="">(Solicitar Remoto)</option>
+                                                                                @php
+                                                                                    $supervisors = \App\Models\User::all();
+                                                                                @endphp
+                                                                                @foreach($supervisors as $sup)
+                                                                                    @if($sup->hasRole('Admin') || $sup->can('payments.approve_custom_rate'))
+                                                                                        <option value="{{ $sup->email }}">{{ $sup->name }}</option>
+                                                                                    @endif
+                                                                                @endforeach
+                                                                            </select>
+                                                                        </div>
+                                                                        <div class="col-12 text-start">
+                                                                            <label class="form-label" style="font-size: 0.75rem;">Justificación Obligatoria <span class="text-danger">*</span></label>
+                                                                            <textarea class="form-control form-control-sm text-start" rows="2" placeholder="Explique por qué requiere usar una tasa diferente..." wire:model="customRateReason"></textarea>
+                                                                            @error('customRateReason') <small class="text-danger">{{ $message }}</small> @enderror
+                                                                        </div>
+                                                                        
+                                                                        {{-- If supervisor is selected, show password input for local verification --}}
+                                                                        @if($supervisorEmail)
+                                                                            <div class="col-12 text-start">
+                                                                                <label class="form-label" style="font-size: 0.75rem;">Contraseña Supervisor</label>
+                                                                                <input type="password" class="form-control form-control-sm text-start" placeholder="Ingrese clave" wire:model="supervisorPassword">
+                                                                                @error('supervisorPassword') <small class="text-danger">{{ $message }}</small> @enderror
+                                                                            </div>
+                                                                        @endif
+
+                                                                        <div class="col-12 mt-2 d-flex gap-2">
+                                                                            @if($supervisorEmail)
+                                                                                <button type="button" wire:click="approveCustomRateLocally" class="btn btn-sm btn-primary flex-grow-1">
+                                                                                    <i class="fa fa-fingerprint me-1"></i> Autorizar en Sitio
+                                                                                </button>
+                                                                            @else
+                                                                                <button type="button" wire:click="requestCustomRateApproval" class="btn btn-sm btn-warning text-dark flex-grow-1">
+                                                                                    <i class="fa fa-paper-plane me-1"></i> Enviar Solicitud
+                                                                                </button>
+                                                                            @endif
+                                                                            <button type="button" wire:click="$set('showCustomRateRequest', false)" class="btn btn-sm btn-secondary">
+                                                                                Cancelar
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            @endif
+                                                        </div>
                                                     </div>
-                                                    @if($customExchangeRate) 
-                                                        <small class="text-info d-block mt-1">Tasa personalizada aplicada</small> 
-                                                    @endif
                                                 </div>
 
                                                 <div class="col-md-6">

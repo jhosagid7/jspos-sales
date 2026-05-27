@@ -58,6 +58,7 @@ class Configuration extends Model
         'license_request_email',
         'bcv_rate',
         'binance_rate',
+        'binance_markup_points',
         'sales_view_mode',
         'enable_shared_cash_register',
         'price_list_show_info_block',

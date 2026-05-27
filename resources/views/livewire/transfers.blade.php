@@ -76,6 +76,11 @@
                                     <i class="fas fa-file-pdf"></i>
                                 </a>
                                 @if($transfer->status == 'pending')
+                                    <button wire:click="dispatchTransferFromWeb({{ $transfer->id }})" 
+                                            wire:confirm="¿Despachar este traspaso? El stock se descontará del almacén de origen."
+                                            class="btn btn-primary btn-sm" title="Despachar Traspaso">
+                                        <i class="fas fa-truck"></i> Despachar
+                                    </button>
                                     <button wire:click="deleteTransfer({{ $transfer->id }})" 
                                             wire:confirm="¿Eliminar este traspaso pendiente?"
                                             class="btn btn-danger btn-sm" title="Eliminar">

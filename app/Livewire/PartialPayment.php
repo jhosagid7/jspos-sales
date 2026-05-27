@@ -256,7 +256,8 @@ class PartialPayment extends Component
             $canUpload,
             $canPay,
             $sale->customer->id ?? $sale->customer_id,
-            $sale->customer->wallet_balance ?? 0
+            $sale->customer->wallet_balance ?? 0,
+            ['sale_id' => $sale->id]
         );
     }
     

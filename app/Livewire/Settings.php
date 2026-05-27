@@ -50,6 +50,7 @@ class Settings extends Component
     // Global Rates
     public $bcvRate;
     public $binanceRate;
+    public $binanceMarkupPoints = 0;
     public $historyRates = [];
     public $showHistoryModal = false;
 
@@ -148,6 +149,7 @@ class Settings extends Component
             // Global Rates
             $this->bcvRate = $config->bcv_rate;
             $this->binanceRate = $config->binance_rate;
+            $this->binanceMarkupPoints = $config->binance_markup_points ?? 0;
 
             
             // Load Discount Rules
@@ -325,6 +327,7 @@ class Settings extends Component
                 'global_usd_payment_discount_tag' => $this->globalUsdPaymentDiscountTag ?? 'PD',
                 'bcv_rate' => $this->bcvRate,
                 'binance_rate' => $this->binanceRate,
+                'binance_markup_points' => $this->binanceMarkupPoints,
             ]);
             
             $this->saveDiscountRules();
@@ -610,42 +613,71 @@ class Settings extends Component
             // Validate
             $this->validate([
                 'bcvRate' => 'nullable|numeric|min:0',
-                'binanceRate' => 'nullable|numeric|min:0'
+                'binanceRate' => 'nullable|numeric|min:0',
+                'binanceMarkupPoints' => 'nullable|numeric|min:0'
             ]);
 
             $config = Configuration::find($this->setting_id);
             if (!$config) $config = Configuration::first();
 
-            // Check changes and save history
             $userId = auth()->id();
+            $period = now()->hour < 12 ? 'AM' : 'PM';
+            
+            // Calculate Inflated Rate
+            $inflatedRate = floatval($this->binanceRate) + floatval($this->binanceMarkupPoints);
 
+            // BCV rate logging
             if ($this->bcvRate != $config->bcv_rate) {
                  if ($this->bcvRate > 0) {
-                     \App\Models\ExchangeRateHistory::create([
-                         'rate_type' => 'BCV',
-                         'rate' => $this->bcvRate,
-                         'user_id' => $userId
-                     ]);
+                      \App\Models\ExchangeRateHistory::create([
+                          'rate_type' => 'BCV',
+                          'rate' => $this->bcvRate,
+                          'period' => $period,
+                          'user_id' => $userId
+                      ]);
                  }
             }
 
-            if ($this->binanceRate != $config->binance_rate) {
+            // Binance rate logging
+            if ($this->binanceRate != $config->binance_rate || $this->binanceMarkupPoints != $config->binance_markup_points) {
                  if ($this->binanceRate > 0) {
-                     \App\Models\ExchangeRateHistory::create([
-                         'rate_type' => 'Binance',
-                         'rate' => $this->binanceRate,
-                         'user_id' => $userId
-                     ]);
+                      // Log real Binance rate input
+                      \App\Models\ExchangeRateHistory::create([
+                          'rate_type' => 'BinanceReal',
+                          'rate' => $this->binanceRate,
+                          'period' => $period,
+                          'user_id' => $userId
+                      ]);
+
+                      // Log calculated inflated Binance rate
+                      \App\Models\ExchangeRateHistory::create([
+                          'rate_type' => 'Binance',
+                          'rate' => $inflatedRate,
+                          'period' => $period,
+                          'user_id' => $userId
+                      ]);
                  }
             }
 
             // Update Config
             $config->update([
                 'bcv_rate' => $this->bcvRate,
-                'binance_rate' => $this->binanceRate
+                'binance_rate' => $this->binanceRate,
+                'binance_markup_points' => $this->binanceMarkupPoints
             ]);
 
-            $this->dispatch('noty', msg: 'Tasas Globales actualizadas correctamente');
+            // Sync with VES/VED Currencies exchange rate automatically
+            DB::table('currencies')
+                ->whereIn('code', ['VES', 'VED'])
+                ->update([
+                    'exchange_rate' => $inflatedRate,
+                    'updated_at' => now()
+                ]);
+
+            // Reload currencies in session
+            $this->loadCurrencies();
+
+            $this->dispatch('noty', msg: 'Tasas Globales y Ajuste actualizados correctamente');
 
         } catch (\Exception $e) {
             $this->dispatch('noty', msg: 'Error al guardar tasas: ' . $e->getMessage());
@@ -654,10 +686,44 @@ class Settings extends Component
 
     public function viewRateHistory()
     {
-        $this->historyRates = \App\Models\ExchangeRateHistory::with('user')
+        $entries = \App\Models\ExchangeRateHistory::with('user')
             ->orderBy('created_at', 'desc')
-            ->take(50)
+            ->take(150)
             ->get();
+            
+        $grouped = [];
+        foreach ($entries as $e) {
+            $date = $e->created_at->format('Y-m-d');
+            if (!isset($grouped[$date])) {
+                $grouped[$date] = [
+                    'date' => $e->created_at->format('d/m/Y'),
+                    'bcv' => null,
+                    'binance_real_am' => null,
+                    'binance_real_pm' => null,
+                    'binance_inflated_am' => null,
+                    'binance_inflated_pm' => null,
+                    'user' => $e->user->name ?? 'Sistema'
+                ];
+            }
+            
+            if ($e->rate_type === 'BCV') {
+                $grouped[$date]['bcv'] = $e->rate;
+            } elseif ($e->rate_type === 'BinanceReal') {
+                if ($e->period === 'AM') {
+                    $grouped[$date]['binance_real_am'] = $e->rate;
+                } else {
+                    $grouped[$date]['binance_real_pm'] = $e->rate;
+                }
+            } elseif ($e->rate_type === 'Binance') {
+                if ($e->period === 'AM') {
+                    $grouped[$date]['binance_inflated_am'] = $e->rate;
+                } else {
+                    $grouped[$date]['binance_inflated_pm'] = $e->rate;
+                }
+            }
+        }
+        
+        $this->historyRates = array_values($grouped);
             
         $this->dispatch('show-history-modal');
     }

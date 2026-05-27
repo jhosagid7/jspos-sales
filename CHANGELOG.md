@@ -1,3 +1,11 @@
+## [1.10.110] - 2026-05-27
+### Added
+- **Restricción de Tasas de Cambio**: Se bloqueó el uso de la tasa oficial BCV para liquidar abonos a facturas de crédito denominadas en divisas puras (aquellas configuradas con diferencial del 0%), exigiendo utilizar únicamente tasas Binance (paralelas).
+- **Selector de Tasa Inteligente y Reactivo**: Reemplazo de los inputs libres de tasa en efectivo y bancos por dropdowns estrictos basados en el historial del día del voucher. Se añadió el listener reactivo para que al cambiar la fecha del banco, las tasas cargadas se actualicen dinámicamente según ese día.
+- **Bucle de Aprobación de Supervisor**: Flujo para que el operador solicite tasas personalizadas ingresando una justificación obligatoria. Permite aprobación remota (Livewire poll cada 5 seg) o local ingresando email y contraseña del supervisor en el modal en sitio, generando un token UUID de un solo uso.
+- **Indicadores de Estado de Factura**: Incorporación de distintivos visuales de color debajo de la tasa de cambio (`bg-warning` y `bg-success`) indicando explícitamente si se trata de una factura en divisas pura (Tasa BCV bloqueada) o factura con diferencial (Tasa BCV permitida) para dar máxima seguridad al operador.
+- **Botón Despachar en Traspasos**: Se agregó el botón `🚚 Despachar` en la lista web de traspasos pendientes. Esto resuelve el bloqueo de traspasos de almacenes sin aplicación móvil (como ZONA), permitiendo descontar stock del origen en la web y habilitando su inmediata recepción/aprobación.
+
 ## [1.10.109] - 2026-05-26
 ### Changed
 - **Campos y Columnas de Zelle**: Se removieron las columnas `Procedencia` y `Tipo de Pago` del bloque de Zelle, y se reemplazaron con el campo `Quien Envía` (nombre del remitente titular de la cuenta Zelle).
