@@ -1,6 +1,11 @@
+## [1.10.117] - 2026-05-28
+### Fixed
+- **Relación de Cobros (Agrupación de Pagos en Efectivo)**: Se corrigió un bug del sistema en la generación del PDF de Relación de Cobros (`collection-relationship-new-pdf.blade.php`). Anteriormente, al agrupar los pagos en efectivo de una venta, si existía **cualquier** pago anulado en esa misma venta, todo el grupo de efectivo se marcaba erróneamente como anulado `[ANULADO]` (tachando la fila entera y forzando a `0` el monto de ingreso), lo que provocaba que los pagos en efectivo válidos y aprobados posteriores quedaran ocultos o no sumados en el reporte. Ahora se agrupan los pagos en efectivo tanto por la venta como por su **estado/status**, separándolos en filas independientes en el PDF para garantizar la total precisión de los totales de ingreso.
+
 ## [1.10.116] - 2026-05-28
 ### Fixed
 - **Botonera de Pagos y Cobros (Comillas en Nombres)**: Se corrigió un error crítico que impedía que abrieran los modales de registro de abonos y cuentas por cobrar/pagar cuando el nombre del cliente o proveedor contenía comillas simples (ej. `E-70. D' SANTIAGO C.A`). Se refactorizó la comunicación de Livewire para resolver dinámicamente los nombres desde los modelos de base de datos en el backend, eliminando por completo cualquier interpolación de caracteres conflictivos en el JavaScript de las vistas Blade.
+
 
 ## [1.10.115] - 2026-05-28
 

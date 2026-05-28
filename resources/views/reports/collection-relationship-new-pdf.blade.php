@@ -166,45 +166,49 @@
 
                     // 1. Process Merged Cash
                     if ($cashPayments->count() > 0) {
-                        $p = $cashPayments->first();
-                        $isAnyVoided = $cashPayments->contains(fn($cp) => $cp->status == 'voided');
+                        $cashGroups = $cashPayments->groupBy('status');
+                        foreach ($cashGroups as $status => $statusCashPayments) {
+                            if ($statusCashPayments->count() > 0) {
+                                $p = $statusCashPayments->first();
+                                $isVoided = ($status == 'voided');
 
-                        $breakdown = [];
-                        $totalUsd = 0;
-                        foreach($cashPayments as $cp) {
-                            $isVoided = ($cp->status == 'voided');
-                            $rate = $cp->exchange_rate > 0 ? $cp->exchange_rate : 1;
-                            $amtUsd = $cp->amount / $rate;
-                            $totalUsd += ($isVoided ? 0 : $amtUsd);
-                            
-                            $breakdown[] = "(Tasa: " . number_format($rate, 4) . " | (" . number_format($cp->amount, 4) . " {$cp->currency}) = $" . number_format($amtUsd, 4) . ")";
+                                $breakdown = [];
+                                $totalUsd = 0;
+                                foreach($statusCashPayments as $cp) {
+                                    $rate = $cp->exchange_rate > 0 ? $cp->exchange_rate : 1;
+                                    $amtUsd = $cp->amount / $rate;
+                                    $totalUsd += ($isVoided ? 0 : $amtUsd);
+                                    
+                                    $breakdown[] = "(Tasa: " . number_format($rate, 4) . " | (" . number_format($cp->amount, 4) . " {$cp->currency}) = $" . number_format($amtUsd, 4) . ")";
+                                }
+
+                                $cashDate = \Carbon\Carbon::parse($p->payment_date ?? $p->created_at)->format('d/m/Y');
+                                $description = ($isVoided ? '[ANULADO] ' : '') . "CASH (F. Registro: {$cashDate}) [" . implode(", ", $breakdown) . "] = $" . number_format($totalUsd, 4);
+
+                                $dateEmit = \Carbon\Carbon::parse($p->sale->created_at);
+                                $datePay = \Carbon\Carbon::parse($p->payment_date);
+                                $creditDays = $p->sale->credit_days ?? 0;
+                                $dueDate = $dateEmit->copy()->addDays($creditDays);
+                                $daysDiff = $dueDate->diffInDays($datePay, false);
+
+                                $activity->push([
+                                    'type' => 'Pago',
+                                    'customer_id' => $p->sale->customer_id,
+                                    'customer_name' => $p->sale->customer->name,
+                                    'customer_doc' => $p->sale->customer->taxpayer_id,
+                                    'date_pay' => $datePay,
+                                    'date_emit' => $dateEmit,
+                                    'days' => $daysDiff,
+                                    'doc_number' => $p->sale->invoice_number ?? $p->sale->id,
+                                    'description' => $description,
+                                    'monto' => $totalUsd,
+                                    'ingreso' => ($isVoided ? 0 : $totalUsd),
+                                    'is_voided' => $isVoided,
+                                    'sale_id' => $p->sale_id,
+                                    'is_merged_cash' => true
+                                ]);
+                            }
                         }
-
-                        $cashDate = \Carbon\Carbon::parse($p->payment_date ?? $p->created_at)->format('d/m/Y');
-                        $description = ($isAnyVoided ? '[ANULADO] ' : '') . "CASH (F. Registro: {$cashDate}) [" . implode(", ", $breakdown) . "] = $" . number_format($totalUsd, 4);
-
-                        $dateEmit = \Carbon\Carbon::parse($p->sale->created_at);
-                        $datePay = \Carbon\Carbon::parse($p->payment_date);
-                        $creditDays = $p->sale->credit_days ?? 0;
-                        $dueDate = $dateEmit->copy()->addDays($creditDays);
-                        $daysDiff = $dueDate->diffInDays($datePay, false);
-
-                        $activity->push([
-                            'type' => 'Pago',
-                            'customer_id' => $p->sale->customer_id,
-                            'customer_name' => $p->sale->customer->name,
-                            'customer_doc' => $p->sale->customer->taxpayer_id,
-                            'date_pay' => $datePay,
-                            'date_emit' => $dateEmit,
-                            'days' => $daysDiff,
-                            'doc_number' => $p->sale->invoice_number ?? $p->sale->id,
-                            'description' => $description,
-                            'monto' => $totalUsd,
-                            'ingreso' => ($isAnyVoided ? 0 : $totalUsd),
-                            'is_voided' => $isAnyVoided,
-                            'sale_id' => $p->sale_id,
-                            'is_merged_cash' => true
-                        ]);
                     }
 
                     // 2. Process Others separately

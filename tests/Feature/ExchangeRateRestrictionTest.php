@@ -304,4 +304,75 @@ class ExchangeRateRestrictionTest extends TestCase
             'status' => 'approved'
         ]);
     }
+
+    public function test_collection_relationship_pdf_separates_approved_and_voided_cash_payments()
+    {
+        $user = User::factory()->create();
+        $customer = Customer::create([
+            'name' => 'Yeison Montenegro',
+            'taxpayer_id' => 'V-11215715',
+        ]);
+
+        $sale = Sale::create([
+            'user_id' => $user->id,
+            'customer_id' => $customer->id,
+            'total' => 160.00,
+            'items' => 1,
+            'status' => 'pending',
+            'type' => 'credit',
+            'primary_exchange_rate' => 1.00
+        ]);
+
+        // Create a voided cash payment
+        $voidedPayment = \App\Models\Payment::create([
+            'sale_id' => $sale->id,
+            'amount' => 80.00,
+            'pay_way' => 'cash',
+            'currency' => 'USD',
+            'exchange_rate' => 1.00,
+            'status' => 'voided',
+            'payment_date' => Carbon::now()->format('Y-m-d H:i:s'),
+            'user_id' => $user->id,
+        ]);
+
+        // Create an approved cash payment
+        $approvedPayment = \App\Models\Payment::create([
+            'sale_id' => $sale->id,
+            'amount' => 80.00,
+            'pay_way' => 'cash',
+            'currency' => 'USD',
+            'exchange_rate' => 1.00,
+            'status' => 'approved',
+            'payment_date' => Carbon::now()->format('Y-m-d H:i:s'),
+            'user_id' => $user->id,
+        ]);
+
+        $payments = collect([$voidedPayment, $approvedPayment]);
+
+        $config = Configuration::first();
+
+        // Render the view with the template
+        $html = view('reports.collection-relationship-new-pdf', [
+            'sheet' => new \App\Models\CollectionSheet(['id' => 1, 'sheet_number' => '123']),
+            'payments' => $payments,
+            'returns' => collect(),
+            'config' => $config,
+            'user' => $user,
+            'date' => Carbon::now()->format('d/m/Y H:i'),
+            'totalsByCategory' => [],
+            'totalsByCurrency' => [],
+            'dateFrom' => null,
+            'dateTo' => null
+        ])->render();
+
+        // Assert that the HTML contains both the voided description (marked as [ANULADO]) and the approved cash row.
+        $this->assertStringContainsString('[ANULADO] CASH', $html);
+        $this->assertStringContainsString('CASH (F. Registro:', $html);
+        
+        // Assert that we have two separate rows (one has voided-row class, one doesn't)
+        $this->assertStringContainsString('class=" voided-row"', $html);
+        
+        // Count how many times the class voided-row appears in tr tags.
+        $this->assertEquals(1, substr_count($html, 'class=" voided-row"'));
+    }
 }
