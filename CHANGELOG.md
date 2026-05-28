@@ -1,3 +1,7 @@
+## [1.10.113] - 2026-05-28
+### Fixed
+- **Visibilidad del Menú Padre de Finanzas**: Se corrigió el condicional de permisos (`@canany`) del menú principal **FINANZAS Y AUDITORÍA** en `sidebar.blade.php`, agregando el permiso `payments.approve_custom_rate` para que el menú de aprobaciones sea visible para supervisores que no tengan otros permisos financieros heredados.
+
 ## [1.10.112] - 2026-05-28
 ### Added
 - **Migración de Base de Datos para el Permiso**: Se incorporó una migración de base de datos (`2026_05_28_105435_add_payments_approve_custom_rate_permission.php`) para registrar el permiso `payments.approve_custom_rate` y asignarlo automáticamente al rol `Super Admin`.

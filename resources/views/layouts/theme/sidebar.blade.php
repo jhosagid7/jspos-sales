@@ -344,7 +344,7 @@
 
                 {{-- MÓDULO 4: FINANZAS Y AUDITORÍA --}}
                 @unlessrole('Driver')
-                @canany(['cash_register.close', 'customer_statement.index', 'reports.financial', 'zelle_index', 'bank_index'])
+                @canany(['cash_register.close', 'customer_statement.index', 'reports.financial', 'zelle_index', 'bank_index', 'payments.approve_custom_rate'])
                 <li class="nav-item">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-file-invoice-dollar"></i>
