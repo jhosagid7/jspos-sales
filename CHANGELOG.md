@@ -1,3 +1,7 @@
+## [1.10.115] - 2026-05-28
+### Added
+- **Filtros Rápidos Interactivos en Tarjetas**: Las tarjetas del panel superior de aprobaciones ahora actúan como filtros rápidos al hacer clic sobre ellas. Al pulsar una tarjeta (ej. `Rechazadas`), la tabla de abajo se actualiza instantáneamente con esos registros, aplicando además un borde y sombra de color de alta calidad sobre la tarjeta activa para una experiencia de usuario sumamente fluida.
+
 ## [1.10.114] - 2026-05-28
 ### Added
 - **Tablero Remoto con 5 Tarjetas Métricas**: Se amplió y rediseñó el resumen superior del panel de aprobaciones en `/consultation/approvals`, incorporando 5 tarjetas horizontales premium: `Pendientes`, `Aprobadas (Caja)`, `Cobradas Hoy` (estado `'used'`), `Rechazadas` (control y auditoría), y `Tasa Promedio Aprobada` para brindar un control total del día al supervisor.

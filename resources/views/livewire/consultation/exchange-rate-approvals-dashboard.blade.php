@@ -26,7 +26,7 @@
         <div class="row g-3">
             {{-- Pending --}}
             <div class="col-12 col-sm-6 col-md-4 col-xl-2">
-                <div class="card border-0 shadow-sm overflow-hidden h-100" style="border-radius: 12px; background: linear-gradient(135deg, #fffcf6 0%, #fff9e6 100%); border-left: 5px solid #ffc107 !important;">
+                <div wire:click="$set('status', 'pending')" class="card border-0 shadow-sm overflow-hidden h-100 card-clickable {{ $status === 'pending' ? 'card-active-warning' : '' }}" style="border-radius: 12px; background: linear-gradient(135deg, #fffcf6 0%, #fff9e6 100%); border-left: 5px solid #ffc107 !important;">
                     <div class="card-body p-3 d-flex align-items-center justify-content-between">
                         <div>
                             <span class="text-uppercase tracking-wider fw-bold text-warning" style="font-size: 0.72rem; letter-spacing: 1px;">Pendientes</span>
@@ -41,7 +41,7 @@
 
             {{-- Approved --}}
             <div class="col-12 col-sm-6 col-md-4 col-xl-2">
-                <div class="card border-0 shadow-sm overflow-hidden h-100" style="border-radius: 12px; background: linear-gradient(135deg, #f6fff9 0%, #e6fff0 100%); border-left: 5px solid #28a745 !important;">
+                <div wire:click="$set('status', 'approved')" class="card border-0 shadow-sm overflow-hidden h-100 card-clickable {{ $status === 'approved' ? 'card-active-success' : '' }}" style="border-radius: 12px; background: linear-gradient(135deg, #f6fff9 0%, #e6fff0 100%); border-left: 5px solid #28a745 !important;">
                     <div class="card-body p-3 d-flex align-items-center justify-content-between">
                         <div>
                             <span class="text-uppercase tracking-wider fw-bold text-success" style="font-size: 0.72rem; letter-spacing: 1px;">Aprobadas (Caja)</span>
@@ -56,7 +56,7 @@
 
             {{-- Used --}}
             <div class="col-12 col-sm-6 col-md-4 col-xl-2">
-                <div class="card border-0 shadow-sm overflow-hidden h-100" style="border-radius: 12px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-left: 5px solid #0284c7 !important;">
+                <div wire:click="$set('status', 'used')" class="card border-0 shadow-sm overflow-hidden h-100 card-clickable {{ $status === 'used' ? 'card-active-info' : '' }}" style="border-radius: 12px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-left: 5px solid #0284c7 !important;">
                     <div class="card-body p-3 d-flex align-items-center justify-content-between">
                         <div>
                             <span class="text-uppercase tracking-wider fw-bold text-info" style="font-size: 0.72rem; letter-spacing: 1px; color: #0284c7 !important;">Cobradas Hoy</span>
@@ -71,7 +71,7 @@
 
             {{-- Rejected --}}
             <div class="col-12 col-sm-6 col-md-4 col-xl-2">
-                <div class="card border-0 shadow-sm overflow-hidden h-100" style="border-radius: 12px; background: linear-gradient(135deg, #fff5f5 0%, #ffe3e3 100%); border-left: 5px solid #dc3545 !important;">
+                <div wire:click="$set('status', 'rejected')" class="card border-0 shadow-sm overflow-hidden h-100 card-clickable {{ $status === 'rejected' ? 'card-active-danger' : '' }}" style="border-radius: 12px; background: linear-gradient(135deg, #fff5f5 0%, #ffe3e3 100%); border-left: 5px solid #dc3545 !important;">
                     <div class="card-body p-3 d-flex align-items-center justify-content-between">
                         <div>
                             <span class="text-uppercase tracking-wider fw-bold text-danger" style="font-size: 0.72rem; letter-spacing: 1px;">Rechazadas</span>
@@ -287,6 +287,30 @@
         }
         .tracking-wider {
             letter-spacing: 0.05em;
+        }
+        .card-clickable {
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        .card-clickable:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.08) !important;
+        }
+        .card-active-warning {
+            box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.25) !important;
+            border: 1px solid #ffc107 !important;
+        }
+        .card-active-success {
+            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.25) !important;
+            border: 1px solid #28a745 !important;
+        }
+        .card-active-info {
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.25) !important;
+            border: 1px solid #0284c7 !important;
+        }
+        .card-active-danger {
+            box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.25) !important;
+            border: 1px solid #dc3545 !important;
         }
     </style>
 </div>
