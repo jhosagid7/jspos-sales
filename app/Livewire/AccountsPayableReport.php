@@ -117,10 +117,15 @@ class AccountsPayableReport extends Component
         }
     }
 
-    function initPayable(Purchase $purchase, $supplier_name)
+    function initPayable(Purchase $purchase, $supplier_name = null)
     {
         $debt = round($purchase->total - $purchase->payables->sum('amount'), 2);
         $this->debt = $debt;
+        
+        if (empty($supplier_name)) {
+            $supplier_name = $purchase->supplier->name ?? '';
+        }
+        
         $this->supplier_name = $supplier_name;
         $this->purchase_id = $purchase->id;
         

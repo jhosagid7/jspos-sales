@@ -117,7 +117,7 @@
                                                                 <i class="fas fa-list"></i>
                                                             </button>
                                                             <button
-                                                                wire:click.prevent="initPayable({{ $purchase->id }}, '{{ $purchase->supplier->name }}')"
+                                                                wire:click.prevent="initPayable({{ $purchase->id }}, '')"
                                                                 class="border-0 btn btn-outline-dark btn-xs">
                                                                 <i class="fas fa-hand-holding-usd"></i>
                                                             </button>

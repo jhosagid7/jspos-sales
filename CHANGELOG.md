@@ -1,4 +1,9 @@
+## [1.10.116] - 2026-05-28
+### Fixed
+- **Botonera de Pagos y Cobros (Comillas en Nombres)**: Se corrigió un error crítico que impedía que abrieran los modales de registro de abonos y cuentas por cobrar/pagar cuando el nombre del cliente o proveedor contenía comillas simples (ej. `E-70. D' SANTIAGO C.A`). Se refactorizó la comunicación de Livewire para resolver dinámicamente los nombres desde los modelos de base de datos en el backend, eliminando por completo cualquier interpolación de caracteres conflictivos en el JavaScript de las vistas Blade.
+
 ## [1.10.115] - 2026-05-28
+
 ### Added
 - **Filtros Rápidos Interactivos en Tarjetas**: Las tarjetas del panel superior de aprobaciones ahora actúan como filtros rápidos al hacer clic sobre ellas. Al pulsar una tarjeta (ej. `Rechazadas`), la tabla de abajo se actualiza instantáneamente con esos registros, aplicando además un borde y sombra de color de alta calidad sobre la tarjeta activa para una experiencia de usuario sumamente fluida.
 

@@ -295,13 +295,17 @@ class AccountsReceivableReport extends Component
         $this->pdfUrl = null;
     }
 
-    function initPayment($sale_id, $customer, $debt = null, $prefill = [])
+    function initPayment($sale_id, $customer = null, $debt = null, $prefill = [])
     {
         $sale = Sale::find($sale_id);
         
         if (!$sale) {
             $this->dispatch('noty', msg: 'Venta no encontrada');
             return;
+        }
+
+        if (empty($customer)) {
+            $customer = $sale->customer->name ?? '';
         }
         
         // Calcular deuda en USD (moneda base)
@@ -417,12 +421,16 @@ class AccountsReceivableReport extends Component
         $this->processPayment($payments, 'approved', $metadata, $debitNotes);
     }
 
-    public function initDebitNotePayment($note_id, $customer)
+    public function initDebitNotePayment($note_id, $customer = null)
     {
         $note = \App\Models\DebitNote::find($note_id);
         if (!$note) {
             $this->dispatch('noty', msg: 'Nota de Débito no encontrada');
             return;
+        }
+
+        if (empty($customer)) {
+            $customer = $note->customer->name ?? '';
         }
 
         $this->sale_id = null; // Clear sale id to avoid confusion

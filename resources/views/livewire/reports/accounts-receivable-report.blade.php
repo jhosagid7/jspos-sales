@@ -167,7 +167,7 @@
                                                             <td>{{ \Carbon\Carbon::parse($dn->created_at)->format('d-m-Y') }}</td>
                                                             <td>
                                                                 <div class="d-flex gap-1 justify-content-center">
-                                                                    <button wire:click.prevent="initDebitNotePayment({{ $dn->id }}, '{{ $dn->customer->name }}')" class="btn btn-success btn-xs" title="Cobrar esta nota">
+                                                                    <button wire:click.prevent="initDebitNotePayment({{ $dn->id }}, '')" class="btn btn-success btn-xs" title="Cobrar esta nota">
                                                                         <i class="fas fa-hand-holding-usd"></i> Cobrar
                                                                     </button>
                                                                     <a href="{{ route('debit-note.pdf', $dn->id) }}" target="_blank" class="btn btn-default btn-xs" title="Ver PDF">
@@ -329,7 +329,7 @@
                                                             @if($sale->status != 'paid' && $sale->status != 'returned' && $sale->status != 'voided' && $saldoUSD > 0.01)
                                                             @can('payments.register_direct')
                                                                 <button
-                                                                    wire:click.prevent="initPayment({{ $sale->id }}, '{{ $sale->customer->name }}')"
+                                                                    wire:click.prevent="initPayment({{ $sale->id }}, '')"
                                                                     class="btn btn-success btn-sm" title="Pagar">
                                                                     <i class="fas fa-hand-holding-usd"></i> Pagar
                                                                 </button>

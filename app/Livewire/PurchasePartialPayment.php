@@ -88,13 +88,22 @@ class PurchasePartialPayment extends Component
         $this->purchases = $purchases;
     }
 
-    function initPay($purchase_id, $supplier, $debt)
+    function initPay($purchase_id, $supplier = null, $debt = null)
     {
         $purchase = Purchase::find($purchase_id);
         
         if (!$purchase) {
             $this->dispatch('noty', msg: 'Compra no encontrada');
             return;
+        }
+
+        if (empty($supplier)) {
+            $supplier = $purchase->supplier->name ?? '';
+        }
+
+        if ($debt === null) {
+            $totalPaid = $purchase->payables->sum('amount');
+            $debt = $purchase->total - $totalPaid;
         }
         
         $this->purchase_selected_id = $purchase_id;

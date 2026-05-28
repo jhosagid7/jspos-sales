@@ -159,13 +159,17 @@ class PartialPayment extends Component
     {
         $this->resetPage();
     }
-    public function initPay($sale_id, $customer, $debt)
+    public function initPay($sale_id, $customer = null, $debt = null)
     {
         $sale = Sale::with('customer')->find($sale_id);
         
         if (!$sale) {
             $this->dispatch('noty', msg: 'Venta no encontrada');
             return;
+        }
+
+        if (empty($customer)) {
+            $customer = $sale->customer->name ?? '';
         }
         
         $invoiceCurrency = $sale->primary_currency_code ?? 'USD'; 
@@ -245,19 +249,19 @@ class PartialPayment extends Component
         $canPay = auth()->user()->can('payments.register_direct');
         
         $this->dispatch('initPayment', 
-            $this->debt, 
-            $invoiceCurrency, 
-            $this->customer_name, 
-            true,
-            $earlyDiscountAdjustment, 
-            $allowDiscounts, 
-            $usdPaymentDiscountPercent, 
-            $fixedUsdDiscountAmount, 
-            $canUpload,
-            $canPay,
-            $sale->customer->id ?? $sale->customer_id,
-            $sale->customer->wallet_balance ?? 0,
-            ['sale_id' => $sale->id]
+            total: $this->debt, 
+            currency: $invoiceCurrency, 
+            customer: $this->customer_name, 
+            allowPartial: true,
+            adjustment: $earlyDiscountAdjustment, 
+            allowDiscounts: $allowDiscounts, 
+            usdDiscountPercent: $usdPaymentDiscountPercent, 
+            fixedUsdDiscountAmount: $fixedUsdDiscountAmount, 
+            canUpload: $canUpload,
+            canPay: $canPay,
+            customerId: $sale->customer->id ?? $sale->customer_id,
+            walletBalance: $sale->customer->wallet_balance ?? 0,
+            metadata: ['sale_id' => $sale->id]
         );
     }
     

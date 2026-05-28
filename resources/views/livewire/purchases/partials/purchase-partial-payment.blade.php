@@ -55,7 +55,7 @@
                                                 @endif
 
                                                 <button class="btn btn-default btn-sm"
-                                                    wire:click="initPay({{ $purchase->id }},'{{ $purchase->supplier->name ?? 'S/P' }}',{{ $purchase->debt_display }})" title="Abonar">
+                                                    wire:click="initPay({{ $purchase->id }}, '', {{ $purchase->debt_display }})" title="Abonar">
                                                     <i class="fas fa-money-bill-wave text-success"></i>
                                                 </button>
 

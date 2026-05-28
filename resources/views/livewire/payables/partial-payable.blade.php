@@ -55,7 +55,7 @@
                                                 @endif
 
                                                 <button class="btn btn-light "
-                                                    wire:click="initPay({{ $purchase->id }},'{{ $purchase->supplier->name }}',{{ round($purchase->total - $purchase->payables_sum_amount) }})">
+                                                    wire:click="initPay({{ $purchase->id }}, '', {{ round($purchase->total - $purchase->payables_sum_amount) }})">
                                                     <i class="fa fa-money fa-lg"></i>
                                                 </button>
 

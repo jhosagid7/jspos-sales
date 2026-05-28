@@ -99,7 +99,7 @@
 
                                                 @can('payments.pay')
                                                 <button class="btn btn-default btn-sm"
-                                                    wire:click="initPay({{ $sale->id }},'{{ $sale->customer->name }}',{{ $sale->debt_display }})" title="Abonar">
+                                                    wire:click="initPay({{ $sale->id }}, '', {{ $sale->debt_display }})" title="Abonar">
                                                     <i class="fas fa-money-bill-wave text-success"></i>
                                                 </button>
                                                 @endcan
