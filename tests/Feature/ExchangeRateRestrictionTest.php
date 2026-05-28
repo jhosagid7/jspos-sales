@@ -219,4 +219,89 @@ class ExchangeRateRestrictionTest extends TestCase
             'status' => 'used'
         ]);
     }
+
+    public function test_custom_rate_self_approval_for_authorized_users()
+    {
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        $user = User::factory()->create();
+        $customer = Customer::create(['name' => 'John Doe']);
+
+        Permission::firstOrCreate(['name' => 'payments.approve_custom_rate']);
+        $user->givePermissionTo('payments.approve_custom_rate');
+
+        $sale = Sale::create([
+            'user_id' => $user->id,
+            'customer_id' => $customer->id,
+            'total' => 100,
+            'items' => 1,
+            'status' => 'pending',
+            'type' => 'credit',
+            'applied_exchange_diff_percent' => 0.00,
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(PaymentComponent::class)
+            ->call('initPayment', 100, 'USD', $customer->name, true, null, false, 0, 0, true, true, $customer->id, 0, ['sale_id' => $sale->id])
+            ->set('paymentCurrency', 'VED')
+            ->set('paymentMethod', 'cash')
+            ->set('proposedCustomRate', 85.00)
+            ->set('customRateReason', 'Auto-aprobado por supervisor.')
+            ->call('autoApproveCustomRate')
+            ->assertHasNoErrors()
+            ->assertSet('customExchangeRate', 85.00)
+            ->assertSet('showCustomRateRequest', false);
+
+        $this->assertDatabaseHas('exchange_rate_approvals', [
+            'sale_id' => $sale->id,
+            'user_id' => $user->id,
+            'approver_id' => $user->id,
+            'custom_rate' => 85.00,
+            'status' => 'approved'
+        ]);
+    }
+
+    public function test_custom_rate_offline_otp_approval_workflow()
+    {
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        $user = User::factory()->create();
+        $customer = Customer::create(['name' => 'John Doe']);
+
+        $sale = Sale::create([
+            'user_id' => $user->id,
+            'customer_id' => $customer->id,
+            'total' => 100,
+            'items' => 1,
+            'status' => 'pending',
+            'type' => 'credit',
+            'applied_exchange_diff_percent' => 0.00,
+        ]);
+
+        $component = Livewire::actingAs($user)
+            ->test(PaymentComponent::class)
+            ->call('initPayment', 100, 'USD', $customer->name, true, null, false, 0, 0, true, true, $customer->id, 0, ['sale_id' => $sale->id])
+            ->set('paymentCurrency', 'VED')
+            ->set('paymentMethod', 'cash')
+            ->set('proposedCustomRate', 85.00)
+            ->set('customRateReason', 'Cliente solicita tasa especial.')
+            ->call('requestCustomRateApproval');
+
+        // Retrieve the generated 6-digit OTP code from database
+        $approval = ExchangeRateApproval::where('sale_id', $sale->id)->first();
+        $otp = $approval->token;
+        $this->assertEquals(6, strlen($otp));
+
+        // Submit the OTP code on the operator component
+        $component->set('otpCode', $otp)
+            ->call('validateOtpCode')
+            ->assertHasNoErrors()
+            ->assertSet('customExchangeRate', 85.00)
+            ->assertSet('showCustomRateRequest', false);
+
+        $this->assertDatabaseHas('exchange_rate_approvals', [
+            'id' => $approval->id,
+            'status' => 'approved'
+        ]);
+    }
 }

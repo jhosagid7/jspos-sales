@@ -1,3 +1,13 @@
+## [1.10.111] - 2026-05-28
+### Added
+- **Auto-Aprobación de Tasas**: Integración de un flujo que detecta si el cajero posee el rol `Super Admin` o el permiso `payments.approve_custom_rate`, permitiéndole auto-aprobar al instante la tasa manual propuesta en la misma vista de pago mediante un botón destacado verde "Auto-Aprobar Tasa".
+- **Tablero Remoto de Supervisor**: Creación de un panel web en `/consultation/approvals` ("Aprobación de Tasas" en la barra lateral bajo "Auditoría Pagos") para que los supervisores autorizados consulten y autoricen en tiempo real las solicitudes de tasa especial con polling de 8 segundos.
+- **Autorización por Código OTP de 6 Dígitos (Offline)**: Generación automática de un código numérico único de 6 dígitos enviado por correo a los supervisores. Los operadores pueden ingresar este código directamente en la caja para autorizar la tasa especial sin que el supervisor deba acceder al panel web.
+- **Notificación Inteligente por Correo**: Despacho global automatizado de solicitudes únicamente a usuarios con rol `Super Admin` o permiso `payments.approve_custom_rate` (excluyendo a administradores generales) mediante la plantilla premium `ExchangeRateApprovalRequested` destacando el código OTP de 6 dígitos.
+
+### Changed
+- **Formulario de Tasa Especial Simplificado**: Se eliminó por completo el dropdown selector de supervisor en sitio, logrando una interfaz de solicitud remota mucho más limpia y ágil.
+
 ## [1.10.110] - 2026-05-27
 ### Added
 - **Restricción de Tasas de Cambio**: Se bloqueó el uso de la tasa oficial BCV para liquidar abonos a facturas de crédito denominadas en divisas puras (aquellas configuradas con diferencial del 0%), exigiendo utilizar únicamente tasas Binance (paralelas).

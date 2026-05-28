@@ -435,7 +435,7 @@
                         </li>
 
                         @module('module_advanced_payments')
-                        @canany(['zelle_index', 'bank_index'])
+                        @canany(['zelle_index', 'bank_index', 'payments.approve_custom_rate'])
                         <li class="nav-item {{ Request::is('consultation*') ? 'menu-open' : '' }}">
                             <a href="#" class="nav-link {{ Request::is('consultation*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
@@ -458,6 +458,14 @@
                                     <a href="{{ route('consultation.bank') }}" class="nav-link {{ Request::is('consultation/bank*') ? 'active' : '' }}">
                                         <i class="far fa-dot-circle nav-icon"></i>
                                         <p>Pagos Bancarios</p>
+                                    </a>
+                                </li>
+                                @endcan
+                                @can('payments.approve_custom_rate')
+                                <li class="nav-item">
+                                    <a href="{{ route('consultation.approvals') }}" class="nav-link {{ Request::is('consultation/approvals*') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Aprobación de Tasas</p>
                                     </a>
                                 </li>
                                 @endcan

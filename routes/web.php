@@ -183,6 +183,7 @@ Route::middleware('auth')->group(function () {
     
     Route::get('consultation/bank', \App\Livewire\Consultation\BankConsultation::class)->name('consultation.bank')->middleware(['can:bank_index', 'module:module_advanced_payments']);
     Route::get('consultation/bank/{id}/pdf', [\App\Http\Controllers\PaymentConsultationController::class, 'generateBankPdf'])->name('bank.pdf')->middleware(['can:bank_print_pdf', 'module:module_advanced_payments']);
+    Route::get('consultation/approvals', \App\Livewire\Consultation\ExchangeRateApprovalsDashboard::class)->name('consultation.approvals')->middleware(['can:payments.approve_custom_rate']);
 
     //corte de caja
     Route::get('cash-count', CashCount::class)->name('cash.count')->middleware('can:cash_register.close');

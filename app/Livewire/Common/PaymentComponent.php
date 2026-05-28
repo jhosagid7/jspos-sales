@@ -105,6 +105,7 @@ class PaymentComponent extends Component
     public $currentApproval = null;
     public $supervisorEmail = '';
     public $supervisorPassword = '';
+    public $otpCode = '';
 
     // Manual Credit Note
     public $manualCreditAmount;
@@ -175,6 +176,7 @@ class PaymentComponent extends Component
         $this->currentApproval = null;
         $this->supervisorEmail = '';
         $this->supervisorPassword = '';
+        $this->otpCode = '';
 
         if ($this->saleId) {
             $sale = \App\Models\Sale::find($this->saleId);
@@ -183,7 +185,12 @@ class PaymentComponent extends Component
                 $this->isUSDInvoice = (floatval($sale->applied_exchange_diff_percent) == 0);
             }
 
-            // Pre-load existing pending/approved approval request for this user and sale
+            // Auto-discard any unused pending or approved approvals from past sessions to ensure strict single-session execution
+            \App\Models\ExchangeRateApproval::where('sale_id', $this->saleId)
+                ->whereIn('status', ['pending', 'approved'])
+                ->update(['status' => 'rejected']);
+
+            // Pre-load existing pending/approved approval request for this user and sale (will be empty unless created in this session)
             $existing = \App\Models\ExchangeRateApproval::where('sale_id', $this->saleId)
                 ->where('user_id', auth()->id())
                 ->whereIn('status', ['pending', 'approved'])
@@ -282,6 +289,7 @@ class PaymentComponent extends Component
         $this->manualDebitAmount = null;
         $this->manualDebitReason = null;
         $this->walletAmount = null;
+        $this->otpCode = '';
         
         // Keep paymentCurrency and paymentMethod as is for better UX
     }
@@ -1110,17 +1118,109 @@ class PaymentComponent extends Component
             ->where('status', 'pending')
             ->update(['status' => 'rejected']);
 
+        // Generate safe unique 6-digit OTP code for token
+        do {
+            $otp = strval(rand(100000, 999999));
+        } while (\App\Models\ExchangeRateApproval::where('token', $otp)->exists());
+
         $approval = \App\Models\ExchangeRateApproval::create([
             'user_id' => auth()->id(),
             'sale_id' => $this->saleId,
             'custom_rate' => $this->proposedCustomRate,
             'reason' => $this->customRateReason,
             'status' => 'pending',
+            'token' => $otp,
         ]);
 
         $this->currentApproval = $approval->toArray();
         $this->showCustomRateRequest = false;
+
+        // Send Email Notification to Super Admin and users with payments.approve_custom_rate
+        try {
+            $supervisors = \App\Models\User::permission('payments.approve_custom_rate')->get();
+            $superAdmins = \App\Models\User::role('Super Admin')->get();
+            $recipients = $supervisors->merge($superAdmins)->unique('id');
+
+            foreach ($recipients as $recipient) {
+                \Illuminate\Support\Facades\Mail::to($recipient->email)
+                    ->send(new \App\Mail\ExchangeRateApprovalRequested($approval, auth()->user()));
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error enviando correo de aprobación de tasa: ' . $e->getMessage());
+        }
+
         $this->dispatch('noty', msg: 'Solicitud de tasa especial enviada al supervisor.');
+    }
+
+    public function validateOtpCode()
+    {
+        $this->validate([
+            'otpCode' => 'required|string|size:6',
+        ]);
+
+        $approval = \App\Models\ExchangeRateApproval::where('sale_id', $this->saleId)
+            ->where('token', trim($this->otpCode))
+            ->where('status', 'pending')
+            ->first();
+
+        if (!$approval) {
+            $this->addError('otpCode', 'El código de autorización ingresado es incorrecto o expiró.');
+            return;
+        }
+
+        $approval->update([
+            'status' => 'approved',
+            'approver_id' => auth()->id(),
+        ]);
+
+        $this->currentApproval = $approval->toArray();
+        $this->customExchangeRate = floatval($approval->custom_rate);
+        $this->showCustomRateRequest = false;
+        $this->otpCode = '';
+
+        $this->dispatch('noty', msg: '¡Tasa especial autorizada exitosamente mediante código OTP!');
+    }
+
+    public function autoApproveCustomRate()
+    {
+        if (!auth()->user()->can('payments.approve_custom_rate') && !auth()->user()->hasRole('Super Admin')) {
+            $this->dispatch('noty', msg: 'No tienes permisos de supervisor.');
+            return;
+        }
+
+        $this->validate([
+            'proposedCustomRate' => 'required|numeric|min:0.01',
+            'customRateReason' => 'required|string|min:3',
+        ]);
+
+        // Cancel any pending approvals for this sale to avoid duplicates
+        \App\Models\ExchangeRateApproval::where('sale_id', $this->saleId)
+            ->where('user_id', auth()->id())
+            ->where('status', 'pending')
+            ->update(['status' => 'rejected']);
+
+        // Generate safe unique 6-digit OTP code for token
+        do {
+            $otp = strval(rand(100000, 999999));
+        } while (\App\Models\ExchangeRateApproval::where('token', $otp)->exists());
+
+        $approval = \App\Models\ExchangeRateApproval::create([
+            'user_id' => auth()->id(),
+            'approver_id' => auth()->id(),
+            'sale_id' => $this->saleId,
+            'custom_rate' => $this->proposedCustomRate,
+            'reason' => $this->customRateReason,
+            'status' => 'approved',
+            'token' => $otp,
+        ]);
+
+        $this->currentApproval = $approval->toArray();
+        $this->customExchangeRate = floatval($approval->custom_rate);
+        $this->showCustomRateRequest = false;
+        $this->proposedCustomRate = null;
+        $this->customRateReason = '';
+
+        $this->dispatch('noty', msg: 'Tasa especial auto-aprobada al instante.');
     }
 
     public function checkApprovalStatus()
@@ -1152,7 +1252,7 @@ class PaymentComponent extends Component
             return;
         }
 
-        if (!$supervisor->hasRole('Admin') && !$supervisor->can('payments.approve_custom_rate')) {
+        if (!$supervisor->hasRole('Super Admin') && !$supervisor->hasRole('Admin') && !$supervisor->can('payments.approve_custom_rate')) {
             $this->addError('supervisorEmail', 'El usuario no tiene permisos de aprobación de tasas.');
             return;
         }
@@ -1171,6 +1271,11 @@ class PaymentComponent extends Component
             return;
         }
 
+        // Generate safe unique 6-digit OTP code for token
+        do {
+            $otp = strval(rand(100000, 999999));
+        } while (\App\Models\ExchangeRateApproval::where('token', $otp)->exists());
+
         $approval = \App\Models\ExchangeRateApproval::create([
             'user_id' => auth()->id(),
             'approver_id' => $supervisor->id,
@@ -1178,7 +1283,7 @@ class PaymentComponent extends Component
             'custom_rate' => $rate,
             'reason' => $reason,
             'status' => 'approved',
-            'token' => (string) \Illuminate\Support\Str::uuid(),
+            'token' => $otp,
         ]);
 
         $this->currentApproval = $approval->toArray();
@@ -1195,7 +1300,7 @@ class PaymentComponent extends Component
 
     public function approveCustomRateRemotely($approvalId)
     {
-        if (!auth()->user()->hasRole('Admin') && !auth()->user()->can('payments.approve_custom_rate')) {
+        if (!auth()->user()->hasRole('Super Admin') && !auth()->user()->can('payments.approve_custom_rate')) {
             $this->dispatch('noty', msg: 'No tienes permisos de supervisor.');
             return;
         }
@@ -1205,7 +1310,6 @@ class PaymentComponent extends Component
             $approval->update([
                 'status' => 'approved',
                 'approver_id' => auth()->id(),
-                'token' => (string) \Illuminate\Support\Str::uuid(),
             ]);
             $this->currentApproval = $approval->toArray();
             $this->customExchangeRate = floatval($approval->custom_rate);
@@ -1215,7 +1319,7 @@ class PaymentComponent extends Component
 
     public function rejectCustomRateRemotely($approvalId)
     {
-        if (!auth()->user()->hasRole('Admin') && !auth()->user()->can('payments.approve_custom_rate')) {
+        if (!auth()->user()->hasRole('Super Admin') && !auth()->user()->can('payments.approve_custom_rate')) {
             $this->dispatch('noty', msg: 'No tienes permisos de supervisor.');
             return;
         }
@@ -1233,9 +1337,9 @@ class PaymentComponent extends Component
 
     public function cancelCustomRateRequest()
     {
-        if ($this->currentApproval && $this->currentApproval['status'] === 'pending') {
+        if ($this->currentApproval) {
             $approval = \App\Models\ExchangeRateApproval::find($this->currentApproval['id']);
-            if ($approval) {
+            if ($approval && in_array($approval->status, ['pending', 'approved'])) {
                 $approval->update(['status' => 'rejected']);
             }
         }
@@ -1243,7 +1347,10 @@ class PaymentComponent extends Component
         $this->proposedCustomRate = null;
         $this->customRateReason = '';
         $this->showCustomRateRequest = false;
-        $this->dispatch('noty', msg: 'Solicitud cancelada.');
+        $this->customExchangeRate = 0;
+        $this->otpCode = '';
+        $this->lookupHistoricalRate();
+        $this->dispatch('noty', msg: 'Tasa especial cancelada y restablecida.');
     }
 
     public function render()
