@@ -23,40 +23,70 @@
 
     {{-- Stats Row --}}
     <div class="container-fluid mb-4">
-        <div class="row">
+        <div class="row g-3">
             {{-- Pending --}}
-            <div class="col-12 col-sm-6 col-md-4">
-                <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 12px; background: linear-gradient(135deg, #fffcf6 0%, #fff9e6 100%); border-left: 5px solid #ffc107 !important;">
+            <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+                <div class="card border-0 shadow-sm overflow-hidden h-100" style="border-radius: 12px; background: linear-gradient(135deg, #fffcf6 0%, #fff9e6 100%); border-left: 5px solid #ffc107 !important;">
                     <div class="card-body p-3 d-flex align-items-center justify-content-between">
                         <div>
-                            <span class="text-uppercase tracking-wider fw-bold text-warning" style="font-size: 0.72rem; letter-spacing: 1px;">Pendientes Hoy</span>
+                            <span class="text-uppercase tracking-wider fw-bold text-warning" style="font-size: 0.72rem; letter-spacing: 1px;">Pendientes</span>
                             <h2 class="fw-extrabold text-dark mb-0 mt-1">{{ $pendingTodayCount }}</h2>
                         </div>
-                        <div class="bg-warning bg-opacity-10 p-3 rounded-circle text-warning">
-                            <i class="fas fa-hourglass-half fa-2x"></i>
+                        <div class="bg-warning bg-opacity-10 p-2 rounded-circle text-warning">
+                            <i class="fas fa-hourglass-half fa-lg"></i>
                         </div>
                     </div>
                 </div>
             </div>
 
             {{-- Approved --}}
-            <div class="col-12 col-sm-6 col-md-4">
-                <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 12px; background: linear-gradient(135deg, #f6fff9 0%, #e6fff0 100%); border-left: 5px solid #28a745 !important;">
+            <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+                <div class="card border-0 shadow-sm overflow-hidden h-100" style="border-radius: 12px; background: linear-gradient(135deg, #f6fff9 0%, #e6fff0 100%); border-left: 5px solid #28a745 !important;">
                     <div class="card-body p-3 d-flex align-items-center justify-content-between">
                         <div>
-                            <span class="text-uppercase tracking-wider fw-bold text-success" style="font-size: 0.72rem; letter-spacing: 1px;">Aprobados Hoy</span>
+                            <span class="text-uppercase tracking-wider fw-bold text-success" style="font-size: 0.72rem; letter-spacing: 1px;">Aprobadas (Caja)</span>
                             <h2 class="fw-extrabold text-dark mb-0 mt-1">{{ $approvedTodayCount }}</h2>
                         </div>
-                        <div class="bg-success bg-opacity-10 p-3 rounded-circle text-success">
-                            <i class="fas fa-check-circle fa-2x"></i>
+                        <div class="bg-success bg-opacity-10 p-2 rounded-circle text-success">
+                            <i class="fas fa-unlock fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Used --}}
+            <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+                <div class="card border-0 shadow-sm overflow-hidden h-100" style="border-radius: 12px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-left: 5px solid #0284c7 !important;">
+                    <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-uppercase tracking-wider fw-bold text-info" style="font-size: 0.72rem; letter-spacing: 1px; color: #0284c7 !important;">Cobradas Hoy</span>
+                            <h2 class="fw-extrabold text-dark mb-0 mt-1">{{ $usedTodayCount }}</h2>
+                        </div>
+                        <div class="bg-info bg-opacity-10 p-2 rounded-circle text-info" style="color: #0284c7 !important;">
+                            <i class="fas fa-check-double fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Rejected --}}
+            <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+                <div class="card border-0 shadow-sm overflow-hidden h-100" style="border-radius: 12px; background: linear-gradient(135deg, #fff5f5 0%, #ffe3e3 100%); border-left: 5px solid #dc3545 !important;">
+                    <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-uppercase tracking-wider fw-bold text-danger" style="font-size: 0.72rem; letter-spacing: 1px;">Rechazadas</span>
+                            <h2 class="fw-extrabold text-dark mb-0 mt-1">{{ $rejectedTodayCount }}</h2>
+                        </div>
+                        <div class="bg-danger bg-opacity-10 p-2 rounded-circle text-danger">
+                            <i class="fas fa-times-circle fa-lg"></i>
                         </div>
                     </div>
                 </div>
             </div>
 
             {{-- Avg Rate --}}
-            <div class="col-12 col-sm-6 col-md-4">
-                <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 12px; background: linear-gradient(135deg, #f6faff 0%, #e6f2ff 100%); border-left: 5px solid #007bff !important;">
+            <div class="col-12 col-sm-6 col-md-8 col-xl-4">
+                <div class="card border-0 shadow-sm overflow-hidden h-100" style="border-radius: 12px; background: linear-gradient(135deg, #f6faff 0%, #e6f2ff 100%); border-left: 5px solid #007bff !important;">
                     <div class="card-body p-3 d-flex align-items-center justify-content-between">
                         <div>
                             <span class="text-uppercase tracking-wider fw-bold text-primary" style="font-size: 0.72rem; letter-spacing: 1px;">Tasa Promedio Aprobada</span>

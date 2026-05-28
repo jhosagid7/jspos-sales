@@ -102,6 +102,12 @@ class ExchangeRateApprovalsDashboard extends Component
         $approvedTodayCount = ExchangeRateApproval::where('status', 'approved')
             ->whereDate('created_at', Carbon::today())
             ->count();
+        $usedTodayCount = ExchangeRateApproval::where('status', 'used')
+            ->whereDate('created_at', Carbon::today())
+            ->count();
+        $rejectedTodayCount = ExchangeRateApproval::where('status', 'rejected')
+            ->whereDate('created_at', Carbon::today())
+            ->count();
         $averageRateToday = ExchangeRateApproval::whereIn('status', ['approved', 'used'])
             ->whereDate('created_at', Carbon::today())
             ->avg('custom_rate') ?? 0;
@@ -110,6 +116,8 @@ class ExchangeRateApprovalsDashboard extends Component
             'records' => $records,
             'pendingTodayCount' => $pendingTodayCount,
             'approvedTodayCount' => $approvedTodayCount,
+            'usedTodayCount' => $usedTodayCount,
+            'rejectedTodayCount' => $rejectedTodayCount,
             'averageRateToday' => $averageRateToday,
         ])->layout('layouts.theme.app');
     }

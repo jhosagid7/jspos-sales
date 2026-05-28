@@ -1,3 +1,7 @@
+## [1.10.114] - 2026-05-28
+### Added
+- **Tablero Remoto con 5 Tarjetas Métricas**: Se amplió y rediseñó el resumen superior del panel de aprobaciones en `/consultation/approvals`, incorporando 5 tarjetas horizontales premium: `Pendientes`, `Aprobadas (Caja)`, `Cobradas Hoy` (estado `'used'`), `Rechazadas` (control y auditoría), y `Tasa Promedio Aprobada` para brindar un control total del día al supervisor.
+
 ## [1.10.113] - 2026-05-28
 ### Fixed
 - **Visibilidad del Menú Padre de Finanzas**: Se corrigió el condicional de permisos (`@canany`) del menú principal **FINANZAS Y AUDITORÍA** en `sidebar.blade.php`, agregando el permiso `payments.approve_custom_rate` para que el menú de aprobaciones sea visible para supervisores que no tengan otros permisos financieros heredados.
