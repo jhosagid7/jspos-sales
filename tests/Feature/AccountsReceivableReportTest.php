@@ -152,4 +152,34 @@ class AccountsReceivableReportTest extends TestCase
                 return $params['customer'] === "O' CONNOR SUPPLIES";
             });
     }
+
+    public function test_accounts_receivable_report_set_supplier_can_be_called_with_null_or_empty()
+    {
+        // First set to a customer
+        Livewire::actingAs($this->user)
+            ->test(AccountsReceivableReport::class)
+            ->call('setSupplier', $this->customer->toArray())
+            ->assertSet('customer', $this->customer->toArray())
+            // Now call without arguments to simulate clearing in real application (which dispatches event with no args or null)
+            ->call('setSupplier')
+            ->assertSet('customer', null);
+
+        $this->assertNull(session('account_customer'));
+    }
+
+    public function test_accounts_payable_report_set_supplier_can_be_called_with_null_or_empty()
+    {
+        // First set to a supplier
+        Livewire::actingAs($this->user)
+            ->test(AccountsPayableReport::class)
+            ->call('setSupplier', $this->supplier->toArray())
+            ->assertSet('supplier', $this->supplier->toArray())
+            // Now call without arguments to simulate clearing in real application
+            ->call('setSupplier')
+            ->assertSet('supplier', null);
+
+        $this->assertNull(session('account_supplier'));
+    }
 }
+
+

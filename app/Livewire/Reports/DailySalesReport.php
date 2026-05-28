@@ -53,7 +53,7 @@ class DailySalesReport extends Component
     }
 
     #[On('daily_sale_customer')]
-    function setCustomer($customer)
+    function setCustomer($customer = null)
     {
         session(['daily_sale_customer' => $customer]);
         $this->customer = $customer;

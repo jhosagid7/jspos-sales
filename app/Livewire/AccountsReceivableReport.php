@@ -94,7 +94,7 @@ class AccountsReceivableReport extends Component
 
 
     #[On('account_customer')]
-    function setSupplier($customer)
+    function setSupplier($customer = null)
     {
         session(['account_customer' => $customer]);
         $this->customer = $customer;

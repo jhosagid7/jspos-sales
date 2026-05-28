@@ -57,7 +57,7 @@ class AccountsPayableReport extends Component
 
 
     #[On('account_supplier')]
-    function setSupplier($supplier)
+    function setSupplier($supplier = null)
     {
         session(['account_supplier' => $supplier]);
         $this->supplier = $supplier;

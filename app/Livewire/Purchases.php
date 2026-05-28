@@ -284,7 +284,7 @@ class Purchases extends Component
 
 
     #[On('purchase_supplier')]
-    function setCustomer($supplier)
+    function setCustomer($supplier = null)
     {
         session(['purchase_supplier' => $supplier]);
         $this->supplier = $supplier;

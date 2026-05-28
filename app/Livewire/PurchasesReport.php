@@ -30,7 +30,7 @@ class PurchasesReport extends Component
     }
 
     #[On('purchase_supplier')]
-    function setSupplier($supplier)
+    function setSupplier($supplier = null)
     {
         session(['purchase_supplier' => $supplier]);
         $this->supplier_id = $supplier;

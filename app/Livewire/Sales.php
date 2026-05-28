@@ -2983,7 +2983,7 @@ class Sales extends Component
     }
 
     #[On('sale_customer')]
-    function setCustomer($customer)
+    function setCustomer($customer = null)
     {
         try {
             // Ensure customer is array

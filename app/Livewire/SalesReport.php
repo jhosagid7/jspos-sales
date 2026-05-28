@@ -56,7 +56,7 @@ class SalesReport extends Component
     }
 
     #[On('sale_customer')] // Listener for customer selection
-    function setCustomer($customer)
+    function setCustomer($customer = null)
     {
         session(['sale_customer' => $customer]);
         $this->customer = $customer;

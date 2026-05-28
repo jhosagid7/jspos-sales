@@ -124,7 +124,7 @@ class DebitNotes extends Component
     }
 
     #[On('set-customer')]
-    public function setCustomer($id)
+    public function setCustomer($id = null)
     {
         $this->customer_id = $id;
         if($id) {
