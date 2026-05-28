@@ -148,6 +148,7 @@ return [
     'payments_method_credit' => ['name' => 'Pago Crédito', 'description' => 'Habilita el botón de pago a Crédito.'],
     'payments_method_bank' => ['name' => 'Pago Banco', 'description' => 'Habilita el botón de pago Bancario.'],
     'payments_method_nequi' => ['name' => 'Pago Nequi', 'description' => 'Habilita el botón de pago Nequi (si existe).'],
+    'payments_approve_custom_rate' => ['name' => 'Aprobar Tasa Especial', 'description' => 'Permite auto-aprobar, autorizar remotamente o mediante código OTP tasas de cambio manuales.'],
 
     // CONSULTATION MODULES
     'zelle_index' => ['name' => 'Ver Zelle', 'description' => 'Permite acceder al módulo de consulta de pagos Zelle.'],

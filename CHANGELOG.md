@@ -1,3 +1,8 @@
+## [1.10.112] - 2026-05-28
+### Added
+- **Migración de Base de Datos para el Permiso**: Se incorporó una migración de base de datos (`2026_05_28_105435_add_payments_approve_custom_rate_permission.php`) para registrar el permiso `payments.approve_custom_rate` y asignarlo automáticamente al rol `Super Admin`.
+- **Traducción del Permiso**: Se agregó la traducción al español del permiso bajo la llave `payments_approve_custom_rate` como "Aprobar Tasa Especial" en `lang/es/permissions.php` para que se visualice y administre correctamente agrupado en el módulo de Asignación de Roles y Permisos.
+
 ## [1.10.111] - 2026-05-28
 ### Added
 - **Auto-Aprobación de Tasas**: Integración de un flujo que detecta si el cajero posee el rol `Super Admin` o el permiso `payments.approve_custom_rate`, permitiéndole auto-aprobar al instante la tasa manual propuesta en la misma vista de pago mediante un botón destacado verde "Auto-Aprobar Tasa".
