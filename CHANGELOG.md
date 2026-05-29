@@ -1,3 +1,7 @@
+## [1.10.119] - 2026-05-29
+### Fixed
+- **Conciliación de Bancos en Arqueo Detallado PDF (Reference Leak)**: Se corrigió un error crítico de desbordamiento de memoria por fuga de referencia PHP (`$currenciesInBank` y `$items`) en `ReportController.php`. Este error causaba que, al generar el reporte PDF del Informe Detallado de Caja, la sección de `BANCO DE VENEZUELA` duplicara exactamente las transacciones, referencias y montos de `BANCO PROVINCIAL`, ocultando al mismo tiempo el pago real legítimo del Banco de Venezuela por **29,443.31 VED**. Se implementó la llamada segura a `unset($currenciesInBank)` y `unset($items)` inmediatamente después de finalizar cada ciclo de ordenación para desligar los punteros de memoria, resolviendo la duplicación de datos de forma impecable y garantizando la total precisión financiera del reporte.
+
 ## [1.10.118] - 2026-05-29
 ### Fixed
 - **Impresión de Fechas en Reportes y Facturas PDF (Reimpresión)**: Se corrigió un error crítico en los constructores de PDFs (Ventas Contado/Crédito, Órdenes de Pedido Pendientes/Procesadas, Ajustes de Almacén - Cargos y Descargos, y Órdenes de Compra) que causaba que al reimprimir documentos históricos aparecieran con la fecha actual del sistema. Se configuraron explícitamente los constructores para inyectar la fecha original del registro (`created_at`) al generador de `Jhosagid\Invoices\Invoice`, previniendo que caiga en la fecha de ejecución por defecto.

@@ -1123,6 +1123,8 @@ class ReportController extends Controller
                 $sortItems($items);
             }
         }
+        unset($currenciesInBank);
+        unset($items);
         $sortItems($digitalPayments['sales']['zelle']);
 
         // Sort Credits Bank Groups
@@ -1131,6 +1133,8 @@ class ReportController extends Controller
                 $sortItems($items);
             }
         }
+        unset($currenciesInBank);
+        unset($items);
         $sortItems($digitalPayments['credits']['zelle']);
 
         // Sort Unified Bank Groups
@@ -1139,6 +1143,8 @@ class ReportController extends Controller
                 $sortItems($items);
             }
         }
+        unset($currenciesInBank);
+        unset($items);
         $sortItems($digitalPayments['unified']['zelle']);
 
         // Calculate Grand Totals
