@@ -65,6 +65,7 @@ class CargoController extends Controller
             ->serialNumberFormat('{SERIES}-{SEQUENCE}')
             ->seller($seller)
             ->buyer($buyer)
+            ->date($cargo->created_at)
             ->dateFormat('d/m/Y')
             ->currencySymbol('')
             ->currencyCode('')

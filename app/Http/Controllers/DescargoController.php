@@ -65,6 +65,7 @@ class DescargoController extends Controller
             ->serialNumberFormat('{SERIES}-{SEQUENCE}')
             ->seller($seller)
             ->buyer($buyer)
+            ->date($descargo->created_at)
             ->dateFormat('d/m/Y')
             ->currencySymbol('')
             ->currencyCode('')

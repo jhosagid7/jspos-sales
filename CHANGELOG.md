@@ -1,3 +1,8 @@
+## [1.10.118] - 2026-05-29
+### Fixed
+- **Impresión de Fechas en Reportes y Facturas PDF (Reimpresión)**: Se corrigió un error crítico en los constructores de PDFs (Ventas Contado/Crédito, Órdenes de Pedido Pendientes/Procesadas, Ajustes de Almacén - Cargos y Descargos, y Órdenes de Compra) que causaba que al reimprimir documentos históricos aparecieran con la fecha actual del sistema. Se configuraron explícitamente los constructores para inyectar la fecha original del registro (`created_at`) al generador de `Jhosagid\Invoices\Invoice`, previniendo que caiga en la fecha de ejecución por defecto.
+- **Suite de Pruebas**: Se incorporó el archivo de pruebas `tests/Feature/PdfInvoiceDateTest.php` para validar y certificar de manera automatizada que los 5 principales tipos de comprobantes renderizan correctamente la fecha de emisión original.
+
 ## [1.10.117] - 2026-05-28
 ### Fixed
 - **Relación de Cobros (Agrupación de Pagos en Efectivo)**: Se corrigió un bug del sistema en la generación del PDF de Relación de Cobros (`collection-relationship-new-pdf.blade.php`). Anteriormente, al agrupar los pagos en efectivo de una venta, si existía **cualquier** pago anulado en esa misma venta, todo el grupo de efectivo se marcaba erróneamente como anulado `[ANULADO]` (tachando la fila entera y forzando a `0` el monto de ingreso), lo que provocaba que los pagos en efectivo válidos y aprobados posteriores quedaran ocultos o no sumados en el reporte. Ahora se agrupan los pagos en efectivo tanto por la venta como por su **estado/status**, separándolos en filas independientes en el PDF para garantizar la total precisión de los totales de ingreso.

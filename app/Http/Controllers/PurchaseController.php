@@ -65,6 +65,7 @@ class PurchaseController extends Controller
             ->serialNumberFormat('{SEQUENCE}')
             ->seller($seller)
             ->buyer($buyer)
+            ->date($purchase->created_at)
             ->dateFormat('d/m/Y')
             ->currencySymbol('$')
             ->currencyCode('COP')
