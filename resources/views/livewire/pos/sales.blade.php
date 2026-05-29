@@ -210,17 +210,20 @@
                                     $alertClass = $customer['has_overdue'] ? 'alert-danger' : 'alert-warning';
                                 }
                                 
-                                    $hasCustomerComm = ($customerConfig && $customerConfig->commission_percent > 0);
-                                    $activeComm = $hasCustomerComm ? $customerConfig->commission_percent : ($sellerConfig->commission_percent ?? 0);
-                                    $commSource = $hasCustomerComm ? 'Cliente' : 'Vendedor/Global';
+                                    $hasCustomerConfig = $customerConfig && (
+                                        $customerConfig->commission_percent > 0 ||
+                                        $customerConfig->freight_percent > 0 ||
+                                        $customerConfig->exchange_diff_percent > 0
+                                    );
 
-                                    $hasCustomerFreight = ($customerConfig && $customerConfig->freight_percent > 0);
-                                    $activeFreight = $hasCustomerFreight ? $customerConfig->freight_percent : ($sellerConfig->freight_percent ?? 0);
-                                    $freightSource = $hasCustomerFreight ? 'Cliente' : 'Vendedor/Global';
+                                    $activeComm = $hasCustomerConfig ? ($customerConfig->commission_percent ?? 0) : ($sellerConfig->commission_percent ?? 0);
+                                    $commSource = $hasCustomerConfig ? 'Cliente' : 'Vendedor/Global';
 
-                                    $hasCustomerDiff = ($customerConfig && $customerConfig->exchange_diff_percent > 0);
-                                    $activeDiff = $hasCustomerDiff ? $customerConfig->exchange_diff_percent : ($sellerConfig->exchange_diff_percent ?? 0);
-                                    $diffSource = $hasCustomerDiff ? 'Cliente' : 'Vendedor/Global';
+                                    $activeFreight = $hasCustomerConfig ? ($customerConfig->freight_percent ?? 0) : ($sellerConfig->freight_percent ?? 0);
+                                    $freightSource = $hasCustomerConfig ? 'Cliente' : 'Vendedor/Global';
+
+                                    $activeDiff = $hasCustomerConfig ? ($customerConfig->exchange_diff_percent ?? 0) : ($sellerConfig->exchange_diff_percent ?? 0);
+                                    $diffSource = $hasCustomerConfig ? 'Cliente' : 'Vendedor/Global';
                                 @endphp
                                 
                                 <div class="alert {{ $alertClass }} p-2" style="font-size: 0.85rem;">

@@ -459,11 +459,19 @@ trait PdfOrderInvoiceTrait
         $customer = $order->customer;
         $customerConfig = $customer ? $customer->latestCustomerConfig : null;
         
-        $seller = $order->user; // The user who made the order
+        // Resolve seller hierarchically: 1st customer's salesperson, 2nd historical config, 3rd sale operator
+        $seller = ($customer && $customer->seller) ? $customer->seller : $order->user;
         $sellerConfig = $seller ? $seller->latestSellerConfig : null;
 
+        // Check if customer has at least one commercial parameter configured (> 0)
+        $customerHasConfig = $customerConfig && (
+            $customerConfig->commission_percent > 0 ||
+            $customerConfig->freight_percent > 0 ||
+            $customerConfig->exchange_diff_percent > 0
+        );
+
         // Freight
-        if ($customerConfig && $customerConfig->freight_percent > 0) {
+        if ($customerHasConfig) {
             $freightPercent = floatval($customerConfig->freight_percent);
         } else {
             $freightPercent = $sellerConfig ? floatval($sellerConfig->freight_percent) : 0;
@@ -472,7 +480,7 @@ trait PdfOrderInvoiceTrait
         // Commission
         if (isset($order->applied_commission_percent)) {
             $commPercent = floatval($order->applied_commission_percent);
-        } elseif ($customerConfig && $customerConfig->commission_percent > 0) {
+        } elseif ($customerHasConfig) {
             $commPercent = floatval($customerConfig->commission_percent);
         } else {
             $commPercent = $sellerConfig ? floatval($sellerConfig->commission_percent) : 0;
@@ -481,7 +489,7 @@ trait PdfOrderInvoiceTrait
         // Diff
         if (isset($order->applied_exchange_diff_percent)) {
             $diffPercent = floatval($order->applied_exchange_diff_percent);
-        } elseif ($customerConfig && $customerConfig->exchange_diff_percent > 0) {
+        } elseif ($customerHasConfig) {
             $diffPercent = floatval($customerConfig->exchange_diff_percent);
         } else {
             $diffPercent = $sellerConfig ? floatval($sellerConfig->exchange_diff_percent) : 0;
@@ -513,6 +521,17 @@ trait PdfOrderInvoiceTrait
         // Operator
         $operator = \Illuminate\Support\Facades\Auth::user(); 
         
+        // Suffixes calculation (Orders do not have payments)
+        $orderCurrency = $order->invoice_currency_id ? \App\Models\Currency::find($order->invoice_currency_id) : null;
+        $orderCurrencyCode = $orderCurrency ? $orderCurrency->code : 'COP';
+
+        $tpCode = 'TP$0BNC';
+        if ($orderCurrencyCode === 'COP') {
+            $tpCode = 'TPCOP';
+        } elseif (floatval($order->applied_exchange_diff_percent) > 0) {
+            $tpCode = 'TPBSBCV';
+        }
+
         $code = FooterCodeService::generate(
             $seller ? $seller->name : '',
             $customer ? $customer->name : '',
@@ -525,7 +544,9 @@ trait PdfOrderInvoiceTrait
             $discountRules,
             $moraPercent,
             intval($creditDays),
-            $operator ? $operator->name : ''
+            $operator ? $operator->name : '',
+            $tpCode,
+            ''
         );
 
         return [

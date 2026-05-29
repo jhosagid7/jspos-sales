@@ -256,9 +256,9 @@ class Customers extends Component
         if ($hasConfigChanges) {
             \App\Models\CustomerConfig::create([
                 'customer_id' => $this->customer->id,
-                'commission_percent' => $this->commission_percent ?? 0,
-                'freight_percent' => $this->freight_percent ?? 0,
-                'exchange_diff_percent' => $this->exchange_diff_percent ?? 0,
+                'commission_percent' => is_numeric($this->commission_percent) ? floatval($this->commission_percent) : 0,
+                'freight_percent' => is_numeric($this->freight_percent) ? floatval($this->freight_percent) : 0,
+                'exchange_diff_percent' => is_numeric($this->exchange_diff_percent) ? floatval($this->exchange_diff_percent) : 0,
                 'current_batch' => $this->current_batch ?? '1',
                 'agreement' => $this->agreement,
             ]);

@@ -361,9 +361,9 @@ class Users extends Component
             // Use permission check instead of hardcoded role name
             if ($this->isSeller($this->user->profile)) {
                 // Ensure values are not null
-                $commPercent = $this->commission_percent ?? 0;
-                $freightPercent = $this->freight_percent ?? 0;
-                $diffPercent = $this->exchange_diff_percent ?? 0;
+                $commPercent = is_numeric($this->commission_percent) ? floatval($this->commission_percent) : 0;
+                $freightPercent = is_numeric($this->freight_percent) ? floatval($this->freight_percent) : 0;
+                $diffPercent = is_numeric($this->exchange_diff_percent) ? floatval($this->exchange_diff_percent) : 0;
                 $batch = $this->current_batch ?? '1';
                 
                 \App\Models\SellerConfig::create([
@@ -473,9 +473,9 @@ class Users extends Component
         if($this->isSeller($this->user->profile)) {
             \App\Models\SellerConfig::create([
                 'user_id' => $this->user->id,
-                'commission_percent' => $this->commission_percent ?? 0,
-                'freight_percent' => $this->freight_percent ?? 0,
-                'exchange_diff_percent' => $this->exchange_diff_percent ?? 0,
+                'commission_percent' => is_numeric($this->commission_percent) ? floatval($this->commission_percent) : 0,
+                'freight_percent' => is_numeric($this->freight_percent) ? floatval($this->freight_percent) : 0,
+                'exchange_diff_percent' => is_numeric($this->exchange_diff_percent) ? floatval($this->exchange_diff_percent) : 0,
                 'current_batch' => $this->current_batch ?? '1',
                 'agreement' => $this->agreement
             ]);

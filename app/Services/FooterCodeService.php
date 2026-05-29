@@ -16,7 +16,9 @@ class FooterCodeService
         $prontoPagoRules = [], // Array of objects or arrays
         $moraPercent = 0,
         $creditDays = 0,
-        $operatorName = ''
+        $operatorName = '',
+        $tpCode = '',
+        $pgdCode = ''
     ) {
         // 1. Initials
         $initials = self::getInitials($sellerName) . self::getInitials($customerName);
@@ -80,7 +82,15 @@ class FooterCodeService
         $part5 = $codePD . $codePP . $codeIM;
         $part6 = $codeV . $operatorInitials;
 
-        return "$part1-$part2-$part3-$part4-$part5-$part6";
+        $finalCode = "$part1-$part2-$part3-$part4-$part5-$part6";
+        if (!empty($tpCode)) {
+            $finalCode .= '-' . strtoupper($tpCode);
+        }
+        if (!empty($pgdCode)) {
+            $finalCode .= '-' . strtoupper($pgdCode);
+        }
+
+        return $finalCode;
     }
 
     public static function getInitials($name)

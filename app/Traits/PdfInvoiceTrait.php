@@ -1082,11 +1082,19 @@ trait PdfInvoiceTrait
         $customer = $sale->customer;
         $customerConfig = $customer ? $customer->latestCustomerConfig : null;
         
-        $seller = $sale->user; // The user who made the sale
-        $sellerConfig = $seller ? $seller->latestSellerConfig : null;
+        // Resolve seller hierarchically: 1st customer's salesperson, 2nd historical config, 3rd sale operator
+        $seller = ($customer && $customer->seller) ? $customer->seller : $sale->user;
+        $sellerConfig = $sale->sellerConfig ?? ($seller ? $seller->latestSellerConfig : null);
+
+        // Check if customer has at least one commercial parameter configured (> 0)
+        $customerHasConfig = $customerConfig && (
+            $customerConfig->commission_percent > 0 ||
+            $customerConfig->freight_percent > 0 ||
+            $customerConfig->exchange_diff_percent > 0
+        );
 
         // Freight
-        if ($customerConfig && $customerConfig->freight_percent > 0) {
+        if ($customerHasConfig) {
             $freightPercent = floatval($customerConfig->freight_percent);
         } else {
             $freightPercent = $sellerConfig ? floatval($sellerConfig->freight_percent) : 0;
@@ -1095,7 +1103,7 @@ trait PdfInvoiceTrait
         // Commission
         if (isset($sale->applied_commission_percent)) {
             $commPercent = floatval($sale->applied_commission_percent);
-        } elseif ($customerConfig && $customerConfig->commission_percent > 0) {
+        } elseif ($customerHasConfig) {
             $commPercent = floatval($customerConfig->commission_percent);
         } else {
             $commPercent = $sellerConfig ? floatval($sellerConfig->commission_percent) : 0;
@@ -1104,7 +1112,7 @@ trait PdfInvoiceTrait
         // Diff
         if (isset($sale->applied_exchange_diff_percent)) {
             $diffPercent = floatval($sale->applied_exchange_diff_percent);
-        } elseif ($customerConfig && $customerConfig->exchange_diff_percent > 0) {
+        } elseif ($customerHasConfig) {
             $diffPercent = floatval($customerConfig->exchange_diff_percent);
         } else {
             $diffPercent = $sellerConfig ? floatval($sellerConfig->exchange_diff_percent) : 0;
@@ -1137,6 +1145,38 @@ trait PdfInvoiceTrait
         // Operator
         $operator = \Illuminate\Support\Facades\Auth::user(); 
         
+        // Suffixes calculation
+        $tpCode = 'TP$0BNC';
+        if ($sale->primary_currency_code === 'COP') {
+            $tpCode = 'TPCOP';
+        } elseif (floatval($sale->applied_exchange_diff_percent) > 0) {
+            $tpCode = 'TPBSBCV';
+        }
+
+        $pgdCode = '';
+        $sale->loadMissing('payments');
+        if ($sale->status === 'paid' && $sale->payments->isNotEmpty()) {
+            $methods = [];
+            foreach ($sale->payments as $payment) {
+                $pCurr = strtoupper($payment->currency ?? '');
+                if ($pCurr === 'USD' || ($payment->pay_way ?? '') === 'zelle') {
+                    $methods[] = '$0';
+                } elseif ($pCurr === 'COP') {
+                    $methods[] = 'COP';
+                } elseif ($pCurr === 'VED' || $pCurr === 'VES') {
+                    if (floatval($sale->applied_exchange_diff_percent) > 0) {
+                        $methods[] = 'BCV';
+                    } else {
+                        $methods[] = 'BNC';
+                    }
+                }
+            }
+            $uniqueMethods = array_unique($methods);
+            if (!empty($uniqueMethods)) {
+                $pgdCode = 'PGD' . implode('', $uniqueMethods);
+            }
+        }
+
         $code = FooterCodeService::generate(
             $seller ? $seller->name : '',
             $customer ? $customer->name : '',
@@ -1149,7 +1189,9 @@ trait PdfInvoiceTrait
             $discountRules,
             $moraPercent,
             intval($creditDays),
-            $operator ? $operator->name : ''
+            $operator ? $operator->name : '',
+            $tpCode,
+            $pgdCode
         );
 
         return [
