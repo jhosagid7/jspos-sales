@@ -1,3 +1,7 @@
+## [1.10.121] - 2026-06-06
+### Fixed
+- **Conciliación de Arqueo Detallado de Caja y Relación de Cobros**: Se modificaron las consultas de cobros por abonos a crédito en `cashCountPdf` y `cashCountDetailedPdf` en `ReportController.php`. Anteriormente, se filtraban por la fecha de creación física del pago (`created_at`), lo que provocaba que abonos creados en días anteriores en estado pendiente pero aprobados en el día del arqueo no aparecieran en el reporte de caja diaria (a pesar de pertenecer a la planilla del día y haber sido validados y cobrados ese día). Ahora, se recuperan los cobros vinculados a las planillas de cobranza (`collection_sheet_id`) abiertas durante el rango de fechas seleccionado, garantizando una coincidencia exacta y mostrando las fechas reales de transferencia en la columna **F. Voucher** para facilitar la auditoría bancaria.
+
 ## [1.10.120] - 2026-05-29
 ### Added
 - **Nomenclatura TP y PGD en Código de Facturas**: Se agregaron sufijos en MAYÚSCULAS al final del código comercial impreso en el pie de página de facturas (`PdfInvoiceTrait.php`) y pedidos (`PdfOrderInvoiceTrait.php`). El sufijo `TP` indica la política de pago autorizada (`TP$0BNC`, `TPBSBCV` o `TPCOP`), y el sufijo `PGD` resume los métodos de pago reales usados (`PGD$0`, `PGDBNC`, `PGDBCV`, `PGDCOP` o su combinación), omitiéndose completamente en facturas a crédito pendientes para facilitar auditorías instantáneas en caja.

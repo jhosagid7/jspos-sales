@@ -79,8 +79,8 @@ class CheckDeviceAuthorization
             $token = $token ?: (string) \Illuminate\Support\Str::uuid();
             $status = $isRestricted ? 'pending' : 'approved';
             
-            // Bypass for Admins (if already logged in)
-            if (auth()->check() && auth()->user()->hasAnyRole(['Admin', 'Super Admin'])) {
+            // Bypass for Super Admin (if already logged in)
+            if (auth()->check() && auth()->user()->hasRole('Super Admin')) {
                 $status = 'approved';
             }
 
@@ -128,9 +128,12 @@ class CheckDeviceAuthorization
         }
 
         if ($device->status !== 'approved') {
-            // Check if we can auto-approve this device because the user is an Admin
-            if (auth()->check() && auth()->user()->hasAnyRole(['Admin', 'Super Admin'])) {
-                $device->update(['status' => 'approved']);
+            // Only Super Admin can bypass / auto-approve their own devices
+            if (auth()->check() && auth()->user()->hasRole('Super Admin')) {
+                if ($device->status === 'pending') {
+                    $device->update(['status' => 'approved']);
+                }
+                return $next($request);
             } else {
                 // If it's an API request, return JSON instead of Redirect
                 if ($request->expectsJson() || $request->is('api/*')) {

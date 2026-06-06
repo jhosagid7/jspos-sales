@@ -19,6 +19,9 @@ trait PrintTrait
     use UtilTrait;
 
     protected function getPrinterConfig() {
+        if (app()->runningUnitTests()) {
+            return null;
+        }
         $config = Configuration::first();
         if (!$config) return null;
 
@@ -948,9 +951,9 @@ trait PrintTrait
                 $printer->text("Cliente: " . $sale->customer->name . "\n");
                 
                 // Calculate percentages
-                $commPercent = $sale->applied_commission_percent ?? 0;
-                $diffPercent = $sale->applied_exchange_diff_percent ?? 0;
-                $freightPercent = $sale->applied_freight_percent ?? 0;
+                $commPercent = $sale->resolved_commission_percent;
+                $diffPercent = $sale->resolved_exchange_diff_percent;
+                $freightPercent = $sale->resolved_freight_percent;
                 
                 $combinedPercent = ($commPercent + $diffPercent) / 100;
 
@@ -998,7 +1001,11 @@ trait PrintTrait
                      
                      // Reverse Calculation
                      $cleanTotal = max(0, $finalImporte - $itemFreight);
-                     $itemTotalBase = $cleanTotal / (1 + $combinedPercent);
+                     if ($sale->created_at >= '2026-06-03 00:00:00') {
+                         $itemTotalBase = ($cleanTotal / (1 + $diffPercent / 100)) / (1 + $commPercent / 100);
+                     } else {
+                         $itemTotalBase = $cleanTotal / (1 + $combinedPercent);
+                     }
                      $baseUnit = ($qty > 0) ? ($itemTotalBase / $qty) : 0;
                      
                      $totalBase += $itemTotalBase;
@@ -1055,9 +1062,14 @@ trait PrintTrait
                 }
 
                 if ($diffPercent > 0) {
-                     $amt = $totalBase * ($diffPercent / 100);
-                     $printer->text("Dif. Cambiaria (" . number_format($diffPercent, 2) . "%): " . $currencySymbol . number_format($amt, 2) . "\n");
-                }
+                      if ($sale->created_at >= '2026-06-03 00:00:00') {
+                           $intermediateTotal = $totalBase + ($totalBase * $commPercent / 100) + $configFreightTotal + $productFreightTotal;
+                           $amt = $intermediateTotal * ($diffPercent / 100);
+                      } else {
+                           $amt = $totalBase * ($diffPercent / 100);
+                      }
+                      $printer->text("Dif. Cambiaria (" . number_format($diffPercent, 2) . "%): " . $currencySymbol . number_format($amt, 2) . "\n");
+                 }
 
                 $printer->text($separator . "\n");
                 

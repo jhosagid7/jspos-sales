@@ -60,9 +60,6 @@ class PriceCalculatorService
             // Commission
             $comm = ($basePriceInPrimary * $commissionPercent) / 100;
             
-            // Exchange Diff
-            $diff = ($basePriceInPrimary * $exchangeDiffPercent) / 100;
-
             // Freight (Smart Logic)
             if ($product->freight_type != 'none') {
                 if ($product->freight_type == 'fixed') {
@@ -75,8 +72,14 @@ class PriceCalculatorService
                 $freightUnit = ($basePriceInPrimary * $freightPercent) / 100;
             }
             $freight = $freightUnit;
+
+            // Intermediate Price (Base + Comm + Freight)
+            $intermediatePrice = $basePriceInPrimary + $comm + $freight;
             
-            $salePrice = $basePriceInPrimary + $comm + $freight + $diff;
+            // Exchange Diff (Applied on Intermediate Price)
+            $diff = ($intermediatePrice * $exchangeDiffPercent) / 100;
+            
+            $salePrice = $intermediatePrice + $diff;
         } else {
             $salePrice = $basePriceInPrimary;
         }

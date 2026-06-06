@@ -19,9 +19,12 @@ class PaymentDateTest extends TestCase
 
     public function test_payment_date_is_saved_correctly_in_partial_payment()
     {
+        $this->seed(\Database\Seeders\CurrencySeeder::class);
+
         $user = User::factory()->create();
-        $customer = Customer::factory()->create();
-        $product = Product::factory()->create(['price' => 100]);
+        $role = \Spatie\Permission\Models\Role::findOrCreate('Seller');
+        $user->assignRole($role);
+        $customer = Customer::create(['name' => 'Test Customer']);
         
         $sale = Sale::create([
             'user_id' => $user->id,
@@ -37,9 +40,15 @@ class PaymentDateTest extends TestCase
         Livewire::actingAs($user)
             ->test(PartialPayment::class)
             ->call('initPay', $sale->id, $customer->name, 100)
-            ->set('amount', 50)
-            ->set('paymentDate', $pastDate)
-            ->call('doPayment');
+            ->dispatch('payment-completed', payments: [
+                [
+                    'method' => 'cash',
+                    'currency' => 'USD',
+                    'amount' => 50,
+                    'exchange_rate' => 1.0,
+                    'payment_date' => $pastDate,
+                ]
+            ], change: 0, changeDistribution: []);
 
         $this->assertDatabaseHas('payments', [
             'sale_id' => $sale->id,

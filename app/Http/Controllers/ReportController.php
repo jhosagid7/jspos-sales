@@ -565,13 +565,23 @@ class ReportController extends Controller
 
             // Calculations
             $totalFac = $sale->total_usd;
-            $incPercent = ($sale->applied_commission_percent + $sale->applied_freight_percent + $sale->applied_exchange_diff_percent);
-            $baseAmount = $totalFac / (1 + ($incPercent / 100));
+            $commPercent = $sale->resolved_commission_percent;
+            $freightPercent = $sale->resolved_freight_percent;
+            $diffPercent = $sale->resolved_exchange_diff_percent;
+            $incPercent = $commPercent + $freightPercent + $diffPercent;
             
-            // Amounts by concept
-            $commAmt = $baseAmount * ($sale->applied_commission_percent / 100);
-            $freightAmt = $baseAmount * ($sale->applied_freight_percent / 100);
-            $diffAmt = $baseAmount * ($sale->applied_exchange_diff_percent / 100);
+            if ($sale->created_at >= '2026-06-03 00:00:00') {
+                $baseAmount = ($totalFac / (1 + $diffPercent / 100)) / (1 + ($commPercent + $freightPercent) / 100);
+                $commAmt = $baseAmount * ($commPercent / 100);
+                $freightAmt = $baseAmount * ($freightPercent / 100);
+                $intermediateTotal = $baseAmount + $commAmt + $freightAmt;
+                $diffAmt = $intermediateTotal * ($diffPercent / 100);
+            } else {
+                $baseAmount = $totalFac / (1 + ($incPercent / 100));
+                $commAmt = $baseAmount * ($commPercent / 100);
+                $freightAmt = $baseAmount * ($freightPercent / 100);
+                $diffAmt = $baseAmount * ($diffPercent / 100);
+            }
 
             $saleObj = (object)[
                 'invoice_number' => $sale->invoice_number ?? $sale->id,
@@ -735,7 +745,11 @@ class ReportController extends Controller
             return $totalUSD * $primaryRate;
         });
 
-        $payments = Payment::with(['zelleRecord', 'bankRecord'])->whereBetween('created_at', [$dFrom, $dTo])
+        $sheets = \App\Models\CollectionSheet::whereBetween('opened_at', [$dFrom, $dTo])->get();
+        $sheetIds = $sheets->pluck('id');
+
+        $payments = Payment::with(['zelleRecord', 'bankRecord'])
+            ->whereIn('collection_sheet_id', $sheetIds)
             ->when($user_id != 0, function ($qry) use ($user_id) {
                 $qry->where('user_id', $user_id);
             })
@@ -931,9 +945,12 @@ class ReportController extends Controller
             ->whereBetween('created_at', [$dFrom, $dTo])
             ->get();
 
+        $sheets = \App\Models\CollectionSheet::whereBetween('opened_at', [$dFrom, $dTo])->get();
+        $sheetIds = $sheets->pluck('id');
+
         // 2. Query credit payments
-        $creditPayments = Payment::with(['sale', 'sale.customer', 'zelleRecord', 'bankRecord'])
-            ->whereBetween('created_at', [$dFrom, $dTo])
+        $creditPayments = Payment::with(['sale.customer', 'zelleRecord', 'bankRecord'])
+            ->whereIn('collection_sheet_id', $sheetIds)
             ->when($user_id != 0, function ($qry) use ($user_id) {
                 $qry->where('user_id', $user_id);
             })

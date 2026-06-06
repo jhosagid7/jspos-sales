@@ -76,23 +76,21 @@ class ReturnsComponent extends Component
                 $baseUnitPrice = $detail->regular_price ?? $detail->sale_price;
                 
                 // Calculate effective unit price including applied percentages
-                $commPct = $this->sale->applied_commission_percent ?? 0;
-                $diffPct = $this->sale->applied_exchange_diff_percent ?? 0;
-                $combinedPct = ($commPct + $diffPct) / 100;
-                
-                // Freight is calculated per item if applicable
-                // Only if the sale is foreign do the comm/diff apply
-                $additionalCharges = 0;
-                if ($this->sale->is_foreign_sale) {
-                    $additionalCharges = $baseUnitPrice * $combinedPct;
-                }
+                $commPct = $this->sale->resolved_commission_percent;
+                $diffPct = $this->sale->resolved_exchange_diff_percent;
                 
                 $freightPerItem = 0;
                 if ($detail->quantity > 0) {
                      $freightPerItem = $detail->freight_amount / $detail->quantity;
                 }
                 
-                $effectiveUnitPrice = $baseUnitPrice + $additionalCharges + $freightPerItem;
+                if ($this->sale->is_foreign_sale) {
+                    $comm = ($baseUnitPrice * $commPct) / 100;
+                    $intermediate = $baseUnitPrice + $comm + $freightPerItem;
+                    $effectiveUnitPrice = $intermediate * (1 + $diffPct / 100);
+                } else {
+                    $effectiveUnitPrice = $baseUnitPrice + $freightPerItem;
+                }
                 
                 $this->returnItems[$detail->id] = [
                     'detail_id' => $detail->id,

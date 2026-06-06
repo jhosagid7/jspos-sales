@@ -2027,9 +2027,6 @@ class Sales extends Component
             // Commission
             $comm = ($basePriceInPrimary * $commissionPercent) / 100;
             
-            // Exchange Diff
-            $diff = ($basePriceInPrimary * $exchangeDiffPercent) / 100;
-
             // Freight (Smart Logic)
             if ($product->freight_type != 'none') {
                 // Product Specific Freight
@@ -2044,7 +2041,13 @@ class Sales extends Component
             }
             $freight = $freightUnit; // Total freight added to unit price
 
-            $salePrice = $basePriceInPrimary + $comm + $freight + $diff;
+            // Intermediate Price (Base + Comm + Freight)
+            $intermediatePrice = $basePriceInPrimary + $comm + $freight;
+            
+            // Exchange Diff (Applied on Intermediate Price)
+            $diff = ($intermediatePrice * $exchangeDiffPercent) / 100;
+
+            $salePrice = $intermediatePrice + $diff;
         } else {
             $salePrice = $basePriceInPrimary;
         }
@@ -2281,19 +2284,18 @@ class Sales extends Component
         $comm = 0;
         $freight = 0;
         $diff = 0;
+        $activeDiff = 0;
 
         $currency = collect($this->currencies)->firstWhere('id', $this->invoiceCurrency_id);
         $currencyCode = $currency ? strtoupper($currency->code) : '';
         $isUsdOrCop = in_array($currencyCode, ['USD', 'COP']);
 
-        if ($this->applyCommissions || $this->applyFreight) {
-            
+        if ($this->applyCommissions) {
             if ($this->sellerConfig || $this->customerConfig) {
                  $activeComm = ($this->customerConfig && $this->customerConfig->commission_percent > 0) ? $this->customerConfig->commission_percent : ($this->sellerConfig->commission_percent ?? 0);
                  $activeDiff = ($this->customerConfig && $this->customerConfig->exchange_diff_percent > 0) ? $this->customerConfig->exchange_diff_percent : ($this->sellerConfig->exchange_diff_percent ?? 0);
                  
                  $comm = ($basePriceInPrimary * $activeComm) / 100;
-                 $diff = ($basePriceInPrimary * $activeDiff) / 100;
             }
         }
 
@@ -2310,10 +2312,14 @@ class Sales extends Component
         // IF breakdown is ON, we DO NOT add freight to the Unit Price
         if ($this->is_freight_broken_down) {
              // Freight is calculated separately, not in unit price
-             $salePrice = $basePriceInPrimary + $comm + $diff;
+             $intermediatePrice = $basePriceInPrimary + $comm;
+             $diff = ($intermediatePrice * $activeDiff) / 100;
+             $salePrice = $intermediatePrice + $diff;
         } else {
              // Freight is included in unit price
-             $salePrice = $basePriceInPrimary + $comm + $freightUnit + $diff;
+             $intermediatePrice = $basePriceInPrimary + $comm + $freightUnit;
+             $diff = ($intermediatePrice * $activeDiff) / 100;
+             $salePrice = $intermediatePrice + $diff;
         }
 
 
@@ -2431,8 +2437,9 @@ class Sales extends Component
         if ($this->sellerConfig && ($this->applyCommissions || $this->applyFreight) && $isUsdOrCop) {
             $comm = ($basePriceInPrimary * $this->sellerConfig->commission_percent) / 100;
             $freight = ($basePriceInPrimary * $this->sellerConfig->freight_percent) / 100;
-            $diff = ($basePriceInPrimary * $this->sellerConfig->exchange_diff_percent) / 100;
-            $salePrice = $basePriceInPrimary + $comm + $freight + $diff;
+            $intermediatePrice = $basePriceInPrimary + $comm + $freight;
+            $diff = ($intermediatePrice * $this->sellerConfig->exchange_diff_percent) / 100;
+            $salePrice = $intermediatePrice + $diff;
         } else {
             $salePrice = $basePriceInPrimary;
         }
@@ -3621,34 +3628,29 @@ class Sales extends Component
             
             $totalInInvoiceCurrency = round($this->totalCart * $conversionFactor, $decimals);
 
-            $appliedComm = null;
-            $appliedFreight = null;
-            $appliedDiff = null;
+            $appliedComm = 0;
+            $appliedFreight = 0;
+            $appliedDiff = 0;
             $sellerConfigId = null;
 
-            if ($this->applyCommissions) {
-                if ($this->sellerConfig) {
-                    $sellerConfigId = $this->sellerConfig->id;
-                }
-                
-                // Determine if the customer has any configuration applied at all
-                $customerHasConfig = $this->customerConfig && (
-                    $this->customerConfig->commission_percent > 0 ||
-                    $this->customerConfig->freight_percent > 0 ||
-                    $this->customerConfig->exchange_diff_percent > 0
-                );
+            if ($this->sellerConfig) {
+                $sellerConfigId = $this->sellerConfig->id;
+            }
 
-                if ($customerHasConfig) {
-                    // If customer has at least one configured, take EVERYTHING from the customer
-                    $appliedComm = $this->customerConfig->commission_percent;
-                    $appliedFreight = $this->customerConfig->freight_percent;
-                    $appliedDiff = $this->customerConfig->exchange_diff_percent;
-                } elseif ($this->sellerConfig) {
-                    // Otherwise, fallback entirely to the seller's config
-                    $appliedComm = $this->sellerConfig->commission_percent;
-                    $appliedFreight = $this->sellerConfig->freight_percent;
-                    $appliedDiff = $this->sellerConfig->exchange_diff_percent;
-                }
+            if ($this->applyCommissions) {
+                $appliedComm = ($this->customerConfig && $this->customerConfig->commission_percent > 0)
+                    ? $this->customerConfig->commission_percent
+                    : ($this->sellerConfig ? $this->sellerConfig->commission_percent : 0);
+
+                $appliedDiff = ($this->customerConfig && $this->customerConfig->exchange_diff_percent > 0)
+                    ? $this->customerConfig->exchange_diff_percent
+                    : ($this->sellerConfig ? $this->sellerConfig->exchange_diff_percent : 0);
+            }
+
+            if ($this->applyFreight) {
+                $appliedFreight = ($this->customerConfig && $this->customerConfig->freight_percent > 0)
+                    ? $this->customerConfig->freight_percent
+                    : ($this->sellerConfig ? $this->sellerConfig->freight_percent : 0);
             }
 
             // --- COMISIÓN: CAPTURAR TIERS/PENALIZACIONES ---
@@ -4120,6 +4122,9 @@ class Sales extends Component
             }
 
             DB::commit();
+
+            // Verificar si el abono inicial liquida la venta por completo (por ejemplo, crédito con inicial del 100%)
+            $sale->checkSettlement();
 
             // From here on, side effects (commissions, events) don't block order closure
             

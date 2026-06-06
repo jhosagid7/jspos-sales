@@ -13,7 +13,18 @@ use Carbon\Carbon;
 
 class HierarchicalCommissionTest extends TestCase
 {
-    // use RefreshDatabase; // Commented out to avoid wiping local db, will use manual cleanup or transaction if needed, but for now just creating temp data
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Configuration::create([
+            'business_name' => 'Test Business',
+            'bcv_rate' => 54.50,
+            'binance_rate' => 70.00,
+            'binance_markup_points' => 5.00,
+        ]);
+    }
 
     public function test_global_commission_logic()
     {
@@ -29,10 +40,24 @@ class HierarchicalCommissionTest extends TestCase
         $service = new CommissionService();
 
         // Create Sale
-        $sale = new Sale();
-        $sale->created_at = Carbon::now()->subDays(10); // 10 days elapsed
-        $sale->customer = new Customer(); // No config
-        $sale->user = new User(); // No config
+        $user = User::factory()->create();
+        $customer = Customer::create(['name' => 'Test Customer']);
+        $sale = Sale::create([
+            'user_id' => $user->id,
+            'customer_id' => $customer->id,
+            'total' => 100.00,
+            'items' => 1,
+            'status' => 'pending',
+            'type' => 'credit',
+            'created_at' => Carbon::now()->subDays(10),
+            'applied_commission_percent' => 8,
+            'seller_tier_1_days' => 15,
+            'seller_tier_1_percent' => 8,
+            'seller_tier_2_days' => 30,
+            'seller_tier_2_percent' => 4,
+        ]);
+        $sale->setRelation('customer', $customer);
+        $sale->setRelation('user', $user);
         
         // Test Tier 1
         $commission = $service->calculateCommission($sale);
@@ -40,6 +65,7 @@ class HierarchicalCommissionTest extends TestCase
 
         // Test Tier 2
         $sale->created_at = Carbon::now()->subDays(20); // 20 days elapsed
+        $sale->save();
         $commission = $service->calculateCommission($sale);
         $this->assertEquals(4, $commission, "Global Tier 2 failed");
     }
@@ -54,19 +80,34 @@ class HierarchicalCommissionTest extends TestCase
         ]);
 
         // Setup Seller
-        $seller = new User();
-        $seller->seller_commission_1_threshold = 10;
-        $seller->seller_commission_1_percentage = 10;
-        $seller->seller_commission_2_threshold = 20;
-        $seller->seller_commission_2_percentage = 5;
+        $seller = User::factory()->create([
+            'seller_commission_1_threshold' => 10,
+            'seller_commission_1_percentage' => 10,
+            'seller_commission_2_threshold' => 20,
+            'seller_commission_2_percentage' => 5,
+        ]);
+
+        $customer = Customer::create(['name' => 'Test Customer']);
 
         $service = new CommissionService();
 
         // Create Sale
-        $sale = new Sale();
-        $sale->created_at = Carbon::now()->subDays(5); // 5 days elapsed
-        $sale->customer = new Customer(); // No config
-        $sale->user = $seller;
+        $sale = Sale::create([
+            'user_id' => $seller->id,
+            'customer_id' => $customer->id,
+            'total' => 100.00,
+            'items' => 1,
+            'status' => 'pending',
+            'type' => 'credit',
+            'created_at' => Carbon::now()->subDays(5),
+            'applied_commission_percent' => 10,
+            'seller_tier_1_days' => 10,
+            'seller_tier_1_percent' => 10,
+            'seller_tier_2_days' => 20,
+            'seller_tier_2_percent' => 5,
+        ]);
+        $sale->setRelation('customer', $customer);
+        $sale->setRelation('user', $seller);
 
         // Test Seller Tier 1 (Should be 10%, overriding Global 8%)
         $commission = $service->calculateCommission($sale);
@@ -80,23 +121,38 @@ class HierarchicalCommissionTest extends TestCase
         $config->update(['global_commission_1_percentage' => 8]);
 
         // Setup Seller
-        $seller = new User();
-        $seller->seller_commission_1_percentage = 10;
+        $seller = User::factory()->create([
+            'seller_commission_1_percentage' => 10,
+        ]);
 
         // Setup Customer
-        $customer = new Customer();
-        $customer->customer_commission_1_threshold = 5;
-        $customer->customer_commission_1_percentage = 12;
-        $customer->customer_commission_2_threshold = 10;
-        $customer->customer_commission_2_percentage = 6;
+        $customer = Customer::create([
+            'name' => 'Test Customer',
+            'customer_commission_1_threshold' => 5,
+            'customer_commission_1_percentage' => 12,
+            'customer_commission_2_threshold' => 10,
+            'customer_commission_2_percentage' => 6,
+        ]);
 
         $service = new CommissionService();
 
         // Create Sale
-        $sale = new Sale();
-        $sale->created_at = Carbon::now()->subDays(2); // 2 days elapsed
-        $sale->customer = $customer;
-        $sale->user = $seller;
+        $sale = Sale::create([
+            'user_id' => $seller->id,
+            'customer_id' => $customer->id,
+            'total' => 100.00,
+            'items' => 1,
+            'status' => 'pending',
+            'type' => 'credit',
+            'created_at' => Carbon::now()->subDays(2),
+            'applied_commission_percent' => 12,
+            'seller_tier_1_days' => 5,
+            'seller_tier_1_percent' => 12,
+            'seller_tier_2_days' => 10,
+            'seller_tier_2_percent' => 6,
+        ]);
+        $sale->setRelation('customer', $customer);
+        $sale->setRelation('user', $seller);
 
         // Test Customer Tier 1 (Should be 12%, overriding Seller 10% and Global 8%)
         $commission = $service->calculateCommission($sale);

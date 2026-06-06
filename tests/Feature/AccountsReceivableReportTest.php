@@ -33,6 +33,12 @@ class AccountsReceivableReportTest extends TestCase
     {
         parent::setUp();
 
+        // Reset static cache in ConfigurationService
+        $ref = new \ReflectionClass(\App\Services\ConfigurationService::class);
+        $prop = $ref->getProperty('config');
+        $prop->setAccessible(true);
+        $prop->setValue(null);
+
         // Setup Configuration
         Configuration::create([
             'business_name' => 'Test Business',
@@ -46,6 +52,8 @@ class AccountsReceivableReportTest extends TestCase
 
         // Create user and give permissions
         $this->user = User::factory()->create();
+        $role = \Spatie\Permission\Models\Role::findOrCreate('Seller');
+        $this->user->assignRole($role);
         Permission::findOrCreate('payments.register_direct');
         Permission::findOrCreate('payments.upload');
         Permission::findOrCreate('payments.pay');
@@ -179,6 +187,80 @@ class AccountsReceivableReportTest extends TestCase
             ->assertSet('supplier', null);
 
         $this->assertNull(session('account_supplier'));
+    }
+
+    public function test_credit_sale_with_full_initial_payment_resolves_to_paid_at_checkout()
+    {
+        // Setup Customer
+        $customer = Customer::create(['name' => 'Montenegro Customer']);
+
+        // Create a mock category
+        $category = \App\Models\Category::create(['name' => 'Test Category']);
+
+        // Create a mock product
+        $product = \App\Models\Product::create([
+            'name' => 'Test Product', 
+            'sku' => 'TEST-002', 
+            'price' => 100, 
+            'cost' => 50, 
+            'stock_qty' => 10,
+            'type' => 'physical',
+            'status' => 'available',
+            'manage_stock' => 1,
+            'low_stock' => 1,
+            'supplier_id' => $this->supplier->id,
+            'category_id' => $category->id,
+            'freight_type' => 'none'
+        ]);
+
+        // Create an active cash register for the user
+        \App\Models\CashRegister::create([
+            'user_id' => $this->user->id,
+            'status' => 'open',
+            'open_amount' => 1000,
+            'opening_date' => now()
+        ]);
+
+        // Setup the cart session (Store reads from session("cart"))
+        session(['cart' => [
+            $product->id => [
+                'pid' => $product->id,
+                'qty' => 1,
+                'base_price' => 100.00,
+                'sale_price' => 100.00,
+                'conversion_factor' => 1,
+                'tax' => 0.00,
+                'total' => 100.00,
+                'sku' => $product->sku,
+                'name' => $product->name,
+                'pricelist' => []
+            ]
+        ]]);
+
+        // Test Livewire Sales component
+        Livewire::actingAs($this->user)
+            ->test(\App\Livewire\Sales::class)
+            ->call('setCustomer', $customer->toArray())
+            ->set('payType', 2) // Credit type
+            ->set('totalCart', 100.00)
+            ->set('totalInPrimaryCurrency', 100.00)
+            ->set('cashAmount', 0.00)
+            ->set('payments', [
+                [
+                    'method' => 'cash',
+                    'currency' => 'USD',
+                    'symbol' => '$',
+                    'amount' => 100.00,
+                    'amount_in_primary_currency' => 100.00,
+                    'exchange_rate' => 1.0
+                ]
+            ])
+            ->call('Store');
+
+        // Check if sale exists and its status is paid (instead of pending)
+        $sale = Sale::where('customer_id', $customer->id)->latest()->first();
+        $this->assertNotNull($sale);
+        $this->assertEquals('paid', $sale->status);
     }
 }
 

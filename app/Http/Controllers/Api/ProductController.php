@@ -52,7 +52,6 @@ class ProductController extends Controller
 
             if ($config) {
                 $comm = ($basePrice * $config->commission_percent) / 100;
-                $diff = ($basePrice * $config->exchange_diff_percent) / 100;
                 
                 if ($product->freight_type != 'none') {
                     if ($product->freight_type == 'fixed') {
@@ -64,7 +63,9 @@ class ProductController extends Controller
                     $freight = ($basePrice * $config->freight_percent) / 100;
                 }
 
-                $finalPrice = $basePrice + $comm + $diff + $freight;
+                $intermediate = $basePrice + $comm + $freight;
+                $diff = ($intermediate * $config->exchange_diff_percent) / 100;
+                $finalPrice = $intermediate + $diff;
             }
 
             $warehouseId = $warehouseId ?? 1; // Seguridad: Si todo falla, usa la oficina (ID 1)

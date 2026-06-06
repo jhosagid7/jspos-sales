@@ -112,3 +112,41 @@ L
 2026-04-27 15:41:22 | RESPONSE (200): {"status":"success","access_token":"83|aCfCMvRyXoBaWvzKnf5CM9sGb3hLL1ULINheR0as156a642c","token_type
 2026-04-27 15:41:25 | [GET] PATH: api/vip/me | IP: 192.168.194.58 | USER: NULL
 2026-04-27 15:41:25 | RESPONSE (200): {"status":"success","customer":{"id":115,"name":"OF-13. DALBERT RAMIREZ VERA ","address":"ENTRE AV 6
+2026-06-02 11:08:02 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 6 - Ian Trujillo
+2026-06-02 11:08:02 | RESPONSE (200): [{"id":3,"name":"Test Product","sku":"TEST-001","price":10,"stock":0,"reserved_stock":0,"available_s
+2026-06-02 11:11:21 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 2 - VIP Customer
+2026-06-02 11:11:21 | RESPONSE (200): [{"id":3,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
+2026-06-02 11:11:55 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 4 - VIP Customer
+2026-06-02 11:11:55 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
+2026-06-02 12:04:57 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 2 - VIP Customer
+2026-06-02 12:04:57 | RESPONSE (200): [{"id":3,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
+2026-06-02 14:04:08 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 2 - VIP Customer
+2026-06-02 14:04:08 | RESPONSE (200): [{"id":3,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
+2026-06-02 14:05:12 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 2 - VIP Customer
+2026-06-02 14:05:12 | RESPONSE (200): [{"id":3,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
+2026-06-04 17:20:30 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 1 - VIP Customer
+2026-06-04 17:20:30 | RESPONSE (200): [{"id":2,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
+2026-06-04 18:08:24 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 4 - VIP Customer
+2026-06-04 18:08:24 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
+2026-06-04 18:09:21 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 4 - VIP Customer
+2026-06-04 18:09:21 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
+2026-06-04 18:27:57 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 4 - VIP Customer
+2026-06-04 18:27:57 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
+2026-06-04 18:28:34 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 4 - VIP Customer
+2026-06-04 18:28:34 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
+2026-06-04 18:29:51 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 4 - VIP Customer
+2026-06-04 18:29:51 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
+2026-06-05 08:42:22 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 4 - VIP Customer
+2026-06-05 08:42:22 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
+2026-06-05 08:44:26 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 4 - VIP Customer
+2026-06-05 08:44:26 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
+2026-06-05 10:26:23 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 4 - VIP Customer
+2026-06-05 10:26:23 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
+2026-06-05 10:32:45 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 4 - VIP Customer
+2026-06-05 10:32:45 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
+2026-06-05 15:27:36 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 4 - VIP Customer
+2026-06-05 15:27:36 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
+2026-06-05 15:49:07 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 4 - VIP Customer
+2026-06-05 15:49:07 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
+2026-06-06 10:55:53 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 4 - VIP Customer
+2026-06-06 10:55:53 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl

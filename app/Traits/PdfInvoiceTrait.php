@@ -105,8 +105,8 @@ trait PdfInvoiceTrait
                 $isBrokenDown = $sale->is_freight_broken_down;
 
                 // Calculate combined tax/diff percentage
-                $commPercent = $sale->applied_commission_percent ?? 0;
-                $diffPercent = $sale->applied_exchange_diff_percent ?? 0;
+                $commPercent = $sale->resolved_commission_percent;
+                $diffPercent = $sale->resolved_exchange_diff_percent;
                 $combinedPercent = ($commPercent + $diffPercent) / 100;
 
                 // Pre-calculate returned quantities
@@ -285,8 +285,8 @@ trait PdfInvoiceTrait
                 $totalBaseAccumulator = 0;
                 $isBrokenDown = $sale->is_freight_broken_down;
 
-                $commPercent = $sale->applied_commission_percent ?? 0;
-                $diffPercent = $sale->applied_exchange_diff_percent ?? 0;
+                $commPercent = $sale->resolved_commission_percent;
+                $diffPercent = $sale->resolved_exchange_diff_percent;
                 $combinedPercent = ($commPercent + $diffPercent) / 100;
 
                 $returnedQuantities = [];
@@ -428,8 +428,8 @@ trait PdfInvoiceTrait
                 $totalTax = 0;
                 $isBrokenDown = $sale->is_freight_broken_down;
 
-                $commPercent = $sale->applied_commission_percent ?? 0;
-                $diffPercent = $sale->applied_exchange_diff_percent ?? 0;
+                $commPercent = $sale->resolved_commission_percent;
+                $diffPercent = $sale->resolved_exchange_diff_percent;
                 $combinedPercent = ($commPercent + $diffPercent) / 100;
 
                 // Pre-calculate returned quantities
@@ -452,10 +452,16 @@ trait PdfInvoiceTrait
                         if ($effectiveQty > 0) {
                             $origLineTotal = $detail->quantity * $detail->sale_price;
                             $origCleanTotal = max(0, $origLineTotal - $lineFreight);
-                            $origBaseTotal = $origCleanTotal / (1 + $combinedPercent);
-                            $unitPrice = ($detail->quantity > 0) ? ($origBaseTotal / $detail->quantity) : 0;
-                            
-                            $taxAmountLine = ($unitPrice * $effectiveQty) * $combinedPercent;
+                            if ($sale->created_at >= '2026-06-03 00:00:00') {
+                                $origBaseTotal = ($origCleanTotal / (1 + $diffPercent / 100)) / (1 + $commPercent / 100);
+                                $unitPrice = ($detail->quantity > 0) ? ($origBaseTotal / $detail->quantity) : 0;
+                                $effectiveCleanTotalLine = ($detail->quantity > 0) ? (($origCleanTotal / $detail->quantity) * $effectiveQty) : 0;
+                                $taxAmountLine = $effectiveCleanTotalLine - ($unitPrice * $effectiveQty);
+                            } else {
+                                $origBaseTotal = $origCleanTotal / (1 + $combinedPercent);
+                                $unitPrice = ($detail->quantity > 0) ? ($origBaseTotal / $detail->quantity) : 0;
+                                $taxAmountLine = ($unitPrice * $effectiveQty) * $combinedPercent;
+                            }
 
                             $item = InvoiceItem::make($detail->product->name)
                                 ->reference($detail->product->sku ? $detail->product->sku : '')
@@ -593,8 +599,8 @@ trait PdfInvoiceTrait
                 $totalTax = 0;
                 $isBrokenDown = $sale->is_freight_broken_down;
 
-                $commPercent = $sale->applied_commission_percent ?? 0;
-                $diffPercent = $sale->applied_exchange_diff_percent ?? 0;
+                $commPercent = $sale->resolved_commission_percent;
+                $diffPercent = $sale->resolved_exchange_diff_percent;
                 $combinedPercent = ($commPercent + $diffPercent) / 100;
 
                 $returnedQuantities = [];
@@ -616,10 +622,16 @@ trait PdfInvoiceTrait
                         if ($effectiveQty > 0) {
                             $origLineTotal = $detail->quantity * $detail->sale_price;
                             $origCleanTotal = max(0, $origLineTotal - $lineFreight);
-                            $origBaseTotal = $origCleanTotal / (1 + $combinedPercent);
-                            $unitPrice = ($detail->quantity > 0) ? ($origBaseTotal / $detail->quantity) : 0;
-                            
-                            $taxAmountLine = ($unitPrice * $effectiveQty) * $combinedPercent;
+                            if ($sale->created_at >= '2026-06-03 00:00:00') {
+                                $origBaseTotal = ($origCleanTotal / (1 + $diffPercent / 100)) / (1 + $commPercent / 100);
+                                $unitPrice = ($detail->quantity > 0) ? ($origBaseTotal / $detail->quantity) : 0;
+                                $effectiveCleanTotalLine = ($detail->quantity > 0) ? (($origCleanTotal / $detail->quantity) * $effectiveQty) : 0;
+                                $taxAmountLine = $effectiveCleanTotalLine - ($unitPrice * $effectiveQty);
+                            } else {
+                                $origBaseTotal = $origCleanTotal / (1 + $combinedPercent);
+                                $unitPrice = ($detail->quantity > 0) ? ($origBaseTotal / $detail->quantity) : 0;
+                                $taxAmountLine = ($unitPrice * $effectiveQty) * $combinedPercent;
+                            }
 
                             $item = InvoiceItem::make($detail->product->name)
                                 ->reference($detail->product->sku ? $detail->product->sku : '')
@@ -858,6 +870,7 @@ trait PdfInvoiceTrait
 
 
 
+
     // Definir una función para cortar una cadena si es más larga que un límite y devolver un arreglo
     // function cortar($cadena, $limite)
     // {
@@ -937,9 +950,9 @@ trait PdfInvoiceTrait
             }
 
             // Calculate percentages
-            $commPercent = $sale->applied_commission_percent ?? 0;
-            $diffPercent = $sale->applied_exchange_diff_percent ?? 0;
-            $freightPercent = $sale->applied_freight_percent ?? 0;
+            $commPercent = $sale->resolved_commission_percent;
+            $diffPercent = $sale->resolved_exchange_diff_percent;
+            $freightPercent = $sale->resolved_freight_percent;
             
             $combinedPercent = ($commPercent + $diffPercent) / 100;
             
@@ -1019,7 +1032,11 @@ trait PdfInvoiceTrait
                     $itemTotalBase = $cleanTotal;
                 } else {
                     $cleanTotal = max(0, $finalImporte - $lineFreight);
-                    $itemTotalBase = $cleanTotal / (1 + $combinedPercent);
+                    if ($sale->created_at >= '2026-06-03 00:00:00') {
+                        $itemTotalBase = ($cleanTotal / (1 + $diffPercent / 100)) / (1 + $commPercent / 100);
+                    } else {
+                        $itemTotalBase = $cleanTotal / (1 + $combinedPercent);
+                    }
                 }
                 
                 // 2. Calculate Base Unit Price
@@ -1043,10 +1060,14 @@ trait PdfInvoiceTrait
 
             // Recalculate amounts based on Total Base
             $commAmount = $totalBase * ($commPercent / 100);
-            $diffAmount = $totalBase * ($diffPercent / 100);
-            
-            // Computed total = subtotal + all surcharges
-            $computedTotal = $totalBase + $commAmount + $diffAmount + $totalFreightAmount;
+            if ($sale->created_at >= '2026-06-03 00:00:00') {
+                $intermediateTotal = $totalBase + $commAmount + $totalFreightAmount;
+                $diffAmount = $intermediateTotal * ($diffPercent / 100);
+                $computedTotal = $intermediateTotal + $diffAmount;
+            } else {
+                $diffAmount = $totalBase * ($diffPercent / 100);
+                $computedTotal = $totalBase + $commAmount + $diffAmount + $totalFreightAmount;
+            }
             
             $data = [
                 'company' => $config,
@@ -1086,37 +1107,10 @@ trait PdfInvoiceTrait
         $seller = ($customer && $customer->seller) ? $customer->seller : $sale->user;
         $sellerConfig = $sale->sellerConfig ?? ($seller ? $seller->latestSellerConfig : null);
 
-        // Check if customer has at least one commercial parameter configured (> 0)
-        $customerHasConfig = $customerConfig && (
-            $customerConfig->commission_percent > 0 ||
-            $customerConfig->freight_percent > 0 ||
-            $customerConfig->exchange_diff_percent > 0
-        );
-
-        // Freight
-        if ($customerHasConfig) {
-            $freightPercent = floatval($customerConfig->freight_percent);
-        } else {
-            $freightPercent = $sellerConfig ? floatval($sellerConfig->freight_percent) : 0;
-        }
-
-        // Commission
-        if (isset($sale->applied_commission_percent)) {
-            $commPercent = floatval($sale->applied_commission_percent);
-        } elseif ($customerHasConfig) {
-            $commPercent = floatval($customerConfig->commission_percent);
-        } else {
-            $commPercent = $sellerConfig ? floatval($sellerConfig->commission_percent) : 0;
-        }
-
-        // Diff
-        if (isset($sale->applied_exchange_diff_percent)) {
-            $diffPercent = floatval($sale->applied_exchange_diff_percent);
-        } elseif ($customerHasConfig) {
-            $diffPercent = floatval($customerConfig->exchange_diff_percent);
-        } else {
-            $diffPercent = $sellerConfig ? floatval($sellerConfig->exchange_diff_percent) : 0;
-        }
+        // Resolved percentages
+        $freightPercent = $sale->resolved_freight_percent;
+        $commPercent = $sale->resolved_commission_percent;
+        $diffPercent = $sale->resolved_exchange_diff_percent;
 
         // USD Discount
         $creditConfig = CreditConfigService::getCreditConfig($customer, $seller);

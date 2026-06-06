@@ -36,14 +36,21 @@ class CommissionService
         $totalReturned = $sale->returns ? $sale->returns->sum('total_returned') : 0;
         $effectiveSaleTotal = max(0, $sale->total - $totalReturned);
 
-        // Calculate Base Amount (Reverse Surcharges from effective total)
-        $totalSurchargePercent = ($sale->applied_commission_percent ?? 0) + 
-                                 ($sale->applied_freight_percent ?? 0) + 
-                                 ($sale->applied_exchange_diff_percent ?? 0);
-        
+        // Calculate Base Amount (Reverse Surcharges from effective total using date cutoff)
         $baseAmount = $effectiveSaleTotal;
-        if ($totalSurchargePercent > 0) {
-            $baseAmount = $effectiveSaleTotal / (1 + ($totalSurchargePercent / 100));
+        $commPercent = $sale->resolved_commission_percent;
+        $freightPercent = $sale->resolved_freight_percent;
+        $diffPercent = $sale->resolved_exchange_diff_percent;
+
+        if ($sale->created_at < '2026-06-03 00:00:00') {
+            // Old additive formula
+            $totalSurchargePercent = $commPercent + $freightPercent + $diffPercent;
+            if ($totalSurchargePercent > 0) {
+                $baseAmount = $effectiveSaleTotal / (1 + ($totalSurchargePercent / 100));
+            }
+        } else {
+            // New sequential/compounded formula
+            $baseAmount = ($effectiveSaleTotal / (1 + ($diffPercent / 100))) / (1 + (($commPercent + $freightPercent) / 100));
         }
 
         // Determine the achieved tier percentage based on days elapsed
@@ -73,7 +80,7 @@ class CommissionService
         }
 
         // Apply ratio to the sale's actual markup commission
-        $saleMarkup = $sale->applied_commission_percent ?? 0;
+        $saleMarkup = $sale->resolved_commission_percent;
         $finalPercentage = $saleMarkup * $ratio;
 
         // Calculate Commission Amount based on the scaled percentage

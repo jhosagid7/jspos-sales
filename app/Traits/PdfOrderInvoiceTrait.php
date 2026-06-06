@@ -463,37 +463,10 @@ trait PdfOrderInvoiceTrait
         $seller = ($customer && $customer->seller) ? $customer->seller : $order->user;
         $sellerConfig = $seller ? $seller->latestSellerConfig : null;
 
-        // Check if customer has at least one commercial parameter configured (> 0)
-        $customerHasConfig = $customerConfig && (
-            $customerConfig->commission_percent > 0 ||
-            $customerConfig->freight_percent > 0 ||
-            $customerConfig->exchange_diff_percent > 0
-        );
-
-        // Freight
-        if ($customerHasConfig) {
-            $freightPercent = floatval($customerConfig->freight_percent);
-        } else {
-            $freightPercent = $sellerConfig ? floatval($sellerConfig->freight_percent) : 0;
-        }
-
-        // Commission
-        if (isset($order->applied_commission_percent)) {
-            $commPercent = floatval($order->applied_commission_percent);
-        } elseif ($customerHasConfig) {
-            $commPercent = floatval($customerConfig->commission_percent);
-        } else {
-            $commPercent = $sellerConfig ? floatval($sellerConfig->commission_percent) : 0;
-        }
-
-        // Diff
-        if (isset($order->applied_exchange_diff_percent)) {
-            $diffPercent = floatval($order->applied_exchange_diff_percent);
-        } elseif ($customerHasConfig) {
-            $diffPercent = floatval($customerConfig->exchange_diff_percent);
-        } else {
-            $diffPercent = $sellerConfig ? floatval($sellerConfig->exchange_diff_percent) : 0;
-        }
+        // Resolved percentages
+        $freightPercent = $order->resolved_freight_percent;
+        $commPercent = $order->resolved_commission_percent;
+        $diffPercent = $order->resolved_exchange_diff_percent;
 
         // USD Discount
         $creditConfig = CreditConfigService::getCreditConfig($customer, $seller);

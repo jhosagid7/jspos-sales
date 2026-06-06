@@ -281,4 +281,70 @@ class Sale extends Model
             }
         }
     }
+
+    public function getResolvedCommissionPercentAttribute()
+    {
+        if (isset($this->attributes['applied_commission_percent'])) {
+            return floatval($this->attributes['applied_commission_percent']);
+        }
+        $customer = $this->customer;
+        $customerConfig = $customer ? $customer->latestCustomerConfig : null;
+        $seller = ($customer && $customer->seller) ? $customer->seller : $this->user;
+        $sellerConfig = $this->sellerConfig ?? ($seller ? $seller->latestSellerConfig : null);
+        
+        $customerHasConfig = $customerConfig && (
+            $customerConfig->commission_percent > 0 ||
+            $customerConfig->freight_percent > 0 ||
+            $customerConfig->exchange_diff_percent > 0
+        );
+        
+        if ($customerHasConfig) {
+            return floatval($customerConfig->commission_percent);
+        }
+        return $sellerConfig ? floatval($sellerConfig->commission_percent) : 0;
+    }
+
+    public function getResolvedFreightPercentAttribute()
+    {
+        if (isset($this->attributes['applied_freight_percent'])) {
+            return floatval($this->attributes['applied_freight_percent']);
+        }
+        $customer = $this->customer;
+        $customerConfig = $customer ? $customer->latestCustomerConfig : null;
+        $seller = ($customer && $customer->seller) ? $customer->seller : $this->user;
+        $sellerConfig = $this->sellerConfig ?? ($seller ? $seller->latestSellerConfig : null);
+        
+        $customerHasConfig = $customerConfig && (
+            $customerConfig->commission_percent > 0 ||
+            $customerConfig->freight_percent > 0 ||
+            $customerConfig->exchange_diff_percent > 0
+        );
+        
+        if ($customerHasConfig) {
+            return floatval($customerConfig->freight_percent);
+        }
+        return $sellerConfig ? floatval($sellerConfig->freight_percent) : 0;
+    }
+
+    public function getResolvedExchangeDiffPercentAttribute()
+    {
+        if (isset($this->attributes['applied_exchange_diff_percent'])) {
+            return floatval($this->attributes['applied_exchange_diff_percent']);
+        }
+        $customer = $this->customer;
+        $customerConfig = $customer ? $customer->latestCustomerConfig : null;
+        $seller = ($customer && $customer->seller) ? $customer->seller : $this->user;
+        $sellerConfig = $this->sellerConfig ?? ($seller ? $seller->latestSellerConfig : null);
+        
+        $customerHasConfig = $customerConfig && (
+            $customerConfig->commission_percent > 0 ||
+            $customerConfig->freight_percent > 0 ||
+            $customerConfig->exchange_diff_percent > 0
+        );
+        
+        if ($customerHasConfig) {
+            return floatval($customerConfig->exchange_diff_percent);
+        }
+        return $sellerConfig ? floatval($sellerConfig->exchange_diff_percent) : 0;
+    }
 }

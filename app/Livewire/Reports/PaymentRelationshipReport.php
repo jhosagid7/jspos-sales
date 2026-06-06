@@ -577,13 +577,17 @@ class PaymentRelationshipReport extends Component
                 }
 
                 // Calculate Base Amount for Display
-                $totalSurchargePercent = ($sale->applied_commission_percent ?? 0) + 
-                                         ($sale->applied_freight_percent ?? 0) + 
-                                         ($sale->applied_exchange_diff_percent ?? 0);
-                
-                $baseAmount = $sale->total;
-                if ($totalSurchargePercent > 0) {
-                    $baseAmount = $sale->total / (1 + ($totalSurchargePercent / 100));
+                $commPercent = $sale->resolved_commission_percent;
+                $freightPercent = $sale->resolved_freight_percent;
+                $diffPercent = $sale->resolved_exchange_diff_percent;
+                if ($sale->created_at >= '2026-06-03 00:00:00') {
+                    $baseAmount = ($sale->total / (1 + $diffPercent / 100)) / (1 + ($commPercent + $freightPercent) / 100);
+                } else {
+                    $totalSurchargePercent = $commPercent + $freightPercent + $diffPercent;
+                    $baseAmount = $sale->total;
+                    if ($totalSurchargePercent > 0) {
+                        $baseAmount = $sale->total / (1 + ($totalSurchargePercent / 100));
+                    }
                 }
 
                 $commissions[] = [

@@ -44,7 +44,7 @@ class CommissionReport extends Component
                 $daysToPay = $sale->created_at->diffInDays($lastPaymentDate);
 
                 // Commission Logic
-                $commissionPercent = $sale->applied_commission_percent ?? 0;
+                $commissionPercent = $sale->resolved_commission_percent;
                 $penalty = 0;
                 $finalCommissionPercent = $commissionPercent;
 
@@ -64,9 +64,15 @@ class CommissionReport extends Component
                 // Formula: Final = Base + (Base*C) + (Base*F) + (Base*D)
                 // Final = Base * (1 + C + F + D)
                 // Base = Final / (1 + C + F + D)
-                
-                $totalSurchargeFactor = 1 + (($sale->applied_commission_percent + $sale->applied_freight_percent + $sale->applied_exchange_diff_percent) / 100);
-                $baseAmount = $sale->total / $totalSurchargeFactor;
+                $commPercent = $sale->resolved_commission_percent;
+                $freightPercent = $sale->resolved_freight_percent;
+                $diffPercent = $sale->resolved_exchange_diff_percent;
+                if ($sale->created_at >= '2026-06-03 00:00:00') {
+                    $baseAmount = ($sale->total / (1 + $diffPercent / 100)) / (1 + ($commPercent + $freightPercent) / 100);
+                } else {
+                    $totalSurchargeFactor = 1 + (($commPercent + $freightPercent + $diffPercent) / 100);
+                    $baseAmount = $sale->total / $totalSurchargeFactor;
+                }
                 
                 $commissionAmount = ($baseAmount * $finalCommissionPercent) / 100;
 
