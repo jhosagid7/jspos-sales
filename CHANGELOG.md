@@ -1,3 +1,8 @@
+## [1.10.128] - 2026-06-08
+### Fixed
+- **Representación de Base en USD**: Se corrigió el cálculo de la base y recargos físicos (`base_amount`, etc.) para ventas en monedas secundarias (VED y COP). Anteriormente, la migración acumulaba el total usando `regular_price` (que está en moneda local), guardando la base en bolívares/pesos en vez de dólares. Se actualizó la migración original para usar `price_usd * quantity` y se programó una nueva migración correctora (`fix_surcharges_currency_mismatch_in_sales`) que convierte en lotes (`chunkById`) todos los montos de recargos históricos erróneos dividiéndolos por la tasa de cambio de la venta.
+- Se agregó una salvaguarda visual en el Reporte de Ventas General para autoconvertir la visualización a dólares si el valor de base física es mayor al total en dólares (debido a que se guardó en moneda local).
+
 ## [1.10.127] - 2026-06-08
 ### Changed
 - **Exclusión de Reporte de Ventas Diarias**: Se revirtieron los cambios en la tabla del Reporte de Ventas Diarias para mantener su diseño original de desglose de pagos por moneda, limitando las columnas de desglose de recargos físicos (`Base`, `%`, `Comisión`, `Flete`, `Dif.`, `Total`, `Crédito`) exclusivamente al **Reporte de Ventas General**.

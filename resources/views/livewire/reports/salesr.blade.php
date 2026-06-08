@@ -241,6 +241,14 @@
                                         $commAmt = $sale->commission_amount > 0 ? floatval($sale->commission_amount) : ($base * $commPercent / 100);
                                         $freightAmt = $sale->freight_amount > 0 ? floatval($sale->freight_amount) : ($base * $freightPercent / 100);
                                         $diffAmt = $sale->exchange_diff_amount > 0 ? floatval($sale->exchange_diff_amount) : ($base * $diffPercent / 100);
+
+                                        // Guard to fix display if base is stored in local currency (e.g. VED/COP) instead of USD
+                                        if ($base > ($sale->total_usd * 1.5) && $sale->primary_exchange_rate > 1) {
+                                            $base = $base / $sale->primary_exchange_rate;
+                                            $commAmt = $commAmt / $sale->primary_exchange_rate;
+                                            $freightAmt = $freightAmt / $sale->primary_exchange_rate;
+                                            $diffAmt = $diffAmt / $sale->primary_exchange_rate;
+                                        }
                                     @endphp
                                     <tr class="text-center {{ $sale->deletion_requested_at ? 'table-warning' : '' }}">
                                         <td>

@@ -58,10 +58,10 @@ return new class extends Migration
         // 4. Backfill historical Sales data in chunks
         DB::table('sales')->orderBy('id')->chunk(100, function ($sales) {
             foreach ($sales as $sale) {
-                // Calculate base_amount from sale_details
+                // Calculate base_amount from sale_details in USD
                 $baseAmount = DB::table('sale_details')
                     ->where('sale_id', $sale->id)
-                    ->sum(DB::raw('regular_price * quantity'));
+                    ->sum(DB::raw('price_usd * quantity'));
                 
                 if ($baseAmount == 0 && $sale->total_usd > 0) {
                     // Fallback to reverse calculation if details have no regular_price or are missing
