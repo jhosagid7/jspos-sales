@@ -25,4 +25,9 @@ class ConfigurationService
     {
         return self::getConfig()?->vat ?? 0;
     }
+
+    public static function getSequentialCutOffDate()
+    {
+        return self::getConfig()?->sequential_cut_off_date ?? '2026-06-03 00:00:00';
+    }
 }

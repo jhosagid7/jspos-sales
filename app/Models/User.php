@@ -50,6 +50,7 @@ class User extends Authenticatable
         'order_deadline_at',
         'is_deadline_active',
         'monthly_goal',
+        'route_goal',
     ];
 
     public function warehouse()

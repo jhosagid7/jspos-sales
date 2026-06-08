@@ -149,6 +149,11 @@ class Sales extends Component
     public $moduleAdvancedPayments = false;
 
     public $ordersTotal = 0; // Total sum of filtered orders
+    public $searchDriver = '';
+    public $ordersCommissionTotal = 0;
+    public $ordersFreightTotal = 0;
+    public $ordersDiffTotal = 0;
+    public $ordersGrandTotal = 0;
 
     public $editing_sale_id = null;
     public $original_sale_data = null;
@@ -1449,6 +1454,7 @@ class Sales extends Component
 
         $this->setCustomer($customer);
         $this->order_id = $orderId;
+        $this->driver_id = $order->driver_id;
         
         // Restore configuration from order
         $this->applyCommissions = (bool) $order->apply_commissions;
@@ -1662,7 +1668,7 @@ class Sales extends Component
 
     public function getOrdersWithDetails()
     {
-        $query = Order::with(['customer.seller', 'user'])
+        $query = Order::with(['customer.seller', 'user', 'driver'])
             ->where('status', 'pending')
             ->when(!auth()->user()->can('orders.view_all') && auth()->user()->can('orders.view_own'), function($q) {
                 $q->where('user_id', auth()->id());
@@ -1673,6 +1679,13 @@ class Sales extends Component
                         $c->where('seller_id', $this->searchSeller);
                     })->orWhere('user_id', $this->searchSeller);
                 });
+            })
+            ->when($this->searchDriver, function($q) {
+                if ($this->searchDriver === 'none') {
+                    $q->whereNull('driver_id');
+                } else {
+                    $q->where('driver_id', $this->searchDriver);
+                }
             });
 
         $search = strtolower(trim($this->searchOrder));
@@ -1703,9 +1716,12 @@ class Sales extends Component
             });
         }
 
-        // Calculate base total (without freight/commissions)
-        $this->ordersTotal = \App\Models\OrderDetail::whereIn('order_id', $query->clone()->pluck('id'))
-            ->sum(DB::raw('sale_price * quantity'));
+        // Calculate physical sum totals directly in SQL
+        $this->ordersTotal = (float) $query->clone()->sum('base_amount');
+        $this->ordersCommissionTotal = (float) $query->clone()->sum('commission_amount');
+        $this->ordersFreightTotal = (float) $query->clone()->sum('freight_amount');
+        $this->ordersDiffTotal = (float) $query->clone()->sum('exchange_diff_amount');
+        $this->ordersGrandTotal = (float) $query->clone()->sum('total');
 
         return $query->orderBy('id', 'desc')
             ->paginate($this->pagination);
@@ -3693,6 +3709,23 @@ class Sales extends Component
             }
             // ---------------------------------------------
 
+            // Calculate base_amount from cart details
+            $cart = collect(session("cart"));
+            $baseAmountCart = $cart->sum(function($item) {
+                $price = $item['base_price'] ?? $item['price1'] ?? 0;
+                return floatval($price) * floatval($item['qty']);
+            });
+
+            // Convert baseAmountCart to USD first (total_usd is in USD)
+            $baseAmountUSD = $baseAmountCart;
+            if ($primaryCurrency && $primaryCurrency->exchange_rate != 0) {
+                $baseAmountUSD = $baseAmountCart / $primaryCurrency->exchange_rate;
+            }
+
+            $commAmtUSD = $baseAmountUSD * ($appliedComm / 100);
+            $freightAmtUSD = $baseAmountUSD * ($appliedFreight / 100);
+            $diffAmtUSD = $baseAmountUSD * ($appliedDiff / 100);
+
             $saleData = [
                 'seller_config_id' => $sellerConfigId,
                 'total' => $totalInInvoiceCurrency,
@@ -3716,6 +3749,10 @@ class Sales extends Component
                 'applied_commission_percent' => $appliedComm,
                 'applied_freight_percent' => $appliedFreight,
                 'applied_exchange_diff_percent' => $appliedDiff,
+                'base_amount' => round($baseAmountUSD, 4),
+                'commission_amount' => round($commAmtUSD, 4),
+                'freight_amount' => round($freightAmtUSD, 4),
+                'exchange_diff_amount' => round($diffAmtUSD, 4),
                 'is_foreign_sale' => $this->sellerConfig ? true : false,
                 'credit_days' => $this->creditConfig['credit_days'] ?? $this->calculateCreditDays(),
                 'delivery_status' => $this->driver_id ? 'pending' : 'delivered',
@@ -4194,6 +4231,36 @@ class Sales extends Component
 
             $decimals = ConfigurationService::getDecimalPlaces();
 
+            $cart = collect(session("cart"));
+            $baseAmountCart = $cart->sum(function($item) {
+                $price = $item['base_price'] ?? $item['price1'] ?? 0;
+                return floatval($price) * floatval($item['qty']);
+            });
+
+            $appliedComm = 0;
+            $appliedFreight = 0;
+            $appliedDiff = 0;
+
+            if ($this->applyCommissions) {
+                $appliedComm = ($this->customerConfig && $this->customerConfig->commission_percent > 0)
+                    ? $this->customerConfig->commission_percent
+                    : ($this->sellerConfig ? $this->sellerConfig->commission_percent : 0);
+
+                $appliedDiff = ($this->customerConfig && $this->customerConfig->exchange_diff_percent > 0)
+                    ? $this->customerConfig->exchange_diff_percent
+                    : ($this->sellerConfig ? $this->sellerConfig->exchange_diff_percent : 0);
+            }
+
+            if ($this->applyFreight) {
+                $appliedFreight = ($this->customerConfig && $this->customerConfig->freight_percent > 0)
+                    ? $this->customerConfig->freight_percent
+                    : ($this->sellerConfig ? $this->sellerConfig->freight_percent : 0);
+            }
+
+            $commAmt = $baseAmountCart * ($appliedComm / 100);
+            $freightAmt = $baseAmountCart * ($appliedFreight / 100);
+            $diffAmt = $baseAmountCart * ($appliedDiff / 100);
+
             if ($this->order_id) {
                 // Actualiza la orden existente
                 $order = Order::find($this->order_id);
@@ -4209,7 +4276,12 @@ class Sales extends Component
                         'apply_commissions' => $this->applyCommissions,
                         'apply_freight' => $this->applyFreight,
                         'is_freight_broken_down' => $this->is_freight_broken_down,
-                        'invoice_currency_id' => $this->invoiceCurrency_id
+                        'invoice_currency_id' => $this->invoiceCurrency_id,
+                        'driver_id' => $this->driver_id ?: null,
+                        'base_amount' => round($baseAmountCart, 4),
+                        'commission_amount' => round($commAmt, 4),
+                        'freight_amount' => round($freightAmt, 4),
+                        'exchange_diff_amount' => round($diffAmt, 4),
                     ];
                     
                     // Only set user_id if it's missing (unlikely for update) or if we explicitly want to change it (we don't)
@@ -4311,7 +4383,12 @@ class Sales extends Component
                     'apply_commissions' => $this->applyCommissions,
                     'apply_freight' => $this->applyFreight,
                     'is_freight_broken_down' => $this->is_freight_broken_down,
-                    'invoice_currency_id' => $this->invoiceCurrency_id
+                    'invoice_currency_id' => $this->invoiceCurrency_id,
+                    'driver_id' => $this->driver_id ?: null,
+                    'base_amount' => round($baseAmountCart, 4),
+                    'commission_amount' => round($commAmt, 4),
+                    'freight_amount' => round($freightAmt, 4),
+                    'exchange_diff_amount' => round($diffAmt, 4),
                 ]);
 
                 // Obtiene el carrito de la sesión

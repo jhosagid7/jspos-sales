@@ -68,6 +68,7 @@ class Configuration extends Model
         'soplados_warehouse_id',
         'bolsas_warehouse_id',
         'production_materials_warehouse_id',
+        'sequential_cut_off_date',
     ];
 
     protected $casts = [

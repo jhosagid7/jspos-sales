@@ -60,6 +60,10 @@ class Sale extends Model
         'seller_tier_1_percent',
         'seller_tier_2_days',
         'seller_tier_2_percent',
+        'base_amount',
+        'commission_amount',
+        'freight_amount',
+        'exchange_diff_amount',
         'created_at',
         'updated_at'
     ];
@@ -73,6 +77,10 @@ class Sale extends Model
         'credit_rules_snapshot' => 'array',
         'deletion_requested_at' => 'datetime',
         'deletion_approved_at' => 'datetime',
+        'base_amount' => 'decimal:4',
+        'commission_amount' => 'decimal:4',
+        'freight_amount' => 'decimal:4',
+        'exchange_diff_amount' => 'decimal:4',
     ];
 
     function details()

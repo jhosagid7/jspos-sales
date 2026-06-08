@@ -570,7 +570,7 @@ class ReportController extends Controller
             $diffPercent = $sale->resolved_exchange_diff_percent;
             $incPercent = $commPercent + $freightPercent + $diffPercent;
             
-            if ($sale->created_at >= '2026-06-03 00:00:00') {
+            if ($sale->created_at >= \App\Services\ConfigurationService::getSequentialCutOffDate()) {
                 $baseAmount = ($totalFac / (1 + $diffPercent / 100)) / (1 + ($commPercent + $freightPercent) / 100);
                 $commAmt = $baseAmount * ($commPercent / 100);
                 $freightAmt = $baseAmount * ($freightPercent / 100);

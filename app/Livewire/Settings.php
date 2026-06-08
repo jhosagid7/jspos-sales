@@ -15,6 +15,7 @@ class Settings extends Component
     public $globalCommission1Threshold, $globalCommission1Percentage, $globalCommission2Threshold, $globalCommission2Percentage;
     public $globalAllowCredit, $globalCreditDays, $globalCreditLimit, $globalUsdPaymentDiscount, $globalUsdPaymentDiscountTag;
     public $enableSharedCashRegister; // Nuevo: Caja Compartida
+    public $sequentialCutOffDate;
     public $catalogueShowPrices, $catalogueShowBasePrices;
     public $discountRules = [];
 
@@ -81,6 +82,7 @@ class Settings extends Component
             $this->taxpayerId = $config->taxpayer_id;
             $this->vat = $config->vat;
             $this->decimals = $config->decimals;
+            $this->sequentialCutOffDate = $config->sequential_cut_off_date ? \Carbon\Carbon::parse($config->sequential_cut_off_date)->format('Y-m-d\TH:i') : null;
             $this->printerName = $config->printer_name;
             $this->leyend = $config->leyend;
             $this->website = $config->website;
@@ -179,6 +181,13 @@ class Settings extends Component
         }
         if (!is_numeric($this->decimals)) {
             $this->addError('decimals', 'Ingresa el Decimales en números!');
+        }
+        if (!empty($this->sequentialCutOffDate)) {
+            try {
+                \Carbon\Carbon::parse($this->sequentialCutOffDate);
+            } catch (\Exception $e) {
+                $this->addError('sequentialCutOffDate', 'Ingresa una fecha de corte válida!');
+            }
         }
         
         // Printer Validation logic
@@ -295,6 +304,7 @@ class Settings extends Component
                 'enable_shared_cash_register' => $this->enableSharedCashRegister ? 1 : 0,
                 'catalogue_show_prices' => $this->catalogueShowPrices ? 1 : 0,
                 'catalogue_show_base_prices' => $this->catalogueShowBasePrices ? 1 : 0,
+                'sequential_cut_off_date' => $this->sequentialCutOffDate ? \Carbon\Carbon::parse($this->sequentialCutOffDate)->format('Y-m-d H:i:s') : null,
             ];
 
             // Handle Logo Upload

@@ -452,7 +452,7 @@ trait PdfInvoiceTrait
                         if ($effectiveQty > 0) {
                             $origLineTotal = $detail->quantity * $detail->sale_price;
                             $origCleanTotal = max(0, $origLineTotal - $lineFreight);
-                            if ($sale->created_at >= '2026-06-03 00:00:00') {
+                            if ($sale->created_at >= \App\Services\ConfigurationService::getSequentialCutOffDate()) {
                                 $origBaseTotal = ($origCleanTotal / (1 + $diffPercent / 100)) / (1 + $commPercent / 100);
                                 $unitPrice = ($detail->quantity > 0) ? ($origBaseTotal / $detail->quantity) : 0;
                                 $effectiveCleanTotalLine = ($detail->quantity > 0) ? (($origCleanTotal / $detail->quantity) * $effectiveQty) : 0;
@@ -622,7 +622,7 @@ trait PdfInvoiceTrait
                         if ($effectiveQty > 0) {
                             $origLineTotal = $detail->quantity * $detail->sale_price;
                             $origCleanTotal = max(0, $origLineTotal - $lineFreight);
-                            if ($sale->created_at >= '2026-06-03 00:00:00') {
+                            if ($sale->created_at >= \App\Services\ConfigurationService::getSequentialCutOffDate()) {
                                 $origBaseTotal = ($origCleanTotal / (1 + $diffPercent / 100)) / (1 + $commPercent / 100);
                                 $unitPrice = ($detail->quantity > 0) ? ($origBaseTotal / $detail->quantity) : 0;
                                 $effectiveCleanTotalLine = ($detail->quantity > 0) ? (($origCleanTotal / $detail->quantity) * $effectiveQty) : 0;
@@ -1032,7 +1032,7 @@ trait PdfInvoiceTrait
                     $itemTotalBase = $cleanTotal;
                 } else {
                     $cleanTotal = max(0, $finalImporte - $lineFreight);
-                    if ($sale->created_at >= '2026-06-03 00:00:00') {
+                    if ($sale->created_at >= \App\Services\ConfigurationService::getSequentialCutOffDate()) {
                         $itemTotalBase = ($cleanTotal / (1 + $diffPercent / 100)) / (1 + $commPercent / 100);
                     } else {
                         $itemTotalBase = $cleanTotal / (1 + $combinedPercent);
@@ -1060,7 +1060,7 @@ trait PdfInvoiceTrait
 
             // Recalculate amounts based on Total Base
             $commAmount = $totalBase * ($commPercent / 100);
-            if ($sale->created_at >= '2026-06-03 00:00:00') {
+            if ($sale->created_at >= \App\Services\ConfigurationService::getSequentialCutOffDate()) {
                 $intermediateTotal = $totalBase + $commAmount + $totalFreightAmount;
                 $diffAmount = $intermediateTotal * ($diffPercent / 100);
                 $computedTotal = $intermediateTotal + $diffAmount;

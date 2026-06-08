@@ -1,3 +1,14 @@
+## [1.10.124] - 2026-06-08
+### Added
+- **Campos Físicos de Desglose de Recargos en Ventas y Pedidos**: Se agregaron las columnas `base_amount`, `commission_amount`, `freight_amount` y `exchange_diff_amount` a las tablas `sales` y `orders` para almacenar de forma exacta y en caliente los desgloses en USD. Esto soluciona problemas de redondeo por cálculo inverso y optimiza drásticamente el rendimiento permitiendo realizar sumatorias directas en SQL.
+- **Meta de Ruta para Choferes y Panel de Órdenes**: Se agregó la columna `route_goal` en usuarios y se expuso en la interfaz administrativa para roles tipo Chofer. En el panel de órdenes se incluyó un filtro por chofer, una barra de progreso visual de cumplimiento de meta y una tarjeta de totales generales desglosados en una grilla de alta calidad.
+- **Fecha de Corte Dinámica para Cálculo de Recargos**: Se agregó el campo `sequential_cut_off_date` en la tabla `configurations` y se expuso un selector `datetime-local` en la pestaña General de Configuración del Sistema. Esto permite definir dinámicamente desde cuándo entra en vigencia la fórmula de recargos secuencial por cliente, manteniendo coherencia retroactiva con el historial anterior (fórmula aditiva).
+- **Lógica de Migración y Backfill Automático**: Se programó en la migración de base de datos un script chunked (en lotes de 100 registros) que calcula y rellena retroactivamente las nuevas columnas físicas de base y recargos para todas las órdenes y ventas históricas preexistentes en la base de datos sin requerir intervención del usuario.
+- **Suite de Pruebas**: Se incorporaron pruebas unitarias y de feature automatizadas (`tests/Feature/OrderRouteGoalTest.php` y `tests/Feature/SequentialCutOffSettingTest.php`) para validar el guardado de metas, sumatorias en Livewire, persistencia de desgloses y transiciones dinámicas de fecha.
+
+### Changed
+- **Formatos de Impresión Ticket y PDF**: Se reemplazaron todas las comparaciones de fecha de corte fijas de `'2026-06-03 00:00:00'` por la fecha dinámica de la configuración.
+
 ## [1.10.122] - 2026-06-08
 ### Added
 - **Compartido de Portafolios de Clientes (Vendedores Foráneos)**: Se implementó un sistema de asignación de carteras de clientes compartidas entre vendedores. A través de la nueva pestaña **Cartera Compartida** en la edición de usuarios (Panel Web), los administradores pueden asociar carteras de otros vendedores a un vendedor. El sistema filtra de manera dinámica en la API (`/api/customers`, `/api/sales/pending`, `/api/seller/dashboard`) y en la Web (clientes, autocompletado y estados de cuenta) utilizando los IDs compartidos, asegurando que ambos vendedores tengan visibilidad y puedan registrar pedidos/pagos de manera unificada y transparente sin necesidad de actualizar la APK.

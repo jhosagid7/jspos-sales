@@ -42,7 +42,7 @@ class CommissionService
         $freightPercent = $sale->resolved_freight_percent;
         $diffPercent = $sale->resolved_exchange_diff_percent;
 
-        if ($sale->created_at < '2026-06-03 00:00:00') {
+        if ($sale->created_at < \App\Services\ConfigurationService::getSequentialCutOffDate()) {
             // Old additive formula
             $totalSurchargePercent = $commPercent + $freightPercent + $diffPercent;
             if ($totalSurchargePercent > 0) {

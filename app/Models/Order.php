@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Order extends Model
 {
     use HasFactory;
-    protected $fillable = ['total', 'discount', 'items', 'customer_id', 'user_id', 'status', 'notes', 'order_number', 'apply_commissions', 'apply_freight', 'is_freight_broken_down', 'invoice_currency_id'];
+    protected $fillable = ['total', 'discount', 'items', 'customer_id', 'user_id', 'status', 'notes', 'order_number', 'apply_commissions', 'apply_freight', 'is_freight_broken_down', 'invoice_currency_id', 'driver_id', 'base_amount', 'commission_amount', 'freight_amount', 'exchange_diff_amount'];
     public function details()
     {
         return $this->hasMany(OrderDetail::class);
@@ -20,6 +20,48 @@ class Order extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+    public function driver()
+    {
+        return $this->belongsTo(User::class, 'driver_id');
+    }
+
+    public function getBaseAmountAttribute($value)
+    {
+        if ($value !== null) {
+            return floatval($value);
+        }
+        $increments = ($this->resolved_commission_percent + $this->resolved_freight_percent + $this->resolved_exchange_diff_percent) / 100;
+        return $this->total / (1 + $increments);
+    }
+
+    public function getCommissionAmountAttribute($value)
+    {
+        if ($value !== null) {
+            return floatval($value);
+        }
+        return $this->base_amount * ($this->resolved_commission_percent / 100);
+    }
+
+    public function getFreightAmountAttribute($value)
+    {
+        if ($value !== null) {
+            return floatval($value);
+        }
+        return $this->base_amount * ($this->resolved_freight_percent / 100);
+    }
+
+    public function getExchangeDiffAmountAttribute($value)
+    {
+        if ($value !== null) {
+            return floatval($value);
+        }
+        return $this->base_amount * ($this->resolved_exchange_diff_percent / 100);
+    }
+
+    public function getSurchargePercentageAttribute()
+    {
+        return $this->resolved_commission_percent + $this->resolved_freight_percent + $this->resolved_exchange_diff_percent;
     }
 
     public function getResolvedCommissionPercentAttribute()

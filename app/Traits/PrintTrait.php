@@ -1001,7 +1001,7 @@ trait PrintTrait
                      
                      // Reverse Calculation
                      $cleanTotal = max(0, $finalImporte - $itemFreight);
-                     if ($sale->created_at >= '2026-06-03 00:00:00') {
+                     if ($sale->created_at >= \App\Services\ConfigurationService::getSequentialCutOffDate()) {
                          $itemTotalBase = ($cleanTotal / (1 + $diffPercent / 100)) / (1 + $commPercent / 100);
                      } else {
                          $itemTotalBase = $cleanTotal / (1 + $combinedPercent);
@@ -1062,7 +1062,7 @@ trait PrintTrait
                 }
 
                 if ($diffPercent > 0) {
-                      if ($sale->created_at >= '2026-06-03 00:00:00') {
+                      if ($sale->created_at >= \App\Services\ConfigurationService::getSequentialCutOffDate()) {
                            $intermediateTotal = $totalBase + ($totalBase * $commPercent / 100) + $configFreightTotal + $productFreightTotal;
                            $amt = $intermediateTotal * ($diffPercent / 100);
                       } else {

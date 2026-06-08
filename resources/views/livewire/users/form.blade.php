@@ -197,6 +197,14 @@
                                     </select>
                                     @error('user.sales_view_mode') <span class="text-danger">{{ $message }}</span> @enderror
                                 </div>
+                                @if($this->isDriver($user->profile))
+                                <div class="col-sm-12 mt-3">
+                                    <label class="form-label text-primary"><strong>Meta de Ruta (USD)</strong> <i class="fa fa-bullseye"></i></label>
+                                    <input wire:model="user.route_goal" class="form-control font-weight-bold" type="number" step="0.01" min="0" placeholder="Meta de la ruta en USD">
+                                    <small class="text-muted">Monto base acumulado mínimo requerido para despachar la ruta</small>
+                                    @error('user.route_goal') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+                                @endif
                                 @if($this->isSeller($user->profile))
                                 <div class="col-sm-12 mt-3">
                                     <label class="form-label">

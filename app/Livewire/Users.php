@@ -66,6 +66,7 @@ class Users extends Component
         'user.order_deadline_at' => 'nullable',
         'user.is_deadline_active' => 'boolean',
         'user.monthly_goal' => 'nullable|numeric|min:0',
+        'user.route_goal' => 'nullable|numeric|min:0',
         'user.warehouse_id' => 'nullable|exists:warehouses,id',
     ];
 
@@ -334,6 +335,7 @@ class Users extends Component
             if($this->user->sales_view_mode == null) $this->user->sales_view_mode = 'grid';
             if($this->user->is_deadline_active == null) $this->user->is_deadline_active = 0;
             if($this->user->monthly_goal == null) $this->user->monthly_goal = 0;
+            if($this->user->route_goal == null) $this->user->route_goal = 0;
             
             \Illuminate\Support\Facades\Log::info('Store: Saving User...');
             $this->user->save();
@@ -519,6 +521,12 @@ class Users extends Component
             return $role->hasPermissionTo('system.is_seller') || $role->hasPermissionTo('system.is_foreign_seller');
         }
         return false;
+    }
+
+    public function isDriver($roleName)
+    {
+        if(!$roleName) return false;
+        return in_array(strtolower($roleName), ['driver', 'chofer', 'repartidor']);
     }
 
     #[On('destroyUser')]

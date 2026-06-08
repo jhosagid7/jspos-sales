@@ -580,7 +580,7 @@ class PaymentRelationshipReport extends Component
                 $commPercent = $sale->resolved_commission_percent;
                 $freightPercent = $sale->resolved_freight_percent;
                 $diffPercent = $sale->resolved_exchange_diff_percent;
-                if ($sale->created_at >= '2026-06-03 00:00:00') {
+                if ($sale->created_at >= \App\Services\ConfigurationService::getSequentialCutOffDate()) {
                     $baseAmount = ($sale->total / (1 + $diffPercent / 100)) / (1 + ($commPercent + $freightPercent) / 100);
                 } else {
                     $totalSurchargePercent = $commPercent + $freightPercent + $diffPercent;

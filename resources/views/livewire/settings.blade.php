@@ -183,10 +183,16 @@
                                     </div>
 
                                     <div class="col-sm-12 col-md-3">
-                                        <label class="form-label">N° de Decimales <span class="txt-danger">*</span></label>
-                                        <input wire:model="decimals" type="text" class="form-control">
-                                        @error('decimals') <span class="text-danger">{{ $message }}</span> @enderror
-                                    </div>
+                                         <label class="form-label">N° de Decimales <span class="txt-danger">*</span></label>
+                                         <input wire:model="decimals" type="text" class="form-control">
+                                         @error('decimals') <span class="text-danger">{{ $message }}</span> @enderror
+                                     </div>
+
+                                     <div class="col-sm-12 col-md-6">
+                                         <label class="form-label">FECHA CORTE FÓRMULA RECARGOS</label>
+                                         <input wire:model="sequentialCutOffDate" type="datetime-local" class="form-control">
+                                         @error('sequentialCutOffDate') <span class="text-danger">{{ $message }}</span> @enderror
+                                     </div>
 
                                     <div class="col-sm-12 col-md-12">
                                         <div class="form-check form-switch pl-0">
