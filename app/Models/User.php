@@ -148,6 +148,17 @@ class User extends Authenticatable
         return $this->belongsToMany(Bank::class);
     }
 
+    public function sharedSellers()
+    {
+        return $this->belongsToMany(User::class, 'seller_sharing', 'user_id', 'shared_seller_id');
+    }
+
+    public function getSharedSellerIds()
+    {
+        $sharedIds = $this->sharedSellers()->pluck('shared_seller_id')->toArray();
+        return array_merge([$this->id], $sharedIds);
+    }
+
     /**
      * Scope to get all users considered "Sellers" based on permissions.
      */

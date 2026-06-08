@@ -22,10 +22,20 @@ class DataController extends Controller
               ->orWhere('email', 'like', "%{$valueToSearch}%");
         });
 
-        if ($request->has('seller_id') && $request->seller_id > 0) {
+        if (!auth()->user()->can('customers.view_all') && auth()->user()->can('customers.view_own')) {
+            $sharedIds = auth()->user()->getSharedSellerIds();
+            if ($request->has('seller_id') && $request->seller_id > 0) {
+                $requestedSellerId = (int)$request->seller_id;
+                if (in_array($requestedSellerId, $sharedIds)) {
+                    $query->where('seller_id', $requestedSellerId);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+            } else {
+                $query->whereIn('seller_id', $sharedIds);
+            }
+        } elseif ($request->has('seller_id') && $request->seller_id > 0) {
             $query->where('seller_id', $request->seller_id);
-        } elseif (!auth()->user()->can('customers.view_all') && auth()->user()->can('customers.view_own')) {
-            $query->where('seller_id', auth()->user()->id);
         }
 
         $clients = $query->get();

@@ -1754,7 +1754,7 @@ class ReportController extends Controller
         // Privacy check
         if (!auth()->user()->can('customer_statement.view_all')) {
             if (auth()->user()->can('customer_statement.view_own')) {
-                if ($customer->seller_id !== auth()->id()) {
+                if (!in_array($customer->seller_id, auth()->user()->getSharedSellerIds())) {
                     abort(403, 'No tiene permiso para ver el estado de cuenta de este cliente.');
                 }
             } else {

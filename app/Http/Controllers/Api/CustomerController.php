@@ -20,7 +20,7 @@ class CustomerController extends Controller
         $isAdmin = $user->hasRole(['Admin', 'Super Admin']) || $user->profile === 'Admin' || $user->profile === 'Super Admin';
         
         if (!$isAdmin && !$user->can('customers.view_all')) {
-            $query->where('seller_id', $user->id);
+            $query->whereIn('seller_id', $user->getSharedSellerIds());
         }
 
         // Apply filters in SQL before fetching to bypass limit issues

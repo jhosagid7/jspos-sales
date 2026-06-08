@@ -26,6 +26,14 @@ class PaymentController extends Controller
         $customerId = $request->customer_id;
         $user = $request->user();
 
+        $isAdmin = $user->hasRole(['Admin', 'Super Admin']) || $user->profile === 'Admin' || $user->profile === 'Super Admin';
+        if (!$isAdmin && !$user->can('customers.view_all')) {
+            $customerObj = \App\Models\Customer::find($customerId);
+            if ($customerObj && !in_array($customerObj->seller_id, $user->getSharedSellerIds())) {
+                return response()->json(['message' => 'No tiene permiso para acceder a este cliente.'], 403);
+            }
+        }
+
         $sales = Sale::where('customer_id', $customerId)
             ->where('type', 'credit')
             ->where('status', 'pending')

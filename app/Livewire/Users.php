@@ -20,6 +20,7 @@ class Users extends Component
     public $tab = 1; // Tab navigation for sidebar form
     public  $role, $roleSelectedId,  $permissionId, $roles = [];
     public $selectedBanks = []; // Array of bank IDs for this user
+    public $selectedSharedSellers = []; // Array of shared seller IDs for this user
     public $commission_percent = 0, $freight_percent = 0, $exchange_diff_percent = 0, $current_batch = '1', $agreement;
     public $sellerCommission1Threshold, $sellerCommission1Percentage, $sellerCommission2Threshold, $sellerCommission2Percentage;
     public $discountRules = []; // Array of discount rules for this user (seller)
@@ -227,6 +228,9 @@ class Users extends Component
         // Load selected banks
         $this->selectedBanks = $user->banks->pluck('id')->toArray();
 
+        // Load selected shared sellers
+        $this->selectedSharedSellers = $user->sharedSellers->pluck('id')->toArray();
+
         $this->dispatch('init-new');
     }
 
@@ -245,6 +249,7 @@ class Users extends Component
         $this->resetCommissionFields();
         $this->editing = false;
         $this->discountRules = [];
+        $this->selectedSharedSellers = [];
         $this->tab = 1;
     }
 
@@ -337,8 +342,10 @@ class Users extends Component
             // Sync Banks
             if ($this->isSeller($this->user->profile)) {
                 $this->user->banks()->sync($this->selectedBanks);
+                $this->user->sharedSellers()->sync($this->selectedSharedSellers);
             } else {
                 $this->user->banks()->detach();
+                $this->user->sharedSellers()->detach();
             }
 
             // Assign/Sync Role

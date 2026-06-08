@@ -109,6 +109,20 @@
                         </a>
                     </li>
                     @endif
+
+                    {{-- Tab 8: Portafolio Compartido --}}
+                    @if($this->isSeller($user->profile))
+                    <li class="nav-item mb-2">
+                        <a class="nav-link {{ $tab == 8 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                           wire:click.prevent="$set('tab',8)" href="#">
+                            <i class="fa fa-users fa-2x"></i>
+                            <div>
+                                <h6 class="mb-0">Cartera Compartida</h6>
+                                <small class="{{ $tab == 8 ? 'text-white' : 'text-muted' }}">Clientes Compartidos</small>
+                            </div>
+                        </a>
+                    </li>
+                    @endif
                 </ul>
             </div>
 
@@ -705,6 +719,61 @@
                                             <strong>Resumen de Seguridad:</strong><br>
                                             <span class="small">Pasada esta fecha, desaparecen los botones de "+" y "Editar" en la App del vendedor seleccionado.</span>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Tab 8: Portafolio Compartido --}}
+                    @if($this->isSeller($user->profile))
+                    <div class="tab-pane fade {{ $tab == 8 ? 'active show' : '' }}" role="tabpanel">
+                        <div class="sidebar-body">
+                            <div class="row g-3">
+                                <div class="col-sm-12">
+                                    <h6 class="text-info mb-3">
+                                        <i class="fa fa-users"></i> Compartir Portafolio de Clientes
+                                    </h6>
+                                    <p class="text-muted small">Seleccione los vendedores cuyos portafolios de clientes serán visibles e interactivos para este vendedor:</p>
+                                </div>
+                                <div class="col-sm-12">
+                                    <div class="row g-3">
+                                        @php
+                                            $allSellers = \App\Models\User::sellers()->where('users.id', '!=', $user->id)->get();
+                                        @endphp
+                                        @forelse($allSellers as $seller)
+                                        <div class="col-lg-6 col-md-6 col-sm-12">
+                                            <div class="bank-card-container">
+                                                <input wire:model="selectedSharedSellers" 
+                                                       class="bank-checkbox" 
+                                                       type="checkbox" 
+                                                       value="{{ $seller->id }}" 
+                                                       id="sellerSelect{{ $seller->id }}">
+                                                <label class="bank-card-label" for="sellerSelect{{ $seller->id }}" style="min-height: 80px; padding: 15px; border-radius: 12px; display: block; border: 2px solid #e5e7eb; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="bank-avatar-initial" style="background: {{ $seller->color ?: '#0380b2' }}; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">
+                                                            {{ substr($seller->name, 0, 1) }}
+                                                        </div>
+                                                        <div class="flex-grow-1 ms-3" style="margin-left: 1rem;">
+                                                            <strong class="text-uppercase" style="font-size: 0.95rem; display: block;">{{ $seller->name }}</strong>
+                                                            <span class="badge bg-secondary float-end" style="font-size: 8px;">{{ $seller->profile }}</span>
+                                                            <div class="small text-muted">{{ $seller->email }}</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="card-selection-marker">
+                                                        <i class="fa fa-check-circle"></i>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        @empty
+                                        <div class="col-12">
+                                            <div class="alert alert-light-warning text-dark border-warning text-center p-4">
+                                                <h6>No hay otros vendedores registrados en el sistema.</h6>
+                                            </div>
+                                        </div>
+                                        @endforelse
                                     </div>
                                 </div>
                             </div>
