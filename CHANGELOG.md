@@ -1,3 +1,14 @@
+## [1.10.129] - 2026-06-08
+### Fixed
+- **Porcentaje Efectivo de Recargos en Reporte de Ventas General**: Se corrigió la columna `%` del reporte de ventas general para que calcule y muestre el porcentaje efectivo compuesto para ventas secuenciales (`(1 + (Comisión% + Flete%)/100) × (1 + Dif%/100) − 1`) en lugar de la suma simple incorrecta. Para ventas anteriores a la fecha de corte se mantiene el cálculo aditivo original.
+- **Porcentaje Configurado por Recargo**: Las columnas de Comisión, Flete y Dif. del reporte ahora muestran el porcentaje de configuración aplicado debajo del monto (`(X.X%)`), permitiendo auditar exactamente con qué tasa fue calculado cada recargo.
+
+### Changed
+- **Diferencial Secuencial**: Para ventas secuenciales, el monto de diferencial en el reporte se recalcula correctamente como `(Base + Comisión + Flete) × Dif%` en lugar de `Base × Dif%`, alineando el desglose con el total real de la factura.
+
+### Tests
+- Se añadió la prueba `test_sales_report_renders_correct_surcharge_percentages` al test `SequentialCutOffSettingTest` validando que el componente Livewire `SalesReport` renderiza correctamente el 59.0% aditivo para ventas históricas y el 56.6% compuesto para ventas secuenciales, junto con los porcentajes individuales de configuración.
+
 ## [1.10.128] - 2026-06-08
 ### Fixed
 - **Representación de Base en USD**: Se corrigió el cálculo de la base y recargos físicos (`base_amount`, etc.) para ventas en monedas secundarias (VED y COP). Anteriormente, la migración acumulaba el total usando `regular_price` (que está en moneda local), guardando la base en bolívares/pesos en vez de dólares. Se actualizó la migración original para usar `price_usd * quantity` y se programó una nueva migración correctora (`fix_surcharges_currency_mismatch_in_sales`) que convierte en lotes (`chunkById`) todos los montos de recargos históricos erróneos dividiéndolos por la tasa de cambio de la venta.

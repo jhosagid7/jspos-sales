@@ -224,10 +224,16 @@
                                         $commPercent = $sale->resolved_commission_percent;
                                         $freightPercent = $sale->resolved_freight_percent;
                                         $diffPercent = $sale->resolved_exchange_diff_percent;
-                                        $surchargePercent = $commPercent + $freightPercent + $diffPercent;
+                                        $isSequential = $sale->created_at >= \App\Services\ConfigurationService::getSequentialCutOffDate();
+
+                                        if ($isSequential) {
+                                            $surchargePercent = (((1 + ($commPercent + $freightPercent) / 100) * (1 + $diffPercent / 100)) - 1) * 100;
+                                        } else {
+                                            $surchargePercent = $commPercent + $freightPercent + $diffPercent;
+                                        }
                                         
                                         if ($base == 0 && $sale->total_usd > 0) {
-                                            if ($sale->created_at < \App\Services\ConfigurationService::getSequentialCutOffDate()) {
+                                            if (!$isSequential) {
                                                 if ($surchargePercent > 0) {
                                                     $base = $sale->total_usd / (1 + ($surchargePercent / 100));
                                                 } else {
@@ -240,7 +246,12 @@
                                         
                                         $commAmt = $sale->commission_amount > 0 ? floatval($sale->commission_amount) : ($base * $commPercent / 100);
                                         $freightAmt = $sale->freight_amount > 0 ? floatval($sale->freight_amount) : ($base * $freightPercent / 100);
-                                        $diffAmt = $sale->exchange_diff_amount > 0 ? floatval($sale->exchange_diff_amount) : ($base * $diffPercent / 100);
+                                        
+                                        if ($isSequential) {
+                                            $diffAmt = ($base + $commAmt + $freightAmt) * ($diffPercent / 100);
+                                        } else {
+                                            $diffAmt = $sale->exchange_diff_amount > 0 ? floatval($sale->exchange_diff_amount) : ($base * $diffPercent / 100);
+                                        }
 
                                         // Guard to fix display if base is stored in local currency (e.g. VED/COP) instead of USD
                                         if ($base > ($sale->total_usd * 1.5) && $sale->primary_exchange_rate > 1) {
@@ -266,9 +277,24 @@
                                         <td>{{ $sale->customer->name }}</td>
                                         <td class="text-right">${{ number_format($base, 2) }}</td>
                                         <td>{{ number_format($surchargePercent, 1) }}%</td>
-                                        <td class="text-right text-success">${{ number_format($commAmt, 2) }}</td>
-                                        <td class="text-right text-info">${{ number_format($freightAmt, 2) }}</td>
-                                        <td class="text-right text-warning">${{ number_format($diffAmt, 2) }}</td>
+                                        <td class="text-right text-success">
+                                            ${{ number_format($commAmt, 2) }}
+                                            @if($commPercent > 0)
+                                                <br><small class="text-muted">({{ number_format($commPercent, 1) }}%)</small>
+                                            @endif
+                                        </td>
+                                        <td class="text-right text-info">
+                                            ${{ number_format($freightAmt, 2) }}
+                                            @if($freightPercent > 0)
+                                                <br><small class="text-muted">({{ number_format($freightPercent, 1) }}%)</small>
+                                            @endif
+                                        </td>
+                                        <td class="text-right text-warning">
+                                            ${{ number_format($diffAmt, 2) }}
+                                            @if($diffPercent > 0)
+                                                <br><small class="text-muted">({{ number_format($diffPercent, 1) }}%)</small>
+                                            @endif
+                                        </td>
                                         <td class="text-right font-weight-bold">${{ number_format($sale->total_usd, 2) }}</td>
                                         <td>
                                             @if($creditUSD > 0.01)

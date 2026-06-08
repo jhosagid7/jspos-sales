@@ -152,4 +152,76 @@ class SequentialCutOffSettingTest extends TestCase
         // Base should be parsed as 10.00, so commission (8%) is 0.80
         $this->assertEquals(0.80, round($newSale->final_commission_amount, 2));
     }
+
+    public function test_sales_report_renders_correct_surcharge_percentages()
+    {
+        $this->actingAs($this->adminUser);
+
+        // Set cutoff to 2026-06-10 00:00:00
+        $config = Configuration::first();
+        $config->update([
+            'sequential_cut_off_date' => '2026-06-10 00:00:00'
+        ]);
+        $this->resetConfigCache();
+
+        $customer = Customer::create([
+            'name' => 'Test Customer',
+            'taxpayer_id' => '123',
+            'address' => 'Test Address',
+            'city' => 'Test City',
+            'type' => 'Consumidor Final'
+        ]);
+
+        // Scenario 1: Sale created BEFORE cutoff (e.g. 2026-06-08) -> Additive
+        // Comm: 8.0%, Freight: 6.0%, Diff: 45.0% -> Additive sum is 59.0%
+        $historicSale = Sale::create([
+            'total' => 15.90,
+            'total_usd' => 15.90,
+            'items' => 1,
+            'customer_id' => $customer->id,
+            'user_id' => $this->adminUser->id,
+            'created_at' => '2026-06-08 12:00:00',
+            'invoice_number' => 'HIST-999',
+            'status' => 'paid',
+            'type' => 'cash',
+            'applied_commission_percent' => 8.00,
+            'applied_freight_percent' => 6.00,
+            'applied_exchange_diff_percent' => 45.00,
+            'base_amount' => 10.00,
+            'commission_amount' => 0.80,
+            'freight_amount' => 0.60,
+            'exchange_diff_amount' => 4.50,
+        ]);
+
+        // Scenario 2: Sale created AFTER cutoff (e.g. 2026-06-12) -> Sequential
+        // Comm: 8.0%, Freight: 0.0%, Diff: 45.0% -> Compound percent is 56.6%
+        $newSale = Sale::create([
+            'total' => 22.20,
+            'total_usd' => 22.20,
+            'items' => 1,
+            'customer_id' => $customer->id,
+            'user_id' => $this->adminUser->id,
+            'created_at' => '2026-06-12 12:00:00',
+            'invoice_number' => 'NEW-999',
+            'status' => 'paid',
+            'type' => 'cash',
+            'applied_commission_percent' => 8.00,
+            'applied_freight_percent' => 0.00,
+            'applied_exchange_diff_percent' => 45.00,
+            'base_amount' => 14.18,
+            'commission_amount' => 1.13,
+            'freight_amount' => 0.00,
+            'exchange_diff_amount' => 6.38,
+        ]);
+
+        Livewire::test(\App\Livewire\SalesReport::class)
+            ->set('dateFrom', '2026/06/01')
+            ->set('dateTo', '2026/06/30')
+            ->call('searchData')
+            ->assertSee('59.0%') // Historic additive surcharge percent
+            ->assertSee('56.6%') // New compound surcharge percent
+            ->assertSee('(8.0%)') // Configuration Commission percent
+            ->assertSee('(6.0%)') // Configuration Freight percent for historic
+            ->assertSee('(45.0%)'); // Configuration Diff percent
+    }
 }
