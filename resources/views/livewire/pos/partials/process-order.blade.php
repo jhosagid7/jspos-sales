@@ -181,7 +181,7 @@
                                                         Cargar
                                                     </button>
                                                     @endcan
-                                                    <button type="button" class="btn btn-outline-secondary btn-xs dropdown-toggle dropdown-toggle-split py-1 px-2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                    <button type="button" class="btn btn-outline-secondary btn-xs dropdown-toggle dropdown-toggle-split py-1 px-2" data-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false">
                                                         <span class="sr-only">Opciones</span>
                                                     </button>
                                                     <div class="dropdown-menu dropdown-menu-right shadow-lg" style="min-width: 190px; z-index: 1050; font-size: 0.82rem;">

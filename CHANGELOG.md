@@ -1,3 +1,7 @@
+## [1.10.125] - 2026-06-08
+### Fixed
+- **Visualización de Opciones en Tabla de Órdenes**: Se agregó `data-boundary="viewport"` al botón desplegable de opciones en la tabla de órdenes de [process-order.blade.php](file:///c:/laragon/www/jspos-sales/resources/views/livewire/pos/partials/process-order.blade.php). Esto evita que el menú de acciones (Ver Detalles, Editar Nota, Historial, etc.) se recorte o quede inaccesible debido al desbordamiento y scroll horizontal de la tabla responsiva.
+
 ## [1.10.124] - 2026-06-08
 ### Added
 - **Campos Físicos de Desglose de Recargos en Ventas y Pedidos**: Se agregaron las columnas `base_amount`, `commission_amount`, `freight_amount` y `exchange_diff_amount` a las tablas `sales` y `orders` para almacenar de forma exacta y en caliente los desgloses en USD. Esto soluciona problemas de redondeo por cálculo inverso y optimiza drásticamente el rendimiento permitiendo realizar sumatorias directas en SQL.
