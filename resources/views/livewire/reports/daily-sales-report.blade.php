@@ -156,12 +156,10 @@
                                 <tr class="text-center">
                                     <th>Folio</th>
                                     <th>Cliente</th>
-                                    <th>Base</th>
-                                    <th>%</th>
-                                    <th>Comisión</th>
-                                    <th>Flete</th>
-                                    <th>Dif.</th>
-                                    <th>Total</th>
+                                    <th>Total Neto (USD)</th>
+                                    @foreach($currencies as $currency)
+                                        <th>Pagado {{ $currency->code }}</th>
+                                    @endforeach
                                     <th>Crédito (USD)</th>
                                     <th>Articulos</th>
                                     <th>Estatus</th>
@@ -225,39 +223,22 @@
                                         if($sale->status != 'paid' && $sale->status != 'returned') {
                                             $creditUSD = max(0, $netTotalUSD - $totalPaidUSD);
                                         }
-
-                                        // Calcular desgloses de recargos dinámicamente o leerlos físicamente
-                                        $base = $sale->base_amount > 0 ? floatval($sale->base_amount) : 0;
-                                        $commPercent = $sale->resolved_commission_percent;
-                                        $freightPercent = $sale->resolved_freight_percent;
-                                        $diffPercent = $sale->resolved_exchange_diff_percent;
-                                        $surchargePercent = $commPercent + $freightPercent + $diffPercent;
-                                        
-                                        if ($base == 0 && $netTotalUSD > 0) {
-                                            if ($sale->created_at < \App\Services\ConfigurationService::getSequentialCutOffDate()) {
-                                                if ($surchargePercent > 0) {
-                                                    $base = $netTotalUSD / (1 + ($surchargePercent / 100));
-                                                } else {
-                                                    $base = $netTotalUSD;
-                                                }
-                                            } else {
-                                                $base = ($netTotalUSD / (1 + ($diffPercent / 100))) / (1 + (($commPercent + $freightPercent) / 100));
-                                            }
-                                        }
-                                        
-                                        $commAmt = $sale->commission_amount > 0 ? floatval($sale->commission_amount) : ($base * $commPercent / 100);
-                                        $freightAmt = $sale->freight_amount > 0 ? floatval($sale->freight_amount) : ($base * $freightPercent / 100);
-                                        $diffAmt = $sale->exchange_diff_amount > 0 ? floatval($sale->exchange_diff_amount) : ($base * $diffPercent / 100);
                                     @endphp
                                     <tr class="text-center">
                                         <td>{{ $sale->invoice_number ?? $sale->id }}</td>
                                         <td>{{ $sale->customer->name }}</td>
-                                        <td class="text-right">${{ number_format($base, 2) }}</td>
-                                        <td>{{ number_format($surchargePercent, 1) }}%</td>
-                                        <td class="text-right text-success">${{ number_format($commAmt, 2) }}</td>
-                                        <td class="text-right text-info">${{ number_format($freightAmt, 2) }}</td>
-                                        <td class="text-right text-warning">${{ number_format($diffAmt, 2) }}</td>
-                                        <td class="text-right font-weight-bold">${{ number_format($netTotalUSD, 2) }}</td>
+                                        <td>${{ number_format($netTotalUSD, 2) }}</td>
+                                        
+                                        @foreach($currencies as $currency)
+                                            <td>
+                                                @if($paidPerCurrency[$currency->code] > 0)
+                                                    {{ number_format($paidPerCurrency[$currency->code], 2) }}
+                                                @else
+                                                    -
+                                                @endif
+                                            </td>
+                                        @endforeach
+                                        
                                         <td>
                                             @if($creditUSD > 0.01)
                                                 <span class="text-danger">${{ number_format($creditUSD, 2) }}</span>
@@ -275,7 +256,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="13" class="text-center">Sin ventas</td>
+                                        <td colspan="7" class="text-center">Sin ventas</td>
                                     </tr>
                                 @endforelse
                             </tbody>

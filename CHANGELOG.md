@@ -1,3 +1,7 @@
+## [1.10.127] - 2026-06-08
+### Changed
+- **Exclusión de Reporte de Ventas Diarias**: Se revirtieron los cambios en la tabla del Reporte de Ventas Diarias para mantener su diseño original de desglose de pagos por moneda, limitando las columnas de desglose de recargos físicos (`Base`, `%`, `Comisión`, `Flete`, `Dif.`, `Total`, `Crédito`) exclusivamente al **Reporte de Ventas General**.
+
 ## [1.10.126] - 2026-06-08
 ### Changed
 - **Columnas de Desglose de Recargos en Reportes de Ventas**: Se reemplazaron las columnas de desglose de pagos por moneda (`Pagado USD`, `Pagado VED`, `Pagado COP`, `Pagado VED`) en la tabla de reportes de ventas (Reporte de Ventas Diarias y Reporte de Ventas General) por columnas que muestran el desglose de recargos físicos: `Base`, `%` (porcentaje acumulado de recargos), `Comisión`, `Flete`, `Dif.` (diferencial de cambio), `Total` y `Crédito (USD)`.
