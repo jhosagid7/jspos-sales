@@ -56,7 +56,7 @@ class CustomerStatement extends Component
 
         if (auth()->user()->can('customer_statement.view_own')) {
             return Customer::where('id', $customerId)
-                ->where('seller_id', auth()->id())
+                ->whereIn('seller_id', auth()->user()->getSharedSellerIds())
                 ->exists();
         }
 
@@ -88,8 +88,8 @@ class CustomerStatement extends Component
         if (auth()->user()->can('customer_statement.view_all')) {
             // No filter, can see all
         } elseif (auth()->user()->can('customer_statement.view_own')) {
-            // Limited to own customers
-            $query->where('seller_id', auth()->id());
+            // Limited to own and shared customers
+            $query->whereIn('seller_id', auth()->user()->getSharedSellerIds());
         } else {
             // Default safety: if they have neither (but somehow accessed the module), show empty
             return [];

@@ -1,3 +1,8 @@
+## [1.10.122] - 2026-06-08
+### Added
+- **Compartido de Portafolios de Clientes (Vendedores Foráneos)**: Se implementó un sistema de asignación de carteras de clientes compartidas entre vendedores. A través de la nueva pestaña **Cartera Compartida** en la edición de usuarios (Panel Web), los administradores pueden asociar carteras de otros vendedores a un vendedor. El sistema filtra de manera dinámica en la API (`/api/customers`, `/api/sales/pending`, `/api/seller/dashboard`) y en la Web (clientes, autocompletado y estados de cuenta) utilizando los IDs compartidos, asegurando que ambos vendedores tengan visibilidad y puedan registrar pedidos/pagos de manera unificada y transparente sin necesidad de actualizar la APK.
+- **Suite de Pruebas**: Se agregó el archivo `tests/Feature/SellerPortfolioSharingTest.php` para validar el comportamiento del compartido bajo condiciones normales y de asignación activa.
+
 ## [1.10.121] - 2026-06-06
 ### Fixed
 - **Conciliación de Arqueo Detallado de Caja y Relación de Cobros**: Se modificaron las consultas de cobros por abonos a crédito en `cashCountPdf` y `cashCountDetailedPdf` en `ReportController.php`. Anteriormente, se filtraban por la fecha de creación física del pago (`created_at`), lo que provocaba que abonos creados en días anteriores en estado pendiente pero aprobados en el día del arqueo no aparecieran en el reporte de caja diaria (a pesar de pertenecer a la planilla del día y haber sido validados y cobrados ese día). Ahora, se recuperan los cobros vinculados a las planillas de cobranza (`collection_sheet_id`) abiertas durante el rango de fechas seleccionado, garantizando una coincidencia exacta y mostrando las fechas reales de transferencia en la columna **F. Voucher** para facilitar la auditoría bancaria.

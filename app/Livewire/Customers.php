@@ -109,7 +109,7 @@ class Customers extends Component
 
             // Permission Check: View Own vs View All
             if (!auth()->user()->can('customers.view_all') && auth()->user()->can('customers.view_own')) {
-                $query->where('seller_id', auth()->user()->id);
+                $query->whereIn('seller_id', auth()->user()->getSharedSellerIds());
             }
 
             return $query->paginate(10);
