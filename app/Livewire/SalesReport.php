@@ -24,11 +24,30 @@ class SalesReport extends Component
     public $sale_note;
     public $currencies = [];
     public $sellers = [], $seller_id;
-    public $customer; // New property for customer filter
-    public $drivers = [], $driver_id, $selectedSaleId;
-    public $saleHistory = []; // Para almacenar los logs de auditoria
+    public $customer; 
+    public $drivers = [], $driver_id, $selectedSaleId, $filter_driver_id = 'all';
+    public $saleHistory = []; 
     public $showPdfModal = false;
     public $pdfUrl = '';
+    public $groupBy = 'none'; // New property for grouping
+    
+    public $columns = [
+        'folio' => true,
+        'cliente' => true,
+        'operador' => false,
+        'vendedor' => false,
+        'base' => true,
+        'porcentaje' => true,
+        'comision' => true,
+        'flete' => true,
+        'diferencial' => true,
+        'total' => true,
+        'credito' => true,
+        'articulos' => true,
+        'estatus' => true,
+        'tipo' => true,
+        'fecha' => true,
+    ];
 
     public function searchData()
     {
@@ -37,7 +56,7 @@ class SalesReport extends Component
 
     function mount()
     {
-        session()->forget('sale_customer'); // Clear session
+        session()->forget('sale_customer');
         session(['map' => "TOTAL COSTO $0.00", 'child' => 'TOTAL VENTA $0.00', 'rest' => 'GANANCIA: $0.00 / MARGEN: 0.00%', 'pos' => 'Reporte de Ventas']);
 
         $this->users = User::orderBy('name')->get();
@@ -50,14 +69,18 @@ class SalesReport extends Component
 
     public function render()
     {
-        $this->customer = session('sale_customer', null); // Get customer from session
+        $this->customer = session('sale_customer', null);
+
+        $reportData = $this->getReport();
 
         return view('livewire.reports.salesr', [
-            'sales' => $this->getReport()
+            'sales' => $reportData['sales'] ?? [],
+            'groupedSales' => $reportData['groupedSales'] ?? null,
+            'isGrouped' => $this->groupBy !== 'none'
         ]);
     }
 
-    #[On('sale_customer')] // Listener for customer selection
+    #[On('sale_customer')]
     function setCustomer($customer = null)
     {
         session(['sale_customer' => $customer]);
@@ -66,15 +89,7 @@ class SalesReport extends Component
 
     function getReport()
     {
-        if (!$this->showReport) return [];
-
-        // Allow empty filters (return all)
-        // if ($this->user_id == null && $this->dateFrom == null && $this->dateTo == null && $this->seller_id == null && $this->customer == null) {
-        //     $this->dispatch('noty', msg: 'SELECCIONA LOS FILTROS PARA CONSULTAR LAS VENTAS');
-        //     return;
-        // }
-        
-        // ... (date validation logic remains similar, maybe adjust if needed)
+        if (!$this->showReport) return ['sales' => []];
 
         try {
             $dFrom = null;
@@ -85,46 +100,105 @@ class SalesReport extends Component
                 $dTo = Carbon::parse($this->dateTo)->endOfDay();
             }
 
-            $sales = Sale::with([
-                'customer', 
+            $query = Sale::with([
+                'customer.seller', 
                 'details.product', 
                 'user', 
+                'driver',
                 'paymentDetails' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo]),
                 'changeDetails' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo]),
                 'returns' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo])
             ])
             ->withCount('history')
-                ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
-                    $q->whereBetween('created_at', [$dFrom, $dTo]);
-                })
-                ->when(!auth()->user()->can('sales.view_all') && auth()->user()->can('sales.view_own'), function($q) {
-                    $q->where('user_id', auth()->id());
-                })
-                ->when($this->user_id != null, function ($query) {
-                    $query->where('user_id', $this->user_id);
-                })
-                ->when($this->seller_id != null, function ($query) {
-                    $query->whereHas('customer', function($q) {
-                        $q->where('seller_id', $this->seller_id);
-                    });
-                })
-                ->when($this->customer != null, function ($query) {
-                     $query->where('customer_id', $this->customer['id']);
-                })
-                ->when(!empty(trim($this->searchFactura)), function ($query) {
-                    $searchValue = trim($this->searchFactura);
-                    $query->where(function($q) use ($searchValue) {
-                        $q->where('id', 'like', "%{$searchValue}%")
-                          ->orWhere('invoice_number', 'like', "%{$searchValue}%");
-                    });
-                })
-                ->when($this->type != 0, function ($qry) {
-                    $qry->where('type', $this->type);
-                })
-                ->orderBy('id', 'desc')
-                ->paginate($this->pagination);
+            ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
+                $q->whereBetween('created_at', [$dFrom, $dTo]);
+            })
+            ->when(!auth()->user()->can('sales.view_all') && auth()->user()->can('sales.view_own'), function($q) {
+                $q->where('user_id', auth()->id());
+            })
+            ->when($this->user_id != null, function ($q) {
+                $q->where('user_id', $this->user_id);
+            })
+            ->when($this->seller_id != null, function ($q) {
+                $q->whereHas('customer', function($sub) {
+                    $sub->where('seller_id', $this->seller_id);
+                });
+            })
+            ->when($this->customer != null, function ($q) {
+                 $q->where('customer_id', $this->customer['id']);
+            })
+            ->when(!empty(trim($this->searchFactura)), function ($q) {
+                $searchValue = trim($this->searchFactura);
+                $q->where(function($sub) use ($searchValue) {
+                    $sub->where('id', 'like', "%{$searchValue}%")
+                      ->orWhere('invoice_number', 'like', "%{$searchValue}%");
+                });
+            })
+            ->when($this->type != 0, function ($q) {
+                $q->where('type', $this->type);
+            })
+            ->when($this->filter_driver_id !== 'all', function ($q) {
+                if ($this->filter_driver_id === 'with_route') {
+                    $q->whereNotNull('driver_id');
+                } elseif ($this->filter_driver_id === 'without_route') {
+                    $q->whereNull('driver_id');
+                } else {
+                    $q->where('driver_id', $this->filter_driver_id);
+                }
+            })
+            ->orderBy('id', 'desc');
 
-            // Calcular totales globales (sin paginación)
+            $sales = [];
+            $groupedSales = null;
+
+            if ($this->groupBy === 'none') {
+                $sales = (clone $query)->paginate($this->pagination);
+            } else {
+                // If grouping, get all results (or we could chunk them, but typically grouping implies seeing all for the period)
+                $allSales = (clone $query)->get();
+                $groupedData = [];
+
+                foreach ($allSales as $sale) {
+                    $key = ''; 
+                    $name = '';
+                    
+                    if ($this->groupBy == 'customer_id') {
+                        $key = $sale->customer_id ?? 'NA'; 
+                        $name = $sale->customer?->name ?? 'SIN CLIENTE';
+                    } elseif ($this->groupBy == 'user_id') {
+                        $key = $sale->user_id ?? 'NA'; 
+                        $name = $sale->user?->name ?? 'SIN OPERADOR';
+                    } elseif ($this->groupBy == 'seller_id') {
+                        $key = $sale->customer?->seller_id ?? 'NA';
+                        $name = $sale->customer?->seller?->name ?? 'SIN VENDEDOR';
+                    } elseif ($this->groupBy == 'driver_id') {
+                        $key = $sale->driver_id ?? 'NA';
+                        $name = $sale->driver?->name ?? 'SIN CHOFER';
+                    } elseif ($this->groupBy == 'date') {
+                        $key = $sale->created_at->format('Y-m-d'); 
+                        $name = $sale->created_at->format('d/m/Y');
+                    }
+
+                    if (!isset($groupedData[$key])) { 
+                        $groupedData[$key] = ['name' => $name, 'sales' => [], 'total_usd' => 0]; 
+                    }
+                    $groupedData[$key]['sales'][] = $sale;
+                    $groupedData[$key]['total_usd'] += $sale->total_usd;
+                }
+                
+                // Sort by name or date appropriately
+                if ($this->groupBy == 'date') {
+                    krsort($groupedData); // newest first
+                } else {
+                    uasort($groupedData, function($a, $b) {
+                        return strcmp($a['name'], $b['name']);
+                    });
+                }
+                
+                $groupedSales = $groupedData;
+            }
+
+            // Calculate global totals
             $salesQuery = Sale::when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
                     $q->whereBetween('created_at', [$dFrom, $dTo]);
                 })
@@ -208,11 +282,17 @@ class SalesReport extends Component
             
             $this->dispatch('update-header', map: $map, child: $child, rest: $rest);
             $this->dispatch('noty', msg: 'INFO ACTUALIZADA');
-            return $sales;
+            return [
+                'sales' => $sales,
+                'groupedSales' => $groupedSales
+            ];
             //
         } catch (\Exception $th) {
             $this->dispatch('noty', msg: "Error al intentar obtener el reporte de ventas \n {$th->getMessage()}");
-            return [];
+            return [
+                'sales' => [],
+                'groupedSales' => null
+            ];
         }
     }
 
@@ -506,7 +586,9 @@ class SalesReport extends Component
             'customer_id' => $this->customer ? $this->customer['id'] : null,
             'type' => $this->type,
             'searchFactura' => $this->searchFactura,
-            'driver_id' => $this->driver_id,
+            'driver_id' => $this->filter_driver_id,
+            'groupBy' => $this->groupBy,
+            'columns' => json_encode($this->columns),
         ];
 
         $this->pdfUrl = route('reports.general.sales.pdf', $params);

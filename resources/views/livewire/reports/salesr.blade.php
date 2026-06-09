@@ -1,9 +1,9 @@
 <div>
     <div class="row">
         <div class="col-sm-12 col-md-3 ">
-            <div class="card">
+            <div class="card mb-3">
                 <div class="p-1 card-header bg-dark">
-                    <h5 class="text-center txt-light">Opciones</h5>
+                    <h5 class="text-center txt-light mb-0">Opciones</h5>
                 </div>
 
                 <div class="card-body">
@@ -32,7 +32,7 @@
                     </div>
 
                     <div class="mt-3">
-                        <span class="f-14"><b>Usuario</b></span>
+                        <span class="f-14"><b>Operador (Cajero/Oficina)</b></span>
                         <select wire:model="user_id" class="form-control form-control-sm">
                             <option value="0">Seleccionar</option>
                             @foreach ($users as $user)
@@ -55,8 +55,20 @@
                         </select>
                     </div>
 
+                    <div class="mt-3">
+                        <span class="f-14"><b>Chofer / Ruta</b></span>
+                        <select wire:model="filter_driver_id" class="form-control form-control-sm">
+                            <option value="all">Todos</option>
+                            <option value="with_route">Con Ruta Asignada</option>
+                            <option value="without_route">Sin Ruta Asignada</option>
+                            @foreach ($drivers as $driver)
+                                <option value="{{ $driver->id }}">{{ $driver->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                    <div class="mt-5">
+
+                    <div class="mt-4">
                         <span class="f-14"><b>Fecha desde</b></span>
                         <div class="input-group datepicker">
                             <input class="form-control flatpickr-input active" id="dateFrom" type="text"
@@ -80,16 +92,134 @@
                         </select>
                     </div>
 
-                    <div class="mt-3">
-                        <button wire:click.prevent="searchData" class="btn btn-dark">
-                            Consultar
+                    <div class="mt-4">
+                        <button wire:click.prevent="searchData" class="btn btn-dark w-100">
+                            <i class="fa fa-search"></i> Consultar
                         </button>
-                        <button wire:click.prevent="openPdfPreview" class="btn btn-danger mt-2" @if(!$showReport) disabled @endif>
+                        <button wire:click.prevent="openPdfPreview" class="btn btn-danger text-white w-100 mt-2" @if(!$showReport) disabled @endif>
                             <i class="fas fa-file-pdf"></i> Vista Previa PDF
                         </button>
                     </div>
 
 
+                </div>
+            </div>
+
+            <!-- Column Config (Admin Style) -->
+            <div class="card">
+                <div class="p-1 card-header bg-primary text-white text-center">
+                    <h6 class="mb-0 text-white"><i class="fa fa-cog"></i> Configuración de Columnas</h6>
+                </div>
+                <div class="card-body p-2">
+                    <div class="row">
+                        <div class="col-sm-12 col-md-12 mb-3">
+                            <span class="f-14"><b>Agrupar por</b></span>
+                            <select wire:model.live="groupBy" class="form-control form-control-sm">
+                                <option value="none">Sin Agrupar</option>
+                                <option value="date">Por Fecha</option>
+                                <option value="seller_id">Por Vendedor</option>
+                                <option value="driver_id">Por Chofer / Ruta</option>
+                                <option value="customer_id">Por Cliente</option>
+                                <option value="user_id">Por Operador</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12 mb-1">
+                            <hr class="mt-0 mb-2">
+                            <h6 class="txt-light">Columnas</h6>
+                        </div>
+
+                        <div class="col-12 mb-1">
+                            <div class="custom-control custom-checkbox ml-2">
+                                <input type="checkbox" class="custom-control-input" id="col_folio" wire:model.live="columns.folio">
+                                <label class="custom-control-label f-12" for="col_folio">Folio</label>
+                            </div>
+                        </div>
+                        <div class="col-12 mb-1">
+                            <div class="custom-control custom-checkbox ml-2">
+                                <input type="checkbox" class="custom-control-input" id="col_cliente" wire:model.live="columns.cliente">
+                                <label class="custom-control-label f-12" for="col_cliente">Cliente</label>
+                            </div>
+                        </div>
+                        <div class="col-12 mb-1">
+                            <div class="custom-control custom-checkbox ml-2">
+                                <input type="checkbox" class="custom-control-input" id="col_operador" wire:model.live="columns.operador">
+                                <label class="custom-control-label f-12" for="col_operador">Operador</label>
+                            </div>
+                        </div>
+                        <div class="col-12 mb-1">
+                            <div class="custom-control custom-checkbox ml-2">
+                                <input type="checkbox" class="custom-control-input" id="col_vendedor" wire:model.live="columns.vendedor">
+                                <label class="custom-control-label f-12" for="col_vendedor">Vendedor</label>
+                            </div>
+                        </div>
+                        <div class="col-12 mb-1">
+                            <div class="custom-control custom-checkbox ml-2">
+                                <input type="checkbox" class="custom-control-input" id="col_base" wire:model.live="columns.base">
+                                <label class="custom-control-label f-12" for="col_base">Base</label>
+                            </div>
+                        </div>
+                        <div class="col-12 mb-1">
+                            <div class="custom-control custom-checkbox ml-2">
+                                <input type="checkbox" class="custom-control-input" id="col_porcentaje" wire:model.live="columns.porcentaje">
+                                <label class="custom-control-label f-12" for="col_porcentaje">% Aplicado</label>
+                            </div>
+                        </div>
+                        <div class="col-12 mb-1">
+                            <div class="custom-control custom-checkbox ml-2">
+                                <input type="checkbox" class="custom-control-input" id="col_comision" wire:model.live="columns.comision">
+                                <label class="custom-control-label f-12" for="col_comision">Comisión</label>
+                            </div>
+                        </div>
+                        <div class="col-12 mb-1">
+                            <div class="custom-control custom-checkbox ml-2">
+                                <input type="checkbox" class="custom-control-input" id="col_flete" wire:model.live="columns.flete">
+                                <label class="custom-control-label f-12" for="col_flete">Flete</label>
+                            </div>
+                        </div>
+                        <div class="col-12 mb-1">
+                            <div class="custom-control custom-checkbox ml-2">
+                                <input type="checkbox" class="custom-control-input" id="col_diferencial" wire:model.live="columns.diferencial">
+                                <label class="custom-control-label f-12" for="col_diferencial">Diferencial</label>
+                            </div>
+                        </div>
+                        <div class="col-12 mb-1">
+                            <div class="custom-control custom-checkbox ml-2">
+                                <input type="checkbox" class="custom-control-input" id="col_total" wire:model.live="columns.total">
+                                <label class="custom-control-label f-12" for="col_total">Total</label>
+                            </div>
+                        </div>
+                        <div class="col-12 mb-1">
+                            <div class="custom-control custom-checkbox ml-2">
+                                <input type="checkbox" class="custom-control-input" id="col_credito" wire:model.live="columns.credito">
+                                <label class="custom-control-label f-12" for="col_credito">Crédito (USD)</label>
+                            </div>
+                        </div>
+                        <div class="col-12 mb-1">
+                            <div class="custom-control custom-checkbox ml-2">
+                                <input type="checkbox" class="custom-control-input" id="col_articulos" wire:model.live="columns.articulos">
+                                <label class="custom-control-label f-12" for="col_articulos">Artículos</label>
+                            </div>
+                        </div>
+                        <div class="col-12 mb-1">
+                            <div class="custom-control custom-checkbox ml-2">
+                                <input type="checkbox" class="custom-control-input" id="col_estatus" wire:model.live="columns.estatus">
+                                <label class="custom-control-label f-12" for="col_estatus">Estatus</label>
+                            </div>
+                        </div>
+                        <div class="col-12 mb-1">
+                            <div class="custom-control custom-checkbox ml-2">
+                                <input type="checkbox" class="custom-control-input" id="col_tipo" wire:model.live="columns.tipo">
+                                <label class="custom-control-label f-12" for="col_tipo">Tipo</label>
+                            </div>
+                        </div>
+                        <div class="col-12 mb-1">
+                            <div class="custom-control custom-checkbox ml-2">
+                                <input type="checkbox" class="custom-control-input" id="col_fecha" wire:model.live="columns.fecha">
+                                <label class="custom-control-label f-12" for="col_fecha">Fecha</label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -113,29 +243,44 @@
                                 ${{ round($totales, 2) }}</span>
                         </div>
                     </div>
+                    @php
+                        $loopData = $isGrouped ? $groupedSales : [['name' => '', 'sales' => $sales]];
+                    @endphp
+                    
+                    @foreach($loopData as $groupKey => $groupData)
+                    @if($isGrouped)
+                    <div class="mt-4">
+                        <h5 class="txt-primary mb-2"><i class="fa fa-folder-open"></i> {{ $groupData['name'] }}
+                            <span class="badge badge-light-success float-right f-14">Subtotal: ${{ number_format($groupData['total_usd'], 2) }}</span>
+                        </h5>
+                    @else
                     <div class="mt-3 table-responsive">
-                        <table class="table table-responsive-md table-hover" id="tblSalesRpt">
-                            <thead class="thead-primary">
-                                <tr class="text-center">
-                                    <th>Folio</th>
-                                    <th>Cliente</th>
-                                    <th>Base</th>
-                                    <th>%</th>
-                                    <th>Comisión</th>
-                                    <th>Flete</th>
-                                    <th>Dif.</th>
-                                    <th>Total</th>
-                                    <th>Crédito (USD)</th>
-                                    <th>Articulos</th>
-                                    <th>Estatus</th>
-                                    <th>Tipo</th>
-                                    <th>Fecha</th>
+                    @endif
+                        <div class="table-responsive">
+                            <table class="table table-responsive-md table-hover" {!! !$isGrouped ? 'id="tblSalesRpt"' : '' !!}>
+                                <thead class="thead-primary">
+                                    <tr class="text-center">
+                                    @if($columns['folio']) <th>Folio</th> @endif
+                                    @if($columns['cliente']) <th>Cliente</th> @endif
+                                    @if($columns['operador']) <th>Operador</th> @endif
+                                    @if($columns['vendedor']) <th>Vendedor</th> @endif
+                                    @if($columns['base']) <th>Base</th> @endif
+                                    @if($columns['porcentaje']) <th>%</th> @endif
+                                    @if($columns['comision']) <th>Comisión</th> @endif
+                                    @if($columns['flete']) <th>Flete</th> @endif
+                                    @if($columns['diferencial']) <th>Dif.</th> @endif
+                                    @if($columns['total']) <th>Total</th> @endif
+                                    @if($columns['credito']) <th>Crédito (USD)</th> @endif
+                                    @if($columns['articulos']) <th>Articulos</th> @endif
+                                    @if($columns['estatus']) <th>Estatus</th> @endif
+                                    @if($columns['tipo']) <th>Tipo</th> @endif
+                                    @if($columns['fecha']) <th>Fecha</th> @endif
                                     <th></th>
 
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse ($sales as $sale)
+                                @forelse ($groupData['sales'] as $sale)
                                     @php
                                         // Calcular montos pagados por moneda
                                         $paidPerCurrency = [];
@@ -265,6 +410,7 @@
                                         }
                                     @endphp
                                     <tr class="text-center {{ $sale->deletion_requested_at ? 'table-warning' : '' }}">
+                                        @if($columns['folio'])
                                         <td>
                                             {{ $sale->invoice_number ?? $sale->id }}
                                             @foreach ($sale->returns as $return)
@@ -277,28 +423,38 @@
                                                 </a>
                                             @endforeach
                                         </td>
-                                        <td>{{ $sale->customer->name }}</td>
-                                        <td class="text-right">${{ number_format($base, 2) }}</td>
-                                        <td>{{ number_format($surchargePercent, 1) }}%</td>
+                                        @endif
+                                        @if($columns['cliente']) <td>{{ $sale->customer->name }}</td> @endif
+                                        @if($columns['operador']) <td>{{ optional($sale->user)->name ?? 'N/A' }}</td> @endif
+                                        @if($columns['vendedor']) <td>{{ optional(optional($sale->customer)->seller)->name ?? 'N/A' }}</td> @endif
+                                        @if($columns['base']) <td class="text-right">${{ number_format($base, 2) }}</td> @endif
+                                        @if($columns['porcentaje']) <td>{{ number_format($surchargePercent, 1) }}%</td> @endif
+                                        @if($columns['comision'])
                                         <td class="text-right text-success">
                                             ${{ number_format($commAmt, 2) }}
                                             @if($commPercent > 0)
                                                 <br><small class="text-muted">({{ number_format($commPercent, 1) }}%)</small>
                                             @endif
                                         </td>
+                                        @endif
+                                        @if($columns['flete'])
                                         <td class="text-right text-info">
                                             ${{ number_format($freightAmt, 2) }}
                                             @if($freightPercent > 0)
                                                 <br><small class="text-muted">({{ number_format($freightPercent, 1) }}%)</small>
                                             @endif
                                         </td>
+                                        @endif
+                                        @if($columns['diferencial'])
                                         <td class="text-right text-warning">
                                             ${{ number_format($diffAmt, 2) }}
                                             @if($diffPercent > 0)
                                                 <br><small class="text-muted">({{ number_format($diffPercent, 1) }}%)</small>
                                             @endif
                                         </td>
-                                        <td class="text-right font-weight-bold">${{ number_format($sale->total_usd, 2) }}</td>
+                                        @endif
+                                        @if($columns['total']) <td class="text-right font-weight-bold">${{ number_format($sale->total_usd, 2) }}</td> @endif
+                                        @if($columns['credito'])
                                         <td>
                                             @if($creditUSD > 0.01)
                                                 <span class="text-danger">${{ number_format($creditUSD, 2) }}</span>
@@ -306,8 +462,10 @@
                                                 -
                                             @endif
                                         </td>
+                                        @endif
                                         
-                                        <td>{{ $sale->items }}</td>
+                                        @if($columns['articulos']) <td>{{ $sale->items }}</td> @endif
+                                        @if($columns['estatus'])
                                         <td>
                                             @if($sale->deletion_requested_at || $sale->status == 'returned')
                                                 @if($sale->deletion_requested_at && $sale->status != 'returned')
@@ -326,8 +484,9 @@
                                                     class="badge f-12 {{ $sale->status == 'paid' ? 'badge-success' : ($sale->status == 'return' ? 'badge-warning' : ($sale->status == 'pending' ? 'badge-warning' : 'badge-danger')) }} ">{{ $sale->status }}</span>
                                             @endif
                                         </td>
-                                        <td>{{ $sale->type }}</td>
-                                        <td>{{ $sale->created_at }}</td>
+                                        @endif
+                                        @if($columns['tipo']) <td>{{ $sale->type }}</td> @endif
+                                        @if($columns['fecha']) <td>{{ $sale->created_at }}</td> @endif
                                         <td class="text-primary"></td>
 
                                         <td data-container="body" data-bs-toggle="tooltip" data-bs-placement="top"
@@ -418,12 +577,17 @@
                                 @endforelse
                             </tbody>
                         </table>
+                        </div>
+                        
+                        @if(!$isGrouped)
                         <div class="mt-2">
                             @if (!is_array($sales))
                                 {{ $sales->links() }}
                             @endif
                         </div>
+                        @endif
                     </div>
+                    @endforeach
 
 
 

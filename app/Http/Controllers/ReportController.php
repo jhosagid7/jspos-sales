@@ -536,8 +536,14 @@ class ReportController extends Controller
             ->when($type != 0, function($q) use ($type) {
                 $q->where('type', $type);
             })
-            ->when($driver_id != null && $driver_id != 0, function($q) use ($driver_id) {
-                $q->where('driver_id', $driver_id);
+            ->when($driver_id !== null && $driver_id !== 'all', function($q) use ($driver_id) {
+                if ($driver_id === 'with_route') {
+                    $q->whereNotNull('driver_id');
+                } elseif ($driver_id === 'without_route') {
+                    $q->whereNull('driver_id');
+                } else {
+                    $q->where('driver_id', $driver_id);
+                }
             })
             ->orderBy('id', 'desc')
             ->get();
@@ -559,11 +565,23 @@ class ReportController extends Controller
         if ($type != 0) {
             $filterParts[] = "Tipo: " . ($type == 'cash' ? 'Contado' : 'Crédito');
         }
-        if ($driver_id && $driver_id != 0) {
-            $driverName = User::find($driver_id)?->name;
-            if ($driverName) $filterParts[] = "Chofer: {$driverName}";
+        if ($driver_id && $driver_id !== 'all') {
+            if ($driver_id === 'with_route') {
+                $filterParts[] = "Chofer: Con Ruta Asignada";
+            } elseif ($driver_id === 'without_route') {
+                $filterParts[] = "Chofer: Sin Ruta Asignada";
+            } else {
+                $driverName = User::find($driver_id)?->name;
+                if ($driverName) $filterParts[] = "Chofer: {$driverName}";
+            }
         }
         $filterInfo = !empty($filterParts) ? implode(' | ', $filterParts) : null;
+
+        $columns = json_decode($request->get('columns'), true) ?? [
+            'folio' => true, 'cliente' => true, 'base' => true, 'porcentaje' => true,
+            'comision' => true, 'flete' => true, 'diferencial' => true, 'total' => true,
+            'credito' => true, 'articulos' => true, 'estatus' => true, 'tipo' => true, 'fecha' => true,
+        ];
 
         // Build summary
         $summary = [
@@ -624,14 +642,61 @@ class ReportController extends Controller
         $config = Configuration::first();
         $user = auth()->user();
 
+        $groupBy = $request->get('groupBy', 'none');
+        $isGrouped = $groupBy !== 'none';
+        $groupedSales = null;
+
+        if ($isGrouped) {
+            $groupedData = [];
+            foreach ($sales as $sale) {
+                $key = ''; 
+                $name = '';
+                
+                if ($groupBy == 'customer_id') {
+                    $key = $sale->customer_id ?? 'NA'; 
+                    $name = $sale->customer?->name ?? 'SIN CLIENTE';
+                } elseif ($groupBy == 'user_id') {
+                    $key = $sale->user_id ?? 'NA'; 
+                    $name = $sale->user?->name ?? 'SIN OPERADOR';
+                } elseif ($groupBy == 'seller_id') {
+                    $key = $sale->customer?->seller_id ?? 'NA';
+                    $name = $sale->customer?->seller?->name ?? 'SIN VENDEDOR';
+                } elseif ($groupBy == 'driver_id') {
+                    $key = $sale->driver_id ?? 'NA';
+                    $name = $sale->driver?->name ?? 'SIN CHOFER';
+                } elseif ($groupBy == 'date') {
+                    $key = $sale->created_at->format('Y-m-d'); 
+                    $name = $sale->created_at->format('d/m/Y');
+                }
+
+                if (!isset($groupedData[$key])) { 
+                    $groupedData[$key] = ['name' => $name, 'sales' => [], 'total_usd' => 0]; 
+                }
+                $groupedData[$key]['sales'][] = $sale;
+                $groupedData[$key]['total_usd'] += $sale->total_usd;
+            }
+            
+            if ($groupBy == 'date') {
+                krsort($groupedData);
+            } else {
+                uasort($groupedData, function($a, $b) {
+                    return strcmp($a['name'], $b['name']);
+                });
+            }
+            $groupedSales = $groupedData;
+        }
+
         $pdf = Pdf::loadView('reports.general-sales-report-pdf', [
             'sales' => $sales,
+            'groupedSales' => $groupedSales,
+            'isGrouped' => $isGrouped,
             'summary' => $summary,
             'config' => $config,
             'user' => $user,
             'dateFrom' => $dateFrom,
             'dateTo' => $dateTo,
             'filterInfo' => $filterInfo,
+            'columns' => $columns,
         ])->setPaper('a4', 'landscape');
 
         return $pdf->stream('Reporte_Ventas_General.pdf');

@@ -1,3 +1,16 @@
+## [1.10.131] - 2026-06-09
+### Added
+- **Agrupamiento en Reporte de Ventas General**: Se agregó la funcionalidad para agrupar las ventas por Fecha, Cliente, Operador (Cajero/Oficina), Vendedor o Chofer/Ruta en la vista web del reporte de ventas general.
+- **Columnas Opcionales/Desactivables**: Se implementaron selectores interactivos para mostrar u ocultar las columnas de "Operador" y "Vendedor" tanto en la interfaz web como en el PDF para mayor claridad en pantallas y reportes impresos.
+- **Visualización Agrupada en Web**: La tabla en Livewire ahora renderiza sub-tablas con cabeceras que indican el criterio de agrupación y filas de subtotales (Base, recargos y Total) para cada grupo.
+
+### Changed
+- **Estructura del PDF**: Se adaptó el generador de PDF en `ReportController` y la vista `general-sales-report-pdf.blade.php` para mantener la misma coherencia de agrupamiento y visibilidad de columnas seleccionada en la vista web.
+
+### Fixed
+- **Caracteres Especiales en DomPDF**: Se corrigió un problema donde los emojis de carpetas (📂) causaban que DomPDF renderizara signos de interrogación (`?`) en el PDF de reporte de ventas general. Se reemplazó por un marcador visual unicode compatible.
+- **Manejo de Relaciones Nulas**: Se incorporaron validaciones y operadores null-safe en PHP al agrupar por campos de relaciones (vendedor, chofer/ruta) previniendo errores de tipo `null given` cuando un registro de venta carece de vendedor o chofer asociado.
+
 ## [1.10.130] - 2026-06-09
 ### Added
 - **Previsualización PDF del Reporte de Ventas General**: Se agregó un botón "Vista Previa PDF" en el panel de opciones del Reporte de Ventas General que abre un modal fullscreen con el PDF embebido en un iframe, idéntico en UX al Reporte de Ventas Diarias.
