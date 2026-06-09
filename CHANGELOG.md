@@ -1,3 +1,13 @@
+## [1.10.130] - 2026-06-09
+### Added
+- **Previsualización PDF del Reporte de Ventas General**: Se agregó un botón "Vista Previa PDF" en el panel de opciones del Reporte de Ventas General que abre un modal fullscreen con el PDF embebido en un iframe, idéntico en UX al Reporte de Ventas Diarias.
+- **Plantilla PDF**: Nueva plantilla `general-sales-report-pdf.blade.php` en orientación landscape con encabezado de empresa, período, filtros aplicados, tabla de transacciones con desglose de recargos (Base, %, Comisión, Flete, Dif., Total, Crédito, Artículos, Estatus, Tipo, Fecha) con porcentajes individuales configurados y fila de totales.
+- **Ruta y Controlador**: Nueva ruta `reports/sales/pdf` y método `generalSalesPdf()` en `ReportController` que replica la misma lógica de filtrado y cálculo de recargos del componente Livewire.
+- **Resumen en PDF**: Bloque de resumen con totales de facturas, artículos, base USD, ventas USD, crédito pendiente y desglose contado/crédito.
+
+### Tests
+- Se agregaron 4 pruebas de feature en `GeneralSalesReportPdfTest`: respuesta HTTP 200, content-type PDF, filtros (usuario, vendedor, cliente, tipo, chofer) y manejo de reporte sin ventas.
+
 ## [1.10.129] - 2026-06-08
 ### Fixed
 - **Porcentaje Efectivo de Recargos en Reporte de Ventas General**: Se corrigió la columna `%` del reporte de ventas general para que calcule y muestre el porcentaje efectivo compuesto para ventas secuenciales (`(1 + (Comisión% + Flete%)/100) × (1 + Dif%/100) − 1`) en lugar de la suma simple incorrecta. Para ventas anteriores a la fecha de corte se mantiene el cálculo aditivo original.

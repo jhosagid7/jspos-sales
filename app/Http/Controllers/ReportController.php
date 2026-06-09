@@ -497,6 +497,146 @@ class ReportController extends Controller
         return $pdf->stream('Reporte_Ventas_Diarias.pdf');
     }
 
+    public function generalSalesPdf(Request $request)
+    {
+        $dateFrom = $request->get('dateFrom');
+        $dateTo = $request->get('dateTo');
+        $user_id = $request->get('user_id');
+        $seller_id = $request->get('seller_id');
+        $customer_id = $request->get('customer_id');
+        $type = $request->get('type', 0);
+        $searchFactura = $request->get('searchFactura');
+        $driver_id = $request->get('driver_id');
+
+        $dFrom = $dateFrom ? Carbon::parse($dateFrom)->startOfDay() : null;
+        $dTo = $dateTo ? Carbon::parse($dateTo)->endOfDay() : null;
+
+        $sales = Sale::with(['customer', 'details', 'user', 'paymentDetails'])
+            ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
+                $q->whereBetween('created_at', [$dFrom, $dTo]);
+            })
+            ->when(!empty(trim($searchFactura ?? '')), function($q) use ($searchFactura) {
+                $searchValue = trim($searchFactura);
+                $q->where(function($sub) use ($searchValue) {
+                    $sub->where('id', 'like', "%{$searchValue}%")
+                        ->orWhere('invoice_number', 'like', "%{$searchValue}%");
+                });
+            })
+            ->when($user_id != null && $user_id != 0, function($q) use ($user_id) {
+                $q->where('user_id', $user_id);
+            })
+            ->when($seller_id != null && $seller_id != 0, function($q) use ($seller_id) {
+                $q->whereHas('customer', function($c) use ($seller_id) {
+                    $c->where('seller_id', $seller_id);
+                });
+            })
+            ->when($customer_id != null, function($q) use ($customer_id) {
+                $q->where('customer_id', $customer_id);
+            })
+            ->when($type != 0, function($q) use ($type) {
+                $q->where('type', $type);
+            })
+            ->when($driver_id != null && $driver_id != 0, function($q) use ($driver_id) {
+                $q->where('driver_id', $driver_id);
+            })
+            ->orderBy('id', 'desc')
+            ->get();
+
+        // Build filter info string for the PDF header
+        $filterParts = [];
+        if ($user_id && $user_id != 0) {
+            $userName = User::find($user_id)?->name;
+            if ($userName) $filterParts[] = "Usuario: {$userName}";
+        }
+        if ($seller_id && $seller_id != 0) {
+            $sellerName = User::find($seller_id)?->name;
+            if ($sellerName) $filterParts[] = "Vendedor: {$sellerName}";
+        }
+        if ($customer_id) {
+            $customerName = \App\Models\Customer::find($customer_id)?->name;
+            if ($customerName) $filterParts[] = "Cliente: {$customerName}";
+        }
+        if ($type != 0) {
+            $filterParts[] = "Tipo: " . ($type == 'cash' ? 'Contado' : 'Crédito');
+        }
+        if ($driver_id && $driver_id != 0) {
+            $driverName = User::find($driver_id)?->name;
+            if ($driverName) $filterParts[] = "Chofer: {$driverName}";
+        }
+        $filterInfo = !empty($filterParts) ? implode(' | ', $filterParts) : null;
+
+        // Build summary
+        $summary = [
+            'total_count' => $sales->count(),
+            'total_items' => $sales->sum('items'),
+            'total_base' => 0,
+            'total_usd' => $sales->sum('total_usd'),
+            'total_credit' => 0,
+            'count_cash' => $sales->where('type', 'cash')->count(),
+            'count_credit' => $sales->where('type', 'credit')->count(),
+        ];
+
+        // Calculate total base and credit
+        $cutOffDate = \App\Services\ConfigurationService::getSequentialCutOffDate();
+        foreach ($sales as $sale) {
+            $base = $sale->base_amount > 0 ? floatval($sale->base_amount) : 0;
+            $commPercent = $sale->resolved_commission_percent;
+            $freightPercent = $sale->resolved_freight_percent;
+            $diffPercent = $sale->resolved_exchange_diff_percent;
+            $isSequential = $sale->created_at >= $cutOffDate;
+
+            if ($isSequential) {
+                $surchargePercent = (((1 + ($commPercent + $freightPercent) / 100) * (1 + $diffPercent / 100)) - 1) * 100;
+            } else {
+                $surchargePercent = $commPercent + $freightPercent + $diffPercent;
+            }
+
+            if ($base == 0 && $sale->total_usd > 0) {
+                if (!$isSequential) {
+                    $base = $surchargePercent > 0 ? $sale->total_usd / (1 + ($surchargePercent / 100)) : $sale->total_usd;
+                } else {
+                    $base = ($sale->total_usd / (1 + ($diffPercent / 100))) / (1 + (($commPercent + $freightPercent) / 100));
+                }
+            }
+
+            // Guard: fix if base stored in local currency
+            if ($base > ($sale->total_usd * 1.5) && $sale->primary_exchange_rate > 1) {
+                $base = $base / $sale->primary_exchange_rate;
+            }
+
+            $summary['total_base'] += $base;
+
+            // Credit calculation
+            $totalPaidUSD = 0;
+            foreach ($sale->paymentDetails as $payment) {
+                $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
+                $totalPaidUSD += ($payment->amount / $rate);
+            }
+            if ($sale->paymentDetails->count() == 0 && $sale->type == 'cash') {
+                $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                $totalPaidUSD += ($sale->cash / $rate);
+            }
+            if ($sale->status != 'paid' && $sale->status != 'returned') {
+                $summary['total_credit'] += max(0, $sale->total_usd - $totalPaidUSD);
+            }
+        }
+
+        $config = Configuration::first();
+        $user = auth()->user();
+
+        $pdf = Pdf::loadView('reports.general-sales-report-pdf', [
+            'sales' => $sales,
+            'summary' => $summary,
+            'config' => $config,
+            'user' => $user,
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+            'filterInfo' => $filterInfo,
+        ])->setPaper('a4', 'landscape');
+
+        return $pdf->stream('Reporte_Ventas_General.pdf');
+    }
+
     public function dispatchPdf(Request $request)
     {
         $dateFrom = $request->get('dateFrom');

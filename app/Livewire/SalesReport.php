@@ -27,6 +27,8 @@ class SalesReport extends Component
     public $customer; // New property for customer filter
     public $drivers = [], $driver_id, $selectedSaleId;
     public $saleHistory = []; // Para almacenar los logs de auditoria
+    public $showPdfModal = false;
+    public $pdfUrl = '';
 
     public function searchData()
     {
@@ -492,5 +494,28 @@ class SalesReport extends Component
 
         session(['editing_sale_id' => $saleId]);
         return redirect()->route('sales');
+    }
+
+    public function openPdfPreview()
+    {
+        $params = [
+            'dateFrom' => $this->dateFrom,
+            'dateTo' => $this->dateTo,
+            'user_id' => $this->user_id,
+            'seller_id' => $this->seller_id,
+            'customer_id' => $this->customer ? $this->customer['id'] : null,
+            'type' => $this->type,
+            'searchFactura' => $this->searchFactura,
+            'driver_id' => $this->driver_id,
+        ];
+
+        $this->pdfUrl = route('reports.general.sales.pdf', $params);
+        $this->showPdfModal = true;
+    }
+
+    public function closePdfPreview()
+    {
+        $this->showPdfModal = false;
+        $this->pdfUrl = '';
     }
 }
