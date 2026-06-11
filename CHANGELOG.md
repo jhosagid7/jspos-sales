@@ -1,3 +1,13 @@
+## [1.10.133] - 2026-06-11
+### Fixed
+- **Guardado y Resolución de Flete**: Se corrigió un problema donde los montos y porcentajes del flete configurados en el cliente no se guardaban en la base de datos (quedando en $0.00 / 0%) cuando el cajero/oficina desmarcaba manualmente "Aplicar Solo Flete" pero mantenía "Aplicar Comisiones" activo. Ahora, el flete se resuelve y almacena si cualquiera de los dos switches está activo.
+- **Lógica de Órdenes**: Se actualizó el guardado de órdenes (`storeOrder`) para persistir la bandera `apply_freight` como `applyCommissions || applyFreight`, asegurando que al recargar la orden para edición o facturación no se pierda la configuración de flete.
+- **Estructura de Vistas**: Se corrigió un error en `items-grid.blade.php` donde se intentaba leer de forma insegura el nombre del rol del usuario (`roles[0]->name`), lo que causaba un fallo si el usuario actual no tenía roles asignados. Se cambió por una sintaxis segura utilizando opcionales.
+
+### Tests
+- **Prueba de Resolución de Flete**: Se agregó la prueba unitaria/de integración `test_freight_resolved_when_only_apply_commissions_is_true` en `HierarchicalCommissionTest.php` para validar que el flete se resuelva y se guarde correctamente tanto en órdenes como en ventas.
+- **Aislamiento de Pruebas**: Se solucionó un problema de restauración de base de datos en Livewire (`EloquentModelSynth`) derivado de la persistencia de caché estática en `ConfigurationService` entre ejecuciones de PHPUnit, limpiando la caché en el `setUp()` del test.
+
 ## [1.10.132] - 2026-06-10
 ### Fixed
 - **Cálculo Individual de Recargos en Clientes**: Se corrigió un error en los métodos de resolución de recargos (`resolved_commission_percent`, `resolved_freight_percent` y `resolved_exchange_diff_percent`) en los modelos `Sale` y `Order`. Anteriormente, el sistema utilizaba un flag grupal (`$customerHasConfig`) que anulaba la herencia de tasas individuales (como el flete del vendedor) si el cliente tenía cualquier otra tarifa configurada (ej. solo comisión). Ahora la resolución y fallback al vendedor se realiza de manera independiente por cada columna.

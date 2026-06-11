@@ -653,7 +653,7 @@
                         @empty
                             <tr>
                                 <td colspan="6" class="text-center">Agrega productos al carrito
-                                    {{ Auth::user()->roles[0]->name }}
+                                    {{ Auth::user()->roles->first()?->name ?? '' }}
                                 </td>
                             </tr>
                         @endforelse

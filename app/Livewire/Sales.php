@@ -3674,7 +3674,7 @@ class Sales extends Component
                     : ($this->sellerConfig ? $this->sellerConfig->exchange_diff_percent : 0);
             }
 
-            if ($this->applyFreight) {
+            if ($this->applyCommissions || $this->applyFreight) {
                 $appliedFreight = ($this->customerConfig && $this->customerConfig->freight_percent > 0)
                     ? $this->customerConfig->freight_percent
                     : ($this->sellerConfig ? $this->sellerConfig->freight_percent : 0);
@@ -4263,7 +4263,7 @@ class Sales extends Component
                     : ($this->sellerConfig ? $this->sellerConfig->exchange_diff_percent : 0);
             }
 
-            if ($this->applyFreight) {
+            if ($this->applyCommissions || $this->applyFreight) {
                 $appliedFreight = ($this->customerConfig && $this->customerConfig->freight_percent > 0)
                     ? $this->customerConfig->freight_percent
                     : ($this->sellerConfig ? $this->sellerConfig->freight_percent : 0);
@@ -4286,7 +4286,7 @@ class Sales extends Component
                         // 'user_id' => Auth()->user()->id, // DO NOT OVERWRITE OWNER
                         'status' => 'pending',
                         'apply_commissions' => $this->applyCommissions,
-                        'apply_freight' => $this->applyFreight,
+                        'apply_freight' => $this->applyCommissions || $this->applyFreight,
                         'is_freight_broken_down' => $this->is_freight_broken_down,
                         'invoice_currency_id' => $this->invoiceCurrency_id,
                         'driver_id' => $this->driver_id ?: null,
@@ -4394,7 +4394,7 @@ class Sales extends Component
                     'user_id' => Auth()->user()->id,
                     'status' => 'pending',
                     'apply_commissions' => $this->applyCommissions,
-                    'apply_freight' => $this->applyFreight,
+                    'apply_freight' => $this->applyCommissions || $this->applyFreight,
                     'is_freight_broken_down' => $this->is_freight_broken_down,
                     'invoice_currency_id' => $this->invoiceCurrency_id,
                     'driver_id' => $this->driver_id ?: null,

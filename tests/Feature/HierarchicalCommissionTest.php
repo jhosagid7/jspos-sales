@@ -18,12 +18,19 @@ class HierarchicalCommissionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Reset static cache in ConfigurationService
+        $ref = new \ReflectionClass(\App\Services\ConfigurationService::class);
+        $prop = $ref->getProperty('config');
+        $prop->setAccessible(true);
+        $prop->setValue(null);
+
         Configuration::create([
             'business_name' => 'Test Business',
             'bcv_rate' => 54.50,
             'binance_rate' => 70.00,
             'binance_markup_points' => 5.00,
         ]);
+        $this->seed(\Database\Seeders\CurrencySeeder::class);
     }
 
     public function test_global_commission_logic()
@@ -222,6 +229,130 @@ class HierarchicalCommissionTest extends TestCase
         $this->assertEquals(8.00, $order->resolved_commission_percent);
         $this->assertEquals(6.00, $order->resolved_freight_percent);
         $this->assertEquals(60.00, $order->resolved_exchange_diff_percent);
+    }
+
+    public function test_freight_resolved_when_only_apply_commissions_is_true()
+    {
+        // Setup config modules
+        config([
+            'tenant.modules' => [
+                'module_commissions'
+            ],
+        ]);
+
+        $seller = User::factory()->create();
+        $role = \Spatie\Permission\Models\Role::findOrCreate('Seller');
+        $seller->assignRole($role);
+        \Spatie\Permission\Models\Permission::findOrCreate('sales.manage_adjustments');
+        $seller->givePermissionTo('sales.manage_adjustments');
+        
+        $customer = Customer::create([
+            'name' => 'Test Customer',
+            'taxpayer_id' => 'V99999999',
+            'address' => 'Customer Address',
+            'city' => 'Caracas',
+            'phone' => '0412-1111111',
+            'email' => 'customer@email.com',
+            'seller_id' => $seller->id,
+        ]);
+
+        $customerConfig = \App\Models\CustomerConfig::create([
+            'customer_id' => $customer->id,
+            'commission_percent' => 8.00,
+            'freight_percent' => 6.00,
+            'exchange_diff_percent' => 45.00,
+        ]);
+
+        $category = \App\Models\Category::create([
+            'name' => 'Test Category',
+        ]);
+
+        $supplier = \App\Models\Supplier::create([
+            'name' => 'Test Supplier',
+            'taxpayer_id' => 'J88888888',
+            'address' => 'Supplier Address',
+            'phone' => '0212-2222222',
+        ]);
+
+        $product = \App\Models\Product::create([
+            'name' => 'Test Product',
+            'sku' => 'TEST-SKU',
+            'cost' => 10.00,
+            'price' => 10.00,
+            'manage_stock' => false,
+            'stock_qty' => 100,
+            'low_stock' => 0,
+            'supplier_id' => $supplier->id,
+            'category_id' => $category->id,
+        ]);
+
+        $this->actingAs($seller);
+
+        // Test Livewire component
+        $component = \Livewire\Livewire::test(\App\Livewire\Sales::class)
+            ->call('setCustomer', $customer->toArray());
+
+        // Under this state:
+        // applyCommissions = true
+        // applyFreight = true (auto-enabled on setCustomer)
+        $this->assertTrue($component->get('applyCommissions'));
+        $this->assertTrue($component->get('applyFreight'));
+
+        // If cashier unchecks applyFreight manually but keeps applyCommissions = true
+        $component->set('applyFreight', false);
+        $this->assertTrue($component->get('applyCommissions'));
+        $this->assertFalse($component->get('applyFreight'));
+
+        // Setup Cart session (required for storeOrder)
+        $cartItem = [
+            'id' => $product->id,
+            'pid' => $product->id,
+            'sku' => $product->sku,
+            'name' => $product->name,
+            'qty' => 2,
+            'price' => 10.00,
+            'base_price' => 10.00,
+            'sale_price' => 16.53, // compound: 10 * 1.14 * 1.45 = 16.53
+            'tax' => 0.00,
+            'total' => 33.06,
+            'pricelist' => [],
+        ];
+        session(['cart' => [$cartItem]]);
+        $component->set('cart', collect([$cartItem]));
+        $component->set('totalCart', 33.06);
+        $component->set('itemsCart', 2);
+
+        // Call storeOrder
+        $component->call('storeOrder');
+
+        // Verify that the order was created and saved correctly with apply_freight = true
+        $order = \App\Models\Order::where('customer_id', $customer->id)->first();
+        $this->assertNotNull($order);
+        $this->assertTrue((bool)$order->apply_freight, "Order apply_freight should be true because applyCommissions was true");
+        $this->assertEquals(6.00, $order->resolved_freight_percent);
+        $this->assertEquals(1.20, floatval($order->freight_amount), "Order freight_amount should be 6% of base (20 * 0.06 = 1.20)");
+
+        // Call Store (for sales)
+        // Set payType to 2 (credit)
+        $component->set('payType', 2);
+        // Clear order_id to simulate new sale
+        $component->set('order_id', null);
+        
+        // Setup Cart session again since storeOrder cleared/updated things
+        $component->call('setCustomer', $customer->toArray());
+        $component->set('applyFreight', false);
+        session(['cart' => [$cartItem]]);
+        $component->set('cart', collect([$cartItem]));
+        $component->set('totalCart', 33.06);
+        $component->set('itemsCart', 2);
+        
+        $component->call('Store', new \App\Services\CashRegisterService());
+
+        // Verify that the sale was created and saved correctly with applied_freight_percent = 6.00
+        $sale = \App\Models\Sale::where('customer_id', $customer->id)->first();
+        $this->assertNotNull($sale);
+        $this->assertEquals(6.00, floatval($sale->applied_freight_percent), "Sale applied_freight_percent should be 6.00");
+        $this->assertEquals(1.20, floatval($sale->freight_amount), "Sale freight_amount should be 1.20");
     }
 }
 
