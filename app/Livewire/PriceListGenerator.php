@@ -378,30 +378,24 @@ class PriceListGenerator extends Component
         $freightPercent = 0;
         if ($this->customFreight !== null && $this->customFreight !== '') {
             $freightPercent = floatval($this->customFreight);
-        } elseif ($customerConfig && $customerConfig->freight_percent > 0) {
+        } elseif ($customerConfig) {
             $freightPercent = floatval($customerConfig->freight_percent);
-        } elseif ($sellerConfig) {
-            $freightPercent = floatval($sellerConfig->freight_percent ?? 0);
         }
 
         // Commission
         $commPercent = 0;
         if ($this->customCommission !== null && $this->customCommission !== '') {
             $commPercent = floatval($this->customCommission);
-        } elseif ($customerConfig && $customerConfig->commission_percent > 0) {
+        } elseif ($customerConfig) {
             $commPercent = floatval($customerConfig->commission_percent);
-        } elseif ($sellerConfig) {
-            $commPercent = floatval($sellerConfig->commission_percent ?? 0);
         }
 
         // Exchange Diff
         $diffPercent = 0;
         if ($this->customExchangeDiff !== null && $this->customExchangeDiff !== '') {
             $diffPercent = floatval($this->customExchangeDiff);
-        } elseif ($customerConfig && $customerConfig->exchange_diff_percent > 0) {
+        } elseif ($customerConfig) {
             $diffPercent = floatval($customerConfig->exchange_diff_percent);
-        } elseif ($sellerConfig) {
-            $diffPercent = floatval($sellerConfig->exchange_diff_percent ?? 0);
         }
 
         // USD Discount

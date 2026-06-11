@@ -177,29 +177,16 @@
                                                     <ul class="mb-0 small">
                                                         <li><strong>Días de crédito:</strong> {{ $creditConfig['credit_days'] ?? 'N/A' }} días</li>
                                                         <li><strong>Límite de crédito:</strong> {{ $symbol }}{{ formatMoney($creditConfig['credit_limit'] ?? 0) }}</li>
-                                                        <li><strong>Origen configuración:</strong> {{ ucfirst($creditConfig['source'] ?? 'N/A') }}</li>
-                                                        @if(isset($creditConfig['source_name']))
-                                                            <li><strong>Configurado por:</strong> {{ $creditConfig['source_name'] }}</li>
-                                                        @endif
                                                         @php
-                                                            $activeComm2 = ($customerConfig && $customerConfig->commission_percent > 0)
-                                                                ? $customerConfig->commission_percent
-                                                                : ($sellerConfig->commission_percent ?? 0);
-                                                            $activeFreight2 = ($customerConfig && $customerConfig->freight_percent > 0)
-                                                                ? $customerConfig->freight_percent
-                                                                : ($sellerConfig->freight_percent ?? 0);
-                                                            $activeDiff2 = ($customerConfig && $customerConfig->exchange_diff_percent > 0)
-                                                                ? $customerConfig->exchange_diff_percent
-                                                                : ($sellerConfig->exchange_diff_percent ?? 0);
-                                                            $commSrc2 = ($customerConfig && $customerConfig->commission_percent > 0) ? 'Cliente' : 'Vendedor';
-                                                            $freightSrc2 = ($customerConfig && $customerConfig->freight_percent > 0) ? 'Cliente' : 'Vendedor';
-                                                            $diffSrc2 = ($customerConfig && $customerConfig->exchange_diff_percent > 0) ? 'Cliente' : 'Vendedor';
-                                                        @endphp
-                                                        <li><strong>Comisión:</strong> {{ $activeComm2 }}% <em>({{ $commSrc2 }})</em></li>
-                                                        @if(!auth()->user()->can('system.is_foreign_seller') || auth()->user()->hasRole('Admin') || auth()->user()->hasRole('Super Admin'))
-                                                            <li><strong>Flete:</strong> {{ $activeFreight2 }}% <em>({{ $freightSrc2 }})</em></li>
-                                                            <li><strong>Diferencial:</strong> {{ $activeDiff2 }}% <em>({{ $diffSrc2 }})</em></li>
-                                                        @endif
+                                                             $activeComm2 = $customerConfig ? floatval($customerConfig->commission_percent) : 0;
+                                                             $activeFreight2 = $customerConfig ? floatval($customerConfig->freight_percent) : 0;
+                                                             $activeDiff2 = $customerConfig ? floatval($customerConfig->exchange_diff_percent) : 0;
+                                                         @endphp
+                                                         <li><strong>Comisión:</strong> {{ $activeComm2 }}%</li>
+                                                         @if(!auth()->user()->can('system.is_foreign_seller') || auth()->user()->hasRole('Admin') || auth()->user()->hasRole('Super Admin'))
+                                                             <li><strong>Flete:</strong> {{ $activeFreight2 }}%</li>
+                                                             <li><strong>Diferencial:</strong> {{ $activeDiff2 }}%</li>
+                                                         @endif
                                                         @if(isset($creditConfig['usd_payment_discount']) && $creditConfig['usd_payment_discount'] > 0)
                                                             <li><strong>Desc. Pago Divisa:</strong> {{ $creditConfig['usd_payment_discount'] }}%</li>
                                                         @endif

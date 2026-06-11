@@ -206,10 +206,10 @@ class HierarchicalCommissionTest extends TestCase
         // Verify resolved percentages on Sale
         // Commission should be customer's 8.00%
         $this->assertEquals(8.00, $sale->resolved_commission_percent);
-        // Freight should fall back to seller's 6.00%
-        $this->assertEquals(6.00, $sale->resolved_freight_percent);
-        // Exchange diff should fall back to seller's 60.00%
-        $this->assertEquals(60.00, $sale->resolved_exchange_diff_percent);
+        // Freight should be customer's 0.00% (no fallback to seller config)
+        $this->assertEquals(0.00, $sale->resolved_freight_percent);
+        // Exchange diff should be customer's 0.00% (no fallback to seller config)
+        $this->assertEquals(0.00, $sale->resolved_exchange_diff_percent);
 
         // Create Order
         $order = \App\Models\Order::create([
@@ -227,8 +227,8 @@ class HierarchicalCommissionTest extends TestCase
 
         // Verify resolved percentages on Order
         $this->assertEquals(8.00, $order->resolved_commission_percent);
-        $this->assertEquals(6.00, $order->resolved_freight_percent);
-        $this->assertEquals(60.00, $order->resolved_exchange_diff_percent);
+        $this->assertEquals(0.00, $order->resolved_freight_percent);
+        $this->assertEquals(0.00, $order->resolved_exchange_diff_percent);
     }
 
     public function test_freight_resolved_when_only_apply_commissions_is_true()

@@ -31,9 +31,7 @@ class ProductController extends Controller
             }
         }
 
-        if (!$config) {
-            $config = $user->latestSellerConfig;
-        }
+
 
         $products = Product::query()
             ->where('show_in_sales', true)

@@ -368,9 +368,9 @@
                                                                     {{-- Vendedor Foráneo: Mostrar precio calculado --}}
                                                                     @php
                                                                         // Calcular precio final visual (debe coincidir con la lógica del backend)
-                                                                        $activeComm = ($customerConfig && $customerConfig->commission_percent > 0) ? $customerConfig->commission_percent : ($sellerConfig->commission_percent ?? 0);
-                                                                        $activeFreight = ($customerConfig && $customerConfig->freight_percent > 0) ? $customerConfig->freight_percent : ($sellerConfig->freight_percent ?? 0);
-                                                                        $activeDiff = ($customerConfig && $customerConfig->exchange_diff_percent > 0) ? $customerConfig->exchange_diff_percent : ($sellerConfig->exchange_diff_percent ?? 0);
+                                                                        $activeComm = $customerConfig ? floatval($customerConfig->commission_percent) : 0;
+                                                                        $activeFreight = $customerConfig ? floatval($customerConfig->freight_percent) : 0;
+                                                                        $activeDiff = $customerConfig ? floatval($customerConfig->exchange_diff_percent) : 0;
                                                                         
                                                                         $markupPercent = $activeComm + $activeFreight + $activeDiff;
                                                                         $finalPrice = $priceInTarget * (1 + $markupPercent / 100);

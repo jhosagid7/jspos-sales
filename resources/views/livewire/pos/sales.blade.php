@@ -210,14 +210,14 @@
                                     $alertClass = $customer['has_overdue'] ? 'alert-danger' : 'alert-warning';
                                 }
                                 
-                                    $activeComm = ($customerConfig && $customerConfig->commission_percent > 0) ? $customerConfig->commission_percent : ($sellerConfig ? $sellerConfig->commission_percent : 0);
-                                    $commSource = ($customerConfig && $customerConfig->commission_percent > 0) ? 'Cliente' : 'Vendedor/Global';
+                                    $activeComm = $customerConfig ? floatval($customerConfig->commission_percent) : 0;
+                                    $commSource = 'Cliente';
 
-                                    $activeFreight = ($customerConfig && $customerConfig->freight_percent > 0) ? $customerConfig->freight_percent : ($sellerConfig ? $sellerConfig->freight_percent : 0);
-                                    $freightSource = ($customerConfig && $customerConfig->freight_percent > 0) ? 'Cliente' : 'Vendedor/Global';
+                                    $activeFreight = $customerConfig ? floatval($customerConfig->freight_percent) : 0;
+                                    $freightSource = 'Cliente';
 
-                                    $activeDiff = ($customerConfig && $customerConfig->exchange_diff_percent > 0) ? $customerConfig->exchange_diff_percent : ($sellerConfig ? $sellerConfig->exchange_diff_percent : 0);
-                                    $diffSource = ($customerConfig && $customerConfig->exchange_diff_percent > 0) ? 'Cliente' : 'Vendedor/Global';
+                                    $activeDiff = $customerConfig ? floatval($customerConfig->exchange_diff_percent) : 0;
+                                    $diffSource = 'Cliente';
                                 @endphp
                                 
                                 <div class="alert {{ $alertClass }} p-2" style="font-size: 0.85rem;">

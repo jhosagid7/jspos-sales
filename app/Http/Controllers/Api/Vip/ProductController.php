@@ -23,10 +23,7 @@ class ProductController extends Controller
         // Get Config (Customer specific or Seller fallback)
         $config = $customer->latestCustomerConfig;
         
-        // If customer doesn't have a specific config, inherit from their seller
-        if (!$config && $customer->seller) {
-            $config = $customer->seller->latestSellerConfig;
-        }
+
 
         // Warehouse determination: From Seller -> Default global
         $warehouseId = $customer->seller->warehouse_id ?? $globalConfig->default_warehouse_id ?? 1;

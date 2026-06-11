@@ -37,9 +37,7 @@ class Users extends Component
         'user.status' => 'required|in:Active,Locked',
         'user.profile' => 'required', // agregar esta regla
         'user.commission_percentage' => 'nullable|numeric|min:0|max:100',
-        'commission_percent' => 'nullable|numeric|min:0|max:100',
-        'freight_percent' => 'nullable|numeric|min:0|max:100',
-        'exchange_diff_percent' => 'nullable|numeric|min:0|max:1000',
+
         'sellerCommission1Threshold' => 'nullable|numeric',
         'sellerCommission1Percentage' => 'nullable|numeric',
         'sellerCommission2Threshold' => 'nullable|numeric',
@@ -93,11 +91,6 @@ class Users extends Component
         $this->user->status = 'Active';
         $this->user->profile = 0;
         $this->user->commission_percentage = 0;
-        $this->commission_percent = 0;
-        $this->freight_percent = 0;
-        $this->exchange_diff_percent = 0;
-        $this->exchange_diff_percent = 0;
-        $this->current_batch = '1';
         $this->resetCommissionFields();
         $this->editing = false;
 
@@ -149,9 +142,6 @@ class Users extends Component
         $this->user->status = 'Active'; // Default to Active
         $this->user->profile = 0;
         $this->user->commission_percentage = 0;
-        $this->commission_percent = 0;
-        $this->freight_percent = 0;
-        $this->exchange_diff_percent = 0;
         $this->resetCommissionFields();
         $this->editing = true;
         // Review: Reset passwords
@@ -205,20 +195,7 @@ class Users extends Component
             }
         }
 
-        $latestConfig = $user->latestSellerConfig;
-        if($latestConfig) {
-            $this->commission_percent = $latestConfig->commission_percent;
-            $this->freight_percent = $latestConfig->freight_percent;
-            $this->exchange_diff_percent = $latestConfig->exchange_diff_percent;
-            $this->current_batch = $latestConfig->current_batch;
-            $this->agreement = $latestConfig->agreement;
-        } else {
-            $this->commission_percent = 0;
-            $this->freight_percent = 0;
-            $this->exchange_diff_percent = 0;
-            $this->current_batch = '1';
-            $this->agreement = '';
-        }
+
 
         // CRITICAL: Reload roles for the dropdown
         $this->loadAllowedRoles();
@@ -241,9 +218,6 @@ class Users extends Component
         $this->resetExcept('user');
         $this->user = new User();
         $this->user->commission_percentage = 0;
-        $this->commission_percent = 0;
-        $this->freight_percent = 0;
-        $this->exchange_diff_percent = 0;
         $this->isNetwork = false;
         $this->printerHost = null;
         $this->printerShare = null;
@@ -366,24 +340,7 @@ class Users extends Component
 
             $this->user->save(); // Save again to persistence commission changes
 
-            // Create History Record (SellerConfig)
-            // Use permission check instead of hardcoded role name
             if ($this->isSeller($this->user->profile)) {
-                // Ensure values are not null
-                $commPercent = is_numeric($this->commission_percent) ? floatval($this->commission_percent) : 0;
-                $freightPercent = is_numeric($this->freight_percent) ? floatval($this->freight_percent) : 0;
-                $diffPercent = is_numeric($this->exchange_diff_percent) ? floatval($this->exchange_diff_percent) : 0;
-                $batch = $this->current_batch ?? '1';
-                
-                \App\Models\SellerConfig::create([
-                    'user_id' => $this->user->id,
-                    'commission_percent' => $commPercent,
-                    'freight_percent' => $freightPercent,
-                    'exchange_diff_percent' => $diffPercent,
-                    'current_batch' => $batch,
-                    'agreement' => $this->agreement
-                ]);
-                
                 // Save discount rules within transaction (if seller)
                 $this->saveDiscountRules();
             }
@@ -479,16 +436,7 @@ class Users extends Component
         
         $this->user->save();
 
-        if($this->isSeller($this->user->profile)) {
-            \App\Models\SellerConfig::create([
-                'user_id' => $this->user->id,
-                'commission_percent' => is_numeric($this->commission_percent) ? floatval($this->commission_percent) : 0,
-                'freight_percent' => is_numeric($this->freight_percent) ? floatval($this->freight_percent) : 0,
-                'exchange_diff_percent' => is_numeric($this->exchange_diff_percent) ? floatval($this->exchange_diff_percent) : 0,
-                'current_batch' => $this->current_batch ?? '1',
-                'agreement' => $this->agreement
-            ]);
-        }
+
         $this->dispatch('noty', msg: 'COMISIONES ACTUALIZADAS');
     }
 

@@ -78,18 +78,25 @@ class PriceSequentialCalculationTest extends TestCase
             'category_id' => $category->id,
             'freight_type' => 'none'
         ]);
- 
+
         $seller = User::factory()->create(['name' => 'Test Seller']);
-        $sellerConfig = SellerConfig::create([
-            'user_id' => $seller->id,
+        $customer = Customer::create([
+            'name' => 'Test Customer',
+            'taxpayer_id' => '123',
+            'address' => 'Addr',
+            'city' => 'City',
+            'seller_id' => $seller->id
+        ]);
+        $customerConfig = CustomerConfig::create([
+            'customer_id' => $customer->id,
             'commission_percent' => 8.00,
             'freight_percent' => 6.00,
             'exchange_diff_percent' => 45.00
         ]);
- 
+
         // 2. Perform Calculation
-        $pricing = $this->calculator->calculate($product, $sellerConfig, null);
- 
+        $pricing = $this->calculator->calculate($product, null, $customer);
+
         // 3. Assertions
         // Commission = 10 * 8% = 0.8
         // Freight = 10 * 6% = 0.6
@@ -171,18 +178,25 @@ class PriceSequentialCalculationTest extends TestCase
             'category_id' => $category->id,
             'freight_type' => 'none'
         ]);
- 
+
         $seller = User::factory()->create(['name' => 'Test Seller']);
-        $sellerConfig = SellerConfig::create([
-            'user_id' => $seller->id,
+        $customer = Customer::create([
+            'name' => 'Test Customer',
+            'taxpayer_id' => '123',
+            'address' => 'Addr',
+            'city' => 'City',
+            'seller_id' => $seller->id
+        ]);
+        $customerConfig = CustomerConfig::create([
+            'customer_id' => $customer->id,
             'commission_percent' => 8.00,
             'freight_percent' => 6.00,
             'exchange_diff_percent' => 45.00
         ]);
- 
+
         $response = $this->actingAs($seller)
-            ->getJson('/api/products');
- 
+            ->getJson('/api/products?customer_id=' . $customer->id);
+
         $response->assertStatus(200);
         $data = $response->json();
         
@@ -247,19 +261,18 @@ class PriceSequentialCalculationTest extends TestCase
     public function test_resolved_percentage_accessors_and_fallbacks()
     {
         $seller = User::factory()->create(['name' => 'Test Seller']);
-        $sellerConfig = SellerConfig::create([
-            'user_id' => $seller->id,
-            'commission_percent' => 5.00,
-            'freight_percent' => 4.00,
-            'exchange_diff_percent' => 3.00
-        ]);
-
         $customer = Customer::create([
             'name' => 'Test Customer',
             'taxpayer_id' => '12345',
             'address' => 'Addr',
             'city' => 'City',
             'seller_id' => $seller->id
+        ]);
+        $customerConfig = CustomerConfig::create([
+            'customer_id' => $customer->id,
+            'commission_percent' => 5.00,
+            'freight_percent' => 4.00,
+            'exchange_diff_percent' => 3.00
         ]);
 
         // 1. Sale with NULL values (historical fallback)

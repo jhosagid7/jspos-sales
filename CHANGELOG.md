@@ -1,3 +1,16 @@
+## [1.10.134] - 2026-06-11
+### Added
+- **Centralización de Recargos en Clientes**: Se unificó la fuente de verdad de las configuraciones de recargos (comisión, flete y diferencial cambiario) a nivel de cliente (`CustomerConfig`). Se removió por completo la lógica de herencia y fallbacks a la configuración del vendedor foráneo (`SellerConfig`), logrando un único lugar de configuración y evitando retroactividades no deseadas ante cambios de vendedor.
+- **Migración de Configuraciones Activas**: Se implementó una migración automática que copia las configuraciones vigentes de `SellerConfig` a `CustomerConfig` para todos los clientes que no contaban con tarifas específicas, resguardando las condiciones comerciales activas de cada cliente.
+
+### Changed
+- **Lógica del POS y API**: Se actualizaron el modelo `Sale`, el modelo `Order`, el servicio `PriceCalculatorService` y el controlador Livewire `Sales` para calcular todos los recargos leyendo exclusivamente de `CustomerConfig`.
+- **Limpieza de Interfaz**: Se removieron los inputs de recargos (`commission_percent`, `freight_percent`, `exchange_diff_percent`, `current_batch` y `agreement`) en la pestaña de comisiones del Vendedor (Tab 4) en la creación/edición de usuarios, y se limpiaron los campos relacionados en el componente Livewire `Users`. Se actualizaron las vistas del POS (`sales.blade.php`, `payCash.blade.php`, `items-list.blade.php`, `items-grid.blade.php`) para remover leyendas de origen "Vendedor/Global".
+
+### Fixed
+- **Corrección Retroactiva de Fletes Históricos**: Se integró en la migración una rutina inteligente que detecta facturas históricas afectadas (donde el total guardado en base de datos incluía flete pero el campo `freight_amount` y `applied_freight_percent` se almacenaron como 0.00) y las corrige actualizando sus cabeceras, fletes detallados en artículos y diferenciales cambiarios correspondientes.
+- **Actualización de Pruebas Unitarias y de Integración**: Se adaptaron los tests en `PriceSequentialCalculationTest` y `HierarchicalCommissionTest` para interactuar únicamente con `CustomerConfig` en lugar de `SellerConfig`, logrando el 100% de éxito en la ejecución de la suite de PHPUnit.
+
 ## [1.10.133] - 2026-06-11
 ### Fixed
 - **Guardado y Resolución de Flete**: Se corrigió un problema donde los montos y porcentajes del flete configurados en el cliente no se guardaban en la base de datos (quedando en $0.00 / 0%) cuando el cajero/oficina desmarcaba manualmente "Aplicar Solo Flete" pero mantenía "Aplicar Comisiones" activo. Ahora, el flete se resuelve y almacena si cualquiera de los dos switches está activo.

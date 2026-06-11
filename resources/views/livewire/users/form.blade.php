@@ -315,65 +315,37 @@
                     <div class="tab-pane fade {{ $tab == 4 ? 'active show' : '' }}" role="tabpanel">
                         <div class="sidebar-body">
                              <div class="row mt-3">
-                                <div class="col-sm-12">
-                                    <h6 class="text-info">Configuración Vendedor Foráneo</h6>
-                                </div>
-                                <div class="col-sm-4 form-group mt-3">
-                                    <span class="form-label">Comisión (%)</span>
-                                    <input wire:model="commission_percent" class="form-control" type="number" step="0.01" min="0" max="100">
-                                </div>
-                                <div class="col-sm-4 form-group mt-3">
-                                    <span class="form-label text-primary"><strong>Meta Mensual (USD)</strong> <i class="fa fa-bullseye"></i></span>
-                                    <input wire:model="user.monthly_goal" class="form-control font-weight-bold" type="number" step="1" min="0">
-                                    <small class="text-muted">Meta de ventas para Dashboard móvil</small>
-                                </div>
-                                <div class="col-sm-4 form-group mt-3">
-                                    <span class="form-label">Flete (%)</span>
-                                    <input wire:model="freight_percent" class="form-control" type="number" step="0.01" min="0" max="100">
-                                </div>
-                                <div class="col-sm-4 form-group mt-3">
-                                    <span class="form-label">Dif. Cambiario (%)</span>
-                                    <input wire:model="exchange_diff_percent" class="form-control" type="number" step="0.01" min="0" max="1000">
-                                </div>
-                                <div class="col-sm-12 form-group mt-3">
-                                    <span class="form-label">Lote Actual</span>
-                                    <input wire:model="current_batch" class="form-control" type="text" placeholder="Ej: 1">
-                                </div>
+                                 <div class="col-sm-12">
+                                     <h6 class="text-info">Metas del Vendedor</h6>
+                                 </div>
+                                 <div class="col-sm-6 form-group mt-3">
+                                     <span class="form-label text-primary"><strong>Meta Mensual (USD)</strong> <i class="fa fa-bullseye"></i></span>
+                                     <input wire:model="user.monthly_goal" class="form-control font-weight-bold" type="number" step="1" min="0">
+                                     <small class="text-muted">Meta de ventas para Dashboard móvil</small>
+                                 </div>
 
-                                <div class="col-sm-12 mt-3">
-                                    <label class="form-label text-info"><strong>Acuerdo Comercial con el Vendedor</strong></label>
-                                    <textarea wire:model="agreement" class="form-control" rows="4" placeholder="Escriba aquí los términos acordados con este vendedor..."></textarea>
-                                    <small class="text-muted">Este acuerdo se mostrará al operador en el POS durante la venta.</small>
-                                </div>
+                                 <div class="col-sm-12 mt-4">
+                                     <h6 class="text-info">Sobrescribir Comisiones por Cobranza (Opcional)</h6>
+                                 </div>
+                                 
+                                 <div class="col-sm-6 form-group mt-2">
+                                     <span class="form-label">Nivel 1: Días (<=)</span>
+                                     <input wire:model="sellerCommission1Threshold" class="form-control" type="number" placeholder="Global">
+                                 </div>
+                                 <div class="col-sm-6 form-group mt-2">
+                                     <span class="form-label">Nivel 1: Porcentaje (%)</span>
+                                     <input wire:model="sellerCommission1Percentage" class="form-control" type="number" step="0.01" placeholder="Global">
+                                 </div>
 
-                                <div class="col-sm-12 mt-3">
-                                    <h6 class="text-info">Sobrescribir Comisiones (Opcional)</h6>
-                                </div>
-                                
-                                <div class="col-sm-6 form-group mt-2">
-                                    <span class="form-label">Nivel 1: Días (<=)</span>
-                                    <input wire:model="sellerCommission1Threshold" class="form-control" type="number" placeholder="Global">
-                                </div>
-                                <div class="col-sm-6 form-group mt-2">
-                                    <span class="form-label">Nivel 1: Porcentaje (%)</span>
-                                    <input wire:model="sellerCommission1Percentage" class="form-control" type="number" step="0.01" placeholder="Global">
-                                </div>
-
-                                <div class="col-sm-6 form-group mt-2">
-                                    <span class="form-label">Nivel 2: Días (<=)</span>
-                                    <input wire:model="sellerCommission2Threshold" class="form-control" type="number" placeholder="Global">
-                                </div>
-                                <div class="col-sm-6 form-group mt-2">
-                                    <span class="form-label">Nivel 2: Porcentaje (%)</span>
-                                    <input wire:model="sellerCommission2Percentage" class="form-control" type="number" step="0.01" placeholder="Global">
-                                </div>
-                                
-                                <div class="col-sm-12 mt-3">
-                                    <button class="btn btn-info btn-sm" wire:click="viewHistory({{ $user->id }})">
-                                        <i class="fas fa-history"></i> Ver Historial
-                                    </button>
-                                </div>
-                            </div>
+                                 <div class="col-sm-6 form-group mt-2">
+                                     <span class="form-label">Nivel 2: Días (<=)</span>
+                                     <input wire:model="sellerCommission2Threshold" class="form-control" type="number" placeholder="Global">
+                                 </div>
+                                 <div class="col-sm-6 form-group mt-2">
+                                     <span class="form-label">Nivel 2: Porcentaje (%)</span>
+                                     <input wire:model="sellerCommission2Percentage" class="form-control" type="number" step="0.01" placeholder="Global">
+                                 </div>
+                             </div>
                         </div>
                     </div>
                     @endcan

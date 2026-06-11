@@ -1077,9 +1077,8 @@ class Sales extends Component
             // This prevents "auto-reactivation" for office users who want to toggle them off manually.
             if (!Auth::user()->can('sales.manage_adjustments')) {
                 $hasCustomerConfig = ($this->customerConfig && ($this->customerConfig->commission_percent > 0 || $this->customerConfig->freight_percent > 0 || $this->customerConfig->exchange_diff_percent > 0));
-                $hasSellerConfig = ($this->sellerConfig && ($this->sellerConfig->commission_percent > 0 || $this->sellerConfig->freight_percent > 0 || $this->sellerConfig->exchange_diff_percent > 0));
 
-                if ($hasCustomerConfig || $hasSellerConfig) {
+                if ($hasCustomerConfig) {
                     $this->applyCommissions = true;
                     $this->applyFreight = true;
                 }
@@ -2036,12 +2035,12 @@ class Sales extends Component
         $currencyCode = $currency ? strtoupper($currency->code) : '';
         $isUsdOrCop = in_array($currencyCode, ['USD', 'COP']);
 
-        if (($this->sellerConfig || $customerConfig) && ($this->applyCommissions || $this->applyFreight)) {
+        if ($customerConfig && ($this->applyCommissions || $this->applyFreight)) {
             
             // Priority 1: Customer Config
-            $commissionPercent = $customerConfig && $customerConfig->commission_percent > 0 ? $customerConfig->commission_percent : ($this->sellerConfig ? $this->sellerConfig->commission_percent : 0);
-            $freightPercent = $customerConfig && $customerConfig->freight_percent > 0 ? $customerConfig->freight_percent : ($this->sellerConfig ? $this->sellerConfig->freight_percent : 0);
-            $exchangeDiffPercent = $customerConfig && $customerConfig->exchange_diff_percent > 0 ? $customerConfig->exchange_diff_percent : ($this->sellerConfig ? $this->sellerConfig->exchange_diff_percent : 0);
+            $commissionPercent = floatval($customerConfig->commission_percent);
+            $freightPercent = floatval($customerConfig->freight_percent);
+            $exchangeDiffPercent = floatval($customerConfig->exchange_diff_percent);
 
             // Commission
             $comm = ($basePriceInPrimary * $commissionPercent) / 100;
@@ -2206,9 +2205,9 @@ class Sales extends Component
              return ($basePrice * $product->freight_value / 100) * $qty;
         }
 
-        // 4. Flete Global (Seller Config) - Fallback for 'global', 'none', or null
+        // 4. Flete Global (Customer Config) - Fallback for 'global', 'none', or null
         // If type is 'none' or 'global', we apply active Freight if available.
-        $activeFreight = ($this->customerConfig && $this->customerConfig->freight_percent > 0) ? $this->customerConfig->freight_percent : ($this->sellerConfig->freight_percent ?? 0);
+        $activeFreight = $this->customerConfig ? floatval($this->customerConfig->freight_percent) : 0;
         if ($activeFreight > 0) {
              return ($basePrice * $activeFreight / 100) * $qty;
         }
@@ -2310,9 +2309,9 @@ class Sales extends Component
         $isUsdOrCop = in_array($currencyCode, ['USD', 'COP']);
 
         if ($this->applyCommissions) {
-            if ($this->sellerConfig || $this->customerConfig) {
-                 $activeComm = ($this->customerConfig && $this->customerConfig->commission_percent > 0) ? $this->customerConfig->commission_percent : ($this->sellerConfig->commission_percent ?? 0);
-                 $activeDiff = ($this->customerConfig && $this->customerConfig->exchange_diff_percent > 0) ? $this->customerConfig->exchange_diff_percent : ($this->sellerConfig->exchange_diff_percent ?? 0);
+            if ($this->customerConfig) {
+                 $activeComm = floatval($this->customerConfig->commission_percent);
+                 $activeDiff = floatval($this->customerConfig->exchange_diff_percent);
                  
                  $comm = ($basePriceInPrimary * $activeComm) / 100;
             }
@@ -2453,11 +2452,11 @@ class Sales extends Component
         $currencyCode = $currency ? strtoupper($currency->code) : '';
         $isUsdOrCop = in_array($currencyCode, ['USD', 'COP']);
 
-        if ($this->sellerConfig && ($this->applyCommissions || $this->applyFreight) && $isUsdOrCop) {
-            $comm = ($basePriceInPrimary * $this->sellerConfig->commission_percent) / 100;
-            $freight = ($basePriceInPrimary * $this->sellerConfig->freight_percent) / 100;
+        if ($this->customerConfig && ($this->applyCommissions || $this->applyFreight) && $isUsdOrCop) {
+            $comm = ($basePriceInPrimary * $this->customerConfig->commission_percent) / 100;
+            $freight = ($basePriceInPrimary * $this->customerConfig->freight_percent) / 100;
             $intermediatePrice = $basePriceInPrimary + $comm + $freight;
-            $diff = ($intermediatePrice * $this->sellerConfig->exchange_diff_percent) / 100;
+            $diff = ($intermediatePrice * $this->customerConfig->exchange_diff_percent) / 100;
             $salePrice = $intermediatePrice + $diff;
         } else {
             $salePrice = $basePriceInPrimary;
@@ -3055,9 +3054,8 @@ class Sales extends Component
 
             // AUTO-ENABLE Commissions and Freight if configurations exist (Automation for Foreign Sellers)
             $hasCustomerConfig = ($this->customerConfig && ($this->customerConfig->commission_percent > 0 || $this->customerConfig->freight_percent > 0 || $this->customerConfig->exchange_diff_percent > 0));
-            $hasSellerConfig = ($this->sellerConfig && ($this->sellerConfig->commission_percent > 0 || $this->sellerConfig->freight_percent > 0 || $this->sellerConfig->exchange_diff_percent > 0));
 
-            if ($hasCustomerConfig || $hasSellerConfig) {
+            if ($hasCustomerConfig) {
                 $this->applyCommissions = true;
                 $this->applyFreight = true;
             } else {
@@ -3073,7 +3071,7 @@ class Sales extends Component
             if ($this->applyCommissions) {
                 $activeDiff = ($this->customerConfig && $this->customerConfig->exchange_diff_percent > 0)
                     ? $this->customerConfig->exchange_diff_percent
-                    : ($this->sellerConfig ? $this->sellerConfig->exchange_diff_percent : 0);
+                    : 0;
             }
             $this->paymentAgreement = $activeDiff > 0 ? 'BCV' : 'USD';
             
@@ -3665,19 +3663,12 @@ class Sales extends Component
             }
 
             if ($this->applyCommissions) {
-                $appliedComm = ($this->customerConfig && $this->customerConfig->commission_percent > 0)
-                    ? $this->customerConfig->commission_percent
-                    : ($this->sellerConfig ? $this->sellerConfig->commission_percent : 0);
-
-                $appliedDiff = ($this->customerConfig && $this->customerConfig->exchange_diff_percent > 0)
-                    ? $this->customerConfig->exchange_diff_percent
-                    : ($this->sellerConfig ? $this->sellerConfig->exchange_diff_percent : 0);
+                $appliedComm = $this->customerConfig ? floatval($this->customerConfig->commission_percent) : 0;
+                $appliedDiff = $this->customerConfig ? floatval($this->customerConfig->exchange_diff_percent) : 0;
             }
 
             if ($this->applyCommissions || $this->applyFreight) {
-                $appliedFreight = ($this->customerConfig && $this->customerConfig->freight_percent > 0)
-                    ? $this->customerConfig->freight_percent
-                    : ($this->sellerConfig ? $this->sellerConfig->freight_percent : 0);
+                $appliedFreight = $this->customerConfig ? floatval($this->customerConfig->freight_percent) : 0;
             }
 
             // --- COMISIÓN: CAPTURAR TIERS/PENALIZACIONES ---

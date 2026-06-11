@@ -18,7 +18,7 @@ class PriceCalculatorService
      * @param mixed $customer (Customer model or array or null)
      * @return array
      */
-    public function calculate(Product $product, $sellerConfig = null, $customer = null)
+    public function calculate(Product $product, $config = null, $customer = null)
     {
         // 1. Get Base Price (Converted to Primary Currency)
         $primaryCurrency = CurrencyHelper::getPrimaryCurrency();
@@ -31,7 +31,9 @@ class PriceCalculatorService
         $applyCommissions = false;
         
         $customerConfig = null;
-        if ($customer) {
+        if ($config) {
+            $customerConfig = $config;
+        } elseif ($customer) {
             if (is_object($customer)) {
                 $customerConfig = $customer->latestCustomerConfig;
             } elseif (is_array($customer) && isset($customer['id'])) {
@@ -42,7 +44,7 @@ class PriceCalculatorService
             }
         }
 
-        if ($customerConfig || $sellerConfig) {
+        if ($customerConfig) {
             $applyCommissions = true;
         }
 
@@ -51,11 +53,9 @@ class PriceCalculatorService
         $diff = 0;
 
         if ($applyCommissions) {
-            
-            // Priority 1: Customer Config
-            $commissionPercent = $customerConfig && $customerConfig->commission_percent > 0 ? $customerConfig->commission_percent : ($sellerConfig ? $sellerConfig->commission_percent : 0);
-            $freightPercent = $customerConfig && $customerConfig->freight_percent > 0 ? $customerConfig->freight_percent : ($sellerConfig ? $sellerConfig->freight_percent : 0);
-            $exchangeDiffPercent = $customerConfig && $customerConfig->exchange_diff_percent > 0 ? $customerConfig->exchange_diff_percent : ($sellerConfig ? $sellerConfig->exchange_diff_percent : 0);
+            $commissionPercent = floatval($customerConfig->commission_percent);
+            $freightPercent = floatval($customerConfig->freight_percent);
+            $exchangeDiffPercent = floatval($customerConfig->exchange_diff_percent);
             
             // Commission
             $comm = ($basePriceInPrimary * $commissionPercent) / 100;

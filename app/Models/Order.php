@@ -71,13 +71,7 @@ class Order extends Model
         }
         $customer = $this->customer;
         $customerConfig = $customer ? $customer->latestCustomerConfig : null;
-        $seller = ($customer && $customer->seller) ? $customer->seller : $this->user;
-        $sellerConfig = $seller ? $seller->latestSellerConfig : null;
-        
-        if ($customerConfig && floatval($customerConfig->commission_percent) > 0) {
-            return floatval($customerConfig->commission_percent);
-        }
-        return $sellerConfig ? floatval($sellerConfig->commission_percent) : 0;
+        return $customerConfig ? floatval($customerConfig->commission_percent) : 0;
     }
 
     public function getResolvedFreightPercentAttribute()
@@ -87,13 +81,7 @@ class Order extends Model
         }
         $customer = $this->customer;
         $customerConfig = $customer ? $customer->latestCustomerConfig : null;
-        $seller = ($customer && $customer->seller) ? $customer->seller : $this->user;
-        $sellerConfig = $seller ? $seller->latestSellerConfig : null;
-        
-        if ($customerConfig && floatval($customerConfig->freight_percent) > 0) {
-            return floatval($customerConfig->freight_percent);
-        }
-        return $sellerConfig ? floatval($sellerConfig->freight_percent) : 0;
+        return $customerConfig ? floatval($customerConfig->freight_percent) : 0;
     }
 
     public function getResolvedExchangeDiffPercentAttribute()
@@ -103,13 +91,7 @@ class Order extends Model
         }
         $customer = $this->customer;
         $customerConfig = $customer ? $customer->latestCustomerConfig : null;
-        $seller = ($customer && $customer->seller) ? $customer->seller : $this->user;
-        $sellerConfig = $seller ? $seller->latestSellerConfig : null;
-        
-        if ($customerConfig && floatval($customerConfig->exchange_diff_percent) > 0) {
-            return floatval($customerConfig->exchange_diff_percent);
-        }
-        return $sellerConfig ? floatval($sellerConfig->exchange_diff_percent) : 0;
+        return $customerConfig ? floatval($customerConfig->exchange_diff_percent) : 0;
     }
 
     public function getPaymentAgreementAttribute($value)
