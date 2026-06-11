@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Order extends Model
 {
     use HasFactory;
-    protected $fillable = ['total', 'discount', 'items', 'customer_id', 'user_id', 'status', 'notes', 'order_number', 'apply_commissions', 'apply_freight', 'is_freight_broken_down', 'invoice_currency_id', 'driver_id', 'base_amount', 'commission_amount', 'freight_amount', 'exchange_diff_amount'];
+    protected $fillable = ['total', 'discount', 'items', 'customer_id', 'user_id', 'status', 'notes', 'order_number', 'apply_commissions', 'apply_freight', 'is_freight_broken_down', 'invoice_currency_id', 'driver_id', 'base_amount', 'commission_amount', 'freight_amount', 'exchange_diff_amount', 'payment_agreement'];
     public function details()
     {
         return $this->hasMany(OrderDetail::class);
@@ -74,13 +74,7 @@ class Order extends Model
         $seller = ($customer && $customer->seller) ? $customer->seller : $this->user;
         $sellerConfig = $seller ? $seller->latestSellerConfig : null;
         
-        $customerHasConfig = $customerConfig && (
-            $customerConfig->commission_percent > 0 ||
-            $customerConfig->freight_percent > 0 ||
-            $customerConfig->exchange_diff_percent > 0
-        );
-        
-        if ($customerHasConfig) {
+        if ($customerConfig && floatval($customerConfig->commission_percent) > 0) {
             return floatval($customerConfig->commission_percent);
         }
         return $sellerConfig ? floatval($sellerConfig->commission_percent) : 0;
@@ -96,13 +90,7 @@ class Order extends Model
         $seller = ($customer && $customer->seller) ? $customer->seller : $this->user;
         $sellerConfig = $seller ? $seller->latestSellerConfig : null;
         
-        $customerHasConfig = $customerConfig && (
-            $customerConfig->commission_percent > 0 ||
-            $customerConfig->freight_percent > 0 ||
-            $customerConfig->exchange_diff_percent > 0
-        );
-        
-        if ($customerHasConfig) {
+        if ($customerConfig && floatval($customerConfig->freight_percent) > 0) {
             return floatval($customerConfig->freight_percent);
         }
         return $sellerConfig ? floatval($sellerConfig->freight_percent) : 0;
@@ -118,15 +106,20 @@ class Order extends Model
         $seller = ($customer && $customer->seller) ? $customer->seller : $this->user;
         $sellerConfig = $seller ? $seller->latestSellerConfig : null;
         
-        $customerHasConfig = $customerConfig && (
-            $customerConfig->commission_percent > 0 ||
-            $customerConfig->freight_percent > 0 ||
-            $customerConfig->exchange_diff_percent > 0
-        );
-        
-        if ($customerHasConfig) {
+        if ($customerConfig && floatval($customerConfig->exchange_diff_percent) > 0) {
             return floatval($customerConfig->exchange_diff_percent);
         }
         return $sellerConfig ? floatval($sellerConfig->exchange_diff_percent) : 0;
+    }
+
+    public function getPaymentAgreementAttribute($value)
+    {
+        if (!empty($value)) {
+            if ($value === 'USD' && $this->exchange_diff_amount > 0) {
+                return 'BCV';
+            }
+            return $value;
+        }
+        return $this->exchange_diff_amount > 0 ? 'BCV' : 'USD';
     }
 }

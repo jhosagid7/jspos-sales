@@ -77,6 +77,7 @@ class Sales extends Component
     public $pagination = 5, $status;
     public $confirmation_code = null;
     public $salesViewMode = 'grid'; // 'grid' or 'list'
+    public $paymentAgreement = 'USD';
 
     public $search = '';
     public $searchOrder = '';
@@ -1455,6 +1456,7 @@ class Sales extends Component
         $this->setCustomer($customer);
         $this->order_id = $orderId;
         $this->driver_id = $order->driver_id;
+        $this->paymentAgreement = $order->payment_agreement ?? 'USD';
         
         // Restore configuration from order
         $this->applyCommissions = (bool) $order->apply_commissions;
@@ -1533,6 +1535,7 @@ class Sales extends Component
             $this->applyCommissions = (bool) ($sale->applied_commission_percent > 0);
             $this->applyFreight = (bool) ($sale->applied_freight_percent > 0);
             $this->is_freight_broken_down = (bool) ($sale->is_freight_broken_down ?? false);
+            $this->paymentAgreement = $sale->payment_agreement ?? 'USD';
             
             if ($sale->seller_config_id) {
                 $this->sellerConfig = \App\Models\SellerConfig::find($sale->seller_config_id);
@@ -3065,6 +3068,14 @@ class Sales extends Component
             // Update toggles in session as well
             session(['applyCommissions' => $this->applyCommissions]);
             session(['applyFreight' => $this->applyFreight]);
+
+            $activeDiff = 0;
+            if ($this->applyCommissions) {
+                $activeDiff = ($this->customerConfig && $this->customerConfig->exchange_diff_percent > 0)
+                    ? $this->customerConfig->exchange_diff_percent
+                    : ($this->sellerConfig ? $this->sellerConfig->exchange_diff_percent : 0);
+            }
+            $this->paymentAgreement = $activeDiff > 0 ? 'BCV' : 'USD';
             
             // Load customer-specific discount rules and outstanding invoices
             if(isset($customer['id'])) {
@@ -3763,6 +3774,7 @@ class Sales extends Component
                 'seller_tier_2_days' => $tier2Days,
                 'seller_tier_2_percent' => $tier2Percent,
                 'driver_id' => $this->driver_id,
+                'payment_agreement' => $this->paymentAgreement,
             ];
 
             if ($this->editing_sale_id && $sale) {
@@ -4282,6 +4294,7 @@ class Sales extends Component
                         'commission_amount' => round($commAmt, 4),
                         'freight_amount' => round($freightAmt, 4),
                         'exchange_diff_amount' => round($diffAmt, 4),
+                        'payment_agreement' => $this->paymentAgreement,
                     ];
                     
                     // Only set user_id if it's missing (unlikely for update) or if we explicitly want to change it (we don't)
@@ -4389,6 +4402,7 @@ class Sales extends Component
                     'commission_amount' => round($commAmt, 4),
                     'freight_amount' => round($freightAmt, 4),
                     'exchange_diff_amount' => round($diffAmt, 4),
+                    'payment_agreement' => $this->paymentAgreement,
                 ]);
 
                 // Obtiene el carrito de la sesión

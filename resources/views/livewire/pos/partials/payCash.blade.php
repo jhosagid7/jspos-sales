@@ -163,6 +163,15 @@
                                     @if($selectedPaymentMethod === 'credit')
                                         <div class="row g-3">
                                             <div class="col-12">
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-bold"><i class="fa fa-handshake me-1"></i> Acuerdo de Pago Acordado</label>
+                                                    <select class="form-control" wire:model.live="paymentAgreement">
+                                                        <option value="USD">Dólares Puros (USD / Zelle / VED Tasa Binance)</option>
+                                                        <option value="BCV">Bolívares a Tasa Oficial (BCV)</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
                                                 <div class="alert alert-info mb-3">
                                                     <h6 class="mb-2"><i class="fa fa-info-circle"></i> Información de Crédito</h6>
                                                     <ul class="mb-0 small">

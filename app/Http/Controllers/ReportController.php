@@ -104,7 +104,11 @@ class ReportController extends Controller
         $dateFromFormatted = $dateFrom ?: $sheet->opened_at->format('Y-m-d');
         $dateToFormatted = $dateTo ?: $sheet->opened_at->format('Y-m-d');
 
-        $pdf = Pdf::loadView('reports.collection-relationship-new-pdf', compact('sheet', 'payments', 'returns', 'config', 'user', 'date', 'totalsByCategory', 'totalsByCurrency', 'dateFrom', 'dateTo'));
+        $dns2d = new \Milon\Barcode\DNS2D();
+        $qrCodeUrl = route('audit.sheet.detail', ['sheet' => $sheet->id]);
+        $qrCode = $dns2d->getBarcodePNG($qrCodeUrl, 'QRCODE', 4, 4);
+
+        $pdf = Pdf::loadView('reports.collection-relationship-new-pdf', compact('sheet', 'payments', 'returns', 'config', 'user', 'date', 'totalsByCategory', 'totalsByCurrency', 'dateFrom', 'dateTo', 'qrCode'));
         
         return $pdf->stream('Relacion_Cobros_' . $sheet->sheet_number . '.pdf');
     }
@@ -578,7 +582,7 @@ class ReportController extends Controller
         $filterInfo = !empty($filterParts) ? implode(' | ', $filterParts) : null;
 
         $columns = json_decode($request->get('columns'), true) ?? [
-            'folio' => true, 'cliente' => true, 'base' => true, 'porcentaje' => true,
+            'folio' => true, 'cliente' => true, 'operador' => false, 'vendedor' => false, 'base' => true, 'porcentaje' => true,
             'comision' => true, 'flete' => true, 'diferencial' => true, 'total' => true,
             'credito' => true, 'articulos' => true, 'estatus' => true, 'tipo' => true, 'fecha' => true,
         ];

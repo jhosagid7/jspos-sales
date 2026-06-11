@@ -1,3 +1,11 @@
+## [1.10.132] - 2026-06-10
+### Fixed
+- **Cálculo Individual de Recargos en Clientes**: Se corrigió un error en los métodos de resolución de recargos (`resolved_commission_percent`, `resolved_freight_percent` y `resolved_exchange_diff_percent`) en los modelos `Sale` y `Order`. Anteriormente, el sistema utilizaba un flag grupal (`$customerHasConfig`) que anulaba la herencia de tasas individuales (como el flete del vendedor) si el cliente tenía cualquier otra tarifa configurada (ej. solo comisión). Ahora la resolución y fallback al vendedor se realiza de manera independiente por cada columna.
+- **Sincronización en Interfaz Web (POS)**: Se actualizó la barra lateral de información de tarifas del POS (`sales.blade.php`) para reflejar los porcentajes de recargo con el nuevo comportamiento de fallback individualizado, garantizando la total consistencia con el cálculo del backend y los PDFs de facturación.
+
+### Tests
+- **Pruebas de Fallback de Recargos**: Se agregó la prueba unitaria `test_individual_percentage_fallback` en `HierarchicalCommissionTest.php` para validar el comportamiento del fallback individualizado en ventas y pedidos.
+
 ## [1.10.131] - 2026-06-09
 ### Added
 - **Agrupamiento en Reporte de Ventas General**: Se agregó la funcionalidad para agrupar las ventas por Fecha, Cliente, Operador (Cajero/Oficina), Vendedor o Chofer/Ruta en la vista web del reporte de ventas general.

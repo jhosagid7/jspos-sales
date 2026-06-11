@@ -238,6 +238,11 @@ Route::middleware('auth')->group(function () {
     // Price List Generator
     Route::get('price-list', \App\Livewire\PriceListGenerator::class)->name('price-list.index')->middleware(['auth', 'can:sales.generate_price_list']);
 
+    // Collection Audit Routes
+    Route::get('audit/sheet', \App\Livewire\Audit\CollectionSheetAudit::class)->name('audit.sheet')->middleware('can:collections.audit');
+    Route::get('audit/sheet/{sheet}', \App\Livewire\Audit\CollectionSheetAudit::class)->name('audit.sheet.detail')->middleware('can:collections.audit');
+    Route::get('audit/invoices', \App\Livewire\Audit\InvoicesAuditList::class)->name('audit.invoices')->middleware('can:collections.audit');
+
     // Cash Register Routes
     Route::get('cash-register/open', \App\Livewire\CashRegisterOpen::class)->name('cash-register.open')->middleware('can:cash_register.open');
     Route::get('cash-register/close', \App\Livewire\CashRegister::class)->name('cash-register.close')->middleware('can:cash_register.close');

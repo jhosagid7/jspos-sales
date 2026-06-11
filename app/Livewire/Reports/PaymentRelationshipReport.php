@@ -339,7 +339,11 @@ class PaymentRelationshipReport extends Component
         $dateFrom = $this->dateFrom ?: $sheet->opened_at;
         $dateTo = $this->dateTo ?: $sheet->opened_at;
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.collection-relationship-new-pdf', compact('sheet', 'payments', 'returns', 'config', 'user', 'date', 'totalsByCategory', 'totalsByCurrency', 'dateFrom', 'dateTo'));
+        $dns2d = new \Milon\Barcode\DNS2D();
+        $qrCodeUrl = route('audit.sheet.detail', ['sheet' => $sheet->id]);
+        $qrCode = $dns2d->getBarcodePNG($qrCodeUrl, 'QRCODE', 4, 4);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.collection-relationship-new-pdf', compact('sheet', 'payments', 'returns', 'config', 'user', 'date', 'totalsByCategory', 'totalsByCurrency', 'dateFrom', 'dateTo', 'qrCode'));
         
         return response()->streamDownload(function () use ($pdf) {
             echo $pdf->output();

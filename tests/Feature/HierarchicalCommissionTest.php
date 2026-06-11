@@ -158,4 +158,70 @@ class HierarchicalCommissionTest extends TestCase
         $commission = $service->calculateCommission($sale);
         $this->assertEquals(12, $commission, "Customer Override Tier 1 failed");
     }
+
+    public function test_individual_percentage_fallback()
+    {
+        // Setup Seller Config
+        $seller = User::factory()->create();
+        $sellerConfig = \App\Models\SellerConfig::create([
+            'user_id' => $seller->id,
+            'commission_percent' => 10.00,
+            'freight_percent' => 6.00,
+            'exchange_diff_percent' => 60.00,
+        ]);
+
+        // Setup Customer
+        $customer = Customer::create([
+            'name' => 'Test Customer',
+            'seller_id' => $seller->id,
+        ]);
+
+        // Setup Customer Config: overrides commission only, leaves freight and diff as 0.00
+        $customerConfig = \App\Models\CustomerConfig::create([
+            'customer_id' => $customer->id,
+            'commission_percent' => 8.00,
+            'freight_percent' => 0.00,
+            'exchange_diff_percent' => 0.00,
+        ]);
+
+        // Create Sale (without applied percents so it resolves dynamically)
+        $sale = Sale::create([
+            'user_id' => $seller->id,
+            'customer_id' => $customer->id,
+            'total' => 100.00,
+            'items' => 1,
+            'status' => 'pending',
+            'type' => 'credit',
+        ]);
+        $sale->setRelation('customer', $customer);
+        $sale->setRelation('user', $seller);
+
+        // Verify resolved percentages on Sale
+        // Commission should be customer's 8.00%
+        $this->assertEquals(8.00, $sale->resolved_commission_percent);
+        // Freight should fall back to seller's 6.00%
+        $this->assertEquals(6.00, $sale->resolved_freight_percent);
+        // Exchange diff should fall back to seller's 60.00%
+        $this->assertEquals(60.00, $sale->resolved_exchange_diff_percent);
+
+        // Create Order
+        $order = \App\Models\Order::create([
+            'user_id' => $seller->id,
+            'customer_id' => $customer->id,
+            'total' => 100.00,
+            'items' => 1,
+            'status' => 'pending',
+            'type' => 'credit',
+            'apply_commissions' => true,
+            'apply_freight' => true,
+        ]);
+        $order->setRelation('customer', $customer);
+        $order->setRelation('user', $seller);
+
+        // Verify resolved percentages on Order
+        $this->assertEquals(8.00, $order->resolved_commission_percent);
+        $this->assertEquals(6.00, $order->resolved_freight_percent);
+        $this->assertEquals(60.00, $order->resolved_exchange_diff_percent);
+    }
 }
+

@@ -181,8 +181,8 @@ class PaymentComponent extends Component
         if ($this->saleId) {
             $sale = \App\Models\Sale::find($this->saleId);
             if ($sale) {
-                // If applied_exchange_diff_percent is 0 or null, it's a pure USD invoice
-                $this->isUSDInvoice = (floatval($sale->applied_exchange_diff_percent) == 0);
+                // If payment_agreement is USD, it's a USD invoice
+                $this->isUSDInvoice = ($sale->payment_agreement === 'USD');
             }
 
             // Auto-discard any unused pending or approved approvals from past sessions to ensure strict single-session execution

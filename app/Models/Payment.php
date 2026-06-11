@@ -19,7 +19,14 @@ class Payment extends Model
         'modification_comment',
         'issuer_name',
         'zelle_image',
-        'bank_image'
+        'bank_image',
+        'is_bank_reconciled',
+        'reconciled_at'
+    ];
+
+    protected $casts = [
+        'is_bank_reconciled' => 'boolean',
+        'reconciled_at' => 'datetime'
     ];
 
     function sale()

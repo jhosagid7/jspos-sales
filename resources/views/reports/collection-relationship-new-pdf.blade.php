@@ -108,7 +108,7 @@
 
     <table class="header">
         <tr>
-            <td class="business-info" width="60%">
+            <td class="business-info" width="50%">
                 <h2>{{ $config->business_name }}</h2>
                 @if($config->logo)
                     <!-- <img src="{{ public_path('storage/' . $config->logo) }}" height="40"> -->
@@ -119,7 +119,13 @@
                     {{ $config->taxpayer_id }}
                 </p>
             </td>
-            <td class="report-info">
+            <td class="text-center" width="20%" style="vertical-align: middle;">
+                @if(isset($qrCode))
+                    <img src="data:image/png;base64,{{ $qrCode }}" style="width: 70px; height: 70px;">
+                    <div style="font-size: 6pt; margin-top: 2px; color: #555; font-weight: bold;">AUDITORÍA</div>
+                @endif
+            </td>
+            <td class="report-info" width="30%">
                 <p>
                     Fecha : {{ \Carbon\Carbon::parse($sheet->opened_at)->format('d/m/Y') }}<br>
                     Hora : {{ \Carbon\Carbon::parse($sheet->opened_at)->format('h:i a') }}<br>

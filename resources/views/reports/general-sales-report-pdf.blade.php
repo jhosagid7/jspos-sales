@@ -367,6 +367,8 @@
             <tr class="totals-row">
                 @if($columns['folio']) <td></td> @endif
                 @if($columns['cliente']) <td class="text-right">TOTALES:</td> @else <td class="text-right">TOTALES:</td> @endif
+                @if($columns['operador']) <td></td> @endif
+                @if($columns['vendedor']) <td></td> @endif
                 @if($columns['base']) <td class="text-right">${{ number_format($totBase, 2) }}</td> @endif
                 @if($columns['porcentaje']) <td></td> @endif
                 @if($columns['comision']) <td class="text-right text-green">${{ number_format($totComm, 2) }}</td> @endif

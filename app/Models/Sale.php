@@ -64,6 +64,9 @@ class Sale extends Model
         'commission_amount',
         'freight_amount',
         'exchange_diff_amount',
+        'payment_agreement',
+        'is_audited',
+        'audited_at',
         'created_at',
         'updated_at'
     ];
@@ -81,6 +84,8 @@ class Sale extends Model
         'commission_amount' => 'decimal:4',
         'freight_amount' => 'decimal:4',
         'exchange_diff_amount' => 'decimal:4',
+        'is_audited' => 'boolean',
+        'audited_at' => 'datetime',
     ];
 
     function details()
@@ -137,6 +142,14 @@ class Sale extends Model
     // }
 
     //accessors
+    public function getAuditStatusAttribute()
+    {
+        if (in_array(strtolower($this->status), ['voided', 'cancelled', 'anulated']) || $this->deletion_approved_at !== null) {
+            return 'Eliminada';
+        }
+        return $this->is_audited ? 'Auditada' : 'Sin Auditar';
+    }
+
     public function getDebtAttribute()
     {
         // Exclude 'pending', 'rejected' or 'voided' payments (only count approved)
@@ -300,13 +313,7 @@ class Sale extends Model
         $seller = ($customer && $customer->seller) ? $customer->seller : $this->user;
         $sellerConfig = $this->sellerConfig ?? ($seller ? $seller->latestSellerConfig : null);
         
-        $customerHasConfig = $customerConfig && (
-            $customerConfig->commission_percent > 0 ||
-            $customerConfig->freight_percent > 0 ||
-            $customerConfig->exchange_diff_percent > 0
-        );
-        
-        if ($customerHasConfig) {
+        if ($customerConfig && floatval($customerConfig->commission_percent) > 0) {
             return floatval($customerConfig->commission_percent);
         }
         return $sellerConfig ? floatval($sellerConfig->commission_percent) : 0;
@@ -322,13 +329,7 @@ class Sale extends Model
         $seller = ($customer && $customer->seller) ? $customer->seller : $this->user;
         $sellerConfig = $this->sellerConfig ?? ($seller ? $seller->latestSellerConfig : null);
         
-        $customerHasConfig = $customerConfig && (
-            $customerConfig->commission_percent > 0 ||
-            $customerConfig->freight_percent > 0 ||
-            $customerConfig->exchange_diff_percent > 0
-        );
-        
-        if ($customerHasConfig) {
+        if ($customerConfig && floatval($customerConfig->freight_percent) > 0) {
             return floatval($customerConfig->freight_percent);
         }
         return $sellerConfig ? floatval($sellerConfig->freight_percent) : 0;
@@ -344,15 +345,20 @@ class Sale extends Model
         $seller = ($customer && $customer->seller) ? $customer->seller : $this->user;
         $sellerConfig = $this->sellerConfig ?? ($seller ? $seller->latestSellerConfig : null);
         
-        $customerHasConfig = $customerConfig && (
-            $customerConfig->commission_percent > 0 ||
-            $customerConfig->freight_percent > 0 ||
-            $customerConfig->exchange_diff_percent > 0
-        );
-        
-        if ($customerHasConfig) {
+        if ($customerConfig && floatval($customerConfig->exchange_diff_percent) > 0) {
             return floatval($customerConfig->exchange_diff_percent);
         }
         return $sellerConfig ? floatval($sellerConfig->exchange_diff_percent) : 0;
+    }
+
+    public function getPaymentAgreementAttribute($value)
+    {
+        if (!empty($value)) {
+            if ($value === 'USD' && $this->applied_exchange_diff_percent > 0) {
+                return 'BCV';
+            }
+            return $value;
+        }
+        return $this->applied_exchange_diff_percent > 0 ? 'BCV' : 'USD';
     }
 }

@@ -682,6 +682,21 @@
                         </li>
                         @endcanany
 
+                        @can('collections.audit')
+                        <li class="nav-item">
+                            <a href="{{ route('audit.sheet') }}" class="nav-link {{ Request::is('audit/sheet*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Auditoría de Cobranza</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('audit.invoices') }}" class="nav-link {{ Request::is('audit/invoices*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Auditoría de Facturas</p>
+                            </a>
+                        </li>
+                        @endcan
+
                         @can('settings.index')
                         <li class="nav-item">
                             <a href="{{ route('devices') }}" class="nav-link {{ Request::is('devices') ? 'active' : '' }}">
