@@ -20,6 +20,7 @@
                             // For display, we use the stored percent, but for amount we sum details
                             $freightPercent = $salesObt->applied_freight_percent ?? 0;
                             $diffPercent = $salesObt->applied_exchange_diff_percent ?? 0;
+                            $markupPercent = $salesObt->applied_base_markup_percent ?? 0;
                             
                             $totalFreightAmount = $details->sum('freight_amount');
 
@@ -42,14 +43,16 @@
                             // Calculate Comm/Diff amounts
                             $commAmount = 0;
                             $diffAmount = 0;
+                            $markupAmount = 0;
                             
                             // Only calculate if we have percentages enabled
                             if ($salesObt->is_foreign_sale) { 
                                 $commAmount = $baseAmount * ($commPercent / 100);
-                                $diffAmount = $baseAmount * ($diffPercent / 100);
+                                $markupAmount = $baseAmount * ($markupPercent / 100);
+                                $diffAmount = ($baseAmount + $commAmount + $totalFreightAmount + $markupAmount) * ($diffPercent / 100);
                             }
                             
-                            $hasExtraCharges = ($commPercent > 0 || $diffPercent > 0 || $totalFreightAmount > 0);
+                            $hasExtraCharges = ($commPercent > 0 || $diffPercent > 0 || $totalFreightAmount > 0 || $markupPercent > 0);
                         @endphp
 
                         {{-- Header Information --}}
@@ -96,6 +99,13 @@
                                                 <div class="col-md-3">
                                                     <small class="text-muted d-block">Comisión ({{ number_format($commPercent, 2) }}%)</small>
                                                     <strong class="text-dark">{{ $currencySymbol }}{{ number_format($commAmount, 2) }}</strong>
+                                                </div>
+                                            @endif
+
+                                            @if($markupPercent > 0)
+                                                <div class="col-md-3">
+                                                    <small class="text-muted d-block">Recargo ({{ number_format($markupPercent, 2) }}%)</small>
+                                                    <strong class="text-dark">{{ $currencySymbol }}{{ number_format($markupAmount, 2) }}</strong>
                                                 </div>
                                             @endif
 
@@ -156,7 +166,8 @@
                                             // Percentages stored on Sale
                                             $commPct = $salesObt->applied_commission_percent ?? 0;
                                             $diffPct = $salesObt->applied_exchange_diff_percent ?? 0;
-                                            $combinedPct = ($commPct + $diffPct) / 100;
+                                            $markupPct = $salesObt->applied_base_markup_percent ?? 0;
+                                            $combinedPct = ($commPct + $diffPct + $markupPct) / 100;
                                             
                                             // Detect Additive Freight Check
                                             $rawItemsSum = $details->sum(function($d) { return $d->quantity * $d->sale_price; });
@@ -211,7 +222,8 @@
                                             @php
                                                 $commPct = $salesObt->applied_commission_percent ?? 0;
                                                 $diffPct = $salesObt->applied_exchange_diff_percent ?? 0;
-                                                $combinedPct = ($commPct + $diffPct) / 100;
+                                                $markupPct = $salesObt->applied_base_markup_percent ?? 0;
+                                                $combinedPct = ($commPct + $diffPct + $markupPct) / 100;
                                                 
                                                 $rawItemsSum = $details->sum(function($d) { return $d->quantity * $d->sale_price; });
                                                 $isAdditive = ($salesObt->total - $rawItemsSum) > 0.01;

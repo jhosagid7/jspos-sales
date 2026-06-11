@@ -400,6 +400,12 @@
                                             <span class="text-muted">Comisión Vendedor ({{ $selectedSale->resolved_commission_percent }}%):</span>
                                             <span class="text-dark">${{ number_format($selectedSale->commission_amount, 2) }}</span>
                                         </div>
+                                        @if($selectedSale->resolved_base_markup_percent > 0)
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <span class="text-muted">Recargo ({{ $selectedSale->resolved_base_markup_percent }}%):</span>
+                                                <span class="text-dark">${{ number_format($selectedSale->base_markup_amount, 2) }}</span>
+                                            </div>
+                                        @endif
                                         @if($selectedSale->resolved_exchange_diff_percent > 0)
                                             <div class="d-flex justify-content-between mb-1">
                                                 <span class="text-muted">Diferencial ({{ $selectedSale->resolved_exchange_diff_percent }}%):</span>
@@ -445,10 +451,11 @@
                                             $paymentBase = floatval($selectedSale->base_amount) * $ratio;
                                             $paymentFreight = floatval($selectedSale->freight_amount) * $ratio;
                                             $paymentCommission = floatval($selectedSale->commission_amount) * $ratio;
+                                            $paymentMarkup = floatval($selectedSale->base_markup_amount) * $ratio;
                                             $paymentDiff = floatval($selectedSale->exchange_diff_amount) * $ratio;
                                             
                                             $netDiff = $val['net_usd'] - $paymentBase;
-                                            $realPaymentUsd = $val['net_usd'] + $paymentFreight + $paymentCommission;
+                                            $realPaymentUsd = $val['net_usd'] + $paymentFreight + $paymentCommission + $paymentMarkup;
                                         @endphp
                                         
                                         <div class="payment-card border-left-lg p-3 mb-4 rounded shadow-sm bg-light" style="border-left: 5px solid; border-color: {{ $color === 'red' ? '#dc3545' : ($color === 'orange' ? '#ffc107' : '#28a745') }};">
@@ -516,6 +523,13 @@
                                                                     <td>${{ number_format($paymentFreight, 2) }}</td>
                                                                     <td>${{ number_format($paymentFreight, 2) }}</td>
                                                                 </tr>
+                                                                @if($selectedSale->resolved_base_markup_percent > 0)
+                                                                <tr>
+                                                                    <td class="text-left">Recargo</td>
+                                                                    <td>${{ number_format($paymentMarkup, 2) }}</td>
+                                                                    <td>${{ number_format($paymentMarkup, 2) }}</td>
+                                                                </tr>
+                                                                @endif
                                                                 <tr class="font-weight-bold table-active">
                                                                     <td class="text-left text-dark">Total Proporcional</td>
                                                                     <td class="text-dark">${{ number_format($payment->amount / ($payment->exchange_rate ?: 1), 2) }}</td>

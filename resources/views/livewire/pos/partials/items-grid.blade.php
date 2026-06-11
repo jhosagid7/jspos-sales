@@ -367,13 +367,13 @@
                                                                 @else
                                                                     {{-- Vendedor Foráneo: Mostrar precio calculado --}}
                                                                     @php
-                                                                        // Calcular precio final visual (debe coincidir con la lógica del backend)
-                                                                        $activeComm = $customerConfig ? floatval($customerConfig->commission_percent) : 0;
-                                                                        $activeFreight = $customerConfig ? floatval($customerConfig->freight_percent) : 0;
-                                                                        $activeDiff = $customerConfig ? floatval($customerConfig->exchange_diff_percent) : 0;
-                                                                        
-                                                                        $markupPercent = $activeComm + $activeFreight + $activeDiff;
-                                                                        $finalPrice = $priceInTarget * (1 + $markupPercent / 100);
+                                                                         $activeComm = $customerConfig ? floatval($customerConfig->commission_percent) : 0;
+                                                                         $activeFreight = $customerConfig ? floatval($customerConfig->freight_percent) : 0;
+                                                                         $activeDiff = $customerConfig ? floatval($customerConfig->exchange_diff_percent) : 0;
+                                                                         $activeMarkup = $customerConfig ? floatval($customerConfig->base_markup_percent) : 0;
+                                                                         
+                                                                         $intermediate = $priceInTarget * (1 + ($activeComm + $activeFreight + $activeMarkup) / 100);
+                                                                         $finalPrice = $intermediate * (1 + $activeDiff / 100);
                                                                     @endphp
                                                                     {{ $targetSymbol }}{{ formatMoney($finalPrice) }}
                                                                     <small class="text-muted d-block" style="font-size: 0.6rem;">Precio Final</small>

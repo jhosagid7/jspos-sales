@@ -18,7 +18,8 @@ class FooterCodeService
         $creditDays = 0,
         $operatorName = '',
         $tpCode = '',
-        $pgdCode = ''
+        $pgdCode = '',
+        $markupPercent = 0
     ) {
         // 1. Initials
         $initials = self::getInitials($sellerName) . self::getInitials($customerName);
@@ -29,6 +30,9 @@ class FooterCodeService
 
         // 3. Commission
         $codeC = 'C' . intval($commPercent);
+
+        // 3.5. Markup (Recargo)
+        $codeRC = 'RC' . intval($markupPercent);
 
         // 4. Diff
         $codeDF = 'DF' . intval($diffPercent);
@@ -76,7 +80,7 @@ class FooterCodeService
 
         // Combine
         $part1 = $initials . $codeF;
-        $part2 = $codeC . $codeDF;
+        $part2 = $codeC . $codeRC . $codeDF;
         $part3 = $codeFC;
         $part4 = $codeES;
         $part5 = $codePD . $codePP . $codeIM;

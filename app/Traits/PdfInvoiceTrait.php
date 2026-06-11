@@ -1111,6 +1111,7 @@ trait PdfInvoiceTrait
         $freightPercent = $sale->resolved_freight_percent;
         $commPercent = $sale->resolved_commission_percent;
         $diffPercent = $sale->resolved_exchange_diff_percent;
+        $markupPercent = $sale->resolved_base_markup_percent;
 
         // USD Discount
         $creditConfig = CreditConfigService::getCreditConfig($customer, $seller);
@@ -1185,7 +1186,8 @@ trait PdfInvoiceTrait
             intval($creditDays),
             $operator ? $operator->name : '',
             $tpCode,
-            $pgdCode
+            $pgdCode,
+            $markupPercent
         );
 
         return [

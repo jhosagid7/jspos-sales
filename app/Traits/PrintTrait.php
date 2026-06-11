@@ -954,8 +954,9 @@ trait PrintTrait
                 $commPercent = $sale->resolved_commission_percent;
                 $diffPercent = $sale->resolved_exchange_diff_percent;
                 $freightPercent = $sale->resolved_freight_percent;
+                $markupPercent = $sale->resolved_base_markup_percent;
                 
-                $combinedPercent = ($commPercent + $diffPercent) / 100;
+                $combinedPercent = ($commPercent + $diffPercent + $markupPercent) / 100;
 
                 // Separator
                 $widthConfig = $printerWidth;
@@ -1002,7 +1003,7 @@ trait PrintTrait
                      // Reverse Calculation
                      $cleanTotal = max(0, $finalImporte - $itemFreight);
                      if ($sale->created_at >= \App\Services\ConfigurationService::getSequentialCutOffDate()) {
-                         $itemTotalBase = ($cleanTotal / (1 + $diffPercent / 100)) / (1 + $commPercent / 100);
+                         $itemTotalBase = ($cleanTotal / (1 + $diffPercent / 100)) / (1 + ($commPercent + $markupPercent) / 100);
                      } else {
                          $itemTotalBase = $cleanTotal / (1 + $combinedPercent);
                      }
@@ -1053,6 +1054,11 @@ trait PrintTrait
                      $printer->text("Comision (" . number_format($commPercent, 2) . "%): " . $currencySymbol . number_format($amt, 2) . "\n");
                 }
                 
+                if ($markupPercent > 0) {
+                     $amt = $totalBase * ($markupPercent / 100);
+                     $printer->text("Recargo (" . number_format($markupPercent, 2) . "%): " . $currencySymbol . number_format($amt, 2) . "\n");
+                }
+                
                 if ($configFreightTotal > 0) {
                      $printer->text("Flete (Config " . number_format($freightPercent, 2) . "%): " . $currencySymbol . number_format($configFreightTotal, 2) . "\n");
                 }
@@ -1063,7 +1069,7 @@ trait PrintTrait
 
                 if ($diffPercent > 0) {
                       if ($sale->created_at >= \App\Services\ConfigurationService::getSequentialCutOffDate()) {
-                           $intermediateTotal = $totalBase + ($totalBase * $commPercent / 100) + $configFreightTotal + $productFreightTotal;
+                           $intermediateTotal = $totalBase + ($totalBase * $commPercent / 100) + ($totalBase * $markupPercent / 100) + $configFreightTotal + $productFreightTotal;
                            $amt = $intermediateTotal * ($diffPercent / 100);
                       } else {
                            $amt = $totalBase * ($diffPercent / 100);

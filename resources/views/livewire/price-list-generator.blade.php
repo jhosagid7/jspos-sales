@@ -83,6 +83,14 @@
                                     </div>
                                 </div>
                                 @endmodule
+                                @module('module_commissions')
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>Recargo (%)</label>
+                                        <input type="number" step="0.01" wire:model="customMarkup" class="form-control" placeholder="Ej: 5">
+                                    </div>
+                                </div>
+                                @endmodule
                                 @module('module_credits')
                                 <div class="col-md-4">
                                     <div class="form-group">

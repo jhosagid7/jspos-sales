@@ -64,6 +64,8 @@ class Sale extends Model
         'commission_amount',
         'freight_amount',
         'exchange_diff_amount',
+        'applied_base_markup_percent',
+        'base_markup_amount',
         'payment_agreement',
         'is_audited',
         'audited_at',
@@ -84,6 +86,8 @@ class Sale extends Model
         'commission_amount' => 'decimal:4',
         'freight_amount' => 'decimal:4',
         'exchange_diff_amount' => 'decimal:4',
+        'applied_base_markup_percent' => 'decimal:2',
+        'base_markup_amount' => 'decimal:4',
         'is_audited' => 'boolean',
         'audited_at' => 'datetime',
     ];
@@ -331,6 +335,16 @@ class Sale extends Model
         $customer = $this->customer;
         $customerConfig = $customer ? $customer->latestCustomerConfig : null;
         return $customerConfig ? floatval($customerConfig->exchange_diff_percent) : 0;
+    }
+
+    public function getResolvedBaseMarkupPercentAttribute()
+    {
+        if (isset($this->attributes['applied_base_markup_percent'])) {
+            return floatval($this->attributes['applied_base_markup_percent']);
+        }
+        $customer = $this->customer;
+        $customerConfig = $customer ? $customer->latestCustomerConfig : null;
+        return $customerConfig ? floatval($customerConfig->base_markup_percent) : 0;
     }
 
     public function getPaymentAgreementAttribute($value)

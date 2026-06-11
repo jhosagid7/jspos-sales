@@ -99,6 +99,10 @@
                                                  <h5 class="mb-0 font-weight-bold text-success">${{ number_format($ordersCommissionTotal, 2) }}</h5>
                                              </div>
                                              <div class="col-6 col-md-2 mb-2 mb-md-0 border-right border-secondary">
+                                                 <span class="text-info d-block font-weight-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">Recargo</span>
+                                                 <h5 class="mb-0 font-weight-bold text-info">${{ number_format($ordersMarkupTotal, 2) }}</h5>
+                                             </div>
+                                             <div class="col-6 col-md-2 mb-2 mb-md-0 border-right border-secondary">
                                                  <span class="text-info d-block font-weight-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">Flete</span>
                                                  <h5 class="mb-0 font-weight-bold text-info">${{ number_format($ordersFreightTotal, 2) }}</h5>
                                              </div>
@@ -106,9 +110,9 @@
                                                  <span class="text-warning d-block font-weight-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">Dif. Cambiario</span>
                                                  <h5 class="mb-0 font-weight-bold text-warning">${{ number_format($ordersDiffTotal, 2) }}</h5>
                                              </div>
-                                             <div class="col-12 col-md-4">
-                                                 <span class="text-primary d-block font-weight-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">Total General Ordenes</span>
-                                                 <h4 class="mb-0 font-weight-bold text-primary">${{ number_format($ordersGrandTotal, 2) }}</h4>
+                                             <div class="col-12 col-md-2">
+                                                 <span class="text-primary d-block font-weight-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">Total General</span>
+                                                 <h5 class="mb-0 font-weight-bold text-primary">${{ number_format($ordersGrandTotal, 2) }}</h5>
                                              </div>
                                          </div>
                                      </div>
@@ -127,6 +131,7 @@
                                         <th class="p-1">Base</th>
                                         <th class="p-1">%</th>
                                         <th class="p-1">Comisión</th>
+                                        <th class="p-1">Recargo</th>
                                         <th class="p-1">Flete</th>
                                         <th class="p-1">Dif.</th>
                                         <th class="p-1">Total</th>
@@ -163,6 +168,7 @@
                                             <td data-label="Base" class="text-right">${{ number_format($order->base_amount, 2) }}</td>
                                             <td data-label="%">{{ number_format($order->surcharge_percentage, 1) }}%</td>
                                             <td data-label="Comisión" class="text-right text-success">${{ number_format($order->commission_amount, 2) }}</td>
+                                            <td data-label="Recargo" class="text-right text-info">${{ number_format($order->base_markup_amount, 2) }}</td>
                                             <td data-label="Flete" class="text-right text-info">${{ number_format($order->freight_amount, 2) }}</td>
                                             <td data-label="Dif." class="text-right text-warning">${{ number_format($order->exchange_diff_amount, 2) }}</td>
                                             <td data-label="Total" class="text-right font-weight-bold">${{ number_format($order->total, 2) }}</td>

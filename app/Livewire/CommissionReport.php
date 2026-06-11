@@ -67,10 +67,11 @@ class CommissionReport extends Component
                 $commPercent = $sale->resolved_commission_percent;
                 $freightPercent = $sale->resolved_freight_percent;
                 $diffPercent = $sale->resolved_exchange_diff_percent;
+                $markupPercent = $sale->resolved_base_markup_percent;
                 if ($sale->created_at >= \App\Services\ConfigurationService::getSequentialCutOffDate()) {
-                    $baseAmount = ($sale->total / (1 + $diffPercent / 100)) / (1 + ($commPercent + $freightPercent) / 100);
+                    $baseAmount = ($sale->total / (1 + $diffPercent / 100)) / (1 + ($commPercent + $freightPercent + $markupPercent) / 100);
                 } else {
-                    $totalSurchargeFactor = 1 + (($commPercent + $freightPercent + $diffPercent) / 100);
+                    $totalSurchargeFactor = 1 + (($commPercent + $freightPercent + $diffPercent + $markupPercent) / 100);
                     $baseAmount = $sale->total / $totalSurchargeFactor;
                 }
                 

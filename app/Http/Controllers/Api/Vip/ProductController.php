@@ -45,6 +45,7 @@ class ProductController extends Controller
 
             if ($config) {
                 $comm = ($basePrice * ($config->commission_percent ?? 0)) / 100;
+                $markup = ($basePrice * ($config->base_markup_percent ?? 0)) / 100;
                 
                 if ($product->freight_type != 'none') {
                     if ($product->freight_type == 'fixed') {
@@ -56,7 +57,7 @@ class ProductController extends Controller
                     $freight = ($basePrice * ($config->freight_percent ?? 0)) / 100;
                 }
 
-                $intermediate = $basePrice + $comm + $freight;
+                $intermediate = $basePrice + $comm + $freight + $markup;
                 $diff = ($intermediate * ($config->exchange_diff_percent ?? 0)) / 100;
                 $finalPrice = $intermediate + $diff;
             }

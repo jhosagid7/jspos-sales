@@ -354,5 +354,105 @@ class HierarchicalCommissionTest extends TestCase
         $this->assertEquals(6.00, floatval($sale->applied_freight_percent), "Sale applied_freight_percent should be 6.00");
         $this->assertEquals(1.20, floatval($sale->freight_amount), "Sale freight_amount should be 1.20");
     }
+
+    public function test_base_markup_resolution_and_persistence()
+    {
+        $seller = User::factory()->create();
+        $role = \Spatie\Permission\Models\Role::findOrCreate('Seller');
+        $seller->assignRole($role);
+        
+        $customer = Customer::create([
+            'name' => 'Markup Customer',
+            'taxpayer_id' => 'V12345678',
+            'address' => 'Customer Address',
+            'city' => 'Caracas',
+            'phone' => '0412-1111111',
+            'email' => 'markup@email.com',
+            'seller_id' => $seller->id,
+        ]);
+
+        $customerConfig = \App\Models\CustomerConfig::create([
+            'customer_id' => $customer->id,
+            'commission_percent' => 8.00,
+            'freight_percent' => 6.00,
+            'base_markup_percent' => 5.00,
+            'exchange_diff_percent' => 45.00,
+        ]);
+
+        $category = \App\Models\Category::create([
+            'name' => 'Test Category',
+        ]);
+
+        $supplier = \App\Models\Supplier::create([
+            'name' => 'Test Supplier',
+            'taxpayer_id' => 'J88888888',
+            'address' => 'Supplier Address',
+            'phone' => '0212-2222222',
+        ]);
+
+        $product = \App\Models\Product::create([
+            'name' => 'Test Product',
+            'sku' => 'TEST-SKU-2',
+            'cost' => 10.00,
+            'price' => 10.00,
+            'manage_stock' => false,
+            'stock_qty' => 100,
+            'low_stock' => 0,
+            'supplier_id' => $supplier->id,
+            'category_id' => $category->id,
+        ]);
+
+        $this->actingAs($seller);
+
+        // Test Livewire component
+        $component = \Livewire\Livewire::test(\App\Livewire\Sales::class)
+            ->call('setCustomer', $customer->toArray());
+
+        // Setup Cart session
+        $cartItem = [
+            'id' => $product->id,
+            'pid' => $product->id,
+            'sku' => $product->sku,
+            'name' => $product->name,
+            'qty' => 2,
+            'price' => 10.00,
+            'base_price' => 10.00,
+            'sale_price' => 17.26, // Base: 10, Comm: 8%, Freight: 6%, Markup: 5% => 11.9 * 1.45 = 17.255 -> 17.26
+            'tax' => 0.00,
+            'total' => 34.52,
+            'pricelist' => [],
+        ];
+        session(['cart' => [$cartItem]]);
+        $component->set('cart', collect([$cartItem]));
+        $component->set('totalCart', 34.52);
+        $component->set('itemsCart', 2);
+
+        // Call storeOrder
+        $component->call('storeOrder');
+
+        // Verify that the order was created with correct base markup percent and amount
+        $order = \App\Models\Order::where('customer_id', $customer->id)->first();
+        $this->assertNotNull($order);
+        $this->assertEquals(5.00, floatval($order->applied_base_markup_percent), "Order applied_base_markup_percent should be 5.00");
+        $this->assertEquals(1.00, floatval($order->base_markup_amount), "Order base_markup_amount should be 1.00 (5% of 20.00 base)");
+
+        // Reset and test Sale
+        $component->set('payType', 2); // credit
+        $component->set('order_id', null);
+        $component->call('setCustomer', $customer->toArray());
+        
+        session(['cart' => [$cartItem]]);
+        $component->set('cart', collect([$cartItem]));
+        $component->set('totalCart', 34.52);
+        $component->set('itemsCart', 2);
+        
+        $component->call('Store', new \App\Services\CashRegisterService());
+
+        // Verify that the sale was created with correct base markup percent and amount
+        $sale = \App\Models\Sale::where('customer_id', $customer->id)->first();
+        $this->assertNotNull($sale);
+        $this->assertEquals(5.00, floatval($sale->applied_base_markup_percent), "Sale applied_base_markup_percent should be 5.00");
+        $this->assertEquals(1.00, floatval($sale->base_markup_amount), "Sale base_markup_amount should be 1.00 (5% of 20.00 base)");
+    }
 }
 

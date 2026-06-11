@@ -50,15 +50,20 @@ class PriceCalculatorService
 
         $comm = 0;
         $freight = 0;
+        $markup = 0;
         $diff = 0;
 
         if ($applyCommissions) {
             $commissionPercent = floatval($customerConfig->commission_percent);
             $freightPercent = floatval($customerConfig->freight_percent);
             $exchangeDiffPercent = floatval($customerConfig->exchange_diff_percent);
+            $baseMarkupPercent = floatval($customerConfig->base_markup_percent ?? 0);
             
             // Commission
             $comm = ($basePriceInPrimary * $commissionPercent) / 100;
+
+            // Markup
+            $markup = ($basePriceInPrimary * $baseMarkupPercent) / 100;
             
             // Freight (Smart Logic)
             if ($product->freight_type != 'none') {
@@ -73,8 +78,8 @@ class PriceCalculatorService
             }
             $freight = $freightUnit;
 
-            // Intermediate Price (Base + Comm + Freight)
-            $intermediatePrice = $basePriceInPrimary + $comm + $freight;
+            // Intermediate Price (Base + Markup + Comm + Freight)
+            $intermediatePrice = $basePriceInPrimary + $comm + $freight + $markup;
             
             // Exchange Diff (Applied on Intermediate Price)
             $diff = ($intermediatePrice * $exchangeDiffPercent) / 100;
@@ -94,6 +99,7 @@ class PriceCalculatorService
             'base_price' => $basePriceInPrimary,
             'commission' => $comm,
             'freight' => $freight,
+            'base_markup' => $markup,
             'exchange_diff' => $diff,
             'net_price' => $salePrice, // Price before Tax
             'final_price' => $priceWithTax, // Price after Tax

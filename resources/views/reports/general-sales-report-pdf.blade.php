@@ -214,6 +214,7 @@
                 @if($columns['porcentaje']) <th class="text-center">%</th> @endif
                 @if($columns['comision']) <th class="text-right">Comisión</th> @endif
                 @if($columns['flete']) <th class="text-right">Flete</th> @endif
+                @if($columns['recargo']) <th class="text-right">Recargo</th> @endif
                 @if($columns['diferencial']) <th class="text-right">Dif.</th> @endif
                 @if($columns['total']) <th class="text-right">Total</th> @endif
                 @if($columns['credito']) <th class="text-right">Crédito</th> @endif
@@ -225,7 +226,7 @@
         </thead>
         <tbody>
             @php
-                $totBase = 0; $totComm = 0; $totFreight = 0; $totDiff = 0; $totTotal = 0; $totCredit = 0; $totItems = 0;
+                $totBase = 0; $totComm = 0; $totFreight = 0; $totMarkup = 0; $totDiff = 0; $totTotal = 0; $totCredit = 0; $totItems = 0;
                 $cutOffDate = \App\Services\ConfigurationService::getSequentialCutOffDate();
                 
                 $loopData = $isGrouped ? $groupedSales : [['name' => '', 'sales' => $sales]];
@@ -246,27 +247,29 @@
                     $commPercent = $sale->resolved_commission_percent;
                     $freightPercent = $sale->resolved_freight_percent;
                     $diffPercent = $sale->resolved_exchange_diff_percent;
+                    $markupPercent = $sale->resolved_base_markup_percent;
                     $isSequential = $sale->created_at >= $cutOffDate;
 
                     if ($isSequential) {
-                        $surchargePercent = (((1 + ($commPercent + $freightPercent) / 100) * (1 + $diffPercent / 100)) - 1) * 100;
+                        $surchargePercent = (((1 + ($commPercent + $freightPercent + $markupPercent) / 100) * (1 + $diffPercent / 100)) - 1) * 100;
                     } else {
-                        $surchargePercent = $commPercent + $freightPercent + $diffPercent;
+                        $surchargePercent = $commPercent + $freightPercent + $markupPercent + $diffPercent;
                     }
 
                     if ($base == 0 && $sale->total_usd > 0) {
                         if (!$isSequential) {
                             $base = $surchargePercent > 0 ? $sale->total_usd / (1 + ($surchargePercent / 100)) : $sale->total_usd;
                         } else {
-                            $base = ($sale->total_usd / (1 + ($diffPercent / 100))) / (1 + (($commPercent + $freightPercent) / 100));
+                            $base = ($sale->total_usd / (1 + ($diffPercent / 100))) / (1 + (($commPercent + $freightPercent + $markupPercent) / 100));
                         }
                     }
 
                     $commAmt = $sale->commission_amount > 0 ? floatval($sale->commission_amount) : ($base * $commPercent / 100);
                     $freightAmt = $sale->freight_amount > 0 ? floatval($sale->freight_amount) : ($base * $freightPercent / 100);
+                    $markupAmt = $sale->base_markup_amount > 0 ? floatval($sale->base_markup_amount) : ($base * $markupPercent / 100);
 
                     if ($isSequential) {
-                        $diffAmt = ($base + $commAmt + $freightAmt) * ($diffPercent / 100);
+                        $diffAmt = ($base + $commAmt + $freightAmt + $markupAmt) * ($diffPercent / 100);
                     } else {
                         $diffAmt = $sale->exchange_diff_amount > 0 ? floatval($sale->exchange_diff_amount) : ($base * $diffPercent / 100);
                     }
@@ -276,6 +279,7 @@
                         $base = $base / $sale->primary_exchange_rate;
                         $commAmt = $commAmt / $sale->primary_exchange_rate;
                         $freightAmt = $freightAmt / $sale->primary_exchange_rate;
+                        $markupAmt = $markupAmt / $sale->primary_exchange_rate;
                         $diffAmt = $diffAmt / $sale->primary_exchange_rate;
                     }
 
@@ -297,6 +301,7 @@
                     $totBase += $base;
                     $totComm += $commAmt;
                     $totFreight += $freightAmt;
+                    $totMarkup += $markupAmt;
                     $totDiff += $diffAmt;
                     $totTotal += $sale->total_usd;
                     $totCredit += $creditUSD;
@@ -324,6 +329,14 @@
                         ${{ number_format($freightAmt, 2) }}
                         @if($freightPercent > 0)
                             <br><span class="text-muted">({{ number_format($freightPercent, 1) }}%)</span>
+                        @endif
+                    </td>
+                    @endif
+                    @if($columns['recargo'])
+                    <td class="text-right text-green">
+                        ${{ number_format($markupAmt, 2) }}
+                        @if($markupPercent > 0)
+                            <br><span class="text-muted">({{ number_format($markupPercent, 1) }}%)</span>
                         @endif
                     </td>
                     @endif
@@ -373,6 +386,7 @@
                 @if($columns['porcentaje']) <td></td> @endif
                 @if($columns['comision']) <td class="text-right text-green">${{ number_format($totComm, 2) }}</td> @endif
                 @if($columns['flete']) <td class="text-right text-blue">${{ number_format($totFreight, 2) }}</td> @endif
+                @if($columns['recargo']) <td class="text-right text-green">${{ number_format($totMarkup, 2) }}</td> @endif
                 @if($columns['diferencial']) <td class="text-right text-orange">${{ number_format($totDiff, 2) }}</td> @endif
                 @if($columns['total']) <td class="text-right">${{ number_format($totTotal, 2) }}</td> @endif
                 @if($columns['credito']) <td class="text-right text-red">${{ number_format($totCredit, 2) }}</td> @endif

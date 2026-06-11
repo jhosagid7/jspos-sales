@@ -154,6 +154,7 @@ class Sales extends Component
     public $ordersCommissionTotal = 0;
     public $ordersFreightTotal = 0;
     public $ordersDiffTotal = 0;
+    public $ordersMarkupTotal = 0;
     public $ordersGrandTotal = 0;
 
     public $editing_sale_id = null;
@@ -1722,6 +1723,7 @@ class Sales extends Component
         $this->ordersTotal = (float) $query->clone()->sum('base_amount');
         $this->ordersCommissionTotal = (float) $query->clone()->sum('commission_amount');
         $this->ordersFreightTotal = (float) $query->clone()->sum('freight_amount');
+        $this->ordersMarkupTotal = (float) $query->clone()->sum('base_markup_amount');
         $this->ordersDiffTotal = (float) $query->clone()->sum('exchange_diff_amount');
         $this->ordersGrandTotal = (float) $query->clone()->sum('total');
 
@@ -2308,12 +2310,17 @@ class Sales extends Component
         $currencyCode = $currency ? strtoupper($currency->code) : '';
         $isUsdOrCop = in_array($currencyCode, ['USD', 'COP']);
 
+        $activeMarkup = 0;
+        $markup = 0;
+
         if ($this->applyCommissions) {
             if ($this->customerConfig) {
                  $activeComm = floatval($this->customerConfig->commission_percent);
                  $activeDiff = floatval($this->customerConfig->exchange_diff_percent);
+                 $activeMarkup = floatval($this->customerConfig->base_markup_percent ?? 0);
                  
                  $comm = ($basePriceInPrimary * $activeComm) / 100;
+                 $markup = ($basePriceInPrimary * $activeMarkup) / 100;
             }
         }
 
@@ -2330,12 +2337,12 @@ class Sales extends Component
         // IF breakdown is ON, we DO NOT add freight to the Unit Price
         if ($this->is_freight_broken_down) {
              // Freight is calculated separately, not in unit price
-             $intermediatePrice = $basePriceInPrimary + $comm;
+             $intermediatePrice = $basePriceInPrimary + $comm + $markup;
              $diff = ($intermediatePrice * $activeDiff) / 100;
              $salePrice = $intermediatePrice + $diff;
         } else {
              // Freight is included in unit price
-             $intermediatePrice = $basePriceInPrimary + $comm + $freightUnit;
+             $intermediatePrice = $basePriceInPrimary + $comm + $freightUnit + $markup;
              $diff = ($intermediatePrice * $activeDiff) / 100;
              $salePrice = $intermediatePrice + $diff;
         }
@@ -3656,6 +3663,7 @@ class Sales extends Component
             $appliedComm = 0;
             $appliedFreight = 0;
             $appliedDiff = 0;
+            $appliedMarkup = 0;
             $sellerConfigId = null;
 
             if ($this->sellerConfig) {
@@ -3665,6 +3673,7 @@ class Sales extends Component
             if ($this->applyCommissions) {
                 $appliedComm = $this->customerConfig ? floatval($this->customerConfig->commission_percent) : 0;
                 $appliedDiff = $this->customerConfig ? floatval($this->customerConfig->exchange_diff_percent) : 0;
+                $appliedMarkup = $this->customerConfig ? floatval($this->customerConfig->base_markup_percent) : 0;
             }
 
             if ($this->applyCommissions || $this->applyFreight) {
@@ -3726,7 +3735,8 @@ class Sales extends Component
 
             $commAmtUSD = $baseAmountUSD * ($appliedComm / 100);
             $freightAmtUSD = $baseAmountUSD * ($appliedFreight / 100);
-            $diffAmtUSD = $baseAmountUSD * ($appliedDiff / 100);
+            $markupAmtUSD = $baseAmountUSD * ($appliedMarkup / 100);
+            $diffAmtUSD = ($baseAmountUSD + $commAmtUSD + $freightAmtUSD + $markupAmtUSD) * ($appliedDiff / 100);
 
             $saleData = [
                 'seller_config_id' => $sellerConfigId,
@@ -3751,9 +3761,11 @@ class Sales extends Component
                 'applied_commission_percent' => $appliedComm,
                 'applied_freight_percent' => $appliedFreight,
                 'applied_exchange_diff_percent' => $appliedDiff,
+                'applied_base_markup_percent' => $appliedMarkup,
                 'base_amount' => round($baseAmountUSD, 4),
                 'commission_amount' => round($commAmtUSD, 4),
                 'freight_amount' => round($freightAmtUSD, 4),
+                'base_markup_amount' => round($markupAmtUSD, 4),
                 'exchange_diff_amount' => round($diffAmtUSD, 4),
                 'is_foreign_sale' => $this->sellerConfig ? true : false,
                 'credit_days' => $this->creditConfig['credit_days'] ?? $this->calculateCreditDays(),
@@ -4243,26 +4255,22 @@ class Sales extends Component
             $appliedComm = 0;
             $appliedFreight = 0;
             $appliedDiff = 0;
+            $appliedMarkup = 0;
 
             if ($this->applyCommissions) {
-                $appliedComm = ($this->customerConfig && $this->customerConfig->commission_percent > 0)
-                    ? $this->customerConfig->commission_percent
-                    : ($this->sellerConfig ? $this->sellerConfig->commission_percent : 0);
-
-                $appliedDiff = ($this->customerConfig && $this->customerConfig->exchange_diff_percent > 0)
-                    ? $this->customerConfig->exchange_diff_percent
-                    : ($this->sellerConfig ? $this->sellerConfig->exchange_diff_percent : 0);
+                $appliedComm = $this->customerConfig ? floatval($this->customerConfig->commission_percent) : 0;
+                $appliedDiff = $this->customerConfig ? floatval($this->customerConfig->exchange_diff_percent) : 0;
+                $appliedMarkup = $this->customerConfig ? floatval($this->customerConfig->base_markup_percent) : 0;
             }
 
             if ($this->applyCommissions || $this->applyFreight) {
-                $appliedFreight = ($this->customerConfig && $this->customerConfig->freight_percent > 0)
-                    ? $this->customerConfig->freight_percent
-                    : ($this->sellerConfig ? $this->sellerConfig->freight_percent : 0);
+                $appliedFreight = $this->customerConfig ? floatval($this->customerConfig->freight_percent) : 0;
             }
 
             $commAmt = $baseAmountCart * ($appliedComm / 100);
             $freightAmt = $baseAmountCart * ($appliedFreight / 100);
-            $diffAmt = $baseAmountCart * ($appliedDiff / 100);
+            $markupAmt = $baseAmountCart * ($appliedMarkup / 100);
+            $diffAmt = ($baseAmountCart + $commAmt + $freightAmt + $markupAmt) * ($appliedDiff / 100);
 
             if ($this->order_id) {
                 // Actualiza la orden existente
@@ -4284,6 +4292,8 @@ class Sales extends Component
                         'base_amount' => round($baseAmountCart, 4),
                         'commission_amount' => round($commAmt, 4),
                         'freight_amount' => round($freightAmt, 4),
+                        'applied_base_markup_percent' => $appliedMarkup,
+                        'base_markup_amount' => round($markupAmt, 4),
                         'exchange_diff_amount' => round($diffAmt, 4),
                         'payment_agreement' => $this->paymentAgreement,
                     ];
@@ -4392,6 +4402,8 @@ class Sales extends Component
                     'base_amount' => round($baseAmountCart, 4),
                     'commission_amount' => round($commAmt, 4),
                     'freight_amount' => round($freightAmt, 4),
+                    'applied_base_markup_percent' => $appliedMarkup,
+                    'base_markup_amount' => round($markupAmt, 4),
                     'exchange_diff_amount' => round($diffAmt, 4),
                     'payment_agreement' => $this->paymentAgreement,
                 ]);

@@ -218,6 +218,9 @@
 
                                     $activeDiff = $customerConfig ? floatval($customerConfig->exchange_diff_percent) : 0;
                                     $diffSource = 'Cliente';
+
+                                    $activeMarkup = $customerConfig ? floatval($customerConfig->base_markup_percent) : 0;
+                                    $markupSource = 'Cliente';
                                 @endphp
                                 
                                 <div class="alert {{ $alertClass }} p-2" style="font-size: 0.85rem;">
@@ -230,6 +233,7 @@
                                         
                                         <li><strong>Com:</strong> {{ $activeComm }}% <i>({{ $commSource }})</i></li>
                                         @if(!auth()->user()->can('system.is_foreign_seller') || auth()->user()->hasRole('Admin') || auth()->user()->hasRole('Super Admin'))
+                                            <li><strong>Recargo:</strong> {{ $activeMarkup }}% <i>({{ $markupSource }})</i></li>
                                             <li><strong>Flete:</strong> {{ $activeFreight }}% <i>({{ $freightSource }})</i></li>
                                             <li><strong>Dif:</strong> {{ $activeDiff }}% <i>({{ $diffSource }})</i></li>
                                         @endif

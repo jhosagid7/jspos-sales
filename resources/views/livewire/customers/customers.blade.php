@@ -121,6 +121,7 @@
                                     <th>Fecha</th>
                                     <th>Comisión %</th>
                                     <th>Flete %</th>
+                                    <th>Recargo %</th>
                                     <th>Diferencial %</th>
                                     <th>Lote</th>
                                     <th>Acuerdo</th>
@@ -133,6 +134,7 @@
                                         <td>{{ $record->created_at->format('d/m/Y H:i') }}</td>
                                         <td>{{ number_format($record->commission_percent, 2) }}%</td>
                                         <td>{{ number_format($record->freight_percent, 2) }}%</td>
+                                        <td>{{ number_format($record->base_markup_percent, 2) }}%</td>
                                         <td>{{ number_format($record->exchange_diff_percent, 2) }}%</td>
                                         <td>{{ $record->current_batch }}</td>
                                         <td>

@@ -179,6 +179,12 @@
                         </div>
                         <div class="col-12 mb-1">
                             <div class="custom-control custom-checkbox ml-2">
+                                <input type="checkbox" class="custom-control-input" id="col_recargo" wire:model.live="columns.recargo">
+                                <label class="custom-control-label f-12" for="col_recargo">Recargo</label>
+                            </div>
+                        </div>
+                        <div class="col-12 mb-1">
+                            <div class="custom-control custom-checkbox ml-2">
                                 <input type="checkbox" class="custom-control-input" id="col_diferencial" wire:model.live="columns.diferencial">
                                 <label class="custom-control-label f-12" for="col_diferencial">Diferencial</label>
                             </div>
@@ -268,6 +274,7 @@
                                     @if($columns['porcentaje']) <th>%</th> @endif
                                     @if($columns['comision']) <th>Comisión</th> @endif
                                     @if($columns['flete']) <th>Flete</th> @endif
+                                    @if($columns['recargo']) <th>Recargo</th> @endif
                                     @if($columns['diferencial']) <th>Dif.</th> @endif
                                     @if($columns['total']) <th>Total</th> @endif
                                     @if($columns['credito']) <th>Crédito (USD)</th> @endif
@@ -372,12 +379,13 @@
                                         $commPercent = $sale->resolved_commission_percent;
                                         $freightPercent = $sale->resolved_freight_percent;
                                         $diffPercent = $sale->resolved_exchange_diff_percent;
+                                        $markupPercent = $sale->resolved_base_markup_percent;
                                         $isSequential = $sale->created_at >= \App\Services\ConfigurationService::getSequentialCutOffDate();
 
                                         if ($isSequential) {
-                                            $surchargePercent = (((1 + ($commPercent + $freightPercent) / 100) * (1 + $diffPercent / 100)) - 1) * 100;
+                                            $surchargePercent = (((1 + ($commPercent + $freightPercent + $markupPercent) / 100) * (1 + $diffPercent / 100)) - 1) * 100;
                                         } else {
-                                            $surchargePercent = $commPercent + $freightPercent + $diffPercent;
+                                            $surchargePercent = $commPercent + $freightPercent + $markupPercent + $diffPercent;
                                         }
                                         
                                         if ($base == 0 && $sale->total_usd > 0) {
@@ -388,15 +396,16 @@
                                                     $base = $sale->total_usd;
                                                 }
                                             } else {
-                                                $base = ($sale->total_usd / (1 + ($diffPercent / 100))) / (1 + (($commPercent + $freightPercent) / 100));
+                                                $base = ($sale->total_usd / (1 + ($diffPercent / 100))) / (1 + (($commPercent + $freightPercent + $markupPercent) / 100));
                                             }
                                         }
                                         
                                         $commAmt = $sale->commission_amount > 0 ? floatval($sale->commission_amount) : ($base * $commPercent / 100);
                                         $freightAmt = $sale->freight_amount > 0 ? floatval($sale->freight_amount) : ($base * $freightPercent / 100);
+                                        $markupAmt = $sale->base_markup_amount > 0 ? floatval($sale->base_markup_amount) : ($base * $markupPercent / 100);
                                         
                                         if ($isSequential) {
-                                            $diffAmt = ($base + $commAmt + $freightAmt) * ($diffPercent / 100);
+                                            $diffAmt = ($base + $commAmt + $freightAmt + $markupAmt) * ($diffPercent / 100);
                                         } else {
                                             $diffAmt = $sale->exchange_diff_amount > 0 ? floatval($sale->exchange_diff_amount) : ($base * $diffPercent / 100);
                                         }
@@ -406,6 +415,7 @@
                                             $base = $base / $sale->primary_exchange_rate;
                                             $commAmt = $commAmt / $sale->primary_exchange_rate;
                                             $freightAmt = $freightAmt / $sale->primary_exchange_rate;
+                                            $markupAmt = $markupAmt / $sale->primary_exchange_rate;
                                             $diffAmt = $diffAmt / $sale->primary_exchange_rate;
                                         }
                                     @endphp
@@ -442,6 +452,14 @@
                                             ${{ number_format($freightAmt, 2) }}
                                             @if($freightPercent > 0)
                                                 <br><small class="text-muted">({{ number_format($freightPercent, 1) }}%)</small>
+                                            @endif
+                                        </td>
+                                        @endif
+                                        @if($columns['recargo'])
+                                        <td class="text-right text-success">
+                                            ${{ number_format($markupAmt, 2) }}
+                                            @if($markupPercent > 0)
+                                                <br><small class="text-muted">({{ number_format($markupPercent, 1) }}%)</small>
                                             @endif
                                         </td>
                                         @endif

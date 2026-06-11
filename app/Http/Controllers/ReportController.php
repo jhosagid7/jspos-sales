@@ -583,7 +583,7 @@ class ReportController extends Controller
 
         $columns = json_decode($request->get('columns'), true) ?? [
             'folio' => true, 'cliente' => true, 'operador' => false, 'vendedor' => false, 'base' => true, 'porcentaje' => true,
-            'comision' => true, 'flete' => true, 'diferencial' => true, 'total' => true,
+            'comision' => true, 'flete' => true, 'recargo' => true, 'diferencial' => true, 'total' => true,
             'credito' => true, 'articulos' => true, 'estatus' => true, 'tipo' => true, 'fecha' => true,
         ];
 
@@ -605,19 +605,20 @@ class ReportController extends Controller
             $commPercent = $sale->resolved_commission_percent;
             $freightPercent = $sale->resolved_freight_percent;
             $diffPercent = $sale->resolved_exchange_diff_percent;
+            $markupPercent = $sale->resolved_base_markup_percent;
             $isSequential = $sale->created_at >= $cutOffDate;
 
             if ($isSequential) {
-                $surchargePercent = (((1 + ($commPercent + $freightPercent) / 100) * (1 + $diffPercent / 100)) - 1) * 100;
+                $surchargePercent = (((1 + ($commPercent + $freightPercent + $markupPercent) / 100) * (1 + $diffPercent / 100)) - 1) * 100;
             } else {
-                $surchargePercent = $commPercent + $freightPercent + $diffPercent;
+                $surchargePercent = $commPercent + $freightPercent + $diffPercent + $markupPercent;
             }
 
             if ($base == 0 && $sale->total_usd > 0) {
                 if (!$isSequential) {
                     $base = $surchargePercent > 0 ? $sale->total_usd / (1 + ($surchargePercent / 100)) : $sale->total_usd;
                 } else {
-                    $base = ($sale->total_usd / (1 + ($diffPercent / 100))) / (1 + (($commPercent + $freightPercent) / 100));
+                    $base = ($sale->total_usd / (1 + ($diffPercent / 100))) / (1 + (($commPercent + $freightPercent + $markupPercent) / 100));
                 }
             }
 
@@ -777,13 +778,15 @@ class ReportController extends Controller
             $commPercent = $sale->resolved_commission_percent;
             $freightPercent = $sale->resolved_freight_percent;
             $diffPercent = $sale->resolved_exchange_diff_percent;
-            $incPercent = $commPercent + $freightPercent + $diffPercent;
+            $markupPercent = $sale->resolved_base_markup_percent;
+            $incPercent = $commPercent + $freightPercent + $diffPercent + $markupPercent;
             
             if ($sale->created_at >= \App\Services\ConfigurationService::getSequentialCutOffDate()) {
-                $baseAmount = ($totalFac / (1 + $diffPercent / 100)) / (1 + ($commPercent + $freightPercent) / 100);
+                $baseAmount = ($totalFac / (1 + $diffPercent / 100)) / (1 + ($commPercent + $freightPercent + $markupPercent) / 100);
                 $commAmt = $baseAmount * ($commPercent / 100);
                 $freightAmt = $baseAmount * ($freightPercent / 100);
-                $intermediateTotal = $baseAmount + $commAmt + $freightAmt;
+                $markupAmt = $baseAmount * ($markupPercent / 100);
+                $intermediateTotal = $baseAmount + $commAmt + $freightAmt + $markupAmt;
                 $diffAmt = $intermediateTotal * ($diffPercent / 100);
             } else {
                 $baseAmount = $totalFac / (1 + ($incPercent / 100));

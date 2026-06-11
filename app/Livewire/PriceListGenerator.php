@@ -31,6 +31,7 @@ class PriceListGenerator extends Component
     public $customCommission;
     public $customFreight;
     public $customExchangeDiff;
+    public $customMarkup;
     
     // On-the-Fly Commercial Conditions
     public $customCreditDays;
@@ -177,12 +178,13 @@ class PriceListGenerator extends Component
         // 4. Current Logged-in Seller
         
         // Check for Custom Configuration
-        if ($this->customCommission !== null || $this->customFreight !== null || $this->customExchangeDiff !== null) {
+        if ($this->customCommission !== null || $this->customFreight !== null || $this->customExchangeDiff !== null || $this->customMarkup !== null) {
             // Create a temporary object mocking SellerConfig
             $sellerConfig = new \stdClass();
             $sellerConfig->commission_percent = $this->customCommission ?? 0;
             $sellerConfig->freight_percent = $this->customFreight ?? 0;
             $sellerConfig->exchange_diff_percent = $this->customExchangeDiff ?? 0;
+            $sellerConfig->base_markup_percent = $this->customMarkup ?? 0;
             Log::info('Using Custom Config', (array)$sellerConfig);
         } 
         elseif ($this->selectedSellerId) {
@@ -398,6 +400,14 @@ class PriceListGenerator extends Component
             $diffPercent = floatval($customerConfig->exchange_diff_percent);
         }
 
+        // Markup (Recargo)
+        $markupPercent = 0;
+        if ($this->customMarkup !== null && $this->customMarkup !== '') {
+            $markupPercent = floatval($this->customMarkup);
+        } elseif ($customerConfig) {
+            $markupPercent = floatval($customerConfig->base_markup_percent);
+        }
+
         // USD Discount
         $usdDiscount = floatval($headerData['usd_discount']);
 
@@ -422,7 +432,10 @@ class PriceListGenerator extends Component
             $headerData['discount_rules'] ?? [],
             $moraPercent,
             intval($headerData['credit_days']),
-            $operator->name
+            $operator->name,
+            '', // tpCode
+            '', // pgdCode
+            $markupPercent
         );
     }
 

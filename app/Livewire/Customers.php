@@ -17,7 +17,7 @@ class Customers extends Component
     public $editing;
     public $tab = 1; // Active tab (1=General, 2=Commercial, 3=Sales History, 4=Credit Config)
     public $customerCommission1Threshold, $customerCommission1Percentage, $customerCommission2Threshold, $customerCommission2Percentage;
-    public $commission_percent = 0, $freight_percent = 0, $exchange_diff_percent = 0, $current_batch = '1', $agreement;
+    public $commission_percent = 0, $freight_percent = 0, $exchange_diff_percent = 0, $base_markup_percent = 0, $current_batch = '1', $agreement;
     public $password;
     public $discountRules = []; // Array of discount rules for this customer
 
@@ -37,6 +37,7 @@ class Customers extends Component
         'commission_percent' => 'nullable|numeric|min:0|max:100',
         'freight_percent' => 'nullable|numeric|min:0|max:100',
         'exchange_diff_percent' => 'nullable|numeric|min:0|max:1000',
+        'base_markup_percent' => 'nullable|numeric|min:0|max:100',
         'customerCommission1Threshold' => 'nullable|numeric',
         'customerCommission1Percentage' => 'nullable|numeric',
         'customerCommission2Threshold' => 'nullable|numeric',
@@ -77,6 +78,7 @@ class Customers extends Component
         $this->commission_percent = 0;
         $this->freight_percent = 0;
         $this->exchange_diff_percent = 0;
+        $this->base_markup_percent = 0;
         $this->current_batch = '1';
         $this->resetCommissionFields();
         $this->editing = false;
@@ -151,12 +153,14 @@ class Customers extends Component
             $this->commission_percent = $latestConfig->commission_percent;
             $this->freight_percent = $latestConfig->freight_percent;
             $this->exchange_diff_percent = $latestConfig->exchange_diff_percent;
+            $this->base_markup_percent = $latestConfig->base_markup_percent ?? 0;
             $this->current_batch = $latestConfig->current_batch;
             $this->agreement = $latestConfig->agreement;
         } else {
             $this->commission_percent = 0;
             $this->freight_percent = 0;
             $this->exchange_diff_percent = 0;
+            $this->base_markup_percent = 0;
             $this->current_batch = '1';
             $this->agreement = '';
         }
@@ -178,6 +182,7 @@ class Customers extends Component
         $this->commission_percent = 0;
         $this->freight_percent = 0;
         $this->exchange_diff_percent = 0;
+        $this->base_markup_percent = 0;
         $this->current_batch = '1';
         $this->resetCommissionFields();
         $this->dispatch('init-new');
@@ -250,6 +255,7 @@ class Customers extends Component
             $latestConfig->commission_percent != $this->commission_percent ||
             $latestConfig->freight_percent != $this->freight_percent ||
             $latestConfig->exchange_diff_percent != $this->exchange_diff_percent ||
+            $latestConfig->base_markup_percent != $this->base_markup_percent ||
             $latestConfig->current_batch != $this->current_batch ||
             $latestConfig->agreement != $this->agreement;
 
@@ -259,6 +265,7 @@ class Customers extends Component
                 'commission_percent' => is_numeric($this->commission_percent) ? floatval($this->commission_percent) : 0,
                 'freight_percent' => is_numeric($this->freight_percent) ? floatval($this->freight_percent) : 0,
                 'exchange_diff_percent' => is_numeric($this->exchange_diff_percent) ? floatval($this->exchange_diff_percent) : 0,
+                'base_markup_percent' => is_numeric($this->base_markup_percent) ? floatval($this->base_markup_percent) : 0,
                 'current_batch' => $this->current_batch ?? '1',
                 'agreement' => $this->agreement,
             ]);

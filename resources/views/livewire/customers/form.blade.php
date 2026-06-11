@@ -160,15 +160,19 @@
                                     </button>
                                     @endif
                                 </div>
-                                <div class="col-sm-4 form-group mt-3">
+                                <div class="col-sm-3 form-group mt-3">
                                     <span class="form-label">Comisión (%)</span>
                                     <input wire:model="commission_percent" class="form-control" type="number" step="0.01" min="0" max="100" placeholder="Heredado">
                                 </div>
-                                <div class="col-sm-4 form-group mt-3">
+                                <div class="col-sm-3 form-group mt-3">
                                     <span class="form-label">Flete (%)</span>
                                     <input wire:model="freight_percent" class="form-control" type="number" step="0.01" min="0" max="100" placeholder="Heredado">
                                 </div>
-                                <div class="col-sm-4 form-group mt-3">
+                                <div class="col-sm-3 form-group mt-3">
+                                    <span class="form-label">Recargo (%)</span>
+                                    <input wire:model="base_markup_percent" class="form-control" type="number" step="0.01" min="0" max="100" placeholder="Heredado">
+                                </div>
+                                <div class="col-sm-3 form-group mt-3">
                                     <span class="form-label">Dif. Cambiario (%)</span>
                                     <input wire:model="exchange_diff_percent" class="form-control" type="number" step="0.01" min="0" max="1000" placeholder="Heredado">
                                 </div>

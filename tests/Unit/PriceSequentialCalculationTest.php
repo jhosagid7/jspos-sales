@@ -354,4 +354,59 @@ class PriceSequentialCalculationTest extends TestCase
         $this->assertEquals(0.00, $orderOff->resolved_freight_percent);
         $this->assertEquals(0.00, $orderOff->resolved_exchange_diff_percent);
     }
+
+    public function test_price_calculator_service_sequential_calculation_with_base_markup()
+    {
+        // 1. Setup Models
+        $category = \App\Models\Category::create(['name' => 'Test Category']);
+        $supplier = \App\Models\Supplier::create(['name' => 'Test Supplier', 'phone' => '123', 'address' => 'A']);
+        
+        $product = Product::create([
+            'name' => 'Test Product', 
+            'sku' => 'TEST-002', 
+            'price' => 10.00, // Base price
+            'cost' => 5, 
+            'stock_qty' => 100,
+            'type' => 'physical',
+            'status' => 'available',
+            'manage_stock' => 1,
+            'low_stock' => 1,
+            'supplier_id' => $supplier->id,
+            'category_id' => $category->id,
+            'freight_type' => 'none'
+        ]);
+
+        $seller = User::factory()->create(['name' => 'Test Seller']);
+        $customer = Customer::create([
+            'name' => 'Test Customer 2',
+            'taxpayer_id' => '124',
+            'address' => 'Addr',
+            'city' => 'City',
+            'seller_id' => $seller->id
+        ]);
+        $customerConfig = CustomerConfig::create([
+            'customer_id' => $customer->id,
+            'commission_percent' => 8.00,
+            'freight_percent' => 6.00,
+            'base_markup_percent' => 5.00,
+            'exchange_diff_percent' => 45.00
+        ]);
+
+        // 2. Perform Calculation
+        $pricing = $this->calculator->calculate($product, null, $customer);
+
+        // 3. Assertions
+        // Commission = 10 * 8% = 0.8
+        // Freight = 10 * 6% = 0.6
+        // Base Markup = 10 * 5% = 0.5
+        // Intermediate Price = 10 + 0.8 + 0.6 + 0.5 = 11.9
+        // Exchange Diff = 11.9 * 45% = 5.355
+        // Net Price = 11.9 + 5.355 = 17.255
+        $this->assertEquals(10.00, $pricing['base_price']);
+        $this->assertEquals(0.80, $pricing['commission']);
+        $this->assertEquals(0.60, $pricing['freight']);
+        $this->assertEquals(0.50, $pricing['base_markup']);
+        $this->assertEquals(5.355, $pricing['exchange_diff']);
+        $this->assertEquals(17.26, round($pricing['net_price'], 2));
+    }
 }

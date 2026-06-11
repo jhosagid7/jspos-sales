@@ -92,6 +92,7 @@ class CollectionSheetAudit extends Component
         $commissionPercent = $sale ? floatval($sale->resolved_commission_percent) : 0;
         $freightPercent = $sale ? floatval($sale->resolved_freight_percent) : 0;
         $diffPercent = $sale ? floatval($sale->resolved_exchange_diff_percent) : 0;
+        $markupPercent = $sale ? floatval($sale->resolved_base_markup_percent) : 0;
         
         $base = $sale ? floatval($sale->base_amount) : 0;
         $total = $sale ? floatval($sale->total_usd) : 0;
@@ -100,6 +101,7 @@ class CollectionSheetAudit extends Component
         $paymentBase = $base * $ratio;
         $paymentFreight = ($sale ? floatval($sale->freight_amount) : 0) * $ratio;
         $paymentCommission = ($sale ? floatval($sale->commission_amount) : 0) * $ratio;
+        $paymentMarkup = ($sale ? floatval($sale->base_markup_amount) : 0) * $ratio;
         $paymentDiff = ($sale ? floatval($sale->exchange_diff_amount) : 0) * $ratio;
         
         $this->selectedPaymentDetails = [
@@ -113,10 +115,12 @@ class CollectionSheetAudit extends Component
             'commission_percent' => $commissionPercent,
             'freight_percent' => $freightPercent,
             'diff_percent' => $diffPercent,
+            'markup_percent' => $markupPercent,
             'base_amount' => $base,
             'commission_amount' => $sale ? floatval($sale->commission_amount) : 0,
             'freight_amount' => $sale ? floatval($sale->freight_amount) : 0,
             'diff_amount' => $sale ? floatval($sale->exchange_diff_amount) : 0,
+            'markup_amount' => $sale ? floatval($sale->base_markup_amount) : 0,
             
             // Payment details
             'payment_amount' => floatval($payment->amount),
@@ -134,6 +138,7 @@ class CollectionSheetAudit extends Component
             'payment_base_prop' => $paymentBase,
             'payment_freight_prop' => $paymentFreight,
             'payment_commission_prop' => $paymentCommission,
+            'payment_markup_prop' => $paymentMarkup,
             'payment_diff_prop' => $paymentDiff,
             'net_real_usd' => $val['net_usd'],
             'color' => $val['color'],
@@ -224,6 +229,7 @@ class CollectionSheetAudit extends Component
         $paymentBase = floatval($sale->base_amount) * $ratio;
         $paymentFreight = floatval($sale->freight_amount) * $ratio;
         $paymentCommission = floatval($sale->commission_amount) * $ratio;
+        $paymentMarkup = floatval($sale->base_markup_amount) * $ratio;
 
         $agreement = $sale->payment_agreement ?: 'USD';
 
@@ -233,7 +239,7 @@ class CollectionSheetAudit extends Component
         $computedNetUSD = 0;
 
         if ($currency === 'USD') {
-            $computedNetUSD = $paymentUsd - $paymentFreight - $paymentCommission;
+            $computedNetUSD = $paymentUsd - $paymentFreight - $paymentCommission - $paymentMarkup;
             if ($computedNetUSD < $paymentBase - 0.0099) {
                 $isLoss = true;
                 $message = 'Monto neto menor al costo base.';
@@ -269,7 +275,7 @@ class CollectionSheetAudit extends Component
                 }
 
                 $realUsdValue = $payment->amount / ($binanceRate ?: 1);
-                $computedNetUSD = $realUsdValue - $paymentFreight - $paymentCommission;
+                $computedNetUSD = $realUsdValue - $paymentFreight - $paymentCommission - $paymentMarkup;
 
                 if ($computedNetUSD < $paymentBase - 0.0099) {
                     $isLoss = true;
@@ -286,7 +292,7 @@ class CollectionSheetAudit extends Component
                 $invoiceUsdCovered = $payment->amount / ($payRate ?: 1);
                 $realBinanceUsd = ($invoiceUsdCovered * ($bcvRate ?: 1)) / ($binanceRate ?: 1);
 
-                $computedNetUSD = $realBinanceUsd - $paymentFreight - $paymentCommission;
+                $computedNetUSD = $realBinanceUsd - $paymentFreight - $paymentCommission - $paymentMarkup;
 
                 if ($computedNetUSD < $paymentBase - 0.0099) {
                     $isLoss = true;
@@ -294,7 +300,7 @@ class CollectionSheetAudit extends Component
                 }
             }
         } else {
-            $computedNetUSD = $paymentUsd - $paymentFreight - $paymentCommission;
+            $computedNetUSD = $paymentUsd - $paymentFreight - $paymentCommission - $paymentMarkup;
             if ($computedNetUSD < $paymentBase - 0.0099) {
                 $isLoss = true;
                 $message = 'Monto neto menor al costo base.';

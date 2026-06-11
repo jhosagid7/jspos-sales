@@ -181,9 +181,11 @@
                                                              $activeComm2 = $customerConfig ? floatval($customerConfig->commission_percent) : 0;
                                                              $activeFreight2 = $customerConfig ? floatval($customerConfig->freight_percent) : 0;
                                                              $activeDiff2 = $customerConfig ? floatval($customerConfig->exchange_diff_percent) : 0;
+                                                             $activeMarkup2 = $customerConfig ? floatval($customerConfig->base_markup_percent) : 0;
                                                          @endphp
                                                          <li><strong>Comisión:</strong> {{ $activeComm2 }}%</li>
                                                          @if(!auth()->user()->can('system.is_foreign_seller') || auth()->user()->hasRole('Admin') || auth()->user()->hasRole('Super Admin'))
+                                                             <li><strong>Recargo:</strong> {{ $activeMarkup2 }}%</li>
                                                              <li><strong>Flete:</strong> {{ $activeFreight2 }}%</li>
                                                              <li><strong>Diferencial:</strong> {{ $activeDiff2 }}%</li>
                                                          @endif

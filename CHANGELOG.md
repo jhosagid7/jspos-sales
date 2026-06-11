@@ -1,3 +1,14 @@
+## [1.10.135] - 2026-06-11
+### Added
+- **Soporte de Recargo de Base (Base Markup) en Auditoría de Facturas y Cobranzas**:
+  - Se actualizó la vista detallada de auditoría de facturas (`invoices-audit-list.blade.php`) para incluir la visualización del nuevo recargo de base de forma independiente y descontarlo adecuadamente del contravalor recuperado.
+  - Se modificó el componente `CollectionSheetAudit` y su vista Blade (`collection-sheet-audit.blade.php`) para calcular y mostrar el recargo de base de manera proporcional en los cobros de planillas.
+  - Se actualizaron las explicaciones y fórmulas matemáticas detalladas del contravalor en el modal de auditoría de cobranza para reflejar la deducción del recargo de base.
+  - Se actualizó `CommissionService` y los reportes (`PaymentRelationshipReport`, `CommissionReport` y `ReportController`) para incluir el recargo de base en los cálculos inversos de la base imponible y el cálculo de comisiones.
+
+### Tests
+- **Prueba del Recargo de Base**: Se añadieron pruebas unitarias e integrales en `PriceSequentialCalculationTest` y `HierarchicalCommissionTest` verificando los cálculos secuenciales correctos y la persistencia de las propiedades de recargo en base de datos.
+
 ## [1.10.134] - 2026-06-11
 ### Added
 - **Centralización de Recargos en Clientes**: Se unificó la fuente de verdad de las configuraciones de recargos (comisión, flete y diferencial cambiario) a nivel de cliente (`CustomerConfig`). Se removió por completo la lógica de herencia y fallbacks a la configuración del vendedor foráneo (`SellerConfig`), logrando un único lugar de configuración y evitando retroactividades no deseadas ante cambios de vendedor.

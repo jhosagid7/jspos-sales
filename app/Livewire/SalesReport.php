@@ -40,6 +40,7 @@ class SalesReport extends Component
         'porcentaje' => true,
         'comision' => true,
         'flete' => true,
+        'recargo' => true,
         'diferencial' => true,
         'total' => true,
         'credito' => true,

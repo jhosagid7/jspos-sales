@@ -14,6 +14,7 @@ class CustomerConfig extends Model
         'commission_percent',
         'freight_percent',
         'exchange_diff_percent',
+        'base_markup_percent',
         'current_batch',
         'agreement',
     ];

@@ -470,6 +470,12 @@
                                             <span class="text-muted">Flete ({{ $selectedPaymentDetails['freight_percent'] }}%):</span>
                                             <span class="text-dark">${{ number_format($selectedPaymentDetails['freight_amount'], 2) }}</span>
                                         </div>
+                                        @if(($selectedPaymentDetails['markup_percent'] ?? 0) > 0)
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <span class="text-muted">Recargo ({{ $selectedPaymentDetails['markup_percent'] }}%):</span>
+                                                <span class="text-dark">${{ number_format($selectedPaymentDetails['markup_amount'], 2) }}</span>
+                                            </div>
+                                        @endif
                                         @if($selectedPaymentDetails['diff_percent'] > 0)
                                             <div class="d-flex justify-content-between mb-1">
                                                 <span class="text-muted">Diferencial ({{ $selectedPaymentDetails['diff_percent'] }}%):</span>
@@ -570,7 +576,7 @@
                                     </thead>
                                     <tbody>
                                         @php
-                                            $realPaymentUsd = $selectedPaymentDetails['net_real_usd'] + $selectedPaymentDetails['payment_freight_prop'] + $selectedPaymentDetails['payment_commission_prop'];
+                                            $realPaymentUsd = $selectedPaymentDetails['net_real_usd'] + $selectedPaymentDetails['payment_freight_prop'] + $selectedPaymentDetails['payment_commission_prop'] + ($selectedPaymentDetails['payment_markup_prop'] ?? 0);
                                         @endphp
                                         <tr>
                                             <td class="text-left font-weight-bold text-dark">Costo Base (Productos)</td>
@@ -595,6 +601,15 @@
                                             <td class="text-dark">${{ number_format($selectedPaymentDetails['payment_freight_prop'], 2) }}</td>
                                             <td class="text-dark">${{ number_format($selectedPaymentDetails['payment_freight_prop'], 2) }}</td>
                                         </tr>
+                                        @if(($selectedPaymentDetails['markup_percent'] ?? 0) > 0)
+                                            <tr>
+                                                <td class="text-left text-dark">Recargo</td>
+                                                <td class="text-dark">${{ number_format($selectedPaymentDetails['markup_amount'], 2) }}</td>
+                                                <td class="text-dark">{{ number_format(($selectedPaymentDetails['invoice_total'] > 0 ? ($selectedPaymentDetails['markup_amount'] / $selectedPaymentDetails['invoice_total']) * 100 : 0), 1) }}%</td>
+                                                <td class="text-dark">${{ number_format($selectedPaymentDetails['payment_markup_prop'], 2) }}</td>
+                                                <td class="text-dark">${{ number_format($selectedPaymentDetails['payment_markup_prop'], 2) }}</td>
+                                            </tr>
+                                        @endif
                                         @if($selectedPaymentDetails['diff_percent'] > 0)
                                             <tr>
                                                 <td class="text-left text-dark">Diferencial Cambiario</td>
@@ -647,9 +662,9 @@
                                         @if($selectedPaymentDetails['payment_currency'] === 'USD')
                                             <strong>Pago directo en USD:</strong> El pago se recibe en la moneda base (USD). El contravalor real coincide con el cobrado.
                                             <br>
-                                            Fórmula: <code>Neto USD = Pago USD - Flete Prop. - Comisión Prop.</code>
+                                            Fórmula: <code>Neto USD = Pago USD - Flete Prop. - Comisión Prop. - Recargo Prop.</code>
                                             <br>
-                                            Matemática: <code>${{ number_format($selectedPaymentDetails['payment_usd'], 2) }} - ${{ number_format($selectedPaymentDetails['payment_freight_prop'], 2) }} - ${{ number_format($selectedPaymentDetails['payment_commission_prop'], 2) }} = ${{ number_format($selectedPaymentDetails['net_real_usd'], 2) }}</code>.
+                                            Matemática: <code>${{ number_format($selectedPaymentDetails['payment_usd'], 2) }} - ${{ number_format($selectedPaymentDetails['payment_freight_prop'], 2) }} - ${{ number_format($selectedPaymentDetails['payment_commission_prop'], 2) }} - ${{ number_format($selectedPaymentDetails['payment_markup_prop'] ?? 0, 2) }} = ${{ number_format($selectedPaymentDetails['net_real_usd'], 2) }}</code>.
                                             @if($netDiff >= -0.0001)
                                                 El neto real de ${{ number_format($selectedPaymentDetails['net_real_usd'], 2) }} cubre el costo base de ${{ number_format($selectedPaymentDetails['payment_base_prop'], 2) }} satisfactoriamente.
                                             @else
@@ -666,9 +681,9 @@
                                                 <br>
                                                 Matemática: <code>{{ number_format($selectedPaymentDetails['payment_amount'], 2) }} Bs / {{ number_format($selectedPaymentDetails['binance_rate'], 2) }} = ${{ number_format($selectedPaymentDetails['payment_amount'] / $selectedPaymentDetails['binance_rate'], 2) }}</code> (en lugar de los ${{ number_format($selectedPaymentDetails['payment_usd'], 2) }} teóricos).
                                                 <br>
-                                                Neto Real: <code>Neto Real = USD Real - Flete Prop. - Comisión Prop.</code>
+                                                Neto Real: <code>Neto Real = USD Real - Flete Prop. - Comisión Prop. - Recargo Prop.</code>
                                                 <br>
-                                                Cálculo: <code>${{ number_format($selectedPaymentDetails['payment_amount'] / $selectedPaymentDetails['binance_rate'], 2) }} - ${{ number_format($selectedPaymentDetails['payment_freight_prop'], 2) }} - ${{ number_format($selectedPaymentDetails['payment_commission_prop'], 2) }} = ${{ number_format($selectedPaymentDetails['net_real_usd'], 2) }}</code>.
+                                                Cálculo: <code>${{ number_format($selectedPaymentDetails['payment_amount'] / $selectedPaymentDetails['binance_rate'], 2) }} - ${{ number_format($selectedPaymentDetails['payment_freight_prop'], 2) }} - ${{ number_format($selectedPaymentDetails['payment_commission_prop'], 2) }} - ${{ number_format($selectedPaymentDetails['payment_markup_prop'] ?? 0, 2) }} = ${{ number_format($selectedPaymentDetails['net_real_usd'], 2) }}</code>.
                                             @else
                                                 El pago se cobró a tasa Binance ({{ number_format($selectedPaymentDetails['payment_rate'], 2) }} Bs), mitigando la pérdida por tasa. El contravalor neto real es de ${{ number_format($selectedPaymentDetails['net_real_usd'], 2) }}.
                                                 @if($netDiff < -0.0001)
@@ -687,9 +702,9 @@
                                             <br>
                                             Matemática: <code>({{ number_format($selectedPaymentDetails['payment_usd'], 2) }} * {{ number_format($selectedPaymentDetails['bcv_rate'], 2) }}) / {{ number_format($selectedPaymentDetails['binance_rate'], 2) }} = ${{ number_format(($selectedPaymentDetails['payment_usd'] * $selectedPaymentDetails['bcv_rate']) / ($selectedPaymentDetails['binance_rate'] ?: 1), 2) }}</code>.
                                             <br>
-                                            Neto Real: <code>Neto Real = USD Real - Flete Prop. - Comisión Prop.</code>
+                                            Neto Real: <code>Neto Real = USD Real - Flete Prop. - Comisión Prop. - Recargo Prop.</code>
                                             <br>
-                                            Matemática Neto: <code>${{ number_format(($selectedPaymentDetails['payment_usd'] * $selectedPaymentDetails['bcv_rate']) / ($selectedPaymentDetails['binance_rate'] ?: 1), 2) }} - ${{ number_format($selectedPaymentDetails['payment_freight_prop'], 2) }} - ${{ number_format($selectedPaymentDetails['payment_commission_prop'], 2) }} = ${{ number_format($selectedPaymentDetails['net_real_usd'], 2) }}</code>.
+                                            Matemática Neto: <code>${{ number_format(($selectedPaymentDetails['payment_usd'] * $selectedPaymentDetails['bcv_rate']) / ($selectedPaymentDetails['binance_rate'] ?: 1), 2) }} - ${{ number_format($selectedPaymentDetails['payment_freight_prop'], 2) }} - ${{ number_format($selectedPaymentDetails['payment_commission_prop'], 2) }} - ${{ number_format($selectedPaymentDetails['payment_markup_prop'] ?? 0, 2) }} = ${{ number_format($selectedPaymentDetails['net_real_usd'], 2) }}</code>.
                                             @if($netDiff >= -0.0001)
                                                 El neto recuperado de ${{ number_format($selectedPaymentDetails['net_real_usd'], 2) }} cubre el costo base de ${{ number_format($selectedPaymentDetails['payment_base_prop'], 2) }}.
                                             @else

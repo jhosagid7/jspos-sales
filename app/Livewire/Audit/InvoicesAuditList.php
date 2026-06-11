@@ -176,6 +176,7 @@ class InvoicesAuditList extends Component
         $paymentBase = floatval($sale->base_amount) * $ratio;
         $paymentFreight = floatval($sale->freight_amount) * $ratio;
         $paymentCommission = floatval($sale->commission_amount) * $ratio;
+        $paymentMarkup = floatval($sale->base_markup_amount) * $ratio;
 
         $agreement = $sale->payment_agreement ?: 'USD';
 
@@ -185,7 +186,7 @@ class InvoicesAuditList extends Component
         $computedNetUSD = 0;
 
         if ($currency === 'USD') {
-            $computedNetUSD = $paymentUsd - $paymentFreight - $paymentCommission;
+            $computedNetUSD = $paymentUsd - $paymentFreight - $paymentCommission - $paymentMarkup;
             if ($computedNetUSD < $paymentBase - 0.0099) {
                 $isLoss = true;
                 $message = 'Monto neto menor al costo base.';
@@ -221,7 +222,7 @@ class InvoicesAuditList extends Component
                 }
 
                 $realUsdValue = $payment->amount / ($binanceRate ?: 1);
-                $computedNetUSD = $realUsdValue - $paymentFreight - $paymentCommission;
+                $computedNetUSD = $realUsdValue - $paymentFreight - $paymentCommission - $paymentMarkup;
 
                 if ($computedNetUSD < $paymentBase - 0.0099) {
                     $isLoss = true;
@@ -238,7 +239,7 @@ class InvoicesAuditList extends Component
                 $invoiceUsdCovered = $payment->amount / ($payRate ?: 1);
                 $realBinanceUsd = ($invoiceUsdCovered * ($bcvRate ?: 1)) / ($binanceRate ?: 1);
 
-                $computedNetUSD = $realBinanceUsd - $paymentFreight - $paymentCommission;
+                $computedNetUSD = $realBinanceUsd - $paymentFreight - $paymentCommission - $paymentMarkup;
 
                 if ($computedNetUSD < $paymentBase - 0.0099) {
                     $isLoss = true;
@@ -246,7 +247,7 @@ class InvoicesAuditList extends Component
                 }
             }
         } else {
-            $computedNetUSD = $paymentUsd - $paymentFreight - $paymentCommission;
+            $computedNetUSD = $paymentUsd - $paymentFreight - $paymentCommission - $paymentMarkup;
             if ($computedNetUSD < $paymentBase - 0.0099) {
                 $isLoss = true;
                 $message = 'Monto neto menor al costo base.';
