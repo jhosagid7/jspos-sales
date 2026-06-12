@@ -77,7 +77,7 @@ class Sales extends Component
     public $pagination = 5, $status;
     public $confirmation_code = null;
     public $salesViewMode = 'grid'; // 'grid' or 'list'
-    public $paymentAgreement = 'USD';
+    public $paymentAgreement = '';
 
     public $search = '';
     public $searchOrder = '';
@@ -408,14 +408,20 @@ class Sales extends Component
             }
             
             // Validar que haya un cliente seleccionado
-            if (!$this->customer || !isset($this->customer->id)) {
+            if (!$this->customer || !isset($this->customer['id'])) {
                 $this->dispatch('noty', msg: 'Debe seleccionar un cliente para venta a crédito');
+                return;
+            }
+
+            // Validar que se haya seleccionado un acuerdo de pago
+            if (empty($this->paymentAgreement)) {
+                $this->dispatch('noty', msg: 'DEBE SELECCIONAR UN ACUERDO DE PAGO ANTES DE REGISTRAR EL CRÉDITO');
                 return;
             }
             
             // Validar límite de crédito
             $validation = \App\Services\CreditConfigService::validateCreditLimit(
-                \App\Models\Customer::find($this->customer->id),
+                \App\Models\Customer::find($this->customer['id']),
                 $this->totalCart
             );
             
@@ -3080,7 +3086,7 @@ class Sales extends Component
                     ? $this->customerConfig->exchange_diff_percent
                     : 0;
             }
-            $this->paymentAgreement = $activeDiff > 0 ? 'BCV' : 'USD';
+            $this->paymentAgreement = '';
             
             // Load customer-specific discount rules and outstanding invoices
             if(isset($customer['id'])) {
@@ -3156,6 +3162,9 @@ class Sales extends Component
             // Update session and component property with enriched customer data
             session(['sale_customer' => $customer]);
             $this->customer = $customer;
+
+            // Load credit configuration immediately
+            $this->loadCreditConfig();
 
             // Foreign Seller Enforce Logic
             if (!auth()->user()->can('sales.manage_adjustments')) {
@@ -3477,6 +3486,14 @@ class Sales extends Component
             $this->dispatch('noty', msg: 'SELECCIONA EL CLIENTE');
             return;
         }
+
+        $hasCreditPayment = collect($this->payments)->contains(function($p) {
+            return $p['method'] === 'CREDITO';
+        });
+        if (($type == 2 || $hasCreditPayment) && empty($this->paymentAgreement)) {
+            $this->dispatch('noty', msg: 'DEBE SELECCIONAR EL ACUERDO DE PAGO ANTES DE EMITIR LA FACTURA');
+            return;
+        }
         
         // Ensure credit config is loaded
         if (empty($this->creditConfig)) {
@@ -3738,6 +3755,11 @@ class Sales extends Component
             $markupAmtUSD = $baseAmountUSD * ($appliedMarkup / 100);
             $diffAmtUSD = ($baseAmountUSD + $commAmtUSD + $freightAmtUSD + $markupAmtUSD) * ($appliedDiff / 100);
 
+            $agreementToSave = $this->paymentAgreement;
+            if (empty($agreementToSave)) {
+                $agreementToSave = ($appliedDiff > 0) ? 'BCV' : 'USD';
+            }
+
             $saleData = [
                 'seller_config_id' => $sellerConfigId,
                 'total' => $totalInInvoiceCurrency,
@@ -3777,7 +3799,7 @@ class Sales extends Component
                 'seller_tier_2_days' => $tier2Days,
                 'seller_tier_2_percent' => $tier2Percent,
                 'driver_id' => $this->driver_id,
-                'payment_agreement' => $this->paymentAgreement,
+                'payment_agreement' => $agreementToSave,
             ];
 
             if ($this->editing_sale_id && $sale) {
@@ -4272,6 +4294,11 @@ class Sales extends Component
             $markupAmt = $baseAmountCart * ($appliedMarkup / 100);
             $diffAmt = ($baseAmountCart + $commAmt + $freightAmt + $markupAmt) * ($appliedDiff / 100);
 
+            $agreementToSave = $this->paymentAgreement;
+            if (empty($agreementToSave)) {
+                $agreementToSave = ($appliedDiff > 0) ? 'BCV' : 'USD';
+            }
+
             if ($this->order_id) {
                 // Actualiza la orden existente
                 $order = Order::find($this->order_id);
@@ -4295,7 +4322,7 @@ class Sales extends Component
                         'applied_base_markup_percent' => $appliedMarkup,
                         'base_markup_amount' => round($markupAmt, 4),
                         'exchange_diff_amount' => round($diffAmt, 4),
-                        'payment_agreement' => $this->paymentAgreement,
+                        'payment_agreement' => $agreementToSave,
                     ];
                     
                     // Only set user_id if it's missing (unlikely for update) or if we explicitly want to change it (we don't)
@@ -4405,7 +4432,7 @@ class Sales extends Component
                     'applied_base_markup_percent' => $appliedMarkup,
                     'base_markup_amount' => round($markupAmt, 4),
                     'exchange_diff_amount' => round($diffAmt, 4),
-                    'payment_agreement' => $this->paymentAgreement,
+                    'payment_agreement' => $agreementToSave,
                 ]);
 
                 // Obtiene el carrito de la sesión

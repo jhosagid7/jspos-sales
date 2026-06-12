@@ -166,6 +166,7 @@
                                                 <div class="mb-3">
                                                     <label class="form-label fw-bold"><i class="fa fa-handshake me-1"></i> Acuerdo de Pago Acordado</label>
                                                     <select class="form-control" wire:model.live="paymentAgreement">
+                                                        <option value="">-- Seleccionar Acuerdo de Pago --</option>
                                                         <option value="USD">Dólares Puros (USD / Zelle / VED Tasa Binance)</option>
                                                         <option value="BCV">Bolívares a Tasa Oficial (BCV)</option>
                                                     </select>
