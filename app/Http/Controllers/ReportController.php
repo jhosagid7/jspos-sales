@@ -584,7 +584,7 @@ class ReportController extends Controller
         $columns = json_decode($request->get('columns'), true) ?? [
             'folio' => true, 'cliente' => true, 'operador' => false, 'vendedor' => false, 'base' => true, 'porcentaje' => true,
             'comision' => true, 'flete' => true, 'recargo' => true, 'diferencial' => true, 'total' => true,
-            'credito' => true, 'articulos' => true, 'estatus' => true, 'tipo' => true, 'fecha' => true,
+            'credito' => true, 'acuerdo' => false, 'articulos' => true, 'estatus' => true, 'tipo' => true, 'fecha' => true,
         ];
 
         // Build summary

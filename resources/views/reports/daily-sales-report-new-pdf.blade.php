@@ -349,7 +349,15 @@
                         $grandRawCop += $copPaid; // Added COP accumulator
                     @endphp
                     <tr>
-                        <td>{{ $sale->invoice_number ?? $sale->id }}</td>
+                        <td>
+                            {{ $sale->invoice_number ?? $sale->id }}
+                            <br>
+                            @if($sale->payment_agreement == 'BCV')
+                                <span style="background-color: #17a2b8; color: white; padding: 1px 4px; border-radius: 3px; font-size: 6pt; font-weight: bold; display: inline-block; margin-top: 2px;">Bs.</span>
+                            @else
+                                <span style="background-color: #28a745; color: white; padding: 1px 4px; border-radius: 3px; font-size: 6pt; font-weight: bold; display: inline-block; margin-top: 2px;">USD</span>
+                            @endif
+                        </td>
                         <td style="white-space: normal;">
                             <div class="desc-text" style="font-weight: bold; border-bottom: 1px dashed #eee; display: block; max-width: none;">{{ strtoupper($sale->customer->name) }} ({{ $sale->customer->taxpayer_id }})</div>
                             @php

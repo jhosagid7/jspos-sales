@@ -44,6 +44,7 @@ class SalesReport extends Component
         'diferencial' => true,
         'total' => true,
         'credito' => true,
+        'acuerdo' => false,
         'articulos' => true,
         'estatus' => true,
         'tipo' => true,

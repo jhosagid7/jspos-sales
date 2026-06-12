@@ -1,3 +1,10 @@
+## [1.10.139] - 2026-06-12
+### Added
+- **Visualización de Acuerdo de Pago en Reportes**:
+  - Se agregó la columna "Acuerdo" (de pago) al Reporte de Ventas General en la vista web y en su exportación PDF, incluyendo un control interactivo (checkbox/toggle) para mostrar u ocultar la columna.
+  - Se implementó la visualización de un badge de Acuerdo de Pago (`Bs.` para BCV y `USD` para USD) al lado del número de factura en el PDF del Reporte de Ventas Diarias (`daily-sales-report-new-pdf.blade.php`).
+  - Se agregaron pruebas unitarias/de integración correspondientes en `GeneralSalesReportPdfTest.php` para verificar el correcto funcionamiento del toggle y la generación de PDFs.
+
 ## [1.10.138] - 2026-06-12
 ### Changed
 - **Selección de Acuerdo de Pago en POS**: Se hizo obligatoria y consciente la selección del "Acuerdo de Pago Acordado" en el POS para las ventas a crédito, previniendo errores accidentales donde se autoseleccionaba una opción por defecto (USD/Zelle).

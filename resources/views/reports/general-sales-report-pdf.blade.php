@@ -218,6 +218,7 @@
                 @if($columns['diferencial']) <th class="text-right">Dif.</th> @endif
                 @if($columns['total']) <th class="text-right">Total</th> @endif
                 @if($columns['credito']) <th class="text-right">Crédito</th> @endif
+                @if($columns['acuerdo']) <th class="text-center">Acuerdo</th> @endif
                 @if($columns['articulos']) <th class="text-center">Art.</th> @endif
                 @if($columns['estatus']) <th class="text-center">Estatus</th> @endif
                 @if($columns['tipo']) <th class="text-center">Tipo</th> @endif
@@ -358,6 +359,7 @@
                         @endif
                     </td>
                     @endif
+                    @if($columns['acuerdo']) <td class="text-center">{{ $sale->payment_agreement }}</td> @endif
                     @if($columns['articulos']) <td class="text-center">{{ $sale->items }}</td> @endif
                     @if($columns['estatus'])
                     <td class="text-center">
@@ -390,6 +392,7 @@
                 @if($columns['diferencial']) <td class="text-right text-orange">${{ number_format($totDiff, 2) }}</td> @endif
                 @if($columns['total']) <td class="text-right">${{ number_format($totTotal, 2) }}</td> @endif
                 @if($columns['credito']) <td class="text-right text-red">${{ number_format($totCredit, 2) }}</td> @endif
+                @if($columns['acuerdo']) <td></td> @endif
                 @if($columns['articulos']) <td class="text-center">{{ $totItems }}</td> @endif
                 @if($columns['estatus']) <td></td> @endif
                 @if($columns['tipo']) <td></td> @endif

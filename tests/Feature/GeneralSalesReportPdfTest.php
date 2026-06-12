@@ -214,4 +214,109 @@ class GeneralSalesReportPdfTest extends TestCase
         $response->assertStatus(200);
         $response->assertHeader('content-type', 'application/pdf');
     }
+
+    public function test_general_sales_pdf_with_acuerdo_column_toggle()
+    {
+        $this->actingAs($this->adminUser);
+
+        $customer = Customer::create([
+            'name' => 'Acuerdo Test Customer',
+            'taxpayer_id' => '123456-A',
+            'address' => 'Test',
+            'city' => 'Test',
+            'type' => 'Consumidor Final'
+        ]);
+
+        Sale::create([
+            'total' => 100.00,
+            'total_usd' => 100.00,
+            'items' => 2,
+            'customer_id' => $customer->id,
+            'user_id' => $this->adminUser->id,
+            'created_at' => '2026-06-08 12:00:00',
+            'invoice_number' => 'F00099001',
+            'status' => 'paid',
+            'type' => 'cash',
+            'payment_agreement' => 'BCV',
+        ]);
+
+        // Request with 'acuerdo' => true
+        $columnsWithAcuerdo = [
+            'folio' => true, 'cliente' => true, 'operador' => false, 'vendedor' => false, 'base' => true, 'porcentaje' => true,
+            'comision' => true, 'flete' => true, 'recargo' => true, 'diferencial' => true, 'total' => true,
+            'credito' => true, 'acuerdo' => true, 'articulos' => true, 'estatus' => true, 'tipo' => true, 'fecha' => true,
+        ];
+
+        $response = $this->get(route('reports.general.sales.pdf', [
+            'dateFrom' => '2026-06-08',
+            'dateTo' => '2026-06-08',
+            'columns' => json_encode($columnsWithAcuerdo),
+        ]));
+
+        $response->assertStatus(200);
+        $response->assertHeader('content-type', 'application/pdf');
+
+        // Request with 'acuerdo' => false
+        $columnsWithoutAcuerdo = $columnsWithAcuerdo;
+        $columnsWithoutAcuerdo['acuerdo'] = false;
+
+        $response = $this->get(route('reports.general.sales.pdf', [
+            'dateFrom' => '2026-06-08',
+            'dateTo' => '2026-06-08',
+            'columns' => json_encode($columnsWithoutAcuerdo),
+        ]));
+
+        $response->assertStatus(200);
+        $response->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_daily_sales_pdf_returns_200_and_renders_payment_agreement()
+    {
+        $this->actingAs($this->adminUser);
+
+        $customer = Customer::create([
+            'name' => 'Daily Test Customer',
+            'taxpayer_id' => '123456-D',
+            'address' => 'Test',
+            'city' => 'Test',
+            'type' => 'Consumidor Final'
+        ]);
+
+        // Create sale with BCV agreement
+        Sale::create([
+            'total' => 100.00,
+            'total_usd' => 100.00,
+            'items' => 2,
+            'customer_id' => $customer->id,
+            'user_id' => $this->adminUser->id,
+            'created_at' => '2026-06-08 12:00:00',
+            'invoice_number' => 'F00099001',
+            'status' => 'paid',
+            'type' => 'cash',
+            'payment_agreement' => 'BCV',
+        ]);
+
+        // Create sale with USD agreement
+        Sale::create([
+            'total' => 50.00,
+            'total_usd' => 50.00,
+            'items' => 1,
+            'customer_id' => $customer->id,
+            'user_id' => $this->adminUser->id,
+            'created_at' => '2026-06-08 13:00:00',
+            'invoice_number' => 'F00099002',
+            'status' => 'paid',
+            'type' => 'cash',
+            'payment_agreement' => 'USD',
+        ]);
+
+        $response = $this->get(route('reports.daily.sales.pdf', [
+            'dateFrom' => '2026-06-08',
+            'dateTo' => '2026-06-08',
+        ]));
+
+        $response->assertStatus(200);
+        $response->assertHeader('content-type', 'application/pdf');
+    }
 }
+

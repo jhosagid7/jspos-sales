@@ -203,6 +203,12 @@
                         </div>
                         <div class="col-12 mb-1">
                             <div class="custom-control custom-checkbox ml-2">
+                                <input type="checkbox" class="custom-control-input" id="col_acuerdo" wire:model.live="columns.acuerdo">
+                                <label class="custom-control-label f-12" for="col_acuerdo">Acuerdo</label>
+                            </div>
+                        </div>
+                        <div class="col-12 mb-1">
+                            <div class="custom-control custom-checkbox ml-2">
                                 <input type="checkbox" class="custom-control-input" id="col_articulos" wire:model.live="columns.articulos">
                                 <label class="custom-control-label f-12" for="col_articulos">Artículos</label>
                             </div>
@@ -278,6 +284,7 @@
                                     @if($columns['diferencial']) <th>Dif.</th> @endif
                                     @if($columns['total']) <th>Total</th> @endif
                                     @if($columns['credito']) <th>Crédito (USD)</th> @endif
+                                    @if($columns['acuerdo']) <th>Acuerdo</th> @endif
                                     @if($columns['articulos']) <th>Articulos</th> @endif
                                     @if($columns['estatus']) <th>Estatus</th> @endif
                                     @if($columns['tipo']) <th>Tipo</th> @endif
@@ -478,6 +485,17 @@
                                                 <span class="text-danger">${{ number_format($creditUSD, 2) }}</span>
                                             @else
                                                 -
+                                            @endif
+                                        </td>
+                                        @endif
+                                        @if($columns['acuerdo'])
+                                        <td>
+                                            @if($sale->payment_agreement == 'BCV')
+                                                <span class="badge badge-info">BCV</span>
+                                            @elseif($sale->payment_agreement == 'USD')
+                                                <span class="badge badge-success">USD</span>
+                                            @else
+                                                <span class="badge badge-secondary">{{ $sale->payment_agreement ?: 'N/A' }}</span>
                                             @endif
                                         </td>
                                         @endif
