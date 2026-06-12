@@ -175,6 +175,10 @@ Route::middleware('auth')->group(function () {
         Route::get('reports/audit', \App\Livewire\Reports\AuditReport::class)->name('reports.audit')->middleware(['can:reports.audit']);
         Route::get('customer-payment-relationship', \App\Livewire\Reports\CustomerPaymentRelationshipReport::class)->name('reports.customer.payment.relationship')->middleware('can:reports.customer_payment_relationship');
         Route::get('customer-payment-relationship/pdf', [\App\Http\Controllers\ReportController::class, 'customerPaymentRelationshipPdf'])->name('reports.customer.payment.relationship.pdf')->middleware('can:reports.customer_payment_relationship');
+        Route::get('weekly-income', \App\Livewire\Reports\WeeklyIncomeReport::class)->name('reports.weekly.income')->middleware('can:reports.sales');
+        Route::get('weekly-income/pdf', [\App\Http\Controllers\ReportController::class, 'weeklyIncomeReportPdf'])->name('reports.weekly.income.pdf')->middleware('can:reports.sales');
+        Route::get('monthly-income', \App\Livewire\Reports\MonthlyIncomeReport::class)->name('reports.monthly.income')->middleware('can:reports.sales');
+        Route::get('monthly-income/pdf', [\App\Http\Controllers\ReportController::class, 'monthlyIncomeReportPdf'])->name('reports.monthly.income.pdf')->middleware('can:reports.sales');
     });
 
     // Consultas

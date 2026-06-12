@@ -1,3 +1,23 @@
+## [1.10.137] - 2026-06-12
+### Added
+- **Módulo de Reporte Mensual de Ingresos (Matriz Comparativa Horizontal)**:
+  - Se definieron las rutas correspondientes (`reports.monthly.income` y `reports.monthly.income.pdf`) en `routes/web.php`.
+  - Se integró el enlace de acceso directo al reporte en el menú lateral (`sidebar.blade.php`).
+  - Se desarrolló el componente Livewire `MonthlyIncomeReport` que calcula de lunes a sábado los ingresos consolidados por semanas (Semana 1 a 5) y el total mensual.
+  - Se diseñó la interfaz de matriz horizontal estilo Excel.
+  - Se implementó la vista horizontal compacta en PDF (`monthly-income-report-pdf.blade.php`) usando DomPDF con marca de agua diagonal `"PRELIMINAR - BORRADOR"` para meses en progreso o con planillas de cobro sin consolidar/auditar.
+  - Se crearon las pruebas de integración en `MonthlyIncomeReportTest` logrando validar los cálculos mensuales.
+
+## [1.10.136] - 2026-06-11
+### Added
+- **Módulo de Reporte Semanal de Ingresos (Replicación de Excel)**:
+  - Se definieron las rutas correspondientes (`reports.weekly.income` y `reports.weekly.income.pdf`) en `routes/web.php`.
+  - Se integró el enlace de acceso directo al reporte en la sección de reportes de ventas y cobros en el menú de navegación (`sidebar.blade.php`).
+  - Se desarrolló el componente Livewire `WeeklyIncomeReport` que calcula de lunes a sábado los ingresos desglosados de contado (USD, COP, VES), cobranzas a través de planillas de cobro y neto de ventas a crédito.
+  - Se diseñó la interfaz con la cuadrícula de días y totales al estilo Excel, usando las cabeceras `#5B9BD5` y subtotales `#2F5597`.
+  - Se implementó la vista horizontal compacta en PDF (`weekly-income-report-pdf.blade.php`) usando DomPDF con soporte para marca de agua diagonal `"PRELIMINAR - BORRADOR"` en semanas en curso o con planillas sin consolidar.
+  - Se crearon pruebas de integración completas en `WeeklyIncomeReportTest` logrando validar con éxito todos los cálculos del reporte.
+
 ## [1.10.135] - 2026-06-11
 ### Added
 - **Soporte de Recargo de Base (Base Markup) en Auditoría de Facturas y Cobranzas**:

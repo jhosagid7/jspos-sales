@@ -2316,4 +2316,559 @@ class ReportController extends Controller
 
         return $summary;
     }
+
+    public function weeklyIncomeReportPdf(\Illuminate\Http\Request $request)
+    {
+        $selectedDate = $request->get('date', \Carbon\Carbon::today()->toDateString());
+        $dt = \Carbon\Carbon::parse($selectedDate);
+        $mon = $dt->startOfWeek(\Carbon\Carbon::MONDAY);
+        $mondayDate = $mon->toDateString();
+        $saturdayDate = $mon->copy()->addDays(5)->toDateString();
+        $monFormatted = $mon->format('d/m/Y');
+        $satFormatted = $mon->copy()->addDays(5)->format('d/m/Y');
+        $weekLabel = "Semana del {$monFormatted} al {$satFormatted}";
+
+        $days = [
+            1 => ['name' => 'LUNES', 'date' => $mondayDate],
+            2 => ['name' => 'MARTES', 'date' => $mon->copy()->addDays(1)->toDateString()],
+            3 => ['name' => 'MIERCOLES', 'date' => $mon->copy()->addDays(2)->toDateString()],
+            4 => ['name' => 'JUEVES', 'date' => $mon->copy()->addDays(3)->toDateString()],
+            5 => ['name' => 'VIERNES', 'date' => $mon->copy()->addDays(4)->toDateString()],
+            6 => ['name' => 'SABADO', 'date' => $mon->copy()->addDays(5)->toDateString()],
+        ];
+
+        $categories = [
+            'DOLARES' => 'DOLARES',
+            'PESOS' => 'PESOS',
+            'EFECTIVO BS' => 'EFECTIVO BS',
+            'BANCO DE VENEZUELA' => 'BANCO DE VENEZUELA',
+            'BANCO PROVINCIAL' => 'BANCO PROVINCIAL',
+            'BANCO MERCANTIL' => 'BANCO MERCANTIL',
+            'ZELLE' => 'ZELLE'
+        ];
+
+        $report = [];
+        $weeklyTotals = [];
+        foreach ($categories as $cat) {
+            $weeklyTotals[$cat] = [
+                'contado' => 0.0,
+                'cobranza' => 0.0
+            ];
+        }
+
+        $allSheetsClosedAndAudited = true;
+        $hasSheets = false;
+
+        foreach ($days as $num => $dayInfo) {
+            $date = $dayInfo['date'];
+            $dayName = $dayInfo['name'];
+
+            $dayData = [];
+            foreach ($categories as $cat) {
+                $dayData[$cat] = [
+                    'contado' => 0.0,
+                    'cobranza' => 0.0
+                ];
+            }
+
+            // CONTADO
+            $sales = Sale::whereBetween('created_at', [
+                    \Carbon\Carbon::parse($date)->startOfDay(), 
+                    \Carbon\Carbon::parse($date)->endOfDay()
+                ])
+                ->whereNotIn('status', ['voided', 'cancelled', 'anulated', 'returned'])
+                ->get();
+
+            foreach ($sales as $sale) {
+                $details = $sale->paymentDetails;
+                if ($details->count() > 0) {
+                    foreach ($details as $d) {
+                        $rate = $d->exchange_rate > 0 ? $d->exchange_rate : 1;
+                        $amtUSD = $d->amount / $rate;
+                        $method = strtolower($d->payment_method);
+                        $curr = strtoupper($d->currency_code);
+                        $bank = strtoupper($d->bank_name ?? '');
+
+                        if ($method === 'cash') {
+                            if ($curr === 'USD') {
+                                $dayData['DOLARES']['contado'] += $amtUSD;
+                            } elseif ($curr === 'COP') {
+                                $dayData['PESOS']['contado'] += $amtUSD;
+                            } elseif ($curr === 'VES' || $curr === 'VED') {
+                                $dayData['EFECTIVO BS']['contado'] += $amtUSD;
+                            }
+                        } elseif ($method === 'zelle' || str_contains($bank, 'ZELLE')) {
+                            $dayData['ZELLE']['contado'] += $amtUSD;
+                        } elseif ($method === 'bank' || $method === 'deposit') {
+                            if (str_contains($bank, 'PROVINCIAL')) {
+                                $dayData['BANCO PROVINCIAL']['contado'] += $amtUSD;
+                            } elseif (str_contains($bank, 'MERCANTIL')) {
+                                $dayData['BANCO MERCANTIL']['contado'] += $amtUSD;
+                            } elseif (str_contains($bank, 'VENEZUELA') || str_contains($bank, 'BDV')) {
+                                $dayData['BANCO DE VENEZUELA']['contado'] += $amtUSD;
+                            }
+                        }
+                    }
+
+                    // Subtract change
+                    $changes = $sale->changeDetails;
+                    foreach ($changes as $c) {
+                        $rate = $c->exchange_rate > 0 ? $c->exchange_rate : 1;
+                        $amtUSD = $c->amount / $rate;
+                        $curr = strtoupper($c->currency_code);
+                        if ($curr === 'USD') {
+                            $dayData['DOLARES']['contado'] -= $amtUSD;
+                        } elseif ($curr === 'COP') {
+                            $dayData['PESOS']['contado'] -= $amtUSD;
+                        } elseif ($curr === 'VES' || $curr === 'VED') {
+                            $dayData['EFECTIVO BS']['contado'] -= $amtUSD;
+                        }
+                    }
+                } else {
+                    if ($sale->type !== 'credit') {
+                        $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                        $netAmt = ($sale->cash - $sale->change) / $rate;
+                        $curr = strtoupper($sale->primary_currency_code ?? 'USD');
+
+                        if ($sale->type === 'cash') {
+                            if ($curr === 'USD') {
+                                $dayData['DOLARES']['contado'] += $netAmt;
+                            } elseif ($curr === 'COP') {
+                                $dayData['PESOS']['contado'] += $netAmt;
+                            } elseif ($curr === 'VES' || $curr === 'VED') {
+                                $dayData['EFECTIVO BS']['contado'] += $netAmt;
+                            }
+                        } elseif ($sale->type === 'zelle') {
+                            $dayData['ZELLE']['contado'] += $netAmt;
+                        } elseif ($sale->type === 'bank') {
+                            $bank = strtoupper($sale->bank_name ?? '');
+                            if (str_contains($bank, 'PROVINCIAL')) {
+                                $dayData['BANCO PROVINCIAL']['contado'] += $netAmt;
+                            } elseif (str_contains($bank, 'MERCANTIL')) {
+                                $dayData['BANCO MERCANTIL']['contado'] += $netAmt;
+                            } elseif (str_contains($bank, 'VENEZUELA') || str_contains($bank, 'BDV')) {
+                                $dayData['BANCO DE VENEZUELA']['contado'] += $netAmt;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // COBRANZA
+            $sheet = CollectionSheet::whereDate('opened_at', $date)->first();
+            if ($sheet) {
+                $hasSheets = true;
+                if ($sheet->status !== 'closed') {
+                    $allSheetsClosedAndAudited = false;
+                }
+
+                $payments = Payment::where('collection_sheet_id', $sheet->id)
+                    ->where('status', 'approved')
+                    ->get();
+
+                foreach ($payments as $p) {
+                    $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
+                    $amtUSD = $p->amount / $rate;
+                    $payWay = strtolower($p->pay_way);
+                    $curr = strtoupper($p->currency);
+                    $bank = strtoupper($p->bank ?? '');
+
+                    if ($payWay === 'cash') {
+                        if ($curr === 'USD') {
+                            $dayData['DOLARES']['cobranza'] += $amtUSD;
+                        } elseif ($curr === 'COP') {
+                            $dayData['PESOS']['cobranza'] += $amtUSD;
+                        } elseif ($curr === 'VES' || $curr === 'VED') {
+                            $dayData['EFECTIVO BS']['cobranza'] += $amtUSD;
+                        }
+                    } elseif ($payWay === 'zelle' || str_contains($bank, 'ZELLE')) {
+                        $dayData['ZELLE']['cobranza'] += $amtUSD;
+                    } elseif ($payWay === 'bank' || $payWay === 'deposit') {
+                        if (str_contains($bank, 'PROVINCIAL')) {
+                            $dayData['BANCO PROVINCIAL']['cobranza'] += $amtUSD;
+                        } elseif (str_contains($bank, 'MERCANTIL')) {
+                            $dayData['BANCO MERCANTIL']['cobranza'] += $amtUSD;
+                        } elseif (str_contains($bank, 'VENEZUELA') || str_contains($bank, 'BDV')) {
+                            $dayData['BANCO DE VENEZUELA']['cobranza'] += $amtUSD;
+                        }
+                    }
+                }
+            }
+
+            // VENTAS A CREDITO
+            $creditSales = Sale::whereBetween('created_at', [
+                    \Carbon\Carbon::parse($date)->startOfDay(), 
+                    \Carbon\Carbon::parse($date)->endOfDay()
+                ])
+                ->where('type', 'credit')
+                ->whereNotIn('status', ['voided', 'cancelled', 'anulated', 'returned'])
+                ->get();
+
+            $dayCreditTotal = 0.0;
+            foreach ($creditSales as $sale) {
+                // Subtract approved returns
+                $returnsForSale = \App\Models\SaleReturn::where('sale_id', $sale->id)
+                    ->where('status', 'approved')
+                    ->get();
+                $retAmtUSD = 0.0;
+                foreach ($returnsForSale as $ret) {
+                    $rt_rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                    $retAmtUSD += ($ret->total_returned / $rt_rate);
+                }
+                $netSaleUSD = $sale->total_usd - $retAmtUSD;
+
+                $pdSum = $sale->paymentDetails->sum(function($d) {
+                    $rate = $d->exchange_rate > 0 ? $d->exchange_rate : 1;
+                    return $d->amount / $rate;
+                });
+                $dayCreditTotal += max(0.0, $netSaleUSD - $pdSum);
+            }
+
+            $subtotalContado = 0.0;
+            $subtotalCobranza = 0.0;
+            foreach ($categories as $cat) {
+                $subtotalContado += $dayData[$cat]['contado'];
+                $subtotalCobranza += $dayData[$cat]['cobranza'];
+
+                $weeklyTotals[$cat]['contado'] += $dayData[$cat]['contado'];
+                $weeklyTotals[$cat]['cobranza'] += $dayData[$cat]['cobranza'];
+            }
+
+            $ventasMasCreditoContado = $subtotalContado + $dayCreditTotal;
+            $totalGeneral = $ventasMasCreditoContado + $subtotalCobranza;
+            $totalRecibido = $subtotalContado + $subtotalCobranza;
+
+            $report[$dayName] = [
+                'date' => $date,
+                'data' => $dayData,
+                'subtotal_contado' => $subtotalContado,
+                'subtotal_cobranza' => $subtotalCobranza,
+                'ventas_credito' => $dayCreditTotal,
+                'ventas_mas_credito' => $ventasMasCreditoContado,
+                'total_general' => $totalGeneral,
+                'total_recibido' => $totalRecibido
+            ];
+        }
+
+        $weeklySubtotalContado = 0.0;
+        $weeklySubtotalCobranza = 0.0;
+        $weeklyCreditTotal = 0.0;
+        foreach ($report as $dName => $dVal) {
+            $weeklyCreditTotal += $dVal['ventas_credito'];
+        }
+
+        foreach ($categories as $cat) {
+            $weeklySubtotalContado += $weeklyTotals[$cat]['contado'];
+            $weeklySubtotalCobranza += $weeklyTotals[$cat]['cobranza'];
+        }
+
+        $weeklyVentasMasCredito = $weeklySubtotalContado + $weeklyCreditTotal;
+        $weeklyTotalGeneral = $weeklyVentasMasCredito + $weeklySubtotalCobranza;
+        $weeklyTotalRecibido = $weeklySubtotalContado + $weeklySubtotalCobranza;
+
+        $isPreliminar = !$hasSheets || !$allSheetsClosedAndAudited || (\Carbon\Carbon::parse($mondayDate)->startOfDay() <= \Carbon\Carbon::today());
+        $statusText = $isPreliminar ? 'PRELIMINAR / EN CURSO' : 'CONSOLIDADO / AUDITADO';
+
+        $config = Configuration::first();
+        $user = auth()->user();
+        $dateGenerated = \Carbon\Carbon::now()->format('d/m/Y H:i');
+
+        $pdf = Pdf::loadView('reports.weekly-income-report-pdf', compact(
+            'report', 'weeklyTotals', 'weeklySubtotalContado', 'weeklySubtotalCobranza',
+            'weeklyCreditTotal', 'weeklyVentasMasCredito', 'weeklyTotalGeneral', 'weeklyTotalRecibido',
+            'isPreliminar', 'statusText', 'weekLabel', 'config', 'user', 'dateGenerated'
+        ))->setPaper('a4', 'landscape');
+
+        return $pdf->stream('Reporte_Ingresos_Semanal_' . $mondayDate . '.pdf');
+    }
+
+    public function monthlyIncomeReportPdf(\Illuminate\Http\Request $request)
+    {
+        $selectedMonth = $request->get('month', \Carbon\Carbon::today()->format('Y-m'));
+        $dt = \Carbon\Carbon::parse($selectedMonth . '-01');
+        $monthName = strtoupper($dt->locale('es')->monthName);
+        $year = $dt->year;
+        $monthLabel = "Mes de {$monthName} {$year}";
+
+        $startOfMonth = $dt->copy()->startOfMonth();
+        $endOfMonth = $dt->copy()->endOfMonth();
+
+        // Divide month into weeks (Monday to Saturday, excluding Sunday)
+        $daysByWeek = [];
+        $currentDate = $startOfMonth->copy();
+        while ($currentDate <= $endOfMonth) {
+            if ($currentDate->dayOfWeek !== \Carbon\Carbon::SUNDAY) {
+                $weekKey = $currentDate->format('o-W');
+                if (!isset($daysByWeek[$weekKey])) {
+                    $daysByWeek[$weekKey] = [];
+                }
+                $daysByWeek[$weekKey][] = $currentDate->copy();
+            }
+            $currentDate->addDay();
+        }
+
+        $weeks = [];
+        $weekIndex = 1;
+        foreach ($daysByWeek as $weekKey => $days) {
+            $minDate = collect($days)->min()->toDateString();
+            $maxDate = collect($days)->max()->toDateString();
+            
+            $minFormatted = \Carbon\Carbon::parse($minDate)->format('d/m');
+            $maxFormatted = \Carbon\Carbon::parse($maxDate)->format('d/m');
+            
+            $weeks[$weekKey] = [
+                'index' => $weekIndex,
+                'label' => "Semana {$weekIndex} ({$minFormatted} - {$maxFormatted})",
+                'start' => $minDate,
+                'end' => $maxDate
+            ];
+            $weekIndex++;
+        }
+
+        $categories = [
+            'DOLARES' => 'DOLARES',
+            'PESOS' => 'PESOS',
+            'EFECTIVO BS' => 'EFECTIVO BS',
+            'BANCO DE VENEZUELA' => 'BANCO DE VENEZUELA',
+            'BANCO PROVINCIAL' => 'BANCO PROVINCIAL',
+            'BANCO MERCANTIL' => 'BANCO MERCANTIL',
+            'ZELLE' => 'ZELLE'
+        ];
+
+        $report = [];
+        foreach ($categories as $cat) {
+            $report[$cat] = [];
+            foreach ($weeks as $wKey => $wVal) {
+                $report[$cat][$wKey] = [
+                    'contado' => 0.0,
+                    'cobranza' => 0.0
+                ];
+            }
+        }
+
+        $weeklyMetrics = [];
+        foreach ($weeks as $wKey => $wVal) {
+            $weeklyMetrics[$wKey] = [
+                'subtotal_contado' => 0.0,
+                'subtotal_cobranza' => 0.0,
+                'ventas_credito' => 0.0,
+                'ventas_mas_credito' => 0.0,
+                'total_general' => 0.0,
+                'total_recibido' => 0.0
+            ];
+        }
+
+        $allSheetsClosedAndAudited = true;
+        $hasSheets = false;
+
+        foreach ($weeks as $wKey => $wVal) {
+            $start = \Carbon\Carbon::parse($wVal['start'])->startOfDay();
+            $end = \Carbon\Carbon::parse($wVal['end'])->endOfDay();
+
+            // A. CONTADO
+            $sales = Sale::whereBetween('created_at', [$start, $end])
+                ->whereNotIn('status', ['voided', 'cancelled', 'anulated', 'returned'])
+                ->get();
+
+            foreach ($sales as $sale) {
+                $details = $sale->paymentDetails;
+                if ($details->count() > 0) {
+                    foreach ($details as $d) {
+                        $rate = $d->exchange_rate > 0 ? $d->exchange_rate : 1;
+                        $amtUSD = $d->amount / $rate;
+                        $method = strtolower($d->payment_method);
+                        $curr = strtoupper($d->currency_code);
+                        $bank = strtoupper($d->bank_name ?? '');
+
+                        if ($method === 'cash') {
+                            if ($curr === 'USD') {
+                                $report['DOLARES'][$wKey]['contado'] += $amtUSD;
+                            } elseif ($curr === 'COP') {
+                                $report['PESOS'][$wKey]['contado'] += $amtUSD;
+                            } elseif ($curr === 'VES' || $curr === 'VED') {
+                                $report['EFECTIVO BS'][$wKey]['contado'] += $amtUSD;
+                            }
+                        } elseif ($method === 'zelle' || str_contains($bank, 'ZELLE')) {
+                            $report['ZELLE'][$wKey]['contado'] += $amtUSD;
+                        } elseif ($method === 'bank' || $method === 'deposit') {
+                            if (str_contains($bank, 'PROVINCIAL')) {
+                                $report['BANCO PROVINCIAL'][$wKey]['contado'] += $amtUSD;
+                            } elseif (str_contains($bank, 'MERCANTIL')) {
+                                $report['BANCO MERCANTIL'][$wKey]['contado'] += $amtUSD;
+                            } elseif (str_contains($bank, 'VENEZUELA') || str_contains($bank, 'BDV')) {
+                                $report['BANCO DE VENEZUELA'][$wKey]['contado'] += $amtUSD;
+                            }
+                        }
+                    }
+
+                    // Subtract change
+                    $changes = $sale->changeDetails;
+                    foreach ($changes as $c) {
+                        $rate = $c->exchange_rate > 0 ? $c->exchange_rate : 1;
+                        $amtUSD = $c->amount / $rate;
+                        $curr = strtoupper($c->currency_code);
+                        if ($curr === 'USD') {
+                            $report['DOLARES'][$wKey]['contado'] -= $amtUSD;
+                        } elseif ($curr === 'COP') {
+                            $report['PESOS'][$wKey]['contado'] -= $amtUSD;
+                        } elseif ($curr === 'VES' || $curr === 'VED') {
+                            $report['EFECTIVO BS'][$wKey]['contado'] -= $amtUSD;
+                        }
+                    }
+                } else {
+                    if ($sale->type !== 'credit') {
+                        $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                        $netAmt = ($sale->cash - $sale->change) / $rate;
+                        $curr = strtoupper($sale->primary_currency_code ?? 'USD');
+
+                        if ($sale->type === 'cash') {
+                            if ($curr === 'USD') {
+                                $report['DOLARES'][$wKey]['contado'] += $netAmt;
+                            } elseif ($curr === 'COP') {
+                                $report['PESOS'][$wKey]['contado'] += $netAmt;
+                            } elseif ($curr === 'VES' || $curr === 'VED') {
+                                $report['EFECTIVO BS'][$wKey]['contado'] += $netAmt;
+                            }
+                        } elseif ($sale->type === 'zelle') {
+                            $report['ZELLE'][$wKey]['contado'] += $netAmt;
+                        } elseif ($sale->type === 'bank') {
+                            $bank = strtoupper($sale->bank_name ?? '');
+                            if (str_contains($bank, 'PROVINCIAL')) {
+                                $report['BANCO PROVINCIAL'][$wKey]['contado'] += $netAmt;
+                            } elseif (str_contains($bank, 'MERCANTIL')) {
+                                $report['BANCO MERCANTIL'][$wKey]['contado'] += $netAmt;
+                            } elseif (str_contains($bank, 'VENEZUELA') || str_contains($bank, 'BDV')) {
+                                $report['BANCO DE VENEZUELA'][$wKey]['contado'] += $netAmt;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // B. COBRANZA
+            $sheets = CollectionSheet::whereBetween('opened_at', [$start, $end])->get();
+            foreach ($sheets as $sheet) {
+                $hasSheets = true;
+                if ($sheet->status !== 'closed') {
+                    $allSheetsClosedAndAudited = false;
+                }
+
+                $payments = Payment::where('collection_sheet_id', $sheet->id)
+                    ->where('status', 'approved')
+                    ->get();
+
+                foreach ($payments as $p) {
+                    $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
+                    $amtUSD = $p->amount / $rate;
+                    $payWay = strtolower($p->pay_way);
+                    $curr = strtoupper($p->currency);
+                    $bank = strtoupper($p->bank ?? '');
+
+                    if ($payWay === 'cash') {
+                        if ($curr === 'USD') {
+                            $report['DOLARES'][$wKey]['cobranza'] += $amtUSD;
+                        } elseif ($curr === 'COP') {
+                            $report['PESOS'][$wKey]['cobranza'] += $amtUSD;
+                        } elseif ($curr === 'VES' || $curr === 'VED') {
+                            $report['EFECTIVO BS'][$wKey]['cobranza'] += $amtUSD;
+                        }
+                    } elseif ($payWay === 'zelle' || str_contains($bank, 'ZELLE')) {
+                        $report['ZELLE'][$wKey]['cobranza'] += $amtUSD;
+                    } elseif ($payWay === 'bank' || $payWay === 'deposit') {
+                        if (str_contains($bank, 'PROVINCIAL')) {
+                            $report['BANCO PROVINCIAL'][$wKey]['cobranza'] += $amtUSD;
+                        } elseif (str_contains($bank, 'MERCANTIL')) {
+                            $report['BANCO MERCANTIL'][$wKey]['cobranza'] += $amtUSD;
+                        } elseif (str_contains($bank, 'VENEZUELA') || str_contains($bank, 'BDV')) {
+                            $report['BANCO DE VENEZUELA'][$wKey]['cobranza'] += $amtUSD;
+                        }
+                    }
+                }
+            }
+
+            // C. VENTAS A CREDITO
+            $creditSales = Sale::whereBetween('created_at', [$start, $end])
+                ->where('type', 'credit')
+                ->whereNotIn('status', ['voided', 'cancelled', 'anulated', 'returned'])
+                ->get();
+
+            $weekCreditTotal = 0.0;
+            foreach ($creditSales as $sale) {
+                // Subtract approved returns
+                $returnsForSale = \App\Models\SaleReturn::where('sale_id', $sale->id)
+                    ->where('status', 'approved')
+                    ->get();
+                $retAmtUSD = 0.0;
+                foreach ($returnsForSale as $ret) {
+                    $rt_rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                    $retAmtUSD += ($ret->total_returned / $rt_rate);
+                }
+                $netSaleUSD = $sale->total_usd - $retAmtUSD;
+
+                $pdSum = $sale->paymentDetails->sum(function($d) {
+                    $rate = $d->exchange_rate > 0 ? $d->exchange_rate : 1;
+                    return $d->amount / $rate;
+                });
+                $weekCreditTotal += max(0.0, $netSaleUSD - $pdSum);
+            }
+
+            $subtotalContado = 0.0;
+            $subtotalCobranza = 0.0;
+            foreach ($categories as $cat) {
+                $subtotalContado += $report[$cat][$wKey]['contado'];
+                $subtotalCobranza += $report[$cat][$wKey]['cobranza'];
+            }
+
+            $weeklyMetrics[$wKey]['subtotal_contado'] = $subtotalContado;
+            $weeklyMetrics[$wKey]['subtotal_cobranza'] = $subtotalCobranza;
+            $weeklyMetrics[$wKey]['ventas_credito'] = $weekCreditTotal;
+            $weeklyMetrics[$wKey]['ventas_mas_credito'] = $subtotalContado + $weekCreditTotal;
+            $weeklyMetrics[$wKey]['total_general'] = $subtotalContado + $weekCreditTotal + $subtotalCobranza;
+            $weeklyMetrics[$wKey]['total_recibido'] = $subtotalContado + $subtotalCobranza;
+        }
+
+        // D. MONTHLY TOTALS (Accumulation)
+        $monthlyTotals = [];
+        $monthlySubtotalContado = 0.0;
+        $monthlySubtotalCobranza = 0.0;
+        $monthlyCreditTotal = 0.0;
+
+        foreach ($categories as $cat) {
+            $monthlyTotals[$cat] = [
+                'contado' => 0.0,
+                'cobranza' => 0.0
+            ];
+            foreach ($weeks as $wKey => $wVal) {
+                $monthlyTotals[$cat]['contado'] += $report[$cat][$wKey]['contado'];
+                $monthlyTotals[$cat]['cobranza'] += $report[$cat][$wKey]['cobranza'];
+            }
+            $monthlySubtotalContado += $monthlyTotals[$cat]['contado'];
+            $monthlySubtotalCobranza += $monthlyTotals[$cat]['cobranza'];
+        }
+
+        foreach ($weeklyMetrics as $wKey => $metrics) {
+            $monthlyCreditTotal += $metrics['ventas_credito'];
+        }
+
+        $monthlyVentasMasCredito = $monthlySubtotalContado + $monthlyCreditTotal;
+        $monthlyTotalGeneral = $monthlyVentasMasCredito + $monthlySubtotalCobranza;
+        $monthlyTotalRecibido = $monthlySubtotalContado + $monthlySubtotalCobranza;
+
+        $isCurrentOrFutureMonth = \Carbon\Carbon::parse($selectedMonth . '-01')->startOfMonth() <= \Carbon\Carbon::today()->startOfMonth();
+        $isPreliminar = !$hasSheets || !$allSheetsClosedAndAudited || $isCurrentOrFutureMonth;
+        $statusText = $isPreliminar ? 'PRELIMINAR / EN CURSO' : 'CONSOLIDADO / AUDITADO';
+
+        $config = Configuration::first();
+        $user = auth()->user();
+        $dateGenerated = \Carbon\Carbon::now()->format('d/m/Y H:i');
+
+        $pdf = Pdf::loadView('reports.monthly-income-report-pdf', compact(
+            'weeks', 'report', 'weeklyMetrics', 'monthlyTotals',
+            'monthlySubtotalContado', 'monthlySubtotalCobranza', 'monthlyCreditTotal',
+            'monthlyVentasMasCredito', 'monthlyTotalGeneral', 'monthlyTotalRecibido',
+            'isPreliminar', 'statusText', 'monthLabel', 'config', 'user', 'dateGenerated'
+        ))->setPaper('a4', 'landscape');
+
+        return $pdf->stream('Reporte_Ingresos_Mensual_' . $selectedMonth . '.pdf');
+    }
 }

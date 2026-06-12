@@ -541,8 +541,8 @@
                         </p>
                     </a>
                     <ul class="nav nav-treeview">
-                        <li class="nav-item {{ Request::is('reports/sales*') || Request::is('reports/daily-sales*') || Request::is('reports/payment-relationship*') || Request::is('reports/customer-payment*') ? 'menu-open' : '' }}">
-                            <a href="#" class="nav-link {{ Request::is('reports/sales*') || Request::is('reports/daily-sales*') || Request::is('reports/payment-relationship*') || Request::is('reports/customer-payment*') ? 'active' : '' }}">
+                        <li class="nav-item {{ Request::is('reports/sales*') || Request::is('reports/daily-sales*') || Request::is('reports/payment-relationship*') || Request::is('reports/customer-payment*') || Request::is('reports/weekly-income*') || Request::is('reports/monthly-income*') ? 'menu-open' : '' }}">
+                            <a href="#" class="nav-link {{ Request::is('reports/sales*') || Request::is('reports/daily-sales*') || Request::is('reports/payment-relationship*') || Request::is('reports/customer-payment*') || Request::is('reports/weekly-income*') || Request::is('reports/monthly-income*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>
                                     Ventas y Cobros
@@ -551,24 +551,36 @@
                             </a>
                             <ul class="nav nav-treeview">
                                 @can('reports.sales')
-                                <li class="nav-item">
-                                    <a href="{{ route('reports.sales') }}" class="nav-link">
-                                        <i class="far fa-dot-circle nav-icon"></i>
-                                        <p>Reporte de Ventas</p>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a href="{{ route('reports.daily.sales') }}" class="nav-link">
-                                        <i class="far fa-dot-circle nav-icon"></i>
-                                        <p>Ventas Diarias</p>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a href="{{ route('reports.payment.relationship') }}" class="nav-link">
-                                        <i class="far fa-dot-circle nav-icon"></i>
-                                        <p>Relación de Cobros</p>
-                                    </a>
-                                </li>
+                                  <li class="nav-item">
+                                      <a href="{{ route('reports.sales') }}" class="nav-link">
+                                          <i class="far fa-dot-circle nav-icon"></i>
+                                          <p>Reporte de Ventas</p>
+                                      </a>
+                                  </li>
+                                  <li class="nav-item">
+                                      <a href="{{ route('reports.daily.sales') }}" class="nav-link">
+                                          <i class="far fa-dot-circle nav-icon"></i>
+                                          <p>Ventas Diarias</p>
+                                      </a>
+                                  </li>
+                                  <li class="nav-item">
+                                      <a href="{{ route('reports.payment.relationship') }}" class="nav-link">
+                                          <i class="far fa-dot-circle nav-icon"></i>
+                                          <p>Relación de Cobros</p>
+                                      </a>
+                                  </li>
+                                  <li class="nav-item">
+                                      <a href="{{ route('reports.weekly.income') }}" class="nav-link {{ Request::is('reports/weekly-income*') ? 'active' : '' }}">
+                                          <i class="far fa-dot-circle nav-icon"></i>
+                                          <p>Reporte Semanal de Ingresos</p>
+                                      </a>
+                                  </li>
+                                  <li class="nav-item">
+                                      <a href="{{ route('reports.monthly.income') }}" class="nav-link {{ Request::is('reports/monthly-income*') ? 'active' : '' }}">
+                                          <i class="far fa-dot-circle nav-icon"></i>
+                                          <p>Reporte Mensual de Ingresos</p>
+                                      </a>
+                                  </li>
                                 @endcan
                                 @can('reports.customer_payment_relationship')
                                 <li class="nav-item">
