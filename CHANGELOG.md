@@ -1,3 +1,11 @@
+## [1.10.138] - 2026-06-12
+### Changed
+- **Selección de Acuerdo de Pago en POS**: Se hizo obligatoria y consciente la selección del "Acuerdo de Pago Acordado" en el POS para las ventas a crédito, previniendo errores accidentales donde se autoseleccionaba una opción por defecto (USD/Zelle).
+- **Carga Inmediata de Configuración de Crédito**: Se optimizó la carga de límites y condiciones de crédito de clientes en el componente Livewire para cargarse de forma reactiva inmediata al seleccionar el cliente.
+
+### Fixed
+- **Acceso a Atributos del Cliente en POS**: Se corrigió un bug en la validación de crédito del POS donde se accedía incorrectamente al identificador del cliente como propiedad de objeto (`$this->customer->id`) en lugar de clave de arreglo (`$this->customer['id']`), provocando advertencias e impidiendo el registro correcto del crédito.
+
 ## [1.10.137] - 2026-06-12
 ### Added
 - **Módulo de Reporte Mensual de Ingresos (Matriz Comparativa Horizontal)**:
