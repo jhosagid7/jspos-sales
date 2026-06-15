@@ -340,6 +340,7 @@ class HierarchicalCommissionTest extends TestCase
         
         // Setup Cart session again since storeOrder cleared/updated things
         $component->call('setCustomer', $customer->toArray());
+        $component->set('paymentAgreement', 'USD');
         $component->set('applyFreight', false);
         session(['cart' => [$cartItem]]);
         $component->set('cart', collect([$cartItem]));
@@ -440,6 +441,7 @@ class HierarchicalCommissionTest extends TestCase
         $component->set('payType', 2); // credit
         $component->set('order_id', null);
         $component->call('setCustomer', $customer->toArray());
+        $component->set('paymentAgreement', 'USD');
         
         session(['cart' => [$cartItem]]);
         $component->set('cart', collect([$cartItem]));

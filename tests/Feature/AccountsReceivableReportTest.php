@@ -242,6 +242,7 @@ class AccountsReceivableReportTest extends TestCase
             ->test(\App\Livewire\Sales::class)
             ->call('setCustomer', $customer->toArray())
             ->set('payType', 2) // Credit type
+            ->set('paymentAgreement', 'USD')
             ->set('totalCart', 100.00)
             ->set('totalInPrimaryCurrency', 100.00)
             ->set('cashAmount', 0.00)

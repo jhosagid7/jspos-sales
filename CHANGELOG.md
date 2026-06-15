@@ -1,3 +1,10 @@
+## [1.10.144] - 2026-06-15
+### Added
+- **Nuevas Variables y Plantilla Detallada para Reportes de Producción**:
+  - Incorporación de soporte para nuevas variables dinámicas de correo en la compilación del reporte de producción: `[PRODUCCION_ID]`, `[CANTIDAD_TOTAL]`, `[PESO_TOTAL]`, `[RESUMEN_DETALLES]`, `[NOTA]` y `[EMPRESA]`.
+  - El resumen de detalles autogenera un listado tabulado con viñetas del tipo de producto y material (Original/Recuperado), cantidades y pesos en kilogramos.
+  - Actualizada la interfaz visual de configuración de la plantilla de correo de producción en los Ajustes para documentar y exponer las nuevas variables.
+
 ## [1.10.143] - 2026-06-15
 ### Fixed
 - **Corrección de Cálculo de Saldo Restante en Notificaciones**:

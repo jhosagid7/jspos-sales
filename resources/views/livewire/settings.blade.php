@@ -898,18 +898,63 @@
 
                                     <div class="col-sm-12">
                                         <label class="form-label">ASUNTO DEL CORREO</label>
-                                        <input wire:model="productionEmailSubject" type="text" class="form-control" placeholder="Ej: Reporte de Producción - [FECHA]">
+                                        <input wire:model="productionEmailSubject" type="text" class="form-control" placeholder="[SALUDO], Reporte Diario de Producción - [FECHA] (Lote #[PRODUCCION_ID]) - [EMPRESA]">
                                     </div>
 
                                     <div class="col-sm-12">
                                         <label class="form-label">CUERPO DEL CORREO</label>
-                                        <textarea wire:model="productionEmailBody" class="form-control" cols="30" rows="4" placeholder="Mensaje que acompañará al PDF adjunto..."></textarea>
+                                        <textarea wire:model="productionEmailBody" class="form-control" cols="30" rows="10" placeholder="[SALUDO],
+
+Adjunto a este correo electrónico se encuentra el reporte oficial detallado correspondiente a la jornada de producción del [FECHA].
+
+A continuación, se presenta un resumen de los lotes procesados y consolidados durante este turno:
+
+==================================================
+📝 DATOS GENERALES DE LA ORDEN DE TRABAJO
+==================================================
+• Lote de Producción: #[PRODUCCION_ID]
+• Fecha de Cierre: [FECHA]
+• Operador a Cargo del Reporte: [USUARIO]
+• Empresa / Planta: [EMPRESA]
+
+==================================================
+📊 TOTALES DE PLANTA
+==================================================
+• Cantidad Total Producida: [CANTIDAD_TOTAL] unidades
+• Peso Total de Material Procesado: [PESO_TOTAL] Kg
+
+==================================================
+📦 DESGLOSE POR PRODUCTO Y TIPO DE MATERIAL
+==================================================
+[RESUMEN_DETALLES]
+
+*(El detalle técnico por bobina individual, tipo de resina (Original/Recuperado), y mermas de extrusión y soplado se encuentra desglosado en el PDF adjunto).*
+
+==================================================
+🔍 OBSERVACIONES Y EVENTUALIDADES DE JORNADA
+==================================================
+[NOTA]
+
+--------------------------------------------------
+Este es un reporte automático emitido por el Sistema de Control de Producción y Ventas de [EMPRESA].
+
+Quedamos atentos a cualquier consulta técnica o administrativa.
+
+Atentamente,
+Departamento de Control de Calidad y Manufactura
+[EMPRESA]"></textarea>
                                         <div class="alert alert-light-info mt-2">
                                             <small>
                                                 <b>Variables Disponibles:</b><br>
                                                 <code>[FECHA]</code> : Fecha de producción (ej: Lunes, 12 de Enero de 2026)<br>
                                                 <code>[SALUDO]</code> : Saludo automático (Buenos días / tardes / noches)<br>
-                                                <code>[USUARIO]</code> : Nombre del usuario que envía el correo
+                                                <code>[USUARIO]</code> : Nombre del operador que envía el correo<br>
+                                                <code>[PRODUCCION_ID]</code> : ID/Lote de Producción<br>
+                                                <code>[CANTIDAD_TOTAL]</code> : Cantidad total producida (unidades)<br>
+                                                <code>[PESO_TOTAL]</code> : Peso total procesado (Kg)<br>
+                                                <code>[RESUMEN_DETALLES]</code> : Resumen de productos y tipo de material (Original/Recuperado)<br>
+                                                <code>[NOTA]</code> : Observaciones registradas por planta<br>
+                                                <code>[EMPRESA]</code> : Nombre de la empresa
                                             </small>
                                         </div>
                                     </div>
