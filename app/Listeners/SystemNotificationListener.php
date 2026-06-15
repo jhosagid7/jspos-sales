@@ -150,7 +150,7 @@ class SystemNotificationListener implements ShouldQueue
         $phone = $this->resolvePhoneNumber($customer);
         if (!$phone) return;
 
-        $debt = round($sale->total - $sale->payments()->where('status', 'approved')->sum('amount'), 2);
+        $debt = $this->calculateRemainingDebt($sale);
         $currencyCode = $payment->currency ?? null;
         $messageText = $this->compileTemplate($template->body, $sale, $customer, $amountPaid, max(0, $debt), $currencyCode);
         
@@ -185,7 +185,7 @@ class SystemNotificationListener implements ShouldQueue
         $email = $this->resolveEmail($customer);
         if (!$email) return;
 
-        $debt = round($sale->total - $sale->payments()->where('status', 'approved')->sum('amount'), 2);
+        $debt = $this->calculateRemainingDebt($sale);
         $currencyCode = $payment->currency ?? null;
         
         $subject = $this->compileTemplate($template->subject, $sale, $customer, $amountPaid, max(0, $debt), $currencyCode);
@@ -400,5 +400,29 @@ class SystemNotificationListener implements ShouldQueue
             '[FECHA]' => $sale ? $sale->created_at->format('d/m/Y H:i') : now()->format('d/m/Y H:i')
         ];
         return str_replace(array_keys($vars), array_values($vars), $body);
+    }
+
+    protected function calculateRemainingDebt(Sale $sale): float
+    {
+        $payments = \App\Models\Payment::where('sale_id', $sale->id)->where('status', 'approved')->get();
+        $totalPaidUSD = 0.0;
+        foreach ($payments as $p) {
+            $pRate = floatval($p->exchange_rate) > 0 ? floatval($p->exchange_rate) : 1.0;
+            $totalPaidUSD += floatval($p->amount) / $pRate;
+        }
+
+        $totalReturnsUSD = 0.0;
+        $exchangeRateReturns = floatval($sale->primary_exchange_rate) > 0 ? floatval($sale->primary_exchange_rate) : 1.0;
+        $returns = \App\Models\SaleReturn::where('sale_id', $sale->id)
+            ->where('refund_method', 'debt_reduction')
+            ->where('status', 'approved')
+            ->get();
+        foreach ($returns as $return) {
+            $totalReturnsUSD += floatval($return->total_returned) / $exchangeRateReturns;
+        }
+
+        $totalSaleUSD = floatval($sale->total_usd) > 0 ? floatval($sale->total_usd) : (floatval($sale->total) / (floatval($sale->primary_exchange_rate) > 0 ? floatval($sale->primary_exchange_rate) : 1.0));
+        
+        return round(max(0.0, $totalSaleUSD - $totalPaidUSD - $totalReturnsUSD), 2);
     }
 }

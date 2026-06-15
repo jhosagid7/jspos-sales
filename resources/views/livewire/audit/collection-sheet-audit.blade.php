@@ -541,8 +541,8 @@
                                             <div class="mt-2 d-flex flex-wrap justify-content-center align-items-center">
                                                 <span class="text-muted small mr-2 font-weight-bold" style="font-size: 0.7rem;">Tasas del día:</span>
                                                 @foreach($selectedPaymentDetails['binance_rates'] as $rate)
-                                                    @if(abs($selectedPaymentDetails['binance_rate'] - $rate) < 0.01)
-                                                        <span class="badge badge-success text-white px-2 py-1 mr-1 mb-1 font-weight-bold" style="font-size: 0.7rem;" title="Tasa coincidente utilizada para auditar el pago">
+                                                    @if(abs($selectedPaymentDetails['payment_rate'] - $rate) < 0.01)
+                                                        <span class="badge badge-success text-white px-2 py-1 mr-1 mb-1 font-weight-bold" style="font-size: 0.7rem;" title="Tasa coincidente utilizada para el pago">
                                                             {{ number_format($rate, 2) }} Bs <i class="fas fa-check ml-1"></i>
                                                         </span>
                                                     @else

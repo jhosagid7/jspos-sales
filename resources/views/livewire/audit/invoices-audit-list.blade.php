@@ -122,11 +122,21 @@
                             </select>
                         </div>
 
+                        {{-- Payment Status --}}
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <label class="font-weight-bold text-dark small">Estado de Pago</label>
+                            <select wire:model.live="paymentStatus" class="form-control form-control-sm shadow-none" style="border-radius: 8px;">
+                                <option value="all">Todos los pagos</option>
+                                <option value="paid">Pagadas Totalmente</option>
+                                <option value="pending">Pendientes (Con Deuda)</option>
+                            </select>
+                        </div>
+
                         {{-- Search --}}
-                        <div class="col-md-6 col-sm-12 mb-3">
+                        <div class="col-md-3 col-sm-12 mb-3">
                             <label class="font-weight-bold text-dark small">Buscar Factura / Cliente</label>
                             <div class="input-group input-group-sm">
-                                <input type="text" wire:model.live.debounce.300ms="searchQuery" class="form-control shadow-none" placeholder="Número de factura o nombre de cliente..." style="border-radius: 8px 0 0 8px;">
+                                <input type="text" wire:model.live.debounce.300ms="searchQuery" class="form-control shadow-none" placeholder="Factura o cliente..." style="border-radius: 8px 0 0 8px;">
                                 <div class="input-group-append">
                                     <span class="input-group-text bg-primary text-white border-0" style="border-radius: 0 8px 8px 0;">
                                         <i class="fas fa-search"></i>
@@ -231,10 +241,15 @@
                                             $badgeIcon = 'fa-exclamation-circle';
                                         }
                                     @endphp
-                                    <tr style="vertical-align: middle;">
+                                    <tr style="vertical-align: middle;" class="{{ $sale->status === 'paid' ? 'row-paid-glow' : '' }}">
                                         @if(in_array('invoice_number', $selectedColumns))
                                             <td class="font-weight-bold text-dark">
                                                 {{ $sale->invoice_number ?: ('#' . $sale->id) }}
+                                                @if($sale->status === 'paid')
+                                                    <span class="badge badge-success px-2 py-1 ml-2 text-white font-weight-bold" style="font-size: 0.65rem; border-radius: 4px; vertical-align: middle;" title="Factura pagada en su totalidad">
+                                                        <i class="fas fa-check-double mr-1" style="font-size: 0.6rem;"></i> PAGADA
+                                                    </span>
+                                                @endif
                                             </td>
                                         @endif
 
@@ -270,9 +285,30 @@
 
                                         @if(in_array('payment_agreement', $selectedColumns))
                                             <td class="text-center">
-                                                <span class="badge badge-info font-weight-bold px-2 py-1" style="border-radius: 5px; font-size: 0.75rem;">
-                                                    {{ $sale->payment_agreement }}
-                                                </span>
+                                                @if($sale->payment_agreement === 'BCV')
+                                                    @php
+                                                        $config = \App\Models\Configuration::first();
+                                                        $bcvVal = $config ? floatval($config->bcv_rate) : 1;
+                                                        $binVal = $config ? floatval($config->binance_rate) : 1;
+                                                        $gap = $bcvVal > 0 ? (($binVal - $bcvVal) / $bcvVal) * 100 : 0;
+                                                        $diff = floatval($sale->applied_exchange_diff_percent);
+                                                        $hasRisk = ($diff < $gap);
+                                                    @endphp
+                                                    <span class="badge badge-info font-weight-bold px-2 py-1" style="border-radius: 5px; font-size: 0.75rem;">
+                                                        {{ $sale->payment_agreement }}
+                                                    </span>
+                                                    @if($hasRisk)
+                                                        <div class="mt-1">
+                                                            <span class="badge badge-danger font-weight-bold px-2 py-1" style="border-radius: 5px; font-size: 0.65rem;" title="Diferencial de {{ number_format($diff, 2) }}% no cubre la brecha Binance-BCV ({{ number_format($gap, 2) }}%)">
+                                                                <i class="fas fa-exclamation-triangle"></i> Riesgo
+                                                            </span>
+                                                        </div>
+                                                    @endif
+                                                @else
+                                                    <span class="badge badge-info font-weight-bold px-2 py-1" style="border-radius: 5px; font-size: 0.75rem;">
+                                                        {{ $sale->payment_agreement }}
+                                                    </span>
+                                                @endif
                                             </td>
                                         @endif
 
@@ -340,65 +376,144 @@
         <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 15px; overflow: hidden;">
                 @if($selectedSale)
-                    <div class="modal-header bg-dark text-white py-3 border-0">
+                    @php
+                        $unifiedPayments = $this->getUnifiedPayments($selectedSale);
+                        $activePayment = null;
+                        $val = null;
+                        
+                        if (!empty($unifiedPayments)) {
+                            $activePaymentArray = collect($unifiedPayments)->firstWhere('id', $selectedPaymentId) ?? $unifiedPayments[0];
+                            $activePayment = $activePaymentArray ? $activePaymentArray['model'] : null;
+                            $val = $activePayment ? $this->getPaymentValidation($activePayment) : null;
+                        }
+                        
+                        $color = 'gray';
+                        $headerBg = 'bg-dark';
+                        $statusText = 'Sin Pagos';
+                        $icon = 'fa-file-invoice-dollar';
+                        
+                        if ($activePayment && $val) {
+                            $color = $val['color'];
+                            $headerBg = 'bg-success';
+                            $statusText = 'Rentable';
+                            $icon = 'fa-check-circle';
+                            
+                            if ($color === 'orange') {
+                                $headerBg = 'bg-warning text-dark';
+                                $statusText = 'Alerta / Desviación';
+                                $icon = 'fa-exclamation-circle';
+                            } elseif ($color === 'red') {
+                                $headerBg = 'bg-danger';
+                                $statusText = 'Pérdida';
+                                $icon = 'fa-times-circle';
+                            }
+                            
+                            $ratio = $selectedSale->total_usd > 0 ? (($activePayment->amount / ($activePayment->exchange_rate ?: 1)) / $selectedSale->total_usd) : 0;
+                            $paymentBase = floatval($selectedSale->base_amount) * $ratio;
+                            $paymentFreight = floatval($selectedSale->freight_amount) * $ratio;
+                            $paymentCommission = floatval($selectedSale->commission_amount) * $ratio;
+                            $paymentMarkup = floatval($selectedSale->base_markup_amount) * $ratio;
+                            $paymentDiff = floatval($selectedSale->exchange_diff_amount) * $ratio;
+                            
+                            $netDiff = $val['net_usd'] - $paymentBase;
+                            $realPaymentUsd = $val['net_usd'] + $paymentFreight + $paymentCommission + $paymentMarkup;
+                        }
+                    @endphp
+
+                    <div class="modal-header {{ $headerBg }} text-white py-3 border-0">
                         <h5 class="modal-title font-weight-bold text-white d-flex align-items-center" id="modalSaleDetailLabel">
-                            <i class="fas fa-file-invoice-dollar mr-2 text-warning" style="font-size: 1.3rem;"></i>
-                            Desglose de Auditoría - Factura {{ $selectedSale->invoice_number ?: ('#' . $selectedSale->id) }}
+                            <i class="fas {{ $icon }} mr-2" style="font-size: 1.3rem;"></i>
+                            Detalle de Auditoría - Factura {{ $selectedSale->invoice_number ?: ('#' . $selectedSale->id) }}
                         </h5>
                         <button type="button" class="btn-close btn-close-white close text-white border-0 bg-transparent" data-dismiss="modal" aria-label="Close" wire:click="closeSaleDetails" style="font-size: 1.5rem; line-height: 1; outline: none; opacity: 0.9;">
                             <span aria-hidden="true">&times;</span>
                         </button>
                     </div>
+
                     <div class="modal-body p-4 text-dark" style="background: #f8f9fa; max-height: 80vh; overflow-y: auto;">
                         
-                        {{-- Top Sale Summary Header --}}
+                        {{-- Tab Selector for payments (if multiple exist) --}}
+                        @if(count($unifiedPayments) > 1)
+                            <div class="mb-4">
+                                <label class="font-weight-bold text-dark small mb-2">
+                                    <i class="fas fa-list mr-1 text-info"></i> Seleccione Pago a Analizar ({{ count($unifiedPayments) }} registrados):
+                                </label>
+                                <div class="nav nav-pills flex-wrap">
+                                    @foreach($unifiedPayments as $pItem)
+                                        <button type="button" 
+                                                wire:click="selectPayment('{{ $pItem['id'] }}')" 
+                                                class="nav-link btn btn-sm mr-2 mb-2 {{ $selectedPaymentId == $pItem['id'] ? 'active btn-primary text-white' : 'btn-outline-primary bg-white' }} font-weight-bold" 
+                                                style="border-radius: 8px;">
+                                            <i class="fas fa-money-bill-wave mr-1"></i>
+                                            {{ number_format($pItem['amount'], 2) }} {{ $pItem['currency'] }} ({{ $pItem['pay_way'] }})
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+
+                        {{-- Status Banner --}}
+                        <div class="card border-0 shadow-sm mb-4" style="border-radius: 10px; background: #fff;">
+                            <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                                @if($activePayment && $val)
+                                    <div>
+                                        <span class="text-muted small text-uppercase font-weight-bold" style="letter-spacing: 1px; font-size: 0.75rem;">Estado de Rentabilidad</span>
+                                        <h4 class="font-weight-bold mb-0 {{ $color === 'red' ? 'text-danger' : ($color === 'orange' ? 'text-warning' : 'text-success') }}">
+                                            {{ $statusText }}
+                                        </h4>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="text-muted small d-block">Detalle del Sistema:</span>
+                                        <p class="mb-0 font-weight-bold text-dark">{{ $val['message'] }}</p>
+                                    </div>
+                                @else
+                                    <div>
+                                        <span class="text-muted small text-uppercase font-weight-bold" style="letter-spacing: 1px; font-size: 0.75rem;">Estado de Rentabilidad</span>
+                                        <h4 class="font-weight-bold mb-0 text-muted">
+                                            Sin Pagos Registrados
+                                        </h4>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="text-muted small d-block">Detalle del Sistema:</span>
+                                        <p class="mb-0 font-weight-bold text-dark">Esta factura aún no ha recibido ningún abono o pago.</p>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+
                         <div class="row mb-4">
-                            <div class="col-md-6 mb-3 mb-md-0">
+                            {{-- Col 1: Invoice Configuration --}}
+                            <div class="col-md-6 mb-3">
                                 <div class="card border-0 shadow-sm h-100" style="border-radius: 10px;">
                                     <div class="card-header bg-dark text-white font-weight-bold py-2" style="font-size: 0.9rem;">
-                                        <i class="fas fa-info-circle mr-2"></i> Datos de la Factura
+                                        <i class="fas fa-file-invoice-dollar mr-2"></i> Configuración de Factura
                                     </div>
                                     <div class="card-body p-3">
                                         <div class="d-flex justify-content-between mb-2 pb-1 border-bottom">
                                             <span class="text-muted">Cliente:</span>
-                                            <span class="font-weight-bold text-dark">{{ $selectedSale->customer->name ?? 'Sin Cliente' }}</span>
+                                            <span class="font-weight-bold text-dark text-truncate" style="max-width: 180px;" title="{{ $selectedSale->customer->name ?? 'Sin Cliente' }}">
+                                                {{ $selectedSale->customer->name ?? 'Sin Cliente' }}
+                                            </span>
                                         </div>
                                         <div class="d-flex justify-content-between mb-2 pb-1 border-bottom">
-                                            <span class="text-muted">R.I.F. / C.I.:</span>
-                                            <span class="font-weight-bold text-dark">{{ $selectedSale->customer->taxpayer_id ?? 'N/A' }}</span>
+                                            <span class="text-muted">Acuerdo de Pago:</span>
+                                            <span class="badge badge-info font-weight-bold" style="padding: 4px 8px; border-radius: 5px;">{{ $selectedSale->payment_agreement ?: 'USD' }}</span>
                                         </div>
                                         <div class="d-flex justify-content-between mb-2 pb-1 border-bottom">
-                                            <span class="text-muted">Fecha de Emisión:</span>
-                                            <span class="font-weight-bold text-dark">{{ $selectedSale->created_at->format('d/m/Y h:i A') }}</span>
-                                        </div>
-                                        <div class="d-flex justify-content-between mb-1">
-                                            <span class="text-muted">Operador (Cajero):</span>
-                                            <span class="font-weight-bold text-dark">{{ $selectedSale->user->name ?? 'N/A' }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card border-0 shadow-sm h-100" style="border-radius: 10px;">
-                                    <div class="card-header bg-dark text-white font-weight-bold py-2" style="font-size: 0.9rem;">
-                                        <i class="fas fa-calculator mr-2"></i> Estructura de Montos (USD)
-                                    </div>
-                                    <div class="card-body p-3">
-                                        <div class="d-flex justify-content-between mb-2 pb-1 border-bottom">
-                                            <span class="text-muted font-weight-bold">Total Factura (USD):</span>
-                                            <span class="font-weight-bold text-primary" style="font-size: 1.1rem;">${{ number_format($selectedSale->total_usd, 2) }}</span>
+                                            <span class="text-muted">Total Facturado (USD):</span>
+                                            <span class="font-weight-bold text-dark">${{ number_format($selectedSale->total_usd, 2) }}</span>
                                         </div>
                                         <div class="d-flex justify-content-between mb-1">
                                             <span class="text-muted">Costo Base:</span>
-                                            <span class="text-dark font-weight-bold">${{ number_format($selectedSale->base_amount, 2) }}</span>
+                                            <span class="text-dark">${{ number_format($selectedSale->base_amount, 2) }}</span>
                                         </div>
                                         <div class="d-flex justify-content-between mb-1">
-                                            <span class="text-muted">Flete de Despacho ({{ $selectedSale->resolved_freight_percent }}%):</span>
-                                            <span class="text-dark">${{ number_format($selectedSale->freight_amount, 2) }}</span>
-                                        </div>
-                                        <div class="d-flex justify-content-between mb-1">
-                                            <span class="text-muted">Comisión Vendedor ({{ $selectedSale->resolved_commission_percent }}%):</span>
+                                            <span class="text-muted">Comisión ({{ $selectedSale->resolved_commission_percent }}%):</span>
                                             <span class="text-dark">${{ number_format($selectedSale->commission_amount, 2) }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span class="text-muted">Flete ({{ $selectedSale->resolved_freight_percent }}%):</span>
+                                            <span class="text-dark">${{ number_format($selectedSale->freight_amount, 2) }}</span>
                                         </div>
                                         @if($selectedSale->resolved_base_markup_percent > 0)
                                             <div class="d-flex justify-content-between mb-1">
@@ -415,142 +530,210 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {{-- Payments List --}}
-                        <div class="card border-0 shadow-sm" style="border-radius: 10px; overflow: hidden;">
-                            <div class="card-header bg-primary text-white font-weight-bold py-2" style="font-size: 0.95rem;">
-                                <i class="fas fa-money-bill-wave mr-2"></i> Pagos Registrados para esta Factura
-                            </div>
-                            <div class="card-body p-3 bg-white">
-                                @if($selectedSale->payments->isEmpty())
-                                    <div class="text-center text-muted py-4">No hay pagos registrados para esta factura.</div>
-                                @else
-                                    @foreach($selectedSale->payments as $payment)
-                                        @php
-                                            $val = $this->getPaymentValidation($payment);
-                                            $color = $val['color'];
-                                            $badgeClass = 'badge-success';
-                                            $statusText = 'Rentable';
-                                            $borderClass = 'border-success';
-                                            $textClass = 'text-success';
-                                            
-                                            if ($color === 'orange') {
-                                                $badgeClass = 'badge-warning text-dark';
-                                                $statusText = 'Alerta / Desviación';
-                                                $borderClass = 'border-warning';
-                                                $textClass = 'text-warning';
-                                            } elseif ($color === 'red') {
-                                                $badgeClass = 'badge-danger';
-                                                $statusText = 'Pérdida';
-                                                $borderClass = 'border-danger';
-                                                $textClass = 'text-danger';
-                                            }
-                                            
-                                            $ratio = $selectedSale->total_usd > 0 ? (($payment->amount / ($payment->exchange_rate ?: 1)) / $selectedSale->total_usd) : 0;
-                                            $paymentBase = floatval($selectedSale->base_amount) * $ratio;
-                                            $paymentFreight = floatval($selectedSale->freight_amount) * $ratio;
-                                            $paymentCommission = floatval($selectedSale->commission_amount) * $ratio;
-                                            $paymentMarkup = floatval($selectedSale->base_markup_amount) * $ratio;
-                                            $paymentDiff = floatval($selectedSale->exchange_diff_amount) * $ratio;
-                                            
-                                            $netDiff = $val['net_usd'] - $paymentBase;
-                                            $realPaymentUsd = $val['net_usd'] + $paymentFreight + $paymentCommission + $paymentMarkup;
-                                        @endphp
-                                        
-                                        <div class="payment-card border-left-lg p-3 mb-4 rounded shadow-sm bg-light" style="border-left: 5px solid; border-color: {{ $color === 'red' ? '#dc3545' : ($color === 'orange' ? '#ffc107' : '#28a745') }};">
-                                            <div class="row align-items-center">
-                                                <div class="col-md-3 border-right">
-                                                    <span class="text-muted small text-uppercase font-weight-bold">Detalle del Pago</span>
-                                                    <h4 class="font-weight-bold text-primary mt-1 mb-1">
-                                                        {{ number_format($payment->amount, 2) }} {{ $payment->currency }}
-                                                    </h4>
-                                                    <div class="small text-dark font-weight-bold">Tasa: {{ number_format($payment->exchange_rate, 4) }} Bs</div>
-                                                    <div class="small text-muted mt-1">
-                                                        Vía: <span class="text-uppercase font-weight-bold text-dark">{{ $payment->pay_way }}</span> 
-                                                        @if($payment->bank)
-                                                             | {{ strtoupper($payment->bank) }}
-                                                        @endif
-                                                    </div>
-                                                    @if($payment->deposit_number || $payment->zelleRecord)
-                                                        <div class="small text-muted">
-                                                            Ref: <span class="font-weight-bold text-dark">{{ $payment->deposit_number ?: ($payment->zelleRecord->reference ?? 'N/A') }}</span>
-                                                        </div>
-                                                    @endif
-                                                    <div class="small text-muted mt-1"><i class="far fa-calendar-alt"></i> {{ $payment->created_at->format('d/m/Y h:i A') }}</div>
-                                                </div>
-                                                
-                                                <div class="col-md-4 border-right pl-md-4">
-                                                    <span class="text-muted small text-uppercase font-weight-bold">Validación de Rentabilidad</span>
-                                                    <div class="mt-2">
-                                                        <span class="badge {{ $badgeClass }} font-weight-bold py-1 px-2 mb-2" style="font-size: 0.8rem; border-radius: 8px;">
-                                                            {{ $statusText }}
-                                                        </span>
-                                                        <p class="mb-0 font-weight-bold text-dark small">{{ $val['message'] }}</p>
-                                                    </div>
-                                                    
-                                                    <div class="mt-3">
-                                                        <span class="text-muted small d-block">Tasas Referenciales del Día:</span>
-                                                        <span class="badge badge-light border text-dark font-weight-bold" style="font-size: 0.75rem;">BCV: {{ number_format($val['bcv_rate'], 2) }} Bs</span>
-                                                        <span class="badge badge-light border text-primary font-weight-bold" style="font-size: 0.75rem;">Binance: {{ number_format($val['binance_rate'], 2) }} Bs</span>
-                                                    </div>
-                                                </div>
-
-                                                <div class="col-md-5 pl-md-4">
-                                                    <span class="text-muted small text-uppercase font-weight-bold">Análisis Proporcional de Cobro</span>
-                                                    <div class="table-responsive mt-2">
-                                                        <table class="table table-bordered table-sm mb-0 text-center" style="font-size: 0.75rem;">
-                                                            <thead class="bg-dark text-white">
-                                                                <tr>
-                                                                    <th class="text-left py-1 text-white">Concepto</th>
-                                                                    <th class="py-1 text-white">USD Teórico</th>
-                                                                    <th class="py-1 text-white">USD Real</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                <tr>
-                                                                    <td class="text-left font-weight-bold">Base (Costo)</td>
-                                                                    <td>${{ number_format($paymentBase, 2) }}</td>
-                                                                    <td class="font-weight-bold {{ $netDiff >= -0.0001 ? 'text-success' : 'text-danger' }}">${{ number_format($val['net_usd'], 2) }}</td>
-                                                                </tr>
-                                                                <tr>
-                                                                    <td class="text-left">Comisión</td>
-                                                                    <td>${{ number_format($paymentCommission, 2) }}</td>
-                                                                    <td>${{ number_format($paymentCommission, 2) }}</td>
-                                                                </tr>
-                                                                <tr>
-                                                                    <td class="text-left">Flete</td>
-                                                                    <td>${{ number_format($paymentFreight, 2) }}</td>
-                                                                    <td>${{ number_format($paymentFreight, 2) }}</td>
-                                                                </tr>
-                                                                @if($selectedSale->resolved_base_markup_percent > 0)
-                                                                <tr>
-                                                                    <td class="text-left">Recargo</td>
-                                                                    <td>${{ number_format($paymentMarkup, 2) }}</td>
-                                                                    <td>${{ number_format($paymentMarkup, 2) }}</td>
-                                                                </tr>
-                                                                @endif
-                                                                <tr class="font-weight-bold table-active">
-                                                                    <td class="text-left text-dark">Total Proporcional</td>
-                                                                    <td class="text-dark">${{ number_format($payment->amount / ($payment->exchange_rate ?: 1), 2) }}</td>
-                                                                    <td class="text-primary">${{ number_format($realPaymentUsd, 2) }}</td>
-                                                                </tr>
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                    <div class="mt-2 text-right">
-                                                        <span class="small font-weight-bold text-dark">Diferencia neta vs costo base: </span>
-                                                        <span class="small font-weight-bold {{ $netDiff >= -0.0001 ? 'text-success' : 'text-danger' }}">
-                                                            {{ $netDiff >= -0.0001 ? '+' : '' }}${{ number_format($netDiff, 2) }}
-                                                        </span>
-                                                    </div>
-                                                </div>
+                            {{-- Col 2: Received Payment or General Details --}}
+                            <div class="col-md-6 mb-3">
+                                @if($activePayment)
+                                    <div class="card border-0 shadow-sm h-100" style="border-radius: 10px;">
+                                        <div class="card-header bg-dark text-white font-weight-bold py-2" style="font-size: 0.9rem;">
+                                            <i class="fas fa-hand-holding-usd mr-2"></i> Detalles del Pago
+                                        </div>
+                                        <div class="card-body p-3">
+                                            <div class="d-flex justify-content-between mb-2 pb-1 border-bottom">
+                                                <span class="text-muted">Monto Cobrado:</span>
+                                                <span class="font-weight-bold text-primary" style="font-size: 1.1rem;">
+                                                    {{ number_format($activePayment->amount, 2) }} {{ $activePayment->currency }}
+                                                </span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-2 pb-1 border-bottom">
+                                                <span class="text-muted">Método de Pago:</span>
+                                                <span class="font-weight-bold text-dark text-uppercase">{{ $activePayment->pay_way }}</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-2 pb-1 border-bottom">
+                                                <span class="text-muted">Banco / Destino:</span>
+                                                <span class="font-weight-bold text-dark text-uppercase">{{ $activePayment->bank ?: 'N/A' }}</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-2 pb-1 border-bottom">
+                                                <span class="text-muted">Referencia:</span>
+                                                <span class="font-weight-bold text-dark">{{ $activePayment->deposit_number ?: ($activePayment->zelleRecord->reference ?? 'N/A') }}</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <span class="text-muted">Tasa de Cobro:</span>
+                                                <span class="font-weight-bold text-dark">{{ number_format($activePayment->exchange_rate, 4) }} Bs</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <span class="text-muted">Equivalente USD:</span>
+                                                <span class="font-weight-bold text-dark">${{ number_format($activePayment->amount / ($activePayment->exchange_rate ?: 1), 2) }}</span>
                                             </div>
                                         </div>
-                                    @endforeach
+                                    </div>
+                                @else
+                                    <div class="card border-0 shadow-sm h-100" style="border-radius: 10px;">
+                                        <div class="card-header bg-dark text-white font-weight-bold py-2" style="font-size: 0.9rem;">
+                                            <i class="fas fa-info-circle mr-2"></i> Datos de Emisión
+                                        </div>
+                                        <div class="card-body p-3">
+                                            <div class="d-flex justify-content-between mb-2 pb-1 border-bottom">
+                                                <span class="text-muted">Fecha Emisión:</span>
+                                                <span class="font-weight-bold text-dark">{{ $selectedSale->created_at->format('d/m/Y h:i A') }}</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-2 pb-1 border-bottom">
+                                                <span class="text-muted">Operador (Cajero):</span>
+                                                <span class="font-weight-bold text-dark">{{ $selectedSale->user->name ?? 'N/A' }}</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-2 pb-1 border-bottom">
+                                                <span class="text-muted">RIF/CI Cliente:</span>
+                                                <span class="font-weight-bold text-dark">{{ $selectedSale->customer->taxpayer_id ?? 'N/A' }}</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <span class="text-muted">Vendedor:</span>
+                                                <span class="font-weight-bold text-dark">{{ $selectedSale->customer->seller->name ?? 'Sin Vendedor' }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 @endif
                             </div>
                         </div>
+
+                        @if($activePayment && $val)
+                            {{-- Section: Exchange Rates --}}
+                            <div class="card border-0 shadow-sm mb-4" style="border-radius: 10px;">
+                                <div class="card-body p-3 bg-white" style="border-radius: 10px;">
+                                    <h6 class="font-weight-bold text-dark mb-3"><i class="fas fa-history mr-2 text-info"></i> Tasas Referenciales del Día del Pago</h6>
+                                    <div class="row text-center">
+                                        <div class="col-md-6 border-right mb-2 mb-md-0">
+                                            <span class="text-muted small text-uppercase font-weight-bold" style="font-size: 0.75rem;">Tasa BCV Oficial</span>
+                                            <h4 class="font-weight-bold text-dark mb-0 mt-1">{{ number_format($val['bcv_rate'], 4) }} Bs</h4>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <span class="text-muted small text-uppercase font-weight-bold" style="font-size: 0.75rem;">Tasa Binance Aplicada</span>
+                                            <h4 class="font-weight-bold text-primary mb-0 mt-1">{{ number_format($val['binance_rate'], 4) }} Bs</h4>
+                                            
+                                            @if(isset($val['binance_rates']) && count($val['binance_rates']) > 0)
+                                                <div class="mt-2 d-flex flex-wrap justify-content-center align-items-center">
+                                                    <span class="text-muted small mr-2 font-weight-bold" style="font-size: 0.7rem;">Tasas del día:</span>
+                                                    @foreach($val['binance_rates'] as $rate)
+                                                        @if(abs($activePayment->exchange_rate - $rate) < 0.01)
+                                                            <span class="badge badge-success text-white px-2 py-1 mr-1 mb-1 font-weight-bold" style="font-size: 0.7rem;" title="Tasa coincidente utilizada para el pago">
+                                                                {{ number_format($rate, 2) }} Bs <i class="fas fa-check ml-1"></i>
+                                                            </span>
+                                                        @else
+                                                            <span class="badge badge-light border text-muted px-2 py-1 mr-1 mb-1 font-weight-bold" style="font-size: 0.7rem; background-color: #f8f9fa;">
+                                                                {{ number_format($rate, 2) }} Bs
+                                                            </span>
+                                                        @endif
+                                                    @endforeach
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Section: Mathematical Calculation Table --}}
+                            <div class="card border-0 shadow-sm mb-4" style="border-radius: 10px; overflow: hidden;">
+                                <div class="card-header bg-dark text-white font-weight-bold py-2" style="font-size: 0.9rem;">
+                                    <i class="fas fa-calculator mr-2"></i> Desglose Matemático Proporcional del Pago
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-striped mb-0 text-center" style="font-size: 0.85rem;">
+                                        <thead class="bg-light text-dark">
+                                            <tr>
+                                                <th class="text-left">Concepto</th>
+                                                <th>Total Factura</th>
+                                                <th>% Prop. Pago</th>
+                                                <th>USD Registrado (Tasa Pago)</th>
+                                                <th>USD Real Recuperado (Tasa Binance)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td class="text-left font-weight-bold text-dark">Costo Base (Productos)</td>
+                                                <td class="text-dark">${{ number_format($selectedSale->base_amount, 2) }}</td>
+                                                <td class="text-dark">{{ number_format(($selectedSale->total_usd > 0 ? ($selectedSale->base_amount / $selectedSale->total_usd) * 100 : 0), 1) }}%</td>
+                                                <td class="text-dark">${{ number_format($paymentBase, 2) }}</td>
+                                                <td class="font-weight-bold {{ $netDiff >= -0.0001 ? 'text-success' : 'text-danger' }}">
+                                                    ${{ number_format($val['net_usd'], 2) }}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-left text-dark">Comisión de Vendedor</td>
+                                                <td class="text-dark">${{ number_format($selectedSale->commission_amount, 2) }}</td>
+                                                <td class="text-dark">{{ number_format(($selectedSale->total_usd > 0 ? ($selectedSale->commission_amount / $selectedSale->total_usd) * 100 : 0), 1) }}%</td>
+                                                <td class="text-dark">${{ number_format($paymentCommission, 2) }}</td>
+                                                <td class="text-dark">${{ number_format($paymentCommission, 2) }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-left text-dark">Flete de Despacho</td>
+                                                <td class="text-dark">${{ number_format($selectedSale->freight_amount, 2) }}</td>
+                                                <td class="text-dark">{{ number_format(($selectedSale->total_usd > 0 ? ($selectedSale->freight_amount / $selectedSale->total_usd) * 100 : 0), 1) }}%</td>
+                                                <td class="text-dark">${{ number_format($paymentFreight, 2) }}</td>
+                                                <td class="text-dark">${{ number_format($paymentFreight, 2) }}</td>
+                                            </tr>
+                                            @if($selectedSale->resolved_base_markup_percent > 0)
+                                                <tr>
+                                                    <td class="text-left text-dark">Recargo</td>
+                                                    <td class="text-dark">${{ number_format($selectedSale->base_markup_amount, 2) }}</td>
+                                                    <td class="text-dark">{{ number_format(($selectedSale->total_usd > 0 ? ($selectedSale->base_markup_amount / $selectedSale->total_usd) * 100 : 0), 1) }}%</td>
+                                                    <td class="text-dark">${{ number_format($paymentMarkup, 2) }}</td>
+                                                    <td class="text-dark">${{ number_format($paymentMarkup, 2) }}</td>
+                                                </tr>
+                                            @endif
+                                            @if($selectedSale->resolved_exchange_diff_percent > 0)
+                                                <tr>
+                                                    <td class="text-left text-dark">Diferencial Cambiario</td>
+                                                    <td class="text-dark">${{ number_format($selectedSale->exchange_diff_amount, 2) }}</td>
+                                                    <td class="text-dark">{{ number_format(($selectedSale->total_usd > 0 ? ($selectedSale->exchange_diff_amount / $selectedSale->total_usd) * 100 : 0), 1) }}%</td>
+                                                    <td class="text-dark">${{ number_format($paymentDiff, 2) }}</td>
+                                                    <td class="text-dark">${{ number_format($paymentDiff, 2) }}</td>
+                                                </tr>
+                                            @endif
+                                            <tr class="table-info font-weight-bold text-dark" style="font-size: 0.9rem;">
+                                                <td colspan="3" class="text-right font-weight-bold">Monto Total de este Pago:</td>
+                                                <td class="text-muted font-weight-bold">${{ number_format($activePayment->amount / ($activePayment->exchange_rate ?: 1), 2) }}</td>
+                                                <td class="text-primary font-weight-bold">${{ number_format($realPaymentUsd, 2) }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {{-- Section: Real USD recovered card --}}
+                            <div class="card border-0 shadow-sm" style="border-radius: 10px; background: #fff;">
+                                <div class="card-body p-3">
+                                    <h5 class="font-weight-bold text-dark mb-3">
+                                        <i class="fas fa-project-diagram text-info mr-2"></i> 
+                                        Análisis del Contravalor y Recuperación Cambiaria
+                                    </h5>
+                                    
+                                    <div class="row align-items-center">
+                                        <div class="col-md-6 border-right">
+                                            <span class="text-muted small text-uppercase font-weight-bold">Monto Neto Real Recuperado (USD Efectivo)</span>
+                                            <h3 class="font-weight-bold text-dark mt-1 mb-1">
+                                                ${{ number_format($val['net_usd'], 2) }}
+                                            </h3>
+                                            <span class="small text-muted">Calculado descontando Flete, Comisión y Recargo sobre el contravalor real en dólares del día.</span>
+                                        </div>
+                                        <div class="col-md-6 pl-md-4">
+                                            <span class="text-muted small text-uppercase font-weight-bold">Margen vs Costo Base Proporcional</span>
+                                            <h3 class="font-weight-bold mt-1 mb-1 {{ $netDiff >= -0.0001 ? 'text-success' : 'text-danger' }}">
+                                                {{ $netDiff >= -0.0001 ? '+' : '' }}${{ number_format($netDiff, 2) }}
+                                            </h3>
+                                            <span class="small text-muted">Debe ser mayor o igual a $0.00 para no incurrir en pérdidas frente al costo base de los productos.</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @else
+                            {{-- Callout when no payments are found --}}
+                            <div class="alert alert-warning border-0 shadow-sm p-4 d-flex align-items-center mb-0" style="border-radius: 10px;">
+                                <i class="fas fa-exclamation-triangle mr-3 text-warning" style="font-size: 2.5rem;"></i>
+                                <div>
+                                    <h5 class="font-weight-bold text-dark">No hay pagos registrados</h5>
+                                    <p class="mb-0 text-muted">Esta factura de tipo crédito aún no registra ningún pago o abono en el sistema. Los análisis de rentabilidad y contravalor se activarán una vez que se registren los pagos correspondientes.</p>
+                                </div>
+                            </div>
+                        @endif
 
                     </div>
                     <div class="modal-footer bg-light py-2">
@@ -562,7 +745,6 @@
             </div>
         </div>
     </div>
-
 </div>
 
 @push('my-scripts')
@@ -576,4 +758,21 @@
         });
     });
 </script>
+@endpush
+
+@push('my-styles')
+<style>
+    /* Styling for fully paid invoices - premium green border and soft glow */
+    tr.row-paid-glow td {
+        background-color: rgba(40, 167, 69, 0.02) !important;
+        transition: background-color 0.2s ease-in-out;
+    }
+    tr.row-paid-glow:hover td {
+        background-color: rgba(40, 167, 69, 0.05) !important;
+    }
+    tr.row-paid-glow td:first-child {
+        position: relative;
+        border-left: 5px solid #28a745 !important;
+    }
+</style>
 @endpush

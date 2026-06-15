@@ -41,6 +41,41 @@
                     <div class="row">
                         {{-- Columna Izquierda: Resumen y Método de Pago --}}
                         <div class="col-md-6">
+                            @if($this->isBcvSale)
+                                @php
+                                    $gap = $this->rateGap;
+                                    $diff = $this->activeDiff;
+                                @endphp
+                                @if($diff < $gap)
+                                    <div class="card bg-danger text-white border-0 shadow-sm mb-3">
+                                        <div class="card-body p-3">
+                                            <h6 class="card-title fw-bold mb-1 text-white"><i class="fa fa-times-circle me-1"></i> Bloqueo de Pérdida Cambiaria</h6>
+                                            <p class="card-text small mb-0">
+                                                El diferencial del cliente es <strong>{{ number_format($diff, 2) }}%</strong>, pero la brecha entre Binance y BCV requiere un mínimo de <strong>{{ number_format($gap, 2) }}%</strong>. La venta generará pérdidas y está bloqueada.
+                                            </p>
+                                        </div>
+                                    </div>
+                                @elseif($diff < $gap + 2.00)
+                                    <div class="card bg-warning text-dark border-0 shadow-sm mb-3">
+                                        <div class="card-body p-3">
+                                            <h6 class="card-title fw-bold mb-1 text-dark"><i class="fa fa-exclamation-triangle me-1"></i> Diferencial Ajustado</h6>
+                                            <p class="card-text small mb-0">
+                                                El diferencial del cliente (<strong>{{ number_format($diff, 2) }}%</strong>) cubre justo la brecha cambiaria (<strong>{{ number_format($gap, 2) }}%</strong>). Se permite la transacción.
+                                            </p>
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="card bg-success text-white border-0 shadow-sm mb-3">
+                                        <div class="card-body p-3">
+                                            <h6 class="card-title fw-bold mb-1 text-white"><i class="fa fa-check-circle me-1"></i> Diferencial Suficiente</h6>
+                                            <p class="card-text small mb-0">
+                                                El diferencial del cliente (<strong>{{ number_format($diff, 2) }}%</strong>) cubre holgadamente la brecha cambiaria (<strong>{{ number_format($gap, 2) }}%</strong>).
+                                            </p>
+                                        </div>
+                                    </div>
+                                @endif
+                            @endif
+
                             {{-- Resumen del carrito --}}
                             <div class="card mb-3">
                                 <div class="card-header bg-light">
@@ -686,7 +721,7 @@
                     
                     <button class="btn btn-primary fs-6" wire:click.prevent='Store' type="button" 
                         style="background-color: #007bff; border-color: #007bff;"
-                        wire:loading.attr="disabled" {{ floatval($totalCart) == 0 ? 'disabled' : '' }}>
+                        wire:loading.attr="disabled" {{ (floatval($totalCart) == 0 || ($this->isBcvSale && $this->activeDiff < $this->rateGap)) ? 'disabled' : '' }}>
                         <span wire:loading.remove wire:target="Store">
                             <i class="fa fa-check me-2"></i>{{ $payType == 2 ? 'Registrar Crédito' : 'Registrar Venta' }}
                         </span>

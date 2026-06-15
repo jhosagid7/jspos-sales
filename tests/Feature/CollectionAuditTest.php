@@ -538,4 +538,69 @@ class CollectionAuditTest extends TestCase
         $this->assertTrue($sale->is_audited);
         $this->assertNotNull($sale->audited_at);
     }
+
+    public function test_finalize_audit_blocked_for_sheet_with_usd_invoice_paid_at_bcv()
+    {
+        $this->actingAs($this->auditorUser);
+
+        $sheet = CollectionSheet::create([
+            'sheet_number' => '20260609-005',
+            'status' => 'open',
+            'opened_at' => Carbon::now(),
+            'user_id' => $this->auditorUser->id,
+        ]);
+
+        $paymentDate = Carbon::parse('2026-06-09 12:00:00');
+
+        ExchangeRateHistory::create([
+            'rate_type' => 'BCV',
+            'rate' => 55.00,
+            'created_at' => $paymentDate,
+        ]);
+        ExchangeRateHistory::create([
+            'rate_type' => 'BinanceReal',
+            'rate' => 75.00,
+            'created_at' => $paymentDate,
+        ]);
+
+        $sale = Sale::create([
+            'user_id' => $this->auditorUser->id,
+            'customer_id' => $this->customer->id,
+            'total' => 100.00,
+            'items' => 1,
+            'status' => 'pending',
+            'type' => 'credit',
+            'base_amount' => 80.00,
+            'freight_amount' => 10.00,
+            'commission_amount' => 10.00,
+            'payment_agreement' => 'USD',
+            'is_audited' => false,
+            'created_at' => $paymentDate,
+        ]);
+
+        $payment = Payment::create([
+            'user_id' => $this->auditorUser->id,
+            'sale_id' => $sale->id,
+            'collection_sheet_id' => $sheet->id,
+            'amount' => 5500.00, // 100 * 55
+            'currency' => 'VES',
+            'exchange_rate' => 55.00,
+            'pay_way' => 'deposit',
+            'status' => 'approved',
+            'is_bank_reconciled' => true,
+            'payment_date' => $paymentDate,
+            'created_at' => $paymentDate,
+        ]);
+
+        // Attempt finalizeAudit -> should block and not redirect
+        Livewire::test(CollectionSheetAudit::class, ['sheet' => $sheet->id])
+            ->call('finalizeAudit')
+            ->assertHasNoErrors()
+            ->assertSee('No se puede finalizar la auditoría de la planilla: contiene pagos de facturas con acuerdo USD pagadas a tasa BCV (' . ($sale->invoice_number ?: ('#' . $sale->id)) . ').');
+
+        $sheet->refresh();
+        $this->assertEquals('open', $sheet->status);
+        $sale->refresh();
+        $this->assertFalse($sale->is_audited);
+    }
 }

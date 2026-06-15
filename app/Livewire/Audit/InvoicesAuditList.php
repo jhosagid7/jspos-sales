@@ -21,6 +21,7 @@ class InvoicesAuditList extends Component
     public $sellerId = 'all';
     public $operatorId = 'all';
     public $paymentAgreement = 'all';
+    public $paymentStatus = 'all';
     public $searchQuery = '';
 
     public $sortField = 'created_at';
@@ -39,6 +40,7 @@ class InvoicesAuditList extends Component
     ];
 
     public $selectedSale = null;
+    public $selectedPaymentId = null;
 
     protected $paginationTheme = 'bootstrap';
 
@@ -49,6 +51,7 @@ class InvoicesAuditList extends Component
         'sellerId' => ['except' => 'all'],
         'operatorId' => ['except' => 'all'],
         'paymentAgreement' => ['except' => 'all'],
+        'paymentStatus' => ['except' => 'all'],
         'searchQuery' => ['except' => ''],
     ];
 
@@ -68,18 +71,103 @@ class InvoicesAuditList extends Component
 
     public function updating($name)
     {
-        if (in_array($name, ['dateFrom', 'dateTo', 'auditStatus', 'sellerId', 'operatorId', 'paymentAgreement', 'searchQuery'])) {
+        if (in_array($name, ['dateFrom', 'dateTo', 'auditStatus', 'sellerId', 'operatorId', 'paymentAgreement', 'paymentStatus', 'searchQuery'])) {
             $this->resetPage();
         }
     }
 
+    public function getUnifiedPayments($sale)
+    {
+        if (!$sale) {
+            return [];
+        }
+
+        $unified = [];
+
+        // 1. Post-sale payments (abonos)
+        foreach ($sale->payments as $p) {
+            $unified[] = [
+                'id' => 'payment-' . $p->id,
+                'db_id' => $p->id,
+                'type' => 'post-sale',
+                'amount' => $p->amount,
+                'currency' => $p->currency,
+                'exchange_rate' => $p->exchange_rate,
+                'pay_way' => $p->pay_way,
+                'bank' => $p->bank,
+                'deposit_number' => $p->deposit_number,
+                'created_at' => $p->created_at,
+                'payment_date' => $p->payment_date,
+                'zelleRecord' => $p->zelleRecord,
+                'user' => $p->user,
+                'model' => $p,
+            ];
+        }
+
+        // 2. Initial checkout payments (paymentDetails)
+        foreach ($sale->paymentDetails as $pd) {
+            // Map to a transient Payment model so validation works seamlessly
+            $pModel = new Payment([
+                'id' => $pd->id,
+                'sale_id' => $pd->sale_id,
+                'amount' => $pd->amount,
+                'currency' => $pd->currency_code,
+                'exchange_rate' => $pd->exchange_rate,
+                'pay_way' => $pd->payment_method,
+                'bank' => $pd->bank_name,
+                'deposit_number' => $pd->reference_number,
+                'status' => 'approved',
+                'created_at' => $pd->created_at,
+                'payment_date' => $pd->created_at,
+            ]);
+            $pModel->setRelation('sale', $sale);
+            $pModel->setRelation('zelleRecord', $pd->zelleRecord);
+
+            $unified[] = [
+                'id' => 'detail-' . $pd->id,
+                'db_id' => $pd->id,
+                'type' => 'checkout',
+                'amount' => $pd->amount,
+                'currency' => $pd->currency_code,
+                'exchange_rate' => $pd->exchange_rate,
+                'pay_way' => $pd->payment_method,
+                'bank' => $pd->bank_name,
+                'deposit_number' => $pd->reference_number,
+                'created_at' => $pd->created_at,
+                'payment_date' => $pd->created_at,
+                'zelleRecord' => $pd->zelleRecord,
+                'user' => $sale->user,
+                'model' => $pModel,
+            ];
+        }
+
+        // Sort by created_at desc
+        usort($unified, function($a, $b) {
+            return $b['created_at']->timestamp <=> $a['created_at']->timestamp;
+        });
+
+        return $unified;
+    }
+
     public function toggleInvoiceAudit($saleId)
     {
-        $sale = Sale::findOrFail($saleId);
+        $sale = Sale::with(['payments', 'paymentDetails'])->findOrFail($saleId);
 
         if (in_array($sale->status, ['voided', 'cancelled', 'anulated']) || $sale->deletion_approved_at !== null) {
             session()->flash('error', 'No se pueden auditar facturas eliminadas/anuladas.');
             return;
+        }
+
+        if (!$sale->is_audited) {
+            // Check if any payment of this sale was billed in USD but paid at BCV rate
+            $unified = $this->getUnifiedPayments($sale);
+            foreach ($unified as $pItem) {
+                $validation = $this->getPaymentValidation($pItem['model']);
+                if ($validation['color'] === 'red' && $validation['message'] === 'Tasa BCV en acuerdo USD.') {
+                    session()->flash('error', 'No se puede auditar esta factura: fue facturada a acuerdo USD pero pagada a tasa BCV.');
+                    return;
+                }
+            }
         }
 
         $sale->is_audited = !$sale->is_audited;
@@ -91,14 +179,33 @@ class InvoicesAuditList extends Component
 
     public function showSaleDetails($saleId)
     {
-        $this->selectedSale = Sale::with(['customer', 'payments.zelleRecord', 'payments.user', 'user'])->findOrFail($saleId);
+        $this->selectedSale = Sale::with([
+            'customer',
+            'payments.zelleRecord',
+            'payments.user',
+            'paymentDetails.zelleRecord',
+            'user'
+        ])->findOrFail($saleId);
+
+        $unified = $this->getUnifiedPayments($this->selectedSale);
+        if (!empty($unified)) {
+            $this->selectedPaymentId = $unified[0]['id'];
+        } else {
+            $this->selectedPaymentId = null;
+        }
         $this->dispatch('show-sale-details-modal');
     }
 
     public function closeSaleDetails()
     {
         $this->selectedSale = null;
+        $this->selectedPaymentId = null;
         $this->dispatch('close-sale-details-modal');
+    }
+
+    public function selectPayment($paymentId)
+    {
+        $this->selectedPaymentId = $paymentId;
     }
 
     public function sortBy($field)
@@ -282,55 +389,64 @@ class InvoicesAuditList extends Component
 
         // Date range
         if ($this->dateFrom) {
-            $query->whereDate('created_at', '>=', $this->dateFrom);
+            $query->whereDate('sales.created_at', '>=', $this->dateFrom);
         }
         if ($this->dateTo) {
-            $query->whereDate('created_at', '<=', $this->dateTo);
+            $query->whereDate('sales.created_at', '<=', $this->dateTo);
         }
 
         // Audit status
         if ($this->auditStatus !== 'all') {
             if ($this->auditStatus === 'audited') {
-                $query->where('is_audited', true)
-                    ->whereNotIn('status', ['voided', 'cancelled', 'anulated'])
-                    ->whereNull('deletion_approved_at');
+                $query->where('sales.is_audited', true)
+                    ->whereNotIn('sales.status', ['voided', 'cancelled', 'anulated'])
+                    ->whereNull('sales.deletion_approved_at');
             } elseif ($this->auditStatus === 'not_audited') {
-                $query->where('is_audited', false)
-                    ->whereNotIn('status', ['voided', 'cancelled', 'anulated'])
-                    ->whereNull('deletion_approved_at');
+                $query->where('sales.is_audited', false)
+                    ->whereNotIn('sales.status', ['voided', 'cancelled', 'anulated'])
+                    ->whereNull('sales.deletion_approved_at');
             } elseif ($this->auditStatus === 'deleted') {
                 $query->where(function ($q) {
-                    $q->whereIn('status', ['voided', 'cancelled', 'anulated'])
-                      ->orWhereNotNull('deletion_approved_at');
+                    $q->whereIn('sales.status', ['voided', 'cancelled', 'anulated'])
+                      ->orWhereNotNull('sales.deletion_approved_at');
                 });
+            }
+        }
+
+        // Payment Status
+        if ($this->paymentStatus !== 'all') {
+            if ($this->paymentStatus === 'paid') {
+                $query->where('sales.status', 'paid');
+            } elseif ($this->paymentStatus === 'pending') {
+                $query->where('sales.status', 'pending');
             }
         }
 
         // Seller
         if ($this->sellerId !== 'all') {
             $query->whereHas('customer', function ($q) {
-                $q->where('seller_id', $this->sellerId);
+                $q->where('customers.seller_id', $this->sellerId);
             });
         }
 
         // Operator
         if ($this->operatorId !== 'all') {
-            $query->where('user_id', $this->operatorId);
+            $query->where('sales.user_id', $this->operatorId);
         }
 
         // Payment Agreement
         if ($this->paymentAgreement !== 'all') {
-            $query->where('payment_agreement', $this->paymentAgreement);
+            $query->where('sales.payment_agreement', $this->paymentAgreement);
         }
 
         // Search Query
         if ($this->searchQuery !== '') {
             $q = trim($this->searchQuery);
             $query->where(function ($subQuery) use ($q) {
-                $subQuery->where('invoice_number', 'like', "%{$q}%")
-                    ->orWhere('id', 'like', "%{$q}%")
+                $subQuery->where('sales.invoice_number', 'like', "%{$q}%")
+                    ->orWhere('sales.id', 'like', "%{$q}%")
                     ->orWhereHas('customer', function ($c) use ($q) {
-                        $c->where('name', 'like', "%{$q}%");
+                        $c->where('customers.name', 'like', "%{$q}%");
                     });
             });
         }

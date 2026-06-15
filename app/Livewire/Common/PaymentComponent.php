@@ -181,8 +181,8 @@ class PaymentComponent extends Component
         if ($this->saleId) {
             $sale = \App\Models\Sale::find($this->saleId);
             if ($sale) {
-                // If payment_agreement is USD, it's a USD invoice
-                $this->isUSDInvoice = ($sale->payment_agreement === 'USD');
+                // If payment_agreement is USD (or not BCV), it's a USD invoice
+                $this->isUSDInvoice = ($sale->payment_agreement !== 'BCV');
             }
 
             // Auto-discard any unused pending or approved approvals from past sessions to ensure strict single-session execution

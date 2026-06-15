@@ -511,7 +511,27 @@ class Sales extends Component
 
         // Convertir a USD (base) y luego a moneda principal
         $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
-        $amountInUSD = $this->paymentAmount / $currency->exchange_rate;
+        
+        $rateToUse = $currency->exchange_rate;
+        if (in_array(strtoupper($currency->code), ['VED', 'VES'])) {
+            $isBcv = ($this->paymentAgreement === 'BCV') || ($this->selectedPaymentMethod !== 'credit' && $this->activeDiff > 0);
+            if ($isBcv) {
+                $historyBCV = \App\Models\ExchangeRateHistory::where('rate_type', 'BCV')
+                    ->where('created_at', '<=', now())
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+                $bcvVal = $historyBCV ? floatval($historyBCV->rate) : null;
+                if (!$bcvVal) {
+                    $config = \App\Models\Configuration::first();
+                    $bcvVal = $config ? floatval($config->bcv_rate) : 0;
+                }
+                if ($bcvVal > 0) {
+                    $rateToUse = $bcvVal;
+                }
+            }
+        }
+
+        $amountInUSD = $this->paymentAmount / $rateToUse;
         $amountInPrimaryCurrency = $amountInUSD * $primaryCurrency->exchange_rate;
 
         $this->payments[] = [
@@ -519,7 +539,7 @@ class Sales extends Component
             'amount' => $this->paymentAmount,
             'currency' => $this->paymentCurrency,
             'symbol' => $currency->symbol,
-            'exchange_rate' => $currency->exchange_rate,
+            'exchange_rate' => $rateToUse,
             'amount_in_primary_currency' => $amountInPrimaryCurrency,
             'details' => null,
         ];
@@ -657,6 +677,35 @@ class Sales extends Component
     {
         $conversionFactor = $this->getConversionFactor();
         $decimals = ConfigurationService::getDecimalPlaces();
+
+        // Fetch dynamic BCV and Binance rates for VED payment rate correction
+        $historyBCV = \App\Models\ExchangeRateHistory::where('rate_type', 'BCV')
+            ->where('created_at', '<=', now())
+            ->orderBy('created_at', 'desc')
+            ->first();
+        $bcvRate = $historyBCV ? floatval($historyBCV->rate) : null;
+        if (!$bcvRate) {
+            $config = \App\Models\Configuration::first();
+            $bcvRate = $config ? floatval($config->bcv_rate) : 0;
+        }
+        $config = \App\Models\Configuration::first();
+        $binanceRate = $config ? floatval($config->binance_rate) : 0;
+
+        $isBcv = ($this->paymentAgreement === 'BCV') || ($this->selectedPaymentMethod !== 'credit' && $this->activeDiff > 0);
+
+        foreach ($this->payments as &$payment) {
+            if (in_array(strtoupper($payment['currency'] ?? ''), ['VED', 'VES'])) {
+                $rateToUse = $isBcv ? $bcvRate : $binanceRate;
+                if ($rateToUse > 0) {
+                    $payment['exchange_rate'] = $rateToUse;
+                    $payment['amount_in_primary_currency'] = $payment['amount'] / $rateToUse;
+                    if (isset($payment['amount_in_primary'])) {
+                        $payment['amount_in_primary'] = $payment['amount'] / $rateToUse;
+                    }
+                }
+            }
+        }
+        unset($payment); // break reference
 
         // Calculate Total Paid in Primary Currency first
         $totalPaidInPrimary = array_sum(array_column($this->payments, 'amount_in_primary_currency'));
@@ -3336,6 +3385,24 @@ class Sales extends Component
         $exchangeRate = $currency ? $currency->exchange_rate : 1;
         $symbol = $currency ? $currency->symbol : '$';
         
+        if (in_array(strtoupper($currencyCode), ['VED', 'VES'])) {
+            $isBcv = ($this->paymentAgreement === 'BCV') || ($this->selectedPaymentMethod !== 'credit' && $this->activeDiff > 0);
+            if ($isBcv) {
+                $historyBCV = \App\Models\ExchangeRateHistory::where('rate_type', 'BCV')
+                    ->where('created_at', '<=', now())
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+                $bcvVal = $historyBCV ? floatval($historyBCV->rate) : null;
+                if (!$bcvVal) {
+                    $config = \App\Models\Configuration::first();
+                    $bcvVal = $config ? floatval($config->bcv_rate) : 0;
+                }
+                if ($bcvVal > 0) {
+                    $exchangeRate = $bcvVal;
+                }
+            }
+        }
+
         $primaryCurrency = $this->currencies->firstWhere('is_primary', 1);
         
         $amountInPrimary = 0;
@@ -3450,6 +3517,40 @@ class Sales extends Component
         return (1 / $primary->exchange_rate) * $this->invoiceExchangeRate;
     }
 
+    public function getRateGapProperty()
+    {
+        $historyBCV = \App\Models\ExchangeRateHistory::where('rate_type', 'BCV')
+            ->where('created_at', '<=', now())
+            ->orderBy('created_at', 'desc')
+            ->first();
+        $bcvRate = $historyBCV ? floatval($historyBCV->rate) : null;
+        if (!$bcvRate) {
+            $config = \App\Models\Configuration::first();
+            $bcvRate = $config ? floatval($config->bcv_rate) : 0;
+        }
+        
+        $config = \App\Models\Configuration::first();
+        $binanceRate = $config ? floatval($config->binance_rate) : 0;
+        
+        return $bcvRate > 0 ? (($binanceRate - $bcvRate) / $bcvRate) * 100 : 0;
+    }
+
+    public function getActiveDiffProperty()
+    {
+        return $this->customerConfig ? floatval($this->customerConfig->exchange_diff_percent) : 0;
+    }
+
+    public function getIsBcvSaleProperty()
+    {
+        if ($this->selectedPaymentMethod === 'credit') {
+            return $this->paymentAgreement === 'BCV';
+        }
+        $hasVedPayment = collect($this->payments)->contains(function($p) {
+            return in_array(strtoupper($p['currency'] ?? ''), ['VED', 'VES']);
+        });
+        return $hasVedPayment && $this->activeDiff > 0;
+    }
+
     public function getDisplayTotalCartProperty()
     {
         $decimals = ConfigurationService::getDecimalPlaces();
@@ -3485,6 +3586,84 @@ class Sales extends Component
         if ($this->customer == null) {
             $this->dispatch('noty', msg: 'SELECCIONA EL CLIENTE');
             return;
+        }
+
+        // Enforce exchange rate gap validations to prevent losses
+        $rateGap = $this->rateGap;
+        $activeDiff = $this->activeDiff;
+
+        // 1. Credit Sales with BCV Agreement validation
+        if ($this->selectedPaymentMethod === 'credit' && $this->paymentAgreement === 'BCV') {
+            if ($activeDiff < $rateGap) {
+                $this->dispatch('noty', msg: "VENTA BLOQUEADA: El diferencial del cliente (" . number_format($activeDiff, 2) . "%) no cubre la brecha cambiaria (" . number_format($rateGap, 2) . "%).");
+                return;
+            }
+        }
+
+        // 2. Cash/Mixed sales with VED/VES payments validation
+        $hasVedPayment = collect($this->payments)->contains(function($p) {
+            return in_array(strtoupper($p['currency'] ?? ''), ['VED', 'VES']);
+        });
+        if ($this->selectedPaymentMethod !== 'credit' && $hasVedPayment) {
+            // Calculate base USD amount of the sale (excluding the differential surcharge)
+            $cart = collect(session("cart", $this->cart));
+            $baseAmountCart = $cart->sum(function($item) {
+                $price = $item['base_price'] ?? $item['price1'] ?? 0;
+                return floatval($price) * floatval($item['qty']);
+            });
+
+            // Convert to USD (base)
+            $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
+            $primaryRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
+            $baseAmountUSD = $primaryRate != 0 ? $baseAmountCart / $primaryRate : $baseAmountCart;
+
+            // Comm and freight might also be added
+            $appliedComm = 0;
+            $appliedFreight = 0;
+            $appliedMarkup = 0;
+            if ($this->applyCommissions) {
+                $appliedComm = $this->customerConfig ? floatval($this->customerConfig->commission_percent) : 0;
+                $appliedMarkup = $this->customerConfig ? floatval($this->customerConfig->base_markup_percent) : 0;
+            }
+            if ($this->applyCommissions || $this->applyFreight) {
+                $appliedFreight = $this->customerConfig ? floatval($this->customerConfig->freight_percent) : 0;
+            }
+            $commAmtUSD = $baseAmountUSD * ($appliedComm / 100);
+            $freightAmtUSD = $baseAmountUSD * ($appliedFreight / 100);
+            $markupAmtUSD = $baseAmountUSD * ($appliedMarkup / 100);
+
+            // Base total USD of the sale (without differential)
+            $baseTotalUSD = $baseAmountUSD + $commAmtUSD + $freightAmtUSD + $markupAmtUSD;
+            // Add VAT
+            $iva = \App\Services\ConfigurationService::getVat() / 100;
+            $baseTotalUSD = $baseTotalUSD * (1 + $iva);
+
+            // Fetch dynamic rates
+            $historyBCV = \App\Models\ExchangeRateHistory::where('rate_type', 'BCV')
+                ->where('created_at', '<=', now())
+                ->orderBy('created_at', 'desc')
+                ->first();
+            $bcvRate = $historyBCV ? floatval($historyBCV->rate) : null;
+            if (!$bcvRate) {
+                $config = \App\Models\Configuration::first();
+                $bcvRate = $config ? floatval($config->bcv_rate) : 0;
+            }
+            $config = \App\Models\Configuration::first();
+            $binanceRate = $config ? floatval($config->binance_rate) : 0;
+
+            $totalRealUSDReceived = 0;
+            foreach ($this->payments as $payment) {
+                if (in_array(strtoupper($payment['currency'] ?? ''), ['VED', 'VES'])) {
+                    $totalRealUSDReceived += $binanceRate > 0 ? ($payment['amount'] / $binanceRate) : 0;
+                } else {
+                    $totalRealUSDReceived += $payment['amount_in_primary_currency'];
+                }
+            }
+
+            if ($totalRealUSDReceived < $baseTotalUSD - 0.01) {
+                $this->dispatch('noty', msg: "VENTA BLOQUEADA: El pago recibido en Bolívares no cubre el valor real de la venta debido a una tasa incorrecta o diferencial insuficiente.");
+                return;
+            }
         }
 
         $hasCreditPayment = collect($this->payments)->contains(function($p) {
@@ -4252,6 +4431,15 @@ class Sales extends Component
     #[On('storeOrder')]
     public function storeOrder()
     {
+        // Enforce exchange rate gap validation on credit orders
+        $rateGap = $this->rateGap;
+        $activeDiff = $this->activeDiff;
+        $isBcvOrder = ($this->paymentAgreement === 'BCV') || (empty($this->paymentAgreement) && $activeDiff > 0);
+        if ($isBcvOrder && $activeDiff < $rateGap) {
+            $this->dispatch('noty', msg: "VENTA BLOQUEADA: El diferencial del cliente (" . number_format($activeDiff, 2) . "%) no cubre la brecha cambiaria (" . number_format($rateGap, 2) . "%).");
+            return;
+        }
+
         DB::beginTransaction();
         try {
             Log::info('Antes de guardar la orden:', $this->currencies->toArray());

@@ -375,6 +375,25 @@ class CollectionSheetAudit extends Component
             return;
         }
 
+        // Validate USD sales with BCV payments
+        $payments = Payment::where('collection_sheet_id', $this->sheet->id)
+            ->whereNotNull('sale_id')
+            ->where('status', 'approved')
+            ->get();
+
+        $blockedSaleNumbers = [];
+        foreach ($payments as $payment) {
+            $val = $this->getPaymentValidation($payment);
+            if ($val['color'] === 'red' && $val['message'] === 'Tasa BCV en acuerdo USD.') {
+                $blockedSaleNumbers[] = $payment->sale->invoice_number ?: ('#' . $payment->sale_id);
+            }
+        }
+
+        if (!empty($blockedSaleNumbers)) {
+            session()->flash('error', 'No se puede finalizar la auditoría de la planilla: contiene pagos de facturas con acuerdo USD pagadas a tasa BCV (' . implode(', ', $blockedSaleNumbers) . ').');
+            return;
+        }
+
         // Check if there are pending bank reconciled payments
         $hasPending = Payment::where('collection_sheet_id', $this->sheet->id)
             ->where('status', 'approved')
@@ -391,6 +410,25 @@ class CollectionSheetAudit extends Component
     public function confirmFinalizeAudit($forceReconcile = false)
     {
         if (!$this->sheet) {
+            return;
+        }
+
+        // Validate USD sales with BCV payments
+        $payments = Payment::where('collection_sheet_id', $this->sheet->id)
+            ->whereNotNull('sale_id')
+            ->where('status', 'approved')
+            ->get();
+
+        $blockedSaleNumbers = [];
+        foreach ($payments as $payment) {
+            $val = $this->getPaymentValidation($payment);
+            if ($val['color'] === 'red' && $val['message'] === 'Tasa BCV en acuerdo USD.') {
+                $blockedSaleNumbers[] = $payment->sale->invoice_number ?: ('#' . $payment->sale_id);
+            }
+        }
+
+        if (!empty($blockedSaleNumbers)) {
+            session()->flash('error', 'No se puede finalizar la auditoría de la planilla: contiene pagos de facturas con acuerdo USD pagadas a tasa BCV (' . implode(', ', $blockedSaleNumbers) . ').');
             return;
         }
 

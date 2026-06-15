@@ -401,19 +401,39 @@
                                 {{-- Global Rates Section --}}
                                 <div class="card bg-light border-0 mb-4">
                                     <div class="card-body">
-                                        <h6 class="mb-3 text-primary"><i class="fa fa-globe me-2"></i>Tasas Globales de Referencia</h6>
+                                        <div class="d-flex align-items-center justify-content-between flex-wrap mb-3" style="gap: 10px;">
+                                            <h6 class="mb-0 text-primary"><i class="fa fa-globe me-2"></i>Tasas Globales de Referencia</h6>
+                                            @php
+                                                $bcv = floatval($bcvRate);
+                                                $binReal = floatval($binanceRate);
+                                                $markup = floatval($binanceMarkupPoints);
+                                                
+                                                $gapReal = $bcv > 0 ? (($binReal - $bcv) / $bcv) * 100 : 0;
+                                                $gapApplied = $bcv > 0 ? ((($binReal + $markup) - $bcv) / $bcv) * 100 : 0;
+                                            @endphp
+                                            @if($bcv > 0)
+                                                <div class="d-flex align-items-center" style="gap: 8px;">
+                                                    <span class="badge px-3 py-2 font-weight-bold" style="font-size: 0.85rem; border-radius: 30px; background-color: #f0f4f8; color: #1e3a8a; border: 1px solid #dbeafe;">
+                                                        <i class="fa fa-percent me-1 text-primary"></i> Dif. Real: {{ $gapReal >= 0 ? '+' : '' }}{{ number_format($gapReal, 2) }}%
+                                                    </span>
+                                                    <span class="badge px-3 py-2 font-weight-bold" style="font-size: 0.85rem; border-radius: 30px; background-color: #ecfdf5; color: #065f46; border: 1px solid #d1fae5;">
+                                                        <i class="fa fa-calculator me-1 text-success"></i> Dif. Aplicado: {{ $gapApplied >= 0 ? '+' : '' }}{{ number_format($gapApplied, 2) }}%
+                                                    </span>
+                                                </div>
+                                            @endif
+                                        </div>
                                         <div class="row g-3 align-items-end">
                                             <div class="col-md-3">
                                                 <label class="form-label">Tasa BCV (Bs.)</label>
-                                                <input wire:model="bcvRate" type="number" step="0.000001" class="form-control" placeholder="0.00">
+                                                <input wire:model.live.debounce.300ms="bcvRate" type="number" step="0.000001" class="form-control" placeholder="0.00">
                                             </div>
                                             <div class="col-md-3">
                                                 <label class="form-label">Tasa Binance Real (Bs.)</label>
-                                                <input wire:model="binanceRate" type="number" step="0.000001" class="form-control" placeholder="0.00">
+                                                <input wire:model.live.debounce.300ms="binanceRate" type="number" step="0.000001" class="form-control" placeholder="0.00">
                                             </div>
                                             <div class="col-md-2">
                                                 <label class="form-label">Ajuste (Bs.)</label>
-                                                <input wire:model="binanceMarkupPoints" type="number" step="0.000001" class="form-control" placeholder="0.00">
+                                                <input wire:model.live.debounce.300ms="binanceMarkupPoints" type="number" step="0.000001" class="form-control" placeholder="0.00">
                                             </div>
                                             <div class="col-md-4 d-flex gap-2">
                                                 <button wire:click="saveGlobalRates" class="btn btn-success flex-grow-1">

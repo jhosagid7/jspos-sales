@@ -1,3 +1,39 @@
+## [1.10.143] - 2026-06-15
+### Fixed
+- **Corrección de Cálculo de Saldo Restante en Notificaciones**:
+  - Corrección de un error de mezcla de monedas en `SystemNotificationListener.php` que calculaba de forma errónea el saldo restante en los correos y mensajes de WhatsApp.
+  - El sistema restaba directamente los montos brutos de los pagos (independientemente de si estaban en USD o bolívares VED/VES) del total en USD de la factura. Ahora, el sistema convierte cada pago a su equivalente en USD utilizando la tasa de cobro registrada, y descuenta también las devoluciones aprobadas, coincidiendo exactamente con los cálculos del PDF del recibo.
+
+## [1.10.142] - 2026-06-15
+### Fixed
+- **Corrección de Indicador de Tasa en Auditoría de Factura y Planilla**:
+  - Corrección de la lógica de renderizado del checkmark (`✔`) en la sección de "Tasas Referenciales del Día del Pago".
+  - Ahora el checkmark solo se muestra al lado de una tasa de referencia (Binance Real o con Ajuste) si coincide con la tasa real registrada en el pago (`Tasa de Cobro`), evitando la confusión de marcar como "correcta" una tasa cuando el pago utilizó una tasa manual diferente (por ejemplo, 400 Bs).
+
+## [1.10.141] - 2026-06-15
+### Added
+- **Cálculo de Diferencial en Tiempo Real en Configuración de Tasas**:
+  - Implementación de precalculado de brecha o diferencial cambiario en la sección de "Tasas Globales de Referencia" en la página de configuraciones.
+  - Visualización del "Diferencial Real" (brecha Binance Real vs BCV) y del "Diferencial Aplicado" (brecha Binance con Ajuste vs BCV) mediante badges premium con FontAwesome.
+  - Vinculación interactiva y reactiva de los inputs de tasa BCV, tasa Binance y Ajuste con `wire:model.live.debounce.300ms` para permitir el cálculo instantáneo de la brecha en tiempo real según el operador escribe.
+  - Incorporación de pruebas automatizadas en `GlobalRatesDifferentialTest.php` para asegurar el cálculo y renderizado correcto de los diferenciales en Livewire.
+
+## [1.10.140] - 2026-06-12
+### Added
+- **Control de Pérdidas y Validación Cambiaria en POS**:
+  - Implementación de advertencias y bloqueo en vivo en el modal de pago del POS para ventas a crédito con Acuerdo BCV. Si el diferencial del cliente (`exchange_diff_percent`) no cubre la brecha cambiaria Binance-BCV, el sistema bloquea el guardado de la transacción (tarjeta roja en el modal). Si es suficiente pero está cerca del límite, se muestra una tarjeta amarilla de advertencia.
+  - Implementación de validación de contravalor real en Bolívares para ventas de contado. Si la tasa de cambio utilizada en el pago (por error de configuración) no cubre el valor base en dólares reales de la venta al tipo de cambio Binance real, el sistema bloquea la facturación arrojando una alerta.
+- **Alineación de Modal de Auditoría de Facturas**:
+  - Se rediseñó por completo el modal de detalles de auditoría en el listado de facturas (`/audit/invoices`) para alinearse en estilo, nivel de detalle y usabilidad con el modal premium de la auditoría de planillas de cobro (`/audit/sheet`).
+  - Incluye un banner dinámico de rentabilidad, tarjetas paralelas de configuración y cobro, tasas referenciales del día de pago, desglose matemático proporcional y análisis del contravalor real Binance con margen frente a costo base.
+  - Añadido un selector de pestañas (pills) reactivo cuando la factura tiene múltiples abonos/pagos, permitiendo conmutar dinámicamente el análisis de cada cobro de forma individual.
+- **Bloqueos de Auditoría ante Brecha Cambiaria**:
+  - Se bloquea el cambio manual de estado de auditoría (toggle a verde) en el listado de facturas para ventas que tengan acuerdo de pago en USD pero hayan sido cobradas/pagadas a la tasa oficial de BCV.
+  - Se bloquea la finalización y cierre de planillas de cobro (Collection Sheet Audit) si la planilla contiene pagos aprobados de facturas con acuerdo de pago en USD liquidados a la tasa de BCV.
+- **Pruebas de Integración y Regresión**:
+  - Incorporación de pruebas robustas que validan los bloqueos de checkout por diferenciales insuficientes y tasas de bolívares por debajo del valor Binance en `POSPaymentAgreementEnforcementTest.php`.
+  - Incorporación de pruebas de bloqueo de auditoría individual, conmutación de pagos múltiples en el modal de detalles, y finalización de planillas en `InvoicesAuditListTest.php` and `CollectionAuditTest.php`.
+
 ## [1.10.139] - 2026-06-12
 ### Added
 - **Visualización de Acuerdo de Pago en Reportes**:
