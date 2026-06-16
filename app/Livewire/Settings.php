@@ -23,6 +23,7 @@ class Settings extends Component
     public $backupEmails; // Backup Emails
     public $purchasingCalculationMode, $purchasingCoverageDays; // Purchasing Intelligence
     public $productionEmailRecipients, $productionEmailSubject, $productionEmailBody; // Production Email Settings
+    public $sopladosEmailRecipients, $sopladosEmailSubject, $sopladosEmailBody; // Soplados Email Settings
     
     // Printer Auth
     public $isNetwork = false;
@@ -133,6 +134,11 @@ class Settings extends Component
             $this->productionEmailRecipients = is_array($config->production_email_recipients) ? implode(', ', $config->production_email_recipients) : $config->production_email_recipients;
             $this->productionEmailSubject = $config->production_email_subject ?: '[SALUDO], Reporte Diario de Producción - [FECHA] (Lote #[PRODUCCION_ID]) - [EMPRESA]';
             $this->productionEmailBody = $config->production_email_body ?: "[SALUDO],\n\nAdjunto a este correo electrónico se encuentra el reporte oficial detallado correspondiente a la jornada de producción del [FECHA].\n\nA continuación, se presenta un resumen de los lotes procesados y consolidados durante este turno:\n\n==================================================\n📝 DATOS GENERALES DE LA ORDEN DE TRABAJO\n==================================================\n• Lote de Producción: #[PRODUCCION_ID]\n• Fecha de Cierre: [FECHA]\n• Operador a Cargo del Reporte: [USUARIO]\n• Empresa / Planta: [EMPRESA]\n\n==================================================\n📊 TOTALES DE PLANTA\n==================================================\n• Cantidad Total Producida: [CANTIDAD_TOTAL] unidades\n• Peso Total de Material Procesado: [PESO_TOTAL] Kg\n\n==================================================\n📦 DESGLOSE POR PRODUCTO Y TIPO DE MATERIAL\n==================================================\n[RESUMEN_DETALLES]\n\n*(El detalle técnico por bobina individual, tipo de resina (Original/Recuperado), y mermas de extrusión y soplado se encuentra desglosado en el PDF adjunto).*\n\n==================================================\n🔍 OBSERVACIONES Y EVENTUALIDADES DE JORNADA\n==================================================\n[NOTA]\n\n--------------------------------------------------\nEste es un reporte automático emitido por el Sistema de Control de Producción y Ventas de [EMPRESA].\n\nQuedamos atentos a cualquier consulta técnica o administrativa.\n\nAtentamente,\nDepartamento de Control de Calidad y Manufactura\n[EMPRESA]";
+
+            // Soplados Email Settings
+            $this->sopladosEmailRecipients = is_array($config->soplados_email_recipients) ? implode(', ', $config->soplados_email_recipients) : $config->soplados_email_recipients;
+            $this->sopladosEmailSubject = $config->soplados_email_subject ?: '[SALUDO], Reporte del Turno de Soplado - [FECHA] ([TIPO_TURNO]) - [EMPRESA]';
+            $this->sopladosEmailBody = $config->soplados_email_body ?: "[SALUDO],\n\nAdjunto a este correo electrónico se encuentra el reporte oficial correspondiente al cierre del turno de soplado y manufactura de botellones/envases del [FECHA].\n\nA continuación, se presenta un resumen de los resultados del turno:\n\n==================================================\n📝 DATOS GENERALES DEL TURNO\n==================================================\n• Tipo de Turno: [TIPO_TURNO]\n• Horario del Turno: [HORA_INICIO] a [HORA_FIN]\n• Planta / Almacén: [ALMACEN]\n• Operadores del Turno: [OPERADORES]\n• Empresa: [EMPRESA]\n\n==================================================\n📊 TOTALES Y RENDIMIENTO DEL TURNO\n==================================================\n• Total Producido (1ra y 2da Calidad): [BUENA_CANTIDAD] unidades\n• Unidades Defectuosas (Merma/Desecho): [DESECHADA_CANTIDAD] unidades\n• Total Procesado (Buena + Defectuosa): [TOTAL_PRODUCIDO] unidades\n• Eficiencia del Turno (Yield): [EFICIENCIA]%\n\n==================================================\n📦 DETALLE DE ENVASES SOPLADOS (1RA Y 2DA CALIDAD)\n==================================================\n[RESUMEN_PRODUCCION]\n\n==================================================\n⚙️ MATERIALES Y MATERIA PRIMA CONSUMIDA\n==================================================\n[RESUMEN_MATERIALES]\n\n==================================================\n🔍 OBSERVACIONES / EVENTUALIDADES DEL TURNO\n==================================================\n[NOTA]\n\n--------------------------------------------------\nEste es un reporte automático de manufactura de Soplados emitido por [EMPRESA].\n\nQuedamos atentos a cualquier consulta técnica o administrativa.\n\nAtentamente,\nDepartamento de Control de Calidad y Soplado\n[EMPRESA]";
 
             // License Emails
             $this->licenseNotificationEmail = $config->license_notification_email;
@@ -296,6 +302,9 @@ class Settings extends Component
                 'production_email_recipients' => array_filter(array_map('trim', explode(',', $this->productionEmailRecipients))),
                 'production_email_subject' => trim($this->productionEmailSubject),
                 'production_email_body' => trim($this->productionEmailBody),
+                'soplados_email_recipients' => array_filter(array_map('trim', explode(',', $this->sopladosEmailRecipients))),
+                'soplados_email_subject' => trim($this->sopladosEmailSubject),
+                'soplados_email_body' => trim($this->sopladosEmailBody),
                 'is_network' => $this->isNetwork ? 1 : 0,
                 'printer_user' => $this->isNetwork ? trim($this->printerUser) : null,
                 'printer_password' => $this->isNetwork ? trim($this->printerPassword) : null,

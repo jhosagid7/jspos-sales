@@ -45,6 +45,9 @@ class Configuration extends Model
         'production_email_recipients',
         'production_email_subject',
         'production_email_body',
+        'soplados_email_recipients',
+        'soplados_email_subject',
+        'soplados_email_body',
         'is_network',
         'printer_user',
         'printer_user',
@@ -74,6 +77,7 @@ class Configuration extends Model
     protected $casts = [
         'backup_emails' => 'array',
         'production_email_recipients' => 'array',
+        'soplados_email_recipients' => 'array',
         'is_network' => 'boolean',
         'enable_shared_cash_register' => 'boolean',
         'price_list_show_info_block' => 'boolean',

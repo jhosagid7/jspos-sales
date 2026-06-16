@@ -141,6 +141,125 @@ class ShiftController extends Controller
             'notes' => $request->notes
         ]);
 
+        // Send Email Notification
+        $this->sendShiftCloseEmail($shift->id);
+
         return response()->json(['success' => true, 'message' => 'Turno cerrado correctamente']);
+    }
+
+    private function sendShiftCloseEmail($shiftId)
+    {
+        try {
+            $config = \App\Models\Configuration::first();
+            if (!$config || empty($config->soplados_email_recipients)) {
+                return;
+            }
+
+            $shift = \App\Models\Shift::with([
+                'users',
+                'warehouse',
+                'productionLogs.outputs.product',
+                'productionLogs.materials.product'
+            ])->find($shiftId);
+
+            if (!$shift) {
+                return;
+            }
+
+            $goodQuantity = 0;
+            $damagedQuantity = 0;
+            $productionOutputs = [];
+            $materialsConsumed = [];
+
+            foreach ($shift->productionLogs as $log) {
+                foreach ($log->outputs as $out) {
+                    $pName = $out->product->name ?? 'Producto';
+                    $qty = floatval($out->quantity);
+                    if (in_array($out->quality, ['1st', '2nd'])) {
+                        $goodQuantity += $qty;
+                    } else if ($out->quality === 'damaged') {
+                        $damagedQuantity += $qty;
+                    }
+                    
+                    $qualityLabel = $out->quality === '1st' ? '1ra Calidad' : ($out->quality === '2nd' ? '2da Calidad' : 'Defectuoso');
+                    $key = "{$pName} ({$qualityLabel})";
+                    $productionOutputs[$key] = ($productionOutputs[$key] ?? 0) + $qty;
+                }
+                
+                foreach ($log->materials as $mat) {
+                    $pName = $mat->product->name ?? 'Material';
+                    $qty = floatval($mat->quantity);
+                    $materialsConsumed[$pName] = ($materialsConsumed[$pName] ?? 0) + $qty;
+                }
+            }
+
+            $totalProduced = $goodQuantity + $damagedQuantity;
+            $efficiency = $totalProduced > 0 ? ($goodQuantity / $totalProduced) * 100 : 100;
+
+            $resumenProductionRows = [];
+            foreach ($productionOutputs as $name => $qty) {
+                $resumenProductionRows[] = "• {$name}: " . number_format($qty, 0) . " unidades";
+            }
+            $resumenProduction = !empty($resumenProductionRows) ? implode("\n", $resumenProductionRows) : '• Ninguno';
+
+            $resumenMaterialsRows = [];
+            foreach ($materialsConsumed as $name => $qty) {
+                $resumenMaterialsRows[] = "• {$name}: " . number_format($qty, 2) . " Kg";
+            }
+            $resumenMaterials = !empty($resumenMaterialsRows) ? implode("\n", $resumenMaterialsRows) : '• Ninguno';
+
+            $operatorsList = $shift->users->pluck('name')->implode(', ');
+            if (empty($operatorsList)) {
+                $operatorsList = $shift->user->name ?? 'Operador';
+            }
+
+            $date = $shift->start_time ? $shift->start_time->locale('es')->isoFormat('dddd, D [de] MMMM [de] YYYY') : now()->locale('es')->isoFormat('dddd, D [de] MMMM [de] YYYY');
+            $user = auth()->user()->name ?? ($shift->user->name ?? 'Supervisor');
+            
+            $hour = now()->hour;
+            $greeting = 'Buenas noches';
+            if ($hour >= 5 && $hour < 12) $greeting = 'Buenos días';
+            elseif ($hour >= 12 && $hour < 19) $greeting = 'Buenas tardes';
+
+            $tipoTurno = $shift->type ?? 'Desconocido';
+            $horaInicio = $shift->start_time ? $shift->start_time->format('h:i A') : 'N/A';
+            $horaFin = $shift->end_time ? $shift->end_time->format('h:i A') : 'N/A';
+            $almacenName = $shift->warehouse->name ?? 'Planta Soplados';
+            $businessName = $config->business_name ?? 'Empresa';
+            
+            $subject = $config->soplados_email_subject ?: '[SALUDO], Reporte del Turno de Soplado - [FECHA] ([TIPO_TURNO]) - [EMPRESA]';
+            $subject = str_replace('[FECHA]', $date, $subject);
+            $subject = str_replace('[SALUDO]', $greeting, $subject);
+            $subject = str_replace('[USUARIO]', $user, $subject);
+            $subject = str_replace('[TIPO_TURNO]', $tipoTurno, $subject);
+            $subject = str_replace('[EMPRESA]', $businessName, $subject);
+
+            $body = $config->soplados_email_body ?: "[SALUDO],\n\nAdjunto a este correo electrónico se encuentra el reporte oficial correspondiente al cierre del turno de soplado y manufactura de botellones/envases del [FECHA].\n\nA continuación, se presenta un resumen de los resultados del turno:\n\n==================================================\n📝 DATOS GENERALES DEL TURNO\n==================================================\n• Tipo de Turno: [TIPO_TURNO]\n• Horario del Turno: [HORA_INICIO] a [HORA_FIN]\n• Planta / Almacén: [ALMACEN]\n• Operadores del Turno: [OPERADORES]\n• Empresa: [EMPRESA]\n\n==================================================\n📊 TOTALES Y RENDIMIENTO DEL TURNO\n==================================================\n• Total Producido (1ra y 2da Calidad): [BUENA_CANTIDAD] unidades\n• Unidades Defectuosas (Merma/Desecho): [DESECHADA_CANTIDAD] unidades\n• Total Procesado (Buena + Defectuosa): [TOTAL_PRODUCIDO] unidades\n• Eficiencia del Turno (Yield): [EFICIENCIA]%\n\n==================================================\n📦 DETALLE DE ENVASES SOPLADOS (1RA Y 2DA CALIDAD)\n==================================================\n[RESUMEN_PRODUCCION]\n\n==================================================\n⚙️ MATERIALES Y MATERIA PRIMA CONSUMIDA\n==================================================\n[RESUMEN_MATERIALES]\n\n==================================================\n🔍 OBSERVACIONES / EVENTUALIDADES DEL TURNO\n==================================================\n[NOTA]\n\n--------------------------------------------------\nEste es un reporte automático de manufactura de Soplados emitido por [EMPRESA].\n\nQuedamos atentos a cualquier consulta técnica o administrativa.\n\nAtentamente,\nDepartamento de Control de Calidad y Soplado\n[EMPRESA]";
+
+            // Replacements
+            $body = str_replace('[FECHA]', $date, $body);
+            $body = str_replace('[SALUDO]', $greeting, $body);
+            $body = str_replace('[USUARIO]', $user, $body);
+            $body = str_replace('[TIPO_TURNO]', $tipoTurno, $body);
+            $body = str_replace('[HORA_INICIO]', $horaInicio, $body);
+            $body = str_replace('[HORA_FIN]', $horaFin, $body);
+            $body = str_replace('[ALMACEN]', $almacenName, $body);
+            $body = str_replace('[OPERADORES]', $operatorsList, $body);
+            $body = str_replace('[BUENA_CANTIDAD]', number_format($goodQuantity, 0), $body);
+            $body = str_replace('[DESECHADA_CANTIDAD]', number_format($damagedQuantity, 0), $body);
+            $body = str_replace('[TOTAL_PRODUCIDO]', number_format($totalProduced, 0), $body);
+            $body = str_replace('[EFICIENCIA]', number_format($efficiency, 2), $body);
+            $body = str_replace('[RESUMEN_PRODUCCION]', $resumenProduction, $body);
+            $body = str_replace('[RESUMEN_MATERIALES]', $resumenMaterials, $body);
+            $body = str_replace('[NOTA]', $shift->notes ?? 'Sin observaciones', $body);
+            $body = str_replace('[EMPRESA]', $businessName, $body);
+
+            $body = nl2br($body);
+
+            \Illuminate\Support\Facades\Mail::to($config->soplados_email_recipients)
+                ->send(new \App\Mail\SopladosShiftReportMail($subject, $body));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Failed to send Soplados shift report email: " . $e->getMessage());
+        }
     }
 }

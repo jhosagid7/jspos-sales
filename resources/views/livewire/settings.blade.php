@@ -890,6 +890,11 @@
                                         @error('productionMaterialsWarehouseId') <span class="text-danger">{{ $message }}</span> @enderror
                                     </div>
 
+                                    <div class="col-sm-12 mt-3">
+                                        <h5 class="text-uppercase text-primary fw-bold">Reporte de Producción (Fábrica de Bolsas)</h5>
+                                        <hr class="mt-1 mb-3">
+                                    </div>
+
                                     <div class="col-sm-12">
                                         <label class="form-label">DESTINATARIOS (Separados por coma)</label>
                                         <textarea wire:model="productionEmailRecipients" class="form-control" cols="30" rows="2" placeholder="ejemplo@correo.com, jefe@correo.com"></textarea>
@@ -945,7 +950,7 @@ Departamento de Control de Calidad y Manufactura
 [EMPRESA]"></textarea>
                                         <div class="alert alert-light-info mt-2">
                                             <small>
-                                                <b>Variables Disponibles:</b><br>
+                                                <b>Variables Disponibles para Bolsas:</b><br>
                                                 <code>[FECHA]</code> : Fecha de producción (ej: Lunes, 12 de Enero de 2026)<br>
                                                 <code>[SALUDO]</code> : Saludo automático (Buenos días / tardes / noches)<br>
                                                 <code>[USUARIO]</code> : Nombre del operador que envía el correo<br>
@@ -954,6 +959,48 @@ Departamento de Control de Calidad y Manufactura
                                                 <code>[PESO_TOTAL]</code> : Peso total procesado (Kg)<br>
                                                 <code>[RESUMEN_DETALLES]</code> : Resumen de productos y tipo de material (Original/Recuperado)<br>
                                                 <code>[NOTA]</code> : Observaciones registradas por planta<br>
+                                                <code>[EMPRESA]</code> : Nombre de la empresa
+                                            </small>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-sm-12 mt-4">
+                                        <h5 class="text-uppercase text-primary fw-bold">Reporte de Cierre de Turno (Soplados / Botellones)</h5>
+                                        <hr class="mt-1 mb-3">
+                                    </div>
+
+                                    <div class="col-sm-12">
+                                        <label class="form-label">DESTINATARIOS (Separados por coma)</label>
+                                        <textarea wire:model="sopladosEmailRecipients" class="form-control" cols="30" rows="2" placeholder="ejemplo@correo.com, jefe@correo.com"></textarea>
+                                        <small class="text-muted">Estos correos recibirán el reporte detallado del turno cerrado.</small>
+                                    </div>
+
+                                    <div class="col-sm-12">
+                                        <label class="form-label">ASUNTO DEL CORREO</label>
+                                        <input wire:model="sopladosEmailSubject" type="text" class="form-control" placeholder="[SALUDO], Reporte del Turno de Soplado - [FECHA] ([TIPO_TURNO]) - [EMPRESA]">
+                                    </div>
+
+                                    <div class="col-sm-12">
+                                        <label class="form-label">CUERPO DEL CORREO</label>
+                                        <textarea wire:model="sopladosEmailBody" class="form-control" cols="30" rows="10" placeholder="Plantilla del mensaje..."></textarea>
+                                        <div class="alert alert-light-info mt-2">
+                                            <small>
+                                                <b>Variables Disponibles para Soplados:</b><br>
+                                                <code>[FECHA]</code> : Fecha del turno cerrado (ej: Martes, 16 de Junio de 2026)<br>
+                                                <code>[SALUDO]</code> : Saludo automático (Buenos días / tardes / noches)<br>
+                                                <code>[USUARIO]</code> : Nombre del operador que cierra el turno<br>
+                                                <code>[TIPO_TURNO]</code> : Tipo de turno (Diurno / Nocturno)<br>
+                                                <code>[HORA_INICIO]</code> : Hora de apertura del turno (ej: 06:00 AM)<br>
+                                                <code>[HORA_FIN]</code> : Hora de cierre del turno (ej: 06:00 PM)<br>
+                                                <code>[ALMACEN]</code> : Planta / Almacén del turno<br>
+                                                <code>[OPERADORES]</code> : Nombres de los operadores activos en el turno<br>
+                                                <code>[BUENA_CANTIDAD]</code> : Cantidad total de 1ra y 2da calidad producida (unidades)<br>
+                                                <code>[DESECHADA_CANTIDAD]</code> : Cantidad total defectuosa (merma)<br>
+                                                <code>[TOTAL_PRODUCIDO]</code> : Total de piezas procesadas (buena + defectuosa)<br>
+                                                <code>[EFICIENCIA]</code> : Porcentaje de eficiencia/rendimiento (Yield)<br>
+                                                <code>[RESUMEN_PRODUCCION]</code> : Detalle de botellones y envases soplados<br>
+                                                <code>[RESUMEN_MATERIALES]</code> : Detalle de materias primas consumidas (Kg)<br>
+                                                <code>[NOTA]</code> : Observaciones del supervisor de turno<br>
                                                 <code>[EMPRESA]</code> : Nombre de la empresa
                                             </small>
                                         </div>

@@ -1,3 +1,12 @@
+## [1.10.145] - 2026-06-16
+### Added
+- **Notificaciones Automáticas por Correo al Cerrar Turno de Soplados**:
+  - Incorporación de soporte para envío automatizado de correos electrónicos detallados al cerrar un turno de soplado (`soplados/shifts/close`).
+  - Lógica para compilar estadísticas clave del turno cerrado: cantidad total de botellones/envases soplados (de 1ra y 2da calidad), unidades defectuosas (merma/desecho), rendimiento/eficiencia (Yield), detalle desglosado de envases soplados, materiales consumidos, notas del turno y listado de operadores asociados.
+  - Registro de configuraciones independientes para destinatarios (`soplados_email_recipients`), asunto (`soplados_email_subject`) y cuerpo (`soplados_email_body`) en la pestaña de Ajustes > Producción.
+  - Carga automática de una plantilla enriquecida por defecto para los correos de soplados si la base de datos está vacía.
+  - Creación del Mailable `SopladosShiftReportMail` y de pruebas de integración exhaustivas `SopladosShiftNotificationTest`.
+
 ## [1.10.144] - 2026-06-15
 ### Added
 - **Nuevas Variables y Plantilla Detallada para Reportes de Producción**:
