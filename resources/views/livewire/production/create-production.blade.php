@@ -110,6 +110,8 @@
                                     <tr>
                                         <th class="table-th text-white">PRODUCTO</th>
                                         <th class="table-th text-white">DEPÓSITO</th>
+                                        <th class="table-th text-white text-center">FECHA PROD.</th>
+                                        <th class="table-th text-white text-center">OPERARIO</th>
                                         <th class="table-th text-white text-center">TM (TIPO)</th>
                                         <th class="table-th text-white text-center">CANTIDAD</th>
                                         <th class="table-th text-white text-center">PESO</th>
@@ -158,6 +160,18 @@
                                             </select>
                                         </td>
                                         <td class="text-center">
+                                            <input type="date"
+                                                   value="{{ $item['production_date'] ?? '' }}"
+                                                   onchange="Livewire.dispatch('updateRow', [{{ $productId }}, 'production_date', this.value])"
+                                                   class="form-control">
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="text"
+                                                   value="{{ $item['operator_name'] ?? '' }}"
+                                                   onchange="Livewire.dispatch('updateRow', [{{ $productId }}, 'operator_name', this.value])"
+                                                   class="form-control">
+                                        </td>
+                                        <td class="text-center">
                                             <input type="text" 
                                                    value="{{ $item['material_type'] }}" 
                                                    onchange="Livewire.dispatch('updateRow', [{{ $productId }}, 'material_type', this.value])"
@@ -197,7 +211,7 @@
                                     </tr>
                                     @empty
                                     <tr>
-                                        <td colspan="5" class="text-center">NO HAY PRODUCTOS SELECCIONADOS</td>
+                                        <td colspan="8" class="text-center">NO HAY PRODUCTOS SELECCIONADOS</td>
                                     </tr>
                                     @endforelse
                                 </tbody>

@@ -34,24 +34,32 @@
                                 <td><h6>{{ \Carbon\Carbon::parse($row->production_date)->locale('es')->isoFormat('dddd, D [de] MMMM [de] YYYY') }}</h6></td>
                                 <td><h6>{{$row->user_name}}</h6></td>
                                 <td>
-                                    <span class="badge {{$row->status == 'sent' ? 'badge-success' : 'badge-warning'}}">
-                                        {{$row->status == 'sent' ? 'ENVIADO' : 'PENDIENTE'}}
-                                    </span>
+                                    @if($row->status == 'sent')
+                                        <span class="badge badge-success">PROCESADO / ENVIADO</span>
+                                    @elseif($row->status == 'approved')
+                                        <span class="badge badge-info">APROBADO</span>
+                                    @else
+                                        <span class="badge badge-warning">PENDIENTE</span>
+                                    @endif
                                 </td>
                                 <td><h6>{{$row->note}}</h6></td>
                                 <td class="text-center">
+                                    @if($row->status == 'pending')
                                     <a href="javascript:void(0)" 
                                        onclick="Confirm('{{$row->id}}')" 
                                        class="btn btn-dark mtmobile" title="Eliminar">
                                         <i class="fas fa-trash"></i>
                                     </a>
+                                    @endif
+                                    
+                                    @if($row->status == 'pending' && $row->cargos->isEmpty())
+                                    <button wire:click="sendToCargo({{$row->id}})" 
+                                            class="btn btn-info mtmobile" title="Aprobar Planilla">
+                                        <i class="fas fa-check-circle"></i>
+                                    </button>
+                                    @endif
                                     
                                     @if($row->status == 'pending')
-                                    <button wire:click="sendToCargo({{$row->id}})" 
-                                            class="btn btn-info mtmobile" title="Enviar a Cargo">
-                                        <i class="fas fa-box-open"></i>
-                                    </button>
-
                                     <a href="{{ route('production.create', ['production' => $row->id]) }}" 
                                        class="btn btn-warning mtmobile" title="Editar">
                                         <i class="fas fa-edit"></i>
@@ -115,46 +123,68 @@
                                 <tr>
                                     <th class="table-th text-white">PRODUCTO</th>
                                     <th class="table-th text-white">DEPÓSITO</th>
+                                    <th class="table-th text-white text-center">OPERARIO</th>
                                     <th class="table-th text-white text-center">TIPO (TM)</th>
                                     <th class="table-th text-white text-center">CANTIDAD</th>
                                     <th class="table-th text-white text-center">PESO</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($details as $detail)
-                                <tr>
-                                    <td>
-                                        {{ $detail->product->name }}
-                                        @if($detail->product->is_variable_quantity && !empty($detail->metadata))
-                                            <div class="mt-2 ml-3">
-                                                <small class="text-info font-weight-bold">Detalle de Bobinas:</small>
-                                                <ul class="list-unstyled pl-2 border-left border-info">
-                                                    @foreach($detail->metadata as $item)
-                                                        <li class="mb-1">
-                                                            <small>
-                                                                Peso: <b>{{ $item['weight'] }} kg</b>
-                                                                @if(!empty($item['color'])) | Color: {{ $item['color'] }} @endif
-                                                                @if(!empty($item['batch'])) | Lote: {{ $item['batch'] }} @endif
-                                                            </small>
-                                                        </li>
-                                                    @endforeach
-                                                </ul>
-                                            </div>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        {{ $detail->warehouse->name ?? 'N/A' }} 
-                                        <!-- Assumes Warehouse relationship exists in ProductionDetail model, if not I need add it -->
-                                    </td>
-                                    <td class="text-center">{{ $detail->material_type }}</td>
-                                    <td class="text-center">{{ number_format($detail->quantity, 2) }}</td>
-                                    <td class="text-center">{{ number_format($detail->weight, 2) }}</td>
-                                </tr>
+                                @php
+                                    $groupedDetails = collect($details)->groupBy(function($detail) {
+                                        $date = $detail->production_date ?? null;
+                                        return $date ? \Carbon\Carbon::parse($date)->format('Y-m-d') : 'Sin Fecha';
+                                    });
+                                @endphp
+                                @foreach($groupedDetails as $dateStr => $group)
+                                    @if($dateStr !== 'Sin Fecha')
+                                        <tr class="bg-light">
+                                            <td colspan="6" class="font-weight-bold text-primary text-uppercase">
+                                                <i class="fas fa-calendar-alt"></i> {{ \Carbon\Carbon::parse($dateStr)->locale('es')->isoFormat('dddd DD-MM-YYYY') }}
+                                            </td>
+                                        </tr>
+                                    @else
+                                        <tr class="bg-light">
+                                            <td colspan="6" class="font-weight-bold text-secondary">
+                                                Sin Fecha de Producción
+                                            </td>
+                                        </tr>
+                                    @endif
+                                    @foreach($group as $detail)
+                                    <tr>
+                                        <td>
+                                            {{ $detail->product->name }}
+                                            @if($detail->product->is_variable_quantity && !empty($detail->metadata))
+                                                <div class="mt-2 ml-3">
+                                                    <small class="text-info font-weight-bold">Detalle de Bobinas:</small>
+                                                    <ul class="list-unstyled pl-2 border-left border-info">
+                                                        @foreach($detail->metadata as $item)
+                                                            <li class="mb-1">
+                                                                <small>
+                                                                     Peso: <b>{{ $item['weight'] }} kg</b>
+                                                                     @if(!empty($item['color'])) | Color: {{ $item['color'] }} @endif
+                                                                     @if(!empty($item['batch'])) | Lote: {{ $item['batch'] }} @endif
+                                                                </small>
+                                                            </li>
+                                                        @endforeach
+                                                    </ul>
+                                                </div>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            {{ $detail->warehouse->name ?? 'N/A' }} 
+                                        </td>
+                                        <td class="text-center">{{ $detail->operator_name ?? 'N/A' }}</td>
+                                        <td class="text-center">{{ $detail->material_type }}</td>
+                                        <td class="text-center">{{ number_format($detail->quantity, 2) }}</td>
+                                        <td class="text-center">{{ number_format($detail->weight, 2) }}</td>
+                                    </tr>
+                                    @endforeach
                                 @endforeach
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <td colspan="2" class="text-right font-weight-bold">TOTALES</td>
+                                    <td colspan="4" class="text-right font-weight-bold">TOTALES</td>
                                     <td class="text-center font-weight-bold">{{ number_format(collect($details)->sum('quantity'), 2) }}</td>
                                     <td class="text-center font-weight-bold">{{ number_format(collect($details)->sum('weight'), 2) }}</td>
                                 </tr>

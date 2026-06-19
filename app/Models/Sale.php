@@ -350,9 +350,6 @@ class Sale extends Model
     public function getPaymentAgreementAttribute($value)
     {
         if (!empty($value)) {
-            if ($value === 'USD' && $this->applied_exchange_diff_percent > 0) {
-                return 'BCV';
-            }
             return $value;
         }
         return $this->applied_exchange_diff_percent > 0 ? 'BCV' : 'USD';

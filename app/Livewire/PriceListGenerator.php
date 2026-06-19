@@ -39,6 +39,12 @@ class PriceListGenerator extends Component
     public $customMora; // New property
     // public $customRuleDays; // Deprecated
 
+    // Supplier and Tag Filters
+    public $suppliers = [];
+    public $tags = [];
+    public $selectedSupplierId;
+    public $selectedTagId;
+
     // public $customRulePercent; // Deprecated
     // public $customRuleType = 'discount'; // Deprecated
     public $customRules = []; // Array of ['days' => '', 'percent' => '', 'type' => 'discount']
@@ -103,6 +109,10 @@ class PriceListGenerator extends Component
         $this->customRules = [
             ['days' => '', 'percent' => '', 'type' => 'discount']
         ];
+
+        // Load Suppliers and Tags
+        $this->suppliers = \App\Models\Supplier::orderBy('name')->get();
+        $this->tags = \App\Models\Tag::orderBy('name')->get();
     }
 
     public function addCustomRule()
@@ -212,6 +222,14 @@ class PriceListGenerator extends Component
             ->where('show_in_sales', true)
             ->with('category')
             ->join('categories', 'products.category_id', '=', 'categories.id')
+            ->when($this->selectedSupplierId, function($q) {
+                $q->where('products.supplier_id', $this->selectedSupplierId);
+            })
+            ->when($this->selectedTagId, function($q) {
+                $q->whereHas('tags', function($t) {
+                    $t->where('tags.id', $this->selectedTagId);
+                });
+            })
             ->orderBy('categories.name')
             ->orderBy('products.name')
             ->select('products.*', 'categories.name as category_name')

@@ -257,9 +257,14 @@
     <script>
         document.addEventListener('livewire:init', function() {
             $('#modalProcessOrder').on('shown.bs.modal', function() {
+                @this.set('showProcessOrderModal', true);
                 setTimeout(() => {
                     setFocus()
                 }, 700)
+            })
+
+            $('#modalProcessOrder').on('hidden.bs.modal', function() {
+                @this.set('showProcessOrderModal', false);
             })
 
             Livewire.on('clear-search', event => {

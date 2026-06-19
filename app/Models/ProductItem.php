@@ -17,7 +17,13 @@ class ProductItem extends Model
         'status',
         'batch',
         'color',
-        'location'
+        'location',
+        'production_date',
+        'operator_name'
+    ];
+
+    protected $casts = [
+        'production_date' => 'date',
     ];
 
     public function product()

@@ -59,7 +59,6 @@ class Products extends Component
 
         return view('livewire.products.products', [
             'products'    => $this->getProducts(),
-            'products_list' => Product::orderBy('name')->get(['id', 'name']),
             'priceGroups' => \App\Models\PriceGroup::orderBy('name')->get(),
         ]);
     }
@@ -84,7 +83,7 @@ class Products extends Component
             if (!empty($this->search)) {
                 return $query->search(trim($this->search))->orderBy('id')->paginate($this->pagination);
             } else {
-                return $query->with(['category', 'supplier', 'priceList'])->orderBy('id')->paginate($this->pagination);
+                return $query->with(['category', 'supplier', 'priceList', 'images'])->orderBy('id')->paginate($this->pagination);
             }
         } catch (\Exception $th) {
             $this->dispatch('noty', msg: "Error al buscar el producto: {$th->getMessage()}");

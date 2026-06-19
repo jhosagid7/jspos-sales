@@ -66,6 +66,8 @@ class CargosList extends Component
                                 'original_quantity' => $bobina['weight'],
                                 'color' => $bobina['color'] ?? null,
                                 'batch' => $bobina['batch'] ?? null,
+                                'production_date' => $bobina['production_date'] ?? null,
+                                'operator_name' => $bobina['operator_name'] ?? null,
                                 'status' => 'available'
                             ]);
                         }
@@ -93,8 +95,16 @@ class CargosList extends Component
                     'approval_date' => now()
                 ]);
 
+                if ($cargo->production_id) {
+                    \App\Models\Production::where('id', $cargo->production_id)->update(['status' => 'sent']);
+                }
+
                 \Illuminate\Support\Facades\DB::commit();
                 $this->dispatch('noty', msg: 'Cargo aprobado y stock actualizado.');
+
+                if ($cargo->production_id) {
+                    $this->checkAndSendConsolidatedEmail($cargo);
+                }
                 
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\DB::rollBack();
@@ -200,6 +210,122 @@ class CargosList extends Component
     public function updatingSearch()
     {
         $this->resetPage();
+    }
+
+    public function checkAndSendConsolidatedEmail($cargo)
+    {
+        try {
+            $liftingDate = $cargo->created_at->toDateString();
+            
+            // Query all cargos created on this day that have a production_id
+            $cargos = \App\Models\Cargo::whereDate('created_at', $liftingDate)
+                ->whereNotNull('production_id')
+                ->get();
+                
+            if ($cargos->isEmpty()) {
+                return;
+            }
+            
+            // Check if there are any pending cargos from this group
+            $pendingCount = $cargos->where('status', 'pending')->count();
+            if ($pendingCount > 0) {
+                // Not all cargos from this lifting session are approved yet
+                return;
+            }
+            
+            // All cargos are approved (or rejected/voided, i.e., none are pending)
+            // Let's filter to get only the approved ones for the PDF report
+            $approvedCargos = $cargos->where('status', 'approved');
+            if ($approvedCargos->isEmpty()) {
+                return;
+            }
+            
+            // Get unique production IDs from approved cargos
+            $productionIds = $approvedCargos->pluck('production_id')->unique();
+            $productions = \App\Models\Production::with(['details.product'])
+                ->whereIn('id', $productionIds)
+                ->get();
+                
+            if ($productions->isEmpty()) {
+                return;
+            }
+            
+            $config = \App\Models\Configuration::first();
+            if (!$config || empty($config->production_email_recipients)) {
+                return;
+            }
+            
+            // Generate PDFs for each production day
+            $pdfs = [];
+            $totalWeight = 0;
+            $totalQuantity = 0;
+            $resumenDetalles = "";
+            
+            foreach ($productions as $prod) {
+                $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.bags_production', ['production' => $prod]);
+                $pdf->setPaper('letter', 'portrait');
+                $pdfContent = $pdf->output();
+                
+                $prodDateStr = \Carbon\Carbon::parse($prod->production_date)->format('Y-m-d');
+                $pdfs[] = [
+                    'content' => $pdfContent,
+                    'name'    => 'produccion_bolsas_' . $prodDateStr . '_lote_' . $prod->id . '.pdf',
+                ];
+                
+                // Aggregate metrics for email body
+                $prodWeight = $prod->details->sum('weight');
+                $prodQty = $prod->details->sum('quantity');
+                $totalWeight += $prodWeight;
+                $totalQuantity += $prodQty;
+                
+                $resumenDetalles .= "📅 Día de Producción: " . \Carbon\Carbon::parse($prod->production_date)->format('d/m/Y') . " (Lote #{$prod->id})\n";
+                $resumenDetalles .= "• Cantidad: " . number_format($prodQty, 2) . " unidades\n";
+                $resumenDetalles .= "• Peso: " . number_format($prodWeight, 2) . " Kg\n";
+                $resumenDetalles .= "--------------------------------------------------\n";
+            }
+            
+            // Email metadata replacements
+            $date = \Carbon\Carbon::now()->format('d/m/Y');
+            $greeting = "Hola";
+            $hour = \Carbon\Carbon::now()->hour;
+            if ($hour < 12) {
+                $greeting = "Buenos días";
+            } elseif ($hour < 18) {
+                $greeting = "Buenas tardes";
+            } else {
+                $greeting = "Buenas noches";
+            }
+            
+            $user = auth()->user()->name;
+            $businessName = $config->business_name ?? 'Fábrica de Bolsas';
+            
+            $subject = (!empty($config->production_email_subject)) ? $config->production_email_subject : "Reporte Consolidado de Producción de Bolsas - [FECHA]";
+            $subject = str_replace('[FECHA]', $date, $subject);
+            $subject = str_replace('[PESO_TOTAL]', number_format($totalWeight, 2), $subject);
+            $subject = str_replace('[RESUMEN_DETALLES]', $resumenDetalles, $subject);
+            $subject = str_replace('[EMPRESA]', $businessName, $subject);
+            
+            $body = (!empty($config->production_email_body)) ? $config->production_email_body : "[SALUDO],\n\nAdjunto a este correo electrónico se encuentra el reporte consolidado detallado correspondiente a la jornada de levantamiento de producción del [FECHA].\n\nA continuación, se presenta un resumen de los días de producción procesados y aprobados hoy:\n\n==================================================\n📊 RESUMEN DE LEVANTAMIENTO\n==================================================\n• Fecha de Registro: [FECHA]\n• Aprobado Por: [USUARIO]\n• Empresa / Planta: [EMPRESA]\n• Cantidad Total Levantada: [CANTIDAD_TOTAL] unidades\n• Peso Total Levantado: [PESO_TOTAL] Kg\n\n==================================================\n📝 DETALLE POR DÍA DE PRODUCCIÓN\n==================================================\n[RESUMEN_DETALLES]\n\n*(El desglose por producto, peso por rollo y operario fabricante se encuentra detallado en los archivos PDF adjuntos independientes para cada día de producción).* \n\n--------------------------------------------------\nEste es un reporte automático emitido por el Sistema de Control de Producción y Ventas de [EMPRESA].\n\nQuedamos atentos a cualquier consulta técnica o administrativa.\n\nAtentamente,\nDepartamento de Control de Calidad y Manufactura\n[EMPRESA]";
+            
+            $body = str_replace('[FECHA]', $date, $body);
+            $body = str_replace('[SALUDO]', $greeting, $body);
+            $body = str_replace('[USUARIO]', $user, $body);
+            $body = str_replace('[CANTIDAD_TOTAL]', number_format($totalQuantity, 2), $body);
+            $body = str_replace('[PESO_TOTAL]', number_format($totalWeight, 2), $body);
+            $body = str_replace('[RESUMEN_DETALLES]', $resumenDetalles, $body);
+            $body = str_replace('[EMPRESA]', $businessName, $body);
+            
+            $body = nl2br($body);
+            
+            \Illuminate\Support\Facades\Mail::to($config->production_email_recipients)
+                ->send(new \App\Mail\BagsProductionConsolidatedMail($subject, $body, $pdfs));
+                
+            $this->dispatch('noty', msg: 'Correo consolidado enviado correctamente.');
+            
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Failed to send bags consolidated report email: " . $e->getMessage());
+            $this->dispatch('noty', msg: 'Error al enviar correo consolidado: ' . $e->getMessage(), type: 'error');
+        }
     }
 
     #[Layout('layouts.theme.app')]

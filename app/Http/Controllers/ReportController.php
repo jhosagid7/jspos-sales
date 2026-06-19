@@ -552,6 +552,27 @@ class ReportController extends Controller
             ->orderBy('id', 'desc')
             ->get();
 
+        $selectedGroupsStr = $request->get('selectedGroups');
+        $groupBy = $request->get('groupBy', 'none');
+        if ($groupBy !== 'none' && $selectedGroupsStr !== null && $selectedGroupsStr !== '') {
+            $selectedGroups = explode(',', $selectedGroupsStr);
+            $sales = $sales->filter(function($sale) use ($groupBy, $selectedGroups) {
+                $key = 'NA';
+                if ($groupBy == 'customer_id') {
+                    $key = $sale->customer_id ?? 'NA';
+                } elseif ($groupBy == 'user_id') {
+                    $key = $sale->user_id ?? 'NA';
+                } elseif ($groupBy == 'seller_id') {
+                    $key = $sale->customer?->seller_id ?? 'NA';
+                } elseif ($groupBy == 'driver_id') {
+                    $key = $sale->driver_id ?? 'NA';
+                } elseif ($groupBy == 'date') {
+                    $key = $sale->created_at->format('Y-m-d');
+                }
+                return in_array((string)$key, $selectedGroups);
+            });
+        }
+
         // Build filter info string for the PDF header
         $filterParts = [];
         if ($user_id && $user_id != 0) {

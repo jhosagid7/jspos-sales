@@ -273,27 +273,7 @@
                         </li>
                         @endcan
 
-                        @module('module_production')
-                        @can('production.index')
-                        <li class="nav-item {{ Request::is('production*') ? 'menu-open' : '' }}">
-                            <a href="#" class="nav-link {{ Request::is('production*') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>
-                                    Producción Bolsas
-                                    <i class="right fas fa-angle-left"></i>
-                                </p>
-                            </a>
-                            <ul class="nav nav-treeview">
-                                <li class="nav-item">
-                                    <a href="{{ route('production.index') }}" class="nav-link {{ Request::is('production') || Request::is('production/create*') ? 'active' : '' }}">
-                                        <i class="far fa-dot-circle nav-icon"></i>
-                                        <p>Registros Antiguos</p>
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-                        @endcan
-                        @endmodule
+
 
                         @module('module_labels')
                         @can('products.labels')
@@ -340,6 +320,31 @@
                         </li>
                     </ul>
                 </li>
+                @endunlessrole
+
+                {{-- MÓDULO: FÁBRICA BOLSAS --}}
+                @unlessrole('Driver')
+                @module('module_production')
+                @can('production.index')
+                <li class="nav-item {{ Request::is('production*') ? 'menu-open' : '' }}">
+                    <a href="#" class="nav-link {{ Request::is('production*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-shopping-bag"></i>
+                        <p>
+                            FÁBRICA BOLSAS
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('production.index') }}" class="nav-link {{ Request::is('production') || Request::is('production/create*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Historial Levantamiento</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                @endcan
+                @endmodule
                 @endunlessrole
 
                 {{-- MÓDULO 4: FINANZAS Y AUDITORÍA --}}

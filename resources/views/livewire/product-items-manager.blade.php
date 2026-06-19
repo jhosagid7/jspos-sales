@@ -20,6 +20,16 @@
             <input wire:model="batch" type="text" class="form-control" placeholder="Lote #">
         </div>
         <div class="col-md-3">
+            <label class="form-label">Fecha Elaboración (Opcional)</label>
+            <input wire:model="production_date" type="date" class="form-control">
+            @error('production_date') <span class="text-danger small">{{ $message }}</span> @enderror
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Operario Fabricante (Opcional)</label>
+            <input wire:model="operator_name" type="text" class="form-control" placeholder="Nombre Operario">
+            @error('operator_name') <span class="text-danger small">{{ $message }}</span> @enderror
+        </div>
+        <div class="col-md-3">
              <label class="form-label">Depósito</label>
              <select wire:model="warehouse_id" class="form-control form-select">
                  @foreach($warehouses as $wh)
@@ -45,9 +55,10 @@
                 <tr>
                     <th>ID</th>
                     <th>Peso (Kg)</th>
-                    <th>Original (Kg)</th>
                     <th>Color</th>
                     <th>Lote</th>
+                    <th>Fecha Elaboración</th>
+                    <th>Operario</th>
                     <th>Depósito</th>
                     <th>Estado</th>
                     <th>Fecha Ingreso</th>
@@ -59,9 +70,10 @@
                     <tr>
                         <td>#{{ $item->id }}</td>
                         <td class="fw-bold">{{ floatval($item->quantity) }}</td>
-                        <td class="text-muted">{{ floatval($item->original_quantity) }}</td>
                         <td>{{ $item->color ?? '-' }}</td>
                         <td>{{ $item->batch ?? '-' }}</td>
+                        <td>{{ $item->production_date ? $item->production_date->format('d/m/Y') : '-' }}</td>
+                        <td>{{ $item->operator_name ?? '-' }}</td>
                         <td>{{ $item->warehouse->name ?? 'N/A' }}</td>
                         <td>
                             <span class="badge bg-success">Disponible</span>
@@ -77,7 +89,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="9" class="text-center text-muted py-4">
+                        <td colspan="10" class="text-center text-muted py-4">
                             No hay items registrados para este producto.
                         </td>
                     </tr>

@@ -166,6 +166,8 @@ class DescargosList extends Component
                                     'original_quantity' => $bobina['weight'],
                                     'color' => $bobina['color'] ?? null,
                                     'batch' => $bobina['batch'] ?? null,
+                                    'production_date' => $bobina['production_date'] ?? null,
+                                    'operator_name' => $bobina['operator_name'] ?? null,
                                     'status' => 'available'
                                 ]);
                             }

@@ -155,7 +155,37 @@
                             </div>
                             @endmodule
 
-                            <div class="row">
+                             {{-- Supplier and Tag Filters --}}
+                             <div class="row mb-4 p-3 bg-light rounded">
+                                 <div class="col-12">
+                                     <h6 class="font-weight-bold text-dark"><i class="fas fa-filter"></i> Filtrar Productos (Opcional)</h6>
+                                     <p class="text-muted small">Filtre la lista de precios por un proveedor específico y/o una etiqueta (tag).</p>
+                                 </div>
+                                 <div class="col-md-6">
+                                     <div class="form-group">
+                                         <label class="font-weight-bold">Filtrar por Proveedor</label>
+                                         <select wire:model.live="selectedSupplierId" class="form-control">
+                                             <option value="">-- Todos los Proveedores --</option>
+                                             @foreach($suppliers as $supplier)
+                                             <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
+                                             @endforeach
+                                         </select>
+                                     </div>
+                                 </div>
+                                 <div class="col-md-6">
+                                     <div class="form-group">
+                                         <label class="font-weight-bold">Filtrar por Tag</label>
+                                         <select wire:model.live="selectedTagId" class="form-control">
+                                             <option value="">-- Todos los Tags --</option>
+                                             @foreach($tags as $tag)
+                                             <option value="{{ $tag->id }}">{{ $tag->name }}</option>
+                                             @endforeach
+                                         </select>
+                                     </div>
+                                 </div>
+                             </div>
+
+                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group" wire:ignore>
                                         <label class="font-weight-bold">Seleccionar Cliente (Opcional)</label>

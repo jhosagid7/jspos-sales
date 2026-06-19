@@ -191,6 +191,7 @@ class OrderRouteGoalTest extends TestCase
         // Test Livewire component
         Livewire::actingAs($this->adminUser)
             ->test(Sales::class)
+            ->set('showProcessOrderModal', true)
             ->set('searchDriver', $this->driverUser->id)
             ->call('getOrdersWithDetails')
             ->assertSet('ordersTotal', 200.00)

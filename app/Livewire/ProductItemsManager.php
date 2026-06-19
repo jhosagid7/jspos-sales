@@ -18,6 +18,8 @@ class ProductItemsManager extends Component
     public $color;
     public $warehouse_id;
     public $batch;
+    public $production_date;
+    public $operator_name;
 
     public function mount($productId)
     {
@@ -27,6 +29,7 @@ class ProductItemsManager extends Component
         if($this->warehouses->count() > 0) {
             $this->warehouse_id = $this->warehouses->first()->id;
         }
+        $this->production_date = now()->format('Y-m-d');
         $this->loadItems();
     }
 
@@ -44,7 +47,9 @@ class ProductItemsManager extends Component
             'weight' => 'required|numeric|min:0.01',
             'warehouse_id' => 'required|exists:warehouses,id',
             'color' => 'nullable|string|max:50',
-            'batch' => 'nullable|string|max:50'
+            'batch' => 'nullable|string|max:50',
+            'production_date' => 'nullable|date',
+            'operator_name' => 'nullable|string|max:255'
         ]);
 
         ProductItem::create([
@@ -54,13 +59,16 @@ class ProductItemsManager extends Component
             'original_quantity' => $this->weight,
             'status' => 'available',
             'color' => $this->color,
-            'batch' => $this->batch
+            'batch' => $this->batch,
+            'production_date' => $this->production_date ?: null,
+            'operator_name' => $this->operator_name ?: null
         ]);
 
         // Update Master Stock
         $this->updateMasterStock();
 
-        $this->reset(['weight', 'color', 'batch']);
+        $this->reset(['weight', 'color', 'batch', 'production_date', 'operator_name']);
+        $this->production_date = now()->format('Y-m-d');
         $this->loadItems();
         $this->dispatch('noty', msg: 'Item creado correctamente');
     }

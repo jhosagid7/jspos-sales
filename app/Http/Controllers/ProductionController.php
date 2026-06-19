@@ -14,7 +14,19 @@ class ProductionController extends Controller
             return redirect()->back();
         }
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.production', compact('production'));
+        $isBags = $production->details->contains(function ($detail) {
+            $product = $detail->product;
+            if (!$product) return false;
+            
+            $hasTag = $product->tags()->where('name', 'M&F')->exists();
+            $hasSupplier = $product->supplier && str_contains($product->supplier->name, 'M&F Steel');
+            
+            return $hasTag || $hasSupplier;
+        });
+
+        $view = $isBags ? 'pdf.bags_production' : 'pdf.production';
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView($view, compact('production'));
         $pdf->setPaper('letter', 'portrait');
         
         return $pdf->stream('produccion_' . $production->id . '.pdf');

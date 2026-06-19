@@ -23,6 +23,11 @@ class Production extends Model
         return $this->hasMany(ProductionDetail::class);
     }
 
+    public function cargos()
+    {
+        return $this->hasMany(Cargo::class);
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);

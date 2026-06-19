@@ -184,7 +184,7 @@ class Product extends Model
         $term = trim($term);
         $tokens = explode(' ', $term);
 
-        $query->with(['category', 'supplier', 'priceList', 'tags'])
+        $query->with(['category', 'supplier', 'priceList', 'tags', 'images'])
             ->where(function ($q) use ($tokens) {
                 foreach ($tokens as $token) {
                     if (!empty($token)) {
@@ -203,13 +203,18 @@ class Product extends Model
                                 });
                             
                             // Fuzzy match for alphanumeric (removes spaces/symbols)
-                            if (!empty($cleanToken) && strlen($cleanToken) > 1) {
+                            // Only run if the token actually contained special characters/spaces that were stripped
+                            if (!empty($cleanToken) && strlen($cleanToken) > 1 && $cleanToken !== $token) {
                                 $subQuery->orWhereRaw("REGEXP_REPLACE(name, '[^0-9a-zA-Z]', '') LIKE ?", ["%{$cleanToken}%"])
                                          ->orWhereRaw("REGEXP_REPLACE(sku, '[^0-9a-zA-Z]', '') LIKE ?", ["%{$cleanToken}%"]);
                             }
 
                             // Fuzzy match for dimensions/numbers (removes letters like 'X' or 'x')
-                            if (!empty($numericToken) && strlen($numericToken) > 1) {
+                            // Only run if the token had letters/symbols stripped (e.g. '40x50' -> '4050') OR if it is purely numeric and has at least 3 digits
+                            $isPurelyNumeric = ctype_digit($token);
+                            $shouldFuzzyNumeric = ($numericToken !== $token) || ($isPurelyNumeric && strlen($token) >= 3);
+
+                            if (!empty($numericToken) && strlen($numericToken) > 1 && $shouldFuzzyNumeric) {
                                 $subQuery->orWhereRaw("REGEXP_REPLACE(name, '[^0-9]', '') LIKE ?", ["%{$numericToken}%"])
                                          ->orWhereRaw("REGEXP_REPLACE(sku, '[^0-9]', '') LIKE ?", ["%{$numericToken}%"]);
                             }

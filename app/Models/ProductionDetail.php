@@ -10,15 +10,18 @@ class ProductionDetail extends Model
     protected $fillable = [
         'production_id',
         'product_id',
+        'production_date',
         'warehouse_id',
         'material_type',
         'quantity',
         'weight',
+        'operator_name',
         'metadata'
     ];
 
     protected $casts = [
-        'metadata' => 'array'
+        'metadata' => 'array',
+        'production_date' => 'date'
     ];
 
     public function production()

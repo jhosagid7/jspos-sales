@@ -53,7 +53,9 @@ class CreateProduction extends Component
                         'material_type' => $detail->material_type,
                         'warehouse_id' => $detail->warehouse_id,
                         'is_variable' => (bool)$detail->product->is_variable_quantity,
-                        'items' => $detail->metadata ?? []
+                        'items' => $detail->metadata ?? [],
+                        'production_date' => $detail->production_date ? $detail->production_date->format('Y-m-d') : $productionModel->production_date->format('Y-m-d'),
+                        'operator_name' => $detail->operator_name ?? ''
                     ];
                 }
             } else {
@@ -163,7 +165,8 @@ class CreateProduction extends Component
                 'sku' => $product->sku,
                 'quantity' => $product->is_variable_quantity ? 0 : 1,
                 'weight' => 0,
-                'weight' => 0,
+                'production_date' => $this->production_date ?? now()->format('Y-m-d'),
+                'operator_name' => '',
                 'material_type' => 'PT', // "Producto Terminado" is too long (limit 10)
                 'is_variable' => (bool)$product->is_variable_quantity,
                 'items' => [] // To store bobinas
@@ -237,6 +240,8 @@ class CreateProduction extends Component
             'cart' => 'required|array|min:1',
             'cart.*.quantity' => 'required|numeric|min:0.01',
             'cart.*.weight' => 'required|numeric|min:0',
+            'cart.*.production_date' => 'required|date',
+            'cart.*.operator_name' => 'required|string|max:255',
         ]);
 
         // Validate Variable Items
@@ -275,6 +280,8 @@ class CreateProduction extends Component
                 \App\Models\ProductionDetail::create([
                     'production_id' => $production->id,
                     'product_id' => $item['id'],
+                    'production_date' => $item['production_date'],
+                    'operator_name' => $item['operator_name'],
                     'warehouse_id' => $item['warehouse_id'] ?? $this->warehouse_id, // Per-item or global default
                     'material_type' => $item['material_type'],
                     'quantity' => $item['quantity'],

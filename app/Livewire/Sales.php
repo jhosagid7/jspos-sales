@@ -81,6 +81,7 @@ class Sales extends Component
 
     public $search = '';
     public $searchOrder = '';
+    public $showProcessOrderModal = false;
 
     public $payments = []; // Lista de pagos realizados
     public $paymentAmount; // Monto del pago actual
@@ -1726,6 +1727,17 @@ class Sales extends Component
 
     public function getOrdersWithDetails()
     {
+        if (!$this->showProcessOrderModal) {
+            $this->ordersTotal = 0.0;
+            $this->ordersCommissionTotal = 0.0;
+            $this->ordersFreightTotal = 0.0;
+            $this->ordersMarkupTotal = 0.0;
+            $this->ordersDiffTotal = 0.0;
+            $this->ordersGrandTotal = 0.0;
+
+            return Order::whereRaw('1 = 0')->paginate($this->pagination);
+        }
+
         $query = Order::with(['customer.seller', 'user', 'driver'])
             ->where('status', 'pending')
             ->when(!auth()->user()->can('orders.view_all') && auth()->user()->can('orders.view_own'), function($q) {

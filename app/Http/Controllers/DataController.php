@@ -38,7 +38,7 @@ class DataController extends Controller
             $query->where('seller_id', $request->seller_id);
         }
 
-        $clients = $query->get();
+        $clients = $query->take(30)->get();
 
         return response()->json($clients);
     }
@@ -50,6 +50,7 @@ class DataController extends Controller
         $suppliers = Supplier::where('name', 'like', "%{$valueToSearch}%")
             ->orWhere('address', 'like', "%{$valueToSearch}%")
             ->orWhere('phone', 'like', "%{$valueToSearch}%")
+            ->take(30)
             ->get();
 
         return response()->json($suppliers);
@@ -62,6 +63,7 @@ class DataController extends Controller
         $suppliers = Product::where('name', 'like', "%{$valueToSearch}%")
             ->orWhere('sku', 'like', "%{$valueToSearch}%")
             ->orderBy('name')
+            ->take(30)
             ->get();
 
         return response()->json($suppliers);

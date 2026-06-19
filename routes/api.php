@@ -108,3 +108,10 @@ Route::prefix('soplados')->middleware('auth:sanctum')->group(function () {
     Route::get('/receipts/pending', [App\Http\Controllers\Api\Soplados\InventoryController::class, 'pendingReceipts']);
     Route::post('/receipts/{id}/receive', [App\Http\Controllers\Api\Soplados\InventoryController::class, 'receiveReceipt']);
 });
+
+// Bolsas Manufacturing App Routes
+Route::prefix('bolsas')->middleware('auth:sanctum')->group(function () {
+    Route::get('/products', [App\Http\Controllers\Api\BagsProductionApiController::class, 'products']);
+    Route::post('/production', [App\Http\Controllers\Api\BagsProductionApiController::class, 'store']);
+    Route::get('/production/history', [App\Http\Controllers\Api\BagsProductionApiController::class, 'history']);
+});

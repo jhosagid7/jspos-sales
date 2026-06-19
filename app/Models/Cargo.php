@@ -24,7 +24,8 @@ class Cargo extends Model
         'rejection_date',
         'deletion_reason',
         'deleted_by',
-        'deletion_date'
+        'deletion_date',
+        'production_id'
     ];
 
     protected $casts = [
@@ -37,6 +38,11 @@ class Cargo extends Model
     public function details()
     {
         return $this->hasMany(CargoDetail::class);
+    }
+
+    public function production()
+    {
+        return $this->belongsTo(Production::class);
     }
 
     public function warehouse()

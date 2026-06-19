@@ -157,9 +157,20 @@
                     {{-- Report Details (Right) --}}
                     <td class="border-0 text-right pr-0" width="40%" style="vertical-align: top;">
                         Fecha Reporte: <strong>{{ \Carbon\Carbon::now()->format('d/m/Y H:i') }}</strong><br>
-                        Generado por: <strong>{{ auth()->user()->name }}</strong><br>
-                        Fecha Producción: <strong>{{ \Carbon\Carbon::parse($production->production_date)->format('d/m/Y') }}</strong><br>
-                        Estado: <strong>{{ $production->status == 'sent' ? 'ENVIADO' : 'PENDIENTE' }}</strong>
+                        Levantado por: <strong>{{ $production->user->name ?? 'N/A' }}</strong><br>
+                        Fecha Producción: <strong>
+                            @php
+                                $dates = $production->details->pluck('production_date')->filter()->unique()->sort();
+                            @endphp
+                            @if($dates->count() > 1)
+                                Desde {{ \Carbon\Carbon::parse($dates->first())->format('d/m/Y') }} hasta {{ \Carbon\Carbon::parse($dates->last())->format('d/m/Y') }}
+                            @elseif($dates->count() == 1)
+                                {{ \Carbon\Carbon::parse($dates->first())->format('d/m/Y') }}
+                            @else
+                                {{ \Carbon\Carbon::parse($production->production_date)->format('d/m/Y') }}
+                            @endif
+                        </strong><br>
+                        Estado: <strong>{{ $production->status == 'sent' ? 'PROCESADO' : ($production->status == 'approved' ? 'APROBADO' : 'PENDIENTE') }}</strong>
                     </td>
                 </tr>
             </tbody>
@@ -181,29 +192,49 @@
             </tr>
         </thead>
         <tbody>
-            @foreach($production->details as $detail)
-            <tr>
-                <td>
-                    {{ $detail->product->name }}
-                    @if($detail->product->is_variable_quantity && !empty($detail->metadata))
-                        <br>
-                        <small style="margin-left: 10px; color: #555;">Detalle de Bobinas:</small>
-                        <ul style="list-style-type: none; margin: 0; padding-left: 15px; font-size: 9px; color: #555;">
-                            @foreach($detail->metadata as $item)
-                                <li>
-                                    - Peso: <b>{{ $item['weight'] }}</b>
-                                    @if(!empty($item['color'])) | Color: {{ $item['color'] }} @endif
-                                    @if(!empty($item['batch'])) | Lote: {{ $item['batch'] }} @endif
-                                </li>
-                            @endforeach
-                        </ul>
-                    @endif
-                </td>
-                <td class="text-center">{{ $detail->warehouse->name ?? 'N/A' }}</td>
-                <td class="text-center">{{ $detail->material_type }}</td>
-                <td class="text-center">{{ number_format($detail->quantity, 2) }}</td>
-                <td class="text-center">{{ number_format($detail->weight, 2) }}</td>
-            </tr>
+            @php
+                $grouped = $production->details->groupBy(function($d) {
+                    return $d->production_date ? $d->production_date->format('Y-m-d') : 'Sin Fecha';
+                });
+            @endphp
+            @foreach($grouped as $dateStr => $details)
+                @if($dateStr !== 'Sin Fecha')
+                    <tr class="bg-light">
+                        <td colspan="5" style="font-weight: bold; color: #0380b2; text-transform: uppercase;">
+                            {{ \Carbon\Carbon::parse($dateStr)->locale('es')->isoFormat('dddd DD-MM-YYYY') }}
+                        </td>
+                    </tr>
+                @else
+                    <tr class="bg-light">
+                        <td colspan="5" style="font-weight: bold; color: #7f8c8d;">
+                            Sin Fecha de Producción
+                        </td>
+                    </tr>
+                @endif
+                @foreach($details as $detail)
+                <tr>
+                    <td>
+                        {{ $detail->product->name }}
+                        @if($detail->product->is_variable_quantity && !empty($detail->metadata))
+                            <br>
+                            <small style="margin-left: 10px; color: #555;">Detalle de Bobinas:</small>
+                            <ul style="list-style-type: none; margin: 0; padding-left: 15px; font-size: 9px; color: #555;">
+                                @foreach($detail->metadata as $item)
+                                    <li>
+                                        - Peso: <b>{{ $item['weight'] }}</b>
+                                        @if(!empty($item['color'])) | Color: {{ $item['color'] }} @endif
+                                        @if(!empty($item['batch'])) | Lote: {{ $item['batch'] }} @endif
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </td>
+                    <td class="text-center">{{ $detail->warehouse->name ?? 'N/A' }}</td>
+                    <td class="text-center">{{ $detail->material_type }}</td>
+                    <td class="text-center">{{ number_format($detail->quantity, 2) }}</td>
+                    <td class="text-center">{{ number_format($detail->weight, 2) }}</td>
+                </tr>
+                @endforeach
             @endforeach
         </tbody>
         <tfoot>

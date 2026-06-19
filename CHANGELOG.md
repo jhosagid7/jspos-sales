@@ -1,3 +1,25 @@
+## [1.10.148] - 2026-06-19
+### Added
+- **Trazabilidad de Bobinas (Items Disponibles)**: Se agregaron las columnas de Fecha de Elaboración (fabricación) y Operario Fabricante a la tabla de "Items Disponibles" (`product-items-manager.blade.php`), y se eliminó la columna redundante "Original (Kg)".
+- **Trazabilidad de Bobinas (Aprobación de Cargos)**: Al aprobar un cargo generado desde una planilla de Levantamiento de Producción, los registros de `ProductItem` resultantes heredan automáticamente la fecha de producción y el operario fabricante del detalle correspondiente.
+- **Trazabilidad de Bobinas (Creación Manual)**: Se añadieron campos opcionales de Fecha de Elaboración y Operario Fabricante al formulario de agregar nueva unidad en el administrador de ítems de producto.
+- **Fábrica de Bolsas (App Móvil - Distribución)**: Se compiló y generó la versión `1.0.2` de la aplicación móvil (`JSPOS_Mobile_Bolsas_v1.0.2_AppManufactura_SuWeb.apk`) copiada a la raíz del proyecto.
+
+## [1.10.147] - 2026-06-19
+### Added
+- **Fábrica de Bolsas (App Móvil - Distribución)**: Se compiló y generó la nueva versión de producción del APK (`JSPOS_Mobile_Bolsas_v1.0.1_AppManufactura_SuWeb.apk`) copiada a la raíz del proyecto para facilitar su descarga. Incorpora soporte nativo para validar y persistir la fecha individual de producción por ítem, heredando automáticamente la fecha global elegida al principio.
+- **Fábrica de Bolsas (Módulo Web - Livewire)**: Añadidas columnas editables de Fecha de Elaboración y Operario por cada artículo en el carrito web de producción. Los detalles del modal se muestran agrupados visualmente por fecha en español.
+- **Fábrica de Bolsas (Base de Datos)**: Añadida columna `production_date` a `production_details` y configurado el casteo correspondiente en Eloquent.
+
+## [1.10.146] - 2026-06-16
+### Added
+- **Módulo de Levantamiento de Producción para Fábrica de Bolsas**:
+  - **API y Base de Datos**: Migraciones para agregar `operator_name` en `production_details` y `production_id` en `cargos`. Implementación del controlador `BagsProductionApiController` con rutas API registradas para la obtención de productos M&F, guardado de producción y consulta de historial con filtros avanzados.
+  - **Pruebas de Integración**: Pruebas automatizadas completas en `BagsProductionApiTest` (5/5 aprobadas).
+  - **Aprobación de Cargos y Correo Consolidado**: Vinculación de estados en `CargosList` al aprobar cargos de producción. Implementación de envío automático de correo consolidado (`BagsProductionConsolidatedMail`) una vez que todos los cargos subidos el mismo día son aprobados, adjuntando PDFs independientes por cada día de producción (`pdf/bags_production.blade.php`).
+  - **Aplicación Móvil de Bolsas (`mobile_bolsas_app`)**: Duplicado del proyecto móvil a partir de `mobile_soplados_app`, renombrando el paquete a `com.suweb.bolsas_mobile` y generando un icono personalizado. Eliminación de flujos de turnos, traspasos y recibos, implementando un flujo directo de levantamiento diario con selector de fecha, lectura QR, carga multi-operador por producto e ingresos de peso individual para bobinas variables.
+  - **Distribución de APK**: Compilación del paquete release y copiado a la raíz del proyecto como `JSPOS_Mobile_Bolsas_v1.0.0_AppManufactura_SuWeb.apk`.
+
 ## [1.10.145] - 2026-06-16
 ### Added
 - **Notificaciones Automáticas por Correo al Cerrar Turno de Soplados**:

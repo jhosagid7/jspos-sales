@@ -122,7 +122,8 @@ class ExchangeRateRestrictionTest extends TestCase
             'status' => 'pending',
             'type' => 'credit',
             'applied_exchange_diff_percent' => 70.00,
-            'primary_exchange_rate' => 1.00
+            'primary_exchange_rate' => 1.00,
+            'payment_agreement' => 'BCV'
         ]);
 
         $today = Carbon::now()->format('Y-m-d');

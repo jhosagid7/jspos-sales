@@ -30,6 +30,9 @@ class SalesReport extends Component
     public $showPdfModal = false;
     public $pdfUrl = '';
     public $groupBy = 'none'; // New property for grouping
+    public $availableGroups = [];
+    public $selectedGroups = [];
+    public $shouldResetGroups = false;
     
     public $columns = [
         'folio' => true,
@@ -53,7 +56,14 @@ class SalesReport extends Component
 
     public function searchData()
     {
+        $this->shouldResetGroups = true;
         $this->showReport = true;
+        $this->dispatch('noty', msg: 'INFO ACTUALIZADA');
+    }
+
+    public function updatedGroupBy()
+    {
+        $this->shouldResetGroups = true;
     }
 
     function mount()
@@ -74,10 +84,15 @@ class SalesReport extends Component
         $this->customer = session('sale_customer', null);
 
         $reportData = $this->getReport();
+        
+        $groupedSales = $reportData['groupedSales'] ?? null;
+        if ($this->groupBy !== 'none' && $groupedSales) {
+            $groupedSales = array_intersect_key($groupedSales, array_flip($this->selectedGroups));
+        }
 
         return view('livewire.reports.salesr', [
             'sales' => $reportData['sales'] ?? [],
-            'groupedSales' => $reportData['groupedSales'] ?? null,
+            'groupedSales' => $groupedSales ?? [],
             'isGrouped' => $this->groupBy !== 'none'
         ]);
     }
@@ -155,6 +170,8 @@ class SalesReport extends Component
 
             if ($this->groupBy === 'none') {
                 $sales = (clone $query)->paginate($this->pagination);
+                $this->availableGroups = [];
+                $this->selectedGroups = [];
             } else {
                 // If grouping, get all results (or we could chunk them, but typically grouping implies seeing all for the period)
                 $allSales = (clone $query)->get();
@@ -198,78 +215,102 @@ class SalesReport extends Component
                 }
                 
                 $groupedSales = $groupedData;
+
+                // Build available groups list
+                $this->availableGroups = [];
+                foreach ($groupedSales as $key => $data) {
+                    $this->availableGroups[$key] = $data['name'];
+                }
+
+                // Initialize or reset selectedGroups if needed
+                if ($this->shouldResetGroups || empty($this->selectedGroups)) {
+                    $this->selectedGroups = array_keys($this->availableGroups);
+                    $this->shouldResetGroups = false;
+                }
             }
 
-            // Calculate global totals
-            $salesQuery = Sale::when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
-                    $q->whereBetween('created_at', [$dFrom, $dTo]);
-                })
-                ->when(!auth()->user()->can('sales.view_all') && auth()->user()->can('sales.view_own'), function($q) {
-                    $q->where('user_id', auth()->id());
-                })
-                ->when($this->user_id != null, function ($query) {
-                    $query->where('user_id', $this->user_id);
-                })
-                ->when($this->seller_id != null, function ($query) {
-                    $query->whereHas('customer', function($q) {
-                        $q->where('seller_id', $this->seller_id);
-                    });
-                })
-                ->when($this->customer != null, function ($query) {
-                     $query->where('customer_id', $this->customer['id']);
-                })
-                ->when(!empty(trim($this->searchFactura)), function ($query) {
-                    $searchValue = trim($this->searchFactura);
-                    $query->where(function($q) use ($searchValue) {
-                        $q->where('id', 'like', "%{$searchValue}%")
-                          ->orWhere('invoice_number', 'like', "%{$searchValue}%");
-                    });
-                })
-                ->when($this->type != 0, function ($qry) {
-                    $qry->where('type', $this->type);
-                });
-                // ->where('status', '<>', 'returned');
-
-            $totalSale = $salesQuery->sum('total');
-
-            // Calcular costo total
-            $totalCostQuery = DB::table('sale_details')
-                ->join('sales', 'sale_details.sale_id', '=', 'sales.id')
-                ->join('products', 'sale_details.product_id', '=', 'products.id')
-                ->join('customers', 'sales.customer_id', '=', 'customers.id') 
-                ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
-                    $q->whereBetween('sales.created_at', [$dFrom, $dTo]);
-                })
-                ->when(!auth()->user()->can('sales.view_all') && auth()->user()->can('sales.view_own'), function($q) {
-                    $q->where('sales.user_id', auth()->id());
-                })
-                ->when($this->user_id != null, function ($query) {
-                    $query->where('sales.user_id', $this->user_id);
-                })
-                ->when($this->seller_id != null, function ($query) {
-                    $query->where('customers.seller_id', $this->seller_id);
-                })
-                ->when($this->customer != null, function ($query) {
-                     $query->where('sales.customer_id', $this->customer['id']);
-                })
-                ->when(!empty(trim($this->searchFactura)), function ($query) {
-                    $searchValue = trim($this->searchFactura);
-                    $saleId = 0;
-                    if (is_numeric($searchValue)) {
-                        $saleId = (int)$searchValue;
-                    } elseif (preg_match('/^[Ff]0*([1-9][0-9]*)$/', $searchValue, $matches)) {
-                        $saleId = (int)$matches[1];
+            if ($this->groupBy !== 'none') {
+                $totalSale = 0.0;
+                $totalCost = 0.0;
+                foreach ($groupedSales as $groupKey => $groupData) {
+                    if (in_array($groupKey, $this->selectedGroups)) {
+                        $totalSale += collect($groupData['sales'])->sum('total');
+                        foreach ($groupData['sales'] as $sale) {
+                            foreach ($sale->details as $detail) {
+                                $totalCost += $detail->quantity * ($detail->product->cost ?? 0);
+                            }
+                        }
                     }
-                    if ($saleId > 0) {
-                        $query->where('sales.id', $saleId);
-                    }
-                })
-                ->when($this->type != 0, function ($qry) {
-                    $qry->where('sales.type', $this->type);
-                });
-                // ->where('sales.status', '<>', 'returned');
-                
-            $totalCost = $totalCostQuery->sum(DB::raw('sale_details.quantity * products.cost'));
+                }
+            } else {
+                $salesQuery = Sale::when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
+                        $q->whereBetween('created_at', [$dFrom, $dTo]);
+                    })
+                    ->when(!auth()->user()->can('sales.view_all') && auth()->user()->can('sales.view_own'), function($q) {
+                        $q->where('user_id', auth()->id());
+                    })
+                    ->when($this->user_id != null, function ($query) {
+                        $query->where('user_id', $this->user_id);
+                    })
+                    ->when($this->seller_id != null, function ($query) {
+                        $query->whereHas('customer', function($q) {
+                            $q->where('seller_id', $this->seller_id);
+                        });
+                    })
+                    ->when($this->customer != null, function ($query) {
+                         $query->where('customer_id', $this->customer['id']);
+                    })
+                    ->when(!empty(trim($this->searchFactura)), function ($query) {
+                        $searchValue = trim($this->searchFactura);
+                        $query->where(function($q) use ($searchValue) {
+                            $q->where('id', 'like', "%{$searchValue}%")
+                              ->orWhere('invoice_number', 'like', "%{$searchValue}%");
+                        });
+                    })
+                    ->when($this->type != 0, function ($qry) {
+                        $qry->where('type', $this->type);
+                    });
+
+                $totalSale = $salesQuery->sum('total');
+
+                // Calcular costo total
+                $totalCostQuery = DB::table('sale_details')
+                    ->join('sales', 'sale_details.sale_id', '=', 'sales.id')
+                    ->join('products', 'sale_details.product_id', '=', 'products.id')
+                    ->join('customers', 'sales.customer_id', '=', 'customers.id') 
+                    ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
+                        $q->whereBetween('sales.created_at', [$dFrom, $dTo]);
+                    })
+                    ->when(!auth()->user()->can('sales.view_all') && auth()->user()->can('sales.view_own'), function($q) {
+                        $q->where('sales.user_id', auth()->id());
+                    })
+                    ->when($this->user_id != null, function ($query) {
+                        $query->where('sales.user_id', $this->user_id);
+                    })
+                    ->when($this->seller_id != null, function ($query) {
+                        $query->where('customers.seller_id', $this->seller_id);
+                    })
+                    ->when($this->customer != null, function ($query) {
+                         $query->where('sales.customer_id', $this->customer['id']);
+                    })
+                    ->when(!empty(trim($this->searchFactura)), function ($query) {
+                        $searchValue = trim($this->searchFactura);
+                        $saleId = 0;
+                        if (is_numeric($searchValue)) {
+                            $saleId = (int)$searchValue;
+                        } elseif (preg_match('/^[Ff]0*([1-9][0-9]*)$/', $searchValue, $matches)) {
+                            $saleId = (int)$matches[1];
+                        }
+                        if ($saleId > 0) {
+                            $query->where('sales.id', $saleId);
+                        }
+                    })
+                    ->when($this->type != 0, function ($qry) {
+                        $qry->where('sales.type', $this->type);
+                    });
+                    
+                $totalCost = $totalCostQuery->sum(DB::raw('sale_details.quantity * products.cost'));
+            }
 
             $profit = $totalSale - $totalCost;
             $this->totales = $totalSale;
@@ -283,7 +324,6 @@ class SalesReport extends Component
             session(['map' => $map, 'child' => $child, 'rest' => $rest, 'pos' => 'Reporte de Ventas']);
             
             $this->dispatch('update-header', map: $map, child: $child, rest: $rest);
-            $this->dispatch('noty', msg: 'INFO ACTUALIZADA');
             return [
                 'sales' => $sales,
                 'groupedSales' => $groupedSales
@@ -591,6 +631,7 @@ class SalesReport extends Component
             'driver_id' => $this->filter_driver_id,
             'groupBy' => $this->groupBy,
             'columns' => json_encode($this->columns),
+            'selectedGroups' => implode(',', $this->selectedGroups),
         ];
 
         $this->pdfUrl = route('reports.general.sales.pdf', $params);

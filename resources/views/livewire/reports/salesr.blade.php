@@ -93,10 +93,10 @@
                     </div>
 
                     <div class="mt-4">
-                        <button wire:click.prevent="searchData" class="btn btn-dark w-100">
+                        <button wire:key="btn-consultar" wire:click.prevent="searchData" class="btn btn-dark w-100">
                             <i class="fa fa-search"></i> Consultar
                         </button>
-                        <button wire:click.prevent="openPdfPreview" class="btn btn-danger text-white w-100 mt-2" @if(!$showReport) disabled @endif>
+                        <button wire:key="btn-pdf-preview" wire:click.prevent="openPdfPreview" class="btn btn-danger text-white w-100 mt-2" @if(!$showReport) disabled @endif>
                             <i class="fas fa-file-pdf"></i> Vista Previa PDF
                         </button>
                     </div>
@@ -255,11 +255,33 @@
                                 ${{ round($totales, 2) }}</span>
                         </div>
                     </div>
+
+                    @if($isGrouped && !empty($availableGroups))
+                    <div class="card mb-3 border-info">
+                        <div class="card-header bg-info text-white p-2">
+                            <h6 class="mb-0 text-white"><i class="fa fa-filter"></i> Mostrar Grupos</h6>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="d-flex flex-wrap">
+                                @foreach($availableGroups as $key => $name)
+                                    <div class="custom-control custom-checkbox mr-4 mb-2" wire:key="group_chk_container_{{ $key }}">
+                                        <input type="checkbox" class="custom-control-input" id="group_chk_{{ $key }}" value="{{ $key }}" wire:model.live="selectedGroups">
+                                        <label class="custom-control-label f-14 text-dark font-weight-bold" for="group_chk_{{ $key }}">
+                                            {{ $name }}
+                                        </label>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
                     @php
                         $loopData = $isGrouped ? $groupedSales : [['name' => '', 'sales' => $sales]];
                     @endphp
                     
                     @foreach($loopData as $groupKey => $groupData)
+                    <div wire:key="group-row-{{ $groupKey }}">
                     @if($isGrouped)
                     <div class="mt-4">
                         <h5 class="txt-primary mb-2"><i class="fa fa-folder-open"></i> {{ $groupData['name'] }}
@@ -623,6 +645,7 @@
                         </div>
                         @endif
                     </div>
+                    </div>
                     @endforeach
 
 
@@ -960,7 +983,8 @@
 
     {{-- PDF Viewer in Modal --}}
     @if($showPdfModal)
-    <div class="modal fade show" style="display: block; background: rgba(0,0,0,0.7); z-index: 9999;" tabindex="-1" role="dialog">
+    <div class="modal show" style="display: block; opacity: 1; background: rgba(0,0,0,0.7); z-index: 9999;" tabindex="-1" role="dialog"
+         x-init="document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = 'auto'; }">
         <div class="modal-dialog modal-xl" role="document" style="height: 90vh; max-width: 95vw; margin-top: 5vh;">
             <div class="modal-content" style="height: 100%;">
                 <div class="modal-header bg-dark text-white">
@@ -984,12 +1008,5 @@
             </div>
         </div>
     </div>
-    <script>
-        document.body.style.overflow = 'hidden';
-    </script>
-    @else
-    <script>
-        document.body.style.overflow = 'auto';
-    </script>
     @endif
 </div>

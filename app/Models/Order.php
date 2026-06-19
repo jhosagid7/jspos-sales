@@ -115,9 +115,6 @@ class Order extends Model
     public function getPaymentAgreementAttribute($value)
     {
         if (!empty($value)) {
-            if ($value === 'USD' && $this->exchange_diff_amount > 0) {
-                return 'BCV';
-            }
             return $value;
         }
         return $this->exchange_diff_amount > 0 ? 'BCV' : 'USD';

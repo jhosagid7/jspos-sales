@@ -21,7 +21,8 @@ class ProductionList extends Component
     #[Layout('layouts.theme.app')]
     public function render()
     {
-        $productions = \App\Models\Production::join('users', 'users.id', '=', 'productions.user_id')
+        $productions = \App\Models\Production::with('cargos')
+            ->join('users', 'users.id', '=', 'productions.user_id')
             ->select('productions.*', 'users.name as user_name')
             ->orderBy('productions.id', 'desc')
             ->paginate(10);
@@ -35,8 +36,8 @@ class ProductionList extends Component
     {
         $production = \App\Models\Production::find($id);
         if ($production) {
-            if ($production->status == 'sent') {
-                $this->dispatch('noty', msg: 'No se puede eliminar una producción ya enviada a inventario', type: 'error');
+            if ($production->status != 'pending') {
+                $this->dispatch('noty', msg: 'Solo se puede eliminar una producción en estado pendiente', type: 'error');
                 return;
             }
             $production->delete();
@@ -49,8 +50,8 @@ class ProductionList extends Component
         $production = \App\Models\Production::with('details')->find($id);
         if (!$production) return;
         
-        if ($production->status == 'sent') {
-            $this->dispatch('noty', msg: 'Esta producción ya fue enviada', type: 'warning');
+        if ($production->status != 'pending') {
+            $this->dispatch('noty', msg: 'Esta producción ya no está en estado pendiente', type: 'warning');
             return;
         }
 
@@ -68,7 +69,7 @@ class ProductionList extends Component
                     if (!$warehouseId) continue; // Skip if no warehouse
                 }
 
-                // Create Cargo for this warehouse
+                // Create Cargo for this warehouse (in pending status, without updating stock yet)
                 $cargo = \App\Models\Cargo::create([
                     'warehouse_id' => $warehouseId,
                     'user_id' => auth()->id(),
@@ -76,62 +77,46 @@ class ProductionList extends Component
                     'motive' => 'Producción del ' . $production->production_date->format('d-m-Y'),
                     'date' => now(),
                     'comments' => 'Generado desde Módulo de Producción #' . $production->id,
-                    'status' => 'pending'
+                    'status' => 'pending',
+                    'production_id' => $production->id
                 ]);
 
                 foreach ($details as $detail) {
+                    $product = \App\Models\Product::find($detail->product_id);
+                    $qty = ($product && $product->is_variable_quantity) ? $detail->weight : $detail->quantity;
+
+                    $itemsJson = null;
+                    if ($product && $product->is_variable_quantity && !empty($detail->metadata)) {
+                        $metadata = $detail->metadata;
+                        $enrichedMetadata = array_map(function($bobina) use ($detail) {
+                            $bobina['production_date'] = $bobina['production_date'] ?? ($detail->production_date ? $detail->production_date->format('Y-m-d') : null);
+                            $bobina['operator_name'] = $bobina['operator_name'] ?? $detail->operator_name;
+                            return $bobina;
+                        }, $metadata);
+                        $itemsJson = json_encode($enrichedMetadata);
+                    }
+
                     // Create Cargo Detail
                     \App\Models\CargoDetail::create([
                         'cargo_id' => $cargo->id,
                         'product_id' => $detail->product_id,
-                        'quantity' => $detail->quantity,
-                        'cost' => $detail->product->cost ?? 0
+                        'quantity' => $qty,
+                        'cost' => $product->cost ?? 0,
+                        'items_json' => $itemsJson,
                     ]);
-
-                    // Update Stock
-                    $product = \App\Models\Product::find($detail->product_id);
-
-                    // Create Product Items (Bobinas) from Metadata
-                    if ($product->is_variable_quantity && !empty($detail->metadata)) {
-                        foreach ($detail->metadata as $bobina) {
-                            \App\Models\ProductItem::create([
-                                'product_id' => $detail->product_id,
-                                'warehouse_id' => $warehouseId,
-                                'quantity' => $bobina['weight'],
-                                'original_quantity' => $bobina['weight'],
-                                'color' => $bobina['color'] ?? null,
-                                'batch' => $bobina['batch'] ?? null,
-                                'status' => 'available'
-                            ]);
-                        }
-                    }
-                    
-                    // Check if pivot exists
-                    $pivot = $product->warehouses()->where('warehouse_id', $warehouseId)->first();
-                    
-                    if ($pivot) {
-                        $newQty = $pivot->pivot->stock_qty + $detail->quantity;
-                        $product->warehouses()->updateExistingPivot($warehouseId, ['stock_qty' => $newQty]);
-                    } else {
-                        $product->warehouses()->attach($warehouseId, ['stock_qty' => $detail->quantity]);
-                    }
-                    
-                    // Update global stock
-                    $product->stock_qty += $detail->quantity;
-                    $product->save();
                 }
             }
 
-            // Update Production Status
-            $production->status = 'sent';
+            // Update Production Status to approved (awaits warehouse approval of the generated Cargo)
+            $production->status = 'approved';
             $production->save();
 
             \Illuminate\Support\Facades\DB::commit();
-            $this->dispatch('noty', msg: 'Enviado a Cargo(s) e Inventario actualizado correctamente');
+            $this->dispatch('noty', msg: 'Planilla aprobada y Cargo(s) de Inventario pendiente(s) generado(s) correctamente');
             
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\DB::rollBack();
-            $this->dispatch('noty', msg: 'Error al enviar: ' . $e->getMessage(), type: 'error');
+            $this->dispatch('noty', msg: 'Error al aprobar planilla: ' . $e->getMessage(), type: 'error');
         }
     }
 
