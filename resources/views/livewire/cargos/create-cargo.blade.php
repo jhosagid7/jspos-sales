@@ -139,7 +139,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @forelse($cart as $productId => $item)
+                                        @forelse($cart as $cartKey => $item)
                                             <tr>
                                                 <td class="text-center">{{ $item['sku'] }}</td>
                                                 <td>
@@ -147,7 +147,7 @@
                                                     @if($item['is_variable'])
                                                         <div class="mt-1">
                                                             <span class="badge badge-info">Variable</span>
-                                                            <button wire:click="openVariableModal({{ $productId }})" class="btn btn-sm btn-primary ml-2">
+                                                            <button wire:click="openVariableModal('{{ $cartKey }}')" class="btn btn-sm btn-primary ml-2">
                                                                 <i class="fas fa-plus"></i> Agregar Item
                                                             </button>
                                                             @if(count($item['items']) > 0)
@@ -159,7 +159,7 @@
                                                                                 @if($vItem['color']) | {{ $vItem['color'] }} @endif
                                                                                 @if($vItem['batch']) | Lote: {{ $vItem['batch'] }} @endif
                                                                             </small>
-                                                                            <a href="javascript:void(0)" wire:click="removeVariableItem({{ $productId }}, {{ $idx }})" class="text-danger ml-2">
+                                                                            <a href="javascript:void(0)" wire:click="removeVariableItem('{{ $cartKey }}', {{ $idx }})" class="text-danger ml-2">
                                                                                 <i class="fas fa-times"></i>
                                                                             </a>
                                                                         </li>
@@ -177,14 +177,14 @@
                                                         <input type="number" 
                                                             class="form-control text-center" 
                                                             value="{{ $item['quantity'] }}" 
-                                                            wire:change="updateQuantity({{ $productId }}, $event.target.value)"
+                                                            wire:change="updateQuantity('{{ $cartKey }}', $event.target.value)"
                                                             style="width: 100px; margin: 0 auto;">
                                                     @endif
                                                 </td>
                                                 <td class="text-right">${{ number_format($item['cost'], 2) }}</td>
                                                 <td class="text-right">${{ number_format($item['quantity'] * $item['cost'], 2) }}</td>
                                                 <td class="text-center">
-                                                    <button wire:click="removeFromCart({{ $productId }})" class="btn btn-danger btn-sm">
+                                                    <button wire:click="removeFromCart('{{ $cartKey }}')" class="btn btn-danger btn-sm">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </td>

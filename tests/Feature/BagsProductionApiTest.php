@@ -556,4 +556,61 @@ class BagsProductionApiTest extends TestCase
             'weight' => 27.00,
         ]);
     }
+
+    public function test_web_edit_cargo_preserves_multiple_details_of_same_product()
+    {
+        // 1. Create a pending Cargo with two details for the same product
+        $cargo = Cargo::create([
+            'warehouse_id' => $this->warehouse->id,
+            'user_id' => $this->user->id,
+            'motive' => 'Test Cargo',
+            'authorized_by' => 'Supervisor',
+            'date' => now(),
+            'status' => 'pending',
+        ]);
+
+        $cargo->details()->create([
+            'product_id' => $this->productMFBySupplier->id,
+            'quantity' => 26.00,
+            'cost' => 2.50,
+            'items_json' => json_encode([
+                ['weight' => 26.00, 'color' => '', 'batch' => '']
+            ])
+        ]);
+
+        $cargo->details()->create([
+            'product_id' => $this->productMFBySupplier->id,
+            'quantity' => 27.00,
+            'cost' => 2.50,
+            'items_json' => json_encode([
+                ['weight' => 27.00, 'color' => '', 'batch' => '']
+            ])
+        ]);
+
+        $this->assertEquals(2, $cargo->fresh()->details()->count());
+
+        // 2. Test the Livewire component editing this Cargo
+        $this->actingAs($this->user);
+
+        \Livewire\Livewire::test(\App\Livewire\Cargos\CreateCargo::class, ['cargo' => $cargo->id])
+            ->assertSet('cargo_id', $cargo->id)
+            // Assert both details are loaded into the cart as separate rows
+            ->assertCount('cart', 2)
+            // Call save to update and persist
+            ->call('save');
+
+        // 3. Verify that after updating, the Cargo still has both details in the DB
+        $cargoFresh = $cargo->fresh();
+        $this->assertEquals(2, $cargoFresh->details()->count());
+
+        $this->assertDatabaseHas('cargo_details', [
+            'cargo_id' => $cargo->id,
+            'quantity' => 26.00,
+        ]);
+
+        $this->assertDatabaseHas('cargo_details', [
+            'cargo_id' => $cargo->id,
+            'quantity' => 27.00,
+        ]);
+    }
 }

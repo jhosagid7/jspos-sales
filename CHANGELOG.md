@@ -1,3 +1,7 @@
+## [1.10.151] - 2026-06-19
+### Fixed
+- **Ajustes de Inventario (Edición de Cargos)**: Corregido error de colisión de claves de carrito en `CreateCargo.php` que ocasionaba la pérdida de detalles duplicados del mismo producto al abrir, editar o clonar un Cargo. Se migró la indexación del carrito a claves de fila únicas (`detail_{id}` y `new_{id}`).
+
 ## [1.10.150] - 2026-06-19
 ### Fixed
 - **Fábrica de Bolsas (Edición Web)**: Corregido error que causaba la pérdida de bobinas o detalles duplicados del mismo producto al editar/guardar lotes de producción. Se cambió el índice del carrito a una clave de fila única alfanumérica (`detail_{id}` y `new_{id}`), evitando colisiones de claves de producto.
