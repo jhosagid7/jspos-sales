@@ -493,4 +493,67 @@ class BagsProductionApiTest extends TestCase
             'operator_name' => 'Javier',
         ]);
     }
+
+    public function test_web_edit_production_preserves_multiple_details_of_same_product()
+    {
+        // 1. Create a pending production with two details for the same product
+        $production = Production::create([
+            'user_id' => $this->user->id,
+            'production_date' => '2026-06-16',
+            'status' => 'pending',
+        ]);
+
+        $production->details()->create([
+            'product_id' => $this->productMFBySupplier->id,
+            'warehouse_id' => $this->warehouse->id,
+            'material_type' => 'Original',
+            'quantity' => 1.00,
+            'weight' => 26.00,
+            'operator_name' => 'Javier',
+            'production_date' => '2026-06-16',
+            'metadata' => [
+                ['weight' => 26.00, 'color' => '', 'batch' => '']
+            ]
+        ]);
+
+        $production->details()->create([
+            'product_id' => $this->productMFBySupplier->id,
+            'warehouse_id' => $this->warehouse->id,
+            'material_type' => 'Original',
+            'quantity' => 1.00,
+            'weight' => 27.00,
+            'operator_name' => 'Javier',
+            'production_date' => '2026-06-16',
+            'metadata' => [
+                ['weight' => 27.00, 'color' => '', 'batch' => '']
+            ]
+        ]);
+
+        $this->assertEquals(2, $production->fresh()->details()->count());
+
+        // 2. Test the Livewire component editing this production
+        $this->actingAs($this->user);
+
+        \Livewire\Livewire::test(\App\Livewire\Production\CreateProduction::class, ['production' => $production->id])
+            ->assertSet('isEdit', true)
+            ->assertSet('productionId', $production->id)
+            // Assert both details are loaded into the cart as separate rows
+            ->assertCount('cart', 2)
+            // Call save to update and persist
+            ->call('save');
+
+        // 3. Verify that after updating, the production still has both details in the DB
+        $productionFresh = $production->fresh();
+        $this->assertEquals(2, $productionFresh->details()->count());
+
+        $this->assertDatabaseHas('production_details', [
+            'production_id' => $production->id,
+            'weight' => 26.00,
+        ]);
+
+        $this->assertDatabaseHas('production_details', [
+            'production_id' => $production->id,
+            'weight' => 27.00,
+        ]);
+    }
 }

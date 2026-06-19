@@ -44,7 +44,7 @@ class CreateProduction extends Component
                 $this->isEdit = true;
 
                 foreach ($productionModel->details as $detail) {
-                    $this->cart[$detail->product_id] = [
+                    $this->cart['detail_' . $detail->id] = [
                         'id' => $detail->product_id,
                         'name' => $detail->product->name,
                         'sku' => $detail->product->sku,
@@ -139,27 +139,37 @@ class CreateProduction extends Component
 
 
 
-    public function updateRow($productId, $field, $value)
+    public function updateRow($cartKey, $field, $value)
     {
-        if (isset($this->cart[$productId])) {
-            $this->cart[$productId][$field] = $value;
+        if (isset($this->cart[$cartKey])) {
+            $this->cart[$cartKey][$field] = $value;
         }
     }
 
     // Variable Item Inputs
-    public $vw_weight, $vw_color, $vw_batch, $current_product_id;
+    public $vw_weight, $vw_color, $vw_batch, $current_cart_key;
 
     public function addToCart($productId)
     {
         $product = \App\Models\Product::find($productId);
         if (!$product) return;
 
-        if (isset($this->cart[$productId])) {
+        // Find if there is an existing cart item for this product
+        $existingKey = null;
+        foreach ($this->cart as $key => $item) {
+            if ($item['id'] == $productId) {
+                $existingKey = $key;
+                break;
+            }
+        }
+
+        if ($existingKey !== null) {
             if (!$product->is_variable_quantity) {
-                 $this->cart[$productId]['quantity']++;
+                 $this->cart[$existingKey]['quantity']++;
             }
         } else {
-            $this->cart[$productId] = [
+            $newKey = 'new_' . uniqid();
+            $this->cart[$newKey] = [
                 'id' => $product->id,
                 'name' => $product->name,
                 'sku' => $product->sku,
@@ -177,9 +187,9 @@ class CreateProduction extends Component
         $this->searchResults = [];
     }
 
-    public function openVariableModal($productId)
+    public function openVariableModal($cartKey)
     {
-        $this->current_product_id = $productId;
+        $this->current_cart_key = $cartKey;
         $this->vw_weight = '';
         $this->vw_color = '';
         $this->vw_batch = '';
@@ -194,17 +204,17 @@ class CreateProduction extends Component
             'vw_batch' => 'nullable|string|max:50'
         ]);
 
-        if (isset($this->cart[$this->current_product_id])) {
-            $this->cart[$this->current_product_id]['items'][] = [
+        if (isset($this->cart[$this->current_cart_key])) {
+            $this->cart[$this->current_cart_key]['items'][] = [
                 'weight' => $this->vw_weight,
                 'color' => $this->vw_color,
                 'batch' => $this->vw_batch
             ];
             
             // Recalculate total weight/quantity
-            $totalWeight = collect($this->cart[$this->current_product_id]['items'])->sum('weight');
-            $this->cart[$this->current_product_id]['quantity'] = $totalWeight;
-            $this->cart[$this->current_product_id]['weight'] = $totalWeight;
+            $totalWeight = collect($this->cart[$this->current_cart_key]['items'])->sum('weight');
+            $this->cart[$this->current_cart_key]['quantity'] = $totalWeight;
+            $this->cart[$this->current_cart_key]['weight'] = $totalWeight;
         }
 
         $this->reset(['vw_weight', 'vw_color', 'vw_batch']);
@@ -213,23 +223,23 @@ class CreateProduction extends Component
          $this->dispatch('focus-weight');
     }
 
-    public function removeVariableItem($productId, $index)
+    public function removeVariableItem($cartKey, $index)
     {
-        if (isset($this->cart[$productId]['items'][$index])) {
-            unset($this->cart[$productId]['items'][$index]);
+        if (isset($this->cart[$cartKey]['items'][$index])) {
+            unset($this->cart[$cartKey]['items'][$index]);
             // Re-index array
-            $this->cart[$productId]['items'] = array_values($this->cart[$productId]['items']);
+            $this->cart[$cartKey]['items'] = array_values($this->cart[$cartKey]['items']);
             
             // Recalculate
-            $totalWeight = collect($this->cart[$productId]['items'])->sum('weight');
-            $this->cart[$productId]['quantity'] = $totalWeight;
-            $this->cart[$productId]['weight'] = $totalWeight;
+            $totalWeight = collect($this->cart[$cartKey]['items'])->sum('weight');
+            $this->cart[$cartKey]['quantity'] = $totalWeight;
+            $this->cart[$cartKey]['weight'] = $totalWeight;
         }
     }
 
-    public function removeFromCart($productId)
+    public function removeFromCart($cartKey)
     {
-        unset($this->cart[$productId]);
+        unset($this->cart[$cartKey]);
     }
 
     public function save()

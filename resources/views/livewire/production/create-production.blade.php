@@ -119,101 +119,101 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @forelse($cart as $productId => $item)
-                                    <tr>
-                                        <td>
-                                            <h6>{{ $item['name'] }}</h6>
-                                            <small>{{ $item['sku'] }}</small>
-                                            @if($item['is_variable'])
-                                                <div class="mt-1">
-                                                    <span class="badge badge-info">Variable</span>
-                                                    <button wire:click="openVariableModal({{ $productId }})" class="btn btn-sm btn-primary ml-2">
-                                                        <i class="fas fa-plus"></i> Agregar Item
-                                                    </button>
-                                                    @if(count($item['items']) > 0)
-                                                        <ul class="list-unstyled mt-2 pl-2 border-left">
-                                                            @foreach($item['items'] as $idx => $vItem)
-                                                                <li class="d-flex justify-content-between align-items-center mb-1">
-                                                                    <small>
-                                                                        <b>{{ $vItem['weight'] }} kg</b> 
-                                                                        @if($vItem['color']) | {{ $vItem['color'] }} @endif
-                                                                        @if($vItem['batch']) | Lote: {{ $vItem['batch'] }} @endif
-                                                                    </small>
-                                                                    <a href="javascript:void(0)" wire:click="removeVariableItem({{ $productId }}, {{ $idx }})" class="text-danger ml-2">
-                                                                        <i class="fas fa-times"></i>
-                                                                    </a>
-                                                                </li>
-                                                            @endforeach
-                                                        </ul>
-                                                    @endif
-                                                </div>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            <select class="form-control" 
-                                                    onchange="Livewire.dispatch('updateRow', [{{ $productId }}, 'warehouse_id', this.value])">
-                                                @foreach($warehouses as $w)
-                                                    <option value="{{ $w->id }}" {{ ($item['warehouse_id'] ?? $warehouse_id) == $w->id ? 'selected' : '' }}>
-                                                        {{ $w->name }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                        </td>
-                                        <td class="text-center">
-                                            <input type="date"
-                                                   value="{{ $item['production_date'] ?? '' }}"
-                                                   onchange="Livewire.dispatch('updateRow', [{{ $productId }}, 'production_date', this.value])"
-                                                   class="form-control">
-                                        </td>
-                                        <td class="text-center">
-                                            <input type="text"
-                                                   value="{{ $item['operator_name'] ?? '' }}"
-                                                   onchange="Livewire.dispatch('updateRow', [{{ $productId }}, 'operator_name', this.value])"
-                                                   class="form-control">
-                                        </td>
-                                        <td class="text-center">
-                                            <input type="text" 
-                                                   value="{{ $item['material_type'] }}" 
-                                                   onchange="Livewire.dispatch('updateRow', [{{ $productId }}, 'material_type', this.value])"
-                                                   class="form-control text-center"
-                                                   style="max-width: 100px; margin: 0 auto;">
-                                        </td>
-                                        <td class="text-center">
-                                            @if($item['is_variable'])
-                                                <input type="text" class="form-control text-center" value="{{ $item['quantity'] }}" disabled>
-                                                <small class="text-muted">Auto</small>
-                                            @else
-                                                <input type="number" 
-                                                       value="{{ $item['quantity'] }}" 
-                                                       onchange="Livewire.dispatch('updateRow', [{{ $productId }}, 'quantity', this.value])"
-                                                       class="form-control text-center"
-                                                       step="any"
-                                                       style="max-width: 120px; margin: 0 auto;">
-                                            @endif
-                                        </td>
-                                        <td class="text-center">
-                                            @if($item['is_variable'])
-                                                 <input type="text" class="form-control text-center" value="{{ $item['weight'] }}" disabled>
-                                            @else
-                                                <input type="number" 
-                                                       value="{{ $item['weight'] }}" 
-                                                       onchange="Livewire.dispatch('updateRow', [{{ $productId }}, 'weight', this.value])"
-                                                       class="form-control text-center"
-                                                       step="any"
-                                                       style="max-width: 120px; margin: 0 auto;">
-                                            @endif
-                                        </td>
-                                        <td class="text-center">
-                                            <button wire:click="removeFromCart({{ $productId }})" class="btn btn-dark">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    @empty
-                                    <tr>
-                                        <td colspan="8" class="text-center">NO HAY PRODUCTOS SELECCIONADOS</td>
-                                    </tr>
-                                    @endforelse
+                                    @forelse($cart as $cartKey => $item)
+                                     <tr>
+                                         <td>
+                                             <h6>{{ $item['name'] }}</h6>
+                                             <small>{{ $item['sku'] }}</small>
+                                             @if($item['is_variable'])
+                                                 <div class="mt-1">
+                                                     <span class="badge badge-info">Variable</span>
+                                                     <button wire:click="openVariableModal('{{ $cartKey }}')" class="btn btn-sm btn-primary ml-2">
+                                                         <i class="fas fa-plus"></i> Agregar Item
+                                                     </button>
+                                                     @if(count($item['items']) > 0)
+                                                         <ul class="list-unstyled mt-2 pl-2 border-left">
+                                                             @foreach($item['items'] as $idx => $vItem)
+                                                                 <li class="d-flex justify-content-between align-items-center mb-1">
+                                                                     <small>
+                                                                         <b>{{ $vItem['weight'] }} kg</b> 
+                                                                         @if($vItem['color']) | {{ $vItem['color'] }} @endif
+                                                                         @if($vItem['batch']) | Lote: {{ $vItem['batch'] }} @endif
+                                                                     </small>
+                                                                     <a href="javascript:void(0)" wire:click="removeVariableItem('{{ $cartKey }}', {{ $idx }})" class="text-danger ml-2">
+                                                                         <i class="fas fa-times"></i>
+                                                                     </a>
+                                                                 </li>
+                                                             @endforeach
+                                                         </ul>
+                                                     @endif
+                                                 </div>
+                                             @endif
+                                         </td>
+                                         <td>
+                                             <select class="form-control" 
+                                                     onchange="Livewire.dispatch('updateRow', ['{{ $cartKey }}', 'warehouse_id', this.value])">
+                                                 @foreach($warehouses as $w)
+                                                     <option value="{{ $w->id }}" {{ ($item['warehouse_id'] ?? $warehouse_id) == $w->id ? 'selected' : '' }}>
+                                                         {{ $w->name }}
+                                                     </option>
+                                                 @endforeach
+                                             </select>
+                                         </td>
+                                         <td class="text-center">
+                                             <input type="date"
+                                                    value="{{ $item['production_date'] ?? '' }}"
+                                                    onchange="Livewire.dispatch('updateRow', ['{{ $cartKey }}', 'production_date', this.value])"
+                                                    class="form-control">
+                                         </td>
+                                         <td class="text-center">
+                                             <input type="text"
+                                                    value="{{ $item['operator_name'] ?? '' }}"
+                                                    onchange="Livewire.dispatch('updateRow', ['{{ $cartKey }}', 'operator_name', this.value])"
+                                                    class="form-control">
+                                         </td>
+                                         <td class="text-center">
+                                             <input type="text" 
+                                                    value="{{ $item['material_type'] }}" 
+                                                    onchange="Livewire.dispatch('updateRow', ['{{ $cartKey }}', 'material_type', this.value])"
+                                                    class="form-control text-center"
+                                                    style="max-width: 100px; margin: 0 auto;">
+                                         </td>
+                                         <td class="text-center">
+                                             @if($item['is_variable'])
+                                                 <input type="text" class="form-control text-center" value="{{ $item['quantity'] }}" disabled>
+                                                 <small class="text-muted">Auto</small>
+                                             @else
+                                                 <input type="number" 
+                                                        value="{{ $item['quantity'] }}" 
+                                                        onchange="Livewire.dispatch('updateRow', ['{{ $cartKey }}', 'quantity', this.value])"
+                                                        class="form-control text-center"
+                                                        step="any"
+                                                        style="max-width: 120px; margin: 0 auto;">
+                                             @endif
+                                         </td>
+                                         <td class="text-center">
+                                             @if($item['is_variable'])
+                                                  <input type="text" class="form-control text-center" value="{{ $item['weight'] }}" disabled>
+                                             @else
+                                                 <input type="number" 
+                                                        value="{{ $item['weight'] }}" 
+                                                        onchange="Livewire.dispatch('updateRow', ['{{ $cartKey }}', 'weight', this.value])"
+                                                        class="form-control text-center"
+                                                        step="any"
+                                                        style="max-width: 120px; margin: 0 auto;">
+                                             @endif
+                                         </td>
+                                         <td class="text-center">
+                                             <button wire:click="removeFromCart('{{ $cartKey }}')" class="btn btn-dark">
+                                                 <i class="fas fa-trash"></i>
+                                             </button>
+                                         </td>
+                                     </tr>
+                                     @empty
+                                     <tr>
+                                         <td colspan="8" class="text-center">NO HAY PRODUCTOS SELECCIONADOS</td>
+                                     </tr>
+                                     @endforelse
                                 </tbody>
                             </table>
                         </div>

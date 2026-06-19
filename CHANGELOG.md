@@ -1,3 +1,7 @@
+## [1.10.150] - 2026-06-19
+### Fixed
+- **Fábrica de Bolsas (Edición Web)**: Corregido error que causaba la pérdida de bobinas o detalles duplicados del mismo producto al editar/guardar lotes de producción. Se cambió el índice del carrito a una clave de fila única alfanumérica (`detail_{id}` y `new_{id}`), evitando colisiones de claves de producto.
+
 ## [1.10.149] - 2026-06-19
 ### Fixed
 - **Administración de Items**: Corregido un problema donde la eliminación o adición de bobinas en el componente hijo `ProductItemsManager` no actualizaba el stock general ni el desglose por depósitos en el formulario del componente padre `Products`.
