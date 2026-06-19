@@ -4,6 +4,8 @@
 - **Trazabilidad de Bobinas (Aprobación de Cargos)**: Al aprobar un cargo generado desde una planilla de Levantamiento de Producción, los registros de `ProductItem` resultantes heredan automáticamente la fecha de producción y el operario fabricante del detalle correspondiente.
 - **Trazabilidad de Bobinas (Creación Manual)**: Se añadieron campos opcionales de Fecha de Elaboración y Operario Fabricante al formulario de agregar nueva unidad en el administrador de ítems de producto.
 - **Fábrica de Bolsas (App Móvil - Distribución)**: Se compiló y generó la versión `1.0.2` de la aplicación móvil (`JSPOS_Mobile_Bolsas_v1.0.2_AppManufactura_SuWeb.apk`) copiada a la raíz del proyecto.
+### Fixed
+- **Administración de Items**: Corregido un problema donde la eliminación o adición de bobinas en el componente hijo `ProductItemsManager` no actualizaba el stock general ni el desglose por depósitos en el formulario del componente padre `Products`.
 
 ## [1.10.147] - 2026-06-19
 ### Added

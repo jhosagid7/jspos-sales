@@ -585,4 +585,26 @@ class Products extends Component
             $this->dispatch('noty', msg: 'Error al actualizar stock: ' . $e->getMessage());
         }
     }
+
+    #[On('refreshProductStock')]
+    public function refreshProductStock()
+    {
+        if ($this->form->product_id) {
+            $product = Product::find($this->form->product_id);
+            if ($product) {
+                $this->form->stock_qty = $product->stock_qty;
+                
+                // Reload Stock Details
+                $warehouses = \App\Models\Warehouse::all();
+                $this->form->stock_details = $warehouses->map(function($warehouse) use ($product) {
+                    $stock = $product->warehouses()->where('warehouse_id', $warehouse->id)->first()->pivot->stock_qty ?? 0;
+                    return [
+                        'warehouse_id' => $warehouse->id,
+                        'warehouse_name' => $warehouse->name,
+                        'stock' => $stock
+                    ];
+                })->toArray();
+            }
+        }
+    }
 }

@@ -71,6 +71,7 @@ class ProductItemsManager extends Component
         $this->production_date = now()->format('Y-m-d');
         $this->loadItems();
         $this->dispatch('noty', msg: 'Item creado correctamente');
+        $this->dispatch('refreshProductStock');
     }
 
     public function deleteItem($itemId)
@@ -84,6 +85,7 @@ class ProductItemsManager extends Component
             $this->updateMasterStock();
             $this->loadItems();
             $this->dispatch('noty', msg: 'Item eliminado correctamente');
+            $this->dispatch('refreshProductStock');
         }
     }
 
