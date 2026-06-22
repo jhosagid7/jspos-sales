@@ -1434,7 +1434,7 @@ class _ProductionHistoryScreenState extends State<ProductionHistoryScreen> {
                                   title: Text('Lote #${p['id']} - $dateStr',
                                       style: const TextStyle(fontWeight: FontWeight.bold)),
                                   subtitle: Text(
-                                    'Subido: $createdStr | ${totalQty.toInt()} uds | ${totalWeight.toStringAsFixed(2)} Kg',
+                                    'Subido por: ${p['user']?['name'] ?? 'Desconocido'} - $createdStr\n${totalQty.toInt()} uds | ${totalWeight.toStringAsFixed(2)} Kg',
                                     style: const TextStyle(fontSize: 11, color: Colors.grey),
                                   ),
                                   children: [
