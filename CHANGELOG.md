@@ -1,3 +1,9 @@
+## [1.10.156] - 2026-06-22
+### Added
+- **Fábrica de Bolsas (App Móvil - v1.0.5)**: Añadido soporte nativo para escaneo de códigos de barra utilizando la cámara del dispositivo (`mobile_scanner`). Se corrigió el placeholder de búsqueda de "lea código QR..." a "Escriba nombre o lea código de barras...".
+- **Fábrica de Bolsas (Android Metadata)**: Corregida la etiqueta de la aplicación en el launcher del dispositivo a "JSPOS Bolsas" (estaba configurado como "JSPOS Soplados").
+- **Distribución de APK**: Generado y distribuido el APK optimizado (`JSPOS_Mobile_Bolsas_v1.0.5_ShowUsuario_SuWeb.apk`) en la raíz del proyecto usando el protocolo oficial (ARM64 split).
+
 ## [1.10.155] - 2026-06-22
 ### Added
 - **Fábrica de Bolsas (App Móvil - v1.0.4)**: Compilado y distribuido el APK corregido (`JSPOS_Mobile_Bolsas_v1.0.4_ShowUsuario_SuWeb.apk`) en la raíz del proyecto usando el protocolo correcto (ARM64 split). Muestra de forma robusta el nombre del usuario/operario que subió el lote.

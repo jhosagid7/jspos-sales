@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:intl/intl.dart';
 import 'dart:math';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 void main() {
   runApp(const BolsasApp());
@@ -655,8 +656,38 @@ class _ProductionScreenState extends State<ProductionScreen> {
                   if (selectedProduct == null) ...[
                     TextField(
                       decoration: InputDecoration(
-                        hintText: 'Escriba nombre o lea código QR...',
+                        hintText: 'Escriba nombre o lea código de barras...',
                         prefixIcon: const Icon(Icons.search),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.qr_code_scanner, color: Color(0xFF1B263B)),
+                          onPressed: () async {
+                            final code = await Navigator.push<String>(
+                              ctx,
+                              MaterialPageRoute(
+                                builder: (_) => const CameraScannerScreen(),
+                              ),
+                            );
+                            if (code != null && code.isNotEmpty) {
+                              final exactMatch = _availableProducts.firstWhere(
+                                (p) => p.sku.toUpperCase() == code.trim().toUpperCase(),
+                                orElse: () => ProductSimple(id: 0, name: '', sku: '', cost: 0.0, isVariableQuantity: false),
+                              );
+                              if (exactMatch.id != 0) {
+                                setModal(() {
+                                  selectedProduct = exactMatch;
+                                  searchQuery = '';
+                                });
+                              } else {
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  SnackBar(
+                                    content: Text('No se encontró producto con código: $code'),
+                                    backgroundColor: Colors.redAccent,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                        ),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
@@ -1550,6 +1581,106 @@ class _ProductionHistoryScreenState extends State<ProductionHistoryScreen> {
                             },
                           ),
                   ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class CameraScannerScreen extends StatefulWidget {
+  const CameraScannerScreen({super.key});
+
+  @override
+  State<CameraScannerScreen> createState() => _CameraScannerScreenState();
+}
+
+class _CameraScannerScreenState extends State<CameraScannerScreen> {
+  final MobileScannerController cameraController = MobileScannerController(
+    detectionSpeed: DetectionSpeed.normal,
+    facing: CameraFacing.back,
+  );
+  bool _scanned = false;
+
+  @override
+  void dispose() {
+    cameraController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Escanear Código de Barras'),
+        backgroundColor: const Color(0xFF1B263B),
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            color: Colors.white,
+            icon: ValueListenableBuilder<MobileScannerState>(
+              valueListenable: cameraController,
+              builder: (context, state, child) {
+                switch (state.torchState) {
+                  case TorchState.off:
+                    return const Icon(Icons.flash_off, color: Colors.grey);
+                  case TorchState.on:
+                    return const Icon(Icons.flash_on, color: Colors.yellow);
+                  case TorchState.unavailable:
+                  default:
+                    return const Icon(Icons.flash_off, color: Colors.grey);
+                }
+              },
+            ),
+            iconSize: 32.0,
+            onPressed: () => cameraController.toggleTorch(),
+          ),
+          IconButton(
+            color: Colors.white,
+            icon: ValueListenableBuilder<MobileScannerState>(
+              valueListenable: cameraController,
+              builder: (context, state, child) {
+                switch (state.cameraDirection) {
+                  case CameraFacing.front:
+                    return const Icon(Icons.camera_front);
+                  case CameraFacing.back:
+                    return const Icon(Icons.camera_rear);
+                }
+              },
+            ),
+            iconSize: 32.0,
+            onPressed: () => cameraController.switchCamera(),
+          ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          MobileScanner(
+            controller: cameraController,
+            onDetect: (capture) {
+              if (_scanned) return;
+              final List<Barcode> barcodes = capture.barcodes;
+              for (final barcode in barcodes) {
+                if (barcode.rawValue != null) {
+                  final String code = barcode.rawValue!;
+                  debugPrint('Barcode found! $code');
+                  _scanned = true;
+                  Navigator.pop(context, code);
+                  break;
+                }
+              }
+            },
+          ),
+          Align(
+            alignment: Alignment.center,
+            child: Container(
+              width: 280,
+              height: 150,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.amberAccent, width: 3),
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
           ),
         ],
       ),
