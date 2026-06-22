@@ -715,4 +715,40 @@ class BagsProductionApiTest extends TestCase
             return true;
         });
     }
+
+    public function test_delete_pending_production()
+    {
+        // 1. Create a pending production
+        $production = Production::create([
+            'user_id' => $this->user->id,
+            'production_date' => '2026-06-22',
+            'status' => 'pending',
+            'note' => 'To be deleted',
+        ]);
+
+        $production->details()->create([
+            'product_id' => $this->productMFByTag->id,
+            'warehouse_id' => $this->warehouse->id,
+            'material_type' => 'Original',
+            'quantity' => 10.00,
+            'weight' => 10.00,
+            'operator_name' => 'Operator A',
+            'production_date' => '2026-06-22',
+            'cost' => 0.15,
+        ]);
+
+        $this->assertDatabaseHas('productions', ['id' => $production->id]);
+        $this->assertDatabaseHas('production_details', ['production_id' => $production->id]);
+
+        // 2. Call delete method in ProductionList component
+        $this->actingAs($this->user);
+        \Livewire\Livewire::test(\App\Livewire\Production\ProductionList::class)
+            ->call('delete', $production->id)
+            ->assertDispatched('noty', msg: 'Producción eliminada correctamente');
+
+        // 3. Assert production and its details are deleted from database
+        $this->assertDatabaseMissing('productions', ['id' => $production->id]);
+        $this->assertDatabaseMissing('production_details', ['production_id' => $production->id]);
+    }
 }
+

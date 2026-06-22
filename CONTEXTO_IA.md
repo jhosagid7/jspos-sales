@@ -1,5 +1,10 @@
 # Contexto y Memoria del Proyecto para Antigravity (IA)
 
+> [!WARNING]
+> **REGLA CRÍTICA DE COMPILACIÓN FLUTTER**: Antes de compilar cualquier aplicación móvil (`mobile_*_app/`), la IA DEBE leer obligatoriamente la sección **9.1** de este archivo.
+> NUNCA se debe compilar usando `flutter build apk --release` plano (genera un archivo de >50MB).
+> SIEMPRE usar `flutter build apk --release --split-per-abi` y copiar únicamente el APK de 64 bits (`app-arm64-v8a-release.apk`) a la raíz.
+
 Este archivo sirve para almacenar instrucciones recurrentes, decisiones de diseño y contexto del proyecto `jspos-sales`.
 La IA debe leer este archivo para entender cómo trabajar en este proyecto específico.
 

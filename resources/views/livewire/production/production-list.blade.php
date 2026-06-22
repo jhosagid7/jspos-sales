@@ -46,7 +46,7 @@
                                 <td class="text-center">
                                     @if($row->status == 'pending')
                                     <button wire:click="delete({{$row->id}})" 
-                                            wire:confirm="¿CONFIRMAS ELIMINAR EL REGISTRO?"
+                                            onclick="confirm('¿CONFIRMAS ELIMINAR EL REGISTRO?') || event.stopImmediatePropagation()"
                                             class="btn btn-dark mtmobile" title="Eliminar">
                                         <i class="fas fa-trash"></i>
                                     </button>

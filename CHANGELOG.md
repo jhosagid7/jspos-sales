@@ -1,6 +1,11 @@
 ## [1.10.154] - 2026-06-22
 ### Added
 - **Correo Comprobante al Subir Lote**: Al registrar un levantamiento de producción desde la app móvil, se envía inmediatamente un correo a los destinatarios configurados con una copia PDF del levantamiento original. Sirve como comprobante inmutable para el operador ante posibles ediciones posteriores.
+- **Fábrica de Bolsas (App Móvil - v1.0.4)**: Compilado y distribuido el APK corregido (`JSPOS_Mobile_Bolsas_v1.0.4_ShowUsuario_SuWeb.apk`) en la raíz del proyecto usando el protocolo correcto (ARM64 split). Muestra de forma robusta el nombre del usuario/operario que subió el lote.
+
+### Fixed
+- **Fábrica de Bolsas (Módulo Web)**: Corregido el botón de eliminar en el listado de producciones pendientes. Se reemplazó la directiva `wire:confirm` nativa de Livewire (que estaba colisionando con scripts del frontend del tema) por una confirmación inline `onclick` nativa que detiene la propagación y ejecuta la eliminación correctamente.
+
 
 
 ## [1.10.153] - 2026-06-22
