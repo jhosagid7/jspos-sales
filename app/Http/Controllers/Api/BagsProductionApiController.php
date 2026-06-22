@@ -102,6 +102,61 @@ class BagsProductionApiController extends Controller
 
             DB::commit();
 
+            // Send immediate receipt email with original PDF to production_email_recipients
+            try {
+                $config = Configuration::first();
+                if ($config && !empty($config->production_email_recipients)) {
+                    $production->load(['details.product', 'user']);
+
+                    $date = Carbon::parse($production->production_date)->format('d/m/Y');
+                    $userName = auth()->user()->name ?? 'Operador';
+                    $businessName = $config->business_name ?? 'Fábrica de Bolsas';
+
+                    $subject = "Copia de Levantamiento Original - Lote #{$production->id} - {$date}";
+
+                    // Build summary
+                    $resumenRows = [];
+                    $totalQty = 0;
+                    $totalWeight = 0;
+                    foreach ($production->details as $d) {
+                        $pName = $d->product->name ?? 'Producto';
+                        $resumenRows[] = "• {$pName}: " . number_format($d->quantity, 2) . " unidades / " . number_format($d->weight, 2) . " Kg (Operario: {$d->operator_name})";
+                        $totalQty += $d->quantity;
+                        $totalWeight += $d->weight;
+                    }
+                    $resumen = implode("\n", $resumenRows);
+
+                    $body = "Hola,\n\nEste correo es una copia automática del levantamiento de producción registrado desde la aplicación móvil.\n\n";
+                    $body .= "==================================================\n";
+                    $body .= "📋 DATOS DEL LEVANTAMIENTO ORIGINAL\n";
+                    $body .= "==================================================\n";
+                    $body .= "• Lote de Producción: #{$production->id}\n";
+                    $body .= "• Fecha de Producción: {$date}\n";
+                    $body .= "• Registrado por: {$userName}\n";
+                    $body .= "• Empresa: {$businessName}\n";
+                    $body .= "• Cantidad Total: " . number_format($totalQty, 2) . " unidades\n";
+                    $body .= "• Peso Total: " . number_format($totalWeight, 2) . " Kg\n\n";
+                    $body .= "==================================================\n";
+                    $body .= "📦 DETALLE DE PRODUCTOS\n";
+                    $body .= "==================================================\n";
+                    $body .= "{$resumen}\n\n";
+                    $body .= "⚠️ Este correo es un comprobante del levantamiento original tal como fue registrado por el operador. Cualquier edición posterior en el sistema no afecta esta copia.\n\n";
+                    $body .= "--------------------------------------------------\n";
+                    $body .= "Reporte automático emitido por el Sistema de Control de Producción y Ventas de {$businessName}.\n";
+                    $body = nl2br($body);
+
+                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.bags_production', compact('production'));
+                    $pdf->setPaper('letter', 'portrait');
+                    $pdfContent = $pdf->output();
+                    $fileName = 'levantamiento_original_lote_' . $production->id . '.pdf';
+
+                    \Illuminate\Support\Facades\Mail::to($config->production_email_recipients)
+                        ->send(new \App\Mail\ProductionReportMail($subject, $body, $pdfContent, $fileName));
+                }
+            } catch (\Exception $mailEx) {
+                \Illuminate\Support\Facades\Log::warning("Receipt email failed for production #{$production->id}: " . $mailEx->getMessage());
+            }
+
             return response()->json([
                 'success'       => true,
                 'message'       => 'Levantamiento de producción registrado correctamente',

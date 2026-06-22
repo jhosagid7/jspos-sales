@@ -1,3 +1,8 @@
+## [1.10.154] - 2026-06-22
+### Added
+- **Correo Comprobante al Subir Lote**: Al registrar un levantamiento de producción desde la app móvil, se envía inmediatamente un correo a los destinatarios configurados con una copia PDF del levantamiento original. Sirve como comprobante inmutable para el operador ante posibles ediciones posteriores.
+
+
 ## [1.10.153] - 2026-06-22
 ### Added
 - **Persistencia e Inmutabilidad de Costos**: Añadida columna `cost` a `production_details` para registrar e inmutar el costo histórico de los productos al aprobar planillas de levantamiento, copiándolos a los cargos de inventario correspondientes.
