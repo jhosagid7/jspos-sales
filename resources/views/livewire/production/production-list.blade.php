@@ -127,6 +127,8 @@
                                     <th class="table-th text-white text-center">TIPO (TM)</th>
                                     <th class="table-th text-white text-center">CANTIDAD</th>
                                     <th class="table-th text-white text-center">PESO</th>
+                                    <th class="table-th text-white text-center">COSTO</th>
+                                    <th class="table-th text-white text-center">TOTAL</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -139,18 +141,23 @@
                                 @foreach($groupedDetails as $dateStr => $group)
                                     @if($dateStr !== 'Sin Fecha')
                                         <tr class="bg-light">
-                                            <td colspan="6" class="font-weight-bold text-primary text-uppercase">
+                                            <td colspan="8" class="font-weight-bold text-primary text-uppercase">
                                                 <i class="fas fa-calendar-alt"></i> {{ \Carbon\Carbon::parse($dateStr)->locale('es')->isoFormat('dddd DD-MM-YYYY') }}
                                             </td>
                                         </tr>
                                     @else
                                         <tr class="bg-light">
-                                            <td colspan="6" class="font-weight-bold text-secondary">
+                                            <td colspan="8" class="font-weight-bold text-secondary">
                                                 Sin Fecha de Producción
                                             </td>
                                         </tr>
                                     @endif
                                     @foreach($group as $detail)
+                                    @php
+                                        $rowCost = $detail->cost ?? ($detail->product->cost ?? 0);
+                                        $effQty = ($detail->product->is_variable_quantity) ? $detail->weight : $detail->quantity;
+                                        $rowTotal = $effQty * $rowCost;
+                                    @endphp
                                     <tr>
                                         <td>
                                             {{ $detail->product->name }}
@@ -178,6 +185,8 @@
                                         <td class="text-center">{{ $detail->material_type }}</td>
                                         <td class="text-center">{{ number_format($detail->quantity, 2) }}</td>
                                         <td class="text-center">{{ number_format($detail->weight, 2) }}</td>
+                                        <td class="text-center">{{ number_format($rowCost, 2) }}</td>
+                                        <td class="text-center">{{ number_format($rowTotal, 2) }}</td>
                                     </tr>
                                     @endforeach
                                 @endforeach
@@ -187,6 +196,16 @@
                                     <td colspan="4" class="text-right font-weight-bold">TOTALES</td>
                                     <td class="text-center font-weight-bold">{{ number_format(collect($details)->sum('quantity'), 2) }}</td>
                                     <td class="text-center font-weight-bold">{{ number_format(collect($details)->sum('weight'), 2) }}</td>
+                                    <td></td>
+                                    <td class="text-center font-weight-bold">
+                                        @php
+                                            $grandTotalCost = collect($details)->sum(function($d) {
+                                                $effQty = ($d->product->is_variable_quantity) ? $d->weight : $d->quantity;
+                                                return $effQty * ($d->cost ?? ($d->product->cost ?? 0));
+                                            });
+                                        @endphp
+                                        {{ number_format($grandTotalCost, 2) }}
+                                    </td>
                                 </tr>
                             </tfoot>
                         </table>

@@ -16,12 +16,14 @@ class ProductionDetail extends Model
         'quantity',
         'weight',
         'operator_name',
-        'metadata'
+        'metadata',
+        'cost'
     ];
 
     protected $casts = [
         'metadata' => 'array',
-        'production_date' => 'date'
+        'production_date' => 'date',
+        'cost' => 'float'
     ];
 
     public function production()

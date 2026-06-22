@@ -101,7 +101,7 @@ class ProductionList extends Component
                         'cargo_id' => $cargo->id,
                         'product_id' => $detail->product_id,
                         'quantity' => $qty,
-                        'cost' => $product->cost ?? 0,
+                        'cost' => $detail->cost ?? 0,
                         'items_json' => $itemsJson,
                     ]);
                 }

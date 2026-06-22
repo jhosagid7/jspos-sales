@@ -210,3 +210,5 @@ L
 2026-06-18 09:30:32 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
 2026-06-18 15:25:54 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 6 - VIP Customer
 2026-06-18 15:25:54 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
+2026-06-22 10:59:37 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 6 - VIP Customer
+2026-06-22 10:59:37 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl

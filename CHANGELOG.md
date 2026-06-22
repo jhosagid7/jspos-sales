@@ -1,3 +1,12 @@
+## [1.10.153] - 2026-06-22
+### Added
+- **Persistencia e Inmutabilidad de Costos**: Añadida columna `cost` a `production_details` para registrar e inmutar el costo histórico de los productos al aprobar planillas de levantamiento, copiándolos a los cargos de inventario correspondientes.
+- **Visualización de Costos y Totales**: Agregadas las columnas **Costo** y **Total** en la vista web de detalles de producción y en las plantillas de reporte PDF de producción general y Fábrica de Bolsas.
+
+### Fixed
+- **Envío de Correos Consolidados**: Solucionado error en `CargosList` que agrupaba cargos por fecha de creación global diaria y causaba que cargos de producción ajenos o pendientes bloquearan el envío. Ahora se agrupa y valida estrictamente por cada ID de planilla (`production_id`).
+- **Asunto de Correo Personalizado**: Se actualizó el asunto predeterminado del correo para que denote que es la planilla de la Fábrica de Bolsas y su lote correspondiente para facilitar la búsqueda en el correo.
+
 ## [1.10.152] - 2026-06-19
 ### Added
 - **Reportes de Producción (Marca de Agua PDF)**: Añadido soporte para mostrar una marca de agua en diagonal de fondo en los PDFs de planillas de producción (`PENDIENTE`, `APROBADO` o `PROCESADO`), con estilos de baja opacidad y colores representativos de cada estado.

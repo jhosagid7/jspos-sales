@@ -205,10 +205,12 @@
         <thead>
             <tr>
                 <th>Producto</th>
-                <th class="text-center">Depósito</th>
-                <th class="text-center">Tipo (TM)</th>
-                <th class="text-center">Cantidad</th>
-                <th class="text-center">Peso</th>
+                <th class="text-center" width="12%">Depósito</th>
+                <th class="text-center" width="10%">Tipo (TM)</th>
+                <th class="text-center" width="12%">Cantidad</th>
+                <th class="text-center" width="12%">Peso</th>
+                <th class="text-center" width="12%">Costo</th>
+                <th class="text-center" width="12%">Total</th>
             </tr>
         </thead>
         <tbody>
@@ -220,18 +222,23 @@
             @foreach($grouped as $dateStr => $details)
                 @if($dateStr !== 'Sin Fecha')
                     <tr class="bg-light">
-                        <td colspan="5" style="font-weight: bold; color: #0380b2; text-transform: uppercase;">
+                        <td colspan="7" style="font-weight: bold; color: #0380b2; text-transform: uppercase;">
                             {{ \Carbon\Carbon::parse($dateStr)->locale('es')->isoFormat('dddd DD-MM-YYYY') }}
                         </td>
                     </tr>
                 @else
                     <tr class="bg-light">
-                        <td colspan="5" style="font-weight: bold; color: #7f8c8d;">
+                        <td colspan="7" style="font-weight: bold; color: #7f8c8d;">
                             Sin Fecha de Producción
                         </td>
                     </tr>
                 @endif
                 @foreach($details as $detail)
+                @php
+                    $rowCost = $detail->cost ?? ($detail->product->cost ?? 0);
+                    $effQty = ($detail->product->is_variable_quantity) ? $detail->weight : $detail->quantity;
+                    $rowTotal = $effQty * $rowCost;
+                @endphp
                 <tr>
                     <td>
                         {{ $detail->product->name }}
@@ -253,15 +260,27 @@
                     <td class="text-center">{{ $detail->material_type }}</td>
                     <td class="text-center">{{ number_format($detail->quantity, 2) }}</td>
                     <td class="text-center">{{ number_format($detail->weight, 2) }}</td>
+                    <td class="text-center">{{ number_format($rowCost, 2) }}</td>
+                    <td class="text-center">{{ number_format($rowTotal, 2) }}</td>
                 </tr>
                 @endforeach
             @endforeach
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="2" class="text-right"><strong>Totales:</strong></td>
+                <td colspan="3" class="text-right"><strong>Totales:</strong></td>
                 <td class="text-center"><strong>{{ number_format($production->details->sum('quantity'), 2) }}</strong></td>
                 <td class="text-center"><strong>{{ number_format($production->details->sum('weight'), 2) }}</strong></td>
+                <td></td>
+                <td class="text-center"><strong>
+                    @php
+                        $grandTotal = $production->details->sum(function($d) {
+                            $effQty = ($d->product->is_variable_quantity) ? $d->weight : $d->quantity;
+                            return $effQty * ($d->cost ?? ($d->product->cost ?? 0));
+                        });
+                    @endphp
+                    {{ number_format($grandTotal, 2) }}
+                </strong></td>
             </tr>
         </tfoot>
     </table>

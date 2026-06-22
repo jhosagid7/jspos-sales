@@ -55,7 +55,8 @@ class CreateProduction extends Component
                         'is_variable' => (bool)$detail->product->is_variable_quantity,
                         'items' => $detail->metadata ?? [],
                         'production_date' => $detail->production_date ? $detail->production_date->format('Y-m-d') : $productionModel->production_date->format('Y-m-d'),
-                        'operator_name' => $detail->operator_name ?? ''
+                        'operator_name' => $detail->operator_name ?? '',
+                        'cost' => floatval($detail->product->cost ?? 0)
                     ];
                 }
             } else {
@@ -179,7 +180,8 @@ class CreateProduction extends Component
                 'operator_name' => '',
                 'material_type' => 'PT', // "Producto Terminado" is too long (limit 10)
                 'is_variable' => (bool)$product->is_variable_quantity,
-                'items' => [] // To store bobinas
+                'items' => [], // To store bobinas
+                'cost' => floatval($product->cost ?? 0)
             ];
         }
         
@@ -296,7 +298,8 @@ class CreateProduction extends Component
                     'material_type' => $item['material_type'],
                     'quantity' => $item['quantity'],
                     'weight' => $item['weight'],
-                    'metadata' => ($item['is_variable'] && !empty($item['items'])) ? $item['items'] : null
+                    'metadata' => ($item['is_variable'] && !empty($item['items'])) ? $item['items'] : null,
+                    'cost' => $item['cost'] ?? 0
                 ]);
             }
 

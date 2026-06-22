@@ -613,4 +613,106 @@ class BagsProductionApiTest extends TestCase
             'quantity' => 27.00,
         ]);
     }
+
+    public function test_production_cost_flow_and_consolidated_email()
+    {
+        Mail::fake();
+
+        // 1. Setup config and product with initial cost
+        $config = Configuration::create([
+            'business_name' => 'Fábrica Bolsas Test',
+            'bolsas_warehouse_id' => $this->warehouse->id,
+            'default_warehouse_id' => $this->warehouse->id,
+            'production_email_recipients' => ['boss@example.com'],
+        ]);
+
+        $this->productMFByTag->update(['cost' => 0.15]);
+
+        // 2. Store via API
+        $payload = [
+            'production_date' => '2026-06-22',
+            'notes' => 'Test cost flow',
+            'details' => [
+                [
+                    'product_id' => $this->productMFByTag->id,
+                    'quantity' => 10.00,
+                    'weight' => 10.00,
+                    'operator_name' => 'Gomez',
+                    'production_date' => '2026-06-22',
+                ]
+            ]
+        ];
+
+        $response = $this->actingAs($this->user)
+            ->postJson('/api/bolsas/production', $payload);
+
+        $response->assertStatus(200);
+
+        // Assert cost was saved as 0.15
+        $production = Production::orderBy('id', 'desc')->firstOrFail();
+        $this->assertEquals(0.15, floatval($production->details->first()->cost));
+
+        // 3. Change product cost in catalog
+        $this->productMFByTag->update(['cost' => 0.18]);
+
+        // 4. Test web edit updates the cost from catalog because production is pending
+        \Livewire\Livewire::test(\App\Livewire\Production\CreateProduction::class, ['production' => $production->id])
+            ->assertSet('cart.detail_' . $production->details->first()->id . '.cost', 0.18)
+            ->call('save');
+
+        // Confirm saved cost is updated to 0.18 in details
+        $detail = $production->fresh()->details->first();
+        $this->assertEquals(0.18, floatval($detail->cost));
+
+        // 5. Change product cost again in catalog (to check inmutability)
+        $this->productMFByTag->update(['cost' => 0.22]);
+
+        // 6. Send to cargo (approving production, creating cargo)
+        $productionList = new \App\Livewire\Production\ProductionList();
+        $productionList->sendToCargo($production->id);
+
+        $cargo = Cargo::where('production_id', $production->id)->firstOrFail();
+        
+        // Assert cargo detail cost copies the historical cost of the production detail (0.18), not the current catalog cost (0.22)
+        $this->assertDatabaseHas('cargo_details', [
+            'cargo_id' => $cargo->id,
+            'product_id' => $this->productMFByTag->id,
+            'cost' => 0.18
+        ]);
+
+        // 7. Approve Cargo to trigger consolidated email
+        $cargosList = new \App\Livewire\Cargos\CargosList();
+        $this->user->givePermissionTo('adjustments.approve_cargo');
+        
+        // Ensure there is another unrelated pending cargo on the same day to make sure it doesn't block this email!
+        $unrelatedProduction = Production::create([
+            'user_id' => $this->user->id,
+            'production_date' => now(),
+            'status' => 'pending',
+        ]);
+
+        $unrelatedCargo = Cargo::create([
+            'warehouse_id' => $this->warehouse->id,
+            'user_id' => $this->user->id,
+            'motive' => 'Unrelated pending cargo',
+            'date' => now(),
+            'status' => 'pending',
+            'production_id' => $unrelatedProduction->id,
+        ]);
+
+        $cargosList->approve($cargo->id);
+
+        // Assert associated Production status is updated to 'sent'
+        $this->assertEquals('sent', $production->fresh()->status);
+
+        // Assert consolidated email was sent because the single cargo of this production was approved (unrelated cargo 99999 being pending did not block it!)
+        Mail::assertSent(BagsProductionConsolidatedMail::class, function ($mail) use ($production) {
+            $this->assertTrue($mail->hasTo('boss@example.com'));
+            $date = \Carbon\Carbon::now()->format('d/m/Y');
+            $expectedSubject = "Planilla de Levantamiento de la Fábrica de Bolsas - Lote #{$production->id} - {$date}";
+            $this->assertEquals($expectedSubject, $mail->subjectLine);
+            $this->assertStringContainsString("Lote(s) de Producción: #{$production->id}", $mail->bodyContent);
+            return true;
+        });
+    }
 }

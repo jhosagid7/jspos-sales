@@ -215,12 +215,13 @@ class CargosList extends Component
     public function checkAndSendConsolidatedEmail($cargo)
     {
         try {
-            $liftingDate = $cargo->created_at->toDateString();
+            $productionId = $cargo->production_id;
+            if (!$productionId) {
+                return;
+            }
             
-            // Query all cargos created on this day that have a production_id
-            $cargos = \App\Models\Cargo::whereDate('created_at', $liftingDate)
-                ->whereNotNull('production_id')
-                ->get();
+            // Query all cargos belonging to this production
+            $cargos = \App\Models\Cargo::where('production_id', $productionId)->get();
                 
             if ($cargos->isEmpty()) {
                 return;
@@ -229,7 +230,7 @@ class CargosList extends Component
             // Check if there are any pending cargos from this group
             $pendingCount = $cargos->where('status', 'pending')->count();
             if ($pendingCount > 0) {
-                // Not all cargos from this lifting session are approved yet
+                // Not all cargos from this production are approved yet
                 return;
             }
             
@@ -299,13 +300,16 @@ class CargosList extends Component
             $user = auth()->user()->name;
             $businessName = $config->business_name ?? 'Fábrica de Bolsas';
             
-            $subject = (!empty($config->production_email_subject)) ? $config->production_email_subject : "Reporte Consolidado de Producción de Bolsas - [FECHA]";
+            $prodIdsStr = $productionIds->implode(', ');
+            
+            $subject = (!empty($config->production_email_subject)) ? $config->production_email_subject : "Planilla de Levantamiento de la Fábrica de Bolsas - Lote #[PRODUCCION_ID] - [FECHA]";
             $subject = str_replace('[FECHA]', $date, $subject);
             $subject = str_replace('[PESO_TOTAL]', number_format($totalWeight, 2), $subject);
             $subject = str_replace('[RESUMEN_DETALLES]', $resumenDetalles, $subject);
             $subject = str_replace('[EMPRESA]', $businessName, $subject);
+            $subject = str_replace('[PRODUCCION_ID]', $prodIdsStr, $subject);
             
-            $body = (!empty($config->production_email_body)) ? $config->production_email_body : "[SALUDO],\n\nAdjunto a este correo electrónico se encuentra el reporte consolidado detallado correspondiente a la jornada de levantamiento de producción del [FECHA].\n\nA continuación, se presenta un resumen de los días de producción procesados y aprobados hoy:\n\n==================================================\n📊 RESUMEN DE LEVANTAMIENTO\n==================================================\n• Fecha de Registro: [FECHA]\n• Aprobado Por: [USUARIO]\n• Empresa / Planta: [EMPRESA]\n• Cantidad Total Levantada: [CANTIDAD_TOTAL] unidades\n• Peso Total Levantado: [PESO_TOTAL] Kg\n\n==================================================\n📝 DETALLE POR DÍA DE PRODUCCIÓN\n==================================================\n[RESUMEN_DETALLES]\n\n*(El desglose por producto, peso por rollo y operario fabricante se encuentra detallado en los archivos PDF adjuntos independientes para cada día de producción).* \n\n--------------------------------------------------\nEste es un reporte automático emitido por el Sistema de Control de Producción y Ventas de [EMPRESA].\n\nQuedamos atentos a cualquier consulta técnica o administrativa.\n\nAtentamente,\nDepartamento de Control de Calidad y Manufactura\n[EMPRESA]";
+            $body = (!empty($config->production_email_body)) ? $config->production_email_body : "[SALUDO],\n\nAdjunto a este correo electrónico se encuentra el reporte consolidado detallado correspondiente al levantamiento de la Fábrica de Bolsas del [FECHA].\n\nA continuación, se presenta un resumen de la planilla procesada y aprobada:\n\n==================================================\n📊 RESUMEN DE LEVANTAMIENTO\n==================================================\n• Lote(s) de Producción: #[PRODUCCION_ID]\n• Fecha de Registro: [FECHA]\n• Aprobado Por: [USUARIO]\n• Empresa / Planta: [EMPRESA]\n• Cantidad Total Levantada: [CANTIDAD_TOTAL] unidades\n• Peso Total Levantado: [PESO_TOTAL] Kg\n\n==================================================\n📝 DETALLE POR PLANILLA\n==================================================\n[RESUMEN_DETALLES]\n\n*(El desglose por producto, peso por rollo y operario fabricante se encuentra detallado en los archivos PDF adjuntos independientes para cada lote).* \n\n--------------------------------------------------\nEste es un reporte automático emitido por el Sistema de Control de Producción y Ventas de [EMPRESA].\n\nQuedamos atentos a cualquier consulta técnica o administrativa.\n\nAtentamente,\nDepartamento de Control de Calidad y Manufactura\n[EMPRESA]";
             
             $body = str_replace('[FECHA]', $date, $body);
             $body = str_replace('[SALUDO]', $greeting, $body);
@@ -314,6 +318,7 @@ class CargosList extends Component
             $body = str_replace('[PESO_TOTAL]', number_format($totalWeight, 2), $body);
             $body = str_replace('[RESUMEN_DETALLES]', $resumenDetalles, $body);
             $body = str_replace('[EMPRESA]', $businessName, $body);
+            $body = str_replace('[PRODUCCION_ID]', $prodIdsStr, $body);
             
             $body = nl2br($body);
             

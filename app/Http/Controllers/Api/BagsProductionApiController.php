@@ -96,6 +96,7 @@ class BagsProductionApiController extends Controller
                     'weight'          => $item['weight'],
                     'operator_name'   => $item['operator_name'],
                     'metadata'        => $item['metadata'] ?? null,
+                    'cost'            => $product->cost ?? 0,
                 ]);
             }
 
