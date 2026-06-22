@@ -100,7 +100,7 @@
                 confirmButtonText: 'Aceptar'
             }).then(function(result) {
                 if (result.value) {
-                    window.Livewire.find('{{ $this->getId() }}').delete(id)
+                    @this.call('delete', id)
                     swal.close()
                 }
             })
