@@ -45,11 +45,11 @@
                                 <td><h6>{{$row->note}}</h6></td>
                                 <td class="text-center">
                                     @if($row->status == 'pending')
-                                    <a href="javascript:void(0)" 
-                                       onclick="Confirm('{{$row->id}}')" 
-                                       class="btn btn-dark mtmobile" title="Eliminar">
+                                    <button wire:click="delete({{$row->id}})" 
+                                            wire:confirm="¿CONFIRMAS ELIMINAR EL REGISTRO?"
+                                            class="btn btn-dark mtmobile" title="Eliminar">
                                         <i class="fas fa-trash"></i>
-                                    </a>
+                                    </button>
                                     @endif
                                     
                                     @if($row->status == 'pending' && $row->cargos->isEmpty())
@@ -87,25 +87,6 @@
             </div>
         </div>
     </div>
-    <script>
-        function Confirm(id) {
-            swal({
-                title: 'CONFIRMAR',
-                text: '¿CONFIRMAS ELIMINAR EL REGISTRO?',
-                type: 'warning',
-                showCancelButton: true,
-                cancelButtonText: 'Cerrar',
-                cancelButtonColor: '#fff',
-                confirmButtonColor: '#3B3F5C',
-                confirmButtonText: 'Aceptar'
-            }).then(function(result) {
-                if (result.value) {
-                    @this.call('delete', id)
-                    swal.close()
-                }
-            })
-        }
-    </script>
 
     <div wire:ignore.self class="modal fade" id="detailsModal" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-lg" role="document">
