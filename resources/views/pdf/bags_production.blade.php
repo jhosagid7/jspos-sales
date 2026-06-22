@@ -102,7 +102,7 @@
             color: #2c3e50;
             font-size: 16px;
             font-weight: bold;
-            margin: 0;
+             margin: 0;
         }
         .box-details {
             border: 1px solid #6B7280;
@@ -110,12 +110,32 @@
             padding: 10px;
             margin-bottom: 20px;
         }
+        .watermark {
+            position: fixed;
+            top: 45%;
+            left: 5%;
+            width: 90%;
+            text-align: center;
+            opacity: 0.08;
+            font-size: 70px;
+            font-weight: bold;
+            transform: rotate(-30deg);
+            transform-origin: 50% 50%;
+            z-index: -1000;
+            text-transform: uppercase;
+        }
     </style>
 </head>
 <body>
     @php
         $config = \App\Models\Configuration::first();
+        $statusText = $production->status == 'sent' ? 'PROCESADO' : ($production->status == 'approved' ? 'APROBADO' : 'PENDIENTE');
+        $watermarkColor = $production->status == 'sent' ? '#28a745' : ($production->status == 'approved' ? '#007bff' : '#dc3545');
     @endphp
+
+    <div class="watermark" style="color: {{ $watermarkColor }};">
+        {{ $statusText }}
+    </div>
 
     {{-- Header --}}
     <table class="table mt-1" style="margin-bottom: 0;">

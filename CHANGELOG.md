@@ -1,3 +1,7 @@
+## [1.10.152] - 2026-06-19
+### Added
+- **Reportes de Producción (Marca de Agua PDF)**: Añadido soporte para mostrar una marca de agua en diagonal de fondo en los PDFs de planillas de producción (`PENDIENTE`, `APROBADO` o `PROCESADO`), con estilos de baja opacidad y colores representativos de cada estado.
+
 ## [1.10.151] - 2026-06-19
 ### Fixed
 - **Ajustes de Inventario (Edición de Cargos)**: Corregido error de colisión de claves de carrito en `CreateCargo.php` que ocasionaba la pérdida de detalles duplicados del mismo producto al abrir, editar o clonar un Cargo. Se migró la indexación del carrito a claves de fila únicas (`detail_{id}` y `new_{id}`).
