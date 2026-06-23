@@ -321,4 +321,61 @@ class CustomerReportTest extends TestCase
             ->assertSet('showRecoveryPdfModal', false)
             ->assertSet('recoveryPdfUrl', '');
     }
+
+    public function test_customer_tracking_pdf_view_renders_totals()
+    {
+        $this->actingAs($this->adminUser);
+
+        $customer = Customer::create([
+            'name' => 'Tracking Test Cust',
+            'taxpayer_id' => '123',
+            'address' => 'Addr',
+            'city' => 'City',
+            'seller_id' => $this->seller1->id,
+            'type' => 'Consumidor Final',
+        ]);
+
+        $customersData = ['' => collect([$customer])];
+        $config = Configuration::first();
+        $user = $this->adminUser;
+        $date = '23/06/2026 11:00';
+        $isGrouped = false;
+        $showDeleted = false;
+
+        $view = $this->view('reports.customer-tracking-pdf', compact(
+            'customersData', 'isGrouped', 'config', 'user', 'date', 'showDeleted'
+        ));
+
+        $view->assertSee('TOTAL CLIENTES EN SEGUIMIENTO:');
+        $view->assertSee('1');
+    }
+
+    public function test_customer_recovery_pdf_view_renders_totals()
+    {
+        $this->actingAs($this->adminUser);
+
+        $customer = Customer::create([
+            'name' => 'Recovery Test Cust',
+            'taxpayer_id' => '123',
+            'address' => 'Addr',
+            'city' => 'City',
+            'seller_id' => $this->seller1->id,
+            'type' => 'Consumidor Final',
+        ]);
+
+        $customersData = ['' => collect([$customer])];
+        $config = Configuration::first();
+        $user = $this->adminUser;
+        $date = '23/06/2026 11:00';
+        $isGrouped = false;
+        $showDeleted = false;
+        $inactivityDays = 30;
+
+        $view = $this->view('reports.customer-recovery-pdf', compact(
+            'customersData', 'isGrouped', 'config', 'user', 'date', 'showDeleted', 'inactivityDays'
+        ));
+
+        $view->assertSee('TOTAL CLIENTES INACTIVOS PARA RECUPERACIÓN:');
+        $view->assertSee('1');
+    }
 }

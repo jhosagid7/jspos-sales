@@ -1,3 +1,10 @@
+## [1.10.161] - 2026-06-23
+### Added
+- **Totales en Reportes PDF de Clientes**:
+  - Incorporados cuadros de resumen al pie de página en los reportes PDF de Planilla de Seguimiento y Reporte de Recuperación de Clientes Inactivos.
+  - Muestra del total acumulado con etiquetas descriptivas en español: "TOTAL CLIENTES EN SEGUIMIENTO" y "TOTAL CLIENTES INACTIVOS PARA RECUPERACIÓN".
+  - Implementación de pruebas unitarias específicas para verificar la correcta renderización y el conteo de registros en las vistas HTML/PDF correspondientes.
+
 ## [1.10.160] - 2026-06-23
 ### Added
 - **Reporte de Recuperación de Clientes Inactivos (Win-back)**:

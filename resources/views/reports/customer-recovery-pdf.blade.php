@@ -115,6 +115,28 @@
             margin-bottom: 4px;
         }
 
+        .summary-box {
+            width: 45%;
+            margin-left: auto;
+            border-top: 1.5pt solid #000;
+            margin-top: 10px;
+            padding-top: 5px;
+            margin-bottom: 20px;
+        }
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .summary-label {
+            font-weight: bold;
+            font-size: 8pt;
+        }
+        .summary-value {
+            text-align: right;
+            font-size: 8pt;
+            font-weight: bold;
+        }
+
         .footer-signatures {
             width: 100%;
             margin-top: 40px;
@@ -151,7 +173,14 @@
         <strong>Campaña de Reactivación Comercial:</strong> El listado se encuentra ordenado de mayor a menor según el <strong>Volumen Histórico de Compra (USD)</strong>. Llame con prioridad a los clientes de alto valor ubicados en el tope del listado.
     </div>
 
+    @php
+        $totalCustomersCount = 0;
+    @endphp
+
     @foreach ($customersData as $groupName => $items)
+        @php
+            $totalCustomersCount += $items->count();
+        @endphp
         @if($isGrouped)
             <div class="group-header">
                 VENDEDOR: {{ $groupName ?: 'SIN VENDEDOR' }} (Clientes: {{ $items->count() }})
@@ -224,6 +253,15 @@
             </tbody>
         </table>
     @endforeach
+
+    <div class="summary-box">
+        <table class="summary-table">
+            <tr>
+                <td class="summary-label">TOTAL CLIENTES INACTIVOS PARA RECUPERACIÓN:</td>
+                <td class="summary-value">{{ number_format($totalCustomersCount, 0) }}</td>
+            </tr>
+        </table>
+    </div>
 
     <table class="footer-signatures" style="width: 100%; border-collapse: collapse;">
         <tr>
