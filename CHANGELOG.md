@@ -1,3 +1,12 @@
+## [1.10.157] - 2026-06-23
+### Added
+- **Desactivación y Restauración de Clientes y Productos**:
+  - Habilitado el mecanismo de Soft Deletes (Eliminación Lógica) nativo de Laravel para los modelos `Customer` y `Product`.
+  - Agregado el selector/switch "Ver Eliminados" en las pantallas principales de Clientes y Productos con un badge de restauración (`Restore`) para recuperar registros desactivados.
+  - Removido el bloqueo de eliminación física. Ahora tanto clientes como productos se pueden desactivar de forma lógica sin importar que tengan transacciones o facturas previas asociadas.
+  - Actualizadas las relaciones de modelos históricos (`Sale`, `Order`, `SaleReturn`, `DebitNote`, `WhatsappMessage`, `EmailMessage`, `CustomerConfig`, `CreditDiscountRule`, `ProductionOutput`, `ProductionMaterial`) con `->withTrashed()` para garantizar la integridad histórica y evitar valores nulos.
+  - Implementadas pruebas de integración completas (`CustomerSoftDeleteTest` y `ProductSoftDeleteTest`).
+
 ## [1.10.156] - 2026-06-22
 ### Added
 - **Fábrica de Bolsas (App Móvil - v1.0.5)**: Añadido soporte nativo para escaneo de códigos de barra utilizando la cámara del dispositivo (`mobile_scanner`). Se corrigió el placeholder de búsqueda de "lea código QR..." a "Escriba nombre o lea código de barras...".

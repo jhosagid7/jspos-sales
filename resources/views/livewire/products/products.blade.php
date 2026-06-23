@@ -170,14 +170,12 @@
 
                                                         </button>
                                                         @endcan
-                                                        @can('products.delete')
-                                                        @if (!$product->sales()->exists() && !$product->purchases()->exists())
-                                                            <button class="btn btn-light btn-sm"
-                                                                onclick="Confirm({{ $product->id }})">
-                                                                <i class="fa fa-trash fa-2x"></i>
-                                                            </button>
-                                                        @endif
-                                                        @endcan
+                                                         @can('products.delete')
+                                                             <button class="btn btn-light btn-sm"
+                                                                 onclick="Confirm({{ $product->id }})">
+                                                                 <i class="fa fa-trash fa-2x"></i>
+                                                             </button>
+                                                         @endcan
                                                     @endif
                                                 </div>
 

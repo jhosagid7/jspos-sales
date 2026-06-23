@@ -5,6 +5,7 @@ namespace App\Livewire;
 use Livewire\Component;
 use App\Models\Customer;
 use Livewire\WithPagination;
+use Livewire\Attributes\On;
 
 
 class Customers extends Component
@@ -17,7 +18,7 @@ class Customers extends Component
     public $editing;
     public $tab = 1; // Active tab (1=General, 2=Commercial, 3=Sales History, 4=Credit Config)
     public $customerCommission1Threshold, $customerCommission1Percentage, $customerCommission2Threshold, $customerCommission2Percentage;
-    public $commission_percent = 0, $freight_percent = 0, $exchange_diff_percent = 0, $base_markup_percent = 0, $current_batch = '1', $agreement;
+    public $commission_percent = 0, $freight_percent = 0, $exchange_diff_percent = 0, $base_markup_percent = 0, $current_batch = '1', $agreement, $showDeleted = false;
     public $password;
     public $discountRules = []; // Array of discount rules for this customer
 
@@ -97,9 +98,23 @@ class Customers extends Component
         ]);
     }
 
+    public function updatedSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedShowDeleted()
+    {
+        $this->resetPage();
+    }
+
     public function loadCustomers()
     {
             $query = Customer::orderBy('name', 'asc');
+
+            if ($this->showDeleted) {
+                $query->onlyTrashed();
+            }
 
             if (strlen($this->search) > 0) {
                 $query->where(function($q) {
@@ -411,20 +426,27 @@ class Customers extends Component
     }
 
 
-    public function Destroy(Customer $customer)
+    #[On('Destroy')]
+    public function Destroy($id)
     {
-
-        if ($customer->sales->count() > 0) {
-            $this->dispatch('noty', msg: 'EL CLIENTE TIENE VENTAS RELACIONADAS, NO ES POSIBLE ELIMINARLO');
-            return;
+        $customer = Customer::find($id);
+        if ($customer) {
+            $customer->delete();
+            $this->resetPage();
+            $this->dispatch('noty', msg: 'CLIENTE ELIMINADO CON ÉXITO');
         }
+    }
 
-        // delete record from db
-        $customer->delete();
-
-        $this->resetPage();
-
-
-        $this->dispatch('noty', msg: 'CLIENTE ELIMINADO CON ÉXITO');
+    public function Restore($id)
+    {
+        try {
+            $customer = Customer::withTrashed()->find($id);
+            if ($customer) {
+                $customer->restore();
+                $this->dispatch('noty', msg: 'CLIENTE RESTAURADO CORRECTAMENTE');
+            }
+        } catch (\Exception $th) {
+            $this->dispatch('noty', msg: "Error al intentar restaurar el cliente \n {$th->getMessage()}");
+        }
     }
 }

@@ -30,7 +30,7 @@ class CreditDiscountRule extends Model
     public function entity()
     {
         if ($this->entity_type === 'customer') {
-            return $this->belongsTo(\App\Models\Customer::class, 'entity_id');
+            return $this->belongsTo(\App\Models\Customer::class, 'entity_id')->withTrashed();
         } elseif ($this->entity_type === 'seller') {
             return $this->belongsTo(\App\Models\User::class, 'entity_id');
         }

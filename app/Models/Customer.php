@@ -7,10 +7,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Customer extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, \Spatie\Permission\Traits\HasRoles;
+    use HasApiTokens, HasFactory, Notifiable, \Spatie\Permission\Traits\HasRoles, SoftDeletes;
 
     protected $fillable = [
         'name',

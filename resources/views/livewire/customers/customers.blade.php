@@ -10,29 +10,40 @@
         <div class="col-sm-12 {{ $editing ? 'd-none' : 'd-block' }}">
             <div class="card height-equal">
                 <div class="card-header border-l-primary border-2">
-                    <div class="row">
-                        <div class="col-sm-12 col-md-8">
+                    <div class="row align-items-center">
+                        <div class="col-sm-12 col-md-4">
                             <h4>Clientes</h4>
                         </div>
-                        <div class="col-sm-12 col-md-3">
+                        <div class="col-sm-12 col-md-8 d-flex align-items-center justify-content-end gap-2 flex-wrap">
                             {{-- search --}}
-                            <div class="job-filter mb-2">
+                            <div class="job-filter mb-0" style="min-width: 200px;">
                                 <div class="faq-form">
                                     <input wire:model.live='search' class="form-control" type="text"
                                         placeholder="Buscar.."><i class="search-icon" data-feather="search"></i>
                                 </div>
                             </div>
+
+                            <div class="d-flex align-items-center bg-light-warning px-3 py-1 rounded-pill" style="border: 1px solid #ffc10745;">
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" id="showDeleted" wire:model.live="showDeleted" style="cursor:pointer;">
+                                    <label class="form-check-label text-dark mb-0 ms-1" for="showDeleted" style="cursor:pointer; font-weight: 500; font-size: 13px;">
+                                        Ver Eliminados
+                                    </label>
+                                </div>
+                            </div>
+
+                            @can('customers.create')
+                            <div class="contact-edit chat-alert mb-0" wire:click='Add'>
+                                <button class="btn btn-primary btn-sm"><i class="icon-plus"></i> Nuevo</button>
+                            </div>
+                            @endcan
+
+                            @can('customers.create') {{-- Or a specific permission for import --}}
+                            <div class="contact-edit chat-alert mb-0">
+                                 <a href="{{ route('customers.import') }}" class="btn btn-secondary btn-sm"><i class="fas fa-file-import"></i> Importar</a>
+                            </div>
+                            @endcan
                         </div>
-                        @can('customers.create')
-                        <div class="contact-edit chat-alert" wire:click='Add'>
-                            <button class="btn btn-primary btn-sm"><i class="icon-plus"></i> Nuevo</button>
-                        </div>
-                        @endcan
-                        @can('customers.create') {{-- Or a specific permission for import --}}
-                        <div class="contact-edit chat-alert ml-2">
-                             <a href="{{ route('customers.import') }}" class="btn btn-secondary btn-sm"><i class="fas fa-file-import"></i> Importar</a>
-                        </div>
-                        @endcan
                     </div>
                 </div>
                 <div class="card-body">
@@ -69,21 +80,28 @@
 
                                             <div class="btn-group btn-group-pill" role="group"
                                                 aria-label="Basic example">
-                                                @can('customers.edit')
-                                                <button class="btn btn-light btn-sm"
-                                                    wire:click="Edit({{ $item->id }})"><i
-                                                        class="fa fa-edit fa-2x"></i>
+                                                @if($item->deleted_at)
+                                                    @can('customers.edit')
+                                                    <button class="btn btn-warning btn-sm"
+                                                        wire:click="Restore({{ $item->id }})" title="Restaurar">
+                                                        <i class="fa fa-undo fa-2x"></i>
+                                                    </button>
+                                                    @endcan
+                                                @else
+                                                    @can('customers.edit')
+                                                    <button class="btn btn-light btn-sm"
+                                                        wire:click="Edit({{ $item->id }})"><i
+                                                            class="fa fa-edit fa-2x"></i>
 
-                                                </button>
-                                                @endcan
-                                                {{-- @if (!$item->sales()->exists()) --}}
-                                                @can('customers.delete')
-                                                <button class="btn btn-light btn-sm"
-                                                    onclick="Confirm('customers',{{ $item->id }})">
-                                                    <i class="fa fa-trash fa-2x"></i>
-                                                </button>
-                                                @endcan
-                                                {{-- @endif --}}
+                                                    </button>
+                                                    @endcan
+                                                    @can('customers.delete')
+                                                    <button class="btn btn-light btn-sm"
+                                                        onclick="Confirm({{ $item->id }})">
+                                                        <i class="fa fa-trash fa-2x"></i>
+                                                    </button>
+                                                    @endcan
+                                                @endif
                                             </div>
 
                                         </td>
@@ -176,6 +194,28 @@
                     $('#modalHistory').modal('hide')
                 })
             })
+
+            function Confirm(rowId) {
+                swal({
+                    title: '¿CONFIRMAS ELIMINAR EL REGISTRO?',
+                    text: "",
+                    icon: "warning",
+                    buttons: true,
+                    dangerMode: true,
+                    buttons: {
+                        cancel: "Cancelar",
+                        catch: {
+                            text: "Aceptar"
+                        }
+                    },
+                }).then((willDestroy) => {
+                    if (willDestroy) {
+                        Livewire.dispatch('Destroy', {
+                            id: rowId
+                        })
+                    }
+                });
+            }
         </script>
     @endpush
 
