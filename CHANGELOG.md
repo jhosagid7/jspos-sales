@@ -1,3 +1,12 @@
+## [1.10.160] - 2026-06-23
+### Added
+- **Reporte de Recuperación de Clientes Inactivos (Win-back)**:
+  - Implementado un filtro de inactividad comercial por días (>30d, >60d, >90d, >120d) para identificar clientes que han dejado de comprar.
+  - Añadidas subconsultas SQL optimizadas en el modelo `Customer` para calcular de manera eficiente la fecha y cantidad de días de la última compra activa, así como el total facturado histórico en USD.
+  - Incorporados badges visuales de nivel de riesgo (Bajo, Medio, Alto, Crítico) y columnas dinámicas para la visualización del estatus del cliente.
+  - Creado un PDF especializado de "Reporte de Recuperación de Clientes" ordenado de mayor a menor según su valor histórico en USD para priorizar las campañas de telemercadeo o reactivación comercial, incluyendo campos de registro de llamadas.
+  - Añadido soporte de test de integración exhaustivo en `CustomerReportTest.php`.
+
 ## [1.10.159] - 2026-06-23
 ### Added
 - **Planilla de Seguimiento de Clientes en PDF**:

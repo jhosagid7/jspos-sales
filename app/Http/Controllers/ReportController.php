@@ -2992,4 +2992,67 @@ class ReportController extends Controller
 
         return $pdf->stream('Planilla_Seguimiento_' . \Carbon\Carbon::now()->format('Ymd_His') . '.pdf');
     }
+
+    public function customersRecoveryPdf(Request $request)
+    {
+        $selectedSellersStr = $request->get('selectedSellers');
+        $selectedSellers = $selectedSellersStr ? explode(',', $selectedSellersStr) : [];
+        $selectedSellers = array_filter($selectedSellers);
+
+        $groupBy = $request->get('groupBy', 'none');
+        $showDeleted = $request->get('showDeleted', 0) == 1;
+        $inactivityDays = (int)$request->get('inactivityDays', 0);
+
+        $query = \App\Models\Customer::with('seller')
+            ->select('customers.*')
+            ->selectSub(function ($q) {
+                $q->selectRaw('max(created_at)')
+                    ->from('sales')
+                    ->whereColumn('sales.customer_id', 'customers.id')
+                    ->where('sales.status', '<>', 'returned')
+                    ->whereNull('sales.deletion_approved_at');
+            }, 'last_purchase_at')
+            ->selectSub(function ($q) {
+                $q->selectRaw('coalesce(sum(total_usd), 0)')
+                    ->from('sales')
+                    ->whereColumn('sales.customer_id', 'customers.id')
+                    ->where('sales.status', '<>', 'returned')
+                    ->whereNull('sales.deletion_approved_at');
+            }, 'total_purchased_usd')
+            ->when($showDeleted, function ($q) {
+                $q->withTrashed();
+            })
+            ->when(!empty($selectedSellers), function ($q) use ($selectedSellers) {
+                $q->whereIn('seller_id', $selectedSellers);
+            })
+            ->when($inactivityDays > 0, function ($q) use ($inactivityDays) {
+                $threshold = \Carbon\Carbon::now()->subDays($inactivityDays)->toDateTimeString();
+                $q->where(function ($sub) use ($threshold) {
+                    $sub->whereRaw('(select max(created_at) from sales where sales.customer_id = customers.id and sales.status <> "returned" and sales.deletion_approved_at is null) < ?', [$threshold])
+                        ->orWhereRaw('not exists (select 1 from sales where sales.customer_id = customers.id and sales.status <> "returned" and sales.deletion_approved_at is null)');
+                });
+            })
+            ->orderBy('total_purchased_usd', 'desc'); // Order by historical volume to prioritize high-value clients
+
+        $customers = $query->get();
+
+        $isGrouped = ($groupBy === 'seller_id');
+        if ($isGrouped) {
+            $customersData = $customers->groupBy(function ($customer) {
+                return $customer->seller ? $customer->seller->name : 'Sin Vendedor';
+            });
+        } else {
+            $customersData = ['' => $customers];
+        }
+
+        $config = \App\Models\Configuration::first();
+        $user = auth()->user();
+        $date = \Carbon\Carbon::now()->format('d/m/Y H:i');
+
+        $pdf = Pdf::loadView('reports.customer-recovery-pdf', compact(
+            'customersData', 'isGrouped', 'config', 'user', 'date', 'showDeleted', 'inactivityDays'
+        ))->setPaper('a4', 'portrait');
+
+        return $pdf->stream('Reporte_Recuperacion_' . \Carbon\Carbon::now()->format('Ymd_His') . '.pdf');
+    }
 }

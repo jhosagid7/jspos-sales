@@ -222,4 +222,103 @@ class CustomerReportTest extends TestCase
             ->assertSet('showTrackingPdfModal', false)
             ->assertSet('trackingPdfUrl', '');
     }
+
+    public function test_customer_report_filters_by_inactivity_days()
+    {
+        $this->actingAs($this->adminUser);
+
+        // Customer A: bought 45 days ago
+        $customerA = Customer::create([
+            'name' => 'Cliente Inactivo 45d',
+            'taxpayer_id' => '1',
+            'address' => 'Addr 1',
+            'city' => 'City 1',
+            'seller_id' => $this->seller1->id,
+            'type' => 'Consumidor Final',
+        ]);
+
+        $saleA = \App\Models\Sale::create([
+            'total' => 100,
+            'total_usd' => 100,
+            'items' => 1,
+            'customer_id' => $customerA->id,
+            'user_id' => $this->adminUser->id,
+            'status' => 'paid',
+            'type' => 'cash',
+            'created_at' => \Carbon\Carbon::now()->subDays(45),
+        ]);
+
+        // Customer B: bought 10 days ago
+        $customerB = Customer::create([
+            'name' => 'Cliente Activo 10d',
+            'taxpayer_id' => '2',
+            'address' => 'Addr 2',
+            'city' => 'City 2',
+            'seller_id' => $this->seller1->id,
+            'type' => 'Consumidor Final',
+        ]);
+
+        $saleB = \App\Models\Sale::create([
+            'total' => 50,
+            'total_usd' => 50,
+            'items' => 1,
+            'customer_id' => $customerB->id,
+            'user_id' => $this->adminUser->id,
+            'status' => 'paid',
+            'type' => 'cash',
+            'created_at' => \Carbon\Carbon::now()->subDays(10),
+        ]);
+
+        // Inactivity threshold: 30 days
+        Livewire::test(CustomerReport::class)
+            ->set('inactivityDays', 30)
+            ->call('searchData')
+            ->assertViewHas('customers', function ($customers) use ($customerA, $customerB) {
+                return $customers->contains($customerA) && !$customers->contains($customerB);
+            });
+    }
+
+    public function test_customer_recovery_pdf_returns_200_and_pdf_type()
+    {
+        $this->actingAs($this->adminUser);
+
+        $customer = Customer::create([
+            'name' => 'Recovery Cust',
+            'taxpayer_id' => '123',
+            'address' => 'Addr',
+            'city' => 'City',
+            'seller_id' => $this->seller1->id,
+            'type' => 'Consumidor Final',
+        ]);
+
+        $response = $this->get(route('reports.customers.recovery.pdf', [
+            'selectedSellers' => $this->seller1->id,
+            'groupBy' => 'none',
+            'showDeleted' => 0,
+            'inactivityDays' => 30,
+        ]));
+
+        $response->assertStatus(200);
+        $response->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_customer_report_component_can_trigger_recovery_pdf()
+    {
+        $this->actingAs($this->adminUser);
+
+        Livewire::test(CustomerReport::class)
+            ->set('selectedSellers', [$this->seller1->id])
+            ->set('inactivityDays', 60)
+            ->call('openRecoveryPdfPreview')
+            ->assertSet('showRecoveryPdfModal', true)
+            ->assertSet('recoveryPdfUrl', route('reports.customers.recovery.pdf', [
+                'selectedSellers' => $this->seller1->id,
+                'groupBy' => 'none',
+                'showDeleted' => 0,
+                'inactivityDays' => 60,
+            ]))
+            ->call('closeRecoveryPdfPreview')
+            ->assertSet('showRecoveryPdfModal', false)
+            ->assertSet('recoveryPdfUrl', '');
+    }
 }

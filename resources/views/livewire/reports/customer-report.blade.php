@@ -27,6 +27,18 @@
                         <label class="custom-control-label f-12" for="show_deleted">Ver Desactivados / Eliminados</label>
                     </div>
 
+                    <!-- Inactivity Filter -->
+                    <div class="mt-3">
+                        <span class="f-14"><b>Inactividad Comercial</b></span>
+                        <select wire:model.live="inactivityDays" class="form-control form-control-sm mt-1">
+                            <option value="0">Todos los clientes</option>
+                            <option value="30">Inactivos > 30 días</option>
+                            <option value="60">Inactivos > 60 días (Riesgo Medio)</option>
+                            <option value="90">Inactivos > 90 días (Riesgo Alto)</option>
+                            <option value="120">Inactivos > 120 días (Crítico)</option>
+                        </select>
+                    </div>
+
                     <div class="mt-4">
                         <button wire:key="btn-consultar" wire:click.prevent="searchData" class="btn btn-dark w-100">
                             <i class="fa fa-search"></i> Consultar
@@ -36,6 +48,9 @@
                         </button>
                         <button wire:key="btn-tracking-pdf-preview" wire:click.prevent="openTrackingPdfPreview" class="btn btn-warning text-white w-100 mt-2" @if(!$showReport) disabled @endif>
                             <i class="fas fa-route"></i> Planilla Seguimiento PDF
+                        </button>
+                        <button wire:key="btn-recovery-pdf-preview" wire:click.prevent="openRecoveryPdfPreview" class="btn btn-info text-white w-100 mt-2" @if(!$showReport) disabled @endif>
+                            <i class="fas fa-undo"></i> Reporte Recuperación PDF
                         </button>
                     </div>
                 </div>
@@ -141,6 +156,18 @@
                                 <label class="custom-control-label f-12" for="col_status">Estado (Activo/Inactivo)</label>
                             </div>
                         </div>
+                        <div class="col-12 mb-1">
+                            <div class="custom-control custom-checkbox ml-2">
+                                <input type="checkbox" class="custom-control-input" id="col_last_purchase" wire:model.live="columns.last_purchase">
+                                <label class="custom-control-label f-12" for="col_last_purchase">Última Compra (Días/Fecha)</label>
+                            </div>
+                        </div>
+                        <div class="col-12 mb-1">
+                            <div class="custom-control custom-checkbox ml-2">
+                                <input type="checkbox" class="custom-control-input" id="col_total_purchased" wire:model.live="columns.total_purchased">
+                                <label class="custom-control-label f-12" for="col_total_purchased">Total Comprado (Histórico)</label>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -191,6 +218,8 @@
                                             @if($columns['credit_days']) <th>Días</th> @endif
                                             @if($columns['notifications']) <th>Notif. WA/Email</th> @endif
                                             @if($columns['status']) <th>Estado</th> @endif
+                                            @if($columns['last_purchase']) <th>Última Compra / Alerta</th> @endif
+                                            @if($columns['total_purchased']) <th>Total Comprado (Histórico)</th> @endif
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -221,6 +250,24 @@
                                                             <span class="badge badge-success">Activo</span>
                                                         @endif
                                                     </td>
+                                                @endif
+                                                @if($columns['last_purchase'])
+                                                    <td>
+                                                        @if($customer->last_purchase_at)
+                                                            @php
+                                                                $days = \Carbon\Carbon::parse($customer->last_purchase_at)->diffInDays(\Carbon\Carbon::now());
+                                                            @endphp
+                                                            {{ \Carbon\Carbon::parse($customer->last_purchase_at)->format('d/m/Y') }} 
+                                                            <span class="badge {{ $days >= 90 ? 'badge-danger' : ($days >= 60 ? 'badge-warning' : 'badge-success') }} d-block mt-1">
+                                                                {{ $days }} días inactivo
+                                                            </span>
+                                                        @else
+                                                            <span class="badge badge-secondary">Sin compras</span>
+                                                        @endif
+                                                    </td>
+                                                @endif
+                                                @if($columns['total_purchased'])
+                                                    <td class="font-bold">${{ number_format($customer->total_purchased_usd ?? 0, 2) }}</td>
                                                 @endif
                                             </tr>
                                         @empty
@@ -292,6 +339,34 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" wire:click="closeTrackingPdfPreview">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Recovery PDF Viewer Modal -->
+    @if($showRecoveryPdfModal)
+    <div class="modal show" style="display: block; opacity: 1; background: rgba(0,0,0,0.7); z-index: 9999;" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-xl" role="document" style="height: 90vh; max-width: 95vw; margin-top: 5vh;">
+            <div class="modal-content" style="height: 100%;">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title text-white">Vista Previa: Reporte de Recuperación de Clientes</h5>
+                    <button type="button" class="btn-close btn-close-white" wire:click="closeRecoveryPdfPreview" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0" style="height: calc(100% - 60px);">
+                    @if($recoveryPdfUrl)
+                        <iframe src="{{ $recoveryPdfUrl }}" style="width: 100%; height: 100%; border: none;"></iframe>
+                    @else
+                        <div class="d-flex justify-content-center align-items-center" style="height: 100%;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="sr-only">Cargando...</span>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" wire:click="closeRecoveryPdfPreview">Cerrar</button>
                 </div>
             </div>
         </div>

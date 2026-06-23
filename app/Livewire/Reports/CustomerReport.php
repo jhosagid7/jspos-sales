@@ -21,6 +21,9 @@ class CustomerReport extends Component
     public $showDeleted = false;
     public $showTrackingPdfModal = false;
     public $trackingPdfUrl = '';
+    public $inactivityDays = 0;
+    public $showRecoveryPdfModal = false;
+    public $recoveryPdfUrl = '';
 
     public $columns = [
         'name' => true,
@@ -36,6 +39,8 @@ class CustomerReport extends Component
         'credit_days' => false,
         'notifications' => false,
         'status' => false,
+        'last_purchase' => false,
+        'total_purchased' => false,
     ];
 
     public function mount()
@@ -87,6 +92,25 @@ class CustomerReport extends Component
         $this->trackingPdfUrl = '';
     }
 
+    public function openRecoveryPdfPreview()
+    {
+        $params = [
+            'selectedSellers' => implode(',', $this->selectedSellers),
+            'groupBy' => $this->groupBy,
+            'showDeleted' => $this->showDeleted ? 1 : 0,
+            'inactivityDays' => $this->inactivityDays,
+        ];
+
+        $this->recoveryPdfUrl = route('reports.customers.recovery.pdf', $params);
+        $this->showRecoveryPdfModal = true;
+    }
+
+    public function closeRecoveryPdfPreview()
+    {
+        $this->showRecoveryPdfModal = false;
+        $this->recoveryPdfUrl = '';
+    }
+
     public function getReport()
     {
         if (!$this->showReport) {
@@ -94,11 +118,33 @@ class CustomerReport extends Component
         }
 
         $query = Customer::with('seller')
+            ->select('customers.*')
+            ->selectSub(function ($q) {
+                $q->selectRaw('max(created_at)')
+                    ->from('sales')
+                    ->whereColumn('sales.customer_id', 'customers.id')
+                    ->where('sales.status', '<>', 'returned')
+                    ->whereNull('sales.deletion_approved_at');
+            }, 'last_purchase_at')
+            ->selectSub(function ($q) {
+                $q->selectRaw('coalesce(sum(total_usd), 0)')
+                    ->from('sales')
+                    ->whereColumn('sales.customer_id', 'customers.id')
+                    ->where('sales.status', '<>', 'returned')
+                    ->whereNull('sales.deletion_approved_at');
+            }, 'total_purchased_usd')
             ->when($this->showDeleted, function ($q) {
                 $q->withTrashed();
             })
             ->when(!empty($this->selectedSellers), function ($q) {
                 $q->whereIn('seller_id', $this->selectedSellers);
+            })
+            ->when($this->inactivityDays > 0, function ($q) {
+                $threshold = Carbon::now()->subDays($this->inactivityDays)->toDateTimeString();
+                $q->where(function ($sub) use ($threshold) {
+                    $sub->whereRaw('(select max(created_at) from sales where sales.customer_id = customers.id and sales.status <> "returned" and sales.deletion_approved_at is null) < ?', [$threshold])
+                        ->orWhereRaw('not exists (select 1 from sales where sales.customer_id = customers.id and sales.status <> "returned" and sales.deletion_approved_at is null)');
+                });
             })
             ->orderBy('name');
 
