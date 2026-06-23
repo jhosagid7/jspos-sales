@@ -34,6 +34,9 @@
                         <button wire:key="btn-pdf-preview" wire:click.prevent="openPdfPreview" class="btn btn-danger text-white w-100 mt-2" @if(!$showReport) disabled @endif>
                             <i class="fas fa-file-pdf"></i> Vista Previa PDF
                         </button>
+                        <button wire:key="btn-tracking-pdf-preview" wire:click.prevent="openTrackingPdfPreview" class="btn btn-warning text-white w-100 mt-2" @if(!$showReport) disabled @endif>
+                            <i class="fas fa-route"></i> Planilla Seguimiento PDF
+                        </button>
                     </div>
                 </div>
             </div>
@@ -261,6 +264,34 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" wire:click="closePdfPreview">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Tracking PDF Viewer Modal -->
+    @if($showTrackingPdfModal)
+    <div class="modal show" style="display: block; opacity: 1; background: rgba(0,0,0,0.7); z-index: 9999;" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-xl" role="document" style="height: 90vh; max-width: 95vw; margin-top: 5vh;">
+            <div class="modal-content" style="height: 100%;">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title text-white">Vista Previa: Planilla de Seguimiento de Clientes</h5>
+                    <button type="button" class="btn-close btn-close-white" wire:click="closeTrackingPdfPreview" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0" style="height: calc(100% - 60px);">
+                    @if($trackingPdfUrl)
+                        <iframe src="{{ $trackingPdfUrl }}" style="width: 100%; height: 100%; border: none;"></iframe>
+                    @else
+                        <div class="d-flex justify-content-center align-items-center" style="height: 100%;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="sr-only">Cargando...</span>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" wire:click="closeTrackingPdfPreview">Cerrar</button>
                 </div>
             </div>
         </div>

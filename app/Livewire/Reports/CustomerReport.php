@@ -19,6 +19,8 @@ class CustomerReport extends Component
     public $showPdfModal = false;
     public $pdfUrl = '';
     public $showDeleted = false;
+    public $showTrackingPdfModal = false;
+    public $trackingPdfUrl = '';
 
     public $columns = [
         'name' => true,
@@ -65,6 +67,24 @@ class CustomerReport extends Component
     {
         $this->showPdfModal = false;
         $this->pdfUrl = '';
+    }
+
+    public function openTrackingPdfPreview()
+    {
+        $params = [
+            'selectedSellers' => implode(',', $this->selectedSellers),
+            'groupBy' => $this->groupBy,
+            'showDeleted' => $this->showDeleted ? 1 : 0,
+        ];
+
+        $this->trackingPdfUrl = route('reports.customers.tracking.pdf', $params);
+        $this->showTrackingPdfModal = true;
+    }
+
+    public function closeTrackingPdfPreview()
+    {
+        $this->showTrackingPdfModal = false;
+        $this->trackingPdfUrl = '';
     }
 
     public function getReport()

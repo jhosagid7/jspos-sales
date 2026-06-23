@@ -1,3 +1,11 @@
+## [1.10.159] - 2026-06-23
+### Added
+- **Planilla de Seguimiento de Clientes en PDF**:
+  - Incorporada una planilla de seguimiento comercial optimizada para la impresión física y trabajo de campo por parte de los vendedores.
+  - El diseño incluye el estatus financiero (crédito y billetera) y espacios en blanco/líneas punteadas y checkboxes para registrar en tiempo real la fecha de visita, pedidos tomados, cobros realizados (con referencia) o justificación de no compra y observaciones.
+  - Añadido el botón "Planilla Seguimiento PDF" y modal visor de iframe correspondiente.
+  - Implementados tests de integración en `CustomerReportTest.php` para verificar el flujo de generación y descarga del PDF.
+
 ## [1.10.158] - 2026-06-23
 ### Added
 - **Reporte de Clientes por Vendedor**:

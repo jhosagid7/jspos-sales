@@ -2952,4 +2952,44 @@ class ReportController extends Controller
 
         return $pdf->stream('Reporte_Clientes_' . \Carbon\Carbon::now()->format('Ymd_His') . '.pdf');
     }
+
+    public function customersTrackingPdf(Request $request)
+    {
+        $selectedSellersStr = $request->get('selectedSellers');
+        $selectedSellers = $selectedSellersStr ? explode(',', $selectedSellersStr) : [];
+        $selectedSellers = array_filter($selectedSellers);
+
+        $groupBy = $request->get('groupBy', 'none');
+        $showDeleted = $request->get('showDeleted', 0) == 1;
+
+        $query = \App\Models\Customer::with('seller')
+            ->when($showDeleted, function ($q) {
+                $q->withTrashed();
+            })
+            ->when(!empty($selectedSellers), function ($q) use ($selectedSellers) {
+                $q->whereIn('seller_id', $selectedSellers);
+            })
+            ->orderBy('name');
+
+        $customers = $query->get();
+
+        $isGrouped = ($groupBy === 'seller_id');
+        if ($isGrouped) {
+            $customersData = $customers->groupBy(function ($customer) {
+                return $customer->seller ? $customer->seller->name : 'Sin Vendedor';
+            });
+        } else {
+            $customersData = ['' => $customers];
+        }
+
+        $config = \App\Models\Configuration::first();
+        $user = auth()->user();
+        $date = \Carbon\Carbon::now()->format('d/m/Y H:i');
+
+        $pdf = Pdf::loadView('reports.customer-tracking-pdf', compact(
+            'customersData', 'isGrouped', 'config', 'user', 'date', 'showDeleted'
+        ))->setPaper('a4', 'portrait');
+
+        return $pdf->stream('Planilla_Seguimiento_' . \Carbon\Carbon::now()->format('Ymd_His') . '.pdf');
+    }
 }

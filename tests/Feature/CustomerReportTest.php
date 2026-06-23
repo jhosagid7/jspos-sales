@@ -181,4 +181,45 @@ class CustomerReportTest extends TestCase
         $response->assertStatus(200);
         $response->assertHeader('content-type', 'application/pdf');
     }
+
+    public function test_customer_tracking_pdf_returns_200_and_pdf_type()
+    {
+        $this->actingAs($this->adminUser);
+
+        Customer::create([
+            'name' => 'Tracking PDF Customer',
+            'taxpayer_id' => '123-T',
+            'address' => 'Tracking PDF Address',
+            'city' => 'Tracking PDF City',
+            'seller_id' => $this->seller1->id,
+            'type' => 'Consumidor Final',
+        ]);
+
+        $response = $this->get(route('reports.customers.tracking.pdf', [
+            'selectedSellers' => $this->seller1->id,
+            'groupBy' => 'none',
+            'showDeleted' => 0,
+        ]));
+
+        $response->assertStatus(200);
+        $response->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_customer_report_component_can_trigger_tracking_pdf()
+    {
+        $this->actingAs($this->adminUser);
+
+        Livewire::test(CustomerReport::class)
+            ->set('selectedSellers', [$this->seller1->id])
+            ->call('openTrackingPdfPreview')
+            ->assertSet('showTrackingPdfModal', true)
+            ->assertSet('trackingPdfUrl', route('reports.customers.tracking.pdf', [
+                'selectedSellers' => $this->seller1->id,
+                'groupBy' => 'none',
+                'showDeleted' => 0,
+            ]))
+            ->call('closeTrackingPdfPreview')
+            ->assertSet('showTrackingPdfModal', false)
+            ->assertSet('trackingPdfUrl', '');
+    }
 }
