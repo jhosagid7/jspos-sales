@@ -164,6 +164,8 @@ Route::middleware('auth')->group(function () {
         Route::get('customers/pdf', [\App\Http\Controllers\ReportController::class, 'customersPdf'])->name('reports.customers.pdf')->middleware('can:reports.sales');
         Route::get('customers/tracking-pdf', [\App\Http\Controllers\ReportController::class, 'customersTrackingPdf'])->name('reports.customers.tracking.pdf')->middleware('can:reports.sales');
         Route::get('customers/recovery-pdf', [\App\Http\Controllers\ReportController::class, 'customersRecoveryPdf'])->name('reports.customers.recovery.pdf')->middleware('can:reports.sales');
+        Route::get('customer-activity', \App\Livewire\Reports\CustomerActivityReport::class)->name('reports.customer.activity')->middleware('can:reports.sales');
+        Route::get('customer-activity/pdf', [\App\Http\Controllers\ReportController::class, 'customerActivityPdf'])->name('reports.customer.activity.pdf')->middleware('can:reports.sales');
         Route::get('commissions', \App\Livewire\CommissionReport::class)->name('reports.commissions')->middleware(['can:reports.sales', 'module:module_commissions']); // reports.commissions?
         Route::get('best-sellers', \App\Livewire\Reports\BestSellers::class)->name('reports.best.sellers')->middleware('can:reports.sales');
         Route::get('rotation', \App\Livewire\Reports\RotationReport::class)->name('reports.rotation')->middleware(['can:reports.stock', 'module:module_advanced_reports']);

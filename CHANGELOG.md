@@ -1,3 +1,14 @@
+## [1.10.162] - 2026-06-23
+### Added
+- **Reporte de Actividad y Análisis de Compras del Cliente**:
+  - Implementado un nuevo reporte interactivo con agrupaciones temporales flexibles (Semanal, Mensual, Trimestral, Anual).
+  - Integrada la visualización interactiva de tendencias multi-cliente utilizando la librería Chart.js vía CDN con AlpineJS.
+  - Añadido panel lateral con buscador dinámico de clientes mediante checkboxes que persisten los elementos seleccionados.
+  - Implementado un modal con iframe para la previsualización del PDF.
+  - Creado un PDF comparativo horizontal (Landscape) con tarjetas de KPIs por cliente (Total comprado, Nro. compras, Ticket promedio, Última compra, y listado de productos más comprados), tabla comparativa por periodo y registro detallado de facturas.
+  - Añadida sección de los top 5 productos más comprados ("Top Productos") por cada cliente tanto en el reporte web (debajo de cada tarjeta de KPI) como en la tabla de resumen del reporte PDF para un perfil de compra más adaptado.
+  - Añadida suite de pruebas automatizadas en `CustomerActivityReportTest.php` para validar la renderización del componente, disparo de eventos del gráfico y descarga del PDF con aserciones para los productos más comprados.
+
 ## [1.10.161] - 2026-06-23
 ### Added
 - **Totales en Reportes PDF de Clientes**:

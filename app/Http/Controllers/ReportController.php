@@ -3055,4 +3055,142 @@ class ReportController extends Controller
 
         return $pdf->stream('Reporte_Recuperacion_' . \Carbon\Carbon::now()->format('Ymd_His') . '.pdf');
     }
+
+    public function customerActivityPdf(Request $request)
+    {
+        $selectedCustomersStr = $request->get('selectedCustomers');
+        $selectedCustomers = $selectedCustomersStr ? explode(',', $selectedCustomersStr) : [];
+        $selectedCustomers = array_filter($selectedCustomers);
+
+        $periodType = $request->get('periodType', 'monthly');
+        $dateFromStr = $request->get('dateFrom');
+        $dateToStr = $request->get('dateTo');
+        $metric = $request->get('metric', 'amount');
+
+        $dateFrom = $dateFromStr ? \Carbon\Carbon::parse($dateFromStr)->startOfDay() : null;
+        $dateTo = $dateToStr ? \Carbon\Carbon::parse($dateToStr)->endOfDay() : null;
+
+        if (empty($selectedCustomers)) {
+            abort(400, 'Debe seleccionar al menos un cliente.');
+        }
+
+        $selectExpression = "";
+        if ($periodType === 'weekly') {
+            $selectExpression = "CONCAT(YEAR(created_at), '-S', LPAD(WEEK(created_at), 2, '0'))";
+        } elseif ($periodType === 'quarterly') {
+            $selectExpression = "CONCAT(YEAR(created_at), '-T', QUARTER(created_at))";
+        } elseif ($periodType === 'yearly') {
+            $selectExpression = "CAST(YEAR(created_at) AS CHAR)";
+        } else { // monthly
+            $selectExpression = "DATE_FORMAT(created_at, '%Y-%m')";
+        }
+
+        $results = DB::table('sales')
+            ->select([
+                'customer_id',
+                DB::raw("$selectExpression as period_label"),
+                DB::raw("SUM(total_usd) as total_amount"),
+                DB::raw("COUNT(*) as sales_count"),
+            ])
+            ->whereIn('customer_id', $selectedCustomers)
+            ->where('status', '<>', 'returned')
+            ->whereNull('deletion_approved_at')
+            ->when($dateFrom, fn($q) => $q->where('created_at', '>=', $dateFrom))
+            ->when($dateTo, fn($q) => $q->where('created_at', '<=', $dateTo))
+            ->groupBy(['customer_id', DB::raw("$selectExpression")])
+            ->orderBy('period_label')
+            ->get();
+
+        $labels = $results->pluck('period_label')->unique()->sort()->values()->toArray();
+        $customers = \App\Models\Customer::whereIn('id', $selectedCustomers)->get();
+
+        $datasets = [];
+        foreach ($customers as $customer) {
+            $customerData = [];
+            foreach ($labels as $label) {
+                $match = $results->first(fn($row) => $row->customer_id == $customer->id && $row->period_label == $label);
+                if ($metric === 'count') {
+                    $customerData[] = $match ? (int)$match->sales_count : 0;
+                } else {
+                    $customerData[] = $match ? (float)$match->total_amount : 0.0;
+                }
+            }
+            $datasets[] = [
+                'label' => $customer->name,
+                'data' => $customerData,
+            ];
+        }
+
+        // Calculate KPIs
+        $kpis = [];
+        foreach ($customers as $customer) {
+            $customerSales = DB::table('sales')
+                ->where('customer_id', $customer->id)
+                ->where('status', '<>', 'returned')
+                ->whereNull('deletion_approved_at')
+                ->when($dateFrom, fn($q) => $q->where('created_at', '>=', $dateFrom))
+                ->when($dateTo, fn($q) => $q->where('created_at', '<=', $dateTo));
+
+            $totalAmount = $customerSales->sum('total_usd');
+            $countSales = $customerSales->count();
+            $avgTicket = $countSales > 0 ? $totalAmount / $countSales : 0;
+            
+            $lastSale = DB::table('sales')
+                ->where('customer_id', $customer->id)
+                ->where('status', '<>', 'returned')
+                ->whereNull('deletion_approved_at')
+                ->latest('created_at')
+                ->first();
+
+            $topProducts = DB::table('sale_details')
+                ->join('sales', 'sale_details.sale_id', '=', 'sales.id')
+                ->join('products', 'sale_details.product_id', '=', 'products.id')
+                ->select([
+                    'sale_details.product_id',
+                    'products.name as product_name',
+                    DB::raw('SUM(sale_details.quantity) as total_qty'),
+                    DB::raw('SUM(sale_details.quantity * sale_details.sale_price) as total_usd'),
+                ])
+                ->where('sales.customer_id', $customer->id)
+                ->where('sales.status', '<>', 'returned')
+                ->whereNull('sales.deletion_approved_at')
+                ->when($dateFrom, fn($q) => $q->where('sales.created_at', '>=', $dateFrom))
+                ->when($dateTo, fn($q) => $q->where('sales.created_at', '<=', $dateTo))
+                ->groupBy('sale_details.product_id', 'products.name')
+                ->orderByDesc('total_qty')
+                ->limit(5)
+                ->get()
+                ->toArray();
+
+            $kpis[$customer->id] = [
+                'name' => $customer->name,
+                'total_amount' => $totalAmount,
+                'sales_count' => $countSales,
+                'avg_ticket' => $avgTicket,
+                'last_purchase_at' => $lastSale ? \Carbon\Carbon::parse($lastSale->created_at)->format('d/m/Y') : 'Nunca ha comprado',
+                'top_products' => $topProducts,
+            ];
+        }
+
+        // Detailed sales list
+        $detailedSales = \App\Models\Sale::with(['customer', 'user'])
+            ->whereIn('customer_id', $selectedCustomers)
+            ->where('status', '<>', 'returned')
+            ->whereNull('deletion_approved_at')
+            ->when($dateFrom, fn($q) => $q->where('created_at', '>=', $dateFrom))
+            ->when($dateTo, fn($q) => $q->where('created_at', '<=', $dateTo))
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $config = \App\Models\Configuration::first();
+        $user = auth()->user();
+        $date = \Carbon\Carbon::now()->format('d/m/Y H:i');
+
+        $pdf = Pdf::loadView('reports.customer-activity-pdf', compact(
+            'labels', 'datasets', 'kpis', 'detailedSales', 'metric', 'periodType', 
+            'config', 'user', 'date', 'dateFromStr', 'dateToStr'
+        ))->setPaper('a4', 'landscape');
+
+        return $pdf->stream('Reporte_Actividad_Clientes_' . \Carbon\Carbon::now()->format('Ymd_His') . '.pdf');
+    }
 }
