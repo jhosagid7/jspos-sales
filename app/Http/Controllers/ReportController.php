@@ -2892,4 +2892,64 @@ class ReportController extends Controller
 
         return $pdf->stream('Reporte_Ingresos_Mensual_' . $selectedMonth . '.pdf');
     }
+
+    public function customersPdf(Request $request)
+    {
+        $selectedSellersStr = $request->get('selectedSellers');
+        $selectedSellers = $selectedSellersStr ? explode(',', $selectedSellersStr) : [];
+        $selectedSellers = array_filter($selectedSellers);
+
+        $groupBy = $request->get('groupBy', 'none');
+        $showDeleted = $request->get('showDeleted', 0) == 1;
+        
+        $columnsJson = $request->get('columns');
+        $columns = $columnsJson ? json_decode($columnsJson, true) : [
+            'name' => true,
+            'taxpayer_id' => false,
+            'address' => true,
+            'city' => true,
+            'phone' => true,
+            'seller' => true,
+            'wallet_balance' => false,
+            'zone' => false,
+            'allow_credit' => false,
+            'credit_limit' => false,
+            'credit_days' => false,
+            'notifications' => false,
+            'status' => false,
+        ];
+
+        $query = \App\Models\Customer::with('seller')
+            ->when($showDeleted, function ($q) {
+                $q->withTrashed();
+            })
+            ->when(!empty($selectedSellers), function ($q) use ($selectedSellers) {
+                $q->whereIn('seller_id', $selectedSellers);
+            })
+            ->orderBy('name');
+
+        $customers = $query->get();
+
+        $isGrouped = ($groupBy === 'seller_id');
+        if ($isGrouped) {
+            $customersData = $customers->groupBy(function ($customer) {
+                return $customer->seller ? $customer->seller->name : 'Sin Vendedor';
+            });
+        } else {
+            $customersData = ['' => $customers];
+        }
+
+        $config = \App\Models\Configuration::first();
+        $user = auth()->user();
+        $date = \Carbon\Carbon::now()->format('d/m/Y H:i');
+
+        $activeColumnsCount = count(array_filter($columns));
+        $orientation = $activeColumnsCount > 6 ? 'landscape' : 'portrait';
+
+        $pdf = Pdf::loadView('reports.customer-report-pdf', compact(
+            'customersData', 'isGrouped', 'columns', 'config', 'user', 'date', 'showDeleted'
+        ))->setPaper('a4', $orientation);
+
+        return $pdf->stream('Reporte_Clientes_' . \Carbon\Carbon::now()->format('Ymd_His') . '.pdf');
+    }
 }

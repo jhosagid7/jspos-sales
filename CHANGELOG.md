@@ -1,3 +1,13 @@
+## [1.10.158] - 2026-06-23
+### Added
+- **Reporte de Clientes por Vendedor**:
+  - Implementado un nuevo reporte en el Centro de Reportes > Ventas y Cobros para filtrar y exportar clientes.
+  - Agregado el selector de vendedores mediante una lista de casillas (checkboxes) en el sidebar lateral izquierdo.
+  - Implementado un panel de configuración de columnas dinámicas que permite seleccionar y ocultar las columnas a mostrar (Nombre, Identificación, Dirección, Ciudad, Teléfono, Vendedor, Saldo Billetera, Zona, Permite Crédito, Límite, Días, Notificaciones, Estado).
+  - Añadido soporte para agrupar los clientes por vendedor con cabeceras de subtotal.
+  - Creada la opción de generar una vista previa e impresión de PDF del reporte en formato portrait o landscape (según el número de columnas seleccionadas).
+  - Implementada la suite de pruebas de integración completas (`CustomerReportTest.php`).
+
 ## [1.10.157] - 2026-06-23
 ### Added
 - **Desactivación y Restauración de Clientes y Productos**:

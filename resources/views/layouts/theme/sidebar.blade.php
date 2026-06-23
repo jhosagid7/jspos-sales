@@ -546,8 +546,8 @@
                         </p>
                     </a>
                     <ul class="nav nav-treeview">
-                        <li class="nav-item {{ Request::is('reports/sales*') || Request::is('reports/daily-sales*') || Request::is('reports/payment-relationship*') || Request::is('reports/customer-payment*') || Request::is('reports/weekly-income*') || Request::is('reports/monthly-income*') ? 'menu-open' : '' }}">
-                            <a href="#" class="nav-link {{ Request::is('reports/sales*') || Request::is('reports/daily-sales*') || Request::is('reports/payment-relationship*') || Request::is('reports/customer-payment*') || Request::is('reports/weekly-income*') || Request::is('reports/monthly-income*') ? 'active' : '' }}">
+                        <li class="nav-item {{ Request::is('reports/sales*') || Request::is('reports/daily-sales*') || Request::is('reports/payment-relationship*') || Request::is('reports/customer-payment*') || Request::is('reports/weekly-income*') || Request::is('reports/monthly-income*') || Request::is('reports/customers*') ? 'menu-open' : '' }}">
+                            <a href="#" class="nav-link {{ Request::is('reports/sales*') || Request::is('reports/daily-sales*') || Request::is('reports/payment-relationship*') || Request::is('reports/customer-payment*') || Request::is('reports/weekly-income*') || Request::is('reports/monthly-income*') || Request::is('reports/customers*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>
                                     Ventas y Cobros
@@ -584,6 +584,12 @@
                                       <a href="{{ route('reports.monthly.income') }}" class="nav-link {{ Request::is('reports/monthly-income*') ? 'active' : '' }}">
                                           <i class="far fa-dot-circle nav-icon"></i>
                                           <p>Reporte Mensual de Ingresos</p>
+                                      </a>
+                                  </li>
+                                  <li class="nav-item">
+                                      <a href="{{ route('reports.customers') }}" class="nav-link {{ Request::is('reports/customers*') ? 'active' : '' }}">
+                                          <i class="far fa-dot-circle nav-icon"></i>
+                                          <p>Reporte de Clientes</p>
                                       </a>
                                   </li>
                                 @endcan
