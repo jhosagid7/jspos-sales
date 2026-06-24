@@ -1,3 +1,42 @@
+## [1.10.166] - 2026-06-24
+### Added
+- **Módulo de Eficiencia y Precisión de Operadores de Facturación (Fase 3)**:
+  - Implementado reporte interactivo para analizar y comparar la productividad y la calidad en la transcripción de facturas por parte de los operadores facturadores.
+  - Integrado el gráfico interactivo Highcharts multiserie que permite comparar métricas clave (Score de Calidad, Facturas Emitidas, Monto Facturado, Modificadas, Anuladas y Devoluciones) por operador.
+  - Implementado el Score de Precisión de Facturación ponderando incidencias: Facturas Anuladas (peso 1.5), Facturas Modificadas (peso 1.0) y Facturas con Devolución (peso 1.2).
+  - Diseñada tabla de desglose comparativo detallada de eficiencia por operador que muestra facturas emitidas, monto de ventas, errores detallados, score de calidad, días activos y facturas emitidas por día activo (eficiencia diaria).
+  - Añadido modal interactivo con visor de PDF horizontal (Landscape) que expone el resumen ejecutivo de KPIs y el historial de las últimas 100 facturas para auditoría.
+  - Creada suite de pruebas en `BillingOperatorsReportTest.php` para validar acceso, cálculos matemáticos del score de precisión, eficiencia de facturación y generación exitosa del PDF.
+
+### Fixed
+- **Mapeo de Ventas de Oficina en Reporte de Desempeño de Vendedores**:
+  - Corregido error por el cual las ventas del vendedor por defecto (`OFICINA`) no aparecían en el gráfico ni en la tabla al filtrar. Los clientes correspondientes tienen `seller_id = NULL` en la base de datos, lo cual ahora se mapea correctamente al ID del usuario `OFICINA` en las consultas SQL y en los filtros de PHP.
+
+## [1.10.165] - 2026-06-24
+### Added
+- **Módulo de Desempeño de Vendedores (Foráneos vs. Oficina)**:
+  - Implementado reporte interactivo para analizar y comparar la fuerza de ventas externa frente a la facturación de oficina (`OFICINA`).
+  - Integrado el gráfico interactivo Highcharts multiserie que permite seleccionar y comparar las curvas de tendencia de múltiples vendedores simultáneamente según agrupaciones diarias, semanales, quincenales, mensuales o anuales.
+  - Diseñadas tarjetas de resumen para el total de ventas, comisiones devengadas, márgenes netos de retorno y estado de cartera de crédito pendiente/vencida.
+  - Creada tabla detallada de rendimiento por vendedor que expone volumen bruto, facturas procesadas, comisiones, venta neta, margen neto porcentual, clientes activos atendidos, deuda pendiente, deuda vencida y promedio ponderado de días de atraso.
+  - Añadida previsualización de PDF en orientación horizontal (Landscape) con estructura ejecutiva completa.
+  - Creada suite de pruebas en `SellersPerformanceReportTest.php` para validar el acceso, lógica de KPIs, deudas ponderadas y exportación.
+
+### Fixed
+- **Ordenación Cronológica en Reportes de Actividad y Análisis**:
+  - Corregida la ordenación alfabética incorrecta de los períodos en el Reporte de Actividad del Cliente y en el Reporte de Análisis de Ventas (tanto en web como en PDF), la cual provocaba que meses como Abril se mostraran antes de Febrero debido al ordenamiento alfabético de los nombres traducidos al español.
+  - Implementada la preservación del formato cronológico original (e.g. `YYYY-MM` o `YYYY-MM-DD`) en una propiedad interna `raw_period`, la cual es utilizada para ordenar las etiquetas y los datos del gráfico/tabla antes de la visualización.
+
+## [1.10.164] - 2026-06-24
+### Added
+- **Módulo de Análisis de Ventas y Crecimiento (Fase 1)**:
+  - Implementado reporte interactivo de analítica de ventas con filtros de fechas, selector de métrica (Monto de Ventas, Cantidad de Facturas, Comisiones Devengadas, Ventas Netas) y agrupación temporal (Diario, Semanal, Quincenal, Mensual, Anual).
+  - Integrada la visualización dinámica utilizando la librería **Highcharts** con soporte para gráficos interactivos de área suavizada (Areaspline).
+  - Creadas tarjetas de KPIs principales con cálculo automático de tasas de crecimiento porcentual interperiodo (comparando el periodo actual contra el anterior del mismo tamaño) y flechas de tendencia (↑/↓).
+  - Añadida tabla de desglose comparativo por periodo con cálculo dinámico de crecimiento fila a fila en el navegador.
+  - Implementada exportación limpia a PDF con orientación vertical (Portrait), incluyendo resumen de KPIs, tabla comparativa de periodos y listado detallado de facturas emitidas en el periodo seleccionado.
+  - Creada suite de pruebas funcionales automatizadas en `SalesAnalysisReportTest.php` para validar el renderizado del componente Livewire, cálculos de agregación/comisiones/crecimiento y descarga exitosa del reporte en PDF.
+
 ## [1.10.163] - 2026-06-24
 ### Added
 - **Mejora en Etiquetas de Períodos del Gráfico de Actividad**:

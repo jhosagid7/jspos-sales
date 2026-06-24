@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Reporte de Actividad del Cliente</title>
+    <title>Reporte de Análisis de Ventas</title>
     <style>
         @page {
             margin: 0.5cm;
@@ -61,13 +61,14 @@
             padding: 4px 6px;
             font-size: 7.5pt;
             font-weight: bold;
-            text-align: left;
+            text-align: center;
             text-transform: uppercase;
         }
         .kpi-table td {
             padding: 5px 6px;
             border: 1px solid #ddd;
             font-size: 7.2pt;
+            text-align: center;
         }
         .table {
             width: 100%;
@@ -115,6 +116,8 @@
             width: 80%;
             margin: 0 auto 5px auto;
         }
+        .text-success { color: green; }
+        .text-danger { color: red; }
     </style>
 </head>
 <body>
@@ -136,46 +139,38 @@
         </tr>
     </table>
 
-    <div class="report-title">Reporte de Actividad y Análisis de Compras</div>
+    <div class="report-title">Reporte de Análisis de Ventas y Crecimiento</div>
     
     <div class="filter-info">
         <strong>Parámetros de Consulta:</strong><br>
         • Rango de Fechas: {{ $dateFromStr ? \Carbon\Carbon::parse($dateFromStr)->format('d/m/Y') : 'Inicio' }} al {{ $dateToStr ? \Carbon\Carbon::parse($dateToStr)->format('d/m/Y') : 'Fin' }}<br>
-        • Agrupación temporal: {{ strtoupper($periodType) }} | Métrica analizada: {{ $metric === 'count' ? 'CANTIDAD DE COMPRAS' : 'MONTO COMPRADO (USD)' }}
+        • Agrupación temporal: {{ strtoupper($periodType) }} | Métrica: {{ strtoupper($metric) }}
     </div>
 
     <!-- KPIs de Resumen -->
-    <div class="section-title">Resumen de Indicadores Clave (KPIs)</div>
+    <div class="section-title">Resumen de Indicadores Clave (KPIs) del Periodo</div>
     <table class="kpi-table">
         <thead>
             <tr>
-                <th style="width: 25%;">Cliente</th>
-                <th style="width: 12%; text-align: right;">Total Comprado (USD)</th>
-                <th style="width: 10%; text-align: center;">Cantidad Compras</th>
-                <th style="width: 13%; text-align: right;">Ticket Promedio (USD)</th>
-                <th style="width: 12%; text-align: center;">Última Compra</th>
-                <th style="width: 28%;">Top Productos</th>
+                <th>Ventas Totales USD</th>
+                <th>Ventas Netas (Margen)</th>
+                <th>Comisiones Devengadas</th>
+                <th>Ticket Promedio</th>
+                <th>Nro. Facturas</th>
+                <th>Crecimiento %</th>
             </tr>
         </thead>
         <tbody>
-            @foreach ($kpis as $custId => $kpi)
-                <tr>
-                    <td class="font-bold">{{ $kpi['name'] }}</td>
-                    <td class="text-right font-bold">${{ number_format($kpi['total_amount'], 2) }}</td>
-                    <td class="text-center font-bold">{{ $kpi['sales_count'] }}</td>
-                    <td class="text-right font-bold">${{ number_format($kpi['avg_ticket'], 2) }}</td>
-                    <td class="text-center font-bold text-info">{{ $kpi['last_purchase_at'] }}</td>
-                    <td>
-                        <ul style="margin: 0; padding-left: 12px; list-style-type: square; font-size: 6.8pt;">
-                            @forelse($kpi['top_products'] as $prod)
-                                <li>{{ $prod->product_name }} ({{ number_format($prod->total_qty, 0) }} uds)</li>
-                            @empty
-                                <li style="list-style-type: none; margin-left: -12px;" class="text-muted">Ninguno</li>
-                            @endforelse
-                        </ul>
-                    </td>
-                </tr>
-            @endforeach
+            <tr>
+                <td class="font-bold">${{ number_format($kpis['total_sales'], 2) }}</td>
+                <td class="font-bold text-success">${{ number_format($kpis['net_sales'], 2) }}</td>
+                <td class="font-bold text-warning">${{ number_format($kpis['total_commission'], 2) }}</td>
+                <td class="font-bold">${{ number_format($kpis['avg_ticket'], 2) }}</td>
+                <td class="font-bold">{{ $kpis['sales_count'] }}</td>
+                <td class="font-bold {{ $kpis['growth_percent'] >= 0 ? 'text-success' : 'text-danger' }}">
+                    {{ $kpis['growth_percent'] >= 0 ? '+' : '' }}{{ number_format($kpis['growth_percent'], 1) }}%
+                </td>
+            </tr>
         </tbody>
     </table>
 
@@ -184,69 +179,94 @@
     <table class="table">
         <thead>
             <tr>
-                <th style="width: 20%;">Periodo</th>
-                @foreach ($kpis as $custId => $kpi)
-                    <th>{{ $kpi['name'] }}</th>
-                @endforeach
+                <th style="width: 25%;">Periodo</th>
+                <th>Ventas USD</th>
+                <th>Facturas</th>
+                <th>Comisiones USD</th>
+                <th>Venta Neta USD</th>
+                <th>Crecimiento %</th>
             </tr>
         </thead>
         <tbody>
             @php
-                $grandTotals = array_fill_keys(array_keys($kpis), 0);
+                $totalSales = 0;
+                $totalCount = 0;
+                $totalComm = 0;
+                $totalNet = 0;
+                $lastVal = null;
             @endphp
-            @forelse($labels as $labelIndex => $periodLabel)
+            @forelse($results as $rowIndex => $row)
+                @php
+                    $totalSales += $row->total_amount;
+                    $totalCount += $row->sales_count;
+                    $totalComm += $row->total_commission;
+                    $totalNet += $row->net_sales;
+
+                    $rowGrowth = 0;
+                    $rowGrowthArrow = '';
+                    $rowGrowthClass = '';
+                    
+                    if ($lastVal !== null) {
+                        if ($lastVal > 0) {
+                            $rowGrowth = (($row->total_amount - $lastVal) / $lastVal) * 100;
+                        } else {
+                            $rowGrowth = $row->total_amount > 0 ? 100 : 0;
+                        }
+
+                        if ($rowGrowth > 0) {
+                            $rowGrowthArrow = '+';
+                            $rowGrowthClass = 'text-success';
+                        } elseif ($rowGrowth < 0) {
+                            $rowGrowthClass = 'text-danger';
+                        }
+                    }
+                    $lastVal = $row->total_amount;
+                @endphp
                 <tr>
-                    <td class="text-center font-bold" style="background-color: #f8f9fa;">{{ $periodLabel }}</td>
-                    @foreach ($kpis as $custId => $kpi)
-                        @php
-                            $val = $datasets[array_search($kpi['name'], array_column($datasets, 'label'))]['data'][$labelIndex] ?? 0;
-                            $grandTotals[$custId] += $val;
-                        @endphp
-                        <td class="text-center">
-                            @if($metric === 'count')
-                                {{ number_format($val, 0) }}
-                            @else
-                                ${{ number_format($val, 2) }}
-                            @endif
-                        </td>
-                    @endforeach
+                    <td class="text-center font-bold" style="background-color: #f8f9fa;">{{ $row->period_label }}</td>
+                    <td class="text-center font-bold">${{ number_format($row->total_amount, 2) }}</td>
+                    <td class="text-center">{{ number_format($row->sales_count, 0) }}</td>
+                    <td class="text-center">${{ number_format($row->total_commission, 2) }}</td>
+                    <td class="text-center text-success">${{ number_format($row->net_sales, 2) }}</td>
+                    <td class="text-center font-bold {{ $rowGrowthClass }}">
+                        @if($rowIndex === 0)
+                            <span class="text-muted">Inicio</span>
+                        @else
+                            {{ $rowGrowthArrow }}{{ number_format($rowGrowth, 1) }}%
+                        @endif
+                    </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="20" class="text-center text-muted">No se registraron compras en los periodos indicados.</td>
+                    <td colspan="6" class="text-center text-muted">No se registraron ventas en los periodos indicados.</td>
                 </tr>
             @endforelse
         </tbody>
-        @if(!empty($labels))
+        @if(!empty($results))
             <tfoot>
                 <tr style="background-color: #eaeded; font-weight: bold;">
                     <td class="text-center">TOTAL ACUMULADO:</td>
-                    @foreach ($kpis as $custId => $kpi)
-                        <td class="text-center">
-                            @if($metric === 'count')
-                                {{ number_format($grandTotals[$custId], 0) }}
-                            @else
-                                ${{ number_format($grandTotals[$custId], 2) }}
-                            @endif
-                        </td>
-                    @endforeach
+                    <td class="text-center">${{ number_format($totalSales, 2) }}</td>
+                    <td class="text-center">{{ number_format($totalCount, 0) }}</td>
+                    <td class="text-center">${{ number_format($totalComm, 2) }}</td>
+                    <td class="text-center text-success">${{ number_format($totalNet, 2) }}</td>
+                    <td class="text-center">-</td>
                 </tr>
             </tfoot>
         @endif
     </table>
 
     <!-- Registro Detallado de Facturas -->
-    <div class="section-title">Registro Detallado de Facturas de Compra @if($detailedSales->count() >= 100) (Últimas 100 facturas) @endif</div>
+    <div class="section-title">Registro Detallado de Facturas Emitidas @if($detailedSales->count() >= 100) (Últimas 100 facturas) @endif</div>
     <table class="table">
         <thead>
             <tr>
                 <th style="width: 10%;">Folio/Nro</th>
                 <th style="width: 15%;">Fecha/Hora</th>
                 <th style="width: 25%;">Cliente</th>
-                <th style="width: 15%; text-align: right;">Base USD</th>
-                <th style="width: 10%; text-align: right;">Flete USD</th>
+                <th style="width: 20%;">Vendedor</th>
                 <th style="width: 15%; text-align: right;">Total USD</th>
-                <th style="width: 10%;">Estatus</th>
+                <th style="width: 15%;">Estatus</th>
             </tr>
         </thead>
         <tbody>
@@ -255,12 +275,11 @@
                     <td class="text-center font-bold">{{ $sale->invoice_number ?: $sale->id }}</td>
                     <td class="text-center">{{ \Carbon\Carbon::parse($sale->created_at)->format('d/m/Y H:i') }}</td>
                     <td>{{ $sale->customer->name ?? 'N/A' }}</td>
-                    <td class="text-right">${{ number_format($sale->base_amount, 2) }}</td>
-                    <td class="text-right">${{ number_format($sale->total_freight, 2) }}</td>
+                    <td>{{ $sale->customer->seller->name ?? 'OFICINA' }}</td>
                     <td class="text-right font-bold">${{ number_format($sale->total_usd, 2) }}</td>
                     <td class="text-center">
                         @if($sale->status === 'paid')
-                            <span style="color: green;">PAGADO</span>
+                            <span class="text-success">PAGADO</span>
                         @elseif($sale->status === 'pending')
                             <span style="color: orange;">PENDIENTE</span>
                         @else
@@ -270,7 +289,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="text-center text-muted">No se encontraron transacciones en el periodo.</td>
+                    <td colspan="6" class="text-center text-muted">No se encontraron transacciones en el periodo.</td>
                 </tr>
             @endforelse
         </tbody>

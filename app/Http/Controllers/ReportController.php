@@ -3169,6 +3169,7 @@ class ReportController extends Controller
             ->get();
 
         $results->transform(function ($row) use ($periodType) {
+            $row->raw_period = $row->period_label;
             if ($periodType === 'weekly') {
                 $dt = \Carbon\Carbon::parse($row->period_label);
                 $monthName = strtoupper($dt->locale('es')->monthName);
@@ -3182,7 +3183,13 @@ class ReportController extends Controller
             return $row;
         });
 
-        $labels = $results->pluck('period_label')->unique()->sort()->values()->toArray();
+        $periodsMap = [];
+        foreach ($results as $row) {
+            $rawKey = $row->raw_period ?? $row->period_label;
+            $periodsMap[$rawKey] = $row->period_label;
+        }
+        ksort($periodsMap);
+        $labels = array_values($periodsMap);
         $customers = \App\Models\Customer::whereIn('id', $selectedCustomers)->get();
 
         $datasets = [];
@@ -3261,6 +3268,7 @@ class ReportController extends Controller
             ->when($dateFrom, fn($q) => $q->where('created_at', '>=', $dateFrom))
             ->when($dateTo, fn($q) => $q->where('created_at', '<=', $dateTo))
             ->orderBy('created_at', 'desc')
+            ->take(100)
             ->get();
 
         $config = \App\Models\Configuration::first();
@@ -3273,5 +3281,433 @@ class ReportController extends Controller
         ))->setPaper('a4', 'landscape');
 
         return $pdf->stream('Reporte_Actividad_Clientes_' . \Carbon\Carbon::now()->format('Ymd_His') . '.pdf');
+    }
+
+    public function salesAnalysisPdf(Request $request)
+    {
+        $selectedSellersStr = $request->get('selectedSellers');
+        $selectedSellers = $selectedSellersStr ? explode(',', $selectedSellersStr) : [];
+        $selectedSellers = array_filter($selectedSellers);
+
+        $periodType = $request->get('periodType', 'monthly');
+        $dateFromStr = $request->get('dateFrom');
+        $dateToStr = $request->get('dateTo');
+        $metric = $request->get('metric', 'amount');
+
+        $dateFrom = $dateFromStr ? \Carbon\Carbon::parse($dateFromStr)->startOfDay() : null;
+        $dateTo = $dateToStr ? \Carbon\Carbon::parse($dateToStr)->endOfDay() : null;
+
+        $selectExpression = "";
+        if ($periodType === 'daily') {
+            $selectExpression = "DATE_FORMAT(sales.created_at, '%Y-%m-%d')";
+        } elseif ($periodType === 'weekly') {
+            $selectExpression = "DATE_FORMAT(DATE_SUB(sales.created_at, INTERVAL WEEKDAY(sales.created_at) DAY), '%Y-%m-%d')";
+        } elseif ($periodType === 'biweekly') {
+            $selectExpression = "CASE WHEN DAY(sales.created_at) <= 15 THEN CONCAT(DATE_FORMAT(sales.created_at, '%Y-%m'), '-01') ELSE CONCAT(DATE_FORMAT(sales.created_at, '%Y-%m'), '-16') END";
+        } elseif ($periodType === 'yearly') {
+            $selectExpression = "CAST(YEAR(sales.created_at) AS CHAR)";
+        } else { // monthly
+            $selectExpression = "DATE_FORMAT(sales.created_at, '%Y-%m')";
+        }
+
+        $query = DB::table('sales')
+            ->join('customers', 'sales.customer_id', '=', 'customers.id')
+            ->select([
+                DB::raw("$selectExpression as period_label"),
+                DB::raw("SUM(sales.total_usd) as total_amount"),
+                DB::raw("COUNT(*) as sales_count"),
+                DB::raw("SUM(sales.final_commission_amount) as total_commission"),
+                DB::raw("SUM(sales.total_usd - IFNULL(sales.final_commission_amount, 0)) as net_sales"),
+            ])
+            ->where('sales.status', '<>', 'returned')
+            ->whereNull('sales.deletion_approved_at')
+            ->when($dateFrom, fn($q) => $q->where('sales.created_at', '>=', $dateFrom))
+            ->when($dateTo, fn($q) => $q->where('sales.created_at', '<=', $dateTo));
+
+        if (!empty($selectedSellers)) {
+            $query->whereIn('customers.seller_id', $selectedSellers);
+        }
+
+        $results = $query->groupBy(DB::raw("$selectExpression"))
+            ->orderBy('period_label')
+            ->get();
+
+        $results->transform(function ($row) use ($periodType) {
+            $row->raw_period = $row->period_label;
+            $dt = \Carbon\Carbon::parse(explode('-', $row->period_label)[0] === $row->period_label ? $row->period_label . '-01-01' : $row->period_label);
+            $monthName = strtoupper($dt->locale('es')->monthName);
+
+            if ($periodType === 'daily') {
+                $row->period_label = $dt->format('d/m/Y');
+            } elseif ($periodType === 'weekly') {
+                $weekNumber = sprintf('%02d', $dt->weekOfYear);
+                $row->period_label = "{$dt->year}-{$monthName}-{$dt->day}-S{$weekNumber}";
+            } elseif ($periodType === 'biweekly') {
+                $fortnight = $dt->day <= 15 ? 'Q1' : 'Q2';
+                $row->period_label = "{$dt->year}-{$monthName}-{$fortnight}";
+            } elseif ($periodType === 'monthly') {
+                $row->period_label = "{$dt->year}-{$monthName}";
+            } else { // yearly
+                $row->period_label = "{$dt->year}";
+            }
+            return $row;
+        });
+
+        // Sort results collection by raw_period to ensure perfect chronological order
+        $results = $results->sortBy('raw_period')->values();
+
+        // Current KPIs
+        $currentQuery = DB::table('sales')
+            ->join('customers', 'sales.customer_id', '=', 'customers.id')
+            ->where('sales.status', '<>', 'returned')
+            ->whereNull('sales.deletion_approved_at')
+            ->when($dateFrom, fn($q) => $q->where('sales.created_at', '>=', $dateFrom))
+            ->when($dateTo, fn($q) => $q->where('sales.created_at', '<=', $dateTo));
+
+        if (!empty($selectedSellers)) {
+            $currentQuery->whereIn('customers.seller_id', $selectedSellers);
+        }
+
+        $totalSales = $currentQuery->sum('sales.total_usd');
+        $salesCount = $currentQuery->count();
+        $totalCommission = $currentQuery->sum('sales.final_commission_amount');
+        $avgTicket = $salesCount > 0 ? $totalSales / $salesCount : 0;
+        $netSales = $totalSales - $totalCommission;
+
+        // Calculate growth against previous period
+        $growthPercent = 0;
+        if ($dateFrom && $dateTo) {
+            $daysDiff = $dateFrom->diffInDays($dateTo) + 1;
+            $prevDateFrom = $dateFrom->copy()->subDays($daysDiff);
+            $prevDateTo = $dateFrom->copy()->subDay()->endOfDay();
+
+            $prevQuery = DB::table('sales')
+                ->join('customers', 'sales.customer_id', '=', 'customers.id')
+                ->where('sales.status', '<>', 'returned')
+                ->whereNull('sales.deletion_approved_at')
+                ->where('sales.created_at', '>=', $prevDateFrom)
+                ->where('sales.created_at', '<=', $prevDateTo);
+
+            if (!empty($selectedSellers)) {
+                $prevQuery->whereIn('customers.seller_id', $selectedSellers);
+            }
+
+            $prevTotal = $prevQuery->sum('sales.total_usd');
+            if ($prevTotal > 0) {
+                $growthPercent = (($totalSales - $prevTotal) / $prevTotal) * 100;
+            } else {
+                $growthPercent = $totalSales > 0 ? 100 : 0;
+            }
+        }
+
+        $kpis = [
+            'total_sales' => $totalSales,
+            'sales_count' => $salesCount,
+            'avg_ticket' => $avgTicket,
+            'total_commission' => $totalCommission,
+            'net_sales' => $netSales,
+            'growth_percent' => $growthPercent
+        ];
+
+        // Detailed sales list for the report PDF
+        $detailedSales = \App\Models\Sale::with(['customer', 'user'])
+            ->join('customers', 'sales.customer_id', '=', 'customers.id')
+            ->select('sales.*')
+            ->where('sales.status', '<>', 'returned')
+            ->whereNull('sales.deletion_approved_at')
+            ->when($dateFrom, fn($q) => $q->where('sales.created_at', '>=', $dateFrom))
+            ->when($dateTo, fn($q) => $q->where('sales.created_at', '<=', $dateTo));
+
+        if (!empty($selectedSellers)) {
+            $detailedSales->whereIn('customers.seller_id', $selectedSellers);
+        }
+
+        $detailedSales = $detailedSales->orderBy('sales.created_at', 'desc')->take(100)->get();
+
+        $config = \App\Models\Configuration::first();
+        $user = auth()->user();
+        $date = \Carbon\Carbon::now()->format('d/m/Y H:i');
+
+        $pdf = Pdf::loadView('reports.sales-analysis-pdf', compact(
+            'results', 'kpis', 'detailedSales', 'metric', 'periodType', 
+            'config', 'user', 'date', 'dateFromStr', 'dateToStr'
+        ))->setPaper('a4', 'portrait');
+
+        return $pdf->stream('Reporte_Analisis_Ventas_' . \Carbon\Carbon::now()->format('Ymd_His') . '.pdf');
+    }
+
+    public function sellersPerformancePdf(Request $request)
+    {
+        $selectedSellersStr = $request->get('selectedSellers');
+        $selectedSellers = $selectedSellersStr ? explode(',', $selectedSellersStr) : [];
+        $selectedSellers = array_filter($selectedSellers);
+
+        $periodType = $request->get('periodType', 'monthly');
+        $dateFromStr = $request->get('dateFrom');
+        $dateToStr = $request->get('dateTo');
+        $metric = $request->get('metric', 'amount');
+
+        $dateFrom = $dateFromStr ? \Carbon\Carbon::parse($dateFromStr)->startOfDay() : null;
+        $dateTo = $dateToStr ? \Carbon\Carbon::parse($dateToStr)->endOfDay() : null;
+
+        $sales = \App\Models\Sale::with(['paymentDetails', 'payments', 'returns', 'debitNotes', 'customer'])
+            ->where('status', '<>', 'returned')
+            ->whereNull('deletion_approved_at')
+            ->when($dateFrom, fn($q) => $q->where('created_at', '>=', $dateFrom))
+            ->when($dateTo, fn($q) => $q->where('created_at', '<=', $dateTo))
+            ->get();
+
+        $sellersQuery = \App\Models\User::sellers();
+        if (!empty($selectedSellers)) {
+            $sellersQuery->whereIn('id', $selectedSellers);
+        }
+        $sellers = $sellersQuery->orderBy('name')->get();
+
+        $summary = [];
+        $totalSales = 0;
+        $totalCommission = 0;
+        $totalNetSales = 0;
+        $totalDebt = 0;
+        $totalOverdue = 0;
+
+        foreach ($sellers as $seller) {
+            $oficinaUser = \App\Models\User::where('name', 'OFICINA')->first();
+            $oficinaId = $oficinaUser ? $oficinaUser->id : null;
+
+            $sellerSales = $sales->filter(function($sale) use ($seller, $oficinaId) {
+                $sId = $sale->customer->seller_id ?? null;
+                return $sId == $seller->id || (is_null($sId) && $seller->id == $oficinaId);
+            });
+            
+            $grossSales = $sellerSales->sum('total_usd');
+            $invoicesCount = $sellerSales->count();
+            $commissions = $sellerSales->sum('final_commission_amount');
+            $netSales = $grossSales - $commissions;
+            $marginPercent = $grossSales > 0 ? ($netSales / $grossSales) * 100 : 0;
+            
+            $activeCustomers = $sellerSales->pluck('customer_id')->unique()->count();
+
+            $pendingDebt = 0;
+            $overdueDebt = 0;
+            $weightedOverdueSum = 0;
+
+            foreach ($sellerSales as $sale) {
+                $debt = \App\Livewire\Reports\SellersPerformanceReport::calculateSaleDebtUsd($sale);
+                if ($debt > 0) {
+                    $pendingDebt += $debt;
+                    
+                    $daysOverdue = $sale->days_overdue;
+                    if ($daysOverdue > 0) {
+                        $overdueDebt += $debt;
+                        $weightedOverdueSum += ($daysOverdue * $debt);
+                    }
+                }
+            }
+
+            $avgDaysOverdue = $overdueDebt > 0 ? $weightedOverdueSum / $overdueDebt : 0;
+
+            $summary['sellers'][] = [
+                'name' => $seller->name,
+                'gross_sales' => $grossSales,
+                'invoices_count' => $invoicesCount,
+                'commissions' => $commissions,
+                'net_sales' => $netSales,
+                'margin_percent' => $marginPercent,
+                'active_customers' => $activeCustomers,
+                'pending_debt' => $pendingDebt,
+                'overdue_debt' => $overdueDebt,
+                'avg_days_overdue' => $avgDaysOverdue,
+            ];
+
+            $totalSales += $grossSales;
+            $totalCommission += $commissions;
+            $totalNetSales += $netSales;
+            $totalDebt += $pendingDebt;
+            $totalOverdue += $overdueDebt;
+        }
+
+        $kpis = [
+            'total_sales' => $totalSales,
+            'total_commission' => $totalCommission,
+            'net_sales' => $totalNetSales,
+            'margin_percent' => $totalSales > 0 ? ($totalNetSales / $totalSales) * 100 : 0,
+            'total_debt' => $totalDebt,
+            'total_overdue' => $totalOverdue,
+        ];
+
+        $detailedSales = \App\Models\Sale::with(['customer', 'user'])
+            ->join('customers', 'sales.customer_id', '=', 'customers.id')
+            ->select('sales.*')
+            ->where('sales.status', '<>', 'returned')
+            ->whereNull('sales.deletion_approved_at')
+            ->when($dateFrom, fn($q) => $q->where('sales.created_at', '>=', $dateFrom))
+            ->when($dateTo, fn($q) => $q->where('sales.created_at', '<=', $dateTo));
+
+        $oficinaUser = \App\Models\User::where('name', 'OFICINA')->first();
+        $oficinaId = $oficinaUser ? $oficinaUser->id : null;
+
+        if (!empty($selectedSellers)) {
+            $detailedSales->where(function($q) use ($selectedSellers, $oficinaId) {
+                $q->whereIn('customers.seller_id', $selectedSellers);
+                if ($oficinaId && in_array($oficinaId, $selectedSellers)) {
+                    $q->orWhereNull('customers.seller_id');
+                }
+            });
+        }
+
+        $detailedSales = $detailedSales->orderBy('sales.created_at', 'desc')->take(100)->get();
+
+        $config = \App\Models\Configuration::first();
+        $user = auth()->user();
+        $date = \Carbon\Carbon::now()->format('d/m/Y H:i');
+
+        $pdf = Pdf::loadView('reports.sellers-performance-pdf', [
+            'sellers' => $summary['sellers'] ?? [],
+            'kpis' => $kpis,
+            'detailedSales' => $detailedSales,
+            'metric' => $metric,
+            'periodType' => $periodType,
+            'config' => $config,
+            'user' => $user,
+            'date' => $date,
+            'dateFromStr' => $dateFromStr,
+            'dateToStr' => $dateToStr
+        ])->setPaper('a4', 'landscape');
+
+        return $pdf->stream('Reporte_Desempeno_Vendedores_' . \Carbon\Carbon::now()->format('Ymd_His') . '.pdf');
+    }
+
+    public function billingOperatorsPdf(Request $request)
+    {
+        $selectedOperatorsStr = $request->get('selectedOperators');
+        $selectedOperators = $selectedOperatorsStr ? explode(',', $selectedOperatorsStr) : [];
+        $selectedOperators = array_filter($selectedOperators);
+
+        $periodType = $request->get('periodType', 'monthly');
+        $dateFromStr = $request->get('dateFrom');
+        $dateToStr = $request->get('dateTo');
+        $metric = $request->get('metric', 'precision_score');
+
+        $dateFrom = $dateFromStr ? \Carbon\Carbon::parse($dateFromStr)->startOfDay() : null;
+        $dateTo = $dateToStr ? \Carbon\Carbon::parse($dateToStr)->endOfDay() : null;
+
+        $query = DB::table('sales')
+            ->select([
+                'sales.user_id',
+                DB::raw("COUNT(*) as total_sales"),
+                DB::raw("SUM(sales.total_usd) as total_amount"),
+                DB::raw("SUM(CASE WHEN sales.status IN ('voided', 'cancelled', 'anulated') OR sales.deletion_approved_at IS NOT NULL THEN 1 ELSE 0 END) as voided_count"),
+                DB::raw("SUM(CASE WHEN (SELECT COUNT(*) FROM sale_history_logs WHERE sale_history_logs.sale_id = sales.id) > 0 THEN 1 ELSE 0 END) as modified_count"),
+                DB::raw("SUM(CASE WHEN (SELECT COUNT(*) FROM sale_returns WHERE sale_returns.sale_id = sales.id AND sale_returns.status = 'approved') > 0 THEN 1 ELSE 0 END) as returned_count"),
+                DB::raw("COUNT(DISTINCT DATE(sales.created_at)) as active_days")
+            ])
+            ->when($dateFrom, fn($q) => $q->where('sales.created_at', '>=', $dateFrom))
+            ->when($dateTo, fn($q) => $q->where('sales.created_at', '<=', $dateTo));
+
+        if (!empty($selectedOperators)) {
+            $query->whereIn('sales.user_id', $selectedOperators);
+        }
+
+        $summaryResults = $query->groupBy('sales.user_id')->get();
+
+        // Get user details
+        $userIds = $summaryResults->pluck('user_id')->filter()->toArray();
+        $users = \App\Models\User::whereIn('id', $userIds)->get()->keyBy('id');
+
+        $operators = [];
+        $totalSales = 0;
+        $totalAmount = 0;
+        $totalVoided = 0;
+        $totalModified = 0;
+        $totalReturned = 0;
+        $totalErrors = 0;
+
+        foreach ($summaryResults as $row) {
+            if (!$row->user_id) {
+                continue;
+            }
+            $user = $users->get($row->user_id);
+            $name = $user ? $user->name : 'Operador Desconocido (' . $row->user_id . ')';
+
+            $score = \App\Livewire\Reports\BillingOperatorsReport::calculatePrecisionScore(
+                $row->total_sales,
+                $row->voided_count,
+                $row->modified_count,
+                $row->returned_count
+            );
+
+            $efficiency = $row->active_days > 0 ? round($row->total_sales / $row->active_days, 1) : 0.0;
+            $errors = $row->voided_count + $row->modified_count + $row->returned_count;
+
+            $operators[] = [
+                'id' => $row->user_id,
+                'name' => $name,
+                'total_sales' => $row->total_sales,
+                'total_amount' => (float)$row->total_amount,
+                'voided_count' => (int)$row->voided_count,
+                'modified_count' => (int)$row->modified_count,
+                'returned_count' => (int)$row->returned_count,
+                'precision_score' => $score,
+                'active_days' => (int)$row->active_days,
+                'efficiency' => $efficiency,
+                'errors_count' => $errors
+            ];
+
+            $totalSales += $row->total_sales;
+            $totalAmount += $row->total_amount;
+            $totalVoided += $row->voided_count;
+            $totalModified += $row->modified_count;
+            $totalReturned += $row->returned_count;
+            $totalErrors += $errors;
+        }
+
+        usort($operators, fn($a, $b) => strcmp($a['name'], $b['name']));
+
+        $avgScore = \App\Livewire\Reports\BillingOperatorsReport::calculatePrecisionScore(
+            $totalSales,
+            $totalVoided,
+            $totalModified,
+            $totalReturned
+        );
+
+        $kpis = [
+            'total_sales' => $totalSales,
+            'total_amount' => $totalAmount,
+            'avg_precision_score' => $avgScore,
+            'total_errors' => $totalErrors,
+            'total_voided' => $totalVoided,
+            'total_modified' => $totalModified,
+            'total_returned' => $totalReturned,
+        ];
+
+        // Fetch detailed sales list (max 100)
+        $detailedSalesQuery = \App\Models\Sale::with(['customer', 'user', 'returns', 'history'])
+            ->when($dateFrom, fn($q) => $q->where('created_at', '>=', $dateFrom))
+            ->when($dateTo, fn($q) => $q->where('created_at', '<=', $dateTo));
+
+        if (!empty($selectedOperators)) {
+            $detailedSalesQuery->whereIn('user_id', $selectedOperators);
+        }
+
+        $detailedSales = $detailedSalesQuery->orderBy('created_at', 'desc')->take(100)->get();
+
+        $config = \App\Models\Configuration::first();
+        $user = auth()->user();
+        $date = \Carbon\Carbon::now()->format('d/m/Y H:i');
+
+        $pdf = Pdf::loadView('reports.billing-operators-pdf', [
+            'operators' => $operators,
+            'kpis' => $kpis,
+            'detailedSales' => $detailedSales,
+            'metric' => $metric,
+            'periodType' => $periodType,
+            'config' => $config,
+            'user' => $user,
+            'date' => $date,
+            'dateFromStr' => $dateFromStr,
+            'dateToStr' => $dateToStr
+        ])->setPaper('a4', 'landscape');
+
+        return $pdf->stream('Reporte_Eficiencia_Operadores_' . \Carbon\Carbon::now()->format('Ymd_His') . '.pdf');
     }
 }

@@ -546,8 +546,8 @@
                         </p>
                     </a>
                     <ul class="nav nav-treeview">
-                        <li class="nav-item {{ Request::is('reports/sales*') || Request::is('reports/daily-sales*') || Request::is('reports/payment-relationship*') || Request::is('reports/customer-payment*') || Request::is('reports/weekly-income*') || Request::is('reports/monthly-income*') || Request::is('reports/customers*') || Request::is('reports/customer-activity*') ? 'menu-open' : '' }}">
-                            <a href="#" class="nav-link {{ Request::is('reports/sales*') || Request::is('reports/daily-sales*') || Request::is('reports/payment-relationship*') || Request::is('reports/customer-payment*') || Request::is('reports/weekly-income*') || Request::is('reports/monthly-income*') || Request::is('reports/customers*') || Request::is('reports/customer-activity*') ? 'active' : '' }}">
+                        <li class="nav-item {{ Request::is('reports/sales*') || Request::is('reports/daily-sales*') || Request::is('reports/payment-relationship*') || Request::is('reports/customer-payment*') || Request::is('reports/weekly-income*') || Request::is('reports/monthly-income*') || Request::is('reports/customers*') || Request::is('reports/customer-activity*') || Request::is('reports/sales-analysis*') || Request::is('reports/sellers-performance*') || Request::is('reports/operators-precision*') ? 'menu-open' : '' }}">
+                            <a href="#" class="nav-link {{ Request::is('reports/sales*') || Request::is('reports/daily-sales*') || Request::is('reports/payment-relationship*') || Request::is('reports/customer-payment*') || Request::is('reports/weekly-income*') || Request::is('reports/monthly-income*') || Request::is('reports/customers*') || Request::is('reports/customer-activity*') || Request::is('reports/sales-analysis*') || Request::is('reports/sellers-performance*') || Request::is('reports/operators-precision*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>
                                     Ventas y Cobros
@@ -596,6 +596,24 @@
                                       <a href="{{ route('reports.customer.activity') }}" class="nav-link {{ Request::is('reports/customer-activity*') ? 'active' : '' }}">
                                           <i class="far fa-dot-circle nav-icon"></i>
                                           <p>Actividad de Clientes</p>
+                                      </a>
+                                  </li>
+                                  <li class="nav-item">
+                                      <a href="{{ route('reports.sales.analysis') }}" class="nav-link {{ Request::is('reports/sales-analysis*') ? 'active' : '' }}">
+                                          <i class="far fa-dot-circle nav-icon"></i>
+                                          <p>Análisis de Ventas</p>
+                                      </a>
+                                  </li>
+                                  <li class="nav-item">
+                                      <a href="{{ route('reports.sellers.performance') }}" class="nav-link {{ Request::is('reports/sellers-performance*') ? 'active' : '' }}">
+                                          <i class="far fa-dot-circle nav-icon"></i>
+                                          <p>Desempeño de Vendedores</p>
+                                      </a>
+                                  </li>
+                                  <li class="nav-item">
+                                      <a href="{{ route('reports.operators.precision') }}" class="nav-link {{ Request::is('reports/operators-precision*') ? 'active' : '' }}">
+                                          <i class="far fa-dot-circle nav-icon"></i>
+                                          <p>Eficiencia de Operadores</p>
                                       </a>
                                   </li>
                                 @endcan

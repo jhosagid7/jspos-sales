@@ -97,6 +97,7 @@ class CustomerActivityReport extends Component
             ->get();
 
         $results->transform(function ($row) {
+            $row->raw_period = $row->period_label;
             if ($this->periodType === 'weekly') {
                 $dt = Carbon::parse($row->period_label);
                 $monthName = strtoupper($dt->locale('es')->monthName);
@@ -110,7 +111,13 @@ class CustomerActivityReport extends Component
             return $row;
         });
 
-        $labels = $results->pluck('period_label')->unique()->sort()->values()->toArray();
+        $periodsMap = [];
+        foreach ($results as $row) {
+            $rawKey = $row->raw_period ?? $row->period_label;
+            $periodsMap[$rawKey] = $row->period_label;
+        }
+        ksort($periodsMap);
+        $labels = array_values($periodsMap);
         $customers = Customer::whereIn('id', $this->selectedCustomers)->get();
 
         $datasets = [];
