@@ -57,7 +57,7 @@ class AccountsReceivableReport extends Component
         $this->paymentCurrency = $this->currencies->firstWhere('is_primary', 1)->code ?? 'COP';
         
         if (auth()->user()->can('sales.view_all')) {
-            $this->sellers = \App\Models\User::role(['Vendedor', 'Vendedor foraneo'])->orderBy('name')->get();
+            $this->sellers = \App\Models\User::sellers()->orderBy('name')->get();
             $this->users = \App\Models\User::orderBy('name')->get(); 
         } else {
             // Restricted view: only show themselves

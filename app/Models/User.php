@@ -166,7 +166,14 @@ class User extends Authenticatable
     public function scopeSellers($query)
     {
         return $query->select('users.*')
-            ->permission(['system.is_seller', 'system.is_foreign_seller'])
+            ->where(function($q) {
+                $q->whereHas('roles', function($rq) {
+                    $rq->whereIn('name', ['Vendedor Foraneo', 'Vendedor foraneo']);
+                })
+                ->orWhere('users.name', 'OFICINA')
+                ->orWhere('users.email', 'oficina@gmail.com')
+                ->orWhere('users.email', 'oficina@example.com');
+            })
             ->distinct();
     }
 

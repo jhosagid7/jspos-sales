@@ -168,6 +168,12 @@
                                 <label class="custom-control-label f-12" for="col_total_purchased">Total Comprado (Histórico)</label>
                             </div>
                         </div>
+                        <div class="col-12 mb-1">
+                            <div class="custom-control custom-checkbox ml-2">
+                                <input type="checkbox" class="custom-control-input" id="col_risk_level" wire:model.live="columns.risk_level">
+                                <label class="custom-control-label f-12" for="col_risk_level">Nivel de Riesgo</label>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -220,6 +226,7 @@
                                             @if($columns['status']) <th>Estado</th> @endif
                                             @if($columns['last_purchase']) <th>Última Compra / Alerta</th> @endif
                                             @if($columns['total_purchased']) <th>Total Comprado (Histórico)</th> @endif
+                                            @if($columns['risk_level']) <th>Nivel de Riesgo</th> @endif
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -269,6 +276,29 @@
                                                 @if($columns['total_purchased'])
                                                     <td class="font-bold">${{ number_format($customer->total_purchased_usd ?? 0, 2) }}</td>
                                                 @endif
+                                                @if($columns['risk_level'])
+                                                     <td>
+                                                         @php
+                                                             $days = null;
+                                                             if ($customer->last_purchase_at) {
+                                                                 $days = \Carbon\Carbon::parse($customer->last_purchase_at)->diffInDays(\Carbon\Carbon::now());
+                                                             }
+                                                         @endphp
+                                                         @if($days === null)
+                                                             <span class="badge" style="background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; font-weight: bold; font-size: 7.5pt; text-transform: uppercase;">Sin Compras</span>
+                                                         @elseif($days >= 120)
+                                                             <span class="badge" style="background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; font-weight: bold; font-size: 7.5pt; text-transform: uppercase;">Perdido (&gt;120d)</span>
+                                                         @elseif($days >= 90)
+                                                             <span class="badge" style="background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; font-weight: bold; font-size: 7.5pt; text-transform: uppercase;">Crítico (&gt;90d)</span>
+                                                         @elseif($days >= 60)
+                                                             <span class="badge" style="background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; font-weight: bold; font-size: 7.5pt; text-transform: uppercase;">Alto (&gt;60d)</span>
+                                                         @elseif($days >= 30)
+                                                             <span class="badge" style="background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; font-weight: bold; font-size: 7.5pt; text-transform: uppercase;">Medio (&gt;30d)</span>
+                                                         @else
+                                                             <span class="badge" style="background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; font-weight: bold; font-size: 7.5pt; text-transform: uppercase;">Bajo (&lt;30d)</span>
+                                                         @endif
+                                                     </td>
+                                                 @endif
                                             </tr>
                                         @empty
                                             <tr>

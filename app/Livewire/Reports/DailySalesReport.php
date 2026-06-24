@@ -38,7 +38,7 @@ class DailySalesReport extends Component
         session(['map' => "TOTAL COSTO $0.00", 'child' => 'TOTAL VENTA $0.00', 'rest' => 'GANANCIA: $0.00 / MARGEN: 0.00%', 'pos' => 'Reporte de Ventas Diarias']);
 
         $this->users = User::orderBy('name')->get();
-        $this->sellers = User::role(['Vendedor', 'Vendedor foraneo'])->orderBy('name')->get();
+        $this->sellers = User::sellers()->orderBy('name')->get();
         $this->currencies = \App\Models\Currency::orderBy('id')->get();
     }
 

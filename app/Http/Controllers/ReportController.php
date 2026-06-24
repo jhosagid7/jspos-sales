@@ -2901,6 +2901,7 @@ class ReportController extends Controller
 
         $groupBy = $request->get('groupBy', 'none');
         $showDeleted = $request->get('showDeleted', 0) == 1;
+        $inactivityDays = (int)$request->get('inactivityDays', 0);
         
         $columnsJson = $request->get('columns');
         $columns = $columnsJson ? json_decode($columnsJson, true) : [
@@ -2917,14 +2918,37 @@ class ReportController extends Controller
             'credit_days' => false,
             'notifications' => false,
             'status' => false,
+            'risk_level' => false,
         ];
 
         $query = \App\Models\Customer::with('seller')
+            ->select('customers.*')
+            ->selectSub(function ($q) {
+                $q->selectRaw('max(created_at)')
+                    ->from('sales')
+                    ->whereColumn('sales.customer_id', 'customers.id')
+                    ->where('sales.status', '<>', 'returned')
+                    ->whereNull('sales.deletion_approved_at');
+            }, 'last_purchase_at')
+            ->selectSub(function ($q) {
+                $q->selectRaw('coalesce(sum(total_usd), 0)')
+                    ->from('sales')
+                    ->whereColumn('sales.customer_id', 'customers.id')
+                    ->where('sales.status', '<>', 'returned')
+                    ->whereNull('sales.deletion_approved_at');
+            }, 'total_purchased_usd')
             ->when($showDeleted, function ($q) {
                 $q->withTrashed();
             })
             ->when(!empty($selectedSellers), function ($q) use ($selectedSellers) {
                 $q->whereIn('seller_id', $selectedSellers);
+            })
+            ->when($inactivityDays > 0, function ($q) use ($inactivityDays) {
+                $threshold = \Carbon\Carbon::now()->subDays($inactivityDays)->toDateTimeString();
+                $q->where(function ($sub) use ($threshold) {
+                    $sub->whereRaw('(select max(created_at) from sales where sales.customer_id = customers.id and sales.status <> "returned" and sales.deletion_approved_at is null) < ?', [$threshold])
+                        ->orWhereRaw('not exists (select 1 from sales where sales.customer_id = customers.id and sales.status <> "returned" and sales.deletion_approved_at is null)');
+                });
             })
             ->orderBy('name');
 
@@ -2961,6 +2985,23 @@ class ReportController extends Controller
 
         $groupBy = $request->get('groupBy', 'none');
         $showDeleted = $request->get('showDeleted', 0) == 1;
+        $inactivityDays = (int)$request->get('inactivityDays', 0);
+        $columnsJson = $request->get('columns');
+        $columns = $columnsJson ? json_decode($columnsJson, true) : [
+            'name' => true,
+            'taxpayer_id' => true,
+            'address' => true,
+            'city' => true,
+            'phone' => true,
+            'seller' => true,
+            'wallet_balance' => true,
+            'zone' => true,
+            'allow_credit' => true,
+            'credit_limit' => true,
+            'credit_days' => true,
+            'notifications' => true,
+            'status' => true,
+        ];
 
         $query = \App\Models\Customer::with('seller')
             ->when($showDeleted, function ($q) {
@@ -2968,6 +3009,13 @@ class ReportController extends Controller
             })
             ->when(!empty($selectedSellers), function ($q) use ($selectedSellers) {
                 $q->whereIn('seller_id', $selectedSellers);
+            })
+            ->when($inactivityDays > 0, function ($q) use ($inactivityDays) {
+                $threshold = \Carbon\Carbon::now()->subDays($inactivityDays)->toDateTimeString();
+                $q->where(function ($sub) use ($threshold) {
+                    $sub->whereRaw('(select max(created_at) from sales where sales.customer_id = customers.id and sales.status <> "returned" and sales.deletion_approved_at is null) < ?', [$threshold])
+                        ->orWhereRaw('not exists (select 1 from sales where sales.customer_id = customers.id and sales.status <> "returned" and sales.deletion_approved_at is null)');
+                });
             })
             ->orderBy('name');
 
@@ -2987,7 +3035,7 @@ class ReportController extends Controller
         $date = \Carbon\Carbon::now()->format('d/m/Y H:i');
 
         $pdf = Pdf::loadView('reports.customer-tracking-pdf', compact(
-            'customersData', 'isGrouped', 'config', 'user', 'date', 'showDeleted'
+            'customersData', 'isGrouped', 'config', 'user', 'date', 'showDeleted', 'columns'
         ))->setPaper('a4', 'portrait');
 
         return $pdf->stream('Planilla_Seguimiento_' . \Carbon\Carbon::now()->format('Ymd_His') . '.pdf');
@@ -3002,6 +3050,25 @@ class ReportController extends Controller
         $groupBy = $request->get('groupBy', 'none');
         $showDeleted = $request->get('showDeleted', 0) == 1;
         $inactivityDays = (int)$request->get('inactivityDays', 0);
+        $columnsJson = $request->get('columns');
+        $columns = $columnsJson ? json_decode($columnsJson, true) : [
+            'name' => true,
+            'taxpayer_id' => true,
+            'address' => true,
+            'city' => true,
+            'phone' => true,
+            'seller' => true,
+            'wallet_balance' => true,
+            'zone' => true,
+            'allow_credit' => true,
+            'credit_limit' => true,
+            'credit_days' => true,
+            'notifications' => true,
+            'status' => true,
+            'last_purchase' => true,
+            'total_purchased' => true,
+            'risk_level' => true,
+        ];
 
         $query = \App\Models\Customer::with('seller')
             ->select('customers.*')
@@ -3050,7 +3117,7 @@ class ReportController extends Controller
         $date = \Carbon\Carbon::now()->format('d/m/Y H:i');
 
         $pdf = Pdf::loadView('reports.customer-recovery-pdf', compact(
-            'customersData', 'isGrouped', 'config', 'user', 'date', 'showDeleted', 'inactivityDays'
+            'customersData', 'isGrouped', 'config', 'user', 'date', 'showDeleted', 'inactivityDays', 'columns'
         ))->setPaper('a4', 'portrait');
 
         return $pdf->stream('Reporte_Recuperacion_' . \Carbon\Carbon::now()->format('Ymd_His') . '.pdf');
@@ -3076,7 +3143,7 @@ class ReportController extends Controller
 
         $selectExpression = "";
         if ($periodType === 'weekly') {
-            $selectExpression = "CONCAT(YEAR(created_at), '-S', LPAD(WEEK(created_at), 2, '0'))";
+            $selectExpression = "DATE_FORMAT(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY), '%Y-%m-%d')";
         } elseif ($periodType === 'quarterly') {
             $selectExpression = "CONCAT(YEAR(created_at), '-T', QUARTER(created_at))";
         } elseif ($periodType === 'yearly') {
@@ -3100,6 +3167,20 @@ class ReportController extends Controller
             ->groupBy(['customer_id', DB::raw("$selectExpression")])
             ->orderBy('period_label')
             ->get();
+
+        $results->transform(function ($row) use ($periodType) {
+            if ($periodType === 'weekly') {
+                $dt = \Carbon\Carbon::parse($row->period_label);
+                $monthName = strtoupper($dt->locale('es')->monthName);
+                $weekNumber = sprintf('%02d', $dt->weekOfYear);
+                $row->period_label = "{$dt->year}-{$monthName}-{$dt->day}-S{$weekNumber}";
+            } elseif ($periodType === 'monthly') {
+                $dt = \Carbon\Carbon::parse($row->period_label . '-01');
+                $monthName = strtoupper($dt->locale('es')->monthName);
+                $row->period_label = "{$dt->year}-{$monthName}";
+            }
+            return $row;
+        });
 
         $labels = $results->pluck('period_label')->unique()->sort()->values()->toArray();
         $customers = \App\Models\Customer::whereIn('id', $selectedCustomers)->get();

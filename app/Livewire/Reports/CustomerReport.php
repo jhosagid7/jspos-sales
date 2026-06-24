@@ -41,6 +41,7 @@ class CustomerReport extends Component
         'status' => false,
         'last_purchase' => false,
         'total_purchased' => false,
+        'risk_level' => false,
     ];
 
     public function mount()
@@ -62,6 +63,7 @@ class CustomerReport extends Component
             'groupBy' => $this->groupBy,
             'showDeleted' => $this->showDeleted ? 1 : 0,
             'columns' => json_encode($this->columns),
+            'inactivityDays' => $this->inactivityDays,
         ];
 
         $this->pdfUrl = route('reports.customers.pdf', $params);
@@ -80,6 +82,8 @@ class CustomerReport extends Component
             'selectedSellers' => implode(',', $this->selectedSellers),
             'groupBy' => $this->groupBy,
             'showDeleted' => $this->showDeleted ? 1 : 0,
+            'columns' => json_encode($this->columns),
+            'inactivityDays' => $this->inactivityDays,
         ];
 
         $this->trackingPdfUrl = route('reports.customers.tracking.pdf', $params);
@@ -98,6 +102,7 @@ class CustomerReport extends Component
             'selectedSellers' => implode(',', $this->selectedSellers),
             'groupBy' => $this->groupBy,
             'showDeleted' => $this->showDeleted ? 1 : 0,
+            'columns' => json_encode($this->columns),
             'inactivityDays' => $this->inactivityDays,
         ];
 

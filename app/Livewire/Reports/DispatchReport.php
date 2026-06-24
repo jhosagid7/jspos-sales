@@ -73,11 +73,8 @@ class DispatchReport extends Component
             $this->drivers = User::all();
         }
 
-        // Cargar vendedores únicos que tengan ventas registradas o simplemente todos con rol de vendedor
-        $this->sellers = User::whereHas('customers')->orderBy('name')->get();
-        if($this->sellers->isEmpty()){
-             $this->sellers = User::all();
-        }
+        // Cargar vendedores filtrados (oficina y foráneos)
+        $this->sellers = User::sellers()->orderBy('name')->get();
         
         session(['pos' => 'Reporte de Despacho']);
     }

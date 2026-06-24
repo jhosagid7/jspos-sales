@@ -179,6 +179,7 @@
                     @if($columns['credit_days']) <th>Días</th> @endif
                     @if($columns['notifications']) <th>Notificaciones (WA/Email)</th> @endif
                     @if($columns['status']) <th>Estado</th> @endif
+                    @if(isset($columns['risk_level']) && $columns['risk_level']) <th>Riesgo</th> @endif
                 </tr>
             </thead>
             <tbody>
@@ -207,6 +208,29 @@
                                     <span style="color: red; font-weight: bold;">Desactivado</span>
                                 @else
                                     <span style="color: green;">Activo</span>
+                                @endif
+                            </td>
+                        @endif
+                        @if(isset($columns['risk_level']) && $columns['risk_level'])
+                            <td>
+                                @php
+                                    $days = null;
+                                    if ($customer->last_purchase_at) {
+                                        $days = \Carbon\Carbon::parse($customer->last_purchase_at)->diffInDays(\Carbon\Carbon::now());
+                                    }
+                                @endphp
+                                @if($days === null)
+                                    <span style="color: #721c24; font-weight: bold;">Sin Compras</span>
+                                @elseif($days >= 120)
+                                    <span style="color: #721c24; font-weight: bold;">Perdido (&gt;120d)</span>
+                                @elseif($days >= 90)
+                                    <span style="color: #721c24; font-weight: bold;">Crítico (&gt;90d)</span>
+                                @elseif($days >= 60)
+                                    <span style="color: #856404; font-weight: bold;">Alto (&gt;60d)</span>
+                                @elseif($days >= 30)
+                                    <span style="color: #0c5460; font-weight: bold;">Medio (&gt;30d)</span>
+                                @else
+                                    <span style="color: #155724; font-weight: bold;">Bajo (&lt;30d)</span>
                                 @endif
                             </td>
                         @endif

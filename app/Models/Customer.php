@@ -86,4 +86,19 @@ class Customer extends Authenticatable
     {
         return $this->hasOne(CustomerConfig::class)->latestOfMany();
     }
+
+    protected static function booted()
+    {
+        static::saving(function ($customer) {
+            $sellerId = $customer->seller_id;
+            $isValidSeller = \App\Models\User::sellers()->where('users.id', $sellerId)->exists();
+            
+            if (!$isValidSeller) {
+                $defaultSeller = \App\Models\User::where('name', 'OFICINA')->first();
+                if ($defaultSeller) {
+                    $customer->seller_id = $defaultSeller->id;
+                }
+            }
+        });
+    }
 }

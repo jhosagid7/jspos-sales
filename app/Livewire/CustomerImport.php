@@ -182,7 +182,8 @@ class CustomerImport extends Component
                  }
 
                  // Handle Seller
-                 $sellerId = Auth::id(); // Default to current user
+                 $defaultSeller = User::where('name', 'OFICINA')->first();
+                 $sellerId = $defaultSeller ? $defaultSeller->id : Auth::id();
                  
                  if (!empty($customerData['seller'])) {
                      $sellerName = trim($customerData['seller']);
@@ -209,8 +210,8 @@ class CustomerImport extends Component
                               // $this->importErrors[] = "Info: Se creó el vendedor '$sellerName'";
                               
                          } catch (\Exception $e) {
-                             // Fallback to auth user if creation fails (e.g. duplicate email gen)
-                             $sellerId = Auth::id();
+                              // Fallback if creation fails (e.g. duplicate email gen)
+                              $sellerId = $defaultSeller ? $defaultSeller->id : Auth::id();
                          }
                      }
                  }

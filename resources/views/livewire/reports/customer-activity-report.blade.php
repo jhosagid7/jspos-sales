@@ -76,126 +76,130 @@
                 </div>
 
                 <div class="card-body">
-                    @if(!$showReport || empty($selectedCustomers))
-                        <div class="alert alert-info text-center">
-                            Selecciona uno o más clientes en la barra lateral y haz clic en "Consultar Actividad" para ver los gráficos y tablas de tendencias.
-                        </div>
-                    @else
+                    <!-- Mensaje de instrucción -->
+                    <div class="alert alert-info text-center {{ (!$showReport || empty($selectedCustomers)) ? '' : 'd-none' }}">
+                        Selecciona uno o más clientes en la barra lateral y haz clic en "Consultar Actividad" para ver los gráficos y tablas de tendencias.
+                    </div>
+
+                    <!-- Panel de Resultados -->
+                    <div class="{{ (!$showReport || empty($selectedCustomers)) ? 'd-none' : '' }}">
                         <!-- Gráfico Interactivo -->
                         <div class="card mb-4 shadow-sm border-0">
                             <div class="card-header bg-light py-2">
                                 <h6 class="mb-0 text-dark"><i class="fa fa-chart-area text-primary"></i> Tendencia de Compras del Periodo</h6>
                             </div>
-                            <div class="card-body">
+                            <div class="card-body" wire:ignore>
                                 <div style="height: 350px; position: relative;">
                                     <canvas id="activityChart"></canvas>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- KPIs Rápidos por Cliente -->
-                        <h5 class="txt-primary mb-3"><i class="fa fa-info-circle"></i> Indicadores de Resumen</h5>
-                        <div class="row">
-                            @foreach ($reportData['kpis'] as $custId => $kpi)
-                                <div class="col-md-4 mb-3">
-                                    <div class="card shadow-sm border-left border-primary">
-                                        <div class="card-body p-3">
-                                            <div class="f-13 font-weight-bold text-dark text-truncate" title="{{ $kpi['name'] }}">
-                                                {{ $kpi['name'] }}
-                                            </div>
-                                            <hr class="my-2">
-                                            <div class="d-flex justify-content-between f-12 mb-1">
-                                                <span class="text-muted">Total USD:</span>
-                                                <span class="font-weight-bold">${{ number_format($kpi['total_amount'], 2) }}</span>
-                                            </div>
-                                            <div class="d-flex justify-content-between f-12 mb-1">
-                                                <span class="text-muted">Nro. Compras:</span>
-                                                <span class="font-weight-bold">{{ $kpi['sales_count'] }}</span>
-                                            </div>
-                                            <div class="d-flex justify-content-between f-12 mb-1">
-                                                <span class="text-muted">Ticket Promedio:</span>
-                                                <span class="font-weight-bold">${{ number_format($kpi['avg_ticket'], 2) }}</span>
-                                            </div>
-                                            <div class="d-flex justify-content-between f-12">
-                                                <span class="text-muted">Última Compra:</span>
-                                                <span class="font-weight-bold text-info">{{ $kpi['last_purchase_at'] }}</span>
-                                            </div>
-                                            <div class="mt-2 pt-2 border-top">
-                                                <span class="f-11 font-weight-bold text-dark"><i class="fa fa-star text-warning"></i> Top Productos:</span>
-                                                <ul class="pl-3 mb-0 f-11" style="list-style-type: square;">
-                                                    @forelse($kpi['top_products'] as $prod)
-                                                        <li class="text-truncate" title="{{ $prod->product_name }}">
-                                                            {{ $prod->product_name }} ({{ number_format($prod->total_qty, 0) }} uds)
-                                                        </li>
-                                                    @empty
-                                                        <li class="text-muted list-unstyled">Ninguno</li>
-                                                    @endforelse
-                                                </ul>
+                        @if($showReport && !empty($selectedCustomers) && isset($reportData['kpis']))
+                            <!-- KPIs Rápidos por Cliente -->
+                            <h5 class="txt-primary mb-3"><i class="fa fa-info-circle"></i> Indicadores de Resumen</h5>
+                            <div class="row">
+                                @foreach ($reportData['kpis'] as $custId => $kpi)
+                                    <div class="col-md-4 mb-3">
+                                        <div class="card shadow-sm border-left border-primary">
+                                            <div class="card-body p-3">
+                                                <div class="f-13 font-weight-bold text-dark text-truncate" title="{{ $kpi['name'] }}">
+                                                    {{ $kpi['name'] }}
+                                                </div>
+                                                <hr class="my-2">
+                                                <div class="d-flex justify-content-between f-12 mb-1">
+                                                    <span class="text-muted">Total USD:</span>
+                                                    <span class="font-weight-bold">${{ number_format($kpi['total_amount'], 2) }}</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between f-12 mb-1">
+                                                    <span class="text-muted">Nro. Compras:</span>
+                                                    <span class="font-weight-bold">{{ $kpi['sales_count'] }}</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between f-12 mb-1">
+                                                    <span class="text-muted">Ticket Promedio:</span>
+                                                    <span class="font-weight-bold">${{ number_format($kpi['avg_ticket'], 2) }}</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between f-12">
+                                                    <span class="text-muted">Última Compra:</span>
+                                                    <span class="font-weight-bold text-info">{{ $kpi['last_purchase_at'] }}</span>
+                                                </div>
+                                                <div class="mt-2 pt-2 border-top">
+                                                    <span class="f-11 font-weight-bold text-dark"><i class="fa fa-star text-warning"></i> Top Productos:</span>
+                                                    <ul class="pl-3 mb-0 f-11" style="list-style-type: square;">
+                                                        @forelse($kpi['top_products'] as $prod)
+                                                            <li class="text-truncate" title="{{ $prod->product_name }}">
+                                                                {{ $prod->product_name }} ({{ number_format($prod->total_qty, 0) }} uds)
+                                                            </li>
+                                                        @empty
+                                                            <li class="text-muted list-unstyled">Ninguno</li>
+                                                        @endforelse
+                                                    </ul>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            @endforeach
-                        </div>
+                                @endforeach
+                            </div>
 
-                        <!-- Tabla Comparativa Detallada -->
-                        <h5 class="txt-primary mt-3 mb-2"><i class="fa fa-table"></i> Detalle Comparativo por Periodo</h5>
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-striped table-hover mt-1">
-                                <thead class="text-white" style="background: #3b3f5c">
-                                    <tr>
-                                        <th class="table-th text-white text-center" style="width: 15%;">Periodo</th>
-                                        @foreach ($reportData['kpis'] as $custId => $kpi)
-                                            <th class="table-th text-white text-center">{{ $kpi['name'] }}</th>
-                                        @endforeach
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @php
-                                        $grandTotals = array_fill_keys(array_keys($reportData['kpis']), 0);
-                                    @endphp
-                                    @forelse($reportData['labels'] as $labelIndex => $periodLabel)
+                            <!-- Tabla Comparativa Detallada -->
+                            <h5 class="txt-primary mt-3 mb-2"><i class="fa fa-table"></i> Detalle Comparativo por Periodo</h5>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped table-hover mt-1">
+                                    <thead class="text-white" style="background: #3b3f5c">
                                         <tr>
-                                            <td class="text-center font-weight-bold bg-light">{{ $periodLabel }}</td>
+                                            <th class="table-th text-white text-center" style="width: 15%;">Periodo</th>
                                             @foreach ($reportData['kpis'] as $custId => $kpi)
-                                                @php
-                                                    $val = $reportData['datasets'][array_search($kpi['name'], array_column($reportData['datasets'], 'label'))]['data'][$labelIndex] ?? 0;
-                                                    $grandTotals[$custId] += $val;
-                                                @endphp
-                                                <td class="text-center font-weight-bold">
-                                                    @if($metric === 'count')
-                                                        {{ number_format($val, 0) }}
-                                                    @else
-                                                        ${{ number_format($val, 2) }}
-                                                    @endif
-                                                </td>
+                                                <th class="table-th text-white text-center">{{ $kpi['name'] }}</th>
                                             @endforeach
                                         </tr>
-                                    @empty
-                                        <tr>
-                                            <td colspan="20" class="text-center text-muted">No hay registros de compras en los periodos indicados.</td>
-                                        </tr>
-                                    @endforelse
-                                </tbody>
-                                @if(!empty($reportData['labels']))
-                                    <tfoot>
-                                        <tr class="bg-dark text-white font-weight-bold">
-                                            <td class="text-center">TOTAL ACUMULADO:</td>
-                                            @foreach ($reportData['kpis'] as $custId => $kpi)
-                                                <td class="text-center text-white">
-                                                    @if($metric === 'count')
-                                                        {{ number_format($grandTotals[$custId], 0) }}
-                                                    @else
-                                                        ${{ number_format($grandTotals[$custId], 2) }}
-                                                    @endif
-                                                </td>
-                                            @endforeach
-                                        </tr>
-                                    </tfoot>
-                                @endif
-                            </table>
-                        </div>
-                    @endif
+                                    </thead>
+                                    <tbody>
+                                        @php
+                                            $grandTotals = array_fill_keys(array_keys($reportData['kpis']), 0);
+                                        @endphp
+                                        @forelse($reportData['labels'] as $labelIndex => $periodLabel)
+                                            <tr>
+                                                <td class="text-center font-weight-bold bg-light">{{ $periodLabel }}</td>
+                                                @foreach ($reportData['kpis'] as $custId => $kpi)
+                                                    @php
+                                                        $val = $reportData['datasets'][array_search($kpi['name'], array_column($reportData['datasets'], 'label'))]['data'][$labelIndex] ?? 0;
+                                                        $grandTotals[$custId] += $val;
+                                                    @endphp
+                                                    <td class="text-center font-weight-bold">
+                                                        @if($metric === 'count')
+                                                            {{ number_format($val, 0) }}
+                                                        @else
+                                                            ${{ number_format($val, 2) }}
+                                                        @endif
+                                                    </td>
+                                                @endforeach
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="20" class="text-center text-muted">No hay registros de compras en los periodos indicados.</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                    @if(!empty($reportData['labels']))
+                                        <tfoot>
+                                            <tr class="bg-dark text-white font-weight-bold">
+                                                <td class="text-center">TOTAL ACUMULADO:</td>
+                                                @foreach ($reportData['kpis'] as $custId => $kpi)
+                                                    <td class="text-center text-white">
+                                                        @if($metric === 'count')
+                                                            {{ number_format($grandTotals[$custId], 0) }}
+                                                        @else
+                                                            ${{ number_format($grandTotals[$custId], 2) }}
+                                                        @endif
+                                                    </td>
+                                                @endforeach
+                                            </tr>
+                                        </tfoot>
+                                    @endif
+                                </table>
+                            </div>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>

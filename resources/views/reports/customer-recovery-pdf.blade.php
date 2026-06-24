@@ -186,14 +186,41 @@
                 VENDEDOR: {{ $groupName ?: 'SIN VENDEDOR' }} (Clientes: {{ $items->count() }})
             </div>
         @endif
+        @php
+            $showRiskCol = !isset($columns) || $columns['risk_level'];
+            $showHistoryCol = !isset($columns) || $columns['last_purchase'] || $columns['total_purchased'];
+            
+            // Calculate widths
+            if ($showRiskCol && $showHistoryCol) {
+                $clientColWidth = '30%';
+                $historyColWidth = '20%';
+                $riskColWidth = '15%';
+                $registryColWidth = '35%';
+            } elseif ($showRiskCol && !$showHistoryCol) {
+                $clientColWidth = '35%';
+                $riskColWidth = '20%';
+                $registryColWidth = '45%';
+            } elseif (!$showRiskCol && $showHistoryCol) {
+                $clientColWidth = '35%';
+                $historyColWidth = '25%';
+                $registryColWidth = '40%';
+            } else {
+                $clientColWidth = '45%';
+                $registryColWidth = '55%';
+            }
+        @endphp
 
         <table class="table">
             <thead>
                 <tr>
-                    <th style="width: 30%;">Cliente y Contacto</th>
-                    <th style="width: 20%;">Historial de Compra</th>
-                    <th style="width: 15%;">Nivel de Riesgo</th>
-                    <th style="width: 35%;">Registro de Contacto / Televenta</th>
+                    <th style="width: {{ $clientColWidth }};">Cliente y Contacto</th>
+                    @if($showHistoryCol)
+                        <th style="width: {{ $historyColWidth }};">Historial de Compra</th>
+                    @endif
+                    @if($showRiskCol)
+                        <th style="width: {{ $riskColWidth }};">Nivel de Riesgo</th>
+                    @endif
+                    <th style="width: {{ $registryColWidth }};">Registro de Contacto / Televenta</th>
                 </tr>
             </thead>
             <tbody>
@@ -207,36 +234,52 @@
                     <tr @if($customer->deleted_at) style="background-color: #fce8e6;" @endif>
                         <!-- Cliente y Contacto -->
                         <td>
-                            <strong style="font-size: 8.5pt; color: #2c3e50;">{{ $customer->name }}</strong><br>
-                            <span style="color: #555;">RIF/Cédula: {{ $customer->taxpayer_id ?: 'N/A' }}</span><br>
-                            <strong>Telf:</strong> {{ $customer->phone ?: 'N/A' }}<br>
-                            <strong>Vendedor:</strong> {{ $customer->seller->name ?? 'N/A' }}
+                            @if(!isset($columns) || $columns['name'])
+                                <strong style="font-size: 8.5pt; color: #2c3e50;">{{ $customer->name }}</strong><br>
+                            @endif
+                            @if(!isset($columns) || $columns['taxpayer_id'])
+                                <span style="color: #555;">RIF/Cédula: {{ $customer->taxpayer_id ?: 'N/A' }}</span><br>
+                            @endif
+                            @if(!isset($columns) || $columns['phone'])
+                                <strong>Telf:</strong> {{ $customer->phone ?: 'N/A' }}<br>
+                            @endif
+                            @if(!isset($columns) || $columns['seller'])
+                                <strong>Vendedor:</strong> {{ $customer->seller->name ?? 'N/A' }}
+                            @endif
                         </td>
                         <!-- Historial de Compra -->
-                        <td>
-                            <strong>Última Compra:</strong><br>
-                            {{ $customer->last_purchase_at ? \Carbon\Carbon::parse($customer->last_purchase_at)->format('d/m/Y') : 'Nunca ha comprado' }}<br>
-                            @if($days !== null)
-                                <strong style="color: #c0392b;">({{ $days }} días inactivo)</strong><br>
-                            @endif
-                            <strong style="color: #27ae60;">Histórico: ${{ number_format($customer->total_purchased_usd ?? 0, 2) }}</strong>
-                        </td>
+                        @if($showHistoryCol)
+                            <td>
+                                @if(!isset($columns) || $columns['last_purchase'])
+                                    <strong>Última Compra:</strong><br>
+                                    {{ $customer->last_purchase_at ? \Carbon\Carbon::parse($customer->last_purchase_at)->format('d/m/Y') : 'Nunca ha comprado' }}<br>
+                                    @if($days !== null)
+                                        <strong style="color: #c0392b;">({{ $days }} días inactivo)</strong><br>
+                                    @endif
+                                @endif
+                                @if(!isset($columns) || $columns['total_purchased'])
+                                    <strong style="color: #27ae60;">Histórico: ${{ number_format($customer->total_purchased_usd ?? 0, 2) }}</strong>
+                                @endif
+                            </td>
+                        @endif
                         <!-- Nivel de Riesgo -->
-                        <td style="vertical-align: middle;">
-                            @if($days === null)
-                                <span class="risk-badge risk-critical">Sin Compras</span>
-                            @elseif($days >= 120)
-                                <span class="risk-badge risk-critical">Perdido (&gt;120d)</span>
-                            @elseif($days >= 90)
-                                <span class="risk-badge risk-critical">Crítico (&gt;90d)</span>
-                            @elseif($days >= 60)
-                                <span class="risk-badge risk-high">Alto (&gt;60d)</span>
-                            @elseif($days >= 30)
-                                <span class="risk-badge risk-medium">Medio (&gt;30d)</span>
-                            @else
-                                <span class="risk-badge risk-low">Bajo (&lt;30d)</span>
-                            @endif
-                        </td>
+                        @if($showRiskCol)
+                            <td style="vertical-align: middle;">
+                                @if($days === null)
+                                    <span class="risk-badge risk-critical">Sin Compras</span>
+                                @elseif($days >= 120)
+                                    <span class="risk-badge risk-critical">Perdido (&gt;120d)</span>
+                                @elseif($days >= 90)
+                                    <span class="risk-badge risk-critical">Crítico (&gt;90d)</span>
+                                @elseif($days >= 60)
+                                    <span class="risk-badge risk-high">Alto (&gt;60d)</span>
+                                @elseif($days >= 30)
+                                    <span class="risk-badge risk-medium">Medio (&gt;30d)</span>
+                                @else
+                                    <span class="risk-badge risk-low">Bajo (&lt;30d)</span>
+                                @endif
+                            </td>
+                        @endif
                         <!-- Registro de Contacto -->
                         <td>
                             <strong>Fecha Llamada:</strong> <span class="line-write"></span><br>

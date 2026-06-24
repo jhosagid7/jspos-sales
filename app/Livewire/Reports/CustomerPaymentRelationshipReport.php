@@ -58,7 +58,7 @@ class CustomerPaymentRelationshipReport extends Component
             abort(403);
         }
 
-        $this->sellers = User::role(['Vendedor', 'Vendedor foraneo'])->orderBy('name')->get();
+        $this->sellers = User::sellers()->orderBy('name')->get();
         $this->operators = User::orderBy('name')->get();
         $this->currencies = Currency::all();
         

@@ -33,7 +33,7 @@ class PaymentRelationshipReport extends Component
     function mount()
     {
         $this->operators = \App\Models\User::orderBy('name')->get();
-        $this->sellers = \App\Models\User::role(['Vendedor', 'Vendedor foraneo'])->orderBy('name')->get();
+        $this->sellers = \App\Models\User::sellers()->orderBy('name')->get();
         
         // Default to today
         $this->dateFrom = Carbon::now()->format('Y-m-d');

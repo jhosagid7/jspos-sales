@@ -212,3 +212,13 @@ L
 2026-06-18 15:25:54 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
 2026-06-22 10:59:37 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 6 - VIP Customer
 2026-06-22 10:59:37 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
+2026-06-23 16:11:16 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 6 - VIP Customer
+2026-06-23 16:11:16 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
+2026-06-23 17:09:01 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 6 - VIP Customer
+2026-06-23 17:09:01 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
+2026-06-23 17:40:39 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 6 - VIP Customer
+2026-06-23 17:40:39 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
+2026-06-23 18:14:20 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 6 - VIP Customer
+2026-06-23 18:14:20 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
+2026-06-24 11:18:42 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 6 - VIP Customer
+2026-06-24 11:18:42 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl

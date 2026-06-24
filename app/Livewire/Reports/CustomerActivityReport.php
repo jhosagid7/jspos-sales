@@ -71,7 +71,7 @@ class CustomerActivityReport extends Component
 
         $selectExpression = "";
         if ($this->periodType === 'weekly') {
-            $selectExpression = "CONCAT(YEAR(created_at), '-S', LPAD(WEEK(created_at), 2, '0'))";
+            $selectExpression = "DATE_FORMAT(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY), '%Y-%m-%d')";
         } elseif ($this->periodType === 'quarterly') {
             $selectExpression = "CONCAT(YEAR(created_at), '-T', QUARTER(created_at))";
         } elseif ($this->periodType === 'yearly') {
@@ -95,6 +95,20 @@ class CustomerActivityReport extends Component
             ->groupBy(['customer_id', DB::raw("$selectExpression")])
             ->orderBy('period_label')
             ->get();
+
+        $results->transform(function ($row) {
+            if ($this->periodType === 'weekly') {
+                $dt = Carbon::parse($row->period_label);
+                $monthName = strtoupper($dt->locale('es')->monthName);
+                $weekNumber = sprintf('%02d', $dt->weekOfYear);
+                $row->period_label = "{$dt->year}-{$monthName}-{$dt->day}-S{$weekNumber}";
+            } elseif ($this->periodType === 'monthly') {
+                $dt = Carbon::parse($row->period_label . '-01');
+                $monthName = strtoupper($dt->locale('es')->monthName);
+                $row->period_label = "{$dt->year}-{$monthName}";
+            }
+            return $row;
+        });
 
         $labels = $results->pluck('period_label')->unique()->sort()->values()->toArray();
         $customers = Customer::whereIn('id', $this->selectedCustomers)->get();

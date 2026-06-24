@@ -187,13 +187,22 @@
             </div>
         @endif
 
+        @php
+            $showFinancialCol = !isset($columns) || $columns['wallet_balance'] || $columns['allow_credit'] || $columns['credit_limit'] || $columns['credit_days'] || $columns['zone'];
+            $clientColWidth = $showFinancialCol ? '35%' : '45%';
+            $visitColWidth = $showFinancialCol ? '30%' : '35%';
+            $obsColWidth = '20%';
+        @endphp
+
         <table class="table">
             <thead>
                 <tr>
-                    <th style="width: 35%;">Cliente y Datos de Contacto</th>
-                    <th style="width: 15%;">Estatus Financiero</th>
-                    <th style="width: 30%;">Registro de la Visita</th>
-                    <th style="width: 20%;">Observaciones / Novedades</th>
+                    <th style="width: {{ $clientColWidth }};">Cliente y Datos de Contacto</th>
+                    @if($showFinancialCol)
+                        <th style="width: 15%;">Estatus Financiero</th>
+                    @endif
+                    <th style="width: {{ $visitColWidth }};">Registro de la Visita</th>
+                    <th style="width: {{ $obsColWidth }};">Observaciones / Novedades</th>
                 </tr>
             </thead>
             <tbody>
@@ -201,22 +210,44 @@
                     <tr @if($customer->deleted_at) style="background-color: #fce8e6;" @endif>
                         <!-- Cliente y Contacto -->
                         <td>
-                            <strong style="font-size: 8.5pt; color: #2c3e50;">{{ $customer->name }}</strong><br>
-                            <span style="color: #555;">ID: {{ $customer->taxpayer_id ?: 'N/A' }}</span><br>
-                            <span style="color: #555;">Telf: {{ $customer->phone ?: 'N/A' }}</span><br>
-                            <strong>Dir:</strong> {{ $customer->address }}
+                            @if(!isset($columns) || $columns['name'])
+                                <strong style="font-size: 8.5pt; color: #2c3e50;">{{ $customer->name }}</strong><br>
+                            @endif
+                            @if(!isset($columns) || $columns['taxpayer_id'])
+                                <span style="color: #555;">ID: {{ $customer->taxpayer_id ?: 'N/A' }}</span><br>
+                            @endif
+                            @if(!isset($columns) || $columns['phone'])
+                                <span style="color: #555;">Telf: {{ $customer->phone ?: 'N/A' }}</span><br>
+                            @endif
+                            @if(!isset($columns) || $columns['address'])
+                                <strong>Dir:</strong> {{ $customer->address }}<br>
+                            @endif
+                            @if(!isset($columns) || $columns['seller'])
+                                <strong>Vendedor:</strong> {{ $customer->seller->name ?? 'N/A' }}
+                            @endif
                         </td>
                         <!-- Estatus Financiero -->
-                        <td>
-                            <strong>Billetera:</strong> ${{ number_format($customer->wallet_balance, 2) }}<br>
-                            <strong>Permite Crédito:</strong> {{ $customer->allow_credit ? 'SÍ' : 'NO' }}<br>
-                            @if($customer->allow_credit)
-                                <strong>Límite:</strong> ${{ number_format($customer->credit_limit, 2) }}<br>
-                                <strong>Días:</strong> {{ $customer->credit_days }}
-                            @endif
-                            <br>
-                            <strong>Zona:</strong> {{ $customer->zone ?: 'N/A' }}
-                        </td>
+                        @if($showFinancialCol)
+                            <td>
+                                @if(!isset($columns) || $columns['wallet_balance'])
+                                    <strong>Billetera:</strong> ${{ number_format($customer->wallet_balance, 2) }}<br>
+                                @endif
+                                @if(!isset($columns) || $columns['allow_credit'])
+                                    <strong>Permite Crédito:</strong> {{ $customer->allow_credit ? 'SÍ' : 'NO' }}<br>
+                                @endif
+                                @if($customer->allow_credit)
+                                    @if(!isset($columns) || $columns['credit_limit'])
+                                        <strong>Límite:</strong> ${{ number_format($customer->credit_limit, 2) }}<br>
+                                    @endif
+                                    @if(!isset($columns) || $columns['credit_days'])
+                                        <strong>Días:</strong> {{ $customer->credit_days }}<br>
+                                    @endif
+                                @endif
+                                @if(!isset($columns) || $columns['zone'])
+                                    <strong>Zona:</strong> {{ $customer->zone ?: 'N/A' }}
+                                @endif
+                            </td>
+                        @endif
                         <!-- Registro de Visita -->
                         <td>
                             <strong>Fecha Visita:</strong> <span class="line-write"></span><br><br>

@@ -35,13 +35,17 @@ class CustomerReportTest extends TestCase
         // Give permission 'reports.sales' (which is checked in routes/web.php)
         $this->adminUser->givePermissionTo('reports.sales');
 
+        // Create Vendedor Foraneo Role and permissions
+        \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'system.is_foreign_seller']);
+        $vendedorForaneoRole = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Vendedor Foraneo']);
+        $vendedorForaneoRole->givePermissionTo('system.is_foreign_seller');
+
         // Create sellers
-        // To be considered a seller, the user scope 'sellers' checks for 'system.is_seller' or 'system.is_foreign_seller' permissions
         $this->seller1 = User::factory()->create(['name' => 'Vendedor Uno']);
-        $this->seller1->givePermissionTo('system.is_seller');
+        $this->seller1->assignRole('Vendedor Foraneo');
 
         $this->seller2 = User::factory()->create(['name' => 'Vendedor Dos']);
-        $this->seller2->givePermissionTo('system.is_seller');
+        $this->seller2->assignRole('Vendedor Foraneo');
     }
 
     public function test_customer_report_component_renders_for_authorized_user()
@@ -209,6 +213,25 @@ class CustomerReportTest extends TestCase
     {
         $this->actingAs($this->adminUser);
 
+        $defaultColumns = [
+            'name' => true,
+            'taxpayer_id' => false,
+            'address' => true,
+            'city' => true,
+            'phone' => true,
+            'seller' => true,
+            'wallet_balance' => false,
+            'zone' => false,
+            'allow_credit' => false,
+            'credit_limit' => false,
+            'credit_days' => false,
+            'notifications' => false,
+            'status' => false,
+            'last_purchase' => false,
+            'total_purchased' => false,
+            'risk_level' => false,
+        ];
+
         Livewire::test(CustomerReport::class)
             ->set('selectedSellers', [$this->seller1->id])
             ->call('openTrackingPdfPreview')
@@ -217,6 +240,8 @@ class CustomerReportTest extends TestCase
                 'selectedSellers' => $this->seller1->id,
                 'groupBy' => 'none',
                 'showDeleted' => 0,
+                'columns' => json_encode($defaultColumns),
+                'inactivityDays' => 0,
             ]))
             ->call('closeTrackingPdfPreview')
             ->assertSet('showTrackingPdfModal', false)
@@ -306,6 +331,25 @@ class CustomerReportTest extends TestCase
     {
         $this->actingAs($this->adminUser);
 
+        $defaultColumns = [
+            'name' => true,
+            'taxpayer_id' => false,
+            'address' => true,
+            'city' => true,
+            'phone' => true,
+            'seller' => true,
+            'wallet_balance' => false,
+            'zone' => false,
+            'allow_credit' => false,
+            'credit_limit' => false,
+            'credit_days' => false,
+            'notifications' => false,
+            'status' => false,
+            'last_purchase' => false,
+            'total_purchased' => false,
+            'risk_level' => false,
+        ];
+
         Livewire::test(CustomerReport::class)
             ->set('selectedSellers', [$this->seller1->id])
             ->set('inactivityDays', 60)
@@ -315,6 +359,7 @@ class CustomerReportTest extends TestCase
                 'selectedSellers' => $this->seller1->id,
                 'groupBy' => 'none',
                 'showDeleted' => 0,
+                'columns' => json_encode($defaultColumns),
                 'inactivityDays' => 60,
             ]))
             ->call('closeRecoveryPdfPreview')
@@ -377,5 +422,46 @@ class CustomerReportTest extends TestCase
 
         $view->assertSee('TOTAL CLIENTES INACTIVOS PARA RECUPERACIÓN:');
         $view->assertSee('1');
+    }
+
+    public function test_customer_creation_defaults_to_oficina_seller()
+    {
+        // Create the OFICINA user
+        $oficina = User::factory()->create([
+            'name' => 'OFICINA',
+            'email' => 'oficina@gmail.com'
+        ]);
+
+        // Create an operator user (no seller permission, different email)
+        $operator = User::factory()->create([
+            'name' => 'Operador Test',
+            'email' => 'operador@gmail.com'
+        ]);
+
+        // Create a customer assigning the operator's ID as the seller
+        $customer = Customer::create([
+            'name' => 'New Customer',
+            'taxpayer_id' => '12345',
+            'address' => 'Test Address',
+            'city' => 'Test City',
+            'seller_id' => $operator->id,
+            'type' => 'Consumidor Final',
+        ]);
+
+        // Assert that the seller_id was overridden to OFICINA's ID
+        $this->assertEquals($oficina->id, $customer->fresh()->seller_id);
+
+        // Create another customer assigning seller1's ID (which has system.is_foreign_seller)
+        $customer2 = Customer::create([
+            'name' => 'New Customer 2',
+            'taxpayer_id' => '123456',
+            'address' => 'Test Address 2',
+            'city' => 'Test City 2',
+            'seller_id' => $this->seller1->id,
+            'type' => 'Consumidor Final',
+        ]);
+
+        // Assert that the seller_id remains seller1's ID
+        $this->assertEquals($this->seller1->id, $customer2->fresh()->seller_id);
     }
 }

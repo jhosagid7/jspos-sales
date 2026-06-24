@@ -1,3 +1,19 @@
+## [1.10.163] - 2026-06-24
+### Added
+- **Mejora en Etiquetas de Períodos del Gráfico de Actividad**:
+  - Implementado un formato descriptivo para las semanas con la estructura `AÑO-MES-DÍA(lunes)-SEMANA` en el reporte web y PDF (por ejemplo, `2026-MARZO-16-S12`).
+  - Modificado el formato de meses para mostrar el nombre del mes en español (por ejemplo, `2026-MARZO` en lugar de `2026-03`).
+
+### Fixed
+- **Filtros en PDFs de Clientes**:
+  - Corregida la generación de URLs de previsualización en el reporte de clientes para incluir `columns` y `inactivityDays`.
+  - Asegurado que los PDFs General, de Seguimiento y de Recuperación respeten los filtros de inactividad de la tabla.
+  - Corregidas las pruebas en `CustomerReportTest.php` para validar las nuevas firmas de las URLs generadas.
+- **Gráfico de Actividad de Clientes**:
+  - Corregida la inicialización del canvas de Chart.js eliminando la condicional `@else` de Blade que impedía su existencia en el DOM en la primera carga.
+  - Añadido soporte para ocultar/mostrar elementos mediante clases de Bootstrap (`d-none`), manteniendo el canvas en el DOM desde el inicio.
+  - Añadida la directiva `wire:ignore` al contenedor para evitar que las actualizaciones del DOM por Livewire destruyan el gráfico.
+
 ## [1.10.162] - 2026-06-23
 ### Added
 - **Reporte de Actividad y Análisis de Compras del Cliente**:
