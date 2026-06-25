@@ -1,3 +1,8 @@
+## [1.10.176] - 2026-06-25
+### Fixed
+- **Mapeo de Parámetros en Gráfico de Auditoría Cambiaria**:
+  * Corregida la desestructuración de los parámetros del evento `updateChart` en la vista del reporte, añadiendo soporte para argumentos posicionales en arreglos (destructuración `(event, ...args)`) propio del comportamiento de Alpine y Livewire 3 al despachar eventos. Esto soluciona la ausencia del gráfico en el tablero web tras cargar los datos.
+
 ## [1.10.175] - 2026-06-25
 ### Added
 - **Interpretador Analítico y Corrección de Gráficos en Auditoría Cambiaria**:

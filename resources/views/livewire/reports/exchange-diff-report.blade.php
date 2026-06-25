@@ -373,7 +373,7 @@
         });
     }
 
-    $wire.on('updateChart', (event) => {
+    $wire.on('updateChart', (event, ...args) => {
         let labels, datasets;
         if (event && event.detail) {
             labels = event.detail.labels;
@@ -381,6 +381,9 @@
         } else if (event && event.labels) {
             labels = event.labels;
             datasets = event.datasets;
+        } else if (Array.isArray(event) && args.length > 0 && Array.isArray(args[0])) {
+            labels = event;
+            datasets = args[0];
         }
         
         if (labels && datasets) {
