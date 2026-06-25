@@ -21,6 +21,14 @@ class PaymentDateTest extends TestCase
     {
         $this->seed(\Database\Seeders\CurrencySeeder::class);
 
+        \App\Models\Configuration::create([
+            'business_name' => 'Test Business',
+            'decimals' => 2,
+            'vat' => 16,
+            'bcv_rate' => 50.00,
+            'binance_rate' => 70.00,
+        ]);
+
         $user = User::factory()->create();
         $role = \Spatie\Permission\Models\Role::findOrCreate('Seller');
         $user->assignRole($role);

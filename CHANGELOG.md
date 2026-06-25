@@ -1,3 +1,10 @@
+## [1.10.168] - 2026-06-25
+### Fixed
+- **Ajuste de Tasa de Cambio en Ventas de Contado (VES/VED)**:
+  * Corregido error por el cual las ventas de contado pagadas en Bolívares (VES/VED) en el punto de venta (POS) utilizaban la tasa Binance base (sin ajuste), en lugar de la tasa ajustada con el recargo establecido (`binance_rate` + `binance_markup_points`). Esto ocasionaba que el monto recibido en Bolívares se sobrevaluara en dólares y permitiera registrar ventas con pagos reales insuficientes.
+  * Se modificó `calculateRemainingAndChange()` y el bucle de validación de pagos en `Store()` dentro de `app/Livewire/Sales.php` para sumar de manera uniforme los puntos de margen a la tasa de Binance.
+  * Creada la prueba de características `CashSaleAdjustedExchangeRateTest.php` para asegurar que el sistema bloquee pagos insuficientes a tasa base y permita los pagos correctos a tasa con ajuste.
+
 ## [1.10.167] - 2026-06-24
 ### Fixed
 - **Actualización en Tiempo Real de Gráficos de Reportes**:

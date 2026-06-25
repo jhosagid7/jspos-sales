@@ -690,7 +690,7 @@ class Sales extends Component
             $bcvRate = $config ? floatval($config->bcv_rate) : 0;
         }
         $config = \App\Models\Configuration::first();
-        $binanceRate = $config ? floatval($config->binance_rate) : 0;
+        $binanceRate = $config ? (floatval($config->binance_rate) + floatval($config->binance_markup_points)) : 0;
 
         $isBcv = ($this->paymentAgreement === 'BCV') || ($this->selectedPaymentMethod !== 'credit' && $this->activeDiff > 0);
 
@@ -3661,7 +3661,7 @@ class Sales extends Component
                 $bcvRate = $config ? floatval($config->bcv_rate) : 0;
             }
             $config = \App\Models\Configuration::first();
-            $binanceRate = $config ? floatval($config->binance_rate) : 0;
+            $binanceRate = $config ? (floatval($config->binance_rate) + floatval($config->binance_markup_points)) : 0;
 
             $totalRealUSDReceived = 0;
             foreach ($this->payments as $payment) {

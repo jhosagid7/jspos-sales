@@ -367,7 +367,7 @@ class POSPaymentAgreementEnforcementTest extends TestCase
 
         session(['cart' => [$cartItem]]);
 
-        // Pay 700.00 VES which at 70.00 Binance rate covers exactly 10.00 USD.
+        // Pay 750.00 VES which at the adjusted Binance rate (75.00) covers exactly 10.00 USD.
         $test = Livewire::actingAs($this->user)
             ->test(Sales::class)
             ->call('setCustomer', $this->customer->toArray())
@@ -376,7 +376,7 @@ class POSPaymentAgreementEnforcementTest extends TestCase
             ->set('itemsCart', 1)
             ->set('selectedPaymentMethod', 'cash')
             ->set('paymentCurrency', 'VED')
-            ->set('paymentAmount', 700.00)
+            ->set('paymentAmount', 750.00)
             ->call('addPayment');
 
         fwrite(STDERR, "Payments added in Binance test: " . print_r($test->get('payments'), true) . "\n");
