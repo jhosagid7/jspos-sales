@@ -2,36 +2,73 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Reporte de Rotación</title>
+    <title>Reporte de Rotación e Inversión de Inventario</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-            font-size: 10px;
-            margin: 36pt;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 9px;
+            margin: 20px;
+            color: #333;
         }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 5px; text-align: center; border-bottom: 1px solid #ddd; }
-        th { background-color: #f8f9fa; font-weight: bold; color: #333; }
+        th, td { padding: 5px; text-align: center; border: 1px solid #e0e0e0; vertical-align: middle; }
+        th { background-color: #3b3f5c; font-weight: bold; color: white; font-size: 9px; }
         .text-left { text-align: left; }
         .text-right { text-align: right; }
-        .header-table { margin-bottom: 20px; border: none; }
-        .header-table td { border: none; }
-        .badge { padding: 3px 6px; border-radius: 4px; color: white; font-weight: bold; font-size: 9px; }
-        .badge-success { background-color: #28a745; }
-        .badge-warning { background-color: #ffc107; color: black; }
-        .badge-danger { background-color: #dc3545; }
-        .badge-info { background-color: #17a2b8; }
+        .header-table { margin-bottom: 15px; border: none; }
+        .header-table td { border: none; padding: 0; }
         
-        .invoice-title { color: #0380b2; font-weight: bold; font-size: 18px; margin: 0; }
-        .report-title { color: #0380b2; font-size: 14px; font-weight: bold; margin: 0; }
+        .invoice-title { color: #1b55e2; font-weight: bold; font-size: 16px; margin: 0; }
+        .report-title { color: #1b55e2; font-size: 13px; font-weight: bold; margin: 0; }
         
         .box-details {
-            border: 1px solid #6B7280;
-            border-radius: 10px;
-            padding: 10px;
-            margin-bottom: 20px;
+            border: 1px solid #d3d3d3;
+            border-radius: 6px;
+            padding: 8px;
+            margin-bottom: 15px;
+            background-color: #fcfcfc;
         }
-        .text-green { color: #28a745; }
+        
+        /* Grid de KPIs */
+        .kpi-container {
+            width: 100%;
+            margin-bottom: 15px;
+            border: none;
+        }
+        .kpi-container td {
+            border: none;
+            padding: 0 5px;
+        }
+        .kpi-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 8px;
+            text-align: left;
+            background-color: #fff;
+        }
+        .kpi-title {
+            font-size: 8px;
+            text-transform: uppercase;
+            color: #777;
+            font-weight: bold;
+        }
+        .kpi-value {
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 3px;
+        }
+        
+        /* Badges */
+        .badge { padding: 2px 5px; border-radius: 4px; color: white; font-weight: bold; font-size: 8px; text-transform: uppercase; }
+        .badge-success { background-color: #2ec4b6; }
+        .badge-warning { background-color: #ff9f1c; }
+        .badge-danger { background-color: #e71d36; }
+        .badge-info { background-color: #17a2b8; }
+        .badge-secondary { background-color: #6c757d; }
+
+        .text-success { color: #2ec4b6; font-weight: bold; }
+        .text-danger { color: #e71d36; font-weight: bold; }
+        .text-primary { color: #1b55e2; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -39,21 +76,21 @@
     <table class="header-table">
         <tbody>
             <tr>
-                <td class="text-left" width="25%" style="vertical-align: middle;">
+                <td class="text-left" width="30%" style="vertical-align: middle;">
                    @if(isset($config) && $config->logo)
-                        <img src="{{ public_path('storage/' . $config->logo) }}" alt="logo" height="50">
+                        <img src="{{ public_path('storage/' . $config->logo) }}" alt="logo" height="40">
                     @endif
                 </td>
-                <td class="text-center" width="50%" style="vertical-align: middle;">
+                <td class="text-center" width="40%" style="vertical-align: middle;">
                     <h4 class="text-uppercase invoice-title">
                         {{ isset($config) ? $config->business_name : 'JSPOS' }}
                     </h4>
                 </td>
-                <td class="text-right" width="25%" style="vertical-align: middle;">
+                <td class="text-right" width="30%" style="vertical-align: middle;">
                     <h4 class="text-uppercase report-title">
-                        ANÁLISIS DE ROTACIÓN
+                        MATRIZ DE ROTACIÓN Y RENTABILIDAD
                     </h4>
-                    <span style="font-size: 10px; font-weight: bold;">REPORTE</span>
+                    <span style="font-size: 8px; font-weight: bold; color: #777;">REPORTE DE INVENTARIO</span>
                 </td>
             </tr>
         </tbody>
@@ -64,71 +101,125 @@
         <table class="header-table" style="margin: 0;">
             <tbody>
                 <tr>
-                    {{-- Business Info (Left) --}}
-                    <td class="text-left" width="60%" style="vertical-align: top; padding: 0;">
+                    {{-- Business Info --}}
+                    <td class="text-left" width="60%" style="vertical-align: top; font-size: 8px; line-height: 1.2;">
                         @if(isset($config))
-                            <strong class="text-uppercase" style="font-size: 12px;">{{ $config->business_name }}</strong><br>
-                            NIT: {{ $config->taxpayer_id }}<br>
-                            {{ $config->address }}<br>
-                            {{ $config->email }}<br>
-                            {{ $config->phone }}
+                            <strong>{{ $config->business_name }}</strong> | NIT: {{ $config->taxpayer_id }}<br>
+                            Dirección: {{ $config->address }}<br>
+                            Contacto: {{ $config->phone }} | {{ $config->email }}
                         @endif
                     </td>
 
-                    {{-- Report Details (Right) --}}
-                    <td class="text-right" width="40%" style="vertical-align: top; padding: 0;">
+                    {{-- Report Details --}}
+                    <td class="text-right" width="40%" style="vertical-align: top; font-size: 8px; line-height: 1.2;">
                         Fecha Reporte: <strong>{{ \Carbon\Carbon::now()->format('d/m/Y H:i') }}</strong><br>
                         Generado por: <strong>{{ auth()->user()->name ?? 'Sistema' }}</strong><br>
-                        Rango: <strong>{{ \Carbon\Carbon::parse($dateFrom)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($dateTo)->format('d/m/Y') }}</strong><br>
-                        Proyección: <strong>{{ $coverageDays }} días</strong>
+                        Rango: <strong>{{ \Carbon\Carbon::parse($dateFrom)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($dateTo)->format('d/m/Y') }}</strong> | Proyección: <strong>{{ $coverageDays }} días</strong>
                     </td>
                 </tr>
             </tbody>
         </table>
     </div>
 
+    {{-- Grid de KPIs --}}
+    <table class="kpi-container">
+        <tr>
+            <td width="25%">
+                <div class="kpi-card" style="border-left: 3px solid #1b55e2;">
+                    <div class="kpi-title">Capital en Inventario</div>
+                    <div class="kpi-value" style="color: #333;">${{ number_format($totalCapital, 2) }}</div>
+                </div>
+            </td>
+            <td width="25%">
+                <div class="kpi-card" style="border-left: 3px solid #e71d36;">
+                    <div class="kpi-title">Capital Ocioso (Sin Mov)</div>
+                    <div class="kpi-value" style="color: #e71d36;">${{ number_format($idleCapital, 2) }}</div>
+                </div>
+            </td>
+            <td width="25%">
+                <div class="kpi-card" style="border-left: 3px solid #2ec4b6;">
+                    <div class="kpi-title">Ganancia Bruta Ventas</div>
+                    <div class="kpi-value" style="color: #2ec4b6;">${{ number_format($totalMargin, 2) }}</div>
+                </div>
+            </td>
+            <td width="25%">
+                <div class="kpi-card" style="border-left: 3px solid #17a2b8;">
+                    <div class="kpi-title">Margen Promedio (%)</div>
+                    <div class="kpi-value" style="color: #17a2b8;">{{ number_format($avgMarginPercent, 2) }}%</div>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    {{-- Main Table --}}
     <table>
         <thead>
             <tr>
-                <th class="text-left">Producto</th>
-                <th>Stock</th>
-                <th>Vendido</th>
-                <th>Velocidad (u/día)</th>
-                <th>Demanda ({{ $coverageDays }}d)</th>
-                <th>Sugerencia</th>
-                <th>Cobertura</th>
-                <th>Estado</th>
+                <th class="text-left" style="width: 180px;">Producto</th>
+                <th style="width: 40px;">Clase</th>
+                <th style="width: 50px;">Stock</th>
+                <th style="width: 65px;">Valor Stock</th>
+                <th style="width: 50px;">Vendido</th>
+                <th style="width: 65px;">Ventas USD</th>
+                <th style="width: 65px;">Margen USD</th>
+                <th style="width: 50px;">Margen %</th>
+                <th style="width: 50px;">Velocidad</th>
+                <th style="width: 60px;">Sugerencia</th>
+                <th style="width: 55px;">Cobertura</th>
+                <th style="width: 70px;">Estado</th>
             </tr>
         </thead>
         <tbody>
             @foreach($data as $product)
                 <tr>
-                    <td class="text-left">{{ $product->name }}</td>
-                    <td>{{ $product->stock_qty }}</td>
-                    <td>{{ $product->total_sold }}</td>
-                    <td>{{ $product->velocity }}</td>
-                    <td>{{ $product->monthly_demand }}</td>
+                    <td class="text-left" style="font-weight: bold; color: #111;">{{ $product->name }}</td>
                     <td>
-                        @if($product->suggested_order > 0)
-                            <span style="color: #0380b2; font-weight: bold;">{{ $product->suggested_order }}</span>
+                        @if($product->abc_class === 'A')
+                            <span class="badge badge-success" style="background-color: #2ec4b6;">A</span>
+                        @elseif($product->abc_class === 'B')
+                            <span class="badge badge-warning" style="background-color: #ff9f1c; color: white;">B</span>
                         @else
-                            {{ $product->suggested_order }}
+                            <span class="badge badge-danger" style="background-color: #e71d36;">C</span>
                         @endif
                     </td>
+                    <td style="font-weight: bold;">{{ $product->stock_qty }}</td>
+                    <td style="color: #666;">${{ number_format($product->stock_value, 2) }}</td>
+                    <td style="font-weight: bold;">{{ $product->total_sold }}</td>
+                    <td>${{ number_format($product->sales_usd, 2) }}</td>
+                    <td>
+                        @if($product->margin_usd > 0)
+                            <span class="text-success">+${{ number_format($product->margin_usd, 2) }}</span>
+                        @elseif($product->margin_usd < 0)
+                            <span class="text-danger">-${{ number_format(abs($product->margin_usd), 2) }}</span>
+                        @else
+                            $0.00
+                        @endif
+                    </td>
+                    <td style="font-weight: bold;">
+                        @if($product->margin_percent > 0)
+                            <span class="text-success">{{ $product->margin_percent }}%</span>
+                        @elseif($product->margin_percent < 0)
+                            <span class="text-danger">{{ $product->margin_percent }}%</span>
+                        @else
+                            0%
+                        @endif
+                    </td>
+                    <td style="color: #666;">{{ $product->velocity }}</td>
+                    <td class="text-primary" style="font-weight: bold;">{{ $product->suggested_order }}</td>
                     <td>
                         @if($product->coverage_days > 365)
-                            <span class="badge badge-info">> 1 Año</span>
+                            <span>> 1 Año</span>
                         @else
                             {{ $product->coverage_days }} días
                         @endif
                     </td>
                     <td>
                         @if($product->rotation_status == 'Alta Rotacion')
-                            <span class="badge badge-success">Alta</span>
+                            <span class="badge badge-success" style="background-color: #2ec4b6;">Alta</span>
                         @elseif($product->rotation_status == 'Baja Rotacion')
-                            <span class="badge badge-warning">Baja</span>
+                            <span class="badge badge-warning" style="background-color: #ff9f1c; color: white;">Baja</span>
                         @else
-                            <span class="badge badge-danger">Sin Mov.</span>
+                            <span class="badge badge-danger" style="background-color: #e71d36;">Sin Mov.</span>
                         @endif
                     </td>
                 </tr>
@@ -136,8 +227,8 @@
         </tbody>
     </table>
     
-    <div style="margin-top: 30px; text-align: center; font-size: 9px; color: #666;">
-        <p>Este reporte fue generado automáticamente por el sistema.</p>
+    <div style="margin-top: 20px; text-align: center; font-size: 8px; color: #888; border-top: 1px solid #eee; padding-top: 10px;">
+        <p>Este reporte fue generado de forma automatizada por el Centro de Reportes Avanzados de JSPOS.</p>
     </div>
 </body>
 </html>

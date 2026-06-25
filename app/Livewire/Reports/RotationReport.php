@@ -25,7 +25,19 @@ class RotationReport extends Component
     public $status = ''; // low, high, none
     public $search = '';
     public $selectedProducts = [];
-    // public $selectAll = false;
+
+    // KPI Properties
+    public $totalCapital = 0;
+    public $idleCapital = 0;
+    public $totalMargin = 0;
+    public $avgMarginPercent = 0;
+
+    // Charts Properties
+    public $abcChartData = [];
+    public $topProfitChartData = [];
+
+    // Auxiliary map for ABC classification
+    public $abcMap = [];
 
     public function mount()
     {
@@ -38,10 +50,37 @@ class RotationReport extends Component
         $this->selectedProducts = [];
     }
 
-    // SelectAll logic removed as per user request
-
-    // Reset pagination when search changes
     public function updatedSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedCategoryId()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedSupplierId()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedCustomerId()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedDateFrom()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedDateTo()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedStatus()
     {
         $this->resetPage();
     }
@@ -49,21 +88,19 @@ class RotationReport extends Component
     private function cleanString($string)
     {
         if (is_null($string)) return '';
-
-        // 1. Ensure valid UTF-8
-        // mb_convert_encoding with UTF-8 to UTF-8 will replace invalid sequences with ?
         $string = mb_convert_encoding($string, 'UTF-8', 'UTF-8');
-        
-        // 2. Remove control characters (0-31 except 9=Tab, 10=LF, 13=CR) and 127=DEL
-        // We do NOT use /u modifier here to avoid PCRE UTF-8 validity checks crashing
         $string = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $string);
-        
         return trim($string);
     }
 
     public function render()
     {
         $data = $this->getRotationData();
+
+        $this->dispatch('updateRotationCharts', 
+            abcData: $this->abcChartData, 
+            topProfitData: $this->topProfitChartData
+        );
 
         $categories = Category::select('id', 'name')->orderBy('name')->get()->transform(function($item) {
             $item->name = $this->cleanString($item->name);
@@ -96,7 +133,6 @@ class RotationReport extends Component
         $endDate = Carbon::parse($this->dateTo)->endOfDay();
         $daysDiff = $startDate->diffInDays($endDate) ?: 1;
 
-        // Build conditional SQL for customer filter
         $customerCondition = "";
         $bindings = [$startDate, $endDate];
         
@@ -105,8 +141,7 @@ class RotationReport extends Component
             $bindings[] = $this->customerId;
         }
 
-        // Duplicate bindings for the second COUNT(DISTINCT) clause
-        $allBindings = array_merge($bindings, $bindings);
+        $allBindings = array_merge($bindings, $bindings, $bindings);
 
         $query = Product::query()
             ->leftJoin('sale_details', 'products.id', '=', 'sale_details.product_id')
@@ -117,8 +152,9 @@ class RotationReport extends Component
                 'products.stock_qty',
                 'products.cost',
                 'products.price',
-                DB::raw("COALESCE(SUM(CASE WHEN sales.status = 'PAID' AND sales.created_at BETWEEN ? AND ? $customerCondition THEN sale_details.quantity ELSE 0 END), 0) as total_sold"),
-                DB::raw("COUNT(DISTINCT CASE WHEN sales.status = 'PAID' AND sales.created_at BETWEEN ? AND ? $customerCondition THEN DATE(sales.created_at) END) as days_with_sales")
+                DB::raw("COALESCE(SUM(CASE WHEN sales.status IN ('PAID', 'PENDING', 'paid', 'pending') AND sales.created_at BETWEEN ? AND ? $customerCondition THEN sale_details.quantity ELSE 0 END), 0) as total_sold"),
+                DB::raw("COALESCE(SUM(CASE WHEN sales.status IN ('PAID', 'PENDING', 'paid', 'pending') AND sales.created_at BETWEEN ? AND ? $customerCondition THEN sale_details.quantity * sale_details.sale_price ELSE 0 END), 0) as total_sold_usd"),
+                DB::raw("COUNT(DISTINCT CASE WHEN sales.status IN ('PAID', 'PENDING', 'paid', 'pending') AND sales.created_at BETWEEN ? AND ? $customerCondition THEN DATE(sales.created_at) END) as days_with_sales")
             )
             ->setBindings($allBindings, 'select');
 
@@ -136,7 +172,6 @@ class RotationReport extends Component
 
         $query->groupBy('products.id', 'products.name', 'products.stock_qty', 'products.cost', 'products.price');
         
-        // Status Filter (HAVING)
         if ($this->status) {
             if ($this->status == 'low') {
                 $query->havingRaw('total_sold > 0 AND (total_sold / ?) < 1', [$daysDiff]);
@@ -152,8 +187,95 @@ class RotationReport extends Component
         return $query->toBase();
     }
 
+    public function precalculateAbcAndKpis($allProducts)
+    {
+        $totalSalesUsd = $allProducts->sum('total_sold_usd');
+        
+        // Sort descending by sales USD
+        $sorted = $allProducts->sortByDesc('total_sold_usd');
+        
+        $cumulative = 0;
+        $abcMap = [];
+        $abcCounts = ['A' => 0, 'B' => 0, 'C' => 0];
+        
+        foreach ($sorted as $product) {
+            if ($product->total_sold_usd <= 0) {
+                $abcMap[$product->id] = 'C';
+                $abcCounts['C']++;
+                continue;
+            }
+            $cumulative += $product->total_sold_usd;
+            $percent = $totalSalesUsd > 0 ? ($cumulative / $totalSalesUsd) * 100 : 100;
+            
+            if ($percent <= 80.0001) {
+                $abcMap[$product->id] = 'A';
+                $abcCounts['A']++;
+            } elseif ($percent <= 95.0001) {
+                $abcMap[$product->id] = 'B';
+                $abcCounts['B']++;
+            } else {
+                $abcMap[$product->id] = 'C';
+                $abcCounts['C']++;
+            }
+        }
+        
+        $this->abcMap = $abcMap;
+
+        // Calculate KPIs
+        $this->totalCapital = 0;
+        $this->idleCapital = 0;
+        $this->totalMargin = 0;
+        $totalSales = 0;
+
+        foreach ($allProducts as $product) {
+            $cost = floatval($product->cost);
+            $stock = floatval($product->stock_qty);
+            $sold = floatval($product->total_sold);
+            $soldUsd = floatval($product->total_sold_usd);
+
+            $this->totalCapital += $stock * $cost;
+            if ($sold == 0) {
+                $this->idleCapital += $stock * $cost;
+            }
+            
+            $costUsd = $sold * $cost;
+            $margin = $soldUsd - $costUsd;
+            
+            $this->totalMargin += $margin;
+            $totalSales += $soldUsd;
+        }
+
+        $this->avgMarginPercent = $totalSales > 0 ? round(($this->totalMargin / $totalSales) * 100, 2) : 0;
+
+        // Format charts data
+        $this->abcChartData = [
+            ['name' => 'Clase A (Alta Relevancia)', 'y' => $abcCounts['A'], 'color' => '#2ec4b6'],
+            ['name' => 'Clase B (Relevancia Media)', 'y' => $abcCounts['B'], 'color' => '#ff9f1c'],
+            ['name' => 'Clase C (Baja Relevancia/Sin Mov)', 'y' => $abcCounts['C'], 'color' => '#e71d36'],
+        ];
+
+        // Top 10 profitable products
+        $profitableProducts = $sorted->map(function($product) {
+            $cost = floatval($product->cost);
+            $sold = floatval($product->total_sold);
+            $soldUsd = floatval($product->total_sold_usd);
+            $margin = $soldUsd - ($sold * $cost);
+            return [
+                'name' => $this->cleanString($product->name),
+                'margin' => round($margin, 2)
+            ];
+        })->filter(fn($p) => $p['margin'] > 0)->sortByDesc('margin')->take(10)->values()->toArray();
+
+        $this->topProfitChartData = $profitableProducts;
+    }
+
     public function getRotationData()
     {
+        // 1. Get all filtered products to precalculate global ABC & KPIs
+        $allProducts = $this->getQuery()->get();
+        $this->precalculateAbcAndKpis($allProducts);
+
+        // 2. Paginate over the database query
         $products = $this->getQuery()->paginate($this->pagination);
         return $this->processMetrics($products);
     }
@@ -164,11 +286,9 @@ class RotationReport extends Component
         $endDate = Carbon::parse($this->dateTo)->endOfDay();
         $daysDiff = $startDate->diffInDays($endDate) ?: 1;
 
-        // Handle both Paginator and Collection
         $collection = $products instanceof \Illuminate\Pagination\LengthAwarePaginator ? $products->getCollection() : $products;
 
         $collection->transform(function ($product) use ($daysDiff) {
-            // Robust Sanitize UTF-8 for name
             $product->name = $this->cleanString($product->name);
             
             $product->velocity = round($product->total_sold / $daysDiff, 2);
@@ -190,6 +310,14 @@ class RotationReport extends Component
                 $product->status_color = 'warning';
             }
 
+            // Margins & Financial Calculations
+            $product->sales_usd = floatval($product->total_sold_usd);
+            $product->cost_usd = floatval($product->total_sold) * floatval($product->cost);
+            $product->margin_usd = $product->sales_usd - $product->cost_usd;
+            $product->margin_percent = $product->sales_usd > 0 ? round(($product->margin_usd / $product->sales_usd) * 100, 2) : 0;
+            $product->stock_value = floatval($product->stock_qty) * floatval($product->cost);
+            $product->abc_class = $this->abcMap[$product->id] ?? 'C';
+
             return $product;
         });
 
@@ -199,7 +327,6 @@ class RotationReport extends Component
     public function generatePdf()
     {
         try {
-            // DEBUG: Step 4 - Restore Real Data
             if (count($this->selectedProducts) > 0) {
                 $query = $this->getQuery();
                 $query->whereIn('products.id', $this->selectedProducts);
@@ -208,6 +335,7 @@ class RotationReport extends Component
                 $data = $this->getQuery()->get();
             }
 
+            $this->precalculateAbcAndKpis($data);
             $data = $this->processMetrics($data);
             
             $config = \App\Models\Configuration::first();
@@ -217,14 +345,16 @@ class RotationReport extends Component
                 'dateFrom' => $this->dateFrom,
                 'dateTo' => $this->dateTo,
                 'coverageDays' => $this->coverageDays,
-                'config' => $config
-            ]);
+                'config' => $config,
+                'totalCapital' => $this->totalCapital,
+                'idleCapital' => $this->idleCapital,
+                'totalMargin' => $this->totalMargin,
+                'avgMarginPercent' => $this->avgMarginPercent,
+            ])->setPaper('a4', 'landscape');
 
             return response()->streamDownload(function () use ($pdf) {
                 echo $pdf->output();
             }, 'Reporte_Rotacion.pdf');
-
-        } catch (\Exception $e) {
 
         } catch (\Exception $e) {
             $this->dispatch('noty', msg: "Error al generar PDF: " . $e->getMessage());
@@ -243,6 +373,7 @@ class RotationReport extends Component
         $query->whereIn('products.id', $this->selectedProducts);
         $products = $query->get();
         
+        $this->precalculateAbcAndKpis($products);
         $products = $this->processMetrics($products);
         
         $orderItems = [];

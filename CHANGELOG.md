@@ -1,3 +1,14 @@
+## [1.10.169] - 2026-06-25
+### Added
+- **Módulo de Análisis de Rotación de Inventario y Rentabilidad (Product Matrix)**:
+  * Rediseñada por completo la interfaz del reporte de rotación (`RotationReport`) transformándolo en un tablero analítico de salud del inventario.
+  * Añadidas tarjetas de KPIs interactivos que muestran de manera consolidada el Capital Total en Inventario, el Capital Ocioso (stock sin movimiento), la Ganancia Bruta acumulada por ventas y el Margen Promedio porcentual.
+  * Integrada visualización interactiva de Highcharts con un gráfico tipo Donut para la distribución por Clasificación ABC y un gráfico de barras horizontales para el Top 10 de productos más rentables en base a su margen en dólares.
+  * Implementado el algoritmo de Clasificación ABC por Pareto (80% para Clase A, 15% para Clase B, 5% o sin ventas para Clase C) calculado sobre las ventas USD del rango seleccionado.
+  * Añadidas columnas financieras en la cuadrícula de datos web: Clasificación ABC, Valor del Stock (Costo), Ventas Totales en USD, Margen en USD y Porcentaje de Margen.
+  * Refactorizado el reporte PDF para cambiar su orientación a Landscape (horizontal) e integrar las nuevas columnas financieras y tarjetas de KPIs globales de inventario.
+  * Creada la suite de pruebas unitarias y de integración `RotationReportTest.php` para validar las métricas financieras, clasificaciones ABC de Pareto, cálculo de KPIs globales y descarga del PDF.
+
 ## [1.10.168] - 2026-06-25
 ### Fixed
 - **Ajuste de Tasa de Cambio en Ventas de Contado (VES/VED)**:
