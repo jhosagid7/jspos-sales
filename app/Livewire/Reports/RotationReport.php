@@ -26,6 +26,7 @@ class RotationReport extends Component
     public $search = '';
     public $selectedProducts = [];
     public $tagId = 0;
+    public $showInterpretationModal = false;
 
     // KPI Properties
     public $totalCapital = 0;
@@ -414,5 +415,152 @@ class RotationReport extends Component
         session(['purchase_order_from_report' => $orderItems]);
         
         return redirect()->to('/purchases');
+    }
+
+    public function toggleInterpretationModal()
+    {
+        $this->showInterpretationModal = !$this->showInterpretationModal;
+    }
+
+    public function getInterpretation()
+    {
+        $data = $this->getQuery()->get();
+        $this->precalculateAbcAndKpis($data);
+        $processed = $this->processMetrics($data);
+
+        $totalProds = count($processed);
+        $soldProds = $processed->filter(fn($p) => $p->total_sold > 0)->count();
+        $unsoldProds = $totalProds - $soldProds;
+        
+        $idleRatio = $this->totalCapital > 0 ? ($this->idleCapital / $this->totalCapital) * 100 : 0;
+        
+        // Find top 3 most profitable products
+        $top3 = $processed->sortByDesc('margin_usd')->take(3);
+        
+        $html = '';
+
+        if ($this->customerId > 0) {
+            $customer = \App\Models\Customer::find($this->customerId);
+            $custName = $customer ? strtoupper($customer->name) : 'N/A';
+            
+            $html .= "<div class='p-2'>";
+            $html .= "<h5 class='text-primary mb-3'><i class='fas fa-user-tie mr-2'></i> <b>Análisis de Compras de Cliente:</b> $custName</h5>";
+            $html .= "<p class='text-muted'>Este análisis detalla el comportamiento de compra de <b>$custName</b> en tu tienda y su relación con tu stock disponible:</p>";
+            
+            $html .= "<div class='row mt-4'>";
+            $html .= "<div class='col-md-6 mb-3'>";
+            $html .= "<div class='p-3 bg-light rounded border h-100'>";
+            $html .= "<h6><i class='fas fa-chart-line text-success mr-2'></i> <b>Ganancia y Rentabilidad</b></h6>";
+            $html .= "<p class='mb-1'>• Margen Generado: <b>$" . number_format($this->totalMargin, 2) . "</b></p>";
+            $html .= "<p class='mb-0'>• Rentabilidad Promedio: <b>" . number_format($this->avgMarginPercent, 2) . "%</b></p>";
+            $html .= "</div>";
+            $html .= "</div>";
+
+            $html .= "<div class='col-md-6 mb-3'>";
+            $html .= "<div class='p-3 bg-light rounded border h-100'>";
+            $html .= "<h6><i class='fas fa-boxes text-info mr-2'></i> <b>Portafolio de Productos</b></h6>";
+            if ($totalProds > 0) {
+                $purchasedPercent = round(($soldProds / $totalProds) * 100, 1);
+                $html .= "<p class='mb-1'>• Diversificación de Compra: Compra el <b>$purchasedPercent%</b> de tu catálogo.</p>";
+            }
+            $html .= "<p class='mb-0'>• Ha comprado <b>$soldProds de $totalProds</b> productos disponibles.</p>";
+            $html .= "</div>";
+            $html .= "</div>";
+            $html .= "</div>";
+            
+            $html .= "<div class='p-3 bg-light rounded border mb-3 mt-2'>";
+            $html .= "<h6><i class='fas fa-coins text-warning mr-2'></i> <b>Inventario Ocioso (Sin Compras de este Cliente)</b></h6>";
+            $html .= "<p class='mb-1'>• Actualmente posees un capital de stock de <b>$" . number_format($this->idleCapital, 2) . "</b> en productos que este cliente <b>no te compra</b>.</p>";
+            $html .= "<p class='mb-0'>• Esto representa el <b>" . number_format($idleRatio, 1) . "%</b> de tu inversión total de inventario actual.</p>";
+            $html .= "</div>";
+            
+            if ($top3->count() > 0) {
+                $html .= "<h6 class='mt-4 font-weight-bold text-dark'><i class='fas fa-award text-primary mr-2'></i> <b>Top 3 Productos Más Rentables para este Cliente:</b></h6>";
+                $html .= "<div class='list-group mb-3'>";
+                foreach ($top3 as $index => $p) {
+                    $html .= "<div class='list-group-item list-group-item-action flex-column align-items-start'>";
+                    $html .= "<div class='d-flex w-100 justify-content-between'>";
+                    $html .= "<h6 class='mb-1 font-weight-bold text-info'>#" . ($index + 1) . " - {$p->name}</h6>";
+                    $html .= "<span class='text-success font-weight-bold'>$" . number_format($p->margin_usd, 2) . "</span>";
+                    $html .= "</div>";
+                    $html .= "<p class='mb-1 small text-muted'>Compró: <b>{$p->total_sold} unidades</b> | Margen Unitario: <b>" . number_format($p->margin_percent, 1) . "%</b></p>";
+                    $html .= "</div>";
+                }
+                $html .= "</div>";
+            }
+
+            // Recommendations
+            $html .= "<div class='alert alert-info mt-4 border-0 shadow-sm'>";
+            $html .= "<h5><i class='fas fa-lightbulb text-warning mr-2'></i> <b>Recomendaciones de Venta Cruzada (Cross-Selling)</b></h5>";
+            $html .= "<hr class='my-2 bg-info'>";
+            if ($idleRatio > 50) {
+                $html .= "<p class='mb-0 small'>El cliente tiene un gran potencial de compra sin explotar, ya que no adquiere más del 50% de tu catálogo actual. Te sugerimos armar un catálogo impreso de sus productos \"Clase C / Ociosos\" o enviarle muestras de los productos Clase A generales del negocio para diversificar sus pedidos.</p>";
+            } else {
+                $html .= "<p class='mb-0 small'>El cliente posee una excelente diversificación y compra una gran parte de tu inventario. Concéntrate en fidelizarlo, asegurar stock de sus productos preferidos para evitar quiebres y ofrecerle descuentos por volumen en sus productos Clase B.</p>";
+            }
+            $html .= "</div>";
+            $html .= "</div>";
+
+        } else {
+            // General Analysis
+            $html .= "<div class='p-2'>";
+            $html .= "<h5 class='text-primary mb-3'><i class='fas fa-heartbeat mr-2'></i> <b>Análisis de Salud de Inventario Global</b></h5>";
+            $html .= "<p class='text-muted'>Este análisis diagnostica la rotación general de tu stock y la rentabilidad del negocio en base a los movimientos de este periodo:</p>";
+            
+            $html .= "<div class='row mt-4'>";
+            $html .= "<div class='col-md-6 mb-3'>";
+            $html .= "<div class='p-3 bg-light rounded border h-100'>";
+            $html .= "<h6><i class='fas fa-chart-line text-success mr-2'></i> <b>Ganancia y Margen General</b></h6>";
+            $html .= "<p class='mb-1'>• Margen Comercial: <b>$" . number_format($this->totalMargin, 2) . "</b></p>";
+            $html .= "<p class='mb-0'>• Margen Ponderado Promedio: <b>" . number_format($this->avgMarginPercent, 2) . "%</b></p>";
+            $html .= "</div>";
+            $html .= "</div>";
+
+            $html .= "<div class='col-md-6 mb-3'>";
+            $html .= "<div class='p-3 bg-light rounded border h-100'>";
+            $html .= "<h6><i class='fas fa-box-open text-primary mr-2'></i> <b>Capital Total Invertido</b></h6>";
+            $html .= "<p class='mb-1'>• Valor del Inventario: <b>$" . number_format($this->totalCapital, 2) . "</b></p>";
+            $classACount = collect($this->abcMap)->filter(fn($c) => $c === 'A')->count();
+            $html .= "<p class='mb-0'>• Productos Clase A: <b>$classACount productos</b> (80% de tus ventas).</p>";
+            $html .= "</div>";
+            $html .= "</div>";
+            $html .= "</div>";
+
+            $html .= "<div class='p-3 bg-light rounded border mb-3 mt-2'>";
+            $html .= "<h6><i class='fas fa-exclamation-triangle text-danger mr-2'></i> <b>Capital Inmovilizado / Ocioso</b></h6>";
+            $html .= "<p class='mb-1'>• Tienes un capital estancado de <b>$" . number_format($this->idleCapital, 2) . "</b> en productos sin ventas en este periodo.</p>";
+            $html .= "<p class='mb-0'>• Esto representa el <b class='text-danger'>" . number_format($idleRatio, 1) . "%</b> de tu capital inmovilizado en almacén.</p>";
+            $html .= "</div>";
+            
+            if ($top3->count() > 0) {
+                $html .= "<h6 class='mt-4 font-weight-bold text-dark'><i class='fas fa-medal text-primary mr-2'></i> <b>Top 3 Productos que Generan Más Utilidad al Negocio:</b></h6>";
+                $html .= "<div class='list-group mb-3'>";
+                foreach ($top3 as $index => $p) {
+                    $html .= "<div class='list-group-item list-group-item-action flex-column align-items-start'>";
+                    $html .= "<div class='d-flex w-100 justify-content-between'>";
+                    $html .= "<h6 class='mb-1 font-weight-bold text-info'>#" . ($index + 1) . " - {$p->name}</h6>";
+                    $spanColor = $p->margin_percent > 30 ? 'text-success' : 'text-primary';
+                    $html .= "<span class='font-weight-bold {$spanColor}'>$" . number_format($p->margin_usd, 2) . "</span>";
+                    $html .= "</div>";
+                    $html .= "<p class='mb-1 small text-muted'>Vendido: <b>{$p->total_sold} unidades</b> | Valor de Stock Actual: <b>$" . number_format($p->stock_value, 2) . "</b></p>";
+                    $html .= "</div>";
+                }
+                $html .= "</div>";
+            }
+
+            // Recommendations
+            $html .= "<div class='alert alert-warning mt-4 border-0 shadow-sm'>";
+            $html .= "<h5><i class='fas fa-tools text-dark mr-2'></i> <b>Acciones de Optimización de Inventario</b></h5>";
+            $html .= "<hr class='my-2 bg-dark'>";
+            if ($idleRatio > 40) {
+                $html .= "<p class='mb-0 small'><b>Alerta de Inventario Inactivo:</b> Más del 40% de tu capital está estancado en stock sin rotación. Te sugerimos realizar promociones especiales, combos de venta cruzada (atando productos sin rotación a productos de Clase A) o descuentos por liquidación para liberar flujo de caja de inmediato.</p>";
+            } else {
+                $html .= "<p class='mb-0 small'><b>Inventario Controlado:</b> Tu nivel de inventario ocioso está en rangos saludables. Te sugerimos seguir abasteciendo los productos Clase A y Clase B utilizando el botón automático de \"Generar Orden de Compra\" en base a la velocidad de venta.</p>";
+            }
+            $html .= "</div>";
+            $html .= "</div>";
+        }
+
+        return $html;
     }
 }

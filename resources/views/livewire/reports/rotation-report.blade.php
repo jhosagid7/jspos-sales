@@ -109,6 +109,9 @@
                             <button wire:click="generatePdf" class="btn btn-danger btn-sm">
                                 <i class="fas fa-file-pdf"></i> Exportar PDF (Landscape)
                             </button>
+                            <button wire:click="toggleInterpretationModal" class="btn btn-info btn-sm ml-2" style="background-color: #17a2b8; border-color: #17a2b8;">
+                                <i class="fas fa-brain"></i> Analizar Resultados (IA)
+                            </button>
                             <button wire:click="createPurchaseOrder" class="btn btn-primary btn-sm ml-2">
                                 <i class="fas fa-shopping-cart"></i> Generar Orden de Compra
                             </button>
@@ -123,7 +126,7 @@
             <div class="row">
                 <!-- KPI 1: Capital de Inventario -->
                 <div class="col-sm-12 col-md-3 mb-3">
-                    <div class="card shadow-sm border-left border-primary h-100">
+                    <div class="card shadow-sm border-left border-primary h-100" style="cursor: help;" title="Costo total acumulado de las unidades físicas en stock actualmente. Representa la inversión total inmovilizada en almacén.">
                         <div class="card-body p-3">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="f-11 text-muted uppercase font-weight-bold">Capital en Inventario</div>
@@ -137,7 +140,7 @@
 
                 <!-- KPI 2: Capital Ocioso -->
                 <div class="col-sm-12 col-md-3 mb-3">
-                    <div class="card shadow-sm border-left border-danger h-100">
+                    <div class="card shadow-sm border-left border-danger h-100" style="cursor: help;" title="Costo total de los productos en almacén que NO han registrado ninguna venta en el periodo seleccionado (o que no han sido comprados por el cliente/filtros seleccionados). Indica riesgo de obsolescencia.">
                         <div class="card-body p-3">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="f-11 text-muted uppercase font-weight-bold">Capital Ocioso (Sin Mov)</div>
@@ -151,7 +154,7 @@
 
                 <!-- KPI 3: Margen Bruto Total -->
                 <div class="col-sm-12 col-md-3 mb-3">
-                    <div class="card shadow-sm border-left border-success h-100">
+                    <div class="card shadow-sm border-left border-success h-100" style="cursor: help;" title="Diferencia directa entre el monto facturado (ventas) y el costo de adquisición de esos productos en el periodo seleccionado. Dinero real aportado al negocio.">
                         <div class="card-body p-3">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="f-11 text-muted uppercase font-weight-bold">Ganancia Bruta Ventas</div>
@@ -165,7 +168,7 @@
 
                 <!-- KPI 4: Margen Promedio % -->
                 <div class="col-sm-12 col-md-3 mb-3">
-                    <div class="card shadow-sm border-left border-info h-100">
+                    <div class="card shadow-sm border-left border-info h-100" style="cursor: help;" title="Porcentaje de ganancia comercial sobre las ventas totales del periodo seleccionado: (Ganancia Bruta / Ventas Totales) * 100.">
                         <div class="card-body p-3">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="f-11 text-muted uppercase font-weight-bold">Margen Promedio (%)</div>
@@ -184,7 +187,7 @@
             <div class="row">
                 <!-- Gráfico Donut ABC -->
                 <div class="col-sm-12 col-md-6 mb-3">
-                    <div class="card shadow-sm border-0 h-100">
+                    <div class="card shadow-sm border-0 h-100" style="cursor: help;" title="Distribución de productos según el Principio de Pareto: A (80% ventas acumuladas), B (15% ventas), C (5% o sin movimiento). Ayuda a priorizar el abastecimiento.">
                         <div class="card-body" wire:ignore>
                             <div id="rotationAbcChart" style="height: 300px; width: 100%;"></div>
                         </div>
@@ -193,7 +196,7 @@
 
                 <!-- Gráfico de Barras Top 10 Rentabilidad -->
                 <div class="col-sm-12 col-md-6 mb-3">
-                    <div class="card shadow-sm border-0 h-100">
+                    <div class="card shadow-sm border-0 h-100" style="cursor: help;" title="Muestra los 10 productos que más ganancia bruta (margen en USD) aportan al negocio o al cliente seleccionado en este rango de tiempo.">
                         <div class="card-body" wire:ignore>
                             <div id="rotationProfitChart" style="height: 300px; width: 100%;"></div>
                         </div>
@@ -215,17 +218,17 @@
                                 <tr>
                                     <th style="width: 40px;" class="text-center"></th>
                                     <th class="text-left text-white">Producto</th>
-                                    <th style="width: 70px;" class="text-center text-white">Clase ABC</th>
-                                    <th class="text-center text-white">Stock Actual</th>
-                                    <th class="text-center text-white">Valor Stock (Costo)</th>
-                                    <th class="text-center text-white">Vendido (U)</th>
-                                    <th class="text-center text-white">Ventas (USD)</th>
-                                    <th class="text-center text-white">Margen USD</th>
-                                    <th class="text-center text-white">Margen %</th>
-                                    <th class="text-center text-white">Velocidad (u/día)</th>
-                                    <th class="text-center text-white">Sugerencia Compra</th>
-                                    <th class="text-center text-white">Cobertura (Días)</th>
-                                    <th class="text-center text-white">Estado</th>
+                                    <th style="width: 70px; cursor: help;" class="text-center text-white" title="Clasificación de Pareto: A (80% ventas acumuladas), B (15% ventas), C (5% o sin movimiento).">Clase ABC</th>
+                                    <th class="text-center text-white" style="cursor: help;" title="Stock físico disponible actualmente en almacén.">Stock Actual</th>
+                                    <th class="text-center text-white" style="cursor: help;" title="Capital total inmovilizado en stock (Stock Actual * Costo Unitario).">Valor Stock (Costo)</th>
+                                    <th class="text-center text-white" style="cursor: help;" title="Unidades vendidas en el rango de fechas seleccionado.">Vendido (U)</th>
+                                    <th class="text-center text-white" style="cursor: help;" title="Ventas totales facturadas en USD.">Ventas (USD)</th>
+                                    <th class="text-center text-white" style="cursor: help;" title="Ganancia bruta generada por el producto: Ventas (USD) - Costo total vendido.">Margen USD</th>
+                                    <th class="text-center text-white" style="cursor: help;" title="Porcentaje de ganancia sobre la venta: (Margen USD / Ventas USD) * 100.">Margen %</th>
+                                    <th class="text-center text-white" style="cursor: help;" title="Velocidad de venta diaria: Unidades Vendidas / Días de rango.">Velocidad (u/día)</th>
+                                    <th class="text-center text-white" style="cursor: help;" title="Cantidad sugerida a comprar para el periodo de cobertura: (Velocidad diaria * Días cobertura) - Stock Actual.">Sugerencia Compra</th>
+                                    <th class="text-center text-white" style="cursor: help;" title="Días estimados para agotar el stock actual al ritmo de venta diario (Stock Actual / Velocidad diaria).">Cobertura (Días)</th>
+                                    <th class="text-center text-white" style="cursor: help;" title="Estado del flujo: Alta Rotación (>=1 unidad/día), Baja Rotación (<1 unidad/día), Sin Movimiento (0 ventas).">Estado</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -298,6 +301,28 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal de Interpretación Analítica -->
+    @if($showInterpretationModal)
+    <div class="modal show d-block" style="background: rgba(0,0,0,0.6); z-index: 9999;" tabindex="-1" role="dialog" wire:key="interpretation-modal">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+            <div class="modal-content shadow-lg border-0">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title text-white font-weight-bold"><i class="fas fa-brain mr-2 text-info"></i> Interpretador de Resultados Analíticos</h5>
+                    <button type="button" class="close text-white" wire:click="toggleInterpretationModal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body p-4 bg-white" style="max-height: 70vh; overflow-y: auto;">
+                    {!! $this->getInterpretation() !!}
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" wire:click="toggleInterpretationModal"><i class="fas fa-times mr-1"></i> Cerrar Análisis</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>
 
 <!-- Librería Highcharts -->

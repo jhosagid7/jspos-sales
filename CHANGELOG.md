@@ -1,3 +1,10 @@
+## [1.10.172] - 2026-06-25
+### Added
+- **Interpretador de Resultados y Leyendas Explicativas (Módulo de Rotación)**:
+  * Agregado el botón **"Analizar Resultados (IA)"** que abre un modal interactivo con una interpretación redactada del estado financiero y salud del inventario. Si se filtra por un cliente específico, el sistema analiza dinámicamente su perfil comercial (diversificación, rentabilidad, capital ocioso y sugerencia de venta cruzada).
+  * Incorporadas leyendas explicativas (tooltips nativos mediante atributos `title` y cursor `help`) en todas las tarjetas de KPIs principales, gráficos interactivos de Highcharts y en cada una de las cabeceras de la matriz de datos, facilitando enormemente la interpretación de métricas clave (Clase ABC, Cobertura, Velocidad de venta, etc.) para el operador.
+  * Creada prueba automatizada `test_rotation_report_toggles_interpretation_modal_and_generates_analysis` en la suite para verificar la visualización y redacción del interpretador.
+
 ## [1.10.171] - 2026-06-25
 ### Changed
 - **Buscadores Interactivos en Reporte de Rotación**:

@@ -252,4 +252,27 @@ class RotationReportTest extends TestCase
             ->assertSet('totalMargin', 35.00)   // P1 margin: 75 - 40 = 35
             ->assertSet('avgMarginPercent', 46.67); // P1 margin percent: 35 / 75 = 46.67%
     }
+
+    public function test_rotation_report_toggles_interpretation_modal_and_generates_analysis()
+    {
+        Livewire::actingAs($this->adminUser)
+            ->test(RotationReport::class)
+            ->assertSet('showInterpretationModal', false)
+            ->call('toggleInterpretationModal')
+            ->assertSet('showInterpretationModal', true)
+            ->call('toggleInterpretationModal')
+            ->assertSet('showInterpretationModal', false);
+
+        // Check text generation without customer
+        $component = Livewire::actingAs($this->adminUser)->test(RotationReport::class);
+        $htmlGeneral = $component->instance()->getInterpretation();
+        $this->assertStringContainsString('Análisis de Salud de Inventario Global', $htmlGeneral);
+
+        // Check text generation with customer
+        $componentWithCustomer = Livewire::actingAs($this->adminUser)
+            ->test(RotationReport::class)
+            ->set('customerId', $this->customer->id);
+        $htmlCustomer = $componentWithCustomer->instance()->getInterpretation();
+        $this->assertStringContainsString('Análisis de Compras de Cliente', $htmlCustomer);
+    }
 }
