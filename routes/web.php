@@ -172,6 +172,7 @@ Route::middleware('auth')->group(function () {
         Route::get('sellers-performance/pdf', [\App\Http\Controllers\ReportController::class, 'sellersPerformancePdf'])->name('reports.sellers.performance.pdf')->middleware('can:reports.sales');
         Route::get('operators-precision', \App\Livewire\Reports\BillingOperatorsReport::class)->name('reports.operators.precision')->middleware('can:reports.sales');
         Route::get('operators-precision/pdf', [\App\Http\Controllers\ReportController::class, 'billingOperatorsPdf'])->name('reports.operators.precision.pdf')->middleware('can:reports.sales');
+        Route::get('exchange-diff', \App\Livewire\Reports\ExchangeDiffReport::class)->name('reports.exchange.diff')->middleware('can:reports.sales');
         Route::get('commissions', \App\Livewire\CommissionReport::class)->name('reports.commissions')->middleware(['can:reports.sales', 'module:module_commissions']); // reports.commissions?
         Route::get('best-sellers', \App\Livewire\Reports\BestSellers::class)->name('reports.best.sellers')->middleware('can:reports.sales');
         Route::get('rotation', \App\Livewire\Reports\RotationReport::class)->name('reports.rotation')->middleware(['can:reports.stock', 'module:module_advanced_reports']);

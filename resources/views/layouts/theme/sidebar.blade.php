@@ -546,8 +546,8 @@
                         </p>
                     </a>
                     <ul class="nav nav-treeview">
-                        <li class="nav-item {{ Request::is('reports/sales*') || Request::is('reports/daily-sales*') || Request::is('reports/payment-relationship*') || Request::is('reports/customer-payment*') || Request::is('reports/weekly-income*') || Request::is('reports/monthly-income*') || Request::is('reports/customers*') || Request::is('reports/customer-activity*') || Request::is('reports/sales-analysis*') || Request::is('reports/sellers-performance*') || Request::is('reports/operators-precision*') ? 'menu-open' : '' }}">
-                            <a href="#" class="nav-link {{ Request::is('reports/sales*') || Request::is('reports/daily-sales*') || Request::is('reports/payment-relationship*') || Request::is('reports/customer-payment*') || Request::is('reports/weekly-income*') || Request::is('reports/monthly-income*') || Request::is('reports/customers*') || Request::is('reports/customer-activity*') || Request::is('reports/sales-analysis*') || Request::is('reports/sellers-performance*') || Request::is('reports/operators-precision*') ? 'active' : '' }}">
+                        <li class="nav-item {{ Request::is('reports/sales*') || Request::is('reports/daily-sales*') || Request::is('reports/payment-relationship*') || Request::is('reports/customer-payment*') || Request::is('reports/weekly-income*') || Request::is('reports/monthly-income*') || Request::is('reports/customers*') || Request::is('reports/customer-activity*') || Request::is('reports/sales-analysis*') || Request::is('reports/sellers-performance*') || Request::is('reports/operators-precision*') || Request::is('reports/exchange-diff*') ? 'menu-open' : '' }}">
+                            <a href="#" class="nav-link {{ Request::is('reports/sales*') || Request::is('reports/daily-sales*') || Request::is('reports/payment-relationship*') || Request::is('reports/customer-payment*') || Request::is('reports/weekly-income*') || Request::is('reports/monthly-income*') || Request::is('reports/customers*') || Request::is('reports/customer-activity*') || Request::is('reports/sales-analysis*') || Request::is('reports/sellers-performance*') || Request::is('reports/operators-precision*') || Request::is('reports/exchange-diff*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>
                                     Ventas y Cobros
@@ -614,6 +614,12 @@
                                       <a href="{{ route('reports.operators.precision') }}" class="nav-link {{ Request::is('reports/operators-precision*') ? 'active' : '' }}">
                                           <i class="far fa-dot-circle nav-icon"></i>
                                           <p>Eficiencia de Operadores</p>
+                                      </a>
+                                  </li>
+                                  <li class="nav-item">
+                                      <a href="{{ route('reports.exchange.diff') }}" class="nav-link {{ Request::is('reports/exchange-diff*') ? 'active' : '' }}">
+                                          <i class="far fa-dot-circle nav-icon"></i>
+                                          <p>Auditoría de Diferencial</p>
                                       </a>
                                   </li>
                                 @endcan

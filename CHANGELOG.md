@@ -1,3 +1,14 @@
+## [1.10.174] - 2026-06-25
+### Added
+- **Módulo de Auditoría de Pérdidas y Ganancias por Diferencial Cambiario (Fase 2)**:
+  * Creado el componente interactivo Livewire `ExchangeDiffReport` para analizar las pérdidas y ganancias cambiarias por abonos en Bolívares (VES/VED) en acuerdos BCV y USD.
+  * Implementadas tarjetas de KPIs para Ventas Facturadas (USD), Cobrado Teórico (USD), Cobrado Real (USD a tasa de mercado Binance), Diferencial Neto (fuga), Cojín facturado por recargos y el Resultado Neto Cambiario final de caja.
+  * Integrado gráfico interactivo de Highcharts (Areaspline) que contrasta la evolución diaria de las pérdidas acumuladas frente al cojín de amortización facturado.
+  * Diseñada cuadrícula de datos con badges de auditoría según nivel de rentabilidad y desvío de tasa (Cumple, Desviación, Fuga).
+  * Añadida exportación a PDF en orientación horizontal (Landscape) con desglose de KPIs y auditoría de cobros.
+  * Registrada la nueva ruta `/reports/exchange-diff` y agregada la opción en el menú lateral ("Ventas y Cobros").
+  * Creada la suite de pruebas unitarias y de integración `ExchangeDiffReportTest.php` para validar accesos, cálculos matemáticos del diferencial y la descarga del PDF.
+
 ## [1.10.173] - 2026-06-25
 ### Added
 - **Catálogo de Sugerencias de Venta Cruzada (Módulo de Rotación)**:
