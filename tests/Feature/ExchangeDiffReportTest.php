@@ -196,4 +196,78 @@ class ExchangeDiffReportTest extends TestCase
 
         Carbon::setTestNow(); // Reset Carbon mock time
     }
+
+    public function test_exchange_diff_report_toggles_interpretation_modal_and_generates_analysis()
+    {
+        $this->actingAs($this->adminUser);
+
+        $today = Carbon::now()->format('Y-m-d');
+
+        // Create historical rate for today
+        ExchangeRateHistory::create([
+            'rate_type' => 'BinanceReal',
+            'rate' => 50.00,
+            'user_id' => $this->adminUser->id,
+            'created_at' => Carbon::now()->startOfDay()->addHours(8)
+        ]);
+
+        // Create Sale with VED payment
+        $sale = Sale::create([
+            'user_id' => $this->adminUser->id,
+            'customer_id' => $this->customer->id,
+            'total' => 100.00,
+            'total_usd' => 100.00,
+            'items' => 1,
+            'status' => 'pending',
+            'type' => 'credit',
+            'primary_currency_code' => 'USD',
+            'primary_exchange_rate' => 50.00,
+            'invoice_number' => 1234
+        ]);
+
+        SalePaymentDetail::create([
+            'sale_id' => $sale->id,
+            'payment_method' => 'cash',
+            'currency_code' => 'VED',
+            'amount' => 1000.00,
+            'exchange_rate' => 50.00,
+            'amount_in_primary_currency' => 20.00
+        ]);
+
+        Livewire::actingAs($this->adminUser)
+            ->test(ExchangeDiffReport::class)
+            ->assertSet('showInterpretationModal', false)
+            ->call('toggleInterpretationModal')
+            ->assertSet('showInterpretationModal', true)
+            ->call('toggleInterpretationModal')
+            ->assertSet('showInterpretationModal', false);
+
+        // Check text generation without customer when report is not loaded
+        $component = Livewire::actingAs($this->adminUser)->test(ExchangeDiffReport::class);
+        $this->assertEquals('', $component->instance()->getInterpretation());
+
+        // Check text generation when report is loaded
+        $component = Livewire::actingAs($this->adminUser)
+            ->test(ExchangeDiffReport::class)
+            ->set('dateFrom', $today)
+            ->set('dateTo', $today)
+            ->call('searchData');
+
+        $htmlGeneral = $component->instance()->getInterpretation();
+        $this->assertStringContainsString('Análisis Cambiario de Caja General', $htmlGeneral);
+        $this->assertStringContainsString('Flujo Cambiario General', $htmlGeneral);
+        $this->assertStringContainsString('Monto Facturado (USD)', $htmlGeneral);
+        $this->assertStringContainsString('Abonos Descontados (USD)', $htmlGeneral);
+
+        // Check text generation with specific customer
+        $componentWithCustomer = Livewire::actingAs($this->adminUser)
+            ->test(ExchangeDiffReport::class)
+            ->set('dateFrom', $today)
+            ->set('dateTo', $today)
+            ->set('customer_id', $this->customer->id)
+            ->call('searchData');
+
+        $htmlCustomer = $componentWithCustomer->instance()->getInterpretation();
+        $this->assertStringContainsString('Análisis Cambiario del Cliente: Exchange Customer', $htmlCustomer);
+    }
 }

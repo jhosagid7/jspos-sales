@@ -1,3 +1,10 @@
+## [1.10.175] - 2026-06-25
+### Added
+- **Interpretador Analítico y Corrección de Gráficos en Auditoría Cambiaria**:
+  * Integrado el botón **"Analizar Resultados (IA)"** y el correspondiente modal de **Interpretador de Resultados Analíticos** en el reporte de Auditoría de Diferencial Cambiario, proporcionando explicaciones automáticas, evaluación de eficacia del cojín y sugerencias financieras redactadas.
+  * Corregido el problema de renderizado del gráfico de Highcharts moviendo el contenedor `#exchangeDiffChart` fuera del bloque condicional `@if($showReport)` y agregando la directiva `wire:ignore`, solucionando la condición de carrera durante la hidratación de Livewire 3.
+  * Creada la prueba automatizada `test_exchange_diff_report_toggles_interpretation_modal_and_generates_analysis` para validar la alternancia del modal de interpretación y la correcta generación de diagnósticos cambiarios dinámicos.
+
 ## [1.10.174] - 2026-06-25
 ### Added
 - **Módulo de Auditoría de Pérdidas y Ganancias por Diferencial Cambiario (Fase 2)**:

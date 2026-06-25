@@ -65,6 +65,9 @@
                             <button wire:click="generatePdf" class="btn btn-danger btn-sm ml-2" @if(!$showReport) disabled @endif>
                                 <i class="fas fa-file-pdf"></i> Exportar PDF (Landscape)
                             </button>
+                            <button wire:click="toggleInterpretationModal" class="btn btn-info btn-sm ml-2" @if(!$showReport) disabled @endif style="background-color: #17a2b8; border-color: #17a2b8;">
+                                <i class="fas fa-brain"></i> Analizar Resultados (IA)
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -160,9 +163,10 @@
                 </div>
             </div>
         </div>
+        @endif
 
         <!-- Gráfico Highcharts -->
-        <div class="col-12 layout-spacing">
+        <div class="col-12 layout-spacing {{ $showReport ? '' : 'd-none' }}" wire:ignore>
             <div class="card shadow-sm border-0">
                 <div class="card-body">
                     <div id="exchangeDiffChart" style="height: 320px; width: 100%;"></div>
@@ -170,6 +174,7 @@
             </div>
         </div>
 
+        @if($showReport)
         <!-- Tabla de Datos -->
         <div class="col-12 layout-spacing">
             <div class="card shadow-sm border-0">
@@ -256,6 +261,28 @@
         </div>
         @endif
     </div>
+
+    <!-- Modal de Interpretación Analítica -->
+    @if($showInterpretationModal)
+    <div class="modal show d-block" style="background: rgba(0,0,0,0.6); z-index: 9999;" tabindex="-1" role="dialog" wire:key="exchange-interpretation-modal">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+            <div class="modal-content shadow-lg border-0">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title text-white font-weight-bold"><i class="fas fa-brain mr-2 text-info"></i> Interpretador de Resultados Analíticos</h5>
+                    <button type="button" class="close text-white" wire:click="toggleInterpretationModal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body p-4 bg-white" style="max-height: 70vh; overflow-y: auto;">
+                    {!! $this->getInterpretation() !!}
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" wire:click="toggleInterpretationModal"><i class="fas fa-times mr-1"></i> Cerrar Análisis</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>
 
 <!-- Librería Highcharts -->
