@@ -166,9 +166,9 @@
         @endif
 
         <!-- Gráfico Highcharts -->
-        <div class="col-12 layout-spacing {{ $showReport ? '' : 'd-none' }}" wire:ignore>
+        <div class="col-12 layout-spacing {{ $showReport ? '' : 'd-none' }}">
             <div class="card shadow-sm border-0">
-                <div class="card-body">
+                <div class="card-body" wire:ignore>
                     <div id="exchangeDiffChart" style="height: 320px; width: 100%;"></div>
                 </div>
             </div>

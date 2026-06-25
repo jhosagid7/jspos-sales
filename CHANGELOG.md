@@ -1,3 +1,8 @@
+## [1.10.177] - 2026-06-25
+### Fixed
+- **Comportamiento de wire:ignore en Contenedor de Gráfico**:
+  * Corregido bug por el cual el gráfico se mantenía oculto debido a que la directiva `wire:ignore` estaba colocada en el contenedor externo, impidiendo que Livewire actualizara dinámicamente la clase de visibilidad `d-none` al generarse el reporte. Se movió `wire:ignore` al contenedor interno (`card-body`), logrando que el gráfico se muestre correctamente al presionar el botón de análisis.
+
 ## [1.10.176] - 2026-06-25
 ### Fixed
 - **Mapeo de Parámetros en Gráfico de Auditoría Cambiaria**:
