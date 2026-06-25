@@ -35,6 +35,14 @@ class BillingOperatorsReport extends Component
         $this->dispatch('noty', msg: 'ANÁLISIS DE OPERADORES ACTUALIZADO');
     }
 
+    public function updated($propertyName)
+    {
+        if ($this->showReport) {
+            $chartData = $this->getChartData();
+            $this->dispatch('updateChart', labels: $chartData['labels'], datasets: $chartData['datasets']);
+        }
+    }
+
     public function openPdfPreview()
     {
         $params = [

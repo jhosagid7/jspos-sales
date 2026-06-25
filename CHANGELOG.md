@@ -1,3 +1,8 @@
+## [1.10.167] - 2026-06-24
+### Fixed
+- **Actualización en Tiempo Real de Gráficos de Reportes**:
+  - Implementado el método de ciclo de vida `updated()` de Livewire en los componentes de Análisis de Ventas, Desempeño de Vendedores, Actividad de Clientes y Eficiencia de Operadores. Esto soluciona la discrepancia por la cual los gráficos de Highcharts y Chart.js quedaban desincronizados al alternar checkboxes y filtros, forzando la recarga y renderizado automático del gráfico sin necesidad de hacer clic manualmente en el botón de analizar.
+
 ## [1.10.166] - 2026-06-24
 ### Added
 - **Módulo de Eficiencia y Precisión de Operadores de Facturación (Fase 3)**:

@@ -233,9 +233,23 @@
     let ctx = document.getElementById('activityChart')?.getContext('2d');
     let myChart = null;
 
-    $wire.on('updateChart', (data) => {
-        let labels = data.labels;
-        let datasets = data.datasets;
+    $wire.on('updateChart', (event, ...args) => {
+        let labels, datasets;
+        if (event && event.detail) {
+            labels = event.detail.labels;
+            datasets = event.detail.datasets;
+        } else if (event && event.labels) {
+            labels = event.labels;
+            datasets = event.datasets;
+        } else if (Array.isArray(event) && args.length > 0 && Array.isArray(args[0])) {
+            labels = event;
+            datasets = args[0];
+        }
+
+        if (!labels || !datasets) {
+            console.error('Failed to extract labels or datasets from event:', event, args);
+            return;
+        }
 
         if (!ctx) {
             ctx = document.getElementById('activityChart')?.getContext('2d');
