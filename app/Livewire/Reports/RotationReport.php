@@ -25,6 +25,7 @@ class RotationReport extends Component
     public $status = ''; // low, high, none
     public $search = '';
     public $selectedProducts = [];
+    public $tagId = 0;
 
     // KPI Properties
     public $totalCapital = 0;
@@ -85,6 +86,11 @@ class RotationReport extends Component
         $this->resetPage();
     }
 
+    public function updatedTagId()
+    {
+        $this->resetPage();
+    }
+
     private function cleanString($string)
     {
         if (is_null($string)) return '';
@@ -117,11 +123,17 @@ class RotationReport extends Component
             return $item;
         });
 
+        $tags = \App\Models\Tag::select('id', 'name')->orderBy('name')->get()->transform(function($item) {
+            $item->name = $this->cleanString($item->name);
+            return $item;
+        });
+
         return view('livewire.reports.rotation-report', [
             'data' => $data,
             'categories' => $categories,
             'suppliers' => $suppliers,
             'customers' => $customers,
+            'tags' => $tags,
             'selectedProducts' => $this->selectedProducts
         ])->extends('layouts.theme.app')
           ->section('content');
@@ -160,6 +172,12 @@ class RotationReport extends Component
 
         if ($this->categoryId > 0) {
             $query->where('products.category_id', $this->categoryId);
+        }
+
+        if ($this->tagId > 0) {
+            $query->whereHas('tags', function ($q) {
+                $q->where('tags.id', $this->tagId);
+            });
         }
 
         if ($this->supplierId > 0) {
@@ -337,8 +355,8 @@ class RotationReport extends Component
 
             $this->precalculateAbcAndKpis($data);
             $data = $this->processMetrics($data);
-            
             $config = \App\Models\Configuration::first();
+            $tagName = $this->tagId > 0 ? (\App\Models\Tag::find($this->tagId)?->name ?? 'N/A') : 'Todos';
 
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('livewire.reports.rotation-report-pdf', [
                 'data' => $data,
@@ -350,6 +368,7 @@ class RotationReport extends Component
                 'idleCapital' => $this->idleCapital,
                 'totalMargin' => $this->totalMargin,
                 'avgMarginPercent' => $this->avgMarginPercent,
+                'tagName' => $tagName,
             ])->setPaper('a4', 'landscape');
 
             return response()->streamDownload(function () use ($pdf) {

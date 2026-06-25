@@ -1,3 +1,11 @@
+## [1.10.170] - 2026-06-25
+### Added
+- **Filtro de Etiquetas en Reporte de Rotación (Product Matrix)**:
+  * Agregado filtro de búsqueda por etiquetas de producto para permitir comparar y analizar productos de la misma categoría o con la misma etiqueta.
+  * Añadido el selector de etiqueta en la vista del reporte web (`rotation-report.blade.php`).
+  * Integrado el nombre de la etiqueta activa en el reporte PDF Landscape exportado.
+  * Expandida la suite de pruebas unitarias en `RotationReportTest.php` con el caso `test_rotation_report_filters_by_tag` para validar la lógica de filtrado y KPIs.
+
 ## [1.10.169] - 2026-06-25
 ### Added
 - **Módulo de Análisis de Rotación de Inventario y Rentabilidad (Product Matrix)**:

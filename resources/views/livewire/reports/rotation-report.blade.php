@@ -52,6 +52,17 @@
                             </select>
                         </div>
 
+                        <!-- Etiquetas -->
+                        <div class="col-sm-12 col-md-3 mb-2">
+                            <label class="font-weight-bold text-muted f-12 mb-1">Etiqueta de Producto</label>
+                            <select wire:model.live="tagId" class="form-control form-control-sm">
+                                <option value="0">Todas las Etiquetas</option>
+                                @foreach($tags as $tag)
+                                    <option value="{{ $tag->id }}">{{ $tag->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
                         <!-- Rango de Fechas -->
                         <div class="col-sm-12 col-md-3 mb-2">
                             <label class="font-weight-bold text-muted f-12 mb-1">Desde</label>

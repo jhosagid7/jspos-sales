@@ -236,4 +236,20 @@ class RotationReportTest extends TestCase
             ->call('generatePdf')
             ->assertFileDownloaded('Reporte_Rotacion.pdf');
     }
+
+    public function test_rotation_report_filters_by_tag()
+    {
+        $tag = \App\Models\Tag::create(['name' => 'Premium']);
+
+        // Attach tag to P1 (Product Alpha)
+        $this->p1->tags()->attach($tag->id);
+
+        Livewire::actingAs($this->adminUser)
+            ->test(RotationReport::class)
+            ->set('tagId', $tag->id)
+            ->assertSet('totalCapital', 400.00) // P1: cost 40 * stock 10 = 400
+            ->assertSet('idleCapital', 0.00)    // P1 was sold, so no idle capital among filtered
+            ->assertSet('totalMargin', 35.00)   // P1 margin: 75 - 40 = 35
+            ->assertSet('avgMarginPercent', 46.67); // P1 margin percent: 35 / 75 = 46.67%
+    }
 }

@@ -114,7 +114,8 @@
                     <td class="text-right" width="40%" style="vertical-align: top; font-size: 8px; line-height: 1.2;">
                         Fecha Reporte: <strong>{{ \Carbon\Carbon::now()->format('d/m/Y H:i') }}</strong><br>
                         Generado por: <strong>{{ auth()->user()->name ?? 'Sistema' }}</strong><br>
-                        Rango: <strong>{{ \Carbon\Carbon::parse($dateFrom)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($dateTo)->format('d/m/Y') }}</strong> | Proyección: <strong>{{ $coverageDays }} días</strong>
+                        Rango: <strong>{{ \Carbon\Carbon::parse($dateFrom)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($dateTo)->format('d/m/Y') }}</strong> | Proyección: <strong>{{ $coverageDays }} días</strong><br>
+                        Etiqueta: <strong>{{ $tagName }}</strong>
                     </td>
                 </tr>
             </tbody>
