@@ -159,12 +159,15 @@ class RotationReport extends Component
         $query = Product::query()
             ->leftJoin('sale_details', 'products.id', '=', 'sale_details.product_id')
             ->leftJoin('sales', 'sale_details.sale_id', '=', 'sales.id')
+            ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
             ->select(
                 'products.id',
                 'products.name',
+                'products.sku',
                 'products.stock_qty',
                 'products.cost',
                 'products.price',
+                'categories.name as category_name',
                 DB::raw("COALESCE(SUM(CASE WHEN sales.status IN ('PAID', 'PENDING', 'paid', 'pending') AND sales.created_at BETWEEN ? AND ? $customerCondition THEN sale_details.quantity ELSE 0 END), 0) as total_sold"),
                 DB::raw("COALESCE(SUM(CASE WHEN sales.status IN ('PAID', 'PENDING', 'paid', 'pending') AND sales.created_at BETWEEN ? AND ? $customerCondition THEN sale_details.quantity * sale_details.sale_price ELSE 0 END), 0) as total_sold_usd"),
                 DB::raw("COUNT(DISTINCT CASE WHEN sales.status IN ('PAID', 'PENDING', 'paid', 'pending') AND sales.created_at BETWEEN ? AND ? $customerCondition THEN DATE(sales.created_at) END) as days_with_sales")
@@ -189,7 +192,7 @@ class RotationReport extends Component
             $query->where('products.name', 'like', '%' . $this->search . '%');
         }
 
-        $query->groupBy('products.id', 'products.name', 'products.stock_qty', 'products.cost', 'products.price');
+        $query->groupBy('products.id', 'products.name', 'products.sku', 'products.stock_qty', 'products.cost', 'products.price', 'categories.name');
         
         if ($this->status) {
             if ($this->status == 'low') {
@@ -420,6 +423,50 @@ class RotationReport extends Component
     public function toggleInterpretationModal()
     {
         $this->showInterpretationModal = !$this->showInterpretationModal;
+    }
+
+    public function generateCatalogPdf()
+    {
+        try {
+            if ($this->customerId == 0) {
+                $this->dispatch('noty', msg: 'Debe seleccionar un cliente para generar el catálogo.');
+                return;
+            }
+
+            $query = $this->getQuery();
+            $data = $query->get();
+            $this->precalculateAbcAndKpis($data);
+            $processed = $this->processMetrics($data);
+
+            // Filter only products NOT purchased by the customer in this period and have stock
+            $unsoldProducts = $processed->filter(fn($p) => $p->total_sold == 0 && $p->stock_qty > 0);
+
+            if ($unsoldProducts->count() == 0) {
+                $this->dispatch('noty', msg: 'No hay productos con stock para ofrecer en este catálogo.');
+                return;
+            }
+
+            $config = \App\Models\Configuration::first();
+            $customer = \App\Models\Customer::find($this->customerId);
+            $tagName = $this->tagId > 0 ? (\App\Models\Tag::find($this->tagId)?->name ?? 'N/A') : 'Todos';
+
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('livewire.reports.rotation-report-catalog-pdf', [
+                'products' => $unsoldProducts,
+                'customer' => $customer,
+                'config' => $config,
+                'tagName' => $tagName,
+                'dateFrom' => $this->dateFrom,
+                'dateTo' => $this->dateTo,
+            ])->setPaper('a4', 'portrait');
+
+            return response()->streamDownload(function () use ($pdf) {
+                echo $pdf->output();
+            }, 'Catalogo_Ofertas_' . str_replace(' ', '_', $customer->name) . '.pdf');
+
+        } catch (\Exception $e) {
+            $this->dispatch('noty', msg: "Error al generar catálogo: " . $e->getMessage());
+            return;
+        }
     }
 
     public function getInterpretation()

@@ -1,3 +1,10 @@
+## [1.10.173] - 2026-06-25
+### Added
+- **Catálogo de Sugerencias de Venta Cruzada (Módulo de Rotación)**:
+  * Agregado botón **"Descargar Catálogo de Ofertas"** en el pie del modal de interpretación analítica, el cual se muestra únicamente al tener un cliente específico seleccionado.
+  * Implementada la generación dinámica en PDF (orientación vertical) de un catálogo impreso personalizado con productos sugeridos que el cliente aún no ha comprado pero que tienen stock disponible, incluyendo su SKU, categoría, stock actual y precio.
+  * Creada la prueba unitaria `test_rotation_report_catalog_pdf_generation_endpoint` para validar la descarga del catálogo en formato PDF.
+
 ## [1.10.172] - 2026-06-25
 ### Added
 - **Interpretador de Resultados y Leyendas Explicativas (Módulo de Rotación)**:

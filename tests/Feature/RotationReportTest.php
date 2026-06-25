@@ -275,4 +275,14 @@ class RotationReportTest extends TestCase
         $htmlCustomer = $componentWithCustomer->instance()->getInterpretation();
         $this->assertStringContainsString('Análisis de Compras de Cliente', $htmlCustomer);
     }
+
+    public function test_rotation_report_catalog_pdf_generation_endpoint()
+    {
+        $this->actingAs($this->adminUser);
+
+        Livewire::test(RotationReport::class)
+            ->set('customerId', $this->customer->id)
+            ->call('generateCatalogPdf')
+            ->assertFileDownloaded('Catalogo_Ofertas_' . str_replace(' ', '_', $this->customer->name) . '.pdf');
+    }
 }

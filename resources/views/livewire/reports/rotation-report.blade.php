@@ -317,6 +317,16 @@
                     {!! $this->getInterpretation() !!}
                 </div>
                 <div class="modal-footer bg-light">
+                    @if($customerId > 0)
+                        <button type="button" class="btn btn-primary" wire:click="generateCatalogPdf" wire:loading.attr="disabled">
+                            <span wire:loading.remove wire:target="generateCatalogPdf">
+                                <i class="fas fa-file-pdf"></i> Descargar Catálogo de Ofertas
+                            </span>
+                            <span wire:loading wire:target="generateCatalogPdf">
+                                <i class="fas fa-spinner fa-spin"></i> Generando...
+                            </span>
+                        </button>
+                    @endif
                     <button type="button" class="btn btn-secondary" wire:click="toggleInterpretationModal"><i class="fas fa-times mr-1"></i> Cerrar Análisis</button>
                 </div>
             </div>
