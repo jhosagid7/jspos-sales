@@ -22,45 +22,53 @@
                         <!-- Categorías -->
                         <div class="col-sm-12 col-md-3 mb-2">
                             <label class="font-weight-bold text-muted f-12 mb-1">Categoría</label>
-                            <select wire:model.live="categoryId" class="form-control form-control-sm">
-                                <option value="0">Todas las Categorías</option>
-                                @foreach($categories as $category)
-                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                @endforeach
-                            </select>
+                            <div wire:ignore>
+                                <select id="selectCategory" class="form-control form-control-sm">
+                                    <option value="0">Todas las Categorías</option>
+                                    @foreach($categories as $category)
+                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
 
                         <!-- Proveedores -->
                         <div class="col-sm-12 col-md-3 mb-2">
                             <label class="font-weight-bold text-muted f-12 mb-1">Proveedor</label>
-                            <select wire:model.live="supplierId" class="form-control form-control-sm">
-                                <option value="0">Todos los Proveedores</option>
-                                @foreach($suppliers as $supplier)
-                                    <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
-                                @endforeach
-                            </select>
+                            <div wire:ignore>
+                                <select id="selectSupplier" class="form-control form-control-sm">
+                                    <option value="0">Todos los Proveedores</option>
+                                    @foreach($suppliers as $supplier)
+                                        <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
 
                         <!-- Clientes -->
                         <div class="col-sm-12 col-md-3 mb-2">
                             <label class="font-weight-bold text-muted f-12 mb-1">Cliente</label>
-                            <select wire:model.live="customerId" class="form-control form-control-sm">
-                                <option value="0">Todos los Clientes</option>
-                                @foreach($customers as $customer)
-                                    <option value="{{ $customer->id }}">{{ $customer->name }}</option>
-                                @endforeach
-                            </select>
+                            <div wire:ignore>
+                                <select id="selectCustomer" class="form-control form-control-sm">
+                                    <option value="0">Todos los Clientes</option>
+                                    @foreach($customers as $customer)
+                                        <option value="{{ $customer->id }}">{{ $customer->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
 
                         <!-- Etiquetas -->
                         <div class="col-sm-12 col-md-3 mb-2">
                             <label class="font-weight-bold text-muted f-12 mb-1">Etiqueta de Producto</label>
-                            <select wire:model.live="tagId" class="form-control form-control-sm">
-                                <option value="0">Todas las Etiquetas</option>
-                                @foreach($tags as $tag)
-                                    <option value="{{ $tag->id }}">{{ $tag->name }}</option>
-                                @endforeach
-                            </select>
+                            <div wire:ignore>
+                                <select id="selectTag" class="form-control form-control-sm">
+                                    <option value="0">Todas las Etiquetas</option>
+                                    @foreach($tags as $tag)
+                                        <option value="{{ $tag->id }}">{{ $tag->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
 
                         <!-- Rango de Fechas -->
@@ -299,6 +307,41 @@
 <script>
     let abcChart = null;
     let profitChart = null;
+
+    // Initialize TomSelect for Categorías, Proveedores, Clientes, and Etiquetas
+    const tsConfig = {
+        maxItems: 1,
+        create: false,
+        allowEmptyOption: true
+    };
+
+    new TomSelect('#selectCategory', {
+        ...tsConfig,
+        onChange: function(val) {
+            $wire.set('categoryId', val);
+        }
+    });
+
+    new TomSelect('#selectSupplier', {
+        ...tsConfig,
+        onChange: function(val) {
+            $wire.set('supplierId', val);
+        }
+    });
+
+    new TomSelect('#selectCustomer', {
+        ...tsConfig,
+        onChange: function(val) {
+            $wire.set('customerId', val);
+        }
+    });
+
+    new TomSelect('#selectTag', {
+        ...tsConfig,
+        onChange: function(val) {
+            $wire.set('tagId', val);
+        }
+    });
 
     function renderCharts(abcData, topProfitData) {
         // Destroy existing charts to prevent memory leaks

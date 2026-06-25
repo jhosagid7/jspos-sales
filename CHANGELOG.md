@@ -1,3 +1,8 @@
+## [1.10.171] - 2026-06-25
+### Changed
+- **Buscadores Interactivos en Reporte de Rotación**:
+  * Convertidos los selectores estándar de Categoría, Proveedor, Cliente y Etiqueta de Producto en campos de búsqueda interactiva (autocompletado) utilizando **TomSelect** con `wire:ignore`, mejorando sustancialmente la usabilidad y velocidad de filtrado al buscar entre cientos de registros.
+
 ## [1.10.170] - 2026-06-25
 ### Added
 - **Filtro de Etiquetas en Reporte de Rotación (Product Matrix)**:
