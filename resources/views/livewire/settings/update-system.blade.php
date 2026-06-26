@@ -83,7 +83,7 @@
                     </div>
                     @endif
 
-                    @if(count($rollbacks) > 0 && !in_array($status, ['updating']))
+                    @if(is_array($rollbacks) && count($rollbacks) > 0 && !in_array($status, ['updating']))
                     <div class="card mt-4 shadow-sm border-0">
                         <div class="card-header bg-light border-0 py-3 d-flex justify-content-between align-items-center">
                             <h5 class="card-title m-0 text-dark font-weight-bold">

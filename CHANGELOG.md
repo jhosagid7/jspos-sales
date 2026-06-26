@@ -1,3 +1,11 @@
+## [1.10.185] - 2026-06-26
+### Fixed
+- **Actualización sin bloqueos en Windows (sys_get_temp_dir)**:
+  * Modificada la descarga de actualizaciones para usar el directorio temporal del sistema operativo y un nombre de archivo único por intento (`temp_update_[uniqid].zip`), evitando conflictos de permisos y bloqueos de archivos en entornos Windows de producción.
+- **Robustez en la Copia de Seguridad**:
+  * Corregido un fallo en `zipDirectories` que intentaba añadir enlaces simbólicos de directorios (como `public/storage`) como archivos, provocando un error de "Permission denied" al cerrar el archivo ZIP y congelando la pantalla al 10%.
+  * Añadida validación de tipo en la vista Blade (`is_array($rollbacks)`) para evitar excepciones `TypeError` si la variable de rollbacks es nula debido a la caché de OPcache.
+
 ## [1.10.184] - 2026-06-26
 ### Fixed
 - **Diálogos de confirmación en Puntos de Restauración**:

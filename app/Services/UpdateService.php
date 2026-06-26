@@ -82,7 +82,7 @@ class UpdateService
 
     public function downloadUpdate($downloadUrl)
     {
-        $tempPath = storage_path('app/temp_update.zip');
+        $tempPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'temp_update_' . uniqid() . '.zip';
         $maxAttempts = 5; // Increased from 2 to 5 for production stability
         $lastException = null;
 
@@ -110,6 +110,10 @@ class UpdateService
                 }
 
                 Log::info("Update downloaded successfully on attempt {$attempt}.");
+                
+                // Store path in session for the install phase
+                session(['latest_downloaded_update_zip' => $tempPath]);
+                
                 return true;
 
             } catch (\Exception $e) {
@@ -134,7 +138,16 @@ class UpdateService
 
     public function installUpdate($newVersion = null)
     {
-        $tempPath = storage_path('app/temp_update.zip');
+        $tempPath = session('latest_downloaded_update_zip');
+        if (!$tempPath || !File::exists($tempPath)) {
+            // Fallback to legacy path
+            $tempPath = storage_path('app/temp_update.zip');
+        }
+        
+        if (!File::exists($tempPath)) {
+            throw new \Exception("No se encontró el archivo temporal de actualización (" . basename($tempPath) . ").");
+        }
+        
         $zip = new ZipArchive;
         
         if ($zip->open($tempPath) === TRUE) {
@@ -157,6 +170,10 @@ class UpdateService
 
             File::deleteDirectory($extractPath);
             File::delete($tempPath);
+            
+            // Clean session
+            session()->forget('latest_downloaded_update_zip');
+            
             return true;
         } else {
             throw new \Exception("Failed to unzip update.");
@@ -327,9 +344,17 @@ class UpdateService
             );
 
             foreach ($filesInDir as $file) {
+                $filePath = $file->getRealPath();
+                if ($filePath === false) {
+                    continue;
+                }
+
+                // Skip directories (including junction points) and symbolic links
+                if (is_dir($filePath) || is_link($filePath) || $file->isLink()) {
+                    continue;
+                }
+
                 if (!$file->isDir()) {
-                    $filePath = $file->getRealPath();
-                    
                     // Exclude storage symlinks in public or cache folders
                     if (str_contains($filePath, 'public\\storage') || str_contains($filePath, 'public/storage') || str_contains($filePath, 'bootstrap\\cache') || str_contains($filePath, 'bootstrap/cache')) {
                         continue;
