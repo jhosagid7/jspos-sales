@@ -24,6 +24,8 @@ class CustomerReport extends Component
     public $inactivityDays = 0;
     public $showRecoveryPdfModal = false;
     public $recoveryPdfUrl = '';
+    public $selectedCustomerIds = [];
+    public $selectAll = false;
 
     public $columns = [
         'name' => true,
@@ -53,7 +55,48 @@ class CustomerReport extends Component
     public function searchData()
     {
         $this->showReport = true;
+
+        $customers = $this->getReport();
+        if ($this->groupBy === 'seller_id') {
+            $this->selectedCustomerIds = $customers->flatMap(function($group) {
+                return $group->pluck('id');
+            })->map(fn($id) => (string)$id)->toArray();
+        } else {
+            $this->selectedCustomerIds = $customers->pluck('id')->map(fn($id) => (string)$id)->toArray();
+        }
+        $this->selectAll = true;
+
         $this->dispatch('noty', msg: 'REPORTE ACTUALIZADO');
+    }
+
+    public function updatedSelectAll($value)
+    {
+        if ($value) {
+            $customers = $this->getReport();
+            if ($this->groupBy === 'seller_id') {
+                $this->selectedCustomerIds = $customers->flatMap(function($group) {
+                    return $group->pluck('id');
+                })->map(fn($id) => (string)$id)->toArray();
+            } else {
+                $this->selectedCustomerIds = $customers->pluck('id')->map(fn($id) => (string)$id)->toArray();
+            }
+        } else {
+            $this->selectedCustomerIds = [];
+        }
+    }
+
+    public function updatedSelectedCustomerIds($value)
+    {
+        $customers = $this->getReport();
+        if ($this->groupBy === 'seller_id') {
+            $totalCount = $customers->flatMap(function($group) {
+                return $group->pluck('id');
+            })->count();
+        } else {
+            $totalCount = $customers->count();
+        }
+
+        $this->selectAll = ($totalCount > 0 && count($this->selectedCustomerIds) === $totalCount);
     }
 
     public function openPdfPreview()
@@ -65,6 +108,9 @@ class CustomerReport extends Component
             'columns' => json_encode($this->columns),
             'inactivityDays' => $this->inactivityDays,
         ];
+        if (!empty($this->selectedCustomerIds)) {
+            $params['selectedCustomers'] = implode(',', $this->selectedCustomerIds);
+        }
 
         $this->pdfUrl = route('reports.customers.pdf', $params);
         $this->showPdfModal = true;
@@ -85,6 +131,9 @@ class CustomerReport extends Component
             'columns' => json_encode($this->columns),
             'inactivityDays' => $this->inactivityDays,
         ];
+        if (!empty($this->selectedCustomerIds)) {
+            $params['selectedCustomers'] = implode(',', $this->selectedCustomerIds);
+        }
 
         $this->trackingPdfUrl = route('reports.customers.tracking.pdf', $params);
         $this->showTrackingPdfModal = true;
@@ -105,6 +154,9 @@ class CustomerReport extends Component
             'columns' => json_encode($this->columns),
             'inactivityDays' => $this->inactivityDays,
         ];
+        if (!empty($this->selectedCustomerIds)) {
+            $params['selectedCustomers'] = implode(',', $this->selectedCustomerIds);
+        }
 
         $this->recoveryPdfUrl = route('reports.customers.recovery.pdf', $params);
         $this->showRecoveryPdfModal = true;

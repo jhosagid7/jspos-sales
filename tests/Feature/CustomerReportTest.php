@@ -464,4 +464,91 @@ class CustomerReportTest extends TestCase
         // Assert that the seller_id remains seller1's ID
         $this->assertEquals($this->seller1->id, $customer2->fresh()->seller_id);
     }
+
+    public function test_customer_report_component_manages_customer_selections()
+    {
+        $this->actingAs($this->adminUser);
+
+        $customer1 = Customer::create([
+            'name' => 'Cliente A',
+            'taxpayer_id' => '111',
+            'address' => 'Address 1',
+            'city' => 'City 1',
+            'seller_id' => $this->seller1->id,
+            'type' => 'Consumidor Final',
+        ]);
+
+        $customer2 = Customer::create([
+            'name' => 'Cliente B',
+            'taxpayer_id' => '222',
+            'address' => 'Address 2',
+            'city' => 'City 2',
+            'seller_id' => $this->seller2->id,
+            'type' => 'Consumidor Final',
+        ]);
+
+        Livewire::test(CustomerReport::class)
+            ->call('searchData')
+            ->assertSet('selectAll', true)
+            ->assertSet('selectedCustomerIds', [(string)$customer1->id, (string)$customer2->id])
+            ->set('selectAll', false)
+            ->assertSet('selectedCustomerIds', [])
+            ->set('selectedCustomerIds', [(string)$customer1->id])
+            ->assertSet('selectAll', false)
+            ->set('selectedCustomerIds', [(string)$customer1->id, (string)$customer2->id])
+            ->assertSet('selectAll', true);
+    }
+
+    public function test_customer_pdf_endpoints_support_selected_customers_filter()
+    {
+        $this->actingAs($this->adminUser);
+
+        $customer1 = Customer::create([
+            'name' => 'Cliente Seleccionado 1',
+            'taxpayer_id' => '111',
+            'address' => 'Address 1',
+            'city' => 'City 1',
+            'seller_id' => $this->seller1->id,
+            'type' => 'Consumidor Final',
+        ]);
+
+        $customer2 = Customer::create([
+            'name' => 'Cliente Seleccionado 2',
+            'taxpayer_id' => '222',
+            'address' => 'Address 2',
+            'city' => 'City 2',
+            'seller_id' => $this->seller1->id,
+            'type' => 'Consumidor Final',
+        ]);
+
+        // 1. Check regular PDF
+        $response = $this->get(route('reports.customers.pdf', [
+            'selectedSellers' => $this->seller1->id,
+            'groupBy' => 'none',
+            'showDeleted' => 0,
+            'selectedCustomers' => $customer1->id . ',' . $customer2->id
+        ]));
+        $response->assertStatus(200);
+        $response->assertHeader('content-type', 'application/pdf');
+
+        // 2. Check tracking PDF
+        $response = $this->get(route('reports.customers.tracking.pdf', [
+            'selectedSellers' => $this->seller1->id,
+            'groupBy' => 'none',
+            'showDeleted' => 0,
+            'selectedCustomers' => $customer1->id
+        ]));
+        $response->assertStatus(200);
+        $response->assertHeader('content-type', 'application/pdf');
+
+        // 3. Check recovery PDF
+        $response = $this->get(route('reports.customers.recovery.pdf', [
+            'selectedSellers' => $this->seller1->id,
+            'groupBy' => 'none',
+            'showDeleted' => 0,
+            'selectedCustomers' => $customer2->id
+        ]));
+        $response->assertStatus(200);
+        $response->assertHeader('content-type', 'application/pdf');
+    }
 }

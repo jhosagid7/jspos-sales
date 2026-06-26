@@ -211,6 +211,12 @@
                                 <table class="table table-hover table-striped">
                                     <thead class="thead-primary">
                                         <tr class="text-center">
+                                            <th>
+                                                <div class="custom-control custom-checkbox d-inline-block">
+                                                    <input type="checkbox" class="custom-control-input" id="check_all" wire:model.live="selectAll">
+                                                    <label class="custom-control-label" for="check_all"></label>
+                                                </div>
+                                            </th>
                                             @if($columns['name']) <th>Cliente</th> @endif
                                             @if($columns['taxpayer_id']) <th>Identificación</th> @endif
                                             @if($columns['address']) <th>Dirección</th> @endif
@@ -232,6 +238,12 @@
                                     <tbody>
                                         @forelse($items as $customer)
                                             <tr class="text-center {{ $customer->deleted_at ? 'table-danger' : '' }}">
+                                                <td>
+                                                    <div class="custom-control custom-checkbox d-inline-block">
+                                                        <input type="checkbox" class="custom-control-input" id="customer_chk_{{ $customer->id }}" value="{{ $customer->id }}" wire:model.live="selectedCustomerIds">
+                                                        <label class="custom-control-label" for="customer_chk_{{ $customer->id }}"></label>
+                                                    </div>
+                                                </td>
                                                 @if($columns['name']) <td>{{ $customer->name }}</td> @endif
                                                 @if($columns['taxpayer_id']) <td>{{ $customer->taxpayer_id }}</td> @endif
                                                 @if($columns['address']) <td class="text-left">{{ $customer->address }}</td> @endif
@@ -302,7 +314,7 @@
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="20" class="text-center text-muted">No se encontraron clientes.</td>
+                                                <td colspan="21" class="text-center text-muted">No se encontraron clientes.</td>
                                             </tr>
                                         @endforelse
                                     </tbody>

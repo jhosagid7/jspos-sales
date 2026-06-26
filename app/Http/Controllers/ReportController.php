@@ -2899,6 +2899,10 @@ class ReportController extends Controller
         $selectedSellers = $selectedSellersStr ? explode(',', $selectedSellersStr) : [];
         $selectedSellers = array_filter($selectedSellers);
 
+        $selectedCustomersStr = $request->get('selectedCustomers');
+        $selectedCustomers = $selectedCustomersStr ? explode(',', $selectedCustomersStr) : [];
+        $selectedCustomers = array_filter($selectedCustomers);
+
         $groupBy = $request->get('groupBy', 'none');
         $showDeleted = $request->get('showDeleted', 0) == 1;
         $inactivityDays = (int)$request->get('inactivityDays', 0);
@@ -2950,6 +2954,9 @@ class ReportController extends Controller
                         ->orWhereRaw('not exists (select 1 from sales where sales.customer_id = customers.id and sales.status <> "returned" and sales.deletion_approved_at is null)');
                 });
             })
+            ->when(!empty($selectedCustomers), function ($q) use ($selectedCustomers) {
+                $q->whereIn('customers.id', $selectedCustomers);
+            })
             ->orderBy('name');
 
         $customers = $query->get();
@@ -2982,6 +2989,10 @@ class ReportController extends Controller
         $selectedSellersStr = $request->get('selectedSellers');
         $selectedSellers = $selectedSellersStr ? explode(',', $selectedSellersStr) : [];
         $selectedSellers = array_filter($selectedSellers);
+
+        $selectedCustomersStr = $request->get('selectedCustomers');
+        $selectedCustomers = $selectedCustomersStr ? explode(',', $selectedCustomersStr) : [];
+        $selectedCustomers = array_filter($selectedCustomers);
 
         $groupBy = $request->get('groupBy', 'none');
         $showDeleted = $request->get('showDeleted', 0) == 1;
@@ -3017,6 +3028,9 @@ class ReportController extends Controller
                         ->orWhereRaw('not exists (select 1 from sales where sales.customer_id = customers.id and sales.status <> "returned" and sales.deletion_approved_at is null)');
                 });
             })
+            ->when(!empty($selectedCustomers), function ($q) use ($selectedCustomers) {
+                $q->whereIn('customers.id', $selectedCustomers);
+            })
             ->orderBy('name');
 
         $customers = $query->get();
@@ -3046,6 +3060,10 @@ class ReportController extends Controller
         $selectedSellersStr = $request->get('selectedSellers');
         $selectedSellers = $selectedSellersStr ? explode(',', $selectedSellersStr) : [];
         $selectedSellers = array_filter($selectedSellers);
+
+        $selectedCustomersStr = $request->get('selectedCustomers');
+        $selectedCustomers = $selectedCustomersStr ? explode(',', $selectedCustomersStr) : [];
+        $selectedCustomers = array_filter($selectedCustomers);
 
         $groupBy = $request->get('groupBy', 'none');
         $showDeleted = $request->get('showDeleted', 0) == 1;
@@ -3098,6 +3116,9 @@ class ReportController extends Controller
                     $sub->whereRaw('(select max(created_at) from sales where sales.customer_id = customers.id and sales.status <> "returned" and sales.deletion_approved_at is null) < ?', [$threshold])
                         ->orWhereRaw('not exists (select 1 from sales where sales.customer_id = customers.id and sales.status <> "returned" and sales.deletion_approved_at is null)');
                 });
+            })
+            ->when(!empty($selectedCustomers), function ($q) use ($selectedCustomers) {
+                $q->whereIn('customers.id', $selectedCustomers);
             })
             ->orderBy('total_purchased_usd', 'desc'); // Order by historical volume to prioritize high-value clients
 

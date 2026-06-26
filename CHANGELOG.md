@@ -1,3 +1,12 @@
+## [1.10.181] - 2026-06-26
+### Added
+- **Selección de Clientes y PDF Filtrados**:
+  * Añadida columna con checkboxes en la tabla del **Reporte de Clientes** (`customer-report.blade.php`) junto con una casilla de selección global en el encabezado.
+  * Implementadas las propiedades `$selectedCustomerIds` y `$selectAll` en `CustomerReport.php` con sincronización bidireccional automática.
+  * Al presionar "Consultar", el sistema preselecciona automáticamente todos los clientes resultantes por defecto para facilitar una exportación completa.
+  * Integrada la filtración por clientes seleccionados (`selectedCustomers` como parámetro en la URL) en los endpoints de generación de PDF: `customersPdf()`, `customersTrackingPdf()` y `customersRecoveryPdf()` de `ReportController.php`.
+  * Desarrolladas pruebas automatizadas en `CustomerReportTest.php` para validar los observadores de Livewire y las restricciones en las consultas PDF.
+
 ## [1.10.180] - 2026-06-26
 ### Added
 - **PDF de Selección en Reporte de Flujo de Caja**:
