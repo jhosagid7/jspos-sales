@@ -62,6 +62,14 @@ class DeviceManager extends Component
     {
         $device = DeviceAuthorization::find($id);
         if ($device) {
+            $maxDevices = config('tenant.max_devices', 1);
+            $approvedCount = DeviceAuthorization::where('status', 'approved')->count();
+
+            if ($device->status !== 'approved' && $approvedCount >= $maxDevices) {
+                $this->dispatch('msg-error', msg: "Límite de dispositivos alcanzado ({$maxDevices}). Actualice su plan de suscripción.");
+                return;
+            }
+
             $device->status = 'approved';
             $device->save();
             $this->dispatch('noty', msg: 'Dispositivo aprobado correctamente');

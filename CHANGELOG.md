@@ -1,3 +1,15 @@
+## [1.10.182] - 2026-06-26
+### Added
+- **Protección de Reportes Analíticos Avanzados (SaaS)**:
+  * Agregado el middleware `'module:module_advanced_reports'` a las rutas de los 5 reportes analíticos avanzados (y sus respectivos PDFs) en `routes/web.php`.
+  * Protegidos los enlaces a estos reportes en el menú lateral (`sidebar.blade.php`) usando la directiva Blade `@module('module_advanced_reports')`.
+- **Restricción de Dispositivos (SaaS Limit Enforcer)**:
+  * Implementada la validación de `max_devices` en `DeviceManager::approve()` impidiendo aprobar dispositivos si se alcanza o supera el límite de la licencia, mostrando un mensaje de error tipo `msg-error`.
+  * Modificado el middleware `CheckDeviceAuthorization` para forzar el estatus de nuevos dispositivos a `'pending'` (en lugar de auto-aprobarlos) si el límite `max_devices` de la licencia actual ya se cumplió, incluso en modo de acceso abierto.
+- **Suite de Pruebas Automatizadas (TDD)**:
+  * Creada la prueba `SaasModulesAndLimitsTest.php` en `tests/Feature` cubriendo la protección de accesos sin licencia, la restricción de aprobaciones por límite en `DeviceManager`, y el comportamiento del middleware con nuevos dispositivos cuando se excede la cuota de la licencia.
+  * Todas las pruebas validadas con éxito (100% PASS).
+
 ## [1.10.181] - 2026-06-26
 ### Added
 - **Selección de Clientes y PDF Filtrados**:

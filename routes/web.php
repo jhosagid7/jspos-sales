@@ -166,13 +166,13 @@ Route::middleware('auth')->group(function () {
         Route::get('customers/recovery-pdf', [\App\Http\Controllers\ReportController::class, 'customersRecoveryPdf'])->name('reports.customers.recovery.pdf')->middleware('can:reports.sales');
         Route::get('customer-activity', \App\Livewire\Reports\CustomerActivityReport::class)->name('reports.customer.activity')->middleware('can:reports.sales');
         Route::get('customer-activity/pdf', [\App\Http\Controllers\ReportController::class, 'customerActivityPdf'])->name('reports.customer.activity.pdf')->middleware('can:reports.sales');
-        Route::get('sales-analysis', \App\Livewire\Reports\SalesAnalysisReport::class)->name('reports.sales.analysis')->middleware('can:reports.sales');
-        Route::get('sales-analysis/pdf', [\App\Http\Controllers\ReportController::class, 'salesAnalysisPdf'])->name('reports.sales.analysis.pdf')->middleware('can:reports.sales');
-        Route::get('sellers-performance', \App\Livewire\Reports\SellersPerformanceReport::class)->name('reports.sellers.performance')->middleware('can:reports.sales');
-        Route::get('sellers-performance/pdf', [\App\Http\Controllers\ReportController::class, 'sellersPerformancePdf'])->name('reports.sellers.performance.pdf')->middleware('can:reports.sales');
-        Route::get('operators-precision', \App\Livewire\Reports\BillingOperatorsReport::class)->name('reports.operators.precision')->middleware('can:reports.sales');
-        Route::get('operators-precision/pdf', [\App\Http\Controllers\ReportController::class, 'billingOperatorsPdf'])->name('reports.operators.precision.pdf')->middleware('can:reports.sales');
-        Route::get('exchange-diff', \App\Livewire\Reports\ExchangeDiffReport::class)->name('reports.exchange.diff')->middleware('can:reports.sales');
+        Route::get('sales-analysis', \App\Livewire\Reports\SalesAnalysisReport::class)->name('reports.sales.analysis')->middleware(['can:reports.sales', 'module:module_advanced_reports']);
+        Route::get('sales-analysis/pdf', [\App\Http\Controllers\ReportController::class, 'salesAnalysisPdf'])->name('reports.sales.analysis.pdf')->middleware(['can:reports.sales', 'module:module_advanced_reports']);
+        Route::get('sellers-performance', \App\Livewire\Reports\SellersPerformanceReport::class)->name('reports.sellers.performance')->middleware(['can:reports.sales', 'module:module_advanced_reports']);
+        Route::get('sellers-performance/pdf', [\App\Http\Controllers\ReportController::class, 'sellersPerformancePdf'])->name('reports.sellers.performance.pdf')->middleware(['can:reports.sales', 'module:module_advanced_reports']);
+        Route::get('operators-precision', \App\Livewire\Reports\BillingOperatorsReport::class)->name('reports.operators.precision')->middleware(['can:reports.sales', 'module:module_advanced_reports']);
+        Route::get('operators-precision/pdf', [\App\Http\Controllers\ReportController::class, 'billingOperatorsPdf'])->name('reports.operators.precision.pdf')->middleware(['can:reports.sales', 'module:module_advanced_reports']);
+        Route::get('exchange-diff', \App\Livewire\Reports\ExchangeDiffReport::class)->name('reports.exchange.diff')->middleware(['can:reports.sales', 'module:module_advanced_reports']);
         Route::get('commissions', \App\Livewire\CommissionReport::class)->name('reports.commissions')->middleware(['can:reports.sales', 'module:module_commissions']); // reports.commissions?
         Route::get('best-sellers', \App\Livewire\Reports\BestSellers::class)->name('reports.best.sellers')->middleware('can:reports.sales');
         Route::get('rotation', \App\Livewire\Reports\RotationReport::class)->name('reports.rotation')->middleware(['can:reports.stock', 'module:module_advanced_reports']);
@@ -192,8 +192,8 @@ Route::middleware('auth')->group(function () {
         Route::get('weekly-income/pdf', [\App\Http\Controllers\ReportController::class, 'weeklyIncomeReportPdf'])->name('reports.weekly.income.pdf')->middleware('can:reports.sales');
         Route::get('monthly-income', \App\Livewire\Reports\MonthlyIncomeReport::class)->name('reports.monthly.income')->middleware('can:reports.sales');
         Route::get('monthly-income/pdf', [\App\Http\Controllers\ReportController::class, 'monthlyIncomeReportPdf'])->name('reports.monthly.income.pdf')->middleware('can:reports.sales');
-        Route::get('cash-flow-forecast', \App\Livewire\Reports\CashFlowForecastReport::class)->name('reports.cash.flow.forecast')->middleware('can:reports.sales');
-        Route::get('cash-flow-forecast/pdf', [\App\Http\Controllers\ReportController::class, 'cashFlowForecastPdf'])->name('reports.cash.flow.forecast.pdf')->middleware('can:reports.sales');
+        Route::get('cash-flow-forecast', \App\Livewire\Reports\CashFlowForecastReport::class)->name('reports.cash.flow.forecast')->middleware(['can:reports.sales', 'module:module_advanced_reports']);
+        Route::get('cash-flow-forecast/pdf', [\App\Http\Controllers\ReportController::class, 'cashFlowForecastPdf'])->name('reports.cash.flow.forecast.pdf')->middleware(['can:reports.sales', 'module:module_advanced_reports']);
     });
 
     // Consultas

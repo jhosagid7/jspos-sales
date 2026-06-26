@@ -598,6 +598,7 @@
                                           <p>Actividad de Clientes</p>
                                       </a>
                                   </li>
+                                  @module('module_advanced_reports')
                                   <li class="nav-item">
                                       <a href="{{ route('reports.sales.analysis') }}" class="nav-link {{ Request::is('reports/sales-analysis*') ? 'active' : '' }}">
                                           <i class="far fa-dot-circle nav-icon"></i>
@@ -628,6 +629,7 @@
                                           <p>Flujo y Cobranza</p>
                                       </a>
                                   </li>
+                                  @endmodule
                                 @endcan
                                 @can('reports.customer_payment_relationship')
                                 <li class="nav-item">

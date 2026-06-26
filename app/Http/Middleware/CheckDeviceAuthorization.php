@@ -77,7 +77,15 @@ class CheckDeviceAuthorization
 
             // New Device - Use provided token or generate UUID
             $token = $token ?: (string) \Illuminate\Support\Str::uuid();
-            $status = $isRestricted ? 'pending' : 'approved';
+            
+            $maxDevices = config('tenant.max_devices', 1);
+            $approvedCount = \App\Models\DeviceAuthorization::where('status', 'approved')->count();
+
+            if ($approvedCount >= $maxDevices) {
+                $status = 'pending';
+            } else {
+                $status = $isRestricted ? 'pending' : 'approved';
+            }
             
             // Bypass for Super Admin (if already logged in)
             if (auth()->check() && auth()->user()->hasRole('Super Admin')) {
