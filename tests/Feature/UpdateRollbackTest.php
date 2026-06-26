@@ -303,7 +303,7 @@ class UpdateRollbackTest extends TestCase
     }
 
     /**
-     * Test: Livewire componente carga, limpia y descarga logs.
+     * Test: Livewire componente carga y limpia logs, y la ruta HTTP descarga el log.
      */
     public function test_livewire_component_manages_logs()
     {
@@ -311,27 +311,45 @@ class UpdateRollbackTest extends TestCase
         File::ensureDirectoryExists(dirname($this->logPath));
         File::put($this->logPath, "Log message line 1\nLog message line 2\n");
 
+        // 1. Setup Spatie Roles/Permissions and User
+        \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'settings.update']);
         $adminUser = User::factory()->create();
+        $adminUser->givePermissionTo('settings.update');
 
-        // 1. Test loadLogs
+        // 2. Setup Device Authorization for route test middleware
+        \App\Models\DeviceAuthorization::create([
+            'uuid' => 'test-device-uuid',
+            'name' => 'Test Device',
+            'ip_address' => '127.0.0.1',
+            'user_agent' => 'Symfony',
+            'status' => 'approved',
+        ]);
+
+        // 3. Setup license configs
+        config(['tenant.modules' => ['module_updates']]);
+
+        // 4. Test Livewire loadLogs
         Livewire::actingAs($adminUser)
             ->test(UpdateSystem::class)
             ->assertSet('logLines', '')
             ->call('loadLogs')
             ->assertSet('logLines', "Log message line 1\nLog message line 2")
-            // 2. Test clearLogs
+            // 5. Test Livewire clearLogs
             ->call('clearLogs')
             ->assertSet('logLines', '')
             ->assertDispatched('noty', msg: 'Registro de errores (laravel.log) vaciado con éxito.');
 
         $this->assertEquals(0, File::size($this->logPath));
 
-        // 3. Test downloadLogs
+        // 6. Test route log download
         File::put($this->logPath, "Download test content");
         
-        Livewire::actingAs($adminUser)
-            ->test(UpdateSystem::class)
-            ->call('downloadLogs')
-            ->assertFileDownloaded('laravel_' . date('Y-m-d') . '.log', 'Download test content');
+        $response = $this->actingAs($adminUser)
+            ->withCookie('device_token', 'test-device-uuid')
+            ->get(route('system.logs.download'));
+            
+        $response->assertStatus(200);
+        $response->assertHeader('Content-Disposition', 'attachment; filename=laravel_' . date('Y-m-d') . '.log');
+        $this->assertEquals('Download test content', file_get_contents($response->baseResponse->getFile()->getPathname()));
     }
 }

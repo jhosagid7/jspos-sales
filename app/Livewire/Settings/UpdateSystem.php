@@ -228,14 +228,7 @@ class UpdateSystem extends Component
         $this->dispatch('noty', msg: 'Registro de errores (laravel.log) vaciado con éxito.');
     }
 
-    public function downloadLogs(UpdateService $updater)
-    {
-        $path = $updater->getLogPath();
-        if (file_exists($path)) {
-            return response()->download($path, 'laravel_' . date('Y-m-d') . '.log');
-        }
-        $this->dispatch('msg-error', msg: 'No se encontró el archivo de registro.');
-    }
+
 
     public function render()
     {

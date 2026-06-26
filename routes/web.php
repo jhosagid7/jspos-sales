@@ -213,6 +213,13 @@ Route::middleware('auth')->group(function () {
     //settings
     Route::get('settings', Settings::class)->name('settings')->middleware('can:settings.index');
     Route::get('updates', \App\Livewire\Settings\UpdateSystem::class)->name('updates')->middleware(['can:settings.update', 'module:module_updates']);
+    Route::get('system/logs/download', function() {
+        $path = storage_path('logs/laravel.log');
+        if (file_exists($path)) {
+            return response()->download($path, 'laravel_' . date('Y-m-d') . '.log');
+        }
+        abort(404, 'No se encontró el archivo de registro.');
+    })->name('system.logs.download')->middleware(['can:settings.update', 'module:module_updates']);
     Route::get('backups', \App\Livewire\Settings\Backups::class)->name('backups')->middleware(['can:settings.backups', 'module:module_backups']);
     Route::get('backups/download/{fileName}', [\App\Http\Controllers\BackupController::class, 'download'])->name('backups.download')->middleware(['can:settings.backups', 'module:module_backups']);
     Route::get('devices', \App\Livewire\Settings\DeviceManager::class)->name('devices')->middleware('can:settings.index');

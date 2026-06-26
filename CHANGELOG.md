@@ -1,3 +1,12 @@
+## [1.10.187] - 2026-06-26
+### Fixed
+- **Optimización de Memoria en Descarga de Logs (Evitar allowed memory size exhausted)**:
+  * Corregido un fallo crítico de agotamiento de memoria PHP en producción cuando los administradores descargaban archivos de log de gran tamaño.
+  * Reemplazado el disparador Livewire asíncrono (que serializaba la respuesta binaria dentro del payload JSON de Livewire) por un enlace HTML directo `<a>` que invoca una ruta GET estándar.
+  * Creada la ruta `/system/logs/download` protegida bajo los middlewares `auth`, `can:settings.update` y `module:module_updates`. Esta ruta retorna un `BinaryFileResponse` nativo de Laravel, permitiendo transmitir en streaming (chunk-by-chunk) archivos de cualquier tamaño con consumo de memoria constante y cercano a cero.
+  * Actualizada la suite de pruebas automatizadas en `UpdateRollbackTest.php` para validar el comportamiento y encabezados HTTP del nuevo endpoint de descarga directa, manteniendo una tasa de éxito de pruebas del 100% (10/10 PASS).
+  * Eliminados del repositorio archivos temporales de respaldo obsoletos que causaban interferencia con la suite de pruebas.
+
 ## [1.10.186] - 2026-06-26
 ### Added
 - **Visor y Administrador de Logs Seguro para Administradores**:

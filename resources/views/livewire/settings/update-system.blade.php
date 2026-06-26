@@ -151,9 +151,9 @@
                                 <button wire:click="loadLogs" class="btn btn-outline-primary btn-sm me-2" wire:loading.attr="disabled">
                                     <i class="fas fa-sync-alt me-1"></i> Cargar/Actualizar
                                 </button>
-                                <button wire:click="downloadLogs" class="btn btn-outline-success btn-sm me-2" wire:loading.attr="disabled">
+                                <a href="{{ route('system.logs.download') }}" target="_blank" class="btn btn-outline-success btn-sm me-2">
                                     <i class="fas fa-download me-1"></i> Descargar Completo
-                                </button>
+                                </a>
                                 <button onclick="confirmClearLogs()" class="btn btn-outline-danger btn-sm" wire:loading.attr="disabled">
                                     <i class="far fa-trash-alt me-1"></i> Limpiar Historial
                                 </button>
