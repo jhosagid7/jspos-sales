@@ -1,3 +1,15 @@
+## [1.10.186] - 2026-06-26
+### Added
+- **Visor y Administrador de Logs Seguro para Administradores**:
+  - Implementado visor de logs seguro en el panel de actualizaciones para permitir a los administradores diagnosticar problemas en servidores de producción sin acceso FTP/SSH.
+  - Implementado lector eficiente de logs (`getLatestLogLines`) en `UpdateService` utilizando lectura en bloques (chunk-based) desde el final del archivo en tiempo constante y sin sobrecargar la memoria de PHP.
+  - Agregado método `clearLog()` para vaciar y truncar el archivo `laravel.log` para liberar espacio en disco, llamando a `clearstatcache()` para consistencia de estado del sistema.
+  - Agregados métodos `loadLogs()`, `clearLogs()` y `downloadLogs()` en el componente Livewire `UpdateSystem` para cargar de forma asíncrona, vaciar y exportar logs completos en formato de descarga.
+  - Diseñada sección visual de **Bitácora de Errores (Logs)** en la vista Blade `update-system.blade.php` con un `<textarea>` estilo terminal oscuro de solo lectura, botones de recarga, descarga y limpieza rápida guiada por SweetAlert v1.
+- **Suite de Pruebas Automatizadas (TDD)**:
+  - Añadidos 4 casos de prueba robustos en `UpdateRollbackTest.php` para validar la lectura de logs en bloques, la limpieza de archivos, la carga, la limpieza y descarga asíncrona del componente Livewire.
+  - Todas las pruebas de logs validadas al 100% con éxito (10/10 PASS).
+
 ## [1.10.185] - 2026-06-26
 ### Fixed
 - **Actualización sin bloqueos en Windows (sys_get_temp_dir)**:

@@ -140,6 +140,36 @@
                         </div>
                     </div>
                     @endif
+
+                    @if(!in_array($status, ['updating']))
+                    <div class="card mt-4 shadow-sm border-0">
+                        <div class="card-header bg-light border-0 py-3 d-flex justify-content-between align-items-center">
+                            <h5 class="card-title m-0 text-dark font-weight-bold">
+                                <i class="fas fa-terminal me-2 text-danger"></i> Bitácora de Errores (Logs)
+                            </h5>
+                            <div>
+                                <button wire:click="loadLogs" class="btn btn-outline-primary btn-sm me-2" wire:loading.attr="disabled">
+                                    <i class="fas fa-sync-alt me-1"></i> Cargar/Actualizar
+                                </button>
+                                <button wire:click="downloadLogs" class="btn btn-outline-success btn-sm me-2" wire:loading.attr="disabled">
+                                    <i class="fas fa-download me-1"></i> Descargar Completo
+                                </button>
+                                <button onclick="confirmClearLogs()" class="btn btn-outline-danger btn-sm" wire:loading.attr="disabled">
+                                    <i class="far fa-trash-alt me-1"></i> Limpiar Historial
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body p-3">
+                            @if(empty($logLines))
+                                <div class="text-center text-muted py-4">
+                                    <i class="fas fa-info-circle me-2"></i> Los registros de errores no se cargan por defecto para mayor velocidad. Haz clic en "Cargar/Actualizar" para verlos.
+                                </div>
+                            @else
+                                <textarea readonly class="form-control text-white bg-dark p-3 rounded" style="font-size: 13px; line-height: 1.5; font-family: monospace; min-height: 300px; max-height: 500px; overflow-y: auto;">{{ $logLines }}</textarea>
+                            @endif
+                        </div>
+                    </div>
+                    @endif
                 </div>
 
                 <script>
@@ -219,6 +249,31 @@
                         }).then(function(value) {
                             if (value) {
                                 @this.call('deleteRollback', folder);
+                            }
+                        });
+                    }
+
+                    function confirmClearLogs() {
+                        swal({
+                            title: '¿Limpiar historial de errores?',
+                            text: 'Se vaciará por completo el archivo laravel.log de este servidor. Esta acción liberará espacio en disco y no se puede deshacer.',
+                            icon: 'warning',
+                            buttons: {
+                                cancel: {
+                                    text: 'Cancelar',
+                                    value: null,
+                                    visible: true,
+                                },
+                                confirm: {
+                                    text: 'Sí, limpiar',
+                                    value: true,
+                                    className: 'swal-button--danger',
+                                }
+                            },
+                            dangerMode: true,
+                        }).then(function(value) {
+                            if (value) {
+                                @this.call('clearLogs');
                             }
                         });
                     }

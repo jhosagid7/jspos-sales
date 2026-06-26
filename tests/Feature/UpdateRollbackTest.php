@@ -26,18 +26,27 @@ class UpdateRollbackTest extends TestCase
     use RefreshDatabase;
 
     protected $tempBackupDir;
+    protected $logPath;
+    protected $logBackupPath;
 
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->tempBackupDir = storage_path('backups');
+        $this->logPath = storage_path('logs/laravel.log');
+        $this->logBackupPath = storage_path('logs/laravel.log.bak_test');
 
         // Clean backups folder before testing
         if (File::exists($this->tempBackupDir)) {
             File::deleteDirectory($this->tempBackupDir);
         }
         File::makeDirectory($this->tempBackupDir, 0755, true, true);
+
+        // Back up existing log file to avoid losing development logs
+        if (File::exists($this->logPath)) {
+            File::move($this->logPath, $this->logBackupPath);
+        }
 
         // Ensure Configuration exists
         Configuration::create([
@@ -50,6 +59,14 @@ class UpdateRollbackTest extends TestCase
         // Cleanup backups folder
         if (File::exists($this->tempBackupDir)) {
             File::deleteDirectory($this->tempBackupDir);
+        }
+
+        // Restore original log file if backed up
+        if (File::exists($this->logPath)) {
+            File::delete($this->logPath);
+        }
+        if (File::exists($this->logBackupPath)) {
+            File::move($this->logBackupPath, $this->logPath);
         }
 
         Mockery::close();
@@ -227,5 +244,94 @@ class UpdateRollbackTest extends TestCase
             });
 
         $this->assertDirectoryDoesNotExist($this->tempBackupDir . '/antes_de_v' . $version);
+    }
+
+    /**
+     * Test: getLatestLogLines retorna el mensaje correcto cuando el archivo no existe.
+     */
+    public function test_get_latest_log_lines_when_file_does_not_exist()
+    {
+        $updater = new UpdateService();
+        if (File::exists($this->logPath)) {
+            File::delete($this->logPath);
+        }
+
+        $result = $updater->getLatestLogLines();
+        $this->assertEquals("No hay registros de errores disponibles.", $result);
+    }
+
+    /**
+     * Test: getLatestLogLines lee correctamente las últimas N líneas.
+     */
+    public function test_get_latest_log_lines_reads_correctly()
+    {
+        $updater = new UpdateService();
+        File::ensureDirectoryExists(dirname($this->logPath));
+
+        // Write some log lines
+        $lines = [];
+        for ($i = 1; $i <= 200; $i++) {
+            $lines[] = "Line $i: Error message number $i";
+        }
+        File::put($this->logPath, implode("\n", $lines) . "\n");
+
+        // We request the last 10 lines
+        $result = $updater->getLatestLogLines(10);
+        
+        $expectedLines = array_slice($lines, -10);
+        $expectedString = implode("\n", $expectedLines);
+        
+        $this->assertEquals($expectedString, $result);
+    }
+
+    /**
+     * Test: clearLog vacía el archivo de log.
+     */
+    public function test_clear_log_truncates_file()
+    {
+        $updater = new UpdateService();
+        File::ensureDirectoryExists(dirname($this->logPath));
+        File::put($this->logPath, "Some log content here\n");
+
+        $this->assertTrue(File::exists($this->logPath));
+        $this->assertGreaterThan(0, File::size($this->logPath));
+
+        $updater->clearLog();
+
+        $this->assertTrue(File::exists($this->logPath));
+        $this->assertEquals(0, File::size($this->logPath));
+    }
+
+    /**
+     * Test: Livewire componente carga, limpia y descarga logs.
+     */
+    public function test_livewire_component_manages_logs()
+    {
+        $updater = new UpdateService();
+        File::ensureDirectoryExists(dirname($this->logPath));
+        File::put($this->logPath, "Log message line 1\nLog message line 2\n");
+
+        $adminUser = User::factory()->create();
+
+        // 1. Test loadLogs
+        Livewire::actingAs($adminUser)
+            ->test(UpdateSystem::class)
+            ->assertSet('logLines', '')
+            ->call('loadLogs')
+            ->assertSet('logLines', "Log message line 1\nLog message line 2")
+            // 2. Test clearLogs
+            ->call('clearLogs')
+            ->assertSet('logLines', '')
+            ->assertDispatched('noty', msg: 'Registro de errores (laravel.log) vaciado con éxito.');
+
+        $this->assertEquals(0, File::size($this->logPath));
+
+        // 3. Test downloadLogs
+        File::put($this->logPath, "Download test content");
+        
+        Livewire::actingAs($adminUser)
+            ->test(UpdateSystem::class)
+            ->call('downloadLogs')
+            ->assertFileDownloaded('laravel_' . date('Y-m-d') . '.log', 'Download test content');
     }
 }

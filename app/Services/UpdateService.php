@@ -521,4 +521,75 @@ class UpdateService
         // Reactivar claves foráneas
         \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=1;');
     }
+
+    /**
+     * Retorna las últimas N líneas del archivo laravel.log de forma eficiente.
+     */
+    public function getLatestLogLines($lines = 150)
+    {
+        $logPath = storage_path('logs/laravel.log');
+        if (!File::exists($logPath)) {
+            return "No hay registros de errores disponibles.";
+        }
+
+        $file = @fopen($logPath, 'r');
+        if (!$file) {
+            return "No se pudo abrir el archivo de registros.";
+        }
+
+        $chunkSize = 4096;
+        fseek($file, 0, SEEK_END);
+        $fileSize = ftell($file);
+        $pos = $fileSize;
+
+        $output = '';
+        $lineCount = 0;
+
+        // Read backwards in chunks until we have enough lines or reach start of file
+        while ($pos > 0 && $lineCount <= $lines) {
+            $readSize = min($chunkSize, $pos);
+            $pos -= $readSize;
+            fseek($file, $pos);
+            $chunk = fread($file, $readSize);
+            
+            $output = $chunk . $output;
+            $lineCount = substr_count($output, "\n");
+        }
+
+        fclose($file);
+
+        // Split into lines
+        $logLines = explode("\n", $output);
+        
+        // If the last element is empty due to a trailing newline, remove it
+        if (end($logLines) === '') {
+            array_pop($logLines);
+        }
+
+        // Return only the requested number of lines
+        $slice = array_slice($logLines, -$lines);
+        return implode("\n", $slice);
+    }
+
+    /**
+     * Limpia el archivo laravel.log vaciando su contenido.
+     */
+    public function clearLog()
+    {
+        $logPath = storage_path('logs/laravel.log');
+        if (File::exists($logPath)) {
+            File::put($logPath, '');
+            clearstatcache(true, $logPath);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Obtiene la ruta al archivo laravel.log.
+     */
+    public function getLogPath()
+    {
+        return storage_path('logs/laravel.log');
+    }
 }

@@ -18,6 +18,7 @@ class UpdateSystem extends Component
     public $progressStatus = '';
     public $rollbacks = [];
     public $selectedBackupFolder = '';
+    public $logLines = '';
 
     public function mount(UpdateService $updater)
     {
@@ -213,6 +214,27 @@ class UpdateSystem extends Component
         $this->status = 'error';
         $this->progressStatus = 'Error: ' . $e->getMessage();
         $this->addError('update', $e->getMessage());
+    }
+
+    public function loadLogs(UpdateService $updater)
+    {
+        $this->logLines = $updater->getLatestLogLines(150);
+    }
+
+    public function clearLogs(UpdateService $updater)
+    {
+        $updater->clearLog();
+        $this->loadLogs($updater);
+        $this->dispatch('noty', msg: 'Registro de errores (laravel.log) vaciado con éxito.');
+    }
+
+    public function downloadLogs(UpdateService $updater)
+    {
+        $path = $updater->getLogPath();
+        if (file_exists($path)) {
+            return response()->download($path, 'laravel_' . date('Y-m-d') . '.log');
+        }
+        $this->dispatch('msg-error', msg: 'No se encontró el archivo de registro.');
     }
 
     public function render()
