@@ -165,43 +165,49 @@
             <h5 class="txt-primary font-weight-bold mb-3"><i class="fas fa-boxes mr-1"></i> Distribución de Cartera por Antigüedad de Vencimiento</h5>
             <div class="row">
                 <!-- Vencido Crítico -->
-                <div class="col-sm-12 col-md-2 mb-2">
-                    <div class="card shadow-none p-3 border-danger bg-danger-light text-center h-100" style="background-color: #fdf3f4; border: 1px solid #f5c6cb;">
+                <div class="col-sm-12 col-md-2 mb-2" wire:click="selectBucket('vencido_critico')" style="cursor: pointer;">
+                    <div class="card p-3 text-center h-100 {{ $selectedBucket === 'vencido_critico' ? 'shadow-sm' : 'shadow-none' }}" 
+                         style="background-color: #fdf3f4; border: {{ $selectedBucket === 'vencido_critico' ? '2.5px solid #dc3545' : '1px solid #f5c6cb' }}; transform: {{ $selectedBucket === 'vencido_critico' ? 'scale(1.05)' : 'none' }}; transition: all 0.2s;">
                         <span class="f-11 text-danger font-weight-bold text-uppercase">Vencido Crítico (>15d)</span>
                         <div class="f-18 font-weight-bold text-danger mt-2">${{ number_format($metrics['buckets']['vencido_critico'], 2) }}</div>
                     </div>
                 </div>
                 <!-- Vencido Medio -->
-                <div class="col-sm-12 col-md-2 mb-2">
-                    <div class="card shadow-none p-3 border-warning bg-warning-light text-center h-100" style="background-color: #fff9e6; border: 1px solid #ffeeba;">
+                <div class="col-sm-12 col-md-2 mb-2" wire:click="selectBucket('vencido_8_15')" style="cursor: pointer;">
+                    <div class="card p-3 text-center h-100 {{ $selectedBucket === 'vencido_8_15' ? 'shadow-sm' : 'shadow-none' }}" 
+                         style="background-color: #fff9e6; border: {{ $selectedBucket === 'vencido_8_15' ? '2.5px solid #ffc107' : '1px solid #ffeeba' }}; transform: {{ $selectedBucket === 'vencido_8_15' ? 'scale(1.05)' : 'none' }}; transition: all 0.2s;">
                         <span class="f-11 text-warning font-weight-bold text-uppercase" style="color: #856404 !important;">Vencido Medio (8-15d)</span>
                         <div class="f-18 font-weight-bold mt-2" style="color: #856404 !important;">${{ number_format($metrics['buckets']['vencido_8_15'], 2) }}</div>
                     </div>
                 </div>
                 <!-- Vencido Leve -->
-                <div class="col-sm-12 col-md-2 mb-2">
-                    <div class="card shadow-none p-3 border-warning bg-warning-light text-center h-100" style="background-color: #fffaf0; border: 1px solid #ffe8cc;">
+                <div class="col-sm-12 col-md-2 mb-2" wire:click="selectBucket('vencido_1_7')" style="cursor: pointer;">
+                    <div class="card p-3 text-center h-100 {{ $selectedBucket === 'vencido_1_7' ? 'shadow-sm' : 'shadow-none' }}" 
+                         style="background-color: #fffaf0; border: {{ $selectedBucket === 'vencido_1_7' ? '2.5px solid #fd7e14' : '1px solid #ffe8cc' }}; transform: {{ $selectedBucket === 'vencido_1_7' ? 'scale(1.05)' : 'none' }}; transition: all 0.2s;">
                         <span class="f-11 text-warning font-weight-bold text-uppercase" style="color: #dd7a01 !important;">Vencido Leve (1-7d)</span>
                         <div class="f-18 font-weight-bold mt-2" style="color: #dd7a01 !important;">${{ number_format($metrics['buckets']['vencido_1_7'], 2) }}</div>
                     </div>
                 </div>
                 <!-- Por Vencer Corto -->
-                <div class="col-sm-12 col-md-2 mb-2">
-                    <div class="card shadow-none p-3 border-primary bg-primary-light text-center h-100" style="background-color: #f4f8fd; border: 1px solid #b8daff;">
+                <div class="col-sm-12 col-md-2 mb-2" wire:click="selectBucket('corriente_1_7')" style="cursor: pointer;">
+                    <div class="card p-3 text-center h-100 {{ $selectedBucket === 'corriente_1_7' ? 'shadow-sm' : 'shadow-none' }}" 
+                         style="background-color: #f4f8fd; border: {{ $selectedBucket === 'corriente_1_7' ? '2.5px solid #007bff' : '1px solid #b8daff' }}; transform: {{ $selectedBucket === 'corriente_1_7' ? 'scale(1.05)' : 'none' }}; transition: all 0.2s;">
                         <span class="f-11 text-primary font-weight-bold text-uppercase">Por Vencer (1-7d)</span>
                         <div class="f-18 font-weight-bold text-primary mt-2">${{ number_format($metrics['buckets']['corriente_1_7'], 2) }}</div>
                     </div>
                 </div>
                 <!-- Por Vencer Medio -->
-                <div class="col-sm-12 col-md-2 mb-2">
-                    <div class="card shadow-none p-3 border-info bg-info-light text-center h-100" style="background-color: #f0fbfc; border: 1px solid #bee5eb;">
+                <div class="col-sm-12 col-md-2 mb-2" wire:click="selectBucket('corriente_8_14')" style="cursor: pointer;">
+                    <div class="card p-3 text-center h-100 {{ $selectedBucket === 'corriente_8_14' ? 'shadow-sm' : 'shadow-none' }}" 
+                         style="background-color: #f0fbfc; border: {{ $selectedBucket === 'corriente_8_14' ? '2.5px solid #17a2b8' : '1px solid #bee5eb' }}; transform: {{ $selectedBucket === 'corriente_8_14' ? 'scale(1.05)' : 'none' }}; transition: all 0.2s;">
                         <span class="f-11 text-info font-weight-bold text-uppercase" style="color: #0c5460 !important;">Por Vencer (8-14d)</span>
                         <div class="f-18 font-weight-bold mt-2" style="color: #0c5460 !important;">${{ number_format($metrics['buckets']['corriente_8_14'], 2) }}</div>
                     </div>
                 </div>
                 <!-- Por Vencer Largo -->
-                <div class="col-sm-12 col-md-2 mb-2">
-                    <div class="card shadow-none p-3 border-success bg-success-light text-center h-100" style="background-color: #f3faf4; border: 1px solid #c3e6cb;">
+                <div class="col-sm-12 col-md-2 mb-2" wire:click="selectBucket('corriente_largo')" style="cursor: pointer;">
+                    <div class="card p-3 text-center h-100 {{ $selectedBucket === 'corriente_largo' ? 'shadow-sm' : 'shadow-none' }}" 
+                         style="background-color: #f3faf4; border: {{ $selectedBucket === 'corriente_largo' ? '2.5px solid #28a745' : '1px solid #c3e6cb' }}; transform: {{ $selectedBucket === 'corriente_largo' ? 'scale(1.05)' : 'none' }}; transition: all 0.2s;">
                         <span class="f-11 text-success font-weight-bold text-uppercase" style="color: #155724 !important;">Por Vencer (>14d)</span>
                         <div class="f-18 font-weight-bold mt-2" style="color: #155724 !important;">${{ number_format($metrics['buckets']['corriente_largo'], 2) }}</div>
                     </div>
@@ -223,8 +229,27 @@
         <!-- Tabla de Datos -->
         <div class="col-12 layout-spacing">
             <div class="card shadow-sm border-0">
-                <div class="card-header bg-dark text-white p-3">
+                <div class="card-header bg-dark text-white p-3 d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 text-white"><i class="fas fa-table mr-2"></i> Detalle de Cuentas por Cobrar Pendientes</h5>
+                    @if($selectedBucket !== 'all')
+                        <div>
+                            <span class="badge badge-info p-2 mr-2">
+                                <i class="fas fa-filter mr-1"></i> Filtrado por: 
+                                <strong>
+                                    @if($selectedBucket === 'vencido_critico') Vencido Crítico (>15d)
+                                    @elseif($selectedBucket === 'vencido_8_15') Vencido Medio (8-15d)
+                                    @elseif($selectedBucket === 'vencido_1_7') Vencido Leve (1-7d)
+                                    @elseif($selectedBucket === 'corriente_1_7') Por Vencer (1-7d)
+                                    @elseif($selectedBucket === 'corriente_8_14') Por Vencer (8-14d)
+                                    @elseif($selectedBucket === 'corriente_largo') Por Vencer (>14d)
+                                    @endif
+                                </strong>
+                            </span>
+                            <button wire:click="$set('selectedBucket', 'all')" class="btn btn-sm btn-outline-light py-1 px-2">
+                                <i class="fas fa-times-circle"></i> Limpiar Filtro
+                            </button>
+                        </div>
+                    @endif
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">

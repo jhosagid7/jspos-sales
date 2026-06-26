@@ -267,4 +267,69 @@ class CashFlowForecastReportTest extends TestCase
             ->call('toggleInterpretationModal')
             ->assertSet('showInterpretationModal', false);
     }
+
+    public function test_cash_flow_forecast_filters_by_selected_bucket()
+    {
+        $this->actingAs($this->adminUser);
+
+        $today = Carbon::now();
+        $dateFrom = $today->copy()->startOfMonth()->format('Y-m-d');
+        $dateTo = $today->copy()->endOfMonth()->format('Y-m-d');
+
+        // Create Sale in vencido_critico
+        Sale::create([
+            'user_id' => $this->adminUser->id,
+            'customer_id' => $this->customer->id,
+            'total' => 300.00,
+            'total_usd' => 300.00,
+            'items' => 1,
+            'status' => 'pending',
+            'type' => 'credit',
+            'primary_currency_code' => 'USD',
+            'primary_exchange_rate' => 1.00,
+            'credit_days' => 5,
+            'created_at' => $today->copy()->subDays(30),
+            'delivered_at' => $today->copy()->subDays(30)->format('Y-m-d H:i:s'),
+            'invoice_number' => 1005
+        ]);
+
+        // Create Sale in corriente_1_7
+        Sale::create([
+            'user_id' => $this->adminUser->id,
+            'customer_id' => $this->customer->id,
+            'total' => 500.00,
+            'total_usd' => 500.00,
+            'items' => 1,
+            'status' => 'pending',
+            'type' => 'credit',
+            'primary_currency_code' => 'USD',
+            'primary_exchange_rate' => 1.00,
+            'credit_days' => 10,
+            'created_at' => $today->copy()->subDays(5),
+            'delivered_at' => $today->copy()->subDays(5)->format('Y-m-d H:i:s'),
+            'invoice_number' => 1006
+        ]);
+
+        Livewire::test(CashFlowForecastReport::class)
+            ->set('dateFrom', $dateFrom)
+            ->set('dateTo', $dateTo)
+            ->call('searchData')
+            ->assertSet('selectedBucket', 'all')
+            ->assertViewHas('sales', function ($sales) {
+                return $sales->count() === 2;
+            })
+            // Select vencido_critico
+            ->call('selectBucket', 'vencido_critico')
+            ->assertSet('selectedBucket', 'vencido_critico')
+            ->assertViewHas('sales', function ($sales) {
+                return $sales->count() === 1 && $sales->first()['bucket'] === 'vencido_critico';
+            })
+            // Toggle / deselect bucket
+            ->call('selectBucket', 'vencido_critico')
+            ->assertSet('selectedBucket', 'all')
+            ->assertViewHas('sales', function ($sales) {
+                return $sales->count() === 2;
+            });
+    }
 }
+

@@ -1,3 +1,11 @@
+## [1.10.179] - 2026-06-26
+### Added
+- **Filtrado Interactivo por Antigüedad en Proyección de Flujo (Prioridad 3)**:
+  * Implementada la capacidad de hacer clic en cada una de las tarjetas de antigüedad (Buckets) en `cash-flow-forecast-report.blade.php` para filtrar dinámicamente la tabla de facturas por ese rango temporal.
+  * Añadida micro-animación de escalado y cambio de borde/sombra al seleccionar una tarjeta de antigüedad para mejorar la experiencia de usuario (UX).
+  * Incorporado un badge informativo en la cabecera de la tabla que detalla el filtro activo y proporciona un botón interactivo para limpiar el filtro.
+  * Agregado el caso de prueba `test_cash_flow_forecast_filters_by_selected_bucket` en `CashFlowForecastReportTest.php` para validar la alternancia de filtros y la exactitud en la cantidad y tipos de facturas devueltas.
+
 ## [1.10.178] - 2026-06-26
 ### Added
 - **Módulo de Proyección de Flujo de Caja y Eficiencia de Cobranza (Prioridad 3)**:

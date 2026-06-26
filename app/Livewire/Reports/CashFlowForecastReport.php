@@ -34,10 +34,21 @@ class CashFlowForecastReport extends Component
     public $showInterpretationModal = false;
     public $showPdfModal = false;
     public $pdfUrl = '';
+    public $selectedBucket = 'all';
 
     public function toggleInterpretationModal()
     {
         $this->showInterpretationModal = !$this->showInterpretationModal;
+    }
+
+    public function selectBucket($bucket)
+    {
+        if ($this->selectedBucket === $bucket) {
+            $this->selectedBucket = 'all';
+        } else {
+            $this->selectedBucket = $bucket;
+        }
+        $this->resetPage();
     }
 
     public function openPdfPreview()
@@ -71,6 +82,7 @@ class CashFlowForecastReport extends Component
     public function searchData()
     {
         $this->showReport = true;
+        $this->selectedBucket = 'all';
         $this->resetPage();
         $this->updateChart();
     }
@@ -623,6 +635,10 @@ class CashFlowForecastReport extends Component
         if ($this->showReport) {
             $processedSales = $this->getProcessedSales();
             $metrics = $this->getCalculatedMetrics($processedSales);
+
+            if ($this->selectedBucket !== 'all') {
+                $processedSales = $processedSales->where('bucket', $this->selectedBucket);
+            }
 
             // Sorting
             $field = $this->sortField;
