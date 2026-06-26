@@ -16,10 +16,13 @@ class UpdateSystem extends Component
     public $status = ''; // idle, checking, backing_up, downloading, updating, done, error
     public $progress = 0;
     public $progressStatus = '';
+    public $rollbacks = [];
+    public $selectedBackupFolder = '';
 
     public function mount(UpdateService $updater)
     {
         $this->currentVersion = $updater->getCurrentVersion();
+        $this->rollbacks = $updater->getAvailableRollbacks();
         try {
             $this->currentReleaseNotes = $this->getReleaseNotes($this->currentVersion);
         } catch (\Exception $e) {
@@ -97,7 +100,8 @@ class UpdateSystem extends Component
         $this->progress = 10;
         
         try {
-            $updater->runBackup();
+            $updater->createRollbackBackup($this->currentVersion);
+            $this->rollbacks = $updater->getAvailableRollbacks(); // Reload rollbacks list
             $this->dispatch('run-download');
         } catch (\Exception $e) {
             $this->handleError($e);
@@ -166,6 +170,42 @@ class UpdateSystem extends Component
         
         // Reload after a short delay
         $this->dispatch('reload-page');
+    }
+
+    public function rollbackToVersion($backupFolder)
+    {
+        $this->status = 'updating';
+        $this->progress = 30;
+        $this->progressStatus = 'Restaurando código fuente y base de datos...';
+        $this->selectedBackupFolder = $backupFolder;
+
+        $this->dispatch('run-rollback');
+    }
+
+    public function runRollback(UpdateService $updater)
+    {
+        try {
+            $updater->restoreFromBackup($this->selectedBackupFolder);
+            $this->progress = 100;
+            $this->progressStatus = '¡Restauración completada!';
+            $this->status = 'done';
+            
+            $this->dispatch('noty', msg: 'Sistema restaurado correctamente a la versión anterior.');
+            $this->dispatch('reload-page');
+        } catch (\Exception $e) {
+            $this->handleError($e);
+        }
+    }
+
+    public function deleteRollback($backupFolder, UpdateService $updater)
+    {
+        try {
+            $updater->deleteRollbackBackup($backupFolder);
+            $this->rollbacks = $updater->getAvailableRollbacks();
+            $this->dispatch('noty', msg: 'Copia de seguridad eliminada con éxito.');
+        } catch (\Exception $e) {
+            $this->dispatch('msg-error', msg: 'Error al eliminar copia: ' . $e->getMessage());
+        }
     }
 
     protected function handleError(\Exception $e)

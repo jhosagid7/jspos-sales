@@ -1,3 +1,18 @@
+## [1.10.183] - 2026-06-26
+### Added
+- **Sistema de Rollback de Actualizaciones (Puntos de Restauración)**:
+  * Implementado sistema completo de backup y restauración antes de cada actualización automática del sistema.
+  * `UpdateService` genera automáticamente un punto de restauración en `storage/backups/antes_de_vX.X.X` antes de instalar cualquier actualización, incluyendo un dump SQL nativo de la base de datos (`database_backup.sql`) y un ZIP de los directorios críticos (`files_backup.zip`).
+  * El mecanismo de poda automática mantiene únicamente los **3 puntos de restauración más recientes** para evitar el consumo excesivo de disco.
+  * Panel de **Puntos de Restauración** en la interfaz de Sistema de Actualizaciones con tabla de versiones, fecha, tamaño, y botones de **Restaurar** y **Eliminar**.
+  * Diálogos de confirmación con **SweetAlert2** antes de ejecutar la restauración (acción irreversible).
+  * Restauración completa: extrae el ZIP de archivos sobre la raíz del proyecto y restaura el SQL sentencia por sentencia con `FOREIGN_KEY_CHECKS=0` para máxima compatibilidad.
+  * `importDatabaseSql` refactorizado para ejecutar sentencias SQL individualmente, evitando fallas por multi-statement en drivers MySQL PDO.
+- **Suite de Pruebas Automatizadas (TDD)**:
+  * Creada la prueba `UpdateRollbackTest.php` con 6 casos de prueba cubriendo: exportación SQL, compresión ZIP, creación de backup, mecanismo de poda, restauración de archivos y gestión vía componente Livewire.
+  * Uso de `RefreshDatabase` + mock de `importDatabaseSql` para evitar contaminación de estado de BD entre suites (MySQL DDL auto-commit).
+  * Todas las pruebas validadas con éxito (6/6 PASS en 17.96s).
+
 ## [1.10.182] - 2026-06-26
 ### Added
 - **Protección de Reportes Analíticos Avanzados (SaaS)**:
