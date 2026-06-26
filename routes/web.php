@@ -192,6 +192,8 @@ Route::middleware('auth')->group(function () {
         Route::get('weekly-income/pdf', [\App\Http\Controllers\ReportController::class, 'weeklyIncomeReportPdf'])->name('reports.weekly.income.pdf')->middleware('can:reports.sales');
         Route::get('monthly-income', \App\Livewire\Reports\MonthlyIncomeReport::class)->name('reports.monthly.income')->middleware('can:reports.sales');
         Route::get('monthly-income/pdf', [\App\Http\Controllers\ReportController::class, 'monthlyIncomeReportPdf'])->name('reports.monthly.income.pdf')->middleware('can:reports.sales');
+        Route::get('cash-flow-forecast', \App\Livewire\Reports\CashFlowForecastReport::class)->name('reports.cash.flow.forecast')->middleware('can:reports.sales');
+        Route::get('cash-flow-forecast/pdf', [\App\Http\Controllers\ReportController::class, 'cashFlowForecastPdf'])->name('reports.cash.flow.forecast.pdf')->middleware('can:reports.sales');
     });
 
     // Consultas

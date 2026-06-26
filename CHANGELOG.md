@@ -1,3 +1,14 @@
+## [1.10.178] - 2026-06-26
+### Added
+- **Módulo de Proyección de Flujo de Caja y Eficiencia de Cobranza (Prioridad 3)**:
+  * Registrada la ruta del reporte `/reports/cash-flow-forecast` en `routes/web.php` y el enlace correspondiente en la barra de navegación lateral.
+  * Creado el componente Livewire `CashFlowForecastReport` que calcula deudas pendientes de ventas a crédito, clasificación temporal de cartera (Ageing Buckets), índice CEI % y DSO ponderado.
+  * Desarrollada la vista interactiva `cash-flow-forecast-report.blade.php` que incluye un gráfico Highcharts (Cobros Reales vs. Vencimientos Proyectados), tarjetas de KPIs interactivas, desglose visual de buckets de antigüedad y cuadrícula detallada de deudas.
+  * Implementado el **Modal de Interpretación Analítica (IA)** que proporciona un diagnóstico interactivo de salud financiera, alertas y acciones recomendadas de cobranza según el índice CEI y DSO.
+  * Agregado el endpoint `/reports/cash-flow-forecast/pdf` y el método controlador `cashFlowForecastPdf` en `ReportController` para generación y descarga directa de un reporte PDF horizontal (Landscape).
+  * Diseñada la plantilla PDF `cash-flow-forecast-report-pdf.blade.php` respetando el formato institucional de reportes.
+  * Implementada la suite de pruebas automatizadas `CashFlowForecastReportTest.php` validando el renderizado, control de acceso, lógica matemática exacta de CEI/DSO, buckets temporales y generación de PDF.
+
 ## [1.10.177] - 2026-06-25
 ### Fixed
 - **Comportamiento de wire:ignore en Contenedor de Gráfico**:

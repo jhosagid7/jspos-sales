@@ -3710,4 +3710,45 @@ class ReportController extends Controller
 
         return $pdf->stream('Reporte_Eficiencia_Operadores_' . \Carbon\Carbon::now()->format('Ymd_His') . '.pdf');
     }
+
+    public function cashFlowForecastPdf(Request $request)
+    {
+        $report = new \App\Livewire\Reports\CashFlowForecastReport();
+        $report->dateFrom = $request->get('dateFrom');
+        $report->dateTo = $request->get('dateTo');
+        $report->customer_id = $request->get('customer_id');
+        $report->seller_id = $request->get('seller_id');
+
+        $sales = $report->getProcessedSales();
+        $metrics = $report->getCalculatedMetrics($sales);
+
+        // Sorting
+        $sortField = $request->get('sortField', 'due_date');
+        $sortDirection = $request->get('sortDirection', 'asc');
+        
+        $sortedSales = $sales->sortBy(function($item) use ($sortField) {
+            return $item[$sortField] ?? '';
+        }, SORT_REGULAR, $sortDirection === 'desc');
+
+        $config = \App\Models\Configuration::first();
+        $user = auth()->user();
+        $date = \Carbon\Carbon::now()->format('d/m/Y H:i');
+
+        $pdf = Pdf::loadView('livewire.reports.cash-flow-forecast-report-pdf', [
+            'sales' => $sortedSales,
+            'metrics' => $metrics,
+            'config' => $config,
+            'user' => $user,
+            'date' => $date,
+            'dateFrom' => $report->dateFrom,
+            'dateTo' => $report->dateTo
+        ]);
+
+        $pdf->setPaper('a4', 'landscape');
+
+        $fileName = 'Proyeccion_Flujo_Cobranza_' . \Carbon\Carbon::now()->format('YmdHis') . '.pdf';
+
+        return $pdf->stream($fileName);
+    }
 }
+
