@@ -172,36 +172,52 @@
                         });
                     });
 
-                    // Confirmation Dialogs using SweetAlert2
+                    // Confirmation Dialogs using SweetAlert (v1 - the version loaded in this project)
                     function confirmRollback(folder, version) {
-                        Swal.fire({
-                            title: '¿Estás seguro de restaurar?',
-                            text: 'El sistema revertirá el código y la base de datos a la versión v' + version + '. Se perderán las transacciones generadas después de este respaldo.',
+                        swal({
+                            title: '¿Restaurar sistema?',
+                            text: 'El sistema revertirá el código y la base de datos a la versión v' + version + '. Se perderán las transacciones generadas después de este respaldo. Esta acción es IRREVERSIBLE.',
                             icon: 'warning',
-                            showCancelButton: true,
-                            confirmButtonColor: '#e2a03f',
-                            cancelButtonColor: '#3b3f5c',
-                            confirmButtonText: 'Sí, restaurar',
-                            cancelButtonText: 'Cancelar'
-                        }).then((result) => {
-                            if (result.isConfirmed) {
+                            buttons: {
+                                cancel: {
+                                    text: 'Cancelar',
+                                    value: null,
+                                    visible: true,
+                                },
+                                confirm: {
+                                    text: 'Sí, restaurar',
+                                    value: true,
+                                    className: 'swal-button--danger',
+                                }
+                            },
+                            dangerMode: true,
+                        }).then(function(value) {
+                            if (value) {
                                 @this.call('rollbackToVersion', folder);
                             }
                         });
                     }
 
                     function confirmDeleteRollback(folder, version) {
-                        Swal.fire({
+                        swal({
                             title: '¿Eliminar punto de restauración?',
                             text: 'Se eliminarán permanentemente los archivos y base de datos respaldados para la versión v' + version + '.',
                             icon: 'warning',
-                            showCancelButton: true,
-                            confirmButtonColor: '#e7515a',
-                            cancelButtonColor: '#3b3f5c',
-                            confirmButtonText: 'Sí, eliminar',
-                            cancelButtonText: 'Cancelar'
-                        }).then((result) => {
-                            if (result.isConfirmed) {
+                            buttons: {
+                                cancel: {
+                                    text: 'Cancelar',
+                                    value: null,
+                                    visible: true,
+                                },
+                                confirm: {
+                                    text: 'Sí, eliminar',
+                                    value: true,
+                                    className: 'swal-button--danger',
+                                }
+                            },
+                            dangerMode: true,
+                        }).then(function(value) {
+                            if (value) {
                                 @this.call('deleteRollback', folder);
                             }
                         });

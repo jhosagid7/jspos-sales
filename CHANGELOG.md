@@ -1,3 +1,9 @@
+## [1.10.184] - 2026-06-26
+### Fixed
+- **Diálogos de confirmación en Puntos de Restauración**:
+  * Corregido el uso incorrecto de la API de SweetAlert2 (`Swal.fire()`) cuando el proyecto usa SweetAlert v1 (`swal()`). Los botones "Restaurar" y "Eliminar" no mostraban ningún diálogo al hacer clic.
+  * Reescritas las funciones `confirmRollback()` y `confirmDeleteRollback()` usando la API correcta de SweetAlert v1 con `dangerMode: true` y textos en español.
+
 ## [1.10.183] - 2026-06-26
 ### Added
 - **Sistema de Rollback de Actualizaciones (Puntos de Restauración)**:
