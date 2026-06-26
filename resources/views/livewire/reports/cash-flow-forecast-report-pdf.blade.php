@@ -150,6 +150,18 @@
         <strong>Parámetros de Consulta:</strong><br>
         • Período de Análisis: {{ \Carbon\Carbon::parse($dateFrom)->format('d/m/Y') }} al {{ \Carbon\Carbon::parse($dateTo)->format('d/m/Y') }}<br>
         • Cobertura de Cartera: Ventas a Crédito Activas con Saldos Pendientes
+        @if(isset($selectedBucket) && $selectedBucket !== 'all')
+            <br>• Filtrado por Antigüedad: 
+            <strong>
+                @if($selectedBucket === 'vencido_critico') Vencido Crítico (>15d)
+                @elseif($selectedBucket === 'vencido_8_15') Vencido Medio (8-15d)
+                @elseif($selectedBucket === 'vencido_1_7') Vencido Leve (1-7d)
+                @elseif($selectedBucket === 'corriente_1_7') Por Vencer (1-7d)
+                @elseif($selectedBucket === 'corriente_8_14') Por Vencer (8-14d)
+                @elseif($selectedBucket === 'corriente_largo') Por Vencer (>14d)
+                @endif
+            </strong>
+        @endif
     </div>
 
     <!-- KPIs de Resumen -->

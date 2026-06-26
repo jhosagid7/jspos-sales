@@ -256,6 +256,44 @@ class CashFlowForecastReportTest extends TestCase
         $response->assertHeader('Content-Type', 'application/pdf');
     }
 
+    public function test_cash_flow_forecast_pdf_endpoint_with_filtered_bucket()
+    {
+        $this->actingAs($this->adminUser);
+
+        $today = Carbon::now();
+        $dateFrom = $today->copy()->startOfMonth()->format('Y-m-d');
+        $dateTo = $today->copy()->endOfMonth()->format('Y-m-d');
+
+        // Create a basic credit sale to ensure there's data
+        Sale::create([
+            'user_id' => $this->adminUser->id,
+            'customer_id' => $this->customer->id,
+            'total' => 100.00,
+            'total_usd' => 100.00,
+            'items' => 1,
+            'status' => 'pending',
+            'type' => 'credit',
+            'primary_currency_code' => 'USD',
+            'primary_exchange_rate' => 1.00,
+            'credit_days' => 15,
+            'created_at' => $today->copy()->subDays(5),
+            'delivered_at' => $today->copy()->subDays(5)->format('Y-m-d H:i:s'),
+            'invoice_number' => 1004
+        ]);
+
+        $params = [
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+            'customer_id' => $this->customer->id,
+            'seller_id' => $this->seller->id,
+            'selectedBucket' => 'vencido_critico'
+        ];
+
+        $response = $this->get(route('reports.cash.flow.forecast.pdf', $params));
+        $response->assertStatus(200);
+        $response->assertHeader('Content-Type', 'application/pdf');
+    }
+
     public function test_cash_flow_forecast_toggles_interpretation_modal()
     {
         $this->actingAs($this->adminUser);

@@ -3730,6 +3730,11 @@ class ReportController extends Controller
             return $item[$sortField] ?? '';
         }, SORT_REGULAR, $sortDirection === 'desc');
 
+        $selectedBucket = $request->get('selectedBucket', 'all');
+        if ($selectedBucket !== 'all') {
+            $sortedSales = $sortedSales->where('bucket', $selectedBucket);
+        }
+
         $config = \App\Models\Configuration::first();
         $user = auth()->user();
         $date = \Carbon\Carbon::now()->format('d/m/Y H:i');
@@ -3741,7 +3746,8 @@ class ReportController extends Controller
             'user' => $user,
             'date' => $date,
             'dateFrom' => $report->dateFrom,
-            'dateTo' => $report->dateTo
+            'dateTo' => $report->dateTo,
+            'selectedBucket' => $selectedBucket
         ]);
 
         $pdf->setPaper('a4', 'landscape');

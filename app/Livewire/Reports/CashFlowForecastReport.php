@@ -58,6 +58,7 @@ class CashFlowForecastReport extends Component
             'dateTo' => $this->dateTo,
             'customer_id' => $this->customer_id,
             'seller_id' => $this->seller_id,
+            'selectedBucket' => $this->selectedBucket,
         ];
 
         $this->pdfUrl = route('reports.cash.flow.forecast.pdf', $params);
@@ -590,6 +591,10 @@ class CashFlowForecastReport extends Component
             return $item[$field] ?? '';
         }, SORT_REGULAR, $direction === 'desc');
 
+        if ($this->selectedBucket !== 'all') {
+            $sortedSales = $sortedSales->where('bucket', $this->selectedBucket);
+        }
+
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('livewire.reports.cash-flow-forecast-report-pdf', [
             'sales' => $sortedSales,
             'metrics' => $metrics,
@@ -597,7 +602,8 @@ class CashFlowForecastReport extends Component
             'user' => $user,
             'date' => $date,
             'dateFrom' => $this->dateFrom,
-            'dateTo' => $this->dateTo
+            'dateTo' => $this->dateTo,
+            'selectedBucket' => $this->selectedBucket
         ]);
 
         $pdf->setPaper('a4', 'landscape');

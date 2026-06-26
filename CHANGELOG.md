@@ -1,3 +1,10 @@
+## [1.10.180] - 2026-06-26
+### Added
+- **PDF de Selección en Reporte de Flujo de Caja**:
+  * Integrado el botón **"PDF de Selección"** en la cabecera de la tabla que permite a los operadores generar la vista previa del reporte filtrado únicamente por el bucket de antigüedad seleccionado.
+  * Actualizada la lógica de generación del PDF tanto en el controlador `ReportController` como en el componente Livewire para soportar la filtración del bucket seleccionado e incluir el criterio de filtro activo en el encabezado de parámetros del PDF.
+  * Añadida la prueba unitaria `test_cash_flow_forecast_pdf_endpoint_with_filtered_bucket` para comprobar que el endpoint PDF responde correctamente (200 OK y tipo `application/pdf`) al recibir el parámetro de filtración temporal.
+
 ## [1.10.179] - 2026-06-26
 ### Added
 - **Filtrado Interactivo por Antigüedad en Proyección de Flujo (Prioridad 3)**:

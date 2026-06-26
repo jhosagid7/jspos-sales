@@ -248,6 +248,9 @@
                             <button wire:click="$set('selectedBucket', 'all')" class="btn btn-sm btn-outline-light py-1 px-2">
                                 <i class="fas fa-times-circle"></i> Limpiar Filtro
                             </button>
+                            <button wire:click="openPdfPreview" class="btn btn-sm btn-danger py-1 px-2 ml-2" style="background-color: #dc3545; border-color: #dc3545;">
+                                <i class="fas fa-file-pdf"></i> PDF de Selección
+                            </button>
                         </div>
                     @endif
                 </div>
