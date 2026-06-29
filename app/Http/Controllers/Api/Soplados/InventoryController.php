@@ -201,4 +201,316 @@ class InventoryController extends Controller
             }
         }
     }
+
+    /**
+     * Get the list of products (finished and raw materials) with current stock for count.
+     */
+    public function productsForCount()
+    {
+        abort_if(!auth()->user()->can('soplados.manager'), 403, 'No tienes permisos de supervisor de soplados.');
+
+        $config = Configuration::first();
+        $soplados_id = $config->soplados_warehouse_id ?? $config->default_warehouse_id ?? 1;
+        $warehouse_id = auth()->user()->warehouse_id ?? $soplados_id;
+
+        // 1. Get Finished Products (Tagged with 'soplados')
+        $finishedProducts = Product::with(['productionTarget', 'productWarehouses' => function($q) use ($warehouse_id) {
+                $q->where('warehouse_id', $warehouse_id);
+            }])
+            ->whereHas('tags', function($q) {
+                $q->where('name', 'soplados');
+            })
+            ->get();
+
+        // 2. Get Raw Materials (Ingredients for Soplados formulas)
+        $finishedProductIds = $finishedProducts->pluck('id');
+        $ingredientIds = ProductionFormula::whereIn('product_id', $finishedProductIds)
+            ->distinct()
+            ->pluck('ingredient_id');
+
+        $rawMaterials = Product::with(['productWarehouses' => function($q) use ($warehouse_id) {
+                $q->where('warehouse_id', $warehouse_id);
+            }])
+            ->whereIn('id', $ingredientIds)
+            ->get();
+
+        $list = [];
+
+        foreach ($finishedProducts as $p) {
+            $primera_stock = $p->productWarehouses->first()->stock_qty ?? 0;
+            
+            $segunda_stock = null;
+            $target_id = null;
+            $target_name = null;
+
+            if ($p->production_target_id) {
+                $target = $p->productionTarget;
+                $target_id = $p->production_target_id;
+                $target_name = $target->name ?? 'Segunda';
+                
+                $targetWarehouseStock = \App\Models\ProductWarehouse::where('product_id', $target_id)
+                    ->where('warehouse_id', $warehouse_id)
+                    ->first();
+                $segunda_stock = $targetWarehouseStock->stock_qty ?? 0;
+            }
+
+            $list[] = [
+                'id' => $p->id,
+                'name' => $p->name,
+                'sku' => $p->sku,
+                'type' => 'finished_product',
+                'system_stock_primera' => (float)$primera_stock,
+                'production_target_id' => $target_id,
+                'production_target_name' => $target_name,
+                'system_stock_segunda' => $segunda_stock !== null ? (float)$segunda_stock : null,
+            ];
+        }
+
+        foreach ($rawMaterials as $p) {
+            if (collect($list)->pluck('id')->contains($p->id)) {
+                continue;
+            }
+
+            $stock = $p->productWarehouses->first()->stock_qty ?? 0;
+
+            $list[] = [
+                'id' => $p->id,
+                'name' => $p->name,
+                'sku' => $p->sku,
+                'type' => 'raw_material',
+                'system_stock_primera' => (float)$stock,
+                'production_target_id' => null,
+                'production_target_name' => null,
+                'system_stock_segunda' => null,
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'warehouse' => \App\Models\Warehouse::find($warehouse_id)->name ?? 'Planta',
+            'warehouse_id' => $warehouse_id,
+            'products' => $list
+        ]);
+    }
+
+    /**
+     * Store the initial physical count (pending operator acceptance).
+     */
+    public function storeCount(Request $request)
+    {
+        abort_if(!auth()->user()->can('soplados.manager'), 403, 'No tienes permisos de supervisor de soplados.');
+
+        $request->validate([
+            'notes' => 'nullable|string',
+            'products' => 'required|array|min:1',
+            'products.*.id' => 'required|exists:products,id',
+            'products.*.type' => 'required|in:finished_product,raw_material',
+            'products.*.counted_primera' => 'required|numeric|min:0',
+            'products.*.counted_segunda' => 'nullable|numeric|min:0',
+            'products.*.counted_merma' => 'nullable|numeric|min:0',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $config = Configuration::first();
+            $soplados_id = $config->soplados_warehouse_id ?? $config->default_warehouse_id ?? 1;
+            $warehouse_id = auth()->user()->warehouse_id ?? $soplados_id;
+
+            $currentShift = \App\Models\Shift::where('warehouse_id', $warehouse_id)
+                ->where('status', 'open')
+                ->first();
+
+            $inventory = \App\Models\SopladosInventory::create([
+                'warehouse_id' => $warehouse_id,
+                'supervisor_id' => auth()->id(),
+                'operator_id' => null,
+                'shift_id' => $currentShift->id ?? null,
+                'status' => 'pending_acceptance',
+                'notes' => $request->notes,
+                'operator_notes' => null,
+                'accepted_at' => null,
+            ]);
+
+            foreach ($request->products as $pData) {
+                $p = Product::find($pData['id']);
+                
+                $pw = \App\Models\ProductWarehouse::where('product_id', $p->id)
+                    ->where('warehouse_id', $warehouse_id)
+                    ->first();
+                $system_primera = $pw->stock_qty ?? 0;
+
+                $counted_primera = floatval($pData['counted_primera']);
+                $diff_primera = $counted_primera - $system_primera;
+
+                $system_segunda = null;
+                $counted_segunda = null;
+                $diff_segunda = null;
+                $counted_merma = null;
+
+                if ($pData['type'] === 'finished_product') {
+                    if ($p->production_target_id) {
+                        $pwSegunda = \App\Models\ProductWarehouse::where('product_id', $p->production_target_id)
+                            ->where('warehouse_id', $warehouse_id)
+                            ->first();
+                        $system_segunda = $pwSegunda->stock_qty ?? 0;
+                        $counted_segunda = floatval($pData['counted_segunda'] ?? 0);
+                        $diff_segunda = $counted_segunda - $system_segunda;
+                    }
+                    $counted_merma = floatval($pData['counted_merma'] ?? 0);
+                }
+
+                \App\Models\SopladosInventoryDetail::create([
+                    'soplados_inventory_id' => $inventory->id,
+                    'product_id' => $p->id,
+                    'type' => $pData['type'],
+                    'system_stock_primera' => $system_primera,
+                    'counted_primera' => $counted_primera,
+                    'difference_primera' => $diff_primera,
+                    'system_stock_segunda' => $system_segunda,
+                    'counted_segunda' => $counted_segunda,
+                    'difference_segunda' => $diff_segunda,
+                    'counted_merma' => $counted_merma,
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Inventario registrado y enviado para conformidad del operador.',
+                'inventory' => $inventory->load('details.product')
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al registrar inventario: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * List pending inventories for operator acceptance.
+     */
+    public function pendingAcceptance()
+    {
+        $config = Configuration::first();
+        $soplados_id = $config->soplados_warehouse_id ?? $config->default_warehouse_id ?? 1;
+        $warehouse_id = auth()->user()->warehouse_id ?? $soplados_id;
+
+        $inventories = \App\Models\SopladosInventory::with(['details.product', 'supervisor'])
+            ->where('warehouse_id', $warehouse_id)
+            ->where('status', 'pending_acceptance')
+            ->orderBy('id', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'inventories' => $inventories
+        ]);
+    }
+
+    /**
+     * Accept a pending inventory and apply stock adjustments.
+     */
+    public function acceptCount(Request $request, $id)
+    {
+        abort_if(!auth()->user()->can('soplados.operator'), 403, 'No tienes permisos de operario de soplados.');
+
+        $request->validate([
+            'operator_notes' => 'nullable|string',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $inventory = \App\Models\SopladosInventory::with('details.product')->findOrFail($id);
+
+            if ($inventory->status !== 'pending_acceptance') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Este inventario ya fue procesado o no está pendiente.'
+                ], 400);
+            }
+
+            $inventory->update([
+                'status' => 'completed',
+                'operator_id' => auth()->id(),
+                'operator_notes' => $request->operator_notes,
+                'accepted_at' => now(),
+            ]);
+
+            foreach ($inventory->details as $detail) {
+                $this->setWarehouseStock($detail->product_id, $inventory->warehouse_id, $detail->counted_primera);
+
+                if ($detail->type === 'finished_product' && $detail->product->production_target_id) {
+                    $this->setWarehouseStock($detail->product->production_target_id, $inventory->warehouse_id, $detail->counted_segunda);
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Inventario aceptado y stock ajustado en el sistema.',
+                'inventory' => $inventory
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al confirmar inventario: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get the count history (paginated).
+     */
+    public function countHistory(Request $request)
+    {
+        $config = Configuration::first();
+        $soplados_id = $config->soplados_warehouse_id ?? $config->default_warehouse_id ?? 1;
+        $warehouse_id = auth()->user()->warehouse_id ?? $soplados_id;
+
+        $query = \App\Models\SopladosInventory::with(['details.product', 'supervisor', 'operator', 'shift'])
+            ->where('warehouse_id', $warehouse_id)
+            ->orderBy('id', 'desc');
+
+        if ($request->status) {
+            $query->where('status', $request->status);
+        }
+
+        $inventories = $query->paginate(20);
+
+        return response()->json([
+            'success' => true,
+            'data' => $inventories
+        ]);
+    }
+
+    private function setWarehouseStock($productId, $warehouseId, $stockQty)
+    {
+        $pw = \App\Models\ProductWarehouse::firstOrCreate(
+            ['product_id' => $productId, 'warehouse_id' => $warehouseId],
+            ['stock_qty' => 0]
+        );
+
+        $pw->stock_qty = $stockQty;
+        $pw->save();
+
+        $config = Configuration::first();
+        $defaultWarehouseId = $config->default_warehouse_id ?? \App\Models\Warehouse::first()->id ?? 1;
+
+        if ($warehouseId == $defaultWarehouseId) {
+            $product = Product::find($productId);
+            if ($product) {
+                $product->stock_qty = $stockQty;
+                $product->save();
+            }
+        }
+    }
 }

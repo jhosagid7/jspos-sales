@@ -1,3 +1,14 @@
+## [1.10.188] - 2026-06-29
+### Added
+- **Módulo de Inventario Físico de Soplados con Control Cruzado (Supervisor-Operario)**:
+  * Creadas las tablas `soplados_inventories` y `soplados_inventory_details` con sus respectivos modelos Eloquent, relaciones y casts.
+  * Implementados endpoints de API REST para la aplicación móvil: listado de productos activos e insumos de fórmulas (`GET /api/soplados/inventory/products`), registrar conteo del supervisor en estado pendiente (`POST /api/soplados/inventory`), consulta de pendientes (`GET /api/soplados/inventory/pending`), aceptación con ajuste automático de stock (`POST /api/soplados/inventory/{id}/accept`) e historial (`GET /api/soplados/inventory/history`).
+  * Creado el componente Livewire y vista Blade `SopladosInventoriesList` para el panel administrativo web, enlazado en el menú lateral de "Fábrica Soplados".
+  * Integradas las pantallas móviles en Flutter (`SupervisorInventoryFormScreen`, `OperatorConformityScreen`, `InventoryHistoryScreen`) en `main.dart` con cálculos en tiempo real y peticiones API.
+  * Añadida la suite de pruebas unitarias y de integración en `SopladosInventoryTest.php`, con 4 casos de prueba validados con éxito (100% PASS).
+- **Compilación de App de Soplados v1.17.0+10**:
+  * Compilada de forma optimizada la aplicación móvil de Soplados mediante `flutter build apk --release --split-per-abi`, y copiado el archivo de 64 bits a la raíz del proyecto renombrado como `JSPOS_Mobile_Soplados_v1.17.0_AppManufactura_SuWeb.apk`.
+
 ## [1.10.187] - 2026-06-26
 ### Fixed
 - **Optimización de Memoria en Descarga de Logs (Evitar allowed memory size exhausted)**:

@@ -107,6 +107,13 @@ Route::prefix('soplados')->middleware('auth:sanctum')->group(function () {
     Route::get('/inventory', [App\Http\Controllers\Api\Soplados\InventoryController::class, 'index']);
     Route::get('/receipts/pending', [App\Http\Controllers\Api\Soplados\InventoryController::class, 'pendingReceipts']);
     Route::post('/receipts/{id}/receive', [App\Http\Controllers\Api\Soplados\InventoryController::class, 'receiveReceipt']);
+
+    // Physical Inventory & Conformity
+    Route::get('/inventory/products', [App\Http\Controllers\Api\Soplados\InventoryController::class, 'productsForCount']);
+    Route::post('/inventory', [App\Http\Controllers\Api\Soplados\InventoryController::class, 'storeCount']);
+    Route::get('/inventory/pending', [App\Http\Controllers\Api\Soplados\InventoryController::class, 'pendingAcceptance']);
+    Route::post('/inventory/{id}/accept', [App\Http\Controllers\Api\Soplados\InventoryController::class, 'acceptCount']);
+    Route::get('/inventory/history', [App\Http\Controllers\Api\Soplados\InventoryController::class, 'countHistory']);
 });
 
 // Bolsas Manufacturing App Routes

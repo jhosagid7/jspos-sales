@@ -70,6 +70,7 @@ class AuthController extends Controller
                 'warehouse_id' => $user->warehouse_id,
                 'order_deadline_at' => $user->order_deadline_at,
                 'is_deadline_active' => $user->is_deadline_active,
+                'is_soplados_manager' => $user->hasPermissionTo('soplados.manager'),
             ],
         ]);
     }

@@ -120,6 +120,7 @@ Route::middleware('auth')->group(function () {
     Route::get('production-report', \App\Livewire\ProductionReport::class)->name('production.report')->middleware(['can:production.index']);
     Route::get('soplados/shifts', \App\Livewire\Soplados\ShiftList::class)->name('soplados.shifts')->middleware(['can:production.index']);
     Route::get('soplados/formulas', \App\Livewire\Soplados\Formulas::class)->name('soplados.formulas')->middleware(['can:production.index']);
+    Route::get('soplados/inventories', \App\Livewire\Soplados\SopladosInventoriesList::class)->name('soplados.inventories')->middleware(['can:production.index']);
 
     Route::get('descargos', \App\Livewire\Descargos\DescargosList::class)->name('descargos')->middleware('can:adjustments.create');
     Route::get('descargos/create', \App\Livewire\Descargos\CreateDescargo::class)->name('descargos.create')->middleware('can:adjustments.create');

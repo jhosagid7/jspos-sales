@@ -120,6 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setInt('user_id', data['user']['id'] ?? 0);
         await prefs.setString('token', data['token'] ?? '');
         await prefs.setString('user_name', data['user']['name'] ?? 'Operador Soplados');
+        await prefs.setBool('is_manager', data['user']['is_soplados_manager'] ?? false);
         await prefs.setString('last_email', _emailController.text);
         
         if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => DashboardScreen(baseUrl: _baseUrl)));
@@ -196,11 +197,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   late String _baseUrl;
   String _appVersion = "";
   bool _isLoading = false;
+  bool _isManager = false;
   
   Map<String, dynamic>? _currentShift;
   int _pendingDispatches = 0;
   int _pendingReturns = 0;
   int _pendingReceipts = 0;
+  int _pendingInventories = 0;
 
   @override
   void initState() { 
@@ -215,6 +218,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() { 
       _appVersion = pkg.version;
       _userName = prefs.getString('user_name') ?? "Operador Soplados"; 
+      _isManager = prefs.getBool('is_manager') ?? false;
     }); 
     _refreshDashboard();
   }
@@ -222,6 +226,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _refreshDashboard() async {
     await _fetchCurrentShift();
     await _fetchTransferCounts();
+    await _fetchPendingInventories();
+  }
+
+  Future<void> _fetchPendingInventories() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final response = await http.get(Uri.parse('$_baseUrl/api/soplados/inventory/pending'), headers: {
+        'Authorization': 'Bearer $token', 
+        'Accept': 'application/json',
+      }).timeout(const Duration(seconds: 10));
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List list = data['inventories'] ?? [];
+        setState(() {
+          _pendingInventories = list.length;
+        });
+      }
+    } catch (e) { debugPrint("Pending Inv Err: $e"); }
   }
 
   Future<void> _fetchTransferCounts() async {
@@ -498,6 +522,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _menuCard('Inventario\nde Planta', Icons.inventory_rounded, Colors.teal, () {
                       Navigator.push(context, MaterialPageRoute(builder: (context) => InventoryScreen(baseUrl: _baseUrl))).then((_) => _refreshDashboard());
                     }, _pendingReceipts),
+                    if (_isManager)
+                      _menuCard('Hacer\nInventario', Icons.assignment_turned_in_rounded, Colors.cyan.shade700, () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => SupervisorInventoryFormScreen(baseUrl: _baseUrl))).then((_) => _refreshDashboard());
+                      }, 0),
+                    _menuCard('Confirmar\nInventario', Icons.rate_review_rounded, Colors.amber.shade800, () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => OperatorConformityScreen(baseUrl: _baseUrl))).then((_) => _refreshDashboard());
+                    }, _pendingInventories),
+                    _menuCard('Historial\nInventarios', Icons.summarize_rounded, Colors.blueGrey, () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => InventoryHistoryScreen(baseUrl: _baseUrl)));
+                    }, 0),
                     _menuCard('Historial de\nTurnos', Icons.history_toggle_off_rounded, Colors.deepPurple, () {
                       Navigator.push(context, MaterialPageRoute(builder: (context) => ShiftHistoryScreen(baseUrl: _baseUrl)));
                     }, 0),
@@ -1979,6 +2013,662 @@ class _Storage {
     return prefs.getString(_tokenKey);
   }
 }
+
+// --- SUPERVISOR INVENTORY FORM SCREEN ---
+class SupervisorInventoryFormScreen extends StatefulWidget {
+  final String baseUrl;
+  const SupervisorInventoryFormScreen({super.key, required this.baseUrl});
+
+  @override
+  State<SupervisorInventoryFormScreen> createState() => _SupervisorInventoryFormScreenState();
+}
+
+class _SupervisorInventoryFormScreenState extends State<SupervisorInventoryFormScreen> {
+  List<dynamic> _products = [];
+  bool _isLoading = true;
+  bool _isSubmitting = false;
+  final _notesController = TextEditingController();
+  final Map<int, TextEditingController> _counted1raControllers = {};
+  final Map<int, TextEditingController> _counted2daControllers = {};
+  final Map<int, TextEditingController> _countedMermaControllers = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProducts();
+  }
+
+  Future<void> _fetchProducts() async {
+    setState(() => _isLoading = true);
+    try {
+      final token = await _Storage.getToken();
+      final response = await http.get(
+        Uri.parse('${widget.baseUrl}/api/soplados/inventory/products'),
+        headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          _products = data['products'];
+          for (var p in _products) {
+            int id = p['id'];
+            _counted1raControllers[id] = TextEditingController(text: p['system_stock_primera'].toString());
+            if (p['production_target_id'] != null) {
+              _counted2daControllers[id] = TextEditingController(text: (p['system_stock_segunda'] ?? 0).toString());
+            }
+            _countedMermaControllers[id] = TextEditingController(text: '0');
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _submitCount() async {
+    setState(() => _isSubmitting = true);
+    try {
+      final token = await _Storage.getToken();
+      final List<Map<String, dynamic>> submitProducts = [];
+
+      for (var p in _products) {
+        int id = p['id'];
+        double c1 = double.tryParse(_counted1raControllers[id]?.text ?? '') ?? 0.0;
+        double? c2 = p['production_target_id'] != null 
+            ? (double.tryParse(_counted2daControllers[id]?.text ?? '') ?? 0.0) 
+            : null;
+        double? cm = p['type'] == 'finished_product' 
+            ? (double.tryParse(_countedMermaControllers[id]?.text ?? '') ?? 0.0) 
+            : null;
+
+        submitProducts.add({
+          'id': id,
+          'type': p['type'],
+          'counted_primera': c1,
+          'counted_segunda': c2,
+          'counted_merma': cm,
+        });
+      }
+
+      final body = {
+        'notes': _notesController.text,
+        'products': submitProducts,
+      };
+
+      final response = await http.post(
+        Uri.parse('${widget.baseUrl}/api/soplados/inventory'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode(body),
+      ).timeout(const Duration(seconds: 20));
+
+      final data = json.decode(response.body);
+      if (response.statusCode == 200 && data['success'] == true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Inventario enviado al operador exitosamente'), backgroundColor: Colors.green));
+          Navigator.pop(context);
+        }
+      } else {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'] ?? 'Error al guardar'), backgroundColor: Colors.red));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+    } finally {
+      setState(() => _isSubmitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        title: const Text('Conteo Físico (Supervisor)'),
+        backgroundColor: Colors.cyan.shade700,
+        foregroundColor: Colors.white,
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(15),
+                    itemCount: _products.length,
+                    itemBuilder: (context, index) {
+                      final p = _products[index];
+                      int id = p['id'];
+                      bool isFinished = p['type'] == 'finished_product';
+                      
+                      return Card(
+                        elevation: 2,
+                        margin: const EdgeInsets.only(bottom: 15),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        child: Padding(
+                          padding: const EdgeInsets.all(15),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    backgroundColor: isFinished ? Colors.blue.shade50 : Colors.orange.shade50,
+                                    child: Icon(isFinished ? Icons.local_drink : Icons.category, color: isFinished ? Colors.blue : Colors.orange),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(p['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                        Text(isFinished ? 'Botellón' : 'Insumo', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const Divider(height: 25),
+                              
+                              // First Quality / Raw Material Row
+                              _buildCountInputRow(
+                                label: isFinished ? '1ra Calidad' : 'Cantidad Insumo',
+                                systemStock: p['system_stock_primera'],
+                                controller: _counted1raControllers[id]!,
+                              ),
+                              
+                              // Second Quality Row (if applicable)
+                              if (isFinished && p['production_target_id'] != null) ...[
+                                const SizedBox(height: 12),
+                                _buildCountInputRow(
+                                  label: '2da Calidad',
+                                  systemStock: p['system_stock_segunda'] ?? 0,
+                                  controller: _counted2daControllers[id]!,
+                                ),
+                              ],
+                              
+                              // Merma Row (if finished product)
+                              if (isFinished) ...[
+                                const SizedBox(height: 12),
+                                Row(
+                                  children: [
+                                    const Expanded(
+                                      child: Text('Merma/Dañado (Físico)', style: TextStyle(fontWeight: FontWeight.w600)),
+                                    ),
+                                    SizedBox(
+                                      width: 100,
+                                      child: TextFormField(
+                                        controller: _countedMermaControllers[id],
+                                        keyboardType: TextInputType.number,
+                                        textAlign: TextAlign.center,
+                                        decoration: InputDecoration(
+                                          isDense: true,
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(15),
+                  color: Colors.white,
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _notesController,
+                        decoration: InputDecoration(
+                          hintText: 'Notas / Observaciones del supervisor...',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          isDense: true,
+                        ),
+                        maxLines: 2,
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton.icon(
+                          onPressed: _isSubmitting ? null : _submitCount,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.cyan.shade700,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          icon: _isSubmitting 
+                              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : const Icon(Icons.send_rounded),
+                          label: Text(_isSubmitting ? 'ENVIANDO...' : 'ENVIAR PARA CONFORMIDAD'),
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildCountInputRow({required String label, required dynamic systemStock, required TextEditingController controller}) {
+    double sysVal = (systemStock as num).toDouble();
+    return StatefulBuilder(
+      builder: (context, setStateRow) {
+        double currentVal = double.tryParse(controller.text) ?? 0.0;
+        double diff = currentVal - sysVal;
+        
+        return Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text('Sist: $systemStock  •  Dif: ${diff > 0 ? "+$diff" : diff}', 
+                    style: TextStyle(
+                      fontSize: 12, 
+                      color: diff == 0 ? Colors.grey : (diff > 0 ? Colors.green : Colors.red),
+                      fontWeight: diff == 0 ? FontWeight.normal : FontWeight.bold
+                    )
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(
+              width: 100,
+              child: TextFormField(
+                controller: controller,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                textAlign: TextAlign.center,
+                onChanged: (val) {
+                  setStateRow(() {});
+                },
+                decoration: InputDecoration(
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+// --- OPERATOR CONFORMITY SCREEN ---
+class OperatorConformityScreen extends StatefulWidget {
+  final String baseUrl;
+  const OperatorConformityScreen({super.key, required this.baseUrl});
+
+  @override
+  State<OperatorConformityScreen> createState() => _OperatorConformityScreenState();
+}
+
+class _OperatorConformityScreenState extends State<OperatorConformityScreen> {
+  List<dynamic> _pendingList = [];
+  bool _isLoading = true;
+  bool _isSubmitting = false;
+  final _notesController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPending();
+  }
+
+  Future<void> _fetchPending() async {
+    setState(() => _isLoading = true);
+    try {
+      final token = await _Storage.getToken();
+      final response = await http.get(
+        Uri.parse('${widget.baseUrl}/api/soplados/inventory/pending'),
+        headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          _pendingList = data['inventories'];
+        });
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _acceptInventory(int id) async {
+    setState(() => _isSubmitting = true);
+    try {
+      final token = await _Storage.getToken();
+      final response = await http.post(
+        Uri.parse('${widget.baseUrl}/api/soplados/inventory/$id/accept'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'operator_notes': _notesController.text,
+        }),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Conformidad firmada. Stock ajustado en el sistema.'), backgroundColor: Colors.green));
+          _notesController.clear();
+          _fetchPending();
+        }
+      } else {
+        final data = json.decode(response.body);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'] ?? 'Error'), backgroundColor: Colors.red));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+    } finally {
+      setState(() => _isSubmitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        title: const Text('Confirmar Inventarios'),
+        backgroundColor: Colors.amber.shade800,
+        foregroundColor: Colors.white,
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _pendingList.isEmpty
+              ? const Center(child: Text('No tienes inventarios pendientes de firmar'))
+              : ListView.builder(
+                  padding: const EdgeInsets.all(15),
+                  itemCount: _pendingList.length,
+                  itemBuilder: (context, index) {
+                    final inv = _pendingList[index];
+                    final date = inv['created_at'].toString().split('T')[0];
+                    final time = inv['created_at'].toString().split('T')[1].substring(0, 5);
+                    
+                    return Card(
+                      elevation: 3,
+                      margin: const EdgeInsets.only(bottom: 15),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      child: ExpansionTile(
+                        leading: CircleAvatar(backgroundColor: Colors.amber.shade100, child: const Icon(Icons.rate_review, color: Colors.orange)),
+                        title: Text('Inventario #${inv['id']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text('Contado por: ${inv['supervisor']['name']} \nFecha: $date  •  $time'),
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(15),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (inv['notes'] != null && inv['notes'].toString().isNotEmpty) ...[
+                                  Text('Notas Supervisor:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey.shade700)),
+                                  Text(inv['notes'], style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 13)),
+                                  const Divider(),
+                                ],
+                                const Text('RESUMEN DE CONTEO FISICO:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+                                const SizedBox(height: 8),
+                                ...(inv['details'] as List).map((d) {
+                                  bool isFinished = d['type'] == 'finished_product';
+                                  
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 8),
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(10)),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(d['product']['name'] ?? 'Producto', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                        const SizedBox(height: 6),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(isFinished ? '1ra / Insumo' : 'Cantidad', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                                                Text('Fís: ${d['counted_primera']} (Sist: ${d['system_stock_primera']})', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                                              ],
+                                            ),
+                                            if (isFinished && d['counted_segunda'] != null)
+                                              Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  const Text('2da Calidad', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                                  Text('Fís: ${d['counted_segunda']} (Sist: ${d['system_stock_segunda']})', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                                                ],
+                                              ),
+                                            if (isFinished && d['counted_merma'] != null && d['counted_merma'] > 0)
+                                              Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  const Text('Merma', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                                  Text('${d['counted_merma']} uds', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.red)),
+                                                ],
+                                              ),
+                                          ],
+                                        )
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                                const Divider(),
+                                const SizedBox(height: 5),
+                                TextFormField(
+                                  controller: _notesController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Observación del Operador (Opcional)',
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
+                                  ),
+                                  maxLines: 2,
+                                ),
+                                const SizedBox(height: 15),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 48,
+                                  child: ElevatedButton.icon(
+                                    onPressed: _isSubmitting ? null : () => _acceptInventory(inv['id']),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green.shade700,
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                    icon: const Icon(Icons.check_circle),
+                                    label: const Text('ACEPTAR CONFORMIDAD Y FIRMAR', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  ),
+                                )
+                              ],
+                            ),
+                          )
+                        ],
+                      ),
+                    );
+                  },
+                ),
+    );
+  }
+}
+
+// --- INVENTORY HISTORY SCREEN ---
+class InventoryHistoryScreen extends StatefulWidget {
+  final String baseUrl;
+  const InventoryHistoryScreen({super.key, required this.baseUrl});
+
+  @override
+  State<InventoryHistoryScreen> createState() => _InventoryHistoryScreenState();
+}
+
+class _InventoryHistoryScreenState extends State<InventoryHistoryScreen> {
+  List _logs = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchHistory();
+  }
+
+  Future<void> _fetchHistory() async {
+    setState(() => _isLoading = true);
+    try {
+      final token = await _Storage.getToken();
+      final response = await http.get(
+        Uri.parse('${widget.baseUrl}/api/soplados/inventory/history'),
+        headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 15));
+
+      final data = json.decode(response.body);
+      if (response.statusCode == 200 && data['success'] == true) {
+        setState(() => _logs = data['data']['data']);
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        title: const Text('Historial de Inventarios'),
+        backgroundColor: Colors.blueGrey,
+        foregroundColor: Colors.white,
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _logs.isEmpty
+              ? const Center(child: Text('No hay inventarios registrados'))
+              : ListView.builder(
+                  padding: const EdgeInsets.all(15),
+                  itemCount: _logs.length,
+                  itemBuilder: (context, index) {
+                    final inv = _logs[index];
+                    final isPending = inv['status'] == 'pending_acceptance';
+                    final date = inv['created_at'].toString().split('T')[0];
+                    final time = inv['created_at'].toString().split('T')[1].substring(0, 5);
+                    
+                    return Card(
+                      elevation: 2,
+                      margin: const EdgeInsets.only(bottom: 15),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      child: ExpansionTile(
+                        leading: CircleAvatar(
+                          backgroundColor: isPending ? Colors.amber.shade100 : Colors.green.shade100,
+                          child: Icon(isPending ? Icons.pending : Icons.check_circle, color: isPending ? Colors.amber.shade800 : Colors.green.shade800),
+                        ),
+                        title: Text('Inventario #${inv['id']} - ${isPending ? "PENDIENTE" : "COMPLETADO"}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text('Fecha: $date • Hora: $time\nPor: ${inv['supervisor']['name']}'),
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(15),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text('SUPERVISOR', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                          Text(inv['supervisor']['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                                        ],
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text('OPERARIO', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                          Text(inv['operator'] != null ? inv['operator']['name'] : 'Sin firmar', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const Divider(height: 20),
+                                if (inv['notes'] != null && inv['notes'].toString().isNotEmpty) ...[
+                                  const Text('NOTAS SUPERVISOR:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey)),
+                                  Text(inv['notes'], style: const TextStyle(fontStyle: FontStyle.italic)),
+                                  const SizedBox(height: 10),
+                                ],
+                                if (inv['operator_notes'] != null && inv['operator_notes'].toString().isNotEmpty) ...[
+                                  const Text('NOTAS OPERARIO:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey)),
+                                  Text(inv['operator_notes'], style: const TextStyle(fontStyle: FontStyle.italic)),
+                                  const SizedBox(height: 10),
+                                ],
+                                const Text('DETALLE DE PRODUCTOS:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey)),
+                                const SizedBox(height: 6),
+                                ...(inv['details'] as List).map((d) {
+                                  bool isFinished = d['type'] == 'finished_product';
+                                  double pSys = double.parse(d['system_stock_primera'].toString());
+                                  double pCount = double.parse(d['counted_primera'].toString());
+                                  double pDiff = pCount - pSys;
+                                  
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 6),
+                                    child: Row(
+                                      children: [
+                                        Expanded(child: Text(d['product']['name'] ?? 'Producto', style: const TextStyle(fontSize: 13))),
+                                        Text(
+                                          '1ra: $pCount (${pDiff >= 0 ? "+$pDiff" : "$pDiff"})', 
+                                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: pDiff == 0 ? Colors.black : (pDiff > 0 ? Colors.green : Colors.red))
+                                        ),
+                                        if (isFinished && d['system_stock_segunda'] != null) ...[
+                                          const SizedBox(width: 8),
+                                          Builder(builder: (context) {
+                                            double sSys = double.parse(d['system_stock_segunda'].toString());
+                                            double sCount = double.parse(d['counted_segunda'].toString());
+                                            double sDiff = sCount - sSys;
+                                            return Text(
+                                              '2da: $sCount (${sDiff >= 0 ? "+$sDiff" : "$sDiff"})',
+                                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: sDiff == 0 ? Colors.black : (sDiff > 0 ? Colors.green : Colors.red))
+                                            );
+                                          })
+                                        ],
+                                        if (isFinished && d['counted_merma'] != null && d['counted_merma'] > 0) ...[
+                                          const SizedBox(width: 8),
+                                          Text('Merma: ${d['counted_merma']}', style: const TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.bold)),
+                                        ]
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              ],
+                            ),
+                          )
+                        ],
+                      ),
+                    );
+                  },
+                ),
+    );
+  }
+}
+
 
 
 

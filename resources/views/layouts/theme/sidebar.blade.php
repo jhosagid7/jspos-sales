@@ -318,6 +318,12 @@
                                 <p>Historial de Turnos</p>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="{{ route('soplados.inventories') }}" class="nav-link {{ Request::is('soplados/inventories*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Historial Inventarios</p>
+                            </a>
+                        </li>
                     </ul>
                 </li>
                 @endunlessrole
