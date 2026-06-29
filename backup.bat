@@ -25,7 +25,7 @@ if %ERRORLEVEL% NEQ 0 (
 :: 2. Ejecutar el respaldo de Laravel
 echo [PASO 1] Generando respaldo (php artisan backup:run --only-db)...
 echo [%DATE% %TIME%] Ejecutando php artisan backup:run --only-db... >> "%LOG_FILE%"
-call php artisan backup:run --only-db >> "%LOG_FILE%" 2>&1
+call "C:\laragon\bin\php\php-8.2.9-Win32-vs16-x64\php.exe" artisan backup:run --only-db >> "%LOG_FILE%" 2>&1
 
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Fallo al crear el respaldo.
