@@ -372,21 +372,23 @@ class UpdateRollbackTest extends TestCase
             $oldChangelogContent = File::get($changelogPath);
         }
         
-        File::put($changelogPath, "## [1.0.5] - 2026-06-29\n### Added\n- Test release notes line");
+        try {
+            File::put($changelogPath, "## [1.0.5] - 2026-06-29\n### Added\n- Test release notes line");
 
-        $updater->sendUpdateNotificationEmail('1.0.5', '1.0.4');
+            $updater->sendUpdateNotificationEmail('1.0.5', '1.0.4');
 
-        \Illuminate\Support\Facades\Mail::assertQueued(\App\Mail\GenericNotificationMail::class, function ($mail) {
-            $this->assertStringContainsString('🟢 Sistema JSPOS Actualizado a v1.0.5', $mail->subjectLine);
-            $this->assertStringContainsString('Test release notes line', $mail->bodyContent);
-            return $mail->hasTo('test@example.com');
-        });
-
-        // Restore changelog
-        if (!empty($oldChangelogContent)) {
-            File::put($changelogPath, $oldChangelogContent);
-        } else {
-            File::delete($changelogPath);
+            \Illuminate\Support\Facades\Mail::assertQueued(\App\Mail\GenericNotificationMail::class, function ($mail) {
+                $this->assertStringContainsString('🟢 Sistema JSPOS Actualizado a v1.0.5', $mail->subjectLine);
+                $this->assertStringContainsString('Test release notes line', $mail->bodyContent);
+                return $mail->hasTo('test@example.com');
+            });
+        } finally {
+            // Restore changelog
+            if (!empty($oldChangelogContent)) {
+                File::put($changelogPath, $oldChangelogContent);
+            } else {
+                File::delete($changelogPath);
+            }
         }
     }
 }
