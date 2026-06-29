@@ -4,7 +4,7 @@
             <div class="widget widget-chart-one">
                 <div class="widget-heading">
                     <h4 class="card-title">
-                        <b>Configurar Receta</b>
+                        <b>{{ $selected_id ? 'Editar Ingrediente' : 'Configurar Receta' }}</b>
                     </h4>
                 </div>
                 <div class="widget-content">
@@ -57,7 +57,12 @@
                         <input type="number" step="0.0001" wire:model="quantity" class="form-control">
                     </div>
 
-                    <button wire:click="store" class="btn btn-primary btn-block">Guardar Ingrediente</button>
+                    <button wire:click="store" class="btn btn-primary btn-block">
+                        {{ $selected_id ? 'Actualizar Ingrediente' : 'Guardar Ingrediente' }}
+                    </button>
+                    @if($selected_id)
+                        <button wire:click="cancelEdit" class="btn btn-outline-secondary btn-block mt-2">Cancelar Edición</button>
+                    @endif
                 </div>
             </div>
         </div>
@@ -92,6 +97,9 @@
                                     <td class="text-center"><h6>{{ $f->ingredient->name ?? 'Insumo Eliminado' }}</h6></td>
                                     <td class="text-center"><h6>{{ number_format($f->quantity, 2) }}</h6></td>
                                     <td class="text-center">
+                                        <button wire:click="edit({{ $f->id }})" class="btn btn-primary btn-sm mr-1">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
                                         <button wire:click="delete({{ $f->id }})" class="btn btn-danger btn-sm">
                                             <i class="fas fa-trash"></i>
                                         </button>

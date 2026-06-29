@@ -76,14 +76,50 @@ class Formulas extends Component
         ])->extends('layouts.theme.app')->section('content');
     }
 
+    public function edit($id)
+    {
+        $formula = ProductionFormula::with(['product', 'ingredient'])->findOrFail($id);
+        $this->selected_id = $formula->id;
+        $this->product_id = $formula->product_id;
+        $this->search_product = $formula->product->name;
+        $this->ingredient_id = $formula->ingredient_id;
+        $this->search_ingredient = $formula->ingredient->name;
+        $this->quantity = $formula->quantity;
+    }
+
+    public function cancelEdit()
+    {
+        $this->reset(['selected_id', 'product_id', 'search_product', 'product_results', 'ingredient_id', 'search_ingredient', 'ingredient_results', 'quantity']);
+        $this->quantity = 1;
+    }
+
     public function store()
     {
         $this->validate();
 
-        ProductionFormula::updateOrCreate(
-            ['product_id' => $this->product_id, 'ingredient_id' => $this->ingredient_id],
-            ['quantity' => $this->quantity]
-        );
+        if ($this->selected_id) {
+            $exists = ProductionFormula::where('product_id', $this->product_id)
+                ->where('ingredient_id', $this->ingredient_id)
+                ->where('id', '!=', $this->selected_id)
+                ->exists();
+            if ($exists) {
+                $this->dispatch('msg', 'Ya existe este ingrediente registrado para este producto');
+                return;
+            }
+            $formula = ProductionFormula::findOrFail($this->selected_id);
+            $formula->update([
+                'product_id' => $this->product_id,
+                'ingredient_id' => $this->ingredient_id,
+                'quantity' => $this->quantity
+            ]);
+            $msg = 'Receta actualizada correctamente';
+        } else {
+            ProductionFormula::updateOrCreate(
+                ['product_id' => $this->product_id, 'ingredient_id' => $this->ingredient_id],
+                ['quantity' => $this->quantity]
+            );
+            $msg = 'Receta guardada correctamente y producto etiquetado como Soplados';
+        }
 
         // Auto-tag the finished product so it appears in the Soplados App
         $product = Product::find($this->product_id);
@@ -94,8 +130,8 @@ class Formulas extends Component
             }
         }
 
-        $this->reset(['ingredient_id', 'quantity', 'search_ingredient', 'ingredient_results']);
-        $this->dispatch('msg', 'Receta guardada correctamente y producto etiquetado como Soplados');
+        $this->cancelEdit();
+        $this->dispatch('msg', $msg);
     }
 
     public function delete($id)

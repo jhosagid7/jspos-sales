@@ -1,3 +1,7 @@
+## [1.10.189] - 2026-06-29
+### Added
+- **Edición de Recetas en Fábrica Soplados**: Añadida la posibilidad de editar ingredientes, cantidades y combinaciones de recetas (fórmulas) directamente desde la interfaz web de Soplados (Livewire component y Blade view).
+
 ## [1.10.188] - 2026-06-29
 ### Added
 - **Módulo de Inventario Físico de Soplados con Control Cruzado (Supervisor-Operario)**:
