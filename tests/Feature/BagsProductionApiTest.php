@@ -358,7 +358,7 @@ class BagsProductionApiTest extends TestCase
         ]);
 
         // Assert consolidated email was sent since all cargos of the day are approved
-        Mail::assertSent(BagsProductionConsolidatedMail::class, function ($mail) use ($production) {
+        Mail::assertQueued(BagsProductionConsolidatedMail::class, function ($mail) use ($production) {
             $this->assertTrue($mail->hasTo('supervisor@example.com'));
             $this->assertStringContainsString('Reporte Producción de Bolsas', $mail->subjectLine);
             $this->assertStringContainsString('150.00', $mail->bodyContent);
@@ -706,7 +706,7 @@ class BagsProductionApiTest extends TestCase
         $this->assertEquals('sent', $production->fresh()->status);
 
         // Assert consolidated email was sent because the single cargo of this production was approved (unrelated cargo 99999 being pending did not block it!)
-        Mail::assertSent(BagsProductionConsolidatedMail::class, function ($mail) use ($production) {
+        Mail::assertQueued(BagsProductionConsolidatedMail::class, function ($mail) use ($production) {
             $this->assertTrue($mail->hasTo('boss@example.com'));
             $date = \Carbon\Carbon::now()->format('d/m/Y');
             $expectedSubject = "Planilla de Levantamiento de la Fábrica de Bolsas - Lote #{$production->id} - {$date}";

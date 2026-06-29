@@ -188,7 +188,7 @@ class SopladosShiftNotificationTest extends TestCase
         ]);
 
         // Assert email was sent to correct recipients
-        Mail::assertSent(SopladosShiftReportMail::class, function ($mail) {
+        Mail::assertQueued(SopladosShiftReportMail::class, function ($mail) {
             $this->assertTrue($mail->hasTo('boss@soplados.com'));
             $this->assertTrue($mail->hasTo('admin@soplados.com'));
 

@@ -151,7 +151,7 @@ class BagsProductionApiController extends Controller
                     $fileName = 'levantamiento_original_lote_' . $production->id . '.pdf';
 
                     \Illuminate\Support\Facades\Mail::to($config->production_email_recipients)
-                        ->send(new \App\Mail\ProductionReportMail($subject, $body, $pdfContent, $fileName));
+                        ->queue(new \App\Mail\ProductionReportMail($subject, $body, $pdfContent, $fileName));
                 }
             } catch (\Exception $mailEx) {
                 \Illuminate\Support\Facades\Log::warning("Receipt email failed for production #{$production->id}: " . $mailEx->getMessage());

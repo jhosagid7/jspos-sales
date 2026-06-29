@@ -323,7 +323,7 @@ class CargosList extends Component
             $body = nl2br($body);
             
             \Illuminate\Support\Facades\Mail::to($config->production_email_recipients)
-                ->send(new \App\Mail\BagsProductionConsolidatedMail($subject, $body, $pdfs));
+                ->queue(new \App\Mail\BagsProductionConsolidatedMail($subject, $body, $pdfs));
                 
             $this->dispatch('noty', msg: 'Correo consolidado enviado correctamente.');
             

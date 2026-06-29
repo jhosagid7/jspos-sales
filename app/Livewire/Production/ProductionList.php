@@ -207,7 +207,7 @@ class ProductionList extends Component
 
             // 4. Send Email
             \Illuminate\Support\Facades\Mail::to($config->production_email_recipients)
-                ->send(new \App\Mail\ProductionReportMail($subject, $body, $pdfContent, $fileName));
+                ->queue(new \App\Mail\ProductionReportMail($subject, $body, $pdfContent, $fileName));
 
             $this->dispatch('noty', msg: 'Correo enviado correctamente');
 

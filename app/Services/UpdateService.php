@@ -634,7 +634,7 @@ class UpdateService
             }
             $body .= "Se ha creado automáticamente un punto de restauración antes de realizar la actualización en storage/backups/antes_de_v{$oldVersion}.\n\nAtentamente,\nSistema de Actualización Automatizado.";
 
-            Mail::to($recipients)->send(new \App\Mail\GenericNotificationMail(
+            Mail::to($recipients)->queue(new \App\Mail\GenericNotificationMail(
                 $subject,
                 $body
             ));

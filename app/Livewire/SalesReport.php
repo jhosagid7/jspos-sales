@@ -547,7 +547,7 @@ class SalesReport extends Component
                 try {
                     $supervisors = User::permission('sales.approve_deletion')->get();
                     foreach ($supervisors as $supervisor) {
-                        \Illuminate\Support\Facades\Mail::to($supervisor->email)->send(new \App\Mail\SaleDeletionRequested($sale, $user));
+                        \Illuminate\Support\Facades\Mail::to($supervisor->email)->queue(new \App\Mail\SaleDeletionRequested($sale, $user));
                     }
                 } catch (\Exception $e) {
                     \Illuminate\Support\Facades\Log::error('Error enviando correo de solicitud de eliminación: ' . $e->getMessage());

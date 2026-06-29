@@ -376,7 +376,7 @@ class UpdateRollbackTest extends TestCase
 
         $updater->sendUpdateNotificationEmail('1.0.5', '1.0.4');
 
-        \Illuminate\Support\Facades\Mail::assertSent(\App\Mail\GenericNotificationMail::class, function ($mail) {
+        \Illuminate\Support\Facades\Mail::assertQueued(\App\Mail\GenericNotificationMail::class, function ($mail) {
             $this->assertStringContainsString('🟢 Sistema JSPOS Actualizado a v1.0.5', $mail->subjectLine);
             $this->assertStringContainsString('Test release notes line', $mail->bodyContent);
             return $mail->hasTo('test@example.com');

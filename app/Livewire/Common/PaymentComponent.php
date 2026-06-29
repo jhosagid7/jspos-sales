@@ -1143,7 +1143,7 @@ class PaymentComponent extends Component
 
             foreach ($recipients as $recipient) {
                 \Illuminate\Support\Facades\Mail::to($recipient->email)
-                    ->send(new \App\Mail\ExchangeRateApprovalRequested($approval, auth()->user()));
+                    ->queue(new \App\Mail\ExchangeRateApprovalRequested($approval, auth()->user()));
             }
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Error enviando correo de aprobación de tasa: ' . $e->getMessage());

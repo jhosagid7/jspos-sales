@@ -246,7 +246,7 @@ class ReturnsComponent extends Component
                         $supervisors = \App\Models\User::role('Admin')->get();
                     }
                     foreach ($supervisors as $supervisor) {
-                        \Illuminate\Support\Facades\Mail::to($supervisor->email)->send(new \App\Mail\SaleReturnRequested($saleReturn, $user));
+                        \Illuminate\Support\Facades\Mail::to($supervisor->email)->queue(new \App\Mail\SaleReturnRequested($saleReturn, $user));
                     }
                 } catch (\Exception $e) {
                     \Illuminate\Support\Facades\Log::error('Error enviando correo de solicitud de devolución: ' . $e->getMessage());

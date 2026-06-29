@@ -257,7 +257,7 @@ class ShiftController extends Controller
             $body = nl2br($body);
 
             \Illuminate\Support\Facades\Mail::to($config->soplados_email_recipients)
-                ->send(new \App\Mail\SopladosShiftReportMail($subject, $body));
+                ->queue(new \App\Mail\SopladosShiftReportMail($subject, $body));
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error("Failed to send Soplados shift report email: " . $e->getMessage());
         }
