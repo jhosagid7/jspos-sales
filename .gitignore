@@ -52,3 +52,6 @@ nssm/*.bak
 
 # Auto-migration logs
 /storage/framework/migrated_*.log
+
+# Google Drive Backup Key
+google-drive-key.json
