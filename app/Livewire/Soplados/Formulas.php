@@ -21,7 +21,10 @@ class Formulas extends Component
     public function updatedSearchProduct()
     {
         if (strlen($this->search_product) > 2) {
-            $this->product_results = Product::search($this->search_product)->take(10)->get();
+            $this->product_results = Product::search($this->search_product)
+                ->where('is_raw_material', false)
+                ->take(10)
+                ->get();
         } else {
             $this->product_results = [];
         }
@@ -37,7 +40,10 @@ class Formulas extends Component
     public function updatedSearchIngredient()
     {
         if (strlen($this->search_ingredient) > 2) {
-            $this->ingredient_results = Product::search($this->search_ingredient)->take(10)->get();
+            $this->ingredient_results = Product::search($this->search_ingredient)
+                ->where('is_raw_material', true)
+                ->take(10)
+                ->get();
         } else {
             $this->ingredient_results = [];
         }

@@ -290,6 +290,13 @@
                                              Si se desactiva (OFF), este producto no aparecerá en el POS (punto de venta), en la aplicación móvil ni en el generador de listas de precios.
                                          </small>
                                      </div>
+                                     <div class="form-check form-switch mt-2">
+                                         <input class="form-check-input" type="checkbox" id="rawMaterialSwitch" wire:model="form.is_raw_material">
+                                         <label class="form-check-label text-warning font-weight-bold" for="rawMaterialSwitch">Es Insumo / Materia Prima (Soplados)</label>
+                                         <small class="form-text text-muted d-block">
+                                             Activa esta opción para clasificar este producto como insumo (materia prima) en el área de producción y soplado.
+                                         </small>
+                                     </div>
                                     <div class="form-check form-switch mt-2">
                                         <input class="form-check-input" type="checkbox" id="decimalSwitch" wire:model="form.allow_decimal">
                                         <label class="form-check-label" for="decimalSwitch">Permite Cantidades Decimales (Fraccionable)</label>

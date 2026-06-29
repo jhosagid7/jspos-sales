@@ -16,10 +16,11 @@ class ProductionController extends Controller
      */
     public function products()
     {
-        // Filter products that have the tag 'soplados'
+        // Filter products that have the tag 'soplados' and are finished products
         $products = Product::whereHas('tags', function($q) {
                 $q->where('name', 'soplados');
             })
+            ->where('is_raw_material', false)
             ->orderBy('name')
             ->get(['id', 'name', 'sku']);
 

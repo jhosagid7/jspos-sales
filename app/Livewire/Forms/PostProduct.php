@@ -22,6 +22,7 @@ class PostProduct extends Form
     public $max_stock = 0, $brand, $presentation, $is_pre_assembled = false, $additional_cost = 0, $stock_details = [], $tags = '', $allow_decimal = false;
     public $is_variable_quantity = false;
     public $show_in_sales = true;
+    public $is_raw_material = false;
     
     // Freight & Pricing Rules
     public $freight_type = 'none'; // none, percentage, fixed
@@ -90,6 +91,7 @@ class PostProduct extends Form
             'allow_decimal' => 'boolean',
             'is_variable_quantity' => 'boolean',
             'show_in_sales' => 'boolean',
+            'is_raw_material' => 'boolean',
             'freight_type' => 'in:none,percentage,fixed',
             'freight_value' => 'numeric|min:0',
             'pricing_tiers' => 'array',
@@ -182,6 +184,7 @@ class PostProduct extends Form
             'allow_decimal' => $this->allow_decimal ? 1 : 0,
             'is_variable_quantity' => $this->is_variable_quantity ? 1 : 0,
             'show_in_sales' => $this->show_in_sales ? 1 : 0,
+            'is_raw_material' => $this->is_raw_material ? 1 : 0,
             'freight_type' => $this->freight_type,
             'freight_value' => $this->freight_value,
             'price_group_id' => $this->price_group_id ?: null,
@@ -353,6 +356,7 @@ class PostProduct extends Form
             'allow_decimal' => $this->allow_decimal ? 1 : 0,
             'is_variable_quantity' => $this->is_variable_quantity ? 1 : 0,
             'show_in_sales' => $this->show_in_sales ? 1 : 0,
+            'is_raw_material' => $this->is_raw_material ? 1 : 0,
             'freight_type' => $this->freight_type,
             'freight_value' => $this->freight_value,
             'price_group_id' => $this->price_group_id ?: null,

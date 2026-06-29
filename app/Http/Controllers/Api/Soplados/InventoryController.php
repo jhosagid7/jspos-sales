@@ -21,50 +21,24 @@ class InventoryController extends Controller
         $soplados_id = $config->soplados_warehouse_id ?? $config->default_warehouse_id ?? 1;
         $warehouse_id = auth()->user()->warehouse_id ?? $soplados_id;
 
-        // 1. Get Finished Products (Tagged with 'soplados')
-        $finishedProductIds = Product::whereHas('tags', function($q) {
+        // 1. Get Soplados Products (Tagged with 'soplados')
+        $allIds = Product::whereHas('tags', function($q) {
                 $q->where('name', 'soplados');
             })->pluck('id');
 
-        // 2. Get Raw Materials (Ingredients for Soplados formulas)
-        $ingredientIds = ProductionFormula::whereIn('product_id', $finishedProductIds)
-            ->distinct()
-            ->pluck('ingredient_id');
-
-        // Merge all relevant IDs
-        $allIds = $finishedProductIds->merge($ingredientIds)->unique();
-
-        // 3. Query stock in the plant warehouse
+        // 2. Query stock in the plant warehouse
         $inventory = Product::with(['productWarehouses' => function($q) use ($warehouse_id) {
                 $q->where('warehouse_id', $warehouse_id);
             }])
             ->whereIn('id', $allIds)
             ->get()
-            ->map(function($p) use ($ingredientIds) {
-                // Determine type: Insumo vs Producto Terminado
-                $type = 'Producto Terminado';
-                
-                // Fallback keywords for materials
-                $isMaterial = false;
-                $materialsKeywords = ['PREFORMA', 'TAPA', 'ASA', 'ETIQUETA', 'RESINA', 'LINER', 'TAPON', 'INGREDIENTE'];
-                $nameUpper = strtoupper($p->name);
-                foreach($materialsKeywords as $kw) {
-                    if (strpos($nameUpper, $kw) !== false) {
-                        $isMaterial = true;
-                        break;
-                    }
-                }
-
-                if ($ingredientIds->contains($p->id) || $isMaterial) {
-                    $type = 'Insumo/Materia Prima';
-                }
-
+            ->map(function($p) {
                 return [
                     'id' => $p->id,
                     'name' => $p->name,
                     'sku' => $p->sku,
                     'stock' => $p->productWarehouses->first()->stock_qty ?? 0,
-                    'type' => $type
+                    'type' => $p->is_raw_material ? 'Insumo/Materia Prima' : 'Producto Terminado'
                 ];
             });
 
@@ -213,25 +187,24 @@ class InventoryController extends Controller
         $soplados_id = $config->soplados_warehouse_id ?? $config->default_warehouse_id ?? 1;
         $warehouse_id = auth()->user()->warehouse_id ?? $soplados_id;
 
-        // 1. Get Finished Products (Tagged with 'soplados')
+        // 1. Get Finished Products (Tagged with 'soplados' and is_raw_material = false)
         $finishedProducts = Product::with(['productionTarget', 'productWarehouses' => function($q) use ($warehouse_id) {
                 $q->where('warehouse_id', $warehouse_id);
             }])
             ->whereHas('tags', function($q) {
                 $q->where('name', 'soplados');
             })
+            ->where('is_raw_material', false)
             ->get();
 
-        // 2. Get Raw Materials (Ingredients for Soplados formulas)
-        $finishedProductIds = $finishedProducts->pluck('id');
-        $ingredientIds = ProductionFormula::whereIn('product_id', $finishedProductIds)
-            ->distinct()
-            ->pluck('ingredient_id');
-
+        // 2. Get Raw Materials (Tagged with 'soplados' and is_raw_material = true)
         $rawMaterials = Product::with(['productWarehouses' => function($q) use ($warehouse_id) {
                 $q->where('warehouse_id', $warehouse_id);
             }])
-            ->whereIn('id', $ingredientIds)
+            ->whereHas('tags', function($q) {
+                $q->where('name', 'soplados');
+            })
+            ->where('is_raw_material', true)
             ->get();
 
         $list = [];

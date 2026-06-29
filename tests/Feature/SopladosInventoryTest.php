@@ -13,6 +13,7 @@ use App\Models\SopladosInventory;
 use App\Models\SopladosInventoryDetail;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 
 class SopladosInventoryTest extends TestCase
 {
@@ -119,7 +120,7 @@ class SopladosInventoryTest extends TestCase
         ]);
 
         // Tag finished product with 'soplados'
-        $tag = \App\Models\Tag::create(['name' => 'soplados']);
+        $tag = \App\Models\Tag::firstOrCreate(['name' => 'soplados']);
         $this->finishedProduct->tags()->attach($tag->id);
 
         $this->rawMaterial = Product::create([
@@ -130,10 +131,13 @@ class SopladosInventoryTest extends TestCase
             'stock_qty' => 500,
             'low_stock' => 0,
             'manage_stock' => false,
+            'is_raw_material' => true,
             'category_id' => $this->category->id,
             'supplier_id' => $supplier->id,
             'status' => 1,
         ]);
+
+        $this->rawMaterial->tags()->attach($tag->id);
 
         // Add formula to link finishedProduct and rawMaterial
         \App\Models\ProductionFormula::create([
@@ -329,5 +333,60 @@ class SopladosInventoryTest extends TestCase
         $this->assertEquals(95.0, Product::find($this->finishedProduct->id)->stock_qty);
         $this->assertEquals(48.0, Product::find($this->secondQualityProduct->id)->stock_qty);
         $this->assertEquals(490.0, Product::find($this->rawMaterial->id)->stock_qty);
+    }
+
+    public function test_formulas_component_filters_products_and_ingredients()
+    {
+        // 1. We create another raw material and another finished product to test searching
+        $tag = \App\Models\Tag::where('name', 'soplados')->first();
+        
+        $otherFinished = Product::create([
+            'sku' => 'BOT-3L-1RA',
+            'name' => 'Envase 3L Primera',
+            'cost' => 0.40,
+            'price' => 1.20,
+            'stock_qty' => 10,
+            'low_stock' => 0,
+            'manage_stock' => false,
+            'is_raw_material' => false,
+            'category_id' => $this->category->id,
+            'supplier_id' => $this->finishedProduct->supplier_id,
+            'status' => 1,
+        ]);
+        $otherFinished->tags()->attach($tag->id);
+
+        $otherMaterial = Product::create([
+            'sku' => 'MAT-TAPA',
+            'name' => 'Tapa Rosca',
+            'cost' => 0.02,
+            'price' => 0.00,
+            'stock_qty' => 1000,
+            'low_stock' => 0,
+            'manage_stock' => false,
+            'is_raw_material' => true,
+            'category_id' => $this->category->id,
+            'supplier_id' => $this->finishedProduct->supplier_id,
+            'status' => 1,
+        ]);
+        $otherMaterial->tags()->attach($tag->id);
+
+        // 2. Test the Livewire Formulas component
+        // Search finished products - should return 'Envase 3L Primera' (since it is NOT raw material)
+        // and NOT 'Tapa Rosca' (since it IS raw material)
+        Livewire::test(\App\Livewire\Soplados\Formulas::class)
+            ->set('search_product', 'Envase')
+            ->assertSet('product_results', function($results) {
+                return collect($results)->pluck('name')->contains('Envase 3L Primera') 
+                    && !collect($results)->pluck('name')->contains('Tapa Rosca');
+            });
+
+        // Search ingredients - should return 'Tapa Rosca' (since it IS raw material)
+        // and NOT 'Envase 3L Primera' (since it is NOT raw material)
+        Livewire::test(\App\Livewire\Soplados\Formulas::class)
+            ->set('search_ingredient', 'Tapa')
+            ->assertSet('ingredient_results', function($results) {
+                return collect($results)->pluck('name')->contains('Tapa Rosca')
+                    && !collect($results)->pluck('name')->contains('Envase 3L Primera');
+            });
     }
 }

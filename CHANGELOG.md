@@ -1,3 +1,12 @@
+## [1.10.190] - 2026-06-29
+### Added
+- **Clasificación Explícita de Insumos y Productos Terminado (Soplados)**:
+  * Añadida la columna `is_raw_material` a la tabla `products` con migración de backfill automática para clasificar ingredientes previos como insumos.
+  * Agregado interruptor "Es Insumo / Materia Prima (Soplados)" en el formulario de creación/edición de productos de la administración web.
+  * Filtrado en el buscador del módulo de recetas para que "Producto Terminado" solo muestre productos no insumos y "Insumo" solo muestre insumos.
+  * Refactorizada la API de Soplados (`InventoryController` y `ProductionController`) para clasificar dinámicamente y filtrar materias primas utilizando la columna explícita de base de datos.
+  * Añadidas y validadas pruebas de integración para la búsqueda filtrada en Livewire y REST API.
+
 ## [1.10.189] - 2026-06-29
 ### Added
 - **Edición de Recetas en Fábrica Soplados**: Añadida la posibilidad de editar ingredientes, cantidades y combinaciones de recetas (fórmulas) directamente desde la interfaz web de Soplados (Livewire component y Blade view).
