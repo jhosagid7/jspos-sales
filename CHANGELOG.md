@@ -1,3 +1,7 @@
+## [1.10.191] - 2026-06-29
+### Fixed
+- **Notificación por Correo de Actualizaciones**: Restaurado el envío automático de notificaciones de correo electrónico a los destinatarios configurados al completarse con éxito una actualización del sistema. Se utiliza el mailable global `GenericNotificationMail` y se listan las novedades de la nueva versión del CHANGELOG.md en el cuerpo del correo.
+
 ## [1.10.190] - 2026-06-29
 ### Added
 - **Clasificación Explícita de Insumos y Productos Terminado (Soplados)**:

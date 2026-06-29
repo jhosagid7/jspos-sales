@@ -72,6 +72,9 @@ class SellersPerformanceReportTest extends TestCase
             'seller_id' => $this->seller2->id,
             'type' => 'Consumidor Final',
         ]);
+
+        // Enable advanced reports module
+        config(['tenant.modules' => ['module_advanced_reports']]);
     }
 
     public function test_sellers_performance_report_component_renders_for_authorized_user()

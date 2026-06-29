@@ -155,6 +155,7 @@ class UpdateSystem extends Component
 
         try {
             $updater->cleanup();
+            $updater->sendUpdateNotificationEmail($this->newVersion, $this->currentVersion);
             $this->finish();
         } catch (\Exception $e) {
             $this->handleError($e);

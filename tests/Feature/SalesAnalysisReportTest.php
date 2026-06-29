@@ -61,6 +61,9 @@ class SalesAnalysisReportTest extends TestCase
             'seller_id' => $this->seller->id,
             'type' => 'Consumidor Final',
         ]);
+
+        // Enable advanced reports module
+        config(['tenant.modules' => ['module_advanced_reports']]);
     }
 
     public function test_sales_analysis_report_component_renders_for_authorized_user()

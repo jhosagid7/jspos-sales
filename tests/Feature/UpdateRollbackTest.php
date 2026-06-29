@@ -352,4 +352,41 @@ class UpdateRollbackTest extends TestCase
         $response->assertHeader('Content-Disposition', 'attachment; filename=laravel_' . date('Y-m-d') . '.log');
         $this->assertEquals('Download test content', file_get_contents($response->baseResponse->getFile()->getPathname()));
     }
+
+    /**
+     * Test: sendUpdateNotificationEmail envía el correo correctamente.
+     */
+    public function test_send_update_notification_email_sends_email()
+    {
+        \Illuminate\Support\Facades\Mail::fake();
+
+        $updater = new UpdateService();
+        
+        // Define backup_mail_to in Laravel config
+        config(['backup.notifications.mail.to' => ['test@example.com']]);
+        
+        // Put a temporary changelog
+        $changelogPath = base_path('CHANGELOG.md');
+        $oldChangelogContent = '';
+        if (File::exists($changelogPath)) {
+            $oldChangelogContent = File::get($changelogPath);
+        }
+        
+        File::put($changelogPath, "## [1.0.5] - 2026-06-29\n### Added\n- Test release notes line");
+
+        $updater->sendUpdateNotificationEmail('1.0.5', '1.0.4');
+
+        \Illuminate\Support\Facades\Mail::assertSent(\App\Mail\GenericNotificationMail::class, function ($mail) {
+            $this->assertStringContainsString('🟢 Sistema JSPOS Actualizado a v1.0.5', $mail->subjectLine);
+            $this->assertStringContainsString('Test release notes line', $mail->bodyContent);
+            return $mail->hasTo('test@example.com');
+        });
+
+        // Restore changelog
+        if (!empty($oldChangelogContent)) {
+            File::put($changelogPath, $oldChangelogContent);
+        } else {
+            File::delete($changelogPath);
+        }
+    }
 }

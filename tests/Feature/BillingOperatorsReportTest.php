@@ -56,6 +56,9 @@ class BillingOperatorsReportTest extends TestCase
             'city' => 'Test City',
             'type' => 'Consumidor Final',
         ]);
+
+        // Enable advanced reports module
+        config(['tenant.modules' => ['module_advanced_reports']]);
     }
 
     public function test_billing_operators_report_component_renders_for_authorized_user()

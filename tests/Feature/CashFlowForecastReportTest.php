@@ -30,6 +30,7 @@ class CashFlowForecastReportTest extends TestCase
 
         config([
             'app.installed' => false,
+            'tenant.modules' => ['module_advanced_reports'],
         ]);
 
         // Create Configuration

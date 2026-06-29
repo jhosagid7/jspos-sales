@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use ZipArchive;
 
 class UpdateService
@@ -583,6 +584,64 @@ class UpdateService
             return true;
         }
         return false;
+    }
+
+    /**
+     * Envía una notificación de correo al completar una actualización.
+     */
+    public function sendUpdateNotificationEmail($newVersion, $oldVersion)
+    {
+        try {
+            $recipients = config('backup.notifications.mail.to');
+            if (empty($recipients)) {
+                $recipients = array_filter(array_map('trim', explode(',', env('BACKUP_MAIL_TO', 'jhosagid7@gmail.com'))));
+            }
+            if (empty($recipients)) {
+                return;
+            }
+
+            $subject = "🟢 Sistema JSPOS Actualizado a v{$newVersion}";
+            
+            // Get release notes if available
+            $releaseNotes = '';
+            $changelogPath = base_path('CHANGELOG.md');
+            if (file_exists($changelogPath)) {
+                $content = file_get_contents($changelogPath);
+                $lines = explode("\n", $content);
+                $notes = [];
+                $capturing = false;
+                $searchVersion = str_replace('v', '', $newVersion);
+                $startPattern = "/^## \[" . preg_quote($searchVersion, '/') . "\]/";
+
+                foreach ($lines as $line) {
+                    if (preg_match($startPattern, $line)) {
+                        $capturing = true;
+                        continue;
+                    }
+                    if ($capturing && preg_match('/^## \[/', $line)) {
+                        break;
+                    }
+                    if ($capturing) {
+                        $notes[] = $line;
+                    }
+                }
+                $releaseNotes = trim(implode("\n", $notes));
+            }
+
+            $body = "Hola,\n\nEl sistema JSPOS ha sido actualizado exitosamente de la versión v{$oldVersion} a la versión v{$newVersion}.\n\n";
+            if (!empty($releaseNotes)) {
+                $body .= "📋 NOTAS DE LA VERSIÓN:\n--------------------------------------------------\n{$releaseNotes}\n\n";
+            }
+            $body .= "Se ha creado automáticamente un punto de restauración antes de realizar la actualización en storage/backups/antes_de_v{$oldVersion}.\n\nAtentamente,\nSistema de Actualización Automatizado.";
+
+            Mail::to($recipients)->send(new \App\Mail\GenericNotificationMail(
+                $subject,
+                $body
+            ));
+            Log::info("Update notification email sent to: " . implode(', ', $recipients));
+        } catch (\Exception $e) {
+            Log::error("Failed to send update notification email: " . $e->getMessage());
+        }
     }
 
     /**
