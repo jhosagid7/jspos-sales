@@ -1,3 +1,8 @@
+## [1.10.192] - 2026-06-30
+### Fixed
+- **Preservación y Recálculo de Pagos en POS**: Corrección de bug donde la reapertura del modal de cobros del POS limpiaba la lista de abonos del operador pero dejaba obsoleto el total cobrado. Ahora se preservan y recalculan dinámicamente con la tasa configurada (Binance/BCV) según los cambios de moneda de factura o toggle de comisiones.
+- **Validación del Diferencial Cambiario**: Se corrigió el cálculo para que solo aplique la tasa BCV especial en la facturación y validaciones si la casilla de "Aplicar Comisión" está activa, ignorando recargos automáticos erróneos cuando no está aplicada.
+
 ## [1.10.191] - 2026-06-29
 ### Fixed
 - **Notificación por Correo de Actualizaciones**: Restaurado el envío automático de notificaciones de correo electrónico a los destinatarios configurados al completarse con éxito una actualización del sistema. Se utiliza el mailable global `GenericNotificationMail` y se listan las novedades de la nueva versión del CHANGELOG.md en el cuerpo del correo.

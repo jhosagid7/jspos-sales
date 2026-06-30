@@ -391,4 +391,189 @@ class POSPaymentAgreementEnforcementTest extends TestCase
 
         $this->assertEquals(1, Sale::count());
     }
+
+    public function test_customer_differential_ignored_when_commissions_check_inactive()
+    {
+        // Setup customer with differential
+        \App\Models\CustomerConfig::where('customer_id', $this->customer->id)->update([
+            'exchange_diff_percent' => 30.00,
+            'commission_percent' => 0.00
+        ]);
+
+        // Temporarily set VAT to 0 so base total USD is exactly 10.00 USD
+        Configuration::first()->update(['vat' => 0]);
+
+        // Reset static cache in ConfigurationService
+        $ref = new \ReflectionClass(\App\Services\ConfigurationService::class);
+        $prop = $ref->getProperty('config');
+        $prop->setAccessible(true);
+        $prop->setValue(null);
+
+        $cartItem = [
+            'id' => $this->product->id,
+            'pid' => $this->product->id,
+            'sku' => $this->product->sku,
+            'name' => $this->product->name,
+            'qty' => 1,
+            'price' => 10.00,
+            'base_price' => 10.00,
+            'sale_price' => 10.00,
+            'tax' => 0.00,
+            'total' => 10.00,
+            'pricelist' => [],
+        ];
+
+        session(['cart' => [$cartItem]]);
+
+        // Grant permission to prevent auto-enable of commissions in render()
+        \Spatie\Permission\Models\Permission::findOrCreate('sales.manage_adjustments');
+        $this->user->givePermissionTo('sales.manage_adjustments');
+
+        // Even though client has 30% differential configured, since applyCommissions is FALSE,
+        // the differential is ignored. 
+        // Thus, paying 545.00 VES (which would cover 10 USD at BCV rate 54.50) is converted at Binance rate (75.00),
+        // resulting in 545 / 75 = 7.27 USD, which does not cover 10 USD.
+        // The sale should be BLOCKED.
+        Livewire::actingAs($this->user)
+            ->test(Sales::class)
+            ->call('setCustomer', $this->customer->toArray())
+            ->set('applyCommissions', false)
+            ->set('cart', collect([$cartItem]))
+            ->set('totalCart', 10.00)
+            ->set('itemsCart', 1)
+            ->set('selectedPaymentMethod', 'cash')
+            ->set('paymentCurrency', 'VED')
+            ->set('paymentAmount', 545.00)
+            ->call('addPayment')
+            ->call('Store')
+            ->assertDispatched('noty', msg: "VENTA BLOQUEADA: El pago recibido en Bolívares no cubre el valor real de la venta debido a una tasa incorrecta o diferencial insuficiente.");
+
+        $this->assertEquals(0, Sale::count());
+    }
+
+    public function test_customer_differential_applied_when_commissions_check_active()
+    {
+        // Setup customer with differential
+        \App\Models\CustomerConfig::where('customer_id', $this->customer->id)->update([
+            'exchange_diff_percent' => 40.00,
+            'commission_percent' => 0.00
+        ]);
+
+        // Temporarily set VAT to 0 so base total USD is exactly 10.00 USD
+        Configuration::first()->update(['vat' => 0]);
+
+        // Reset static cache in ConfigurationService
+        $ref = new \ReflectionClass(\App\Services\ConfigurationService::class);
+        $prop = $ref->getProperty('config');
+        $prop->setAccessible(true);
+        $prop->setValue(null);
+
+        $cartItem = [
+            'id' => $this->product->id,
+            'pid' => $this->product->id,
+            'sku' => $this->product->sku,
+            'name' => $this->product->name,
+            'qty' => 1,
+            'price' => 10.00,
+            'base_price' => 10.00,
+            'sale_price' => 10.00,
+            'tax' => 0.00,
+            'total' => 10.00,
+            'pricelist' => [],
+        ];
+
+        session(['cart' => [$cartItem]]);
+
+        // With applyCommissions = TRUE and sufficient differential, the rate to use for VES is BCV (54.50).
+        // Paying 763.00 VES covers exactly 14.00 USD (10 USD base + 40% differential) at BCV rate.
+        // The sale should succeed.
+        Livewire::actingAs($this->user)
+            ->test(Sales::class)
+            ->call('setCustomer', $this->customer->toArray())
+            ->set('applyCommissions', true)
+            ->set('cart', collect([$cartItem]))
+            ->set('totalCart', 14.00)
+            ->set('itemsCart', 1)
+            ->set('selectedPaymentMethod', 'cash')
+            ->set('paymentCurrency', 'VED')
+            ->set('paymentAmount', 763.00)
+            ->call('addPayment')
+            ->call('Store')
+            ->assertHasNoErrors();
+
+        $this->assertEquals(1, Sale::count());
+    }
+
+    public function test_payments_preserved_and_recalculated_when_toggling_commissions_checkbox()
+    {
+        // Setup customer with differential
+        \App\Models\CustomerConfig::where('customer_id', $this->customer->id)->update([
+            'exchange_diff_percent' => 30.00,
+            'commission_percent' => 0.00
+        ]);
+
+        // Temporarily set VAT to 0 so base total USD is exactly 10.00 USD
+        Configuration::first()->update(['vat' => 0]);
+
+        // Reset static cache in ConfigurationService
+        $ref = new \ReflectionClass(\App\Services\ConfigurationService::class);
+        $prop = $ref->getProperty('config');
+        $prop->setAccessible(true);
+        $prop->setValue(null);
+
+        $cartItem = [
+            'id' => $this->product->id,
+            'pid' => $this->product->id,
+            'sku' => $this->product->sku,
+            'name' => $this->product->name,
+            'qty' => 1,
+            'price' => 10.00,
+            'base_price' => 10.00,
+            'sale_price' => 10.00,
+            'tax' => 0.00,
+            'total' => 10.00,
+            'pricelist' => [],
+        ];
+
+        // Grant permission to prevent auto-enable of commissions in render()
+        \Spatie\Permission\Models\Permission::findOrCreate('sales.manage_adjustments');
+        $this->user->givePermissionTo('sales.manage_adjustments');
+
+        session(['cart' => [$cartItem]]);
+
+        $component = Livewire::actingAs($this->user)
+            ->test(Sales::class)
+            ->call('setCustomer', $this->customer->toArray())
+            ->set('applyCommissions', false)
+            ->set('cart', collect([$cartItem]))
+            ->set('totalCart', 10.00)
+            ->set('itemsCart', 1)
+            ->call('initPayment', 1)
+            ->set('selectedPaymentMethod', 'cash')
+            ->set('paymentCurrency', 'VED')
+            ->set('paymentAmount', 500.00)
+            ->call('addPayment');
+
+        // At Binance rate (75.00), 500 VES is 6.67 USD.
+        // Remaining should be 10.00 - 6.67 = 3.33 USD.
+        $this->assertEquals(500, $component->get('payments')[0]['amount']);
+        $this->assertEquals('VED', $component->get('payments')[0]['currency']);
+        $this->assertEquals(75, $component->get('payments')[0]['exchange_rate']);
+        $this->assertEquals(round(500/75, 2), round($component->get('payments')[0]['amount_in_primary_currency'], 2));
+        $this->assertEquals(round(10 - 500/75, 2), round($component->get('remainingAmount'), 2));
+
+        // Now toggle commissions to TRUE, which also changes totalCart to 13.00 USD
+        $component->set('applyCommissions', true)
+            ->set('totalCart', 13.00)
+            ->call('initPayment', 1); // Re-init payment (simulating opening modal again)
+
+        // Payments list must be preserved, and VED payment should have been converted at BCV rate (54.50).
+        // 500 VES / 54.50 = 9.17 USD.
+        // Remaining should be 13.00 - 9.17 = 3.83 USD.
+        $this->assertCount(1, $component->get('payments'));
+        $this->assertEquals(500, $component->get('payments')[0]['amount']);
+        $this->assertEquals(54.50, $component->get('payments')[0]['exchange_rate']);
+        $this->assertEquals(round(500/54.50, 2), round($component->get('payments')[0]['amount_in_primary_currency'], 2));
+        $this->assertEquals(round(13 - 500/54.50, 2), round($component->get('remainingAmount'), 2));
+    }
 }

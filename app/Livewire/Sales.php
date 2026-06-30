@@ -273,6 +273,14 @@ class Sales extends Component
 
                 // Recalcular precios del carrito al cambiar la moneda (Reglas de precio pueden variar)
                 $this->recalculateCartPrices();
+
+                // Clear any existing payment session so it doesn't get hydrated with stale values
+                session()->forget(['payments', 'remainingAmount', 'change', 'totalCartAtPayment', 'changeDistribution']);
+                $this->payments = [];
+                $this->remainingAmount = 0;
+                $this->change = 0;
+                $this->totalCartAtPayment = null;
+                $this->changeDistribution = [];
             }
         }
     }
@@ -515,7 +523,7 @@ class Sales extends Component
         
         $rateToUse = $currency->exchange_rate;
         if (in_array(strtoupper($currency->code), ['VED', 'VES'])) {
-            $isBcv = ($this->paymentAgreement === 'BCV') || ($this->selectedPaymentMethod !== 'credit' && $this->activeDiff > 0);
+            $isBcv = ($this->paymentAgreement === 'BCV') || ($this->selectedPaymentMethod !== 'credit' && $this->activeDiff > 0 && $this->applyCommissions);
             if ($isBcv) {
                 $historyBCV = \App\Models\ExchangeRateHistory::where('rate_type', 'BCV')
                     ->where('created_at', '<=', now())
@@ -692,7 +700,7 @@ class Sales extends Component
         $config = \App\Models\Configuration::first();
         $binanceRate = $config ? (floatval($config->binance_rate) + floatval($config->binance_markup_points)) : 0;
 
-        $isBcv = ($this->paymentAgreement === 'BCV') || ($this->selectedPaymentMethod !== 'credit' && $this->activeDiff > 0);
+        $isBcv = ($this->paymentAgreement === 'BCV') || ($this->selectedPaymentMethod !== 'credit' && $this->activeDiff > 0 && $this->applyCommissions);
 
         foreach ($this->payments as &$payment) {
             if (in_array(strtoupper($payment['currency'] ?? ''), ['VED', 'VES'])) {
@@ -3332,14 +3340,17 @@ class Sales extends Component
 
         $this->totalCartAtPayment = round($this->totalCart * $conversionFactor, $decimals);
         
-        // Since we are starting payment, the remaining amount is the total
-        // We will manage amounts in the selected currency for the payment modal
-        // Note: The system stores payments in their original currency, but we need a reference 'remaining' amount.
-        // Usually `remainingAmount` is in Primary Currency.
-        // But for the View ID 174 request, the user wants to see everything in the selected currency.
-        
-        // Let's set remainingAmount in the DISPLAY currency for the UI interactions.
-        $this->remainingAmount = $this->totalCartAtPayment; 
+        // Recalculate remaining amount and change based on existing payments (preserving them)
+        $this->calculateRemainingAndChange();
+
+        // Persist initial values to session to prevent hydrate() from restoring stale state
+        session([
+            'totalCartAtPayment' => $this->totalCartAtPayment,
+            'remainingAmount' => $this->remainingAmount,
+            'change' => $this->change,
+            'payments' => $this->payments,
+            'changeDistribution' => $this->changeDistribution
+        ]);
         
         $this->dispatch('initPay', payType: $type);
     }
@@ -3458,11 +3469,13 @@ class Sales extends Component
 
         $this->payments[] = $newPayment;
 
+        // Update Totals (Also updates VED payment conversion rate based on BCV/Binance, remainingAmount, change, and saves to session)
+        $this->calculateRemainingAndChange();
+        
         // Save to session to persist data
         session(['payments' => $this->payments]);
-        
-        // Update Totals
-        $this->calculatePaymentTotals();
+        session(['remainingAmount' => $this->remainingAmount]);
+        session(['change' => $this->change]);
         
         // Reset Form
         $this->resetBankForm();
@@ -3482,34 +3495,6 @@ class Sales extends Component
         $this->bankStatusMessage = '';
         $this->isVedBankSelected = false;
         $this->bankRemainingBalance = null;
-    }
-    
-    public function calculatePaymentTotals()
-    {
-        $this->totalPaidDisplay = collect($this->payments)->sum('amount'); // This is naive summing of mixed currencies. 
-        // POS usually sums in primary currency?
-        // Let's check initPayment: $this->totalPaid = array_sum(array_column($this->payments, 'amount_in_primary'));
-        
-        $this->totalInPrimaryCurrency = collect($this->payments)->sum('amount_in_primary_currency');
-        
-        // Update remaining logic
-        // remainingAmount was set to totalCartAtPayment (in Display Currency?)
-        // If we want to show remaining in Display Currency, we need to convert paid amounts to Display Currency.
-        
-        // This is complex because Sales.php manages display differently. 
-        // Let's assume for now we just want to update the UI totals.
-        
-        // Recalculate remaining
-        $primaryCurrency = CurrencyHelper::getPrimaryCurrency();
-        $conversionFactor = $this->getConversionFactor(); // To Display Currency
-        
-        $totalPaidInDisplay = $this->totalInPrimaryCurrency * $conversionFactor;
-        
-        // totalCartAtPayment is in Display Currency
-        $this->totalPaidDisplay = $totalPaidInDisplay; // Update property for View
-        
-        $this->remainingAmount = max(0, $this->totalCartAtPayment - $totalPaidInDisplay);
-        $this->change = max(0, $totalPaidInDisplay - $this->totalCartAtPayment);
     }
     
     // Helpers for Display Logic
@@ -3560,7 +3545,7 @@ class Sales extends Component
         $hasVedPayment = collect($this->payments)->contains(function($p) {
             return in_array(strtoupper($p['currency'] ?? ''), ['VED', 'VES']);
         });
-        return $hasVedPayment && $this->activeDiff > 0;
+        return $hasVedPayment && $this->activeDiff > 0 && $this->applyCommissions;
     }
 
     public function getDisplayTotalCartProperty()
@@ -4446,7 +4431,7 @@ class Sales extends Component
         // Enforce exchange rate gap validation on credit orders
         $rateGap = $this->rateGap;
         $activeDiff = $this->activeDiff;
-        $isBcvOrder = ($this->paymentAgreement === 'BCV') || (empty($this->paymentAgreement) && $activeDiff > 0);
+        $isBcvOrder = ($this->paymentAgreement === 'BCV') || (empty($this->paymentAgreement) && $activeDiff > 0 && $this->applyCommissions);
         if ($isBcvOrder && $activeDiff < $rateGap) {
             $this->dispatch('noty', msg: "VENTA BLOQUEADA: El diferencial del cliente (" . number_format($activeDiff, 2) . "%) no cubre la brecha cambiaria (" . number_format($rateGap, 2) . "%).");
             return;
