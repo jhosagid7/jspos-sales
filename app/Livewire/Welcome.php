@@ -208,9 +208,11 @@ class Welcome extends Component
             // Profit (Simplified: Total - (Cost * Qty))
             $dailyProfit = 0;
             foreach($sales as $sale) {
+                $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
                 foreach($sale->details as $detail) {
                     $cost = $detail->product->cost ?? 0;
-                    $dailyProfit += ($detail->price * $detail->quantity) - ($cost * $detail->quantity);
+                    $salePriceUSD = $detail->sale_price / $rate;
+                    $dailyProfit += ($salePriceUSD * $detail->quantity) - ($cost * $detail->quantity);
                 }
             }
             $profitData[] = $dailyProfit;
@@ -237,7 +239,7 @@ class Welcome extends Component
             ->join('users', 'customers.seller_id', '=', 'users.id')
             ->select(
                 'users.name as seller_name',
-                \Illuminate\Support\Facades\DB::raw('SUM((sale_details.sale_price - COALESCE(products.cost, 0)) * sale_details.quantity) as total_profit')
+                \Illuminate\Support\Facades\DB::raw('SUM(((sale_details.sale_price / COALESCE(NULLIF(sales.primary_exchange_rate, 0), 1)) - COALESCE(products.cost, 0)) * sale_details.quantity) as total_profit')
             )
             ->where('sales.status', 'paid')
             ->whereMonth('sales.created_at', \Carbon\Carbon::now()->month)

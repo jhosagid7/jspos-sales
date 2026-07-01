@@ -44,7 +44,7 @@ class BestSellers extends Component
             ->select(
                 'sale_details.product_id',
                 DB::raw('SUM(sale_details.quantity) as total_qty'),
-                DB::raw('SUM(sale_details.quantity * sale_details.sale_price) as total_sales')
+                DB::raw('SUM(sale_details.quantity * sale_details.sale_price / COALESCE(NULLIF(sales.primary_exchange_rate, 0), 1)) as total_sales')
             )
             ->whereBetween('sales.created_at', [$this->dateFrom . ' 00:00:00', $this->dateTo . ' 23:59:59'])
             ->where('sales.status', 'paid')

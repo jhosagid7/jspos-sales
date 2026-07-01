@@ -3258,7 +3258,7 @@ class ReportController extends Controller
                     'sale_details.product_id',
                     'products.name as product_name',
                     DB::raw('SUM(sale_details.quantity) as total_qty'),
-                    DB::raw('SUM(sale_details.quantity * sale_details.sale_price) as total_usd'),
+                    DB::raw('SUM(sale_details.quantity * sale_details.sale_price / COALESCE(NULLIF(sales.primary_exchange_rate, 0), 1)) as total_usd'),
                 ])
                 ->where('sales.customer_id', $customer->id)
                 ->where('sales.status', '<>', 'returned')

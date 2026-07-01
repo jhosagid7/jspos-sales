@@ -285,4 +285,63 @@ class RotationReportTest extends TestCase
             ->call('generateCatalogPdf')
             ->assertFileDownloaded('Catalogo_Ofertas_' . str_replace(' ', '_', $this->customer->name) . '.pdf');
     }
+
+    public function test_rotation_report_calculates_correct_totals_when_sale_is_in_foreign_currency()
+    {
+        // Clear existing sales to isolate this test
+        SaleDetail::query()->delete();
+        Sale::query()->delete();
+
+        // Product cost = 5.00, price = 10.00
+        $product = Product::create([
+            'name' => 'Foreign Product',
+            'sku' => 'P-FOREIGN-99',
+            'cost' => 5.00,
+            'price' => 10.00,
+            'price_usd' => 10.00,
+            'show_in_sales' => true,
+            'stock_qty' => 10,
+            'manage_stock' => true,
+            'low_stock' => 0,
+            'category_id' => $this->category->id,
+            'supplier_id' => $this->supplier->id,
+        ]);
+
+        // Create Sale with primary_exchange_rate = 2.0
+        $sale = Sale::create([
+            'customer_id' => $this->customer->id,
+            'user_id' => $this->adminUser->id,
+            'total' => 20.00, // in foreign currency
+            'total_usd' => 10.00, // in USD
+            'primary_exchange_rate' => 2.0,
+            'items' => 1,
+            'status' => 'paid',
+            'type' => 'cash',
+            'created_at' => Carbon::now()->subDays(5),
+        ]);
+
+        // SaleDetail: quantity = 1, price = 20.00 in foreign currency
+        SaleDetail::create([
+            'sale_id' => $sale->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'regular_price' => 20.00,
+            'sale_price' => 20.00,
+            'discount' => 0.00,
+            'freight_amount' => 0.00,
+        ]);
+
+        $component = Livewire::actingAs($this->adminUser)
+            ->test(RotationReport::class);
+
+        // Fetch processed products data
+        $data = $component->instance()->getRotationData();
+        $processedProduct = collect($data->items())->firstWhere('id', $product->id);
+
+        $this->assertNotNull($processedProduct);
+        // Sales USD should be 10.00 (20.00 / 2.0 exchange rate)
+        $this->assertEquals(10.00, $processedProduct->sales_usd);
+        // Margin USD should be 5.00 (10.00 sales_usd - 5.00 cost)
+        $this->assertEquals(5.00, $processedProduct->margin_usd);
+    }
 }

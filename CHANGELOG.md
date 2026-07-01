@@ -1,3 +1,10 @@
+## [1.10.195] - 2026-07-01
+### Fixed
+- **Conversión de Moneda en Reportes de Ventas**:
+  * Corregido bug crítico donde los reportes de ventas (Matriz de Rotación, Actividad de Clientes, Más Vendidos, Estadísticas de Productos y Dashboard de Bienvenida) calculaban los montos en USD multiplicando la cantidad vendida directamente por el precio cobrado (`sale_price`), omitiendo que dicho precio se almacena en la moneda de la factura (ej. Bolívares/Pesos con tasas de cambio altas).
+  * Ahora todas las sumas y métricas financieras de ventas se dividen por la tasa de cambio de la venta (`primary_exchange_rate`), convirtiendo todos los valores a USD de forma uniforme y previniendo márgenes y montos de facturación falsos/inflados en el sistema.
+  * Añadidas pruebas unitarias y de integración automatizadas para validar la conversión de ventas con tasas de cambio.
+
 ## [1.10.194] - 2026-07-01
 ### Added
 - **Agrupamiento Dinámico en Generador de Listas de Precios**:

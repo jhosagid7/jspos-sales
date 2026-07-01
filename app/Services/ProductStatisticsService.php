@@ -146,7 +146,7 @@ class ProductStatisticsService
             ->join('sales', 'sale_details.sale_id', '=', 'sales.id')
             ->join('customers', 'sales.customer_id', '=', 'customers.id')
             ->where('sales.status', 'PAID')
-            ->selectRaw('customers.name, SUM(sale_details.quantity) as total_qty, SUM(sale_details.quantity * sale_details.sale_price) as total_amount')
+            ->selectRaw('customers.name, SUM(sale_details.quantity) as total_qty, SUM(sale_details.quantity * sale_details.sale_price / COALESCE(NULLIF(sales.primary_exchange_rate, 0), 1)) as total_amount')
             ->groupBy('customers.id', 'customers.name')
             ->orderByDesc('total_qty')
             ->limit($limit)

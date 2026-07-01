@@ -169,7 +169,7 @@ class RotationReport extends Component
                 'products.price',
                 'categories.name as category_name',
                 DB::raw("COALESCE(SUM(CASE WHEN sales.status IN ('PAID', 'PENDING', 'paid', 'pending') AND sales.created_at BETWEEN ? AND ? $customerCondition THEN sale_details.quantity ELSE 0 END), 0) as total_sold"),
-                DB::raw("COALESCE(SUM(CASE WHEN sales.status IN ('PAID', 'PENDING', 'paid', 'pending') AND sales.created_at BETWEEN ? AND ? $customerCondition THEN sale_details.quantity * sale_details.sale_price ELSE 0 END), 0) as total_sold_usd"),
+                DB::raw("COALESCE(SUM(CASE WHEN sales.status IN ('PAID', 'PENDING', 'paid', 'pending') AND sales.created_at BETWEEN ? AND ? $customerCondition THEN sale_details.quantity * (sale_details.sale_price / COALESCE(NULLIF(sales.primary_exchange_rate, 0), 1)) ELSE 0 END), 0) as total_sold_usd"),
                 DB::raw("COUNT(DISTINCT CASE WHEN sales.status IN ('PAID', 'PENDING', 'paid', 'pending') AND sales.created_at BETWEEN ? AND ? $customerCondition THEN DATE(sales.created_at) END) as days_with_sales")
             )
             ->setBindings($allBindings, 'select');
