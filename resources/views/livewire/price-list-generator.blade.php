@@ -154,14 +154,24 @@
                                 </div>
                             </div>
                             @endmodule
-
-                             {{-- Supplier and Tag Filters --}}
+                                                      {{-- Category, Supplier and Tag Filters --}}
                              <div class="row mb-4 p-3 bg-light rounded">
                                  <div class="col-12">
                                      <h6 class="font-weight-bold text-dark"><i class="fas fa-filter"></i> Filtrar Productos (Opcional)</h6>
-                                     <p class="text-muted small">Filtre la lista de precios por un proveedor específico y/o una etiqueta (tag).</p>
+                                     <p class="text-muted small">Filtre la lista de precios por una categoría, un proveedor específico y/o una etiqueta (tag).</p>
                                  </div>
-                                 <div class="col-md-6">
+                                 <div class="col-md-4">
+                                     <div class="form-group">
+                                         <label class="font-weight-bold">Filtrar por Categoría</label>
+                                         <select wire:model.live="selectedCategoryId" class="form-control">
+                                             <option value="">-- Todas las Categorías --</option>
+                                             @foreach($categories as $category)
+                                             <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                             @endforeach
+                                         </select>
+                                     </div>
+                                 </div>
+                                 <div class="col-md-4">
                                      <div class="form-group">
                                          <label class="font-weight-bold">Filtrar por Proveedor</label>
                                          <select wire:model.live="selectedSupplierId" class="form-control">
@@ -172,7 +182,7 @@
                                          </select>
                                      </div>
                                  </div>
-                                 <div class="col-md-6">
+                                 <div class="col-md-4">
                                      <div class="form-group">
                                          <label class="font-weight-bold">Filtrar por Tag</label>
                                          <select wire:model.live="selectedTagId" class="form-control">
@@ -181,6 +191,31 @@
                                              <option value="{{ $tag->id }}">{{ $tag->name }}</option>
                                              @endforeach
                                          </select>
+                                     </div>
+                                 </div>
+                             </div>
+
+                             {{-- Options Section --}}
+                             <div class="row mb-4 p-3 bg-light rounded">
+                                 <div class="col-12">
+                                     <h6 class="font-weight-bold text-dark"><i class="fas fa-cogs"></i> Opciones de la Lista</h6>
+                                 </div>
+                                 <div class="col-md-6">
+                                     <div class="custom-control custom-checkbox">
+                                         <input type="checkbox" class="custom-control-input" id="apply_commissions_toggle" wire:model.live="applyCommissionsToggle">
+                                         <label class="custom-control-label font-weight-bold" for="apply_commissions_toggle">
+                                             Aplicar comisiones, fletes y recargos
+                                         </label>
+                                         <span class="d-block text-muted small">Si se desmarca, se generará con los precios base sin recargos.</span>
+                                     </div>
+                                 </div>
+                                 <div class="col-md-6">
+                                     <div class="custom-control custom-checkbox">
+                                         <input type="checkbox" class="custom-control-input" id="only_bought_products" wire:model.live="onlyBoughtProducts" @if(!$customerId) disabled @endif>
+                                         <label class="custom-control-label font-weight-bold {{ !$customerId ? 'text-muted' : '' }}" for="only_bought_products">
+                                             Solo productos comprados por el cliente
+                                         </label>
+                                         <span class="d-block text-muted small">Requiere seleccionar un cliente en el buscador de abajo.</span>
                                      </div>
                                  </div>
                              </div>

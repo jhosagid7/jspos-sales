@@ -21,6 +21,9 @@ class PriceListGenerator extends Component
     public function handleSelectedCustomer($id)
     {
         $this->customerId = is_array($id) ? $id['id'] : $id;
+        if (!$this->customerId) {
+            $this->onlyBoughtProducts = false;
+        }
     }
     
     // New Properties for Advanced Features
@@ -39,11 +42,17 @@ class PriceListGenerator extends Component
     public $customMora; // New property
     // public $customRuleDays; // Deprecated
 
-    // Supplier and Tag Filters
+    // Category, Supplier and Tag Filters
+    public $categories = [];
+    public $selectedCategoryId;
     public $suppliers = [];
     public $tags = [];
     public $selectedSupplierId;
     public $selectedTagId;
+
+    // Checkbox toggles
+    public $onlyBoughtProducts = false;
+    public $applyCommissionsToggle = true;
 
     // public $customRulePercent; // Deprecated
     // public $customRuleType = 'discount'; // Deprecated
@@ -78,7 +87,6 @@ class PriceListGenerator extends Component
 
         $this->config = Configuration::first();
         
-        // Load default columns from DB or fallback
         $savedColumns = $this->config->price_list_columns;
         if ($savedColumns) {
             // Check if savedColumns is already an array or a JSON string
@@ -87,6 +95,7 @@ class PriceListGenerator extends Component
             } else {
                  $this->selectedColumns = $savedColumns;
             }
+        } else {
             // Default columns if nothing saved
             $this->selectedColumns = ['sku', 'name', 'final_price'];
         }
@@ -102,7 +111,7 @@ class PriceListGenerator extends Component
              $this->sellers = \App\Models\User::sellers()->orderBy('name')->get();
              $this->customers = Customer::orderBy('name')->get();
         } else {
-            $this->customers = Customer::where('seller_id', $user->id)->orderBy('name')->get();
+             $this->customers = Customer::where('seller_id', $user->id)->orderBy('name')->get();
         }
 
         // Initialize with one empty rule
@@ -110,7 +119,8 @@ class PriceListGenerator extends Component
             ['days' => '', 'percent' => '', 'type' => 'discount']
         ];
 
-        // Load Suppliers and Tags
+        // Load Categories, Suppliers and Tags
+        $this->categories = \App\Models\Category::orderBy('name')->get();
         $this->suppliers = \App\Models\Supplier::orderBy('name')->get();
         $this->tags = \App\Models\Tag::orderBy('name')->get();
     }
@@ -187,41 +197,55 @@ class PriceListGenerator extends Component
         // 3. Customer's Assigned Seller
         // 4. Current Logged-in Seller
         
-        // Check for Custom Configuration
-        if ($this->customCommission !== null || $this->customFreight !== null || $this->customExchangeDiff !== null || $this->customMarkup !== null) {
-            // Create a temporary object mocking SellerConfig
-            $sellerConfig = new \stdClass();
-            $sellerConfig->commission_percent = $this->customCommission ?? 0;
-            $sellerConfig->freight_percent = $this->customFreight ?? 0;
-            $sellerConfig->exchange_diff_percent = $this->customExchangeDiff ?? 0;
-            $sellerConfig->base_markup_percent = $this->customMarkup ?? 0;
-            Log::info('Using Custom Config', (array)$sellerConfig);
-        } 
-        elseif ($this->selectedSellerId) {
-             $seller = \App\Models\User::find($this->selectedSellerId);
-             if ($seller) {
-                 $sellerConfig = $seller->latestSellerConfig; 
-                 Log::info('Using Selected Seller Config', ['seller' => $seller->name, 'config' => $sellerConfig]);
-             }
-        }
-        elseif ($customer && $customer->seller_id) {
-            $seller = \App\Models\User::find($customer->seller_id);
-            if ($seller) {
-                $sellerConfig = $seller->latestSellerConfig; 
-                Log::info('Using Customer Seller Config', ['seller' => $seller->name, 'config' => $sellerConfig]);
+        // If comisiones are disabled globally for this list
+        if (!$this->applyCommissionsToggle) {
+            $sellerConfig = null;
+            $customer = null;
+            // Clear custom configuration fields so they are ignored
+            $this->customCommission = null;
+            $this->customFreight = null;
+            $this->customExchangeDiff = null;
+            $this->customMarkup = null;
+        } else {
+            // Check for Custom Configuration
+            if ($this->customCommission !== null || $this->customFreight !== null || $this->customExchangeDiff !== null || $this->customMarkup !== null) {
+                // Create a temporary object mocking SellerConfig
+                $sellerConfig = new \stdClass();
+                $sellerConfig->commission_percent = $this->customCommission ?? 0;
+                $sellerConfig->freight_percent = $this->customFreight ?? 0;
+                $sellerConfig->exchange_diff_percent = $this->customExchangeDiff ?? 0;
+                $sellerConfig->base_markup_percent = $this->customMarkup ?? 0;
+                Log::info('Using Custom Config', (array)$sellerConfig);
+            } 
+            elseif ($this->selectedSellerId) {
+                 $seller = \App\Models\User::find($this->selectedSellerId);
+                 if ($seller) {
+                     $sellerConfig = $seller->latestSellerConfig; 
+                     Log::info('Using Selected Seller Config', ['seller' => $seller->name, 'config' => $sellerConfig]);
+                 }
             }
-        } 
-        
-        if (!isset($sellerConfig) || !$sellerConfig) {
-             // Fallback to current user's config
-             $sellerConfig = $user->latestSellerConfig;
-             Log::info('Using Fallback User Config', ['user' => $user->name, 'config' => $sellerConfig]);
+            elseif ($customer && $customer->seller_id) {
+                $seller = \App\Models\User::find($customer->seller_id);
+                if ($seller) {
+                    $sellerConfig = $seller->latestSellerConfig; 
+                    Log::info('Using Customer Seller Config', ['seller' => $seller->name, 'config' => $sellerConfig]);
+                }
+            } 
+            
+            if (!isset($sellerConfig) || !$sellerConfig) {
+                 // Fallback to current user's config
+                 $sellerConfig = $user->latestSellerConfig;
+                 Log::info('Using Fallback User Config', ['user' => $user->name, 'config' => $sellerConfig]);
+            }
         }
 
         $products = Product::where('status', 'available')
             ->where('show_in_sales', true)
             ->with('category')
             ->join('categories', 'products.category_id', '=', 'categories.id')
+            ->when($this->selectedCategoryId, function($q) {
+                $q->where('products.category_id', $this->selectedCategoryId);
+            })
             ->when($this->selectedSupplierId, function($q) {
                 $q->where('products.supplier_id', $this->selectedSupplierId);
             })
@@ -229,6 +253,16 @@ class PriceListGenerator extends Component
                 $q->whereHas('tags', function($t) {
                     $t->where('tags.id', $this->selectedTagId);
                 });
+            })
+            ->when($this->onlyBoughtProducts && $this->customerId, function($q) {
+                $boughtProductIds = \App\Models\SaleDetail::whereHas('sale', function($query) {
+                    $query->where('customer_id', $this->customerId)
+                          ->whereNotIn(\Illuminate\Support\Facades\DB::raw('lower(status)'), ['voided', 'cancelled', 'anulated']);
+                })
+                ->pluck('product_id')
+                ->unique()
+                ->toArray();
+                $q->whereIn('products.id', $boughtProductIds);
             })
             ->orderBy('categories.name')
             ->orderBy('products.name')

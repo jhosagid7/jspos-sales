@@ -169,4 +169,171 @@ class PriceListGeneratorFiltersTest extends TestCase
 
         $response->assertFileDownloaded('Lista_Precios_' . now()->format('d-m-Y') . '.pdf');
     }
+
+    public function test_price_list_generator_filters_by_category()
+    {
+        $this->actingAs($this->adminUser);
+
+        $categoryB = Category::create(['name' => 'Cat B']);
+
+        Product::create([
+            'sku' => 'SKU-A',
+            'name' => 'Product A',
+            'cost' => 10,
+            'price' => 15,
+            'status' => 'available',
+            'show_in_sales' => true,
+            'category_id' => $this->category->id,
+            'supplier_id' => $this->supplierA->id,
+            'manage_stock' => false,
+            'stock_qty' => 100,
+            'low_stock' => 0,
+        ]);
+
+        Product::create([
+            'sku' => 'SKU-B',
+            'name' => 'Product B',
+            'cost' => 20,
+            'price' => 25,
+            'status' => 'available',
+            'show_in_sales' => true,
+            'category_id' => $categoryB->id,
+            'supplier_id' => $this->supplierB->id,
+            'manage_stock' => false,
+            'stock_qty' => 100,
+            'low_stock' => 0,
+        ]);
+
+        // When selectedCategoryId is set, generate should download PDF
+        $response = Livewire::test(\App\Livewire\PriceListGenerator::class)
+            ->set('selectedCategoryId', $this->category->id)
+            ->call('generate');
+
+        $response->assertFileDownloaded('Lista_Precios_' . now()->format('d-m-Y') . '.pdf');
+    }
+
+    public function test_price_list_generator_only_bought_products()
+    {
+        $this->actingAs($this->adminUser);
+
+        $customer = \App\Models\Customer::create([
+            'name' => 'John Doe',
+            'taxpayer_id' => 'V12345678',
+            'address' => 'Test Address',
+            'city' => 'Caracas',
+            'phone' => '123456',
+            'email' => 'john@doe.com',
+            'type' => 'Mayoristas',
+        ]);
+
+        $productA = Product::create([
+            'sku' => 'SKU-A',
+            'name' => 'Product A',
+            'cost' => 10,
+            'price' => 15,
+            'status' => 'available',
+            'show_in_sales' => true,
+            'category_id' => $this->category->id,
+            'supplier_id' => $this->supplierA->id,
+            'manage_stock' => false,
+            'stock_qty' => 100,
+            'low_stock' => 0,
+        ]);
+
+        Product::create([
+            'sku' => 'SKU-B',
+            'name' => 'Product B',
+            'cost' => 20,
+            'price' => 25,
+            'status' => 'available',
+            'show_in_sales' => true,
+            'category_id' => $this->category->id,
+            'supplier_id' => $this->supplierB->id,
+            'manage_stock' => false,
+            'stock_qty' => 100,
+            'low_stock' => 0,
+        ]);
+
+        // Create a sale for Product A only
+        $sale = \App\Models\Sale::create([
+            'total' => 15,
+            'total_usd' => 15,
+            'items' => 1,
+            'invoice_number' => 'F00000001',
+            'status' => 'paid',
+            'type' => 'cash',
+            'customer_id' => $customer->id,
+            'user_id' => $this->adminUser->id,
+        ]);
+        \App\Models\SaleDetail::create([
+            'sale_id' => $sale->id,
+            'product_id' => $productA->id,
+            'quantity' => 1,
+            'regular_price' => 15,
+            'sale_price' => 15,
+            'discount' => 0,
+        ]);
+
+        // Mock PDF loadView to inspect data passed
+        $pdfMock = \Mockery::mock(\Barryvdh\DomPDF\PDF::class);
+        $pdfMock->shouldReceive('output')->andReturn('pdf content');
+
+        \Barryvdh\DomPDF\Facade\Pdf::shouldReceive('loadView')
+            ->once()
+            ->with('pdf.price-list', \Mockery::on(function($data) {
+                $catGroup = $data['groupedData']['Cat'] ?? [];
+                $skus = array_column($catGroup, 'sku');
+                return in_array('SKU-A', $skus) && !in_array('SKU-B', $skus);
+            }))
+            ->andReturn($pdfMock);
+
+        $response = Livewire::test(\App\Livewire\PriceListGenerator::class)
+            ->set('customerId', $customer->id)
+            ->set('onlyBoughtProducts', true)
+            ->call('generate');
+
+        $response->assertStatus(200);
+    }
+
+    public function test_price_list_generator_without_commissions()
+    {
+        $this->actingAs($this->adminUser);
+
+        Product::create([
+            'sku' => 'SKU-A',
+            'name' => 'Product A',
+            'cost' => 10,
+            'price' => 100,
+            'status' => 'available',
+            'show_in_sales' => true,
+            'category_id' => $this->category->id,
+            'supplier_id' => $this->supplierA->id,
+            'manage_stock' => false,
+            'stock_qty' => 100,
+            'low_stock' => 0,
+        ]);
+
+        // Mock PDF loadView to check that final_price is base price (100) * (1 + 0.16) = 116 (if VAT is 16)
+        $pdfMock = \Mockery::mock(\Barryvdh\DomPDF\PDF::class);
+        $pdfMock->shouldReceive('output')->andReturn('pdf content');
+
+        \Barryvdh\DomPDF\Facade\Pdf::shouldReceive('loadView')
+            ->once()
+            ->with('pdf.price-list', \Mockery::on(function($data) {
+                $catGroup = $data['groupedData']['Cat'] ?? [];
+                foreach ($catGroup as $item) {
+                    if ($item['sku'] === 'SKU-A') {
+                        return abs($item['final_price'] - 116.0) < 0.001;
+                    }
+                }
+                return false;
+            }))
+            ->andReturn($pdfMock);
+
+        $response = Livewire::test(\App\Livewire\PriceListGenerator::class)
+            ->set('applyCommissionsToggle', false)
+            ->call('generate');
+
+        $response->assertStatus(200);
+    }
 }

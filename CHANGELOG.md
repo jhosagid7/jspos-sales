@@ -1,3 +1,20 @@
+## [1.10.193] - 2026-07-01
+### Added
+- **Filtros Avanzados y Opciones al Vuelo en Generador de Listas de Precios**:
+  * Implementada la capacidad de filtrar productos por Categoría, Proveedor (Supplier) y Tag desde la vista.
+  * Añadida opción para filtrar la lista mostrando exclusivamente productos comprados previamente por el cliente seleccionado (basado en el historial de ventas reales del cliente, omitiendo ventas anuladas o canceladas).
+  * Añadido interruptor para ignorar/omitir el cálculo de comisiones, fletes y diferenciales cambiarios en el PDF.
+  * Permitido aplicar valores "al vuelo" directamente en la generación de la lista de precios (comisión, flete, recargo, mora, días de crédito y reglas de pronto pago) sin alterar las configuraciones permanentes del cliente/vendedor en la base de datos.
+  
+### Changed
+- **Optimización de Limpieza Automática de Backups**:
+  * Modificado el script `backup_cliente.bat` para ejecutar `php artisan backup:clean` de forma previa al proceso de respaldo local, garantizando que el mantenimiento y purga de backups antiguos se realice de forma automática y consistente.
+
+### Fixed
+- **Estabilidad de Suite de Pruebas**:
+  * Corregida la falta del campo `'discount'` (sin valor por defecto) en la creación manual de `SaleDetail` dentro de la suite de pruebas.
+  * Corregido mock de `Barryvdh\DomPDF\Facade\Pdf::loadView` para que retorne un mock de la clase tipada correcta `Barryvdh\DomPDF\PDF` en lugar de una clase anónima que disparaba errores de tipado (TypeError).
+
 ## [1.10.192] - 2026-06-30
 ### Fixed
 - **Preservación y Recálculo de Pagos en POS**: Corrección de bug donde la reapertura del modal de cobros del POS limpiaba la lista de abonos del operador pero dejaba obsoleto el total cobrado. Ahora se preservan y recalculan dinámicamente con la tasa configurada (Binance/BCV) según los cambios de moneda de factura o toggle de comisiones.
