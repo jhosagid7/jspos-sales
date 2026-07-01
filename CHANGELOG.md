@@ -1,3 +1,10 @@
+## [1.10.196] - 2026-07-01
+### Fixed
+- **Optimización de Copias de Seguridad en Actualizador**:
+  * Corregido bug donde la exclusión de la carpeta `public/storage` no se aplicaba en sistemas Windows al resolverse la ruta real de los junctions (apuntando a `storage/app/public` en lugar de `public/storage`).
+  * Añadidas exclusiones para archivos pesados no relacionados con el código fuente en las copias de seguridad de rollback (como paquetes instaladores de Android `.apk`, videos `.mp4`, archivos comprimidos `.zip`/`.rar` e imágenes estáticas `.png`/`.jpg`/`.svg`/`.webp`/`.ico` y archivos `.map`).
+  * Reducido el tamaño de la copia de seguridad rollback en más del 80% y el tiempo de ejecución en más de 5 veces, previniendo que el actualizador se quede congelado o consuma demasiado espacio en disco.
+
 ## [1.10.195] - 2026-07-01
 ### Fixed
 - **Conversión de Moneda en Reportes de Ventas**:

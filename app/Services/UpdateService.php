@@ -356,8 +356,23 @@ class UpdateService
                 }
 
                 if (!$file->isDir()) {
-                    // Exclude storage symlinks in public or cache folders
-                    if (str_contains($filePath, 'public\\storage') || str_contains($filePath, 'public/storage') || str_contains($filePath, 'bootstrap\\cache') || str_contains($filePath, 'bootstrap/cache')) {
+                    $pathname = $file->getPathname();
+                    
+                    // Exclude storage symlinks in public or cache folders (check both realpath and pathname for Windows junctions)
+                    $isExcludeFolder = str_contains($filePath, 'public\\storage') || str_contains($filePath, 'public/storage') ||
+                                       str_contains($pathname, 'public\\storage') || str_contains($pathname, 'public/storage') ||
+                                       str_contains($filePath, 'bootstrap\\cache') || str_contains($filePath, 'bootstrap/cache') ||
+                                       str_contains($pathname, 'bootstrap\\cache') || str_contains($pathname, 'bootstrap/cache');
+                                       
+                    // Exclude large non-code media and installers to optimize update backup size and speed
+                    $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+                    $isExcludeExtension = in_array($extension, [
+                        'apk', 'mp4', 'zip', 'rar', 'tar', 'gz',
+                        'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico',
+                        'map', 'pdf', 'mp3', 'wav', 'ogg', 'wma', 'aac'
+                    ]);
+
+                    if ($isExcludeFolder || $isExcludeExtension) {
                         continue;
                     }
                     
