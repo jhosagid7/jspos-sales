@@ -1,3 +1,12 @@
+## [1.10.194] - 2026-07-01
+### Added
+- **Agrupamiento Dinámico en Generador de Listas de Precios**:
+  * Añadido selector en la interfaz para elegir cómo agrupar los productos en la lista de precios PDF: por Categoría (predeterminado), por Proveedor, por Etiqueta (Tag), o sin agrupación (lista continua).
+  * Si se agrupa por Etiqueta, los productos se listan bajo cada una de sus etiquetas (o en "Sin Etiqueta" si no tienen).
+  * Si se selecciona "Sin Agrupamiento", se omiten las filas de encabezados de sección para generar una tabla continua y limpia.
+  * Los grupos en el PDF se ordenan alfabéticamente de manera automática.
+  * Añadidas pruebas de validación automatizadas cubriendo los flujos de agrupación dinámica.
+
 ## [1.10.193] - 2026-07-01
 ### Added
 - **Filtros Avanzados y Opciones al Vuelo en Generador de Listas de Precios**:

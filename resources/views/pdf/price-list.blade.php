@@ -77,11 +77,13 @@
         </thead>
         <tbody>
             @foreach($groupedData as $category => $items)
+            @if($category !== '')
             <tr style="background-color: #e9ecef;">
                 <td colspan="{{ count($columns) }}" style="font-weight: bold; text-align: left; background-color: #ddd;">
                     {{ $category }}
                 </td>
             </tr>
+            @endif
             @foreach($items as $row)
             <tr style="{{ isset($row['is_out_of_stock']) && $row['is_out_of_stock'] ? 'color: red;' : '' }}">
                 @foreach($columns as $col)

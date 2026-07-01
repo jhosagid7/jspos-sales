@@ -53,6 +53,7 @@ class PriceListGenerator extends Component
     // Checkbox toggles
     public $onlyBoughtProducts = false;
     public $applyCommissionsToggle = true;
+    public $groupBy = 'category';
 
     // public $customRulePercent; // Deprecated
     // public $customRuleType = 'discount'; // Deprecated
@@ -241,7 +242,7 @@ class PriceListGenerator extends Component
 
         $products = Product::where('status', 'available')
             ->where('show_in_sales', true)
-            ->with('category')
+            ->with(['category', 'supplier', 'tags'])
             ->join('categories', 'products.category_id', '=', 'categories.id')
             ->when($this->selectedCategoryId, function($q) {
                 $q->where('products.category_id', $this->selectedCategoryId);
@@ -299,9 +300,29 @@ class PriceListGenerator extends Component
                         break;
                 }
             }
-            // Group by Category
-            $categoryName = $product->category ? $product->category->name : 'Sin Categoría';
-             $groupedData[$categoryName][] = $row;
+            
+            // Dynamic grouping
+            if ($this->groupBy === 'none') {
+                $groupedData[''][] = $row;
+            } elseif ($this->groupBy === 'supplier') {
+                $supplierName = $product->supplier ? $product->supplier->name : 'Sin Proveedor';
+                $groupedData[$supplierName][] = $row;
+            } elseif ($this->groupBy === 'tag') {
+                if ($product->tags && $product->tags->count() > 0) {
+                    foreach ($product->tags as $tag) {
+                        $groupedData[$tag->name][] = $row;
+                    }
+                } else {
+                    $groupedData['Sin Etiqueta'][] = $row;
+                }
+            } else {
+                $categoryName = $product->category ? $product->category->name : 'Sin Categoría';
+                $groupedData[$categoryName][] = $row;
+            }
+        }
+
+        if ($this->groupBy !== 'none') {
+            ksort($groupedData);
         }
 
         // Prepare Header Data

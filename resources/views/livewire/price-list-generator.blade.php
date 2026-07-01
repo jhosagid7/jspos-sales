@@ -200,7 +200,18 @@
                                  <div class="col-12">
                                      <h6 class="font-weight-bold text-dark"><i class="fas fa-cogs"></i> Opciones de la Lista</h6>
                                  </div>
-                                 <div class="col-md-6">
+                                 <div class="col-md-4 mb-3">
+                                     <div class="form-group mb-0">
+                                         <label class="font-weight-bold">Agrupar por</label>
+                                         <select wire:model.live="groupBy" class="form-control">
+                                             <option value="category">Categoría (Predeterminado)</option>
+                                             <option value="supplier">Proveedor</option>
+                                             <option value="tag">Etiqueta (Tag)</option>
+                                             <option value="none">No agrupar (Lista continua)</option>
+                                         </select>
+                                     </div>
+                                 </div>
+                                 <div class="col-md-4 mb-3 d-flex align-items-center">
                                      <div class="custom-control custom-checkbox">
                                          <input type="checkbox" class="custom-control-input" id="apply_commissions_toggle" wire:model.live="applyCommissionsToggle">
                                          <label class="custom-control-label font-weight-bold" for="apply_commissions_toggle">
@@ -209,7 +220,7 @@
                                          <span class="d-block text-muted small">Si se desmarca, se generará con los precios base sin recargos.</span>
                                      </div>
                                  </div>
-                                 <div class="col-md-6">
+                                 <div class="col-md-4 mb-3 d-flex align-items-center">
                                      <div class="custom-control custom-checkbox">
                                          <input type="checkbox" class="custom-control-input" id="only_bought_products" wire:model.live="onlyBoughtProducts" @if(!$customerId) disabled @endif>
                                          <label class="custom-control-label font-weight-bold {{ !$customerId ? 'text-muted' : '' }}" for="only_bought_products">

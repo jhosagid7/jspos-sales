@@ -336,4 +336,119 @@ class PriceListGeneratorFiltersTest extends TestCase
 
         $response->assertStatus(200);
     }
+
+    public function test_price_list_generator_grouped_by_supplier()
+    {
+        $this->actingAs($this->adminUser);
+
+        Product::create([
+            'sku' => 'SKU-A',
+            'name' => 'Product A',
+            'cost' => 10,
+            'price' => 15,
+            'status' => 'available',
+            'show_in_sales' => true,
+            'category_id' => $this->category->id,
+            'supplier_id' => $this->supplierA->id,
+            'manage_stock' => false,
+            'stock_qty' => 100,
+            'low_stock' => 0,
+        ]);
+
+        $pdfMock = \Mockery::mock(\Barryvdh\DomPDF\PDF::class);
+        $pdfMock->shouldReceive('output')->andReturn('pdf content');
+
+        \Barryvdh\DomPDF\Facade\Pdf::shouldReceive('loadView')
+            ->once()
+            ->with('pdf.price-list', \Mockery::on(function($data) {
+                // Should group by supplier name ("Supplier A")
+                $supplierGroup = $data['groupedData']['Supplier A'] ?? [];
+                $skus = array_column($supplierGroup, 'sku');
+                return in_array('SKU-A', $skus);
+            }))
+            ->andReturn($pdfMock);
+
+        $response = Livewire::test(\App\Livewire\PriceListGenerator::class)
+            ->set('groupBy', 'supplier')
+            ->call('generate');
+
+        $response->assertStatus(200);
+    }
+
+    public function test_price_list_generator_grouped_by_tag()
+    {
+        $this->actingAs($this->adminUser);
+
+        $product = Product::create([
+            'sku' => 'SKU-A',
+            'name' => 'Product A',
+            'cost' => 10,
+            'price' => 15,
+            'status' => 'available',
+            'show_in_sales' => true,
+            'category_id' => $this->category->id,
+            'supplier_id' => $this->supplierA->id,
+            'manage_stock' => false,
+            'stock_qty' => 100,
+            'low_stock' => 0,
+        ]);
+        $product->tags()->attach($this->tagA->id);
+
+        $pdfMock = \Mockery::mock(\Barryvdh\DomPDF\PDF::class);
+        $pdfMock->shouldReceive('output')->andReturn('pdf content');
+
+        \Barryvdh\DomPDF\Facade\Pdf::shouldReceive('loadView')
+            ->once()
+            ->with('pdf.price-list', \Mockery::on(function($data) {
+                // Should group by tag name ("Tag A")
+                $tagGroup = $data['groupedData']['Tag A'] ?? [];
+                $skus = array_column($tagGroup, 'sku');
+                return in_array('SKU-A', $skus);
+            }))
+            ->andReturn($pdfMock);
+
+        $response = Livewire::test(\App\Livewire\PriceListGenerator::class)
+            ->set('groupBy', 'tag')
+            ->call('generate');
+
+        $response->assertStatus(200);
+    }
+
+    public function test_price_list_generator_not_grouped()
+    {
+        $this->actingAs($this->adminUser);
+
+        Product::create([
+            'sku' => 'SKU-A',
+            'name' => 'Product A',
+            'cost' => 10,
+            'price' => 15,
+            'status' => 'available',
+            'show_in_sales' => true,
+            'category_id' => $this->category->id,
+            'supplier_id' => $this->supplierA->id,
+            'manage_stock' => false,
+            'stock_qty' => 100,
+            'low_stock' => 0,
+        ]);
+
+        $pdfMock = \Mockery::mock(\Barryvdh\DomPDF\PDF::class);
+        $pdfMock->shouldReceive('output')->andReturn('pdf content');
+
+        \Barryvdh\DomPDF\Facade\Pdf::shouldReceive('loadView')
+            ->once()
+            ->with('pdf.price-list', \Mockery::on(function($data) {
+                // Should group everything under the empty string ""
+                $emptyGroup = $data['groupedData'][''] ?? [];
+                $skus = array_column($emptyGroup, 'sku');
+                return in_array('SKU-A', $skus) && count($data['groupedData']) === 1;
+            }))
+            ->andReturn($pdfMock);
+
+        $response = Livewire::test(\App\Livewire\PriceListGenerator::class)
+            ->set('groupBy', 'none')
+            ->call('generate');
+
+        $response->assertStatus(200);
+    }
 }
