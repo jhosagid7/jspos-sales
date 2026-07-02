@@ -1,3 +1,13 @@
+## [1.10.201] - 2026-07-02
+### Added
+- **Configuración Multigrupo para Tasa de Cambio**:
+  * Ahora el usuario puede seleccionar múltiples grupos en la tabla de grupos disponibles para recibir la notificación diaria de la tasa de cambio.
+  * Si no se selecciona ningún grupo, el sistema continuará utilizando el comportamiento anterior (buscar por nombre de grupo "Diferencial").
+
+### Fixed
+- **Desconexión y Regeneración de QR**:
+  * Corregido bug donde al desconectar la cuenta de WhatsApp el código QR se congelaba en estado de generación. Ahora el backend fuerza la destrucción del navegador Chromium, limpia los archivos de sesión localmente y re-inicializa el cliente desde cero, garantizando que el nuevo QR se cargue en segundos.
+
 ## [1.10.200] - 2026-07-02
 ### Added
 - **Visualización de Grupos de WhatsApp en la Configuración**:

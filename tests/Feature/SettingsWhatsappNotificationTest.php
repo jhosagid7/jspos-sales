@@ -71,4 +71,41 @@ class SettingsWhatsappNotificationTest extends TestCase
             ->call('saveGlobalRates')
             ->assertHasNoErrors();
     }
+
+    public function test_save_global_rates_sends_whatsapp_notification_to_multiple_configured_groups()
+    {
+        $config = Configuration::first();
+        $config->update([
+            'whatsapp_rate_groups' => ['1111111111@g.us', '2222222222@g.us']
+        ]);
+
+        $this->mock(WhatsappService::class, function ($mock) {
+            $mock->shouldReceive('checkStatus')->once()->andReturn(true);
+            
+            $expectedMessage = "FABRICA DE PLASTICOS M&M STEEL\n" .
+                now()->format('d/m/Y') . "\n" .
+                "BCV: 639.70\n" .
+                "MONITOR: 735.06\n" .
+                "DIFERENCIAL: 1.1490\n" .
+                "SISTEMA: 760";
+                
+            $mock->shouldReceive('sendMessage')
+                ->once()
+                ->with('1111111111@g.us', $expectedMessage)
+                ->andReturn(['success' => true, 'error' => null]);
+
+            $mock->shouldReceive('sendMessage')
+                ->once()
+                ->with('2222222222@g.us', $expectedMessage)
+                ->andReturn(['success' => true, 'error' => null]);
+        });
+
+        Livewire::actingAs($this->user)
+            ->test(Settings::class)
+            ->set('bcvRate', 639.70)
+            ->set('binanceRate', 735.06)
+            ->set('binanceMarkupPoints', 24.94)
+            ->call('saveGlobalRates')
+            ->assertHasNoErrors();
+    }
 }

@@ -26,10 +26,12 @@ class WhatsappSettings extends Component
     public $descargo_subject = 'Nuevo Descargo / Salida de Inventario';
     public $descargo_body = 'Hola, se ha registrado una nueva Salida #[DESCARGO_ID] por el motivo: [MOTIVO]. Responsable: [USUARIO]. Por favor revisa el panel para su aprobación.';
     public $descargo_dispatch_mode = 'auto';
+    public $selectedGroups = [];
 
     public function mount()
     {
-        // ... (existing sale/payment load) ...
+        $config = \App\Models\Configuration::first();
+        $this->selectedGroups = $config->whatsapp_rate_groups ?? [];
         $saleTemplate = WhatsappTemplate::firstOrCreate(
             ['event_type' => 'sale_created'],
             ['subject' => $this->sale_subject, 'body' => $this->sale_body, 'is_active' => true, 'dispatch_mode' => 'auto']
@@ -97,6 +99,15 @@ class WhatsappSettings extends Component
         }
     }
 
+    public function toggleGroup($groupId)
+    {
+        if (in_array($groupId, $this->selectedGroups)) {
+            $this->selectedGroups = array_values(array_diff($this->selectedGroups, [$groupId]));
+        } else {
+            $this->selectedGroups[] = $groupId;
+        }
+    }
+
     public function disconnectWhatsapp()
     {
         try {
@@ -153,6 +164,13 @@ class WhatsappSettings extends Component
                 'dispatch_mode' => $this->descargo_dispatch_mode
             ]
         );
+
+        $config = \App\Models\Configuration::first();
+        if ($config) {
+            $config->update([
+                'whatsapp_rate_groups' => $this->selectedGroups
+            ]);
+        }
 
         $this->dispatch('noty', msg: 'CONFIGURACIÓN DE WHATSAPP GUARDADA');
     }

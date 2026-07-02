@@ -719,7 +719,14 @@ class Settings extends Component
                                  "DIFERENCIAL: {$diferencialStr}\n" .
                                  "SISTEMA: {$sistemaStr}";
 
-                    $whatsappService->sendToGroupByName('Diferencial', $waMessage);
+                    $selectedGroups = $config->whatsapp_rate_groups ?: [];
+                    if (empty($selectedGroups)) {
+                        $whatsappService->sendToGroupByName('Diferencial', $waMessage);
+                    } else {
+                        foreach ($selectedGroups as $groupId) {
+                            $whatsappService->sendMessage($groupId, $waMessage);
+                        }
+                    }
                 }
             } catch (\Exception $ex) {
                 \Illuminate\Support\Facades\Log::error("Error enviando tasa al grupo de WhatsApp: " . $ex->getMessage());

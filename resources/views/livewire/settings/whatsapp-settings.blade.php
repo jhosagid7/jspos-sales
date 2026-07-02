@@ -285,7 +285,7 @@
                             <h5 class="text-success mb-3">
                                 <i class="fas fa-users"></i> Grupos de WhatsApp Disponibles
                             </h5>
-                            <p class="text-muted">Lista de chats grupales activos detectados en tu cuenta de WhatsApp vinculada. El sistema utilizará el grupo llamado exactamente <strong>Diferencial</strong> para reportar los cambios de tasas diarios.</p>
+                            <p class="text-muted">Marca las casillas de los grupos a los que deseas enviar de forma automática la notificación diaria al guardar las tasas de cambio. Si no seleccionas ninguno, se enviará por defecto al grupo llamado <strong>Diferencial</strong>.</p>
                             
                             <div class="mb-3">
                                 <button type="button" wire:click="loadGroups" class="btn btn-outline-success btn-sm">
@@ -298,18 +298,28 @@
                                     <table class="table table-bordered table-striped table-hover align-middle">
                                         <thead class="table-light">
                                             <tr>
+                                                <th style="width: 80px;" class="text-center">Enviar</th>
                                                 <th>Nombre del Grupo</th>
                                                 <th>Identificador (JID) del Grupo</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             @foreach($groups as $group)
-                                                <tr class="{{ strtolower($group['name']) === 'diferencial' ? 'table-success font-weight-bold' : '' }}">
+                                                @php
+                                                    $isSelected = in_array($group['id'], $selectedGroups);
+                                                @endphp
+                                                <tr class="{{ $isSelected ? 'table-success font-weight-bold' : '' }}">
+                                                    <td class="text-center">
+                                                        <input type="checkbox" 
+                                                               class="form-check-input"
+                                                               wire:click="toggleGroup('{{ $group['id'] }}')"
+                                                               {{ $isSelected ? 'checked' : '' }}>
+                                                    </td>
                                                     <td>
                                                         <i class="fas fa-users-cog text-muted me-2"></i>
                                                         {{ $group['name'] }}
-                                                        @if(strtolower($group['name']) === 'diferencial')
-                                                            <span class="badge bg-success ms-2"><i class="fas fa-check"></i> Grupo Seleccionado</span>
+                                                        @if($isSelected)
+                                                            <span class="badge bg-success ms-2"><i class="fas fa-check"></i> Activo</span>
                                                         @endif
                                                     </td>
                                                     <td><code>{{ $group['id'] }}</code></td>
