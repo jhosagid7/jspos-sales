@@ -27,6 +27,7 @@ class CashFlowForecastReportTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Carbon::setTestNow(Carbon::create(2026, 7, 20, 12, 0, 0));
 
         config([
             'app.installed' => false,
@@ -369,6 +370,12 @@ class CashFlowForecastReportTest extends TestCase
             ->assertViewHas('sales', function ($sales) {
                 return $sales->count() === 2;
             });
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
     }
 }
 
