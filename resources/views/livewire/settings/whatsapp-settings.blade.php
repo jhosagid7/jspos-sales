@@ -298,29 +298,43 @@
                                     <table class="table table-bordered table-striped table-hover align-middle">
                                         <thead class="table-light">
                                             <tr>
-                                                <th style="width: 80px;" class="text-center">Enviar</th>
                                                 <th>Nombre del Grupo</th>
-                                                <th>Identificador (JID) del Grupo</th>
+                                                <th class="text-center" style="width: 150px;">Tasa de Cambio</th>
+                                                <th class="text-center" style="width: 150px;">Cierre Diario</th>
+                                                <th class="text-center" style="width: 150px;">Reporte Semanal PDF</th>
+                                                <th>Identificador (JID)</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             @foreach($groups as $group)
                                                 @php
-                                                    $isSelected = in_array($group['id'], $selectedGroups);
+                                                    $isRate = in_array($group['id'], $selectedRateGroups);
+                                                    $isClosure = in_array($group['id'], $selectedClosureGroups);
+                                                    $isWeekly = in_array($group['id'], $selectedWeeklyReportGroups);
+                                                    $anySelected = $isRate || $isClosure || $isWeekly;
                                                 @endphp
-                                                <tr class="{{ $isSelected ? 'table-success font-weight-bold' : '' }}">
+                                                <tr class="{{ $anySelected ? 'table-success' : '' }}">
+                                                    <td class="{{ $anySelected ? 'font-weight-bold' : '' }}">
+                                                        <i class="fas fa-users-cog text-muted me-2"></i>
+                                                        {{ $group['name'] }}
+                                                    </td>
                                                     <td class="text-center">
                                                         <input type="checkbox" 
                                                                class="form-check-input"
-                                                               wire:click="toggleGroup('{{ $group['id'] }}')"
-                                                               {{ $isSelected ? 'checked' : '' }}>
+                                                               wire:click="toggleGroup('{{ $group['id'] }}', 'rate')"
+                                                               {{ $isRate ? 'checked' : '' }}>
                                                     </td>
-                                                    <td>
-                                                        <i class="fas fa-users-cog text-muted me-2"></i>
-                                                        {{ $group['name'] }}
-                                                        @if($isSelected)
-                                                            <span class="badge bg-success ms-2"><i class="fas fa-check"></i> Activo</span>
-                                                        @endif
+                                                    <td class="text-center">
+                                                        <input type="checkbox" 
+                                                               class="form-check-input"
+                                                               wire:click="toggleGroup('{{ $group['id'] }}', 'closure')"
+                                                               {{ $isClosure ? 'checked' : '' }}>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <input type="checkbox" 
+                                                               class="form-check-input"
+                                                               wire:click="toggleGroup('{{ $group['id'] }}', 'weekly_report')"
+                                                               {{ $isWeekly ? 'checked' : '' }}>
                                                     </td>
                                                     <td><code>{{ $group['id'] }}</code></td>
                                                 </tr>

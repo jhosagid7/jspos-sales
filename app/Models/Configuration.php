@@ -73,6 +73,8 @@ class Configuration extends Model
         'production_materials_warehouse_id',
         'sequential_cut_off_date',
         'whatsapp_rate_groups',
+        'whatsapp_closure_groups',
+        'whatsapp_weekly_report_groups',
     ];
 
     protected $casts = [
@@ -85,6 +87,8 @@ class Configuration extends Model
         'catalogue_show_prices' => 'boolean',
         'catalogue_show_base_prices' => 'boolean',
         'whatsapp_rate_groups' => 'array',
+        'whatsapp_closure_groups' => 'array',
+        'whatsapp_weekly_report_groups' => 'array',
     ];
 
     public function defaultWarehouse()

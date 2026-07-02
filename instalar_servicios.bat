@@ -26,6 +26,8 @@ echo Deteniendo servicios antiguos si existen...
 "%NSSM_EXE%" remove JSPOS_WhatsApp_API confirm >nul 2>&1
 "%NSSM_EXE%" stop JSPOS_Queue_Worker >nul 2>&1
 "%NSSM_EXE%" remove JSPOS_Queue_Worker confirm >nul 2>&1
+"%NSSM_EXE%" stop JSPOS_Scheduler >nul 2>&1
+"%NSSM_EXE%" remove JSPOS_Scheduler confirm >nul 2>&1
 echo.
 
 echo Instalando Servicio: JSPOS_WhatsApp_API...
@@ -57,9 +59,20 @@ echo Instalando Servicio: JSPOS_Queue_Worker...
 "%NSSM_EXE%" set JSPOS_Queue_Worker AppRestartDelay 2000
 
 echo.
+echo Instalando Servicio: JSPOS_Scheduler...
+:: Crear el servicio de Laravel (Planificador de Tareas)
+"%NSSM_EXE%" install JSPOS_Scheduler "%PHP_EXE%" "artisan schedule:work"
+"%NSSM_EXE%" set JSPOS_Scheduler AppDirectory "%PROYECTO_DIR%"
+"%NSSM_EXE%" set JSPOS_Scheduler Description "Planificador de tareas y respaldos de JSPOS"
+"%NSSM_EXE%" set JSPOS_Scheduler AppStdout "%PROYECTO_DIR%\storage\logs\scheduler-worker.log"
+"%NSSM_EXE%" set JSPOS_Scheduler AppStderr "%PROYECTO_DIR%\storage\logs\scheduler-error.log"
+"%NSSM_EXE%" set JSPOS_Scheduler AppRestartDelay 2000
+
+echo.
 echo Iniciando los servicios...
 "%NSSM_EXE%" start JSPOS_WhatsApp_API
 "%NSSM_EXE%" start JSPOS_Queue_Worker
+"%NSSM_EXE%" start JSPOS_Scheduler
 
 echo.
 echo ===================================================

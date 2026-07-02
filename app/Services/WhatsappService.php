@@ -107,7 +107,7 @@ class WhatsappService
     /**
      * Busca un grupo por nombre (insensible a mayúsculas/minúsculas) y le envía un mensaje.
      */
-    public function sendToGroupByName(string $groupName, string $message): array
+    public function sendToGroupByName(string $groupName, string $message, ?string $attachmentPath = null): array
     {
         $groups = $this->getGroups();
         
@@ -122,7 +122,7 @@ class WhatsappService
         }
         
         if ($targetGroup) {
-            return $this->sendMessage($targetGroup['id'], $message);
+            return $this->sendMessage($targetGroup['id'], $message, $attachmentPath);
         }
         
         Log::warning("Grupo de WhatsApp '{$groupName}' no encontrado para enviar mensaje.");

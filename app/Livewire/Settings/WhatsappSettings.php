@@ -26,12 +26,16 @@ class WhatsappSettings extends Component
     public $descargo_subject = 'Nuevo Descargo / Salida de Inventario';
     public $descargo_body = 'Hola, se ha registrado una nueva Salida #[DESCARGO_ID] por el motivo: [MOTIVO]. Responsable: [USUARIO]. Por favor revisa el panel para su aprobación.';
     public $descargo_dispatch_mode = 'auto';
-    public $selectedGroups = [];
+    public $selectedRateGroups = [];
+    public $selectedClosureGroups = [];
+    public $selectedWeeklyReportGroups = [];
 
     public function mount()
     {
         $config = \App\Models\Configuration::first();
-        $this->selectedGroups = $config->whatsapp_rate_groups ?? [];
+        $this->selectedRateGroups = $config->whatsapp_rate_groups ?? [];
+        $this->selectedClosureGroups = $config->whatsapp_closure_groups ?? [];
+        $this->selectedWeeklyReportGroups = $config->whatsapp_weekly_report_groups ?? [];
         $saleTemplate = WhatsappTemplate::firstOrCreate(
             ['event_type' => 'sale_created'],
             ['subject' => $this->sale_subject, 'body' => $this->sale_body, 'is_active' => true, 'dispatch_mode' => 'auto']
@@ -99,12 +103,26 @@ class WhatsappSettings extends Component
         }
     }
 
-    public function toggleGroup($groupId)
+    public function toggleGroup($groupId, $actionType)
     {
-        if (in_array($groupId, $this->selectedGroups)) {
-            $this->selectedGroups = array_values(array_diff($this->selectedGroups, [$groupId]));
-        } else {
-            $this->selectedGroups[] = $groupId;
+        if ($actionType === 'rate') {
+            if (in_array($groupId, $this->selectedRateGroups)) {
+                $this->selectedRateGroups = array_values(array_diff($this->selectedRateGroups, [$groupId]));
+            } else {
+                $this->selectedRateGroups[] = $groupId;
+            }
+        } elseif ($actionType === 'closure') {
+            if (in_array($groupId, $this->selectedClosureGroups)) {
+                $this->selectedClosureGroups = array_values(array_diff($this->selectedClosureGroups, [$groupId]));
+            } else {
+                $this->selectedClosureGroups[] = $groupId;
+            }
+        } elseif ($actionType === 'weekly_report') {
+            if (in_array($groupId, $this->selectedWeeklyReportGroups)) {
+                $this->selectedWeeklyReportGroups = array_values(array_diff($this->selectedWeeklyReportGroups, [$groupId]));
+            } else {
+                $this->selectedWeeklyReportGroups[] = $groupId;
+            }
         }
     }
 
@@ -168,7 +186,9 @@ class WhatsappSettings extends Component
         $config = \App\Models\Configuration::first();
         if ($config) {
             $config->update([
-                'whatsapp_rate_groups' => $this->selectedGroups
+                'whatsapp_rate_groups' => $this->selectedRateGroups,
+                'whatsapp_closure_groups' => $this->selectedClosureGroups,
+                'whatsapp_weekly_report_groups' => $this->selectedWeeklyReportGroups,
             ]);
         }
 

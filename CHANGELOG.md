@@ -1,3 +1,14 @@
+## [1.10.202] - 2026-07-02
+### Added
+- **Ruteo Multigrupo Granular en WhatsApp**:
+  * Implementadas casillas independientes en Ajustes de WhatsApp para seleccionar grupos para: "Tasa de Cambio", "Cierre Diario" y "Reporte Semanal PDF".
+- **Cierre Diario Automático por WhatsApp**:
+  * Creado comando `app:send-daily-closure` que calcula los totales de venta de contado, cobranzas, y ventas a crédito del día, enviando el resumen detallado de forma automática a los grupos seleccionados.
+- **Reporte Semanal en PDF por WhatsApp**:
+  * Creado comando `app:send-weekly-report` que compila el PDF del Reporte Semanal de Ingresos y lo despacha como archivo adjunto de WhatsApp a los grupos elegidos.
+- **Servicio Planificador JSPOS_Scheduler (NSSM)**:
+  * Añadida la instalación automática del servicio de Windows `JSPOS_Scheduler` que corre `artisan schedule:work` continuamente en segundo plano. Esto unifica y automatiza las tareas de respaldos de base de datos diarios (`backup:clean` y `backup:run`), cierres diarios (10:00 PM) y reportes semanales (Sábados a las 10:00 PM), eliminando la dependencia de `ssfree.exe` y scripts de procesamiento manuales.
+
 ## [1.10.201] - 2026-07-02
 ### Added
 - **Configuración Multigrupo para Tasa de Cambio**:
