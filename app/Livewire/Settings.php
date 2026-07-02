@@ -696,6 +696,35 @@ class Settings extends Component
             // Reload currencies in session
             $this->loadCurrencies();
 
+            // Send WhatsApp notification to "Diferencial" group
+            try {
+                $whatsappService = app(\App\Services\WhatsappService::class);
+                $status = $whatsappService->checkStatus();
+                if ($status) {
+                    $companyName = strtoupper($config->business_name ?: 'SISTEMA');
+                    $dateStr = now()->format('d/m/Y');
+                    $bcvStr = number_format(floatval($this->bcvRate), 2, '.', '');
+                    $monitorStr = number_format(floatval($this->binanceRate), 2, '.', '');
+                    $diffVal = floatval($this->bcvRate) > 0 ? (floatval($this->binanceRate) / floatval($this->bcvRate)) : 0;
+                    // Truncate to 4 decimal places to match user's custom formatting
+                    $diffVal = floor(round($diffVal, 8) * 10000) / 10000;
+                    $diferencialStr = number_format($diffVal, 4, '.', '');
+                    $sistemaVal = floatval($inflatedRate);
+                    $sistemaStr = ($sistemaVal == intval($sistemaVal)) ? intval($sistemaVal) : number_format($sistemaVal, 2, '.', '');
+
+                    $waMessage = "{$companyName}\n" .
+                                 "{$dateStr}\n" .
+                                 "BCV: {$bcvStr}\n" .
+                                 "MONITOR: {$monitorStr}\n" .
+                                 "DIFERENCIAL: {$diferencialStr}\n" .
+                                 "SISTEMA: {$sistemaStr}";
+
+                    $whatsappService->sendToGroupByName('Diferencial', $waMessage);
+                }
+            } catch (\Exception $ex) {
+                \Illuminate\Support\Facades\Log::error("Error enviando tasa al grupo de WhatsApp: " . $ex->getMessage());
+            }
+
             $this->dispatch('noty', msg: 'Tasas Globales y Ajuste actualizados correctamente');
 
         } catch (\Exception $e) {

@@ -120,6 +120,26 @@ app.post('/logout', async (req, res) => {
     }
 });
 
+// Get list of groups
+app.get('/groups', async (req, res) => {
+    if (!isReady) {
+        return res.status(503).json({ success: false, error: 'El cliente de WhatsApp no está listo todavía.' });
+    }
+    try {
+        const chats = await client.getChats();
+        const groups = chats
+            .filter(chat => chat.isGroup)
+            .map(chat => ({
+                id: chat.id._serialized,
+                name: chat.name
+            }));
+        res.json({ success: true, groups });
+    } catch (error) {
+        console.error('Error obteniendo grupos:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // Send message
 app.post('/send', upload.single('attachment'), async (req, res) => {
     if (!isReady) {
@@ -134,8 +154,8 @@ app.post('/send', upload.single('attachment'), async (req, res) => {
             return res.status(400).json({ success: false, error: 'Faltan parámetros: phone, message' });
         }
 
-        // Format phone to WhatsApp jid (e.g., 573001234567@c.us)
-        const formattedPhone = phone.replace(/[^0-9]/g, '') + '@c.us';
+        // Format phone to WhatsApp jid (e.g., 573001234567@c.us) or keep as-is if already a JID
+        const formattedPhone = phone.includes('@') ? phone : (phone.replace(/[^0-9]/g, '') + '@c.us');
 
         let response;
         if (file) {

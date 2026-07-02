@@ -1,3 +1,11 @@
+## [1.10.199] - 2026-07-02
+### Added
+- **Notificación Automática de Tasa de Cambio por WhatsApp a Grupos**:
+  * Añadida notificación automática al guardar las tasas de cambio globales en la configuración. El sistema formatea y envía de forma automática el reporte de tasas (BCV, Monitor, Diferencial y Sistema) al grupo de WhatsApp denominado "Diferencial".
+  * El cálculo del Diferencial (Monitor / BCV) se realiza mediante truncamiento (floor) a 4 decimales para alinearse exactamente con el formato requerido.
+  * Añadido soporte en la API de WhatsApp de Node (`whatsapp-api/index.js`) y en `WhatsappService` en Laravel para manejar JIDs de grupos (`@g.us`), incluyendo un endpoint para listar todos los grupos de forma dinámica.
+  * Añadidas pruebas de integración automatizadas para verificar el flujo de notificación y formato de mensaje.
+
 ## [1.10.198] - 2026-07-02
 ### Fixed
 - **Sincronización de Stock en Productos de Peso Variable (Bobinas)**:

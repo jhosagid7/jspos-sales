@@ -42,12 +42,16 @@ class WhatsappService
      */
     public function sendMessage(string $phone, string $message, ?string $attachmentPath = null): array
     {
-        // Basic Venezuela local format to international conversion
-        $phone = preg_replace('/[^0-9]/', '', $phone);
-        if (strlen($phone) == 11 && str_starts_with($phone, '0')) {
-            $phone = '58' . substr($phone, 1);
-        } elseif (strlen($phone) == 10 && (str_starts_with($phone, '4') || str_starts_with($phone, '2'))) {
-            $phone = '58' . $phone;
+        if (str_contains($phone, '@g.us') || str_contains($phone, '@c.us')) {
+            // Keep JIDs as is
+        } else {
+            // Basic Venezuela local format to international conversion
+            $phone = preg_replace('/[^0-9]/', '', $phone);
+            if (strlen($phone) == 11 && str_starts_with($phone, '0')) {
+                $phone = '58' . substr($phone, 1);
+            } elseif (strlen($phone) == 10 && (str_starts_with($phone, '4') || str_starts_with($phone, '2'))) {
+                $phone = '58' . $phone;
+            }
         }
 
         try {
@@ -82,5 +86,46 @@ class WhatsappService
             Log::error('Error comunicando con WhatsApp API: ' . $e->getMessage());
             return ['success' => false, 'error' => $e->getMessage()];
         }
+    }
+
+    /**
+     * Obtiene la lista de grupos de WhatsApp.
+     */
+    public function getGroups(): array
+    {
+        try {
+            $response = Http::timeout(10)->get("{$this->apiUrl}/groups");
+            if ($response->successful() && $response->json('success') === true) {
+                return $response->json('groups', []);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error obteniendo grupos de WhatsApp API: ' . $e->getMessage());
+        }
+        return [];
+    }
+
+    /**
+     * Busca un grupo por nombre (insensible a mayúsculas/minúsculas) y le envía un mensaje.
+     */
+    public function sendToGroupByName(string $groupName, string $message): array
+    {
+        $groups = $this->getGroups();
+        
+        $targetGroup = null;
+        $lowerGroupName = mb_strtolower(trim($groupName));
+        
+        foreach ($groups as $group) {
+            if (mb_strtolower(trim($group['name'])) === $lowerGroupName) {
+                $targetGroup = $group;
+                break;
+            }
+        }
+        
+        if ($targetGroup) {
+            return $this->sendMessage($targetGroup['id'], $message);
+        }
+        
+        Log::warning("Grupo de WhatsApp '{$groupName}' no encontrado para enviar mensaje.");
+        return ['success' => false, 'error' => "Grupo '{$groupName}' no encontrado."];
     }
 }
