@@ -278,6 +278,53 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- SECCIÓN: GRUPOS DE WHATSAPP DISPONIBLES -->
+                    <div class="row mt-4 pt-4 border-top">
+                        <div class="col-12">
+                            <h5 class="text-success mb-3">
+                                <i class="fas fa-users"></i> Grupos de WhatsApp Disponibles
+                            </h5>
+                            <p class="text-muted">Lista de chats grupales activos detectados en tu cuenta de WhatsApp vinculada. El sistema utilizará el grupo llamado exactamente <strong>Diferencial</strong> para reportar los cambios de tasas diarios.</p>
+                            
+                            <div class="mb-3">
+                                <button type="button" wire:click="loadGroups" class="btn btn-outline-success btn-sm">
+                                    <i class="fas fa-sync"></i> Actualizar Lista de Grupos
+                                </button>
+                            </div>
+
+                            @if(count($groups) > 0)
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-striped table-hover align-middle">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Nombre del Grupo</th>
+                                                <th>Identificador (JID) del Grupo</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($groups as $group)
+                                                <tr class="{{ strtolower($group['name']) === 'diferencial' ? 'table-success font-weight-bold' : '' }}">
+                                                    <td>
+                                                        <i class="fas fa-users-cog text-muted me-2"></i>
+                                                        {{ $group['name'] }}
+                                                        @if(strtolower($group['name']) === 'diferencial')
+                                                            <span class="badge bg-success ms-2"><i class="fas fa-check"></i> Grupo Seleccionado</span>
+                                                        @endif
+                                                    </td>
+                                                    <td><code>{{ $group['id'] }}</code></td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @else
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> No se encontraron grupos activos o WhatsApp está desconectado. Si acabas de vincular tu cuenta, presiona "Actualizar Lista de Grupos".
+                                </div>
+                            @endif
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

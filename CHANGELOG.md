@@ -1,3 +1,10 @@
+## [1.10.200] - 2026-07-02
+### Added
+- **Visualización de Grupos de WhatsApp en la Configuración**:
+  * Añadida sección de "Grupos de WhatsApp Disponibles" al final del panel de Configuración de WhatsApp.
+  * Muestra una tabla con todos los chats grupales activos detectados y sus identificadores únicos (JIDs).
+  * Destaca visualmente el grupo "Diferencial" para que el usuario verifique al instante si el sistema lo tiene identificado.
+
 ## [1.10.199] - 2026-07-02
 ### Added
 - **Notificación Automática de Tasa de Cambio por WhatsApp a Grupos**:

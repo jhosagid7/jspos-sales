@@ -76,7 +76,25 @@ class WhatsappSettings extends Component
         $this->descargo_body = $descargoTemplate->body;
         $this->descargo_dispatch_mode = $descargoTemplate->dispatch_mode ?? 'auto';
 
+        $this->loadGroups();
+
         session(['map' => 'Ajustes', 'child' => ' WhatsApp']);
+    }
+
+    public $groups = [];
+
+    public function loadGroups()
+    {
+        try {
+            $whatsappService = app(\App\Services\WhatsappService::class);
+            if ($whatsappService->checkStatus()) {
+                $this->groups = $whatsappService->getGroups() ?: [];
+            } else {
+                $this->groups = [];
+            }
+        } catch (\Exception $e) {
+            $this->groups = [];
+        }
     }
 
     public function disconnectWhatsapp()
