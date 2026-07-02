@@ -596,9 +596,15 @@
                                 </div>
                                 <div class="col-sm-12 col-md-6">
                                     <label class="form-label">Stock Actual</label>
-                                    @if(!empty($form->product_components) && !$form->is_pre_assembled)
+                                    @if((!empty($form->product_components) && !$form->is_pre_assembled) || $form->is_variable_quantity)
                                         <input type="text" class="form-control" value="Calculado Dinámicamente" disabled>
-                                        <small class="text-info">El stock depende de los componentes disponibles.</small>
+                                        <small class="text-info">
+                                            @if($form->is_variable_quantity)
+                                                El stock depende de las bobinas/items disponibles.
+                                            @else
+                                                El stock depende de los componentes disponibles.
+                                            @endif
+                                        </small>
                                     @else
                                         <input wire:model="form.stock_qty" class="form-control" type="number">
                                     @endif
@@ -630,12 +636,19 @@
                                                     <td>{{ $detail['warehouse_name'] }}</td>
                                                     <td class="text-center">
                                                         <div class="input-group input-group-sm">
-                                                            <input type="number"
-                                                                   class="form-control text-center text-primary fw-bold"
-                                                                   value="{{ $detail['stock'] }}"
-                                                                   wire:change="updateStockDetail({{ $index }}, $event.target.value)"
-                                                                   step="0.0001"
-                                                                   min="0">
+                                                            @if($form->is_variable_quantity)
+                                                                <input type="number"
+                                                                       class="form-control text-center text-secondary fw-bold"
+                                                                       value="{{ $detail['stock'] }}"
+                                                                       disabled>
+                                                            @else
+                                                                <input type="number"
+                                                                       class="form-control text-center text-primary fw-bold"
+                                                                       value="{{ $detail['stock'] }}"
+                                                                       wire:change="updateStockDetail({{ $index }}, $event.target.value)"
+                                                                       step="0.0001"
+                                                                       min="0">
+                                                            @endif
                                                         </div>
                                                     </td>
                                                 </tr>

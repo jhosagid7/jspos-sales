@@ -162,6 +162,10 @@ class PostProduct extends Form
             }
         }
 
+        if ($this->is_variable_quantity) {
+            $this->stock_qty = 0;
+        }
+
         $product = new Product();
         $product->auditEventContext = 'EDICIÓN MANUAL';
         $product->fill([
@@ -318,6 +322,13 @@ class PostProduct extends Form
         $this->validate();
         
         $product =  Product::find($this->product_id);
+        
+        if ($this->is_variable_quantity) {
+            $this->stock_qty = \App\Models\ProductItem::where('product_id', $product->id)
+                ->where('status', 'available')
+                ->sum('quantity');
+        }
+
         $oldStock = $product->stock_qty; // Capture old stock
 
         // Validate Component Stock for Pre-assembled (Only if increasing stock)
@@ -430,39 +441,58 @@ class PostProduct extends Form
             $config = \App\Models\Configuration::first();
             $defaultWarehouseId = $config->default_warehouse_id ?? \App\Models\Warehouse::first()->id;
             
-            if ($defaultWarehouseId) {
-                $pw = \App\Models\ProductWarehouse::firstOrNew([
-                    'product_id' => $product->id, 
-                    'warehouse_id' => $defaultWarehouseId
-                ]);
-                $pw->auditEventContext = 'EDICIÓN MANUAL';
-                $pw->stock_qty = $this->stock_qty;
-                $pw->save();
-
-                // Adjust Components Stock if Pre-assembled
-                if ($this->is_pre_assembled && !empty($this->product_components)) {
-                    $diff = $this->stock_qty - $oldStock;
+            if ($this->is_variable_quantity) {
+                // Synchronize all warehouses for variable products
+                $warehouses = \App\Models\Warehouse::all();
+                foreach ($warehouses as $wh) {
+                    $whStock = \App\Models\ProductItem::where('product_id', $product->id)
+                        ->where('warehouse_id', $wh->id)
+                        ->where('status', 'available')
+                        ->sum('quantity');
                     
-                    if ($diff != 0) {
-                        foreach ($this->product_components as $component) {
-                            $childProduct = Product::find($component['child_product_id']);
-                            $qtyToAdjust = $component['quantity'] * abs($diff);
-                            
-                            if ($diff > 0) { // Increased Stock -> Deduct Components
-                                $childProduct->decrement('stock_qty', $qtyToAdjust);
-                                $childPw = \App\Models\ProductWarehouse::where('product_id', $childProduct->id)->where('warehouse_id', $defaultWarehouseId)->first();
-                                if ($childPw) $childPw->decrement('stock_qty', $qtyToAdjust);
-                            } else { // Decreased Stock -> Return Components
-                                $childProduct->increment('stock_qty', $qtyToAdjust);
-                                $childPw = \App\Models\ProductWarehouse::where('product_id', $childProduct->id)->where('warehouse_id', $defaultWarehouseId)->first();
-                                if ($childPw) {
-                                    $childPw->increment('stock_qty', $qtyToAdjust);
-                                } else {
-                                    \App\Models\ProductWarehouse::create([
-                                        'product_id' => $childProduct->id, 
-                                        'warehouse_id' => $defaultWarehouseId, 
-                                        'stock_qty' => $qtyToAdjust
-                                    ]);
+                    $pw = \App\Models\ProductWarehouse::firstOrNew([
+                        'product_id' => $product->id,
+                        'warehouse_id' => $wh->id
+                    ]);
+                    $pw->auditEventContext = 'EDICIÓN MANUAL';
+                    $pw->stock_qty = $whStock;
+                    $pw->save();
+                }
+            } else {
+                if ($defaultWarehouseId) {
+                    $pw = \App\Models\ProductWarehouse::firstOrNew([
+                        'product_id' => $product->id, 
+                        'warehouse_id' => $defaultWarehouseId
+                    ]);
+                    $pw->auditEventContext = 'EDICIÓN MANUAL';
+                    $pw->stock_qty = $this->stock_qty;
+                    $pw->save();
+
+                    // Adjust Components Stock if Pre-assembled
+                    if ($this->is_pre_assembled && !empty($this->product_components)) {
+                        $diff = $this->stock_qty - $oldStock;
+                        
+                        if ($diff != 0) {
+                            foreach ($this->product_components as $component) {
+                                $childProduct = Product::find($component['child_product_id']);
+                                $qtyToAdjust = $component['quantity'] * abs($diff);
+                                
+                                if ($diff > 0) { // Increased Stock -> Deduct Components
+                                    $childProduct->decrement('stock_qty', $qtyToAdjust);
+                                    $childPw = \App\Models\ProductWarehouse::where('product_id', $childProduct->id)->where('warehouse_id', $defaultWarehouseId)->first();
+                                    if ($childPw) $childPw->decrement('stock_qty', $qtyToAdjust);
+                                } else { // Decreased Stock -> Return Components
+                                    $childProduct->increment('stock_qty', $qtyToAdjust);
+                                    $childPw = \App\Models\ProductWarehouse::where('product_id', $childProduct->id)->where('warehouse_id', $defaultWarehouseId)->first();
+                                    if ($childPw) {
+                                        $childPw->increment('stock_qty', $qtyToAdjust);
+                                    } else {
+                                        \App\Models\ProductWarehouse::create([
+                                            'product_id' => $childProduct->id, 
+                                            'warehouse_id' => $defaultWarehouseId, 
+                                            'stock_qty' => $qtyToAdjust
+                                        ]);
+                                    }
                                 }
                             }
                         }

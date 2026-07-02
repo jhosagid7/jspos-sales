@@ -111,7 +111,13 @@ class Products extends Component
         $this->form->cost = $product->cost;
         $this->form->price = $product->price;
         $this->form->manage_stock = $product->manage_stock;
-        $this->form->stock_qty = $product->stock_qty;
+        if ($product->is_variable_quantity) {
+            $this->form->stock_qty = \App\Models\ProductItem::where('product_id', $product->id)
+                ->where('status', 'available')
+                ->sum('quantity');
+        } else {
+            $this->form->stock_qty = $product->stock_qty;
+        }
         $this->form->low_stock = $product->low_stock;
         $this->form->max_stock = $product->max_stock;
         $this->form->brand = $product->brand;
@@ -161,7 +167,14 @@ class Products extends Component
         // Load Stock Details
         $warehouses = \App\Models\Warehouse::all();
         $this->form->stock_details = $warehouses->map(function($warehouse) use ($product) {
-            $stock = $product->warehouses()->where('warehouse_id', $warehouse->id)->first()->pivot->stock_qty ?? 0;
+            if ($product->is_variable_quantity) {
+                $stock = \App\Models\ProductItem::where('product_id', $product->id)
+                    ->where('warehouse_id', $warehouse->id)
+                    ->where('status', 'available')
+                    ->sum('quantity');
+            } else {
+                $stock = $product->warehouses()->where('warehouse_id', $warehouse->id)->first()->pivot->stock_qty ?? 0;
+            }
             return [
                 'warehouse_id' => $warehouse->id,
                 'warehouse_name' => $warehouse->name,
@@ -593,12 +606,25 @@ class Products extends Component
         if ($this->form->product_id) {
             $product = Product::find($this->form->product_id);
             if ($product) {
-                $this->form->stock_qty = $product->stock_qty;
+                if ($product->is_variable_quantity) {
+                    $this->form->stock_qty = \App\Models\ProductItem::where('product_id', $product->id)
+                        ->where('status', 'available')
+                        ->sum('quantity');
+                } else {
+                    $this->form->stock_qty = $product->stock_qty;
+                }
                 
                 // Reload Stock Details
                 $warehouses = \App\Models\Warehouse::all();
                 $this->form->stock_details = $warehouses->map(function($warehouse) use ($product) {
-                    $stock = $product->warehouses()->where('warehouse_id', $warehouse->id)->first()->pivot->stock_qty ?? 0;
+                    if ($product->is_variable_quantity) {
+                        $stock = \App\Models\ProductItem::where('product_id', $product->id)
+                            ->where('warehouse_id', $warehouse->id)
+                            ->where('status', 'available')
+                            ->sum('quantity');
+                    } else {
+                        $stock = $product->warehouses()->where('warehouse_id', $warehouse->id)->first()->pivot->stock_qty ?? 0;
+                    }
                     return [
                         'warehouse_id' => $warehouse->id,
                         'warehouse_name' => $warehouse->name,

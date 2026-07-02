@@ -1,3 +1,12 @@
+## [1.10.198] - 2026-07-02
+### Fixed
+- **Sincronización de Stock en Productos de Peso Variable (Bobinas)**:
+  * Corregido bug donde el stock global del producto y el desglose de stock por almacén quedaban desalineados debido a ediciones manuales en el formulario y a diferencias de precisión (la tabla `products` almacenaba stock como entero y `product_warehouse` como decimal).
+  * Cambiada la columna `products.stock_qty` a tipo `decimal(10, 2)` mediante una migración automática para alinearse con el tipo de columna del depósito y evitar redondeos no deseados.
+  * Deshabilitada la edición manual del stock (global y por depósito) en el formulario para productos con "Venta por Peso/Separado (Bobinas)" (`is_variable_quantity`), calculando su stock actual de forma dinámica y automática a partir del peso de las bobinas físicas disponibles en `ProductItem`.
+  * Sincronización automática de stock de todos los depósitos y el stock global al crear o actualizar el producto.
+  * Añadidas pruebas de integración automatizadas para verificar el cálculo dinámico y la sincronización desde `ProductItem`.
+
 ## [1.10.197] - 2026-07-02
 ### Fixed
 - **Conversión de Moneda en Cuentas por Cobrar y Cuentas por Pagar**:
