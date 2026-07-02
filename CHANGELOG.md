@@ -1,3 +1,8 @@
+## [1.10.203] - 2026-07-02
+### Added
+- **Botón de Cierre Manual en UI de Ventas Diarias**:
+  * Añadido el botón "Enviar Cierre a WhatsApp" en la barra lateral del Reporte de Ventas Diarias. Al hacer clic, se ejecuta manualmente el cierre de caja para el día filtrado y se envía el resumen por WhatsApp a los grupos correspondientes.
+
 ## [1.10.202] - 2026-07-02
 ### Added
 - **Ruteo Multigrupo Granular en WhatsApp**:

@@ -124,6 +124,9 @@
                             {{ count($sales) < 1 ? 'disabled' : '' }}>
                             Generar PDF
                         </button>
+                        <button wire:click.prevent="sendDailyClosureToWhatsapp" class="btn btn-success mt-2 d-block w-100">
+                            <i class="fab fa-whatsapp"></i> Enviar Cierre a WhatsApp
+                        </button>
                     </div>
 
 

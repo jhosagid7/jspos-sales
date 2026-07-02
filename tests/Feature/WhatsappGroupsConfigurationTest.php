@@ -152,6 +152,71 @@ class WhatsappGroupsConfigurationTest extends TestCase
         Carbon::setTestNow(); // Reset
     }
 
+    public function test_manual_daily_closure_via_livewire_component_sends_whatsapp_message()
+    {
+        $config = Configuration::first();
+        $config->update([
+            'whatsapp_closure_groups' => ['cierre_group_id@g.us']
+        ]);
+
+        $monday = '2026-06-08';
+        Carbon::setTestNow(Carbon::parse($monday));
+
+        $customer = Customer::create([
+            'name' => 'Test Customer',
+            'taxpayer_id' => '123456',
+            'address' => 'Test',
+            'city' => 'Test',
+            'type' => 'Consumidor Final'
+        ]);
+
+        // Create a cash sale
+        $sale = Sale::create([
+            'total' => 100.00,
+            'total_usd' => 100.00,
+            'items' => 1,
+            'customer_id' => $customer->id,
+            'user_id' => $this->adminUser->id,
+            'created_at' => '2026-06-08 10:00:00',
+            'invoice_number' => 'F0001',
+            'status' => 'paid',
+            'type' => 'cash',
+        ]);
+
+        SalePaymentDetail::create([
+            'sale_id' => $sale->id,
+            'payment_method' => 'cash',
+            'currency_code' => 'USD',
+            'amount' => 100.00,
+            'exchange_rate' => 1.00,
+            'amount_in_primary_currency' => 100.00
+        ]);
+
+        // Mock WhatsappService
+        $this->mock(WhatsappService::class, function ($mock) {
+            $mock->shouldReceive('checkStatus')->once()->andReturn(true);
+            $mock->shouldReceive('sendMessage')
+                ->once()
+                ->with('cierre_group_id@g.us', \Mockery::on(function($msg) {
+                    return str_contains($msg, 'CIERRE DE VENTAS DIARIAS') &&
+                           str_contains($msg, 'STEEL PLASTICS FACTORY') &&
+                           str_contains($msg, 'Subtotal Contado') &&
+                           str_contains($msg, 'Total General');
+                }))
+                ->andReturn(['success' => true, 'error' => null]);
+        });
+
+        // Test Livewire component
+        Livewire::actingAs($this->adminUser)
+            ->test(\App\Livewire\Reports\DailySalesReport::class)
+            ->set('dateFrom', '2026/06/08')
+            ->call('sendDailyClosureToWhatsapp')
+            ->assertHasNoErrors()
+            ->assertDispatched('noty', msg: 'CIERRE DIARIO ENVIADO CON ÉXITO A WHATSAPP');
+
+        Carbon::setTestNow(); // Reset
+    }
+
     public function test_send_weekly_report_command_generates_and_sends_pdf()
     {
         $config = Configuration::first();

@@ -538,4 +538,24 @@ class DailySalesReport extends Component
         $this->showPdfModal = false;
         $this->pdfUrl = '';
     }
+
+    public function sendDailyClosureToWhatsapp()
+    {
+        try {
+            $dateStr = $this->dateFrom ? str_replace('/', '-', $this->dateFrom) : Carbon::today()->toDateString();
+            $dateFormatted = Carbon::parse($dateStr)->toDateString();
+            
+            $exitCode = \Illuminate\Support\Facades\Artisan::call('app:send-daily-closure', [
+                'date' => $dateFormatted
+            ]);
+            
+            if ($exitCode === 0) {
+                $this->dispatch('noty', msg: 'CIERRE DIARIO ENVIADO CON ÉXITO A WHATSAPP');
+            } else {
+                $this->dispatch('noty', msg: 'ERROR AL ENVIAR EL CIERRE DIARIO');
+            }
+        } catch (\Exception $e) {
+            $this->dispatch('noty', msg: 'ERROR: ' . $e->getMessage());
+        }
+    }
 }
