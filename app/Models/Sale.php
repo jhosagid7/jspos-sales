@@ -157,12 +157,30 @@ class Sale extends Model
     public function getDebtAttribute()
     {
         // Exclude 'pending', 'rejected' or 'voided' payments (only count approved)
-        $totalPays = $this->payments->where('status', 'approved')->sum('amount');
+        $totalPaysUSD = $this->payments->where('status', 'approved')->sum(function($payment) {
+            $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
+            return $payment->amount / $rate;
+        });
         
         // Deduct returns that were applied directly to the debt
-        $totalReturns = $this->returns->where('refund_method', 'debt_reduction')->where('status', 'approved')->sum('total_returned');
+        $totalReturnsUSD = $this->returns->where('refund_method', 'debt_reduction')->where('status', 'approved')->sum(function($ret) {
+            $rate = $this->primary_exchange_rate > 0 ? $this->primary_exchange_rate : 1;
+            return $ret->total_returned / $rate;
+        });
         
-        $debt = $this->total - $totalPays - $totalReturns;
+        // Subtract initial payments made at checkout
+        $initialPaidUSD = $this->paymentDetails->sum(function($detail) {
+            $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
+            return $detail->amount / $rate;
+        });
+
+        // Convert USD values to sale's primary currency
+        $saleRate = $this->primary_exchange_rate > 0 ? $this->primary_exchange_rate : 1;
+        $totalPays = $totalPaysUSD * $saleRate;
+        $initialPaid = $initialPaidUSD * $saleRate;
+        $totalReturns = $totalReturnsUSD * $saleRate;
+        
+        $debt = $this->total - ($totalPays + $initialPaid + $totalReturns);
 
         return $debt > 0 ? $debt : 0;
     }

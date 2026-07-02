@@ -119,7 +119,11 @@ class AccountsPayableReport extends Component
 
     function initPayable(Purchase $purchase, $supplier_name = null)
     {
-        $debt = round($purchase->total - $purchase->payables->sum('amount'), 2);
+        $totalPaid = $purchase->payables->sum(function($payable) {
+            $rate = $payable->exchange_rate > 0 ? $payable->exchange_rate : 1;
+            return $payable->amount / $rate;
+        });
+        $debt = round($purchase->total - $totalPaid, 2);
         $this->debt = $debt;
         
         if (empty($supplier_name)) {
@@ -179,15 +183,10 @@ class AccountsPayableReport extends Component
 
             // Check if settled
             // Recalculate debt
-            $totalPaid = $purchase->payables()->sum('amount'); // Assuming amount is in same currency as total
-            // If payables store amount in original currency, we need to normalize.
-            // Existing code: $purchase->payables->sum('amount')
-            // This implies 'amount' in payables is already normalized or in same currency as Purchase total.
-            // Let's assume 'amount' is what matters.
-            
-            // Wait, in Sales we convert to USD. Here Purchases seem simpler or maybe single currency?
-            // The existing code used: $purchase->total - $purchase->payables->sum('amount')
-            // So we stick to that logic.
+            $totalPaid = $purchase->payables->sum(function($payable) {
+                $rate = $payable->exchange_rate > 0 ? $payable->exchange_rate : 1;
+                return $payable->amount / $rate;
+            });
             
             if ($totalPaid >= ($purchase->total - 0.01)) {
                 $purchase->update(['status' => 'paid']);

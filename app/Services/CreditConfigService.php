@@ -164,14 +164,36 @@ class CreditConfigService
         }
 
         // Calcular deuda actual (ventas pendientes - pagos realizados)
-        // Usamos withSum para ser eficientes y no cargar todos los pagos en memoria
         $sales = $customer->sales()
             ->where('status', 'PENDING')
-            ->withSum('payments', 'amount')
+            ->with([
+                'payments' => function($q) {
+                    $q->where('status', 'approved');
+                },
+                'returns',
+                'paymentDetails'
+            ])
             ->get();
             
         $currentDebt = $sales->sum(function($sale) {
-            return $sale->total - ($sale->payments_sum_amount ?? 0);
+            $totalPaysUSD = $sale->payments->sum(function($payment) {
+                $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
+                return $payment->amount / $rate;
+            });
+            
+            $totalReturnsUSD = $sale->returns->where('refund_method', 'debt_reduction')->where('status', 'approved')->sum(function($ret) use ($sale) {
+                $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                return $ret->total_returned / $rate;
+            });
+            
+            $initialPaidUSD = $sale->paymentDetails->sum(function($detail) {
+                $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
+                return $detail->amount / $rate;
+            });
+
+            $totalUSD = $sale->total_usd > 0 ? $sale->total_usd : ($sale->primary_exchange_rate > 0 ? $sale->total / $sale->primary_exchange_rate : $sale->total);
+            
+            return max(0, $totalUSD - ($totalPaysUSD + $initialPaidUSD + $totalReturnsUSD));
         });
 
         $availableCredit = $creditConfig['credit_limit'] - $currentDebt;

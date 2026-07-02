@@ -1,3 +1,13 @@
+## [1.10.197] - 2026-07-02
+### Fixed
+- **Conversión de Moneda en Cuentas por Cobrar y Cuentas por Pagar**:
+  * Corregido bug matemático y de inconsistencia donde el modal de "Facturas Pendientes" del POS ocultaba facturas activas o calculaba incorrectamente sus abonos (debido a sumar la columna bruta `amount` de los pagos registrados en bolívares directamente, sin dividirlos por la tasa de cambio).
+  * Corregida vulnerabilidad comercial crítica en el validador de límites de crédito (`CreditConfigService::validateCreditLimit`) que calculaba saldos deudores negativos para clientes con abonos en bolívares, permitiéndoles facturar crédito virtualmente ilimitado.
+  * Corregido cálculo de deudas en los modelos `Sale` y `Purchase`, asegurando que `debt` se calcule dividiendo cada pago y abono por su tasa de cambio registrada.
+  * Corregido el reporte en PDF de estado de cuenta de clientes (`customerDebtPdf` en `DataController`) para convertir abonos a USD con sus tasas y evitar ocultar facturas.
+  * Corregida la visualización e inicialización de abonos y saldos de cuentas por pagar a proveedores en `AccountsPayableReport` y `PurchasePartialPayment`.
+  * Añadidas pruebas de regresión e integración automatizadas cubriendo todos estos escenarios.
+
 ## [1.10.196] - 2026-07-01
 ### Fixed
 - **Optimización de Copias de Seguridad en Actualizador**:

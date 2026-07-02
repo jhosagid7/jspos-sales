@@ -56,7 +56,10 @@ class Purchase extends Model
     //accessors
     public function getDebtAttribute()
     {
-        $totalPays = $this->payables->sum('amount');
+        $totalPays = $this->payables->sum(function($payable) {
+            $rate = $payable->exchange_rate > 0 ? $payable->exchange_rate : 1;
+            return $payable->amount / $rate;
+        });
 
         $debt = $this->total - $totalPays;
 

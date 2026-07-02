@@ -263,6 +263,113 @@ class AccountsReceivableReportTest extends TestCase
         $this->assertNotNull($sale);
         $this->assertEquals('paid', $sale->status);
     }
+
+    public function test_sale_debt_calculation_handles_foreign_currency_payments_correctly()
+    {
+        // 1. Create a credit sale of $100.00 USD
+        $customer = Customer::create(['name' => 'Montenegro Client']);
+        $sale = Sale::create([
+            'user_id' => $this->user->id,
+            'customer_id' => $customer->id,
+            'total' => 100.00,
+            'total_usd' => 100.00,
+            'items' => 1,
+            'status' => 'pending',
+            'type' => 'credit',
+            'primary_exchange_rate' => 1.0,
+            'primary_currency_code' => 'USD',
+            'credit_days' => 15,
+        ]);
+
+        // 2. Add an approved payment in VES/VED (3500.00 VES with exchange rate 70.00 = 50.00 USD)
+        \App\Models\Payment::create([
+            'user_id' => $this->user->id,
+            'sale_id' => $sale->id,
+            'amount' => 3500.00,
+            'currency' => 'VES',
+            'exchange_rate' => 70.00,
+            'primary_exchange_rate' => 1.0,
+            'pay_way' => 'cash',
+            'type' => 'pay',
+            'status' => 'approved',
+            'payment_date' => now(),
+        ]);
+
+        // 3. Add an approved payment in USD (20.00 USD with exchange rate 1.0 = 20.00 USD)
+        \App\Models\Payment::create([
+            'user_id' => $this->user->id,
+            'sale_id' => $sale->id,
+            'amount' => 20.00,
+            'currency' => 'USD',
+            'exchange_rate' => 1.0,
+            'primary_exchange_rate' => 1.0,
+            'pay_way' => 'cash',
+            'type' => 'pay',
+            'status' => 'approved',
+            'payment_date' => now(),
+        ]);
+
+        // Assert debt is calculated correctly (100 - 50 - 20 = 30)
+        $this->assertEquals(30.00, $sale->debt);
+
+        // Act as user and make request to the PDF route to ensure it works without errors
+        $response = $this->actingAs($this->user)->get(route('customer.debt.pdf', $customer->id));
+        $response->assertStatus(200);
+        $this->assertStringContainsString('application/pdf', $response->headers->get('Content-Type'));
+    }
+
+    public function test_purchase_debt_calculation_handles_foreign_currency_payables_correctly()
+    {
+        // 1. Create a credit purchase of $150.00 USD
+        $supplier = Supplier::create(['name' => 'Montenegro Supplier']);
+        $purchase = Purchase::create([
+            'user_id' => $this->user->id,
+            'supplier_id' => $supplier->id,
+            'total' => 150.00,
+            'items' => 1,
+            'status' => 'pending',
+            'type' => 'credit',
+        ]);
+
+        // 2. Add an approved payable in VES/VED (3500.00 VES with exchange rate 70.00 = 50.00 USD)
+        \App\Models\Payable::create([
+            'user_id' => $this->user->id,
+            'purchase_id' => $purchase->id,
+            'amount' => 3500.00,
+            'currency_code' => 'VES',
+            'exchange_rate' => 70.00,
+            'pay_way' => 'cash',
+            'type' => 'pay',
+        ]);
+
+        // 3. Add an approved payable in USD (20.00 USD with exchange rate 1.0 = 20.00 USD)
+        \App\Models\Payable::create([
+            'user_id' => $this->user->id,
+            'purchase_id' => $purchase->id,
+            'amount' => 20.00,
+            'currency_code' => 'USD',
+            'exchange_rate' => 1.0,
+            'pay_way' => 'cash',
+            'type' => 'pay',
+        ]);
+
+        // Assert debt is calculated correctly (150 - 50 - 20 = 80)
+        $this->assertEquals(80.00, $purchase->debt);
+
+        // Test AccountsPayableReport initPayable displays correctly
+        $component = Livewire::actingAs($this->user)
+            ->test(AccountsPayableReport::class)
+            ->call('initPayable', $purchase, $supplier->name);
+        
+        $this->assertEquals(80.00, $component->get('debt'));
+
+        // Test PurchasePartialPayment displays correctly
+        $component2 = Livewire::actingAs($this->user)
+            ->test(PurchasePartialPayment::class)
+            ->call('initPay', $purchase->id, $supplier->name);
+
+        $this->assertEquals(80.00, $component2->get('debt'));
+    }
 }
 
 

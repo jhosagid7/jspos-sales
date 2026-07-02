@@ -551,4 +551,71 @@ class CustomerReportTest extends TestCase
         $response->assertStatus(200);
         $response->assertHeader('content-type', 'application/pdf');
     }
+
+    public function test_credit_limit_validation_converts_payments_correctly()
+    {
+        // 1. Create a customer with credit limit $100.00 USD
+        $customer = Customer::create([
+            'name' => 'Credit Limit Client',
+            'taxpayer_id' => 'V-99988877',
+            'address' => 'Customer Address',
+            'city' => 'Caracas',
+            'type' => 'Consumidor Final',
+            'allow_credit' => true,
+            'credit_days' => 15,
+            'credit_limit' => 100.00,
+            'seller_id' => $this->seller1->id,
+        ]);
+
+        // 2. Create customer config
+        \App\Models\CustomerConfig::create([
+            'customer_id' => $customer->id,
+            'commission_percent' => 5.00,
+            'freight_percent' => 0.00,
+            'exchange_diff_percent' => 0.00,
+        ]);
+
+        // 3. Create a pending credit sale for $90.00 USD
+        $sale = \App\Models\Sale::create([
+            'user_id' => $this->seller1->id,
+            'customer_id' => $customer->id,
+            'total' => 90.00,
+            'total_usd' => 90.00,
+            'items' => 1,
+            'status' => 'pending',
+            'type' => 'credit',
+            'primary_exchange_rate' => 1.0,
+            'primary_currency_code' => 'USD',
+            'credit_days' => 15,
+        ]);
+
+        // 4. Add an approved payment of 3500.00 VES at rate 70.00 (which is 50.00 USD)
+        // Debt becomes: 90 - 50 = 40.00 USD
+        \App\Models\Payment::create([
+            'user_id' => $this->seller1->id,
+            'sale_id' => $sale->id,
+            'amount' => 3500.00,
+            'currency' => 'VES',
+            'exchange_rate' => 70.00,
+            'primary_exchange_rate' => 1.0,
+            'pay_way' => 'cash',
+            'type' => 'pay',
+            'status' => 'approved',
+            'payment_date' => now(),
+        ]);
+
+        // 5. Validate new sale of $50.00 USD
+        // Remaining limit is 100 - 40 = 60.00 USD. So $50.00 USD should be allowed!
+        $result = \App\Services\CreditConfigService::validateCreditLimit($customer, 50.00);
+        $this->assertTrue($result['allowed']);
+        $this->assertEquals(40.00, $result['current_debt']);
+        $this->assertEquals(60.00, $result['available']);
+
+        // 6. Validate new sale of $70.00 USD
+        // Remaining limit is 60.00 USD. So $70.00 USD should be rejected!
+        $result2 = \App\Services\CreditConfigService::validateCreditLimit($customer, 70.00);
+        $this->assertFalse($result2['allowed']);
+        $this->assertEquals(40.00, $result2['current_debt']);
+        $this->assertEquals(60.00, $result2['available']);
+    }
 }

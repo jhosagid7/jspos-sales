@@ -68,7 +68,10 @@ class PurchasePartialPayment extends Component
             // En Purchases.php no vi conversión explícita a USD como en Sales, pero Payables tiene currency_code y exchange_rate.
             // Vamos a sumar los montos de los payables.
             
-            $totalPaid = $purchase->payables->sum('amount');
+            $totalPaid = $purchase->payables->sum(function($payable) {
+                $rate = $payable->exchange_rate > 0 ? $payable->exchange_rate : 1;
+                return $payable->amount / $rate;
+            });
             
             $debt = $purchase->total - $totalPaid;
             
@@ -102,7 +105,10 @@ class PurchasePartialPayment extends Component
         }
 
         if ($debt === null) {
-            $totalPaid = $purchase->payables->sum('amount');
+            $totalPaid = $purchase->payables->sum(function($payable) {
+                $rate = $payable->exchange_rate > 0 ? $payable->exchange_rate : 1;
+                return $payable->amount / $rate;
+            });
             $debt = $purchase->total - $totalPaid;
         }
         
@@ -152,7 +158,10 @@ class PurchasePartialPayment extends Component
             }
 
             // Check if settled
-            $totalPaid = $purchase->payables()->sum('amount');
+            $totalPaid = $purchase->payables->sum(function($payable) {
+                $rate = $payable->exchange_rate > 0 ? $payable->exchange_rate : 1;
+                return $payable->amount / $rate;
+            });
             
             if ($totalPaid >= ($purchase->total - 0.01)) {
                 $purchase->update(['status' => 'paid']);

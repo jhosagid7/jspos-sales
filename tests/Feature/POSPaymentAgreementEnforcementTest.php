@@ -576,4 +576,57 @@ class POSPaymentAgreementEnforcementTest extends TestCase
         $this->assertEquals(round(500/54.50, 2), round($component->get('payments')[0]['amount_in_primary_currency'], 2));
         $this->assertEquals(round(13 - 500/54.50, 2), round($component->get('remainingAmount'), 2));
     }
+
+    public function test_pos_component_loads_outstanding_invoices_correctly_with_foreign_currency_payments()
+    {
+        // 1. Create a credit sale for $100.00 USD
+        $sale = Sale::create([
+            'customer_id' => $this->customer->id,
+            'user_id' => $this->user->id,
+            'invoice_number' => 'F00000999',
+            'total' => 100.00,
+            'total_usd' => 100.00,
+            'primary_exchange_rate' => 1.0,
+            'items' => 1,
+            'status' => 'pending',
+            'type' => 'credit',
+            'credit_days' => 15,
+            'created_at' => now()->subDays(5),
+        ]);
+
+        // 2. Add an approved payment in VES/VED (3500.00 VES with exchange rate 70.00 = 50.00 USD)
+        \App\Models\Payment::create([
+            'user_id' => $this->user->id,
+            'sale_id' => $sale->id,
+            'amount' => 3500.00,
+            'currency' => 'VES',
+            'exchange_rate' => 70.00,
+            'primary_exchange_rate' => 1.0,
+            'pay_way' => 'cash',
+            'type' => 'pay',
+            'status' => 'approved',
+            'payment_date' => now()->subDays(2),
+        ]);
+
+        // 3. Test the Sales Livewire component
+        $component = Livewire::actingAs($this->user)
+            ->test(Sales::class);
+
+        // Select the customer to trigger loading outstanding invoices
+        $component->call('setCustomer', $this->customer->toArray());
+
+        $customerData = $component->get('customer');
+        $this->assertNotNull($customerData);
+        $this->assertArrayHasKey('outstanding_invoices', $customerData);
+        
+        // The list should contain our invoice F00000999
+        $outstanding = collect($customerData['outstanding_invoices']);
+        $this->assertCount(1, $outstanding);
+
+        $invoice = $outstanding->first();
+        $this->assertEquals('F00000999', $invoice['invoice_number']);
+        $this->assertEquals(100.00, $invoice['total']);
+        $this->assertEquals(50.00, $invoice['paid']);
+        $this->assertEquals(50.00, $invoice['pending']);
+    }
 }

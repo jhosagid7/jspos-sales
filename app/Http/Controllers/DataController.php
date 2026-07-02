@@ -76,9 +76,13 @@ class DataController extends Controller
         // Load outstanding invoices
         $outstandingSales = \App\Models\Sale::where('customer_id', $customerId)
             ->where('credit_days', '>', 0)
-            ->with(['payments' => function($q) {
-                $q->where('status', 'approved');
-            }])
+            ->with([
+                'payments' => function($q) {
+                    $q->where('status', 'approved');
+                },
+                'returns',
+                'paymentDetails'
+            ])
             ->orderBy('created_at', 'desc')
             ->get();
         
@@ -86,8 +90,29 @@ class DataController extends Controller
         $totalDebt = 0;
         
         foreach($outstandingSales as $sale) {
-            $approvedPayments = $sale->payments->sum('amount');
-            $pending = $sale->total - $approvedPayments;
+            $approvedPaymentsUSD = $sale->payments->sum(function($payment) {
+                $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
+                return $payment->amount / $rate;
+            });
+            
+            $totalReturnsUSD = $sale->returns->where('refund_method', 'debt_reduction')->where('status', 'approved')->sum(function($ret) use ($sale) {
+                $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                return $ret->total_returned / $rate;
+            });
+            
+            $initialPaidUSD = $sale->paymentDetails->sum(function($detail) {
+                $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
+                return $detail->amount / $rate;
+            });
+
+            // Convert USD values to sale's primary currency
+            $saleRate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+            $approvedPayments = $approvedPaymentsUSD * $saleRate;
+            $initialPaid = $initialPaidUSD * $saleRate;
+            $totalReturns = $totalReturnsUSD * $saleRate;
+            
+            $totalCredited = $approvedPayments + $initialPaid + $totalReturns;
+            $pending = max(0, $sale->total - $totalCredited);
             
             if($pending > 0.01) { // Has pending balance
                 $dueDate = \Carbon\Carbon::parse($sale->created_at)->addDays($sale->credit_days);
@@ -96,7 +121,7 @@ class DataController extends Controller
                     'created_at' => $sale->created_at->format('d/m/Y'),
                     'due_date' => $dueDate->format('d/m/Y'),
                     'total' => $sale->total,
-                    'paid' => $approvedPayments,
+                    'paid' => $totalCredited,
                     'pending' => $pending,
                     'is_overdue' => now()->gt($dueDate),
                 ];
