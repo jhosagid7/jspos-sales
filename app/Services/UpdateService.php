@@ -83,6 +83,8 @@ class UpdateService
 
     public function downloadUpdate($downloadUrl)
     {
+        @set_time_limit(0);
+        @ini_set('max_execution_time', 0);
         $tempPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'temp_update_' . uniqid() . '.zip';
         $maxAttempts = 5; // Increased from 2 to 5 for production stability
         $lastException = null;
@@ -139,6 +141,8 @@ class UpdateService
 
     public function installUpdate($newVersion = null)
     {
+        @set_time_limit(0);
+        @ini_set('max_execution_time', 0);
         $tempPath = session('latest_downloaded_update_zip');
         if (!$tempPath || !File::exists($tempPath)) {
             // Fallback to legacy path
@@ -183,6 +187,8 @@ class UpdateService
 
     public function runMigrations()
     {
+        @set_time_limit(0);
+        @ini_set('max_execution_time', 0);
         Artisan::call('migrate', ['--force' => true]);
         // Also run permission seeder to ensure new features are accessible
         Artisan::call('db:seed', ['--class' => 'PermissionSeeder', '--force' => true]);
@@ -229,6 +235,8 @@ class UpdateService
      */
     public function createRollbackBackup($currentVersion, array $directories = null, array $files = null)
     {
+        @set_time_limit(0);
+        @ini_set('max_execution_time', 0);
         $backupDir = storage_path('backups/antes_de_v' . $currentVersion);
         if (!File::exists($backupDir)) {
             File::makeDirectory($backupDir, 0755, true, true);
@@ -451,6 +459,8 @@ class UpdateService
      */
     public function restoreFromBackup($backupFolder)
     {
+        @set_time_limit(0);
+        @ini_set('max_execution_time', 0);
         $backupDir = storage_path('backups/' . $backupFolder);
         if (!File::exists($backupDir)) {
             throw new \Exception("Directorio de restauración no encontrado.");
