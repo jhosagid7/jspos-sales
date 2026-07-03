@@ -28,6 +28,50 @@ class RotationReport extends Component
     public $tagId = 0;
     public $showInterpretationModal = false;
 
+    public $selectedPdfColumns = [
+        'product',
+        'abc_class',
+        'stock_qty',
+        'stock_value',
+        'total_sold',
+        'sales_usd',
+        'margin_usd',
+        'margin_percent',
+        'velocity',
+        'suggested_order',
+        'coverage_days',
+        'rotation_status',
+    ];
+
+    public $availablePdfColumns = [
+        'product' => 'Producto',
+        'abc_class' => 'Clase ABC',
+        'stock_qty' => 'Stock Actual',
+        'stock_value' => 'Valor Stock',
+        'total_sold' => 'Vendido',
+        'sales_usd' => 'Ventas USD',
+        'margin_usd' => 'Margen USD',
+        'margin_percent' => 'Margen %',
+        'velocity' => 'Velocidad',
+        'suggested_order' => 'Sugerencia',
+        'coverage_days' => 'Cobertura',
+        'rotation_status' => 'Estado',
+    ];
+
+    public $selectedKpis = [
+        'totalCapital',
+        'idleCapital',
+        'totalMargin',
+        'avgMarginPercent',
+    ];
+
+    public $availableKpis = [
+        'totalCapital' => 'Capital en Inventario',
+        'idleCapital' => 'Capital Ocioso (Sin Mov)',
+        'totalMargin' => 'Ganancia Bruta Ventas',
+        'avgMarginPercent' => 'Margen Promedio (%)',
+    ];
+
     // KPI Properties
     public $totalCapital = 0;
     public $idleCapital = 0;
@@ -135,7 +179,10 @@ class RotationReport extends Component
             'suppliers' => $suppliers,
             'customers' => $customers,
             'tags' => $tags,
-            'selectedProducts' => $this->selectedProducts
+            'selectedProducts' => $this->selectedProducts,
+            'selectedCount' => count($this->getSelectedIds()),
+            'availablePdfColumns' => $this->availablePdfColumns,
+            'availableKpis' => $this->availableKpis,
         ])->extends('layouts.theme.app')
           ->section('content');
     }
@@ -346,13 +393,69 @@ class RotationReport extends Component
         return $products;
     }
 
+    public function getSelectedIds()
+    {
+        $ids = [];
+        if (is_array($this->selectedProducts)) {
+            foreach ($this->selectedProducts as $key => $val) {
+                // Case 1: associative array [ '12' => true ] or [ '12' => '12' ]
+                if ($val === true || $val === 'true' || (string)$key === (string)$val) {
+                    $ids[] = $key;
+                }
+                // Case 2: flat array [ 0 => '12', 1 => '18' ] where value is not boolean
+                elseif ($val !== false && $val !== null && $val !== '' && $val !== 0 && $val !== '0') {
+                    $ids[] = $val;
+                }
+            }
+        }
+        return array_unique(array_filter($ids));
+    }
+
+    public function moveProductUp($productId)
+    {
+        $selectedIds = $this->getSelectedIds();
+        $index = array_search($productId, $selectedIds);
+        if ($index !== false && $index > 0) {
+            $temp = $selectedIds[$index - 1];
+            $selectedIds[$index - 1] = $selectedIds[$index];
+            $selectedIds[$index] = $temp;
+            $this->selectedProducts = $selectedIds;
+        }
+    }
+
+    public function moveProductDown($productId)
+    {
+        $selectedIds = $this->getSelectedIds();
+        $index = array_search($productId, $selectedIds);
+        if ($index !== false && $index < count($selectedIds) - 1) {
+            $temp = $selectedIds[$index + 1];
+            $selectedIds[$index + 1] = $selectedIds[$index];
+            $selectedIds[$index] = $temp;
+            $this->selectedProducts = $selectedIds;
+        }
+    }
+
+    public function reorderProducts($from, $to)
+    {
+        $selectedIds = $this->getSelectedIds();
+        if (isset($selectedIds[$from]) && isset($selectedIds[$to])) {
+            $item = array_splice($selectedIds, $from, 1)[0];
+            array_splice($selectedIds, $to, 0, $item);
+            $this->selectedProducts = $selectedIds;
+        }
+    }
+
     public function generatePdf()
     {
         try {
-            if (count($this->selectedProducts) > 0) {
+            $selectedIds = $this->getSelectedIds();
+            if (count($selectedIds) > 0) {
                 $query = $this->getQuery();
-                $query->whereIn('products.id', $this->selectedProducts);
+                $query->whereIn('products.id', $selectedIds);
                 $data = $query->get();
+                $data = $data->sortBy(function($item) use ($selectedIds) {
+                    return array_search($item->id, $selectedIds);
+                })->values();
             } else {
                 $data = $this->getQuery()->get();
             }
@@ -373,6 +476,8 @@ class RotationReport extends Component
                 'totalMargin' => $this->totalMargin,
                 'avgMarginPercent' => $this->avgMarginPercent,
                 'tagName' => $tagName,
+                'selectedPdfColumns' => !empty($this->selectedPdfColumns) ? $this->selectedPdfColumns : array_keys($this->availablePdfColumns),
+                'selectedKpis' => $this->selectedKpis,
             ])->setPaper('a4', 'landscape');
 
             return response()->streamDownload(function () use ($pdf) {
@@ -387,14 +492,18 @@ class RotationReport extends Component
 
     public function createPurchaseOrder()
     {
-        if (count($this->selectedProducts) == 0) {
+        $selectedIds = $this->getSelectedIds();
+        if (count($selectedIds) == 0) {
             $this->dispatch('noty', msg: 'Selecciona al menos un producto');
             return;
         }
 
         $query = $this->getQuery();
-        $query->whereIn('products.id', $this->selectedProducts);
+        $query->whereIn('products.id', $selectedIds);
         $products = $query->get();
+        $products = $products->sortBy(function($item) use ($selectedIds) {
+            return array_search($item->id, $selectedIds);
+        })->values();
         
         $this->precalculateAbcAndKpis($products);
         $products = $this->processMetrics($products);

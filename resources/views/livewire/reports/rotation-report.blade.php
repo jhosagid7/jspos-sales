@@ -96,15 +96,91 @@
                                 <option value="low">Baja Rotación</option>
                                 <option value="none">Sin Movimiento</option>
                             </select>
+                    </div>
+
+                    <!-- Selección de Columnas para PDF y KPIs -->
+                    <div class="row mt-2">
+                        <div class="col-sm-12 col-md-6 mb-2">
+                            <label class="font-weight-bold text-muted f-12 mb-1">
+                                <i class="fas fa-columns text-primary mr-1"></i> Columnas a Exportar en PDF (Opcional)
+                            </label>
+                            <div class="d-flex flex-wrap align-items-center bg-light p-2 rounded" style="min-height: 48px;">
+                                @foreach($availablePdfColumns as $key => $label)
+                                    <div class="custom-control custom-checkbox mr-3 mb-1">
+                                        <input type="checkbox" class="custom-control-input" id="col_pdf_{{ $key }}" wire:model.live="selectedPdfColumns" value="{{ $key }}">
+                                        <label class="custom-control-label f-11 text-dark font-weight-normal" for="col_pdf_{{ $key }}" style="cursor: pointer;">
+                                            {{ $label }}
+                                        </label>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-6 mb-2">
+                            <label class="font-weight-bold text-muted f-12 mb-1">
+                                <i class="fas fa-chart-pie text-success mr-1"></i> Tarjetas KPI a Mostrar
+                            </label>
+                            <div class="d-flex flex-wrap align-items-center bg-light p-2 rounded" style="min-height: 48px;">
+                                @foreach($availableKpis as $key => $label)
+                                    <div class="custom-control custom-checkbox mr-4 mb-1">
+                                        <input type="checkbox" class="custom-control-input" id="kpi_{{ $key }}" wire:model.live="selectedKpis" value="{{ $key }}">
+                                        <label class="custom-control-label f-11 text-dark font-weight-normal" for="kpi_{{ $key }}" style="cursor: pointer;">
+                                            {{ $label }}
+                                        </label>
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
                     </div>
+
+                    <!-- Ordenación de Productos Seleccionados -->
+                    @if(isset($selectedCount) && $selectedCount > 0)
+                        @php
+                            $selectedIds = $this->getSelectedIds();
+                            $orderedProducts = \App\Models\Product::whereIn('id', $selectedIds)->get()->sortBy(function($p) use ($selectedIds) {
+                                return array_search($p->id, $selectedIds);
+                            });
+                        @endphp
+                        <div class="row mt-2">
+                            <div class="col-12">
+                                <label class="font-weight-bold text-muted f-12 mb-1">
+                                    <i class="fas fa-sort text-warning mr-1"></i> Secuencia / Orden de Productos Seleccionados (Arrastra para reordenar, define el orden del PDF y Orden de Compra)
+                                </label>
+                                <div class="bg-light p-2 rounded">
+                                    <div class="list-group list-group-flush" x-data="{ draggingIndex: null }">
+                                        @foreach($orderedProducts->values() as $index => $p)
+                                            <div class="list-group-item d-flex justify-content-between align-items-center py-1 bg-white border rounded mb-1"
+                                                 draggable="true"
+                                                 x-on:dragstart="draggingIndex = {{ $index }}"
+                                                 x-on:dragover.prevent=""
+                                                 x-on:drop="if(draggingIndex !== null && draggingIndex !== {{ $index }}) { $wire.reorderProducts(draggingIndex, {{ $index }}); draggingIndex = null; }"
+                                                 style="cursor: grab;">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-grip-vertical text-muted mr-3" style="font-size: 14px;"></i>
+                                                    <span class="badge badge-secondary mr-2" style="font-size: 10px;">{{ $index + 1 }}</span>
+                                                    <span class="font-weight-bold text-dark f-12">{{ $p->name }}</span>
+                                                </div>
+                                                <div>
+                                                    <button type="button" wire:click="moveProductUp({{ $p->id }})" class="btn btn-xs btn-outline-secondary p-1" style="font-size: 10px; line-height: 1;" {{ $index === 0 ? 'disabled' : '' }}>
+                                                        <i class="fas fa-arrow-up"></i>
+                                                    </button>
+                                                    <button type="button" wire:click="moveProductDown({{ $p->id }})" class="btn btn-xs btn-outline-secondary p-1" style="font-size: 10px; line-height: 1;" {{ $index === count($selectedIds) - 1 ? 'disabled' : '' }}>
+                                                        <i class="fas fa-arrow-down"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
 
                     <!-- Botones de Acción -->
                     <div class="row mt-3">
                         <div class="col-12 text-right">
                             <span wire:loading wire:target="generatePdf, createPurchaseOrder" class="mr-3 text-muted"><i class="fas fa-spinner fa-spin"></i> Procesando...</span>
-                            @if(is_array($selectedProducts) && count($selectedProducts) > 0)
-                                <span class="mr-3 text-info font-weight-bold"><i class="fas fa-check-circle"></i> {{ count($selectedProducts) }} Seleccionados</span>
+                            @if(isset($selectedCount) && $selectedCount > 0)
+                                <span class="mr-3 text-info font-weight-bold"><i class="fas fa-check-circle"></i> {{ $selectedCount }} Seleccionados</span>
                             @endif
                             <button wire:click="generatePdf" class="btn btn-danger btn-sm">
                                 <i class="fas fa-file-pdf"></i> Exportar PDF (Landscape)
@@ -122,65 +198,86 @@
         </div>
 
         <!-- Indicadores KPIs Principales -->
-        <div class="col-12 layout-spacing">
-            <div class="row">
-                <!-- KPI 1: Capital de Inventario -->
-                <div class="col-sm-12 col-md-3 mb-3">
-                    <div class="card shadow-sm border-left border-primary h-100" style="cursor: help;" title="Costo total acumulado de las unidades físicas en stock actualmente. Representa la inversión total inmovilizada en almacén.">
-                        <div class="card-body p-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="f-11 text-muted uppercase font-weight-bold">Capital en Inventario</div>
-                                <div class="bg-primary-light p-1 rounded-circle"><i class="fas fa-boxes text-primary"></i></div>
+        @if(count($selectedKpis) > 0)
+            @php
+                $selectedKpiCount = count($selectedKpis);
+                $colClass = 'col-sm-12 col-md-3 mb-3';
+                if ($selectedKpiCount === 3) {
+                    $colClass = 'col-sm-12 col-md-4 mb-3';
+                } elseif ($selectedKpiCount === 2) {
+                    $colClass = 'col-sm-12 col-md-6 mb-3';
+                } elseif ($selectedKpiCount === 1) {
+                    $colClass = 'col-sm-12 col-md-12 mb-3';
+                }
+            @endphp
+            <div class="col-12 layout-spacing">
+                <div class="row">
+                    <!-- KPI 1: Capital de Inventario -->
+                    @if(in_array('totalCapital', $selectedKpis))
+                        <div class="{{ $colClass }}">
+                            <div class="card shadow-sm border-left border-primary h-100" style="cursor: help;" title="Costo total acumulado de las unidades físicas en stock actualmente. Representa la inversión total inmovilizada en almacén.">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="f-11 text-muted uppercase font-weight-bold">Capital en Inventario</div>
+                                        <div class="bg-primary-light p-1 rounded-circle"><i class="fas fa-boxes text-primary"></i></div>
+                                    </div>
+                                    <div class="f-20 font-weight-bold text-dark mt-2">${{ number_format($totalCapital, 2) }}</div>
+                                    <div class="f-10 text-muted mt-1">Valor de stock a costo base</div>
+                                </div>
                             </div>
-                            <div class="f-20 font-weight-bold text-dark mt-2">${{ number_format($totalCapital, 2) }}</div>
-                            <div class="f-10 text-muted mt-1">Valor de stock a costo base</div>
                         </div>
-                    </div>
-                </div>
+                    @endif
 
-                <!-- KPI 2: Capital Ocioso -->
-                <div class="col-sm-12 col-md-3 mb-3">
-                    <div class="card shadow-sm border-left border-danger h-100" style="cursor: help;" title="Costo total de los productos en almacén que NO han registrado ninguna venta en el periodo seleccionado (o que no han sido comprados por el cliente/filtros seleccionados). Indica riesgo de obsolescencia.">
-                        <div class="card-body p-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="f-11 text-muted uppercase font-weight-bold">Capital Ocioso (Sin Mov)</div>
-                                <div class="bg-danger-light p-1 rounded-circle"><i class="fas fa-exclamation-triangle text-danger"></i></div>
+                    <!-- KPI 2: Capital Ocioso -->
+                    @if(in_array('idleCapital', $selectedKpis))
+                        <div class="{{ $colClass }}">
+                            <div class="card shadow-sm border-left border-danger h-100" style="cursor: help;" title="Costo total de los productos en almacén que NO han registrado ninguna venta en el periodo seleccionado (o que no han sido comprados por el cliente/filtros seleccionados). Indica riesgo de obsolescencia.">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="f-11 text-muted uppercase font-weight-bold">Capital Ocioso (Sin Mov)</div>
+                                        <div class="bg-danger-light p-1 rounded-circle"><i class="fas fa-exclamation-triangle text-danger"></i></div>
+                                    </div>
+                                    <div class="f-20 font-weight-bold text-danger mt-2">${{ number_format($idleCapital, 2) }}</div>
+                                    <div class="f-10 text-muted mt-1">Stock de productos sin ventas</div>
+                                </div>
                             </div>
-                            <div class="f-20 font-weight-bold text-danger mt-2">${{ number_format($idleCapital, 2) }}</div>
-                            <div class="f-10 text-muted mt-1">Stock de productos sin ventas</div>
                         </div>
-                    </div>
-                </div>
+                    @endif
 
-                <!-- KPI 3: Margen Bruto Total -->
-                <div class="col-sm-12 col-md-3 mb-3">
-                    <div class="card shadow-sm border-left border-success h-100" style="cursor: help;" title="Diferencia directa entre el monto facturado (ventas) y el costo de adquisición de esos productos en el periodo seleccionado. Dinero real aportado al negocio.">
-                        <div class="card-body p-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="f-11 text-muted uppercase font-weight-bold">Ganancia Bruta Ventas</div>
-                                <div class="bg-success-light p-1 rounded-circle"><i class="fas fa-hand-holding-usd text-success"></i></div>
+                    <!-- KPI 3: Margen Bruto Total -->
+                    @if(in_array('totalMargin', $selectedKpis))
+                        <div class="{{ $colClass }}">
+                            <div class="card shadow-sm border-left border-success h-100" style="cursor: help;" title="Diferencia directa entre el monto facturado (ventas) y el costo de adquisición de esos productos en el periodo seleccionado. Dinero real aportado al negocio.">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="f-11 text-muted uppercase font-weight-bold">Ganancia Bruta Ventas</div>
+                                        <div class="bg-success-light p-1 rounded-circle"><i class="fas fa-hand-holding-usd text-success"></i></div>
+                                    </div>
+                                    <div class="f-20 font-weight-bold text-success mt-2">${{ number_format($totalMargin, 2) }}</div>
+                                    <div class="f-10 text-muted mt-1">Margen total generado hoy</div>
+                                </div>
                             </div>
-                            <div class="f-20 font-weight-bold text-success mt-2">${{ number_format($totalMargin, 2) }}</div>
-                            <div class="f-10 text-muted mt-1">Margen total generado hoy</div>
                         </div>
-                    </div>
-                </div>
+                    @endif
 
-                <!-- KPI 4: Margen Promedio % -->
-                <div class="col-sm-12 col-md-3 mb-3">
-                    <div class="card shadow-sm border-left border-info h-100" style="cursor: help;" title="Porcentaje de ganancia comercial sobre las ventas totales del periodo seleccionado: (Ganancia Bruta / Ventas Totales) * 100.">
-                        <div class="card-body p-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="f-11 text-muted uppercase font-weight-bold">Margen Promedio (%)</div>
-                                <div class="bg-info-light p-1 rounded-circle"><i class="fas fa-percentage text-info"></i></div>
+                    <!-- KPI 4: Margen Promedio % -->
+                    @if(in_array('avgMarginPercent', $selectedKpis))
+                        <div class="{{ $colClass }}">
+                            <div class="card shadow-sm border-left border-info h-100" style="cursor: help;" title="Porcentaje de ganancia comercial sobre las ventas totales del periodo seleccionado: (Ganancia Bruta / Ventas Totales) * 100.">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="f-11 text-muted uppercase font-weight-bold">Margen Promedio (%)</div>
+                                        <div class="bg-info-light p-1 rounded-circle"><i class="fas fa-percentage text-info"></i></div>
+                                    </div>
+                                    <div class="f-20 font-weight-bold text-dark mt-2">{{ number_format($avgMarginPercent, 2) }}%</div>
+                                    <div class="f-10 text-muted mt-1">Margen ponderado en ventas</div>
+                                </div>
                             </div>
-                            <div class="f-20 font-weight-bold text-dark mt-2">{{ number_format($avgMarginPercent, 2) }}%</div>
-                            <div class="f-10 text-muted mt-1">Margen ponderado en ventas</div>
                         </div>
-                    </div>
+                    @endif
                 </div>
             </div>
-        </div>
+        @endif
 
         <!-- Gráficos de Análisis Visual -->
         <div class="col-12 layout-spacing">

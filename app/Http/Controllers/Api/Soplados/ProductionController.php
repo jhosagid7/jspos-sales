@@ -115,7 +115,9 @@ class ProductionController extends Controller
                 ]);
 
                 // Add stock for 1st and 2nd quality outputs
-                if (in_array($out['quality'], ['1st', '2nd'])) {
+                if ($out['quality'] === '1st') {
+                    $this->updateStock($out['product_id'], $warehouseId, $out['quantity']);
+                } elseif ($out['quality'] === '2nd') {
                     $product = Product::find($out['product_id']);
                     $targetId = $product->production_target_id ?? $out['product_id'];
                     $this->updateStock($targetId, $warehouseId, $out['quantity']);

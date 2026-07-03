@@ -33,6 +33,34 @@ class Requisition extends Component
         $this->resetPage();
     }
 
+    public function moveProductUp($productId)
+    {
+        $index = array_search($productId, $this->selected);
+        if ($index !== false && $index > 0) {
+            $temp = $this->selected[$index - 1];
+            $this->selected[$index - 1] = $this->selected[$index];
+            $this->selected[$index] = $temp;
+        }
+    }
+
+    public function moveProductDown($productId)
+    {
+        $index = array_search($productId, $this->selected);
+        if ($index !== false && $index < count($this->selected) - 1) {
+            $temp = $this->selected[$index + 1];
+            $this->selected[$index + 1] = $this->selected[$index];
+            $this->selected[$index] = $temp;
+        }
+    }
+
+    public function reorderProducts($from, $to)
+    {
+        if (isset($this->selected[$from]) && isset($this->selected[$to])) {
+            $item = array_splice($this->selected, $from, 1)[0];
+            array_splice($this->selected, $to, 0, $item);
+        }
+    }
+
     public function createOrder()
     {
         if (empty($this->selected)) {
@@ -41,6 +69,10 @@ class Requisition extends Component
         }
 
         $products = Product::whereIn('id', $this->selected)->get();
+        $selectedIds = $this->selected;
+        $products = $products->sortBy(function($item) use ($selectedIds) {
+            return array_search($item->id, $selectedIds);
+        })->values();
         $itemsToCreate = [];
         $productsWithoutSupplier = [];
 

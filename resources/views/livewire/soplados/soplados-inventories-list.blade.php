@@ -193,9 +193,12 @@
                                     <th rowspan="2" class="align-middle text-center">Tipo</th>
                                     <th colspan="3" class="text-center bg-primary text-white">Primera Calidad / Insumos</th>
                                     <th colspan="3" class="text-center bg-info text-white">Segunda Calidad (Si aplica)</th>
-                                    <th rowspan="2" class="align-middle text-center bg-danger text-white">Merma</th>
+                                    <th colspan="3" class="text-center bg-danger text-white">Merma (Dañados)</th>
                                 </tr>
                                 <tr>
+                                    <th class="text-center">Sist.</th>
+                                    <th class="text-center">Fís.</th>
+                                    <th class="text-center">Dif.</th>
                                     <th class="text-center">Sist.</th>
                                     <th class="text-center">Fís.</th>
                                     <th class="text-center">Dif.</th>
@@ -229,7 +232,7 @@
                                                 <span class="text-danger">{{ $d->difference_primera }}</span>
                                             @endif
                                         </td>
-
+ 
                                         <!-- Segunda -->
                                         @if($d->type == 'finished_product' && $d->system_stock_segunda !== null)
                                             <td class="text-center align-middle">{{ $d->system_stock_segunda }}</td>
@@ -246,11 +249,26 @@
                                         @else
                                             <td colspan="3" class="text-center text-muted align-middle bg-light">-</td>
                                         @endif
-
+ 
                                         <!-- Merma -->
-                                        <td class="text-center align-middle font-weight-bold text-danger">
-                                            {{ $d->counted_merma !== null ? $d->counted_merma : '-' }}
-                                        </td>
+                                        @if($d->type == 'finished_product')
+                                            <td class="text-center align-middle">{{ $d->system_stock_merma !== null ? $d->system_stock_merma : 0 }}</td>
+                                            <td class="text-center align-middle font-weight-bold text-danger">{{ $d->counted_merma !== null ? $d->counted_merma : 0 }}</td>
+                                            <td class="text-center align-middle font-weight-bold">
+                                                @php
+                                                    $diffMerma = $d->difference_merma !== null ? $d->difference_merma : (($d->counted_merma ?? 0) - ($d->system_stock_merma ?? 0));
+                                                @endphp
+                                                @if($diffMerma == 0)
+                                                    <span class="text-muted">0</span>
+                                                @elseif($diffMerma > 0)
+                                                    <span class="text-success">+{{ $diffMerma }}</span>
+                                                @else
+                                                    <span class="text-danger">{{ $diffMerma }}</span>
+                                                @endif
+                                            </td>
+                                        @else
+                                            <td colspan="3" class="text-center text-muted align-middle bg-light">-</td>
+                                        @endif
                                     </tr>
                                 @endforeach
                             </tbody>

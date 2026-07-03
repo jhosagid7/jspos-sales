@@ -207,6 +207,13 @@ class InventoryController extends Controller
             ->where('is_raw_material', true)
             ->get();
 
+        $lastInventory = \App\Models\SopladosInventory::where('warehouse_id', $warehouse_id)
+            ->where('status', 'completed')
+            ->orderBy('id', 'desc')
+            ->first();
+
+        $lastInventoryDate = $lastInventory ? $lastInventory->accepted_at : null;
+
         $list = [];
 
         foreach ($finishedProducts as $p) {
@@ -227,6 +234,19 @@ class InventoryController extends Controller
                 $segunda_stock = $targetWarehouseStock->stock_qty ?? 0;
             }
 
+            // Calculate expected/system merma
+            $mermaQuery = \App\Models\ProductionOutput::where('product_id', $p->id)
+                ->where('quality', 'damaged')
+                ->whereHas('productionLog.shift', function($q) use ($warehouse_id) {
+                    $q->where('warehouse_id', $warehouse_id);
+                });
+
+            if ($lastInventoryDate) {
+                $mermaQuery->where('created_at', '>', $lastInventoryDate);
+            }
+
+            $system_merma = (float) $mermaQuery->sum('quantity');
+
             $list[] = [
                 'id' => $p->id,
                 'name' => $p->name,
@@ -236,6 +256,7 @@ class InventoryController extends Controller
                 'production_target_id' => $target_id,
                 'production_target_name' => $target_name,
                 'system_stock_segunda' => $segunda_stock !== null ? (float)$segunda_stock : null,
+                'system_stock_merma' => $system_merma,
             ];
         }
 
@@ -255,6 +276,7 @@ class InventoryController extends Controller
                 'production_target_id' => null,
                 'production_target_name' => null,
                 'system_stock_segunda' => null,
+                'system_stock_merma' => 0.0,
             ];
         }
 
@@ -305,6 +327,13 @@ class InventoryController extends Controller
                 'accepted_at' => null,
             ]);
 
+            $lastInventory = \App\Models\SopladosInventory::where('warehouse_id', $warehouse_id)
+                ->where('status', 'completed')
+                ->orderBy('id', 'desc')
+                ->first();
+
+            $lastInventoryDate = $lastInventory ? $lastInventory->accepted_at : null;
+
             foreach ($request->products as $pData) {
                 $p = Product::find($pData['id']);
                 
@@ -319,7 +348,9 @@ class InventoryController extends Controller
                 $system_segunda = null;
                 $counted_segunda = null;
                 $diff_segunda = null;
+                $system_merma = null;
                 $counted_merma = null;
+                $diff_merma = null;
 
                 if ($pData['type'] === 'finished_product') {
                     if ($p->production_target_id) {
@@ -330,7 +361,21 @@ class InventoryController extends Controller
                         $counted_segunda = floatval($pData['counted_segunda'] ?? 0);
                         $diff_segunda = $counted_segunda - $system_segunda;
                     }
+                    
+                    // Calculate expected/system merma at this moment
+                    $mermaQuery = \App\Models\ProductionOutput::where('product_id', $p->id)
+                        ->where('quality', 'damaged')
+                        ->whereHas('productionLog.shift', function($q) use ($warehouse_id) {
+                            $q->where('warehouse_id', $warehouse_id);
+                        });
+
+                    if ($lastInventoryDate) {
+                        $mermaQuery->where('created_at', '>', $lastInventoryDate);
+                    }
+
+                    $system_merma = (float) $mermaQuery->sum('quantity');
                     $counted_merma = floatval($pData['counted_merma'] ?? 0);
+                    $diff_merma = $counted_merma - $system_merma;
                 }
 
                 \App\Models\SopladosInventoryDetail::create([
@@ -343,7 +388,9 @@ class InventoryController extends Controller
                     'system_stock_segunda' => $system_segunda,
                     'counted_segunda' => $counted_segunda,
                     'difference_segunda' => $diff_segunda,
+                    'system_stock_merma' => $system_merma,
                     'counted_merma' => $counted_merma,
+                    'difference_merma' => $diff_merma,
                 ]);
             }
 

@@ -34,8 +34,48 @@
                     <button wire:click="createOrder" class="btn btn-primary" {{ empty($selected) ? 'disabled' : '' }}>
                         <i class="fas fa-shopping-cart"></i> Generar Órdenes
                     </button>
-                </div>
             </div>
+            
+            @if(!empty($selected))
+                @php
+                    $orderedProducts = \App\Models\Product::whereIn('id', $selected)->get()->sortBy(function($p) {
+                        return array_search($p->id, $this->selected);
+                    });
+                @endphp
+                <div class="row mt-3 border-top pt-3">
+                    <div class="col-12">
+                        <label class="font-weight-bold text-muted f-12 mb-1">
+                            <i class="fas fa-sort text-warning mr-1"></i> Secuencia / Orden de Productos Seleccionados (Arrastra para reordenar, define el orden de la Orden de Compra)
+                        </label>
+                        <div class="bg-light p-2 rounded">
+                            <div class="list-group list-group-flush" x-data="{ draggingIndex: null }">
+                                @foreach($orderedProducts->values() as $index => $p)
+                                    <div class="list-group-item d-flex justify-content-between align-items-center py-1 bg-white border rounded mb-1"
+                                         draggable="true"
+                                         x-on:dragstart="draggingIndex = {{ $index }}"
+                                         x-on:dragover.prevent=""
+                                         x-on:drop="if(draggingIndex !== null && draggingIndex !== {{ $index }}) { $wire.reorderProducts(draggingIndex, {{ $index }}); draggingIndex = null; }"
+                                         style="cursor: grab;">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-grip-vertical text-muted mr-3" style="font-size: 14px;"></i>
+                                            <span class="badge badge-secondary mr-2" style="font-size: 10px;">{{ $index + 1 }}</span>
+                                            <span class="font-weight-bold text-dark f-12">{{ $p->name }}</span>
+                                        </div>
+                                        <div>
+                                            <button type="button" wire:click="moveProductUp({{ $p->id }})" class="btn btn-xs btn-outline-secondary p-1" style="font-size: 10px; line-height: 1;" {{ $index === 0 ? 'disabled' : '' }}>
+                                                <i class="fas fa-arrow-up"></i>
+                                            </button>
+                                            <button type="button" wire:click="moveProductDown({{ $p->id }})" class="btn btn-xs btn-outline-secondary p-1" style="font-size: 10px; line-height: 1;" {{ $index === count($selected) - 1 ? 'disabled' : '' }}>
+                                                <i class="fas fa-arrow-down"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
         </div>
         <div class="card-body">
             <div class="table-responsive">

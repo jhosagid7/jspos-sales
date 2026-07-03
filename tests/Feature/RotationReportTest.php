@@ -344,4 +344,84 @@ class RotationReportTest extends TestCase
         // Margin USD should be 5.00 (10.00 sales_usd - 5.00 cost)
         $this->assertEquals(5.00, $processedProduct->margin_usd);
     }
+
+    public function test_rotation_report_handles_selected_products_filtering_robustly()
+    {
+        $this->actingAs($this->adminUser);
+
+        // Scenario 1: selectedProducts is a flat list
+        Livewire::test(RotationReport::class)
+            ->set('selectedProducts', [$this->p1->id, $this->p2->id])
+            ->call('generatePdf')
+            ->assertFileDownloaded('Reporte_Rotacion.pdf');
+
+        // Scenario 2: selectedProducts is an associative array (e.g. from checkbox clicks)
+        Livewire::test(RotationReport::class)
+            ->set('selectedProducts', [
+                $this->p1->id => true,
+                $this->p2->id => true,
+                $this->p3->id => false,
+            ])
+            ->call('generatePdf')
+            ->assertFileDownloaded('Reporte_Rotacion.pdf');
+    }
+
+    public function test_rotation_report_handles_selected_kpis_rendering_and_pdf()
+    {
+        $this->actingAs($this->adminUser);
+
+        // Scenario 1: Some KPIs selected
+        Livewire::test(RotationReport::class)
+            ->set('selectedKpis', ['totalCapital', 'totalMargin'])
+            ->call('generatePdf')
+            ->assertFileDownloaded('Reporte_Rotacion.pdf');
+
+        // Scenario 2: No KPIs selected (all unchecked)
+        Livewire::test(RotationReport::class)
+            ->set('selectedKpis', [])
+            ->call('generatePdf')
+            ->assertFileDownloaded('Reporte_Rotacion.pdf');
+    }
+
+    public function test_rotation_report_can_sort_selected_products_and_render_pdf_in_that_order()
+    {
+        $this->actingAs($this->adminUser);
+
+        // Select products in order: p2, p1, p3
+        $selected = [$this->p2->id, $this->p1->id, $this->p3->id];
+
+        $component = Livewire::test(RotationReport::class)
+            ->set('selectedProducts', $selected);
+
+        // Move p1 (index 1) UP to index 0 -> Order becomes: p1, p2, p3
+        $component->call('moveProductUp', $this->p1->id);
+        $this->assertEquals([$this->p1->id, $this->p2->id, $this->p3->id], $component->instance()->getSelectedIds());
+
+        // Move p3 (index 2) UP to index 1 -> Order becomes: p1, p3, p2
+        $component->call('moveProductUp', $this->p3->id);
+        $this->assertEquals([$this->p1->id, $this->p3->id, $this->p2->id], $component->instance()->getSelectedIds());
+
+        // Call generatePdf to ensure it generates fine
+        $component->call('generatePdf')
+            ->assertFileDownloaded('Reporte_Rotacion.pdf');
+    }
+
+    public function test_rotation_report_can_reorder_via_drag_and_drop()
+    {
+        $this->actingAs($this->adminUser);
+
+        // Select products in order: p2, p1, p3
+        $selected = [$this->p2->id, $this->p1->id, $this->p3->id];
+
+        $component = Livewire::test(RotationReport::class)
+            ->set('selectedProducts', $selected);
+
+        // Move index 0 (p2) to index 1 -> Order becomes: p1, p2, p3
+        $component->call('reorderProducts', 0, 1);
+        $this->assertEquals([$this->p1->id, $this->p2->id, $this->p3->id], $component->instance()->getSelectedIds());
+
+        // Move index 2 (p3) to index 0 -> Order becomes: p3, p1, p2
+        $component->call('reorderProducts', 2, 0);
+        $this->assertEquals([$this->p3->id, $this->p1->id, $this->p2->id], $component->instance()->getSelectedIds());
+    }
 }

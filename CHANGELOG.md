@@ -1,3 +1,21 @@
+## [1.10.206] - 2026-07-03
+### Added
+- **Secuencia y Ordenación Personalizada (Drag and Drop)**:
+  * Añadido panel interactivo de reordenamiento de productos seleccionados mediante botones de subir/bajar y soporte completo de **arrastrar y soltar (Drag and Drop)** con AlpineJS.
+  * La secuencia personalizada se aplica al PDF y Orden de Compra en el Reporte de Rotación, así como en los detalles de las órdenes generadas en el módulo de Requisición.
+- **Control de Mermas de Soplado**:
+  * Implementada migración para los campos de control de merma en la tabla de inventarios (`expected_merma_qty`, `real_merma_qty` y `diff_merma_qty`).
+  * Implementado cálculo dinámico de merma esperada desde el último inventario de fábrica aprobado en el controlador de Inventarios.
+  * Añadida visualización detallada de merma esperada, real y diferencia en el modal de detalles del inventario.
+- **Selección de Columnas y Tarjetas KPI en PDF**:
+  * Implementada la capacidad de elegir qué columnas y tarjetas de KPI incluir en la exportación de PDF y vista de pantalla, permitiendo ocultar todas las tarjetas.
+
+### Changed
+- **Separación de Stocks en Producción**: Corregida la separación de stocks de primera y segunda calidad en la producción de soplado.
+
+### Fixed
+- **Filtro de Productos en Matriz de Rotación**: Corregido bug donde la exportación en PDF y la generación de órdenes de compra ignoraban los productos seleccionados por casillas de verificación.
+
 ## [1.10.205] - 2026-07-03
 ### Changed
 - **Ampliación de Horario de Respaldos**:

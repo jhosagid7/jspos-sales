@@ -21,7 +21,9 @@ class SopladosInventoryDetail extends Model
         'system_stock_segunda',
         'counted_segunda',
         'difference_segunda',
-        'counted_merma'
+        'system_stock_merma',
+        'counted_merma',
+        'difference_merma'
     ];
 
     public function inventory()

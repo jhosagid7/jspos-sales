@@ -123,106 +123,129 @@
     </div>
 
     {{-- Grid de KPIs --}}
-    <table class="kpi-container">
-        <tr>
-            <td width="25%">
-                <div class="kpi-card" style="border-left: 3px solid #1b55e2;">
-                    <div class="kpi-title">Capital en Inventario</div>
-                    <div class="kpi-value" style="color: #333;">${{ number_format($totalCapital, 2) }}</div>
-                </div>
-            </td>
-            <td width="25%">
-                <div class="kpi-card" style="border-left: 3px solid #e71d36;">
-                    <div class="kpi-title">Capital Ocioso (Sin Mov)</div>
-                    <div class="kpi-value" style="color: #e71d36;">${{ number_format($idleCapital, 2) }}</div>
-                </div>
-            </td>
-            <td width="25%">
-                <div class="kpi-card" style="border-left: 3px solid #2ec4b6;">
-                    <div class="kpi-title">Ganancia Bruta Ventas</div>
-                    <div class="kpi-value" style="color: #2ec4b6;">${{ number_format($totalMargin, 2) }}</div>
-                </div>
-            </td>
-            <td width="25%">
-                <div class="kpi-card" style="border-left: 3px solid #17a2b8;">
-                    <div class="kpi-title">Margen Promedio (%)</div>
-                    <div class="kpi-value" style="color: #17a2b8;">{{ number_format($avgMarginPercent, 2) }}%</div>
-                </div>
-            </td>
-        </tr>
-    </table>
+    @if(isset($selectedKpis) && count($selectedKpis) > 0)
+        @php
+            $kpiWidth = (100 / count($selectedKpis)) . '%';
+        @endphp
+        <table class="kpi-container">
+            <tr>
+                @if(in_array('totalCapital', $selectedKpis))
+                    <td width="{{ $kpiWidth }}">
+                        <div class="kpi-card" style="border-left: 3px solid #1b55e2;">
+                            <div class="kpi-title">Capital en Inventario</div>
+                            <div class="kpi-value" style="color: #333;">${{ number_format($totalCapital, 2) }}</div>
+                        </div>
+                    </td>
+                @endif
+                @if(in_array('idleCapital', $selectedKpis))
+                    <td width="{{ $kpiWidth }}">
+                        <div class="kpi-card" style="border-left: 3px solid #e71d36;">
+                            <div class="kpi-title">Capital Ocioso (Sin Mov)</div>
+                            <div class="kpi-value" style="color: #e71d36;">${{ number_format($idleCapital, 2) }}</div>
+                        </div>
+                    </td>
+                @endif
+                @if(in_array('totalMargin', $selectedKpis))
+                    <td width="{{ $kpiWidth }}">
+                        <div class="kpi-card" style="border-left: 3px solid #2ec4b6;">
+                            <div class="kpi-title">Ganancia Bruta Ventas</div>
+                            <div class="kpi-value" style="color: #2ec4b6;">${{ number_format($totalMargin, 2) }}</div>
+                        </div>
+                    </td>
+                @endif
+                @if(in_array('avgMarginPercent', $selectedKpis))
+                    <td width="{{ $kpiWidth }}">
+                        <div class="kpi-card" style="border-left: 3px solid #17a2b8;">
+                            <div class="kpi-title">Margen Promedio (%)</div>
+                            <div class="kpi-value" style="color: #17a2b8;">{{ number_format($avgMarginPercent, 2) }}%</div>
+                        </div>
+                    </td>
+                @endif
+            </tr>
+        </table>
+    @endif
 
     {{-- Main Table --}}
     <table>
         <thead>
             <tr>
-                <th class="text-left" style="width: 180px;">Producto</th>
-                <th style="width: 40px;">Clase</th>
-                <th style="width: 50px;">Stock</th>
-                <th style="width: 65px;">Valor Stock</th>
-                <th style="width: 50px;">Vendido</th>
-                <th style="width: 65px;">Ventas USD</th>
-                <th style="width: 65px;">Margen USD</th>
-                <th style="width: 50px;">Margen %</th>
-                <th style="width: 50px;">Velocidad</th>
-                <th style="width: 60px;">Sugerencia</th>
-                <th style="width: 55px;">Cobertura</th>
-                <th style="width: 70px;">Estado</th>
+                @if(in_array('product', $selectedPdfColumns)) <th class="text-left" style="width: 180px;">Producto</th> @endif
+                @if(in_array('abc_class', $selectedPdfColumns)) <th style="width: 40px;">Clase</th> @endif
+                @if(in_array('stock_qty', $selectedPdfColumns)) <th style="width: 50px;">Stock</th> @endif
+                @if(in_array('stock_value', $selectedPdfColumns)) <th style="width: 65px;">Valor Stock</th> @endif
+                @if(in_array('total_sold', $selectedPdfColumns)) <th style="width: 50px;">Vendido</th> @endif
+                @if(in_array('sales_usd', $selectedPdfColumns)) <th style="width: 65px;">Ventas USD</th> @endif
+                @if(in_array('margin_usd', $selectedPdfColumns)) <th style="width: 65px;">Margen USD</th> @endif
+                @if(in_array('margin_percent', $selectedPdfColumns)) <th style="width: 50px;">Margen %</th> @endif
+                @if(in_array('velocity', $selectedPdfColumns)) <th style="width: 50px;">Velocidad</th> @endif
+                @if(in_array('suggested_order', $selectedPdfColumns)) <th style="width: 60px;">Sugerencia</th> @endif
+                @if(in_array('coverage_days', $selectedPdfColumns)) <th style="width: 55px;">Cobertura</th> @endif
+                @if(in_array('rotation_status', $selectedPdfColumns)) <th style="width: 70px;">Estado</th> @endif
             </tr>
         </thead>
         <tbody>
             @foreach($data as $product)
                 <tr>
-                    <td class="text-left" style="font-weight: bold; color: #111;">{{ $product->name }}</td>
-                    <td>
-                        @if($product->abc_class === 'A')
-                            <span class="badge badge-success" style="background-color: #2ec4b6;">A</span>
-                        @elseif($product->abc_class === 'B')
-                            <span class="badge badge-warning" style="background-color: #ff9f1c; color: white;">B</span>
-                        @else
-                            <span class="badge badge-danger" style="background-color: #e71d36;">C</span>
-                        @endif
-                    </td>
-                    <td style="font-weight: bold;">{{ $product->stock_qty }}</td>
-                    <td style="color: #666;">${{ number_format($product->stock_value, 2) }}</td>
-                    <td style="font-weight: bold;">{{ $product->total_sold }}</td>
-                    <td>${{ number_format($product->sales_usd, 2) }}</td>
-                    <td>
-                        @if($product->margin_usd > 0)
-                            <span class="text-success">+${{ number_format($product->margin_usd, 2) }}</span>
-                        @elseif($product->margin_usd < 0)
-                            <span class="text-danger">-${{ number_format(abs($product->margin_usd), 2) }}</span>
-                        @else
-                            $0.00
-                        @endif
-                    </td>
-                    <td style="font-weight: bold;">
-                        @if($product->margin_percent > 0)
-                            <span class="text-success">{{ $product->margin_percent }}%</span>
-                        @elseif($product->margin_percent < 0)
-                            <span class="text-danger">{{ $product->margin_percent }}%</span>
-                        @else
-                            0%
-                        @endif
-                    </td>
-                    <td style="color: #666;">{{ $product->velocity }}</td>
-                    <td class="text-primary" style="font-weight: bold;">{{ $product->suggested_order }}</td>
-                    <td>
-                        @if($product->coverage_days > 365)
-                            <span>> 1 Año</span>
-                        @else
-                            {{ $product->coverage_days }} días
-                        @endif
-                    </td>
-                    <td>
-                        @if($product->rotation_status == 'Alta Rotacion')
-                            <span class="badge badge-success" style="background-color: #2ec4b6;">Alta</span>
-                        @elseif($product->rotation_status == 'Baja Rotacion')
-                            <span class="badge badge-warning" style="background-color: #ff9f1c; color: white;">Baja</span>
-                        @else
-                            <span class="badge badge-danger" style="background-color: #e71d36;">Sin Mov.</span>
-                        @endif
-                    </td>
+                    @if(in_array('product', $selectedPdfColumns)) <td class="text-left" style="font-weight: bold; color: #111;">{{ $product->name }}</td> @endif
+                    @if(in_array('abc_class', $selectedPdfColumns))
+                        <td>
+                            @if($product->abc_class === 'A')
+                                <span class="badge badge-success" style="background-color: #2ec4b6;">A</span>
+                            @elseif($product->abc_class === 'B')
+                                <span class="badge badge-warning" style="background-color: #ff9f1c; color: white;">B</span>
+                            @else
+                                <span class="badge badge-danger" style="background-color: #e71d36;">C</span>
+                            @endif
+                        </td>
+                    @endif
+                    @if(in_array('stock_qty', $selectedPdfColumns)) <td style="font-weight: bold;">{{ $product->stock_qty }}</td> @endif
+                    @if(in_array('stock_value', $selectedPdfColumns)) <td style="color: #666;">${{ number_format($product->stock_value, 2) }}</td> @endif
+                    @if(in_array('total_sold', $selectedPdfColumns)) <td style="font-weight: bold;">{{ $product->total_sold }}</td> @endif
+                    @if(in_array('sales_usd', $selectedPdfColumns)) <td>${{ number_format($product->sales_usd, 2) }}</td> @endif
+                    @if(in_array('margin_usd', $selectedPdfColumns))
+                        <td>
+                            @if($product->margin_usd > 0)
+                                <span class="text-success">+${{ number_format($product->margin_usd, 2) }}</span>
+                            @elseif($product->margin_usd < 0)
+                                <span class="text-danger">-${{ number_format(abs($product->margin_usd), 2) }}</span>
+                            @else
+                                $0.00
+                            @endif
+                        </td>
+                    @endif
+                    @if(in_array('margin_percent', $selectedPdfColumns))
+                        <td style="font-weight: bold;">
+                            @if($product->margin_percent > 0)
+                                <span class="text-success">{{ $product->margin_percent }}%</span>
+                            @elseif($product->margin_percent < 0)
+                                <span class="text-danger">{{ $product->margin_percent }}%</span>
+                            @else
+                                0%
+                            @endif
+                        </td>
+                    @endif
+                    @if(in_array('velocity', $selectedPdfColumns)) <td style="color: #666;">{{ $product->velocity }}</td> @endif
+                    @if(in_array('suggested_order', $selectedPdfColumns)) <td class="text-primary" style="font-weight: bold;">{{ $product->suggested_order }}</td> @endif
+                    @if(in_array('coverage_days', $selectedPdfColumns))
+                        <td>
+                            @if($product->coverage_days > 365)
+                                <span>&gt; 1 Año</span>
+                            @else
+                                {{ $product->coverage_days }} días
+                            @endif
+                        </td>
+                    @endif
+                    @if(in_array('rotation_status', $selectedPdfColumns))
+                        <td>
+                            @if($product->rotation_status == 'Alta Rotacion')
+                                <span class="badge badge-success" style="background-color: #2ec4b6;">Alta</span>
+                            @elseif($product->rotation_status == 'Baja Rotacion')
+                                <span class="badge badge-warning" style="background-color: #ff9f1c; color: white;">Baja</span>
+                            @else
+                                <span class="badge badge-danger" style="background-color: #e71d36;">Sin Mov.</span>
+                            @endif
+                        </td>
+                    @endif
                 </tr>
             @endforeach
         </tbody>
