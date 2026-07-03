@@ -1,3 +1,8 @@
+## [1.10.205] - 2026-07-03
+### Changed
+- **Ampliación de Horario de Respaldos**:
+  * Modificado el rango horario en `app/Console/Kernel.php` para que los respaldos de base de datos se ejecuten cada 2 horas entre las 6:00 AM y las 10:00 PM (hora de Caracas).
+
 ## [1.10.204] - 2026-07-03
 ### Changed
 - **Frecuencia de Respaldos de Base de Datos**:
