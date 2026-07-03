@@ -32,10 +32,11 @@ class Kernel extends ConsoleKernel
             ->dailyAt('23:00')
             ->runInBackground();
 
-        // Respaldo diario de base de datos a las 11:30 PM
+        // Respaldo de base de datos cada 2 horas entre las 6:00 y las 20:00 (6 AM - 8 PM)
         $schedule->command('backup:run --only-db')
             ->timezone('America/Caracas')
-            ->dailyAt('23:30')
+            ->everyTwoHours()
+            ->between('6:00', '20:00')
             ->runInBackground();
     }
 

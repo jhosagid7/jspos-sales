@@ -1,3 +1,8 @@
+## [1.10.204] - 2026-07-03
+### Changed
+- **Frecuencia de Respaldos de Base de Datos**:
+  * Modificada la programación de respaldos de base de datos en `app/Console/Kernel.php` para que se ejecuten cada 2 horas entre las 6:00 AM y las 8:00 PM (hora de Caracas), en lugar de una sola vez al día. Esto restablece de forma nativa la misma frecuencia de respaldos que se tenía en el programador externo `ssfree.exe`.
+
 ## [1.10.203] - 2026-07-02
 ### Added
 - **Botón de Cierre Manual en UI de Ventas Diarias**:
