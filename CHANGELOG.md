@@ -1,3 +1,13 @@
+## [1.10.207] - 2026-07-06
+### Added
+- **Filtro de Insumos y Materia Prima en Reporte de Rotación**:
+  * Añadida la opción para filtrar el Reporte de Rotación por tipo de producto ("Solo Productos Terminados", "Solo Insumos / Materia Prima" o "Todos").
+  * El filtro por defecto ("Solo Productos Terminados") oculta la materia prima e insumos (que tienen `is_raw_material = true`), corrigiendo de inmediato el cálculo inflado del capital en inventario e inmovilizado generado por registrar costos por millar/bulto.
+
+### Fixed
+- **Límites de tiempo en actualización del sistema**:
+  * Añadida prevención de corte por límite de tiempo de ejecución de PHP (`set_time_limit(0)`) durante las fases de respaldo (backup), descarga, instalación y migraciones del actualizador del sistema.
+
 ## [1.10.206] - 2026-07-03
 ### Added
 - **Secuencia y Ordenación Personalizada (Drag and Drop)**:
@@ -15,6 +25,7 @@
 
 ### Fixed
 - **Filtro de Productos en Matriz de Rotación**: Corregido bug donde la exportación en PDF y la generación de órdenes de compra ignoraban los productos seleccionados por casillas de verificación.
+
 
 ## [1.10.205] - 2026-07-03
 ### Changed
