@@ -126,51 +126,57 @@
                                         <div class="card-header bg-transparent border-0">
                                             <h5 class="mb-0 text-dark font-weight-bold">Velocidad Semanal de Ventas y Rentabilidad</h5>
                                         </div>
-                                        <div class="card-body">
-                                            <div x-data="{
-                                                     render() {
-                                                         const labels = @js($weeklyBreakdown['labels'] ?? []);
-                                                         const sales = @js($weeklyBreakdown['sales'] ?? []);
-                                                         const profit = @js($weeklyBreakdown['profit'] ?? []);
-                                                         
-                                                         const isDarkMode = document.body.classList.contains('dark-mode');
-                                                         const textColor = isDarkMode ? '#e4e4e4' : '#333333';
-                                                         const chartBg = isDarkMode ? 'transparent' : '#ffffff';
+                                        <div class="card-body"
+                                              data-labels="{{ json_encode($weeklyBreakdown['labels'] ?? []) }}"
+                                              data-sales="{{ json_encode($weeklyBreakdown['sales'] ?? []) }}"
+                                              data-profit="{{ json_encode($weeklyBreakdown['profit'] ?? []) }}"
+                                              x-data="{
+                                                  render() {
+                                                      const labels = JSON.parse(this.$el.getAttribute('data-labels') || '[]');
+                                                      const sales = JSON.parse(this.$el.getAttribute('data-sales') || '[]').map(Number);
+                                                      const profit = JSON.parse(this.$el.getAttribute('data-profit') || '[]').map(Number);
+                                                      
+                                                      const isDarkMode = document.body.classList.contains('dark-mode');
+                                                      const textColor = isDarkMode ? '#e4e4e4' : '#333333';
+                                                      const chartBg = isDarkMode ? 'transparent' : '#ffffff';
 
-                                                         Highcharts.chart('weeklySalesChart', {
-                                                             chart: { type: 'column', backgroundColor: chartBg },
-                                                             title: { text: '' },
-                                                             xAxis: {
-                                                                 categories: labels,
-                                                                 labels: { style: { color: textColor } }
-                                                             },
-                                                             yAxis: {
-                                                                 title: { text: 'Monto ($ USD)', style: { color: textColor } },
-                                                                 labels: { style: { color: textColor } }
-                                                             },
-                                                             tooltip: { shared: true },
-                                                             legend: { itemStyle: { color: textColor } },
-                                                             credits: { enabled: false },
-                                                             series: [
-                                                                 {
-                                                                     name: 'Ventas Netas',
-                                                                     data: sales,
-                                                                     color: '#17a2b8'
-                                                                 },
-                                                                 {
-                                                                     name: 'Ganancia Bruta',
-                                                                     data: profit,
-                                                                     color: '#28a745'
-                                                                 }
-                                                             ]
-                                                         });
-                                                     }
-                                                 }"
-                                                 x-init="render()"
-                                                 x-effect="render()">
-                                                <div id="weeklySalesChart" style="height: 350px;" wire:ignore></div>
-                                            </div>
-                                        </div>
+                                                      Highcharts.chart(this.$refs.chart, {
+                                                          chart: { type: 'column', backgroundColor: chartBg },
+                                                          title: { text: '' },
+                                                          xAxis: {
+                                                              categories: labels,
+                                                              labels: { style: { color: textColor } }
+                                                          },
+                                                          yAxis: {
+                                                              title: { text: 'Monto ($ USD)', style: { color: textColor } },
+                                                              labels: { style: { color: textColor } }
+                                                          },
+                                                          tooltip: { shared: true },
+                                                          legend: { itemStyle: { color: textColor } },
+                                                          credits: { enabled: false },
+                                                          series: [
+                                                              {
+                                                                  name: 'Ventas Netas',
+                                                                  data: sales,
+                                                                  color: '#17a2b8'
+                                                              },
+                                                              {
+                                                                  name: 'Ganancia Bruta',
+                                                                  data: profit,
+                                                                  color: '#28a745'
+                                                              }
+                                                          ]
+                                                      });
+                                                  }
+                                              }"
+                                              x-init="
+                                                  render();
+                                                  $watch('$wire.selectedMonth', () => {
+                                                      $nextTick(() => render());
+                                                  });
+                                              ">
+                                             <div x-ref="chart" style="height: 350px;" wire:ignore></div>
+                                         </div>
                                     </div>
                                 </div>
                             </div>
@@ -245,44 +251,49 @@
                                         <div class="card-header bg-transparent border-0">
                                             <h5 class="mb-0 text-dark font-weight-bold">Evolución Histórica de Capitalización (Patrimonio Neto)</h5>
                                         </div>
-                                        <div class="card-body">
-                                            <div x-data="{
-                                                     render() {
-                                                         const labels = @js($patrimony['historyLabels'] ?? []);
-                                                         const equity = @js($patrimony['historyEquity'] ?? []);
-                                                         
-                                                         const isDarkMode = document.body.classList.contains('dark-mode');
-                                                         const textColor = isDarkMode ? '#e4e4e4' : '#333333';
-                                                         const chartBg = isDarkMode ? 'transparent' : '#ffffff';
+                                        <div class="card-body"
+                                              data-labels="{{ json_encode($patrimony['historyLabels'] ?? []) }}"
+                                              data-equity="{{ json_encode($patrimony['historyEquity'] ?? []) }}"
+                                              x-data="{
+                                                  render() {
+                                                      const labels = JSON.parse(this.$el.getAttribute('data-labels') || '[]');
+                                                      const equity = JSON.parse(this.$el.getAttribute('data-equity') || '[]').map(Number);
+                                                      
+                                                      const isDarkMode = document.body.classList.contains('dark-mode');
+                                                      const textColor = isDarkMode ? '#e4e4e4' : '#333333';
+                                                      const chartBg = isDarkMode ? 'transparent' : '#ffffff';
 
-                                                         Highcharts.chart('equityTrendChart', {
-                                                             chart: { type: 'areaspline', backgroundColor: chartBg },
-                                                             title: { text: '' },
-                                                             xAxis: {
-                                                                 categories: labels,
-                                                                 labels: { style: { color: textColor } }
-                                                             },
-                                                             yAxis: {
-                                                                 title: { text: 'Patrimonio Neto ($ USD)', style: { color: textColor } },
-                                                                 labels: { style: { color: textColor } }
-                                                             },
-                                                             tooltip: { pointFormat: '<b>${point.y:.2f} USD</b>' },
-                                                             legend: { enabled: false },
-                                                             credits: { enabled: false },
-                                                             series: [{
-                                                                 name: 'Patrimonio Neto',
-                                                                 data: equity,
-                                                                 color: '#007bff',
-                                                                 fillOpacity: 0.1
-                                                             }]
-                                                         });
-                                                     }
-                                                 }"
-                                                 x-init="render()"
-                                                 x-effect="render()">
-                                                <div id="equityTrendChart" style="height: 350px;" wire:ignore></div>
-                                            </div>
-                                        </div>
+                                                      Highcharts.chart(this.$refs.chart, {
+                                                          chart: { type: 'areaspline', backgroundColor: chartBg },
+                                                          title: { text: '' },
+                                                          xAxis: {
+                                                              categories: labels,
+                                                              labels: { style: { color: textColor } }
+                                                          },
+                                                          yAxis: {
+                                                              title: { text: 'Patrimonio Neto ($ USD)', style: { color: textColor } },
+                                                              labels: { style: { color: textColor } }
+                                                          },
+                                                          tooltip: { pointFormat: '<b>${point.y:.2f} USD</b>' },
+                                                          legend: { enabled: false },
+                                                          credits: { enabled: false },
+                                                          series: [{
+                                                              name: 'Patrimonio Neto',
+                                                              data: equity,
+                                                              color: '#007bff',
+                                                              fillOpacity: 0.1
+                                                          }]
+                                                      });
+                                                  }
+                                              }"
+                                              x-init="
+                                                  render();
+                                                  $watch('$wire.selectedMonth', () => {
+                                                      $nextTick(() => render());
+                                                  });
+                                              ">
+                                             <div x-ref="chart" style="height: 350px;" wire:ignore></div>
+                                         </div>
                                     </div>
                                 </div>
                             </div>

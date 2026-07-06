@@ -1,3 +1,8 @@
+## [1.10.213] - 2026-07-06
+### Fixed
+- **Actualización de Datos en los Gráficos de Highcharts**:
+  * Corregido el problema donde la directiva `wire:ignore` evitaba que Livewire actualizara los datos dentro de las directivas Alpine al cambiar el mes seleccionado. Se trasladaron las propiedades de datos (`labels`, `sales`, `profit`, `equity`) a atributos de datos HTML (`data-`) en el contenedor padre (que no tiene ignore) y se implementó un observador reactivo Alpine `$watch('$wire.selectedMonth', ...)` junto con `$nextTick()`. Esto garantiza que los gráficos se redibujen con los datos correctos calculados del mes seleccionado en el backend (por ejemplo, Junio).
+
 ## [1.10.212] - 2026-07-06
 ### Fixed
 - **Inicialización y Renderizado de Gráficos en Análisis Estratégico**:
