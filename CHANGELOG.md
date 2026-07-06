@@ -1,3 +1,11 @@
+## [1.10.209] - 2026-07-06
+### Added
+- **Módulo de Análisis Estratégico y Crecimiento de Patrimonio**:
+  * Diseñado e implementado el nuevo panel analítico avanzado que compara ventas netas, márgenes y utilidad neta mes a mes y año a año, con velocidades semanales.
+  * Agregado sistema de registro de Gastos Operativos (OPEX) mensuales para deducir costos fijos de las ganancias.
+  * Implementado cálculo en tiempo real de Patrimonio Neto Operativo (activos líquidos, mercancía a costo, cuentas por cobrar menos cuentas por pagar) y gráfico de tendencia de capitalización.
+  * Agregada clasificación ABC de clientes (regla 80/20) y análisis de margen de productos.
+
 ## [1.10.208] - 2026-07-06
 ### Added
 - **Decimales Configurables en Listas de Precios**:
