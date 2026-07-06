@@ -424,4 +424,49 @@ class RotationReportTest extends TestCase
         $component->call('reorderProducts', 2, 0);
         $this->assertEquals([$this->p3->id, $this->p1->id, $this->p2->id], $component->instance()->getSelectedIds());
     }
+
+    public function test_rotation_report_can_filter_by_product_type_finished_raw_materials_or_all()
+    {
+        $this->actingAs($this->adminUser);
+
+        // Create a raw material product
+        $rawMaterial = Product::create([
+            'name' => 'Raw Preform 17g',
+            'sku' => 'RAW-PREFORM-17',
+            'cost' => 11.72,
+            'price' => 0.00,
+            'show_in_sales' => false,
+            'stock_qty' => 1000,
+            'manage_stock' => true,
+            'low_stock' => 0,
+            'category_id' => $this->category->id,
+            'supplier_id' => $this->supplier->id,
+            'is_raw_material' => true,
+        ]);
+
+        // Default: rawMaterialFilter is 'finished'
+        Livewire::test(RotationReport::class)
+            ->assertSet('rawMaterialFilter', 'finished')
+            ->call('getRotationData')
+            ->assertViewHas('data', function($products) use ($rawMaterial) {
+                return !$products->contains('id', $rawMaterial->id);
+            });
+
+        // Set to 'raw_materials'
+        Livewire::test(RotationReport::class)
+            ->set('rawMaterialFilter', 'raw_materials')
+            ->call('getRotationData')
+            ->assertViewHas('data', function($products) use ($rawMaterial) {
+                return $products->contains('id', $rawMaterial->id) && $products->count() === 1;
+            });
+
+        // Set to 'all'
+        Livewire::test(RotationReport::class)
+            ->set('rawMaterialFilter', 'all')
+            ->call('getRotationData')
+            ->assertViewHas('data', function($products) use ($rawMaterial) {
+                return $products->contains('id', $rawMaterial->id) && $products->count() > 1;
+            });
+    }
 }
+

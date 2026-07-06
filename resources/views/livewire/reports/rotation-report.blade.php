@@ -96,7 +96,18 @@
                                 <option value="low">Baja Rotación</option>
                                 <option value="none">Sin Movimiento</option>
                             </select>
-                    </div>
+                        </div>
+
+                        <!-- Tipo de Producto / Insumos -->
+                        <div class="col-sm-12 col-md-3 mb-2">
+                            <label class="font-weight-bold text-muted f-12 mb-1">Tipo de Producto</label>
+                            <select wire:model.live="rawMaterialFilter" class="form-control form-control-sm">
+                                <option value="finished">Solo Productos Terminados</option>
+                                <option value="raw_materials">Solo Insumos / Materia Prima</option>
+                                <option value="all">Todos los Productos</option>
+                            </select>
+                        </div>
+
 
                     <!-- Selección de Columnas para PDF y KPIs -->
                     <div class="row mt-2">

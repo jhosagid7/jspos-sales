@@ -24,6 +24,7 @@ class RotationReport extends Component
     public $coverageDays = 30;
     public $status = ''; // low, high, none
     public $search = '';
+    public $rawMaterialFilter = 'finished'; // finished, raw_materials, all
     public $selectedProducts = [];
     public $tagId = 0;
     public $showInterpretationModal = false;
@@ -127,6 +128,11 @@ class RotationReport extends Component
     }
 
     public function updatedStatus()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedRawMaterialFilter()
     {
         $this->resetPage();
     }
@@ -237,6 +243,12 @@ class RotationReport extends Component
 
         if (strlen($this->search) > 0) {
             $query->where('products.name', 'like', '%' . $this->search . '%');
+        }
+
+        if ($this->rawMaterialFilter === 'finished') {
+            $query->where('products.is_raw_material', false);
+        } elseif ($this->rawMaterialFilter === 'raw_materials') {
+            $query->where('products.is_raw_material', true);
         }
 
         $query->groupBy('products.id', 'products.name', 'products.sku', 'products.stock_qty', 'products.cost', 'products.price', 'categories.name');
