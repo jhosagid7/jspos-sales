@@ -1,3 +1,8 @@
+## [1.10.211] - 2026-07-06
+### Added
+- **Visualización de Comparativas en Análisis Estratégico**:
+  * Agregadas comparaciones visuales con porcentajes y flechas de tendencia directamente en las tarjetas KPI para **Ventas Netas** y **Utilidad Neta Real**, mostrando los rendimientos con respecto al **mes anterior** y al **mismo mes del año anterior (YoY)**.
+
 ## [1.10.210] - 2026-07-06
 ### Fixed
 - **Diseño del Menú Lateral**:

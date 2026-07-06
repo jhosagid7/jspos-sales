@@ -42,12 +42,24 @@
                                             <h6 class="text-white-50">Ventas Netas ({{ $monthName }})</h6>
                                             <h3>${{ number_format($current['netSales'], 2) }}</h3>
                                             <div class="mt-2 text-white-50 small">
-                                                @php $diffPrev = $prev['netSales'] > 0 ? (($current['netSales'] - $prev['netSales']) / $prev['netSales']) * 100 : 0; @endphp
-                                                @if($diffPrev >= 0)
-                                                    <span class="text-white font-weight-bold"><i class="fas fa-arrow-up"></i> +{{ number_format($diffPrev, 1) }}%</span> vs mes anterior
-                                                @else
-                                                    <span class="text-white font-weight-bold"><i class="fas fa-arrow-down"></i> {{ number_format($diffPrev, 1) }}%</span> vs mes anterior
-                                                @endif
+                                                @php 
+                                                    $diffPrevSales = $prev['netSales'] > 0 ? (($current['netSales'] - $prev['netSales']) / $prev['netSales']) * 100 : 0; 
+                                                    $diffYearSales = $yearAgo['netSales'] > 0 ? (($current['netSales'] - $yearAgo['netSales']) / $yearAgo['netSales']) * 100 : 0;
+                                                @endphp
+                                                <div>
+                                                    @if($diffPrevSales >= 0)
+                                                        <span class="text-white font-weight-bold"><i class="fas fa-arrow-up"></i> +{{ number_format($diffPrevSales, 1) }}%</span> vs mes anterior
+                                                    @else
+                                                        <span class="text-white font-weight-bold"><i class="fas fa-arrow-down"></i> {{ number_format($diffPrevSales, 1) }}%</span> vs mes anterior
+                                                    @endif
+                                                </div>
+                                                <div class="mt-1">
+                                                    @if($diffYearSales >= 0)
+                                                        <span class="text-white font-weight-bold"><i class="fas fa-arrow-up"></i> +{{ number_format($diffYearSales, 1) }}%</span> vs año anterior
+                                                    @else
+                                                        <span class="text-white font-weight-bold"><i class="fas fa-arrow-down"></i> {{ number_format($diffYearSales, 1) }}%</span> vs año anterior
+                                                    @endif
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -83,7 +95,24 @@
                                             <h6 class="text-white-50">Utilidad Neta Real</h6>
                                             <h3>${{ number_format($current['netProfit'], 2) }}</h3>
                                             <div class="mt-2 text-white-50 small">
-                                                Margen Neto: <strong>{{ number_format($current['netMarginPercent'], 1) }}%</strong>
+                                                @php 
+                                                    $diffPrevProfit = $prev['netProfit'] > 0 ? (($current['netProfit'] - $prev['netProfit']) / $prev['netProfit']) * 100 : 0; 
+                                                    $diffYearProfit = $yearAgo['netProfit'] > 0 ? (($current['netProfit'] - $yearAgo['netProfit']) / $yearAgo['netProfit']) * 100 : 0;
+                                                @endphp
+                                                <div>
+                                                    @if($diffPrevProfit >= 0)
+                                                        <span class="text-white font-weight-bold"><i class="fas fa-arrow-up"></i> +{{ number_format($diffPrevProfit, 1) }}%</span> vs mes anterior
+                                                    @else
+                                                        <span class="text-white font-weight-bold"><i class="fas fa-arrow-down"></i> {{ number_format($diffPrevProfit, 1) }}%</span> vs mes anterior
+                                                    @endif
+                                                </div>
+                                                <div class="mt-1">
+                                                    @if($diffYearProfit >= 0)
+                                                        <span class="text-white font-weight-bold"><i class="fas fa-arrow-up"></i> +{{ number_format($diffYearProfit, 1) }}%</span> vs año anterior
+                                                    @else
+                                                        <span class="text-white font-weight-bold"><i class="fas fa-arrow-down"></i> {{ number_format($diffYearProfit, 1) }}%</span> vs año anterior
+                                                    @endif
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
