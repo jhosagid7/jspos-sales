@@ -73,6 +73,7 @@ class PriceListGenerator extends Component
     ];
     public $selectedColumns = [];
     public $showInfoBlock = true;
+    public $decimals = 2;
     public $config;
 
     public function mount()
@@ -101,6 +102,7 @@ class PriceListGenerator extends Component
             $this->selectedColumns = ['sku', 'name', 'final_price'];
         }
 
+        $this->decimals = $this->config->price_list_decimals ?? 2;
         $this->showInfoBlock = $this->config->price_list_show_info_block ?? true;
 
         // Sanitize selected columns to ensure they are actually available (respecting module conditions)
@@ -161,8 +163,9 @@ class PriceListGenerator extends Component
 
         $this->config->price_list_columns = $this->selectedColumns;
         $this->config->price_list_show_info_block = $this->showInfoBlock;
+        $this->config->price_list_decimals = $this->decimals;
         $this->config->save();
-
+ 
         $this->dispatch('noty', msg: 'Configuración de columnas guardada correctamente.');
     }
 
@@ -431,7 +434,8 @@ class PriceListGenerator extends Component
         $columnLabels = $this->availableColumns;
         $showInfoBlock = $this->showInfoBlock;
 
-        $pdf = Pdf::loadView('pdf.price-list', compact('groupedData', 'date', 'headerData', 'footerCode', 'customer', 'columns', 'columnLabels', 'showInfoBlock'));
+        $decimals = $this->decimals;
+        $pdf = Pdf::loadView('pdf.price-list', compact('groupedData', 'date', 'headerData', 'footerCode', 'customer', 'columns', 'columnLabels', 'showInfoBlock', 'decimals'));
         
         $filename = "Lista_Precios_" . now()->format('d-m-Y') . ".pdf";
 

@@ -200,7 +200,7 @@
                                  <div class="col-12">
                                      <h6 class="font-weight-bold text-dark"><i class="fas fa-cogs"></i> Opciones de la Lista</h6>
                                  </div>
-                                 <div class="col-md-4 mb-3">
+                                 <div class="col-md-3 mb-3">
                                      <div class="form-group mb-0">
                                          <label class="font-weight-bold">Agrupar por</label>
                                          <select wire:model.live="groupBy" class="form-control">
@@ -211,7 +211,17 @@
                                          </select>
                                      </div>
                                  </div>
-                                 <div class="col-md-4 mb-3 d-flex align-items-center">
+                                 <div class="col-md-3 mb-3">
+                                     <div class="form-group mb-0">
+                                         <label class="font-weight-bold">Decimales a mostrar</label>
+                                         <select wire:model="decimals" class="form-control">
+                                             <option value="2">2 decimales (Ej: $10.50)</option>
+                                             <option value="3">3 decimales (Ej: $10.500)</option>
+                                             <option value="4">4 decimales (Ej: $10.5000)</option>
+                                         </select>
+                                     </div>
+                                 </div>
+                                 <div class="col-md-3 mb-3 d-flex align-items-center">
                                      <div class="custom-control custom-checkbox">
                                          <input type="checkbox" class="custom-control-input" id="apply_commissions_toggle" wire:model.live="applyCommissionsToggle">
                                          <label class="custom-control-label font-weight-bold" for="apply_commissions_toggle">
@@ -220,7 +230,7 @@
                                          <span class="d-block text-muted small">Si se desmarca, se generará con los precios base sin recargos.</span>
                                      </div>
                                  </div>
-                                 <div class="col-md-4 mb-3 d-flex align-items-center">
+                                 <div class="col-md-3 mb-3 d-flex align-items-center">
                                      <div class="custom-control custom-checkbox">
                                          <input type="checkbox" class="custom-control-input" id="only_bought_products" wire:model.live="onlyBoughtProducts" @if(!$customerId) disabled @endif>
                                          <label class="custom-control-label font-weight-bold {{ !$customerId ? 'text-muted' : '' }}" for="only_bought_products">

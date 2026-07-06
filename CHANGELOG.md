@@ -1,3 +1,9 @@
+## [1.10.208] - 2026-07-06
+### Added
+- **Decimales Configurables en Listas de Precios**:
+  * Añadida la opción "Decimales a mostrar" en el Generador de Listas de Precios, permitiendo configurar de forma interactiva si se imprimen los precios con 2, 3 o 4 decimales en el PDF.
+  * Agregada opción para guardar esta configuración de decimales como predeterminada del sistema desde el panel de administración.
+
 ## [1.10.207] - 2026-07-06
 ### Added
 - **Filtro de Insumos y Materia Prima en Reporte de Rotación**:

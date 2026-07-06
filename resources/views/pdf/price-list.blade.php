@@ -92,14 +92,14 @@
                             @if(isset($row['is_out_of_stock']) && $row['is_out_of_stock'])
                                 <strong style="color: red;">AGOTADO</strong>
                             @else
-                                ${{ number_format($row[$col] ?? 0, 2) }}
+                                ${{ number_format($row[$col] ?? 0, $decimals) }}
                             @endif
                         @elseif($col == 'stock')
                             {{-- Check if it's the AGOTADO string or a number --}}
                             @if($row[$col] === 'AGOTADO')
                                 <strong>AGOTADO</strong>
                             @else
-                                {{ number_format($row[$col] ?? 0, 2) }}
+                                {{ number_format($row[$col] ?? 0, $decimals) }}
                             @endif
                         @else
                             {{ $row[$col] ?? '' }}

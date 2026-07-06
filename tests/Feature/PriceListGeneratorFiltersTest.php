@@ -451,4 +451,41 @@ class PriceListGeneratorFiltersTest extends TestCase
 
         $response->assertStatus(200);
     }
+
+    public function test_price_list_generator_with_configurable_decimals()
+    {
+        $this->actingAs($this->adminUser);
+
+        // Mock PDF loadView to check that decimals is passed correctly
+        $pdfMock = \Mockery::mock(\Barryvdh\DomPDF\PDF::class);
+        $pdfMock->shouldReceive('output')->andReturn('pdf content');
+
+        \Barryvdh\DomPDF\Facade\Pdf::shouldReceive('loadView')
+            ->once()
+            ->with('pdf.price-list', \Mockery::on(function($data) {
+                return isset($data['decimals']) && $data['decimals'] === 3;
+            }))
+            ->andReturn($pdfMock);
+
+        $response = Livewire::test(\App\Livewire\PriceListGenerator::class)
+            ->set('decimals', 3)
+            ->call('generate');
+
+        $response->assertStatus(200);
+    }
+
+    public function test_price_list_generator_saves_decimals_config()
+    {
+        $this->actingAs($this->adminUser);
+        \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'sales.configure_price_list']);
+        $this->adminUser->givePermissionTo('sales.configure_price_list');
+
+        Livewire::test(\App\Livewire\PriceListGenerator::class)
+            ->set('decimals', 4)
+            ->call('saveConfig');
+
+        $config = Configuration::first();
+        $this->assertEquals(4, $config->price_list_decimals);
+    }
 }
+
