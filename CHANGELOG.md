@@ -1,3 +1,18 @@
+## [1.10.216] - 2026-07-06
+### Added
+- **Exclusión de Insumos/Materias Primas en Análisis Estratégico**:
+  * Implementado filtro global en todas las consultas del Módulo de Análisis Estratégico (Ventas Netas, Devoluciones, COGS, Valor de Inventario, Clasificación ABC y Márgenes de Productos) para excluir los productos donde `is_raw_material` sea verdadero. Esto evita que los insumos y materias primas (como preformas, resinas, tapas, etc.) distorsionen los cálculos financieros del módulo debido a discrepancias en el ingreso de sus costos unitarios.
+
+## [1.10.215] - 2026-07-06
+### Fixed
+- **Sincronización mediante Eventos Personalizados del Servidor**:
+  * Resuelto el problema de desincronización y retraso de un paso en el renderizado de gráficos de Highcharts al cambiar de mes. Al cambiar la propiedad en Livewire, el evento se gatillaba en el cliente antes de recibir la respuesta del servidor, resultando en datos desfasados. Ahora, el controlador de Livewire despacha explícitamente el evento `chart-updated` tras actualizar los datos del servidor, y AlpineJS lo escucha mediante `@chart-updated.window` para redibujar el gráfico con `$nextTick()`.
+
+## [1.10.214] - 2026-07-06
+### Fixed
+- **Vinculación Reactiva en AlpineJS mediante Entangle**:
+  * Sustituido el observador directo `$watch('$wire.selectedMonth', ...)` por un enlace de propiedad nativo Alpine `@entangle('selectedMonth')` sincronizado con el backend de Livewire. Esto corrige el problema en el cual los gráficos no recibían la señal de cambio de mes y se quedaban mostrando el mes anterior (Mayo) cuando el usuario seleccionaba Junio.
+
 ## [1.10.213] - 2026-07-06
 ### Fixed
 - **Actualización de Datos en los Gráficos de Highcharts**:

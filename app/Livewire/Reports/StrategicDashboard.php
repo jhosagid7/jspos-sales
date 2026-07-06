@@ -67,6 +67,8 @@ class StrategicDashboard extends Component
 
         $data = $this->getDashboardData();
 
+        $this->dispatch('chart-updated');
+
         return view('livewire.reports.strategic-dashboard', $data)
             ->layout('layouts.theme.app');
     }
@@ -121,19 +123,26 @@ class StrategicDashboard extends Component
     private function calculatePeriodMetrics($month, $year)
     {
         // 1. Gross Sales (USD)
-        $grossSales = Sale::whereMonth('created_at', $month)
-            ->whereYear('created_at', $year)
-            ->whereNotIn('status', ['voided', 'cancelled', 'anulated', 'returned'])
-            ->whereNull('deletion_approved_at')
-            ->sum('total_usd');
+        $grossSales = DB::table('sale_details')
+            ->join('sales', 'sale_details.sale_id', '=', 'sales.id')
+            ->join('products', 'sale_details.product_id', '=', 'products.id')
+            ->whereMonth('sales.created_at', $month)
+            ->whereYear('sales.created_at', $year)
+            ->whereNotIn('sales.status', ['voided', 'cancelled', 'anulated', 'returned'])
+            ->whereNull('sales.deletion_approved_at')
+            ->where('products.is_raw_material', false)
+            ->sum(DB::raw('sale_details.quantity * (sale_details.sale_price / COALESCE(NULLIF(sales.primary_exchange_rate, 0), 1))'));
 
         // 2. Returns (USD)
-        $returns = DB::table('sale_returns')
+        $returns = DB::table('sale_return_details')
+            ->join('sale_returns', 'sale_return_details.sale_return_id', '=', 'sale_returns.id')
             ->join('sales', 'sale_returns.sale_id', '=', 'sales.id')
+            ->join('products', 'sale_return_details.product_id', '=', 'products.id')
             ->whereMonth('sale_returns.created_at', $month)
             ->whereYear('sale_returns.created_at', $year)
             ->where('sale_returns.status', 'approved')
-            ->sum(DB::raw('sale_returns.total_returned / COALESCE(NULLIF(sales.primary_exchange_rate, 0), 1)'));
+            ->where('products.is_raw_material', false)
+            ->sum(DB::raw('sale_return_details.subtotal / COALESCE(NULLIF(sales.primary_exchange_rate, 0), 1)'));
 
         $netSales = max(0, $grossSales - $returns);
 
@@ -145,6 +154,7 @@ class StrategicDashboard extends Component
             ->whereNull('sales.deletion_approved_at')
             ->whereMonth('sales.created_at', $month)
             ->whereYear('sales.created_at', $year)
+            ->where('products.is_raw_material', false)
             ->sum(DB::raw('sale_details.quantity * COALESCE(products.cost, 0)'));
 
         $grossProfit = max(0, $netSales - $cogs);
@@ -197,16 +207,23 @@ class StrategicDashboard extends Component
             $end = collect($days)->max()->endOfDay();
 
             // Weekly Net Sales
-            $grossSales = Sale::whereBetween('created_at', [$start, $end])
-                ->whereNotIn('status', ['voided', 'cancelled', 'anulated', 'returned'])
-                ->whereNull('deletion_approved_at')
-                ->sum('total_usd');
+            $grossSales = DB::table('sale_details')
+                ->join('sales', 'sale_details.sale_id', '=', 'sales.id')
+                ->join('products', 'sale_details.product_id', '=', 'products.id')
+                ->whereBetween('sales.created_at', [$start, $end])
+                ->whereNotIn('sales.status', ['voided', 'cancelled', 'anulated', 'returned'])
+                ->whereNull('sales.deletion_approved_at')
+                ->where('products.is_raw_material', false)
+                ->sum(DB::raw('sale_details.quantity * (sale_details.sale_price / COALESCE(NULLIF(sales.primary_exchange_rate, 0), 1))'));
 
-            $returns = DB::table('sale_returns')
+            $returns = DB::table('sale_return_details')
+                ->join('sale_returns', 'sale_return_details.sale_return_id', '=', 'sale_returns.id')
                 ->join('sales', 'sale_returns.sale_id', '=', 'sales.id')
+                ->join('products', 'sale_return_details.product_id', '=', 'products.id')
                 ->whereBetween('sale_returns.created_at', [$start, $end])
                 ->where('sale_returns.status', 'approved')
-                ->sum(DB::raw('sale_returns.total_returned / COALESCE(NULLIF(sales.primary_exchange_rate, 0), 1)'));
+                ->where('products.is_raw_material', false)
+                ->sum(DB::raw('sale_return_details.subtotal / COALESCE(NULLIF(sales.primary_exchange_rate, 0), 1)'));
 
             $netSales = max(0, $grossSales - $returns);
 
@@ -217,6 +234,7 @@ class StrategicDashboard extends Component
                 ->whereNotIn('sales.status', ['voided', 'cancelled', 'anulated', 'returned'])
                 ->whereNull('sales.deletion_approved_at')
                 ->whereBetween('sales.created_at', [$start, $end])
+                ->where('products.is_raw_material', false)
                 ->sum(DB::raw('sale_details.quantity * COALESCE(products.cost, 0)'));
 
             $grossProfit = max(0, $netSales - $cogs);
@@ -239,6 +257,7 @@ class StrategicDashboard extends Component
     {
         // 1. Inventory Value (cost * stock)
         $inventoryValue = Product::where('status', 'available')
+            ->where('is_raw_material', false)
             ->get()
             ->sum(function($p) {
                 return $p->stock_qty * ($p->cost ?? 0);
@@ -342,6 +361,7 @@ class StrategicDashboard extends Component
             ->whereNull('sales.deletion_approved_at')
             ->whereMonth('sales.created_at', $month)
             ->whereYear('sales.created_at', $year)
+            ->where('products.is_raw_material', false)
             ->groupBy('customers.id', 'customers.name')
             ->orderByDesc('profit_usd')
             ->get();
@@ -397,6 +417,7 @@ class StrategicDashboard extends Component
             ->whereNull('sales.deletion_approved_at')
             ->whereMonth('sales.created_at', $month)
             ->whereYear('sales.created_at', $year)
+            ->where('products.is_raw_material', false)
             ->groupBy('products.sku', 'products.name', 'products.cost')
             ->get();
 

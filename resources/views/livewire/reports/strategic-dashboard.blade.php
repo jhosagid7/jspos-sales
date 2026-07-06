@@ -126,7 +126,7 @@
                                         <div class="card-header bg-transparent border-0">
                                             <h5 class="mb-0 text-dark font-weight-bold">Velocidad Semanal de Ventas y Rentabilidad</h5>
                                         </div>
-                                        <div class="card-body"
+                                         <div class="card-body"
                                               data-labels="{{ json_encode($weeklyBreakdown['labels'] ?? []) }}"
                                               data-sales="{{ json_encode($weeklyBreakdown['sales'] ?? []) }}"
                                               data-profit="{{ json_encode($weeklyBreakdown['profit'] ?? []) }}"
@@ -169,12 +169,8 @@
                                                       });
                                                   }
                                               }"
-                                              x-init="
-                                                  render();
-                                                  $watch('$wire.selectedMonth', () => {
-                                                      $nextTick(() => render());
-                                                  });
-                                              ">
+                                              x-init="render()"
+                                              @chart-updated.window="$nextTick(() => render())">
                                              <div x-ref="chart" style="height: 350px;" wire:ignore></div>
                                          </div>
                                     </div>
@@ -286,12 +282,8 @@
                                                       });
                                                   }
                                               }"
-                                              x-init="
-                                                  render();
-                                                  $watch('$wire.selectedMonth', () => {
-                                                      $nextTick(() => render());
-                                                  });
-                                              ">
+                                              x-init="render()"
+                                              @chart-updated.window="$nextTick(() => render())">
                                              <div x-ref="chart" style="height: 350px;" wire:ignore></div>
                                          </div>
                                     </div>
