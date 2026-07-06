@@ -1,3 +1,8 @@
+## [1.10.212] - 2026-07-06
+### Fixed
+- **Inicialización y Renderizado de Gráficos en Análisis Estratégico**:
+  * Implementado un wrapper reactivo con AlpineJS (`x-data` + `x-effect` + `wire:ignore`) para los gráficos de Highcharts (`weeklySalesChart` y `equityTrendChart`). Esto garantiza que los gráficos se redibujen automáticamente y con los datos correctos cada vez que el usuario cambia de mes, corrigiendo el problema de los gráficos que se quedaban vacíos o sin cargar.
+
 ## [1.10.211] - 2026-07-06
 ### Added
 - **Visualización de Comparativas en Análisis Estratégico**:

@@ -127,7 +127,49 @@
                                             <h5 class="mb-0 text-dark font-weight-bold">Velocidad Semanal de Ventas y Rentabilidad</h5>
                                         </div>
                                         <div class="card-body">
-                                            <div id="weeklySalesChart" style="height: 350px;"></div>
+                                            <div x-data="{
+                                                     render() {
+                                                         const labels = @js($weeklyBreakdown['labels'] ?? []);
+                                                         const sales = @js($weeklyBreakdown['sales'] ?? []);
+                                                         const profit = @js($weeklyBreakdown['profit'] ?? []);
+                                                         
+                                                         const isDarkMode = document.body.classList.contains('dark-mode');
+                                                         const textColor = isDarkMode ? '#e4e4e4' : '#333333';
+                                                         const chartBg = isDarkMode ? 'transparent' : '#ffffff';
+
+                                                         Highcharts.chart('weeklySalesChart', {
+                                                             chart: { type: 'column', backgroundColor: chartBg },
+                                                             title: { text: '' },
+                                                             xAxis: {
+                                                                 categories: labels,
+                                                                 labels: { style: { color: textColor } }
+                                                             },
+                                                             yAxis: {
+                                                                 title: { text: 'Monto ($ USD)', style: { color: textColor } },
+                                                                 labels: { style: { color: textColor } }
+                                                             },
+                                                             tooltip: { shared: true },
+                                                             legend: { itemStyle: { color: textColor } },
+                                                             credits: { enabled: false },
+                                                             series: [
+                                                                 {
+                                                                     name: 'Ventas Netas',
+                                                                     data: sales,
+                                                                     color: '#17a2b8'
+                                                                 },
+                                                                 {
+                                                                     name: 'Ganancia Bruta',
+                                                                     data: profit,
+                                                                     color: '#28a745'
+                                                                 }
+                                                             ]
+                                                         });
+                                                     }
+                                                 }"
+                                                 x-init="render()"
+                                                 x-effect="render()">
+                                                <div id="weeklySalesChart" style="height: 350px;" wire:ignore></div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -204,7 +246,42 @@
                                             <h5 class="mb-0 text-dark font-weight-bold">Evolución Histórica de Capitalización (Patrimonio Neto)</h5>
                                         </div>
                                         <div class="card-body">
-                                            <div id="equityTrendChart" style="height: 350px;"></div>
+                                            <div x-data="{
+                                                     render() {
+                                                         const labels = @js($patrimony['historyLabels'] ?? []);
+                                                         const equity = @js($patrimony['historyEquity'] ?? []);
+                                                         
+                                                         const isDarkMode = document.body.classList.contains('dark-mode');
+                                                         const textColor = isDarkMode ? '#e4e4e4' : '#333333';
+                                                         const chartBg = isDarkMode ? 'transparent' : '#ffffff';
+
+                                                         Highcharts.chart('equityTrendChart', {
+                                                             chart: { type: 'areaspline', backgroundColor: chartBg },
+                                                             title: { text: '' },
+                                                             xAxis: {
+                                                                 categories: labels,
+                                                                 labels: { style: { color: textColor } }
+                                                             },
+                                                             yAxis: {
+                                                                 title: { text: 'Patrimonio Neto ($ USD)', style: { color: textColor } },
+                                                                 labels: { style: { color: textColor } }
+                                                             },
+                                                             tooltip: { pointFormat: '<b>${point.y:.2f} USD</b>' },
+                                                             legend: { enabled: false },
+                                                             credits: { enabled: false },
+                                                             series: [{
+                                                                 name: 'Patrimonio Neto',
+                                                                 data: equity,
+                                                                 color: '#007bff',
+                                                                 fillOpacity: 0.1
+                                                             }]
+                                                         });
+                                                     }
+                                                 }"
+                                                 x-init="render()"
+                                                 x-effect="render()">
+                                                <div id="equityTrendChart" style="height: 350px;" wire:ignore></div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -446,80 +523,4 @@
             </div>
         </div>
     </div>
-
-    <!-- Script Block for Highcharts -->
-    @if(isset($weeklyBreakdown))
-    <script>
-        document.addEventListener('livewire:init', () => {
-            initCharts();
-        });
-
-        // Hook for updating charts after Livewire update
-        Livewire.hook('morph.updated', ({ component }) => {
-            initCharts();
-        });
-
-        function initCharts() {
-            const isDarkMode = document.body.classList.contains('dark-mode');
-            const textColor = isDarkMode ? '#e4e4e4' : '#333333';
-            const chartBg = isDarkMode ? 'transparent' : '#ffffff';
-
-            // 1. Weekly Growth Chart (Spline & Columns)
-            const weeklyDiv = document.getElementById('weeklySalesChart');
-            if (weeklyDiv) {
-                Highcharts.chart('weeklySalesChart', {
-                    chart: { type: 'column', backgroundColor: chartBg },
-                    title: { text: '' },
-                    xAxis: {
-                        categories: @json($weeklyBreakdown['labels'] ?? []),
-                        labels: { style: { color: textColor } }
-                    },
-                    yAxis: {
-                        title: { text: 'Monto ($ USD)', style: { color: textColor } },
-                        labels: { style: { color: textColor } }
-                    },
-                    tooltip: { shared: true },
-                    legend: { itemStyle: { color: textColor } },
-                    series: [
-                        {
-                            name: 'Ventas Netas',
-                            data: @json($weeklyBreakdown['sales'] ?? []),
-                            color: '#17a2b8'
-                        },
-                        {
-                            name: 'Ganancia Bruta',
-                            data: @json($weeklyBreakdown['profit'] ?? []),
-                            color: '#28a745'
-                        }
-                    ]
-                });
-            }
-
-            // 2. Net Worth Trend Chart (Area spline)
-            const trendDiv = document.getElementById('equityTrendChart');
-            if (trendDiv) {
-                Highcharts.chart('equityTrendChart', {
-                    chart: { type: 'areaspline', backgroundColor: chartBg },
-                    title: { text: '' },
-                    xAxis: {
-                        categories: @json($patrimony['historyLabels'] ?? []),
-                        labels: { style: { color: textColor } }
-                    },
-                    yAxis: {
-                        title: { text: 'Patrimonio Neto ($ USD)', style: { color: textColor } },
-                        labels: { style: { color: textColor } }
-                    },
-                    tooltip: { pointFormat: '<b>${point.y:.2f} USD</b>' },
-                    legend: { enabled: false },
-                    series: [{
-                        name: 'Patrimonio Neto',
-                        data: @json($patrimony['historyEquity'] ?? []),
-                        color: '#007bff',
-                        fillOpacity: 0.1
-                    }]
-                });
-            }
-        }
-    </script>
-    @endif
 </div>
