@@ -1,3 +1,8 @@
+## [1.10.210] - 2026-07-06
+### Fixed
+- **Diseño del Menú Lateral**:
+  * Corregida la estructura de etiquetas HTML en `sidebar.blade.php` restaurando la etiqueta `<ul class="nav nav-treeview">` en la sección de Centro de Reportes. Esto soluciona de inmediato el descuadre visual y los problemas de indentación del menú.
+
 ## [1.10.209] - 2026-07-06
 ### Added
 - **Módulo de Análisis Estratégico y Crecimiento de Patrimonio**:
