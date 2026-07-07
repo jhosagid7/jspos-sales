@@ -3610,6 +3610,55 @@ class Sales extends Component
             return;
         }
 
+        // Validar stock final de cada producto en el carrito antes de procesar la venta
+        $cartToCheck = collect(session("cart", $this->cart));
+        foreach ($cartToCheck as $item) {
+            $productToCheck = Product::find($item['pid']);
+            if ($productToCheck && $productToCheck->manage_stock == 1) {
+                $isComposite = $productToCheck->components->count() > 0;
+                $isPreAssembled = $productToCheck->is_pre_assembled;
+                $isDynamic = $isComposite && !$isPreAssembled;
+
+                if (!$isDynamic) {
+                    $itemWarehouseId = $item['warehouse_id'] ?? null;
+                    $stock = $productToCheck->stockIn($itemWarehouseId);
+
+                    // Si estamos editando, sumar la cantidad original de este item en esta venta
+                    if ($this->editing_sale_id && isset($this->originalSaleItems[$productToCheck->id][$itemWarehouseId])) {
+                        $stock += $this->originalSaleItems[$productToCheck->id][$itemWarehouseId];
+                    }
+
+                    $qtyToDeduct = $item['qty'] * ($item['conversion_factor'] ?? 1);
+
+                    if ($stock < $qtyToDeduct) {
+                        $this->dispatch('noty', msg: "STOCK INSUFICIENTE DE ÚLTIMO MOMENTO para el producto: {$productToCheck->name} (Disponible: {$stock}, Solicitado: {$qtyToDeduct}). Recargue la página.", type: 'error');
+                        return;
+                    }
+                } else {
+                    // Si es dinámico, validar stock de los componentes
+                    foreach ($productToCheck->components as $component) {
+                        if ($component->manage_stock) {
+                            $itemWarehouseId = $item['warehouse_id'] ?? null;
+                            $compStock = $component->stockIn($itemWarehouseId);
+
+                            if ($this->editing_sale_id && isset($this->originalSaleItems[$productToCheck->id][$itemWarehouseId])) {
+                                $originalParentQty = $this->originalSaleItems[$productToCheck->id][$itemWarehouseId];
+                                $compStock += ($originalParentQty * $component->pivot->quantity);
+                            }
+
+                            $componentQtyNeeded = ($item['qty'] * ($item['conversion_factor'] ?? 1)) * $component->pivot->quantity;
+
+                            if ($compStock < $componentQtyNeeded) {
+                                $this->dispatch('noty', msg: "STOCK INSUFICIENTE DE ÚLTIMO MOMENTO para el componente: {$component->name} de {$productToCheck->name}. Recargue la página.", type: 'error');
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
         // Enforce exchange rate gap validations to prevent losses
         $rateGap = $this->rateGap;
         $activeDiff = $this->activeDiff;

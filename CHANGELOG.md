@@ -1,3 +1,8 @@
+## [1.10.218] - 2026-07-07
+### Fixed
+- **Validación de Stock de Último Momento (Facturación POS)**:
+  * Implementada una validación final de stock en tiempo real en el método `Store()` de la facturación. Esta validación comprueba la disponibilidad física de los productos en el depósito seleccionado inmediatamente antes de procesar el pago y guardar la venta, previniendo sobrefacturaciones y saldos negativos de inventario provocados por condiciones de carrera o demoras al facturar con múltiples cajas abiertas de manera simultánea.
+
 ## [1.10.217] - 2026-07-07
 ### Added
 - **Resúmenes en Tarjetas e Interpretador de Resultados IA en Análisis Estratégico**:
