@@ -1,3 +1,9 @@
+## [1.10.217] - 2026-07-07
+### Added
+- **Resúmenes en Tarjetas e Interpretador de Resultados IA en Análisis Estratégico**:
+  * Implementados resúmenes flotantes (tooltips con cursor de ayuda) explicativos en las tarjetas KPI de las pestañas de Crecimiento Operativo y Patrimonio y Balance.
+  * Añadido el botón "Analizar Resultados (IA)" y su respectivo modal interactivo de interpretación analítica, que calcula y expone un diagnóstico financiero dinámico del periodo y sugerencias/alertas para la toma de decisiones.
+
 ## [1.10.216] - 2026-07-06
 ### Added
 - **Exclusión de Insumos/Materias Primas en Análisis Estratégico**:

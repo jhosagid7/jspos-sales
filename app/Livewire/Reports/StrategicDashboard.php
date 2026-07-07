@@ -18,6 +18,7 @@ class StrategicDashboard extends Component
 {
     public $selectedMonth;
     public $activeTab = 'growth';
+    public $showInterpretationModal = false;
 
     // OPEX Form Properties
     public $opexCategory = 'Nómina';
@@ -450,5 +451,168 @@ class StrategicDashboard extends Component
             'top' => $topProfitable,
             'low' => $lowMargins,
         ];
+    }
+
+    public function toggleInterpretationModal()
+    {
+        $this->showInterpretationModal = !$this->showInterpretationModal;
+    }
+
+    public function getInterpretation()
+    {
+        $data = $this->getDashboardData();
+        $current = $data['current'];
+        $prev = $data['prev'];
+        $yearAgo = $data['yearAgo'];
+        $patrimony = $data['patrimony'];
+        $abc = $data['abc'];
+        $productMargins = $data['productMargins'];
+        $monthName = $data['monthName'];
+
+        // Calculations & Comparisons
+        $netSales = $current['netSales'];
+        $netProfit = $current['netProfit'];
+        $grossMargin = $current['grossMarginPercent'];
+        $netMargin = $current['netMarginPercent'];
+        $opex = $current['opex'];
+        $cogs = $current['cogs'];
+
+        $diffPrevSales = $prev['netSales'] > 0 ? (($current['netSales'] - $prev['netSales']) / $prev['netSales']) * 100 : 0; 
+        $diffYearSales = $yearAgo['netSales'] > 0 ? (($current['netSales'] - $yearAgo['netSales']) / $yearAgo['netSales']) * 100 : 0;
+
+        $diffPrevProfit = $prev['netProfit'] > 0 ? (($current['netProfit'] - $prev['netProfit']) / $prev['netProfit']) * 100 : 0; 
+        $diffYearProfit = $yearAgo['netProfit'] > 0 ? (($current['netProfit'] - $yearAgo['netProfit']) / $yearAgo['netProfit']) * 100 : 0;
+
+        // Opex vs Net Sales ratio
+        $opexSalesRatio = $netSales > 0 ? ($opex / $netSales) * 100 : 0;
+
+        // Patrimonio metrics
+        $inventoryValue = $patrimony['inventoryValue'];
+        $totalCxC = $patrimony['totalCxC'];
+        $totalCash = $patrimony['totalCash'];
+        $totalCxP = $patrimony['totalCxP'];
+        $netEquity = $patrimony['netEquity'];
+
+        // Assets = inventory + CxC + Cash
+        $totalAssets = $inventoryValue + $totalCxC + $totalCash;
+        $debtRatio = $totalAssets > 0 ? ($totalCxP / $totalAssets) * 100 : 0;
+
+        // ABC Client Stats
+        $countA = isset($abc['A']) ? count($abc['A']) : 0;
+        $countB = isset($abc['B']) ? count($abc['B']) : 0;
+        $countC = isset($abc['C']) ? count($abc['C']) : 0;
+        $totalClients = $countA + $countB + $countC;
+
+        // Top 3 profitable and low margin products
+        $topProducts = collect($productMargins['top'])->take(3);
+        $lowProducts = collect($productMargins['low'])->take(3);
+
+        $html = '';
+        $html .= "<div class='p-2'>";
+        $html .= "<h5 class='text-primary mb-3'><i class='fas fa-chart-line mr-2'></i> <b>Análisis Estratégico y de Crecimiento del Periodo:</b> $monthName</h5>";
+        $html .= "<p class='text-muted'>Este informe presenta una interpretación inteligente sobre la salud financiera, operativa y patrimonial de tu negocio para el mes seleccionado:</p>";
+
+        // Block 1: Rentabilidad y Eficiencia Operativa
+        $html .= "<div class='row mt-4'>";
+        $html .= "<div class='col-md-6 mb-3'>";
+        $html .= "<div class='p-3 bg-light rounded border h-100'>";
+        $html .= "<h6><i class='fas fa-calculator text-success mr-2'></i> <b>Rentabilidad y Márgenes</b></h6>";
+        $html .= "<p class='mb-1'>• Ventas Netas: <b>$" . number_format($netSales, 2) . "</b></p>";
+        $html .= "<p class='mb-1'>• Margen Bruto: <b>" . number_format($grossMargin, 1) . "%</b></p>";
+        $html .= "<p class='mb-1'>• Utilidad Neta Real: <b>$" . number_format($netProfit, 2) . "</b></p>";
+        $html .= "<p class='mb-0'>• Margen Neto: <b>" . number_format($netMargin, 1) . "%</b></p>";
+        $html .= "</div>";
+        $html .= "</div>";
+
+        // Block 2: Crecimiento y Comparativa
+        $html .= "<div class='col-md-6 mb-3'>";
+        $html .= "<div class='p-3 bg-light rounded border h-100'>";
+        $html .= "<h6><i class='fas fa-balance-scale text-primary mr-2'></i> <b>Comparativa de Crecimiento</b></h6>";
+        
+        $salesPrevText = $diffPrevSales >= 0 ? "<span class='text-success font-weight-bold'>+" . number_format($diffPrevSales, 1) . "%</span>" : "<span class='text-danger font-weight-bold'>" . number_format($diffPrevSales, 1) . "%</span>";
+        $salesYearText = $diffYearSales >= 0 ? "<span class='text-success font-weight-bold'>+" . number_format($diffYearSales, 1) . "%</span>" : "<span class='text-danger font-weight-bold'>" . number_format($diffYearSales, 1) . "%</span>";
+        $profitPrevText = $diffPrevProfit >= 0 ? "<span class='text-success font-weight-bold'>+" . number_format($diffPrevProfit, 1) . "%</span>" : "<span class='text-danger font-weight-bold'>" . number_format($diffPrevProfit, 1) . "%</span>";
+        
+        $html .= "<p class='mb-1'>• Ventas vs Mes Anterior: $salesPrevText</p>";
+        $html .= "<p class='mb-1'>• Ventas vs Año Anterior: $salesYearText</p>";
+        $html .= "<p class='mb-0'>• Utilidad vs Mes Anterior: $profitPrevText</p>";
+        $html .= "</div>";
+        $html .= "</div>";
+        $html .= "</div>";
+
+        // Block 3: Estructura Financiera y Patrimonio
+        $html .= "<div class='p-3 bg-light rounded border mb-3 mt-2'>";
+        $html .= "<h6><i class='fas fa-wallet text-info mr-2'></i> <b>Patrimonio y Solvencia Activa</b></h6>";
+        $html .= "<div class='row'>";
+        $html .= "<div class='col-sm-6'>";
+        $html .= "<p class='mb-1'>• Inventario a Costo: <b>$" . number_format($inventoryValue, 2) . "</b></p>";
+        $html .= "<p class='mb-1'>• Cuentas por Cobrar (CxC): <b>$" . number_format($totalCxC, 2) . "</b></p>";
+        $html .= "<p class='mb-1'>• Efectivo / Bancos: <b>$" . number_format($totalCash, 2) . "</b></p>";
+        $html .= "</div>";
+        $html .= "<div class='col-sm-6'>";
+        $html .= "<p class='mb-1'>• Cuentas por Pagar (CxP): <b>$" . number_format($totalCxP, 2) . "</b></p>";
+        $html .= "<p class='mb-1'>• Patrimonio Neto: <b class='text-primary'>$" . number_format($netEquity, 2) . "</b></p>";
+        $html .= "<p class='mb-0'>• Nivel de Deuda (CxP/Activos): <b>" . number_format($debtRatio, 1) . "%</b></p>";
+        $html .= "</div>";
+        $html .= "</div>";
+        $html .= "</div>";
+
+        // Block 4: Análisis de Clientes (ABC)
+        if ($totalClients > 0) {
+            $html .= "<div class='p-3 bg-light rounded border mb-3 mt-2'>";
+            $html .= "<h6><i class='fas fa-users text-warning mr-2'></i> <b>Concentración de Clientes (Pareto 80/20)</b></h6>";
+            $html .= "<p class='mb-1'>• Tienes un total de <b>$totalClients</b> clientes con movimientos en este mes.</p>";
+            $html .= "<p class='mb-0'>• <b>Clase A:</b> $countA clientes representan el 80% de tus ganancias. <b>Clase B:</b> $countB clientes representan el 15%. <b>Clase C:</b> $countC clientes representan el 5% restante.</p>";
+            $html .= "</div>";
+        }
+
+        // Block 5: Productos Destacados
+        if ($topProducts->count() > 0) {
+            $html .= "<h6 class='mt-4 font-weight-bold text-dark'><i class='fas fa-medal text-success mr-2'></i> <b>Top 3 Productos con Mayor Contribución de Utilidad:</b></h6>";
+            $html .= "<div class='list-group mb-3'>";
+            foreach ($topProducts as $index => $p) {
+                $html .= "<div class='list-group-item list-group-item-action flex-column align-items-start'>";
+                $html .= "<div class='d-flex w-100 justify-content-between'>";
+                $html .= "<h6 class='mb-1 font-weight-bold text-info'>#" . ($index + 1) . " - {$p['name']}</h6>";
+                $html .= "<span class='font-weight-bold text-success'>$" . number_format($p['total_profit'], 2) . "</span>";
+                $html .= "</div>";
+                $html .= "<p class='mb-1 small text-muted'>Vendidos: <b>{$p['qty_sold']} uds</b> | Precio Promedio: <b>$" . number_format($p['avg_price'], 2) . "</b> | Costo: <b>$" . number_format($p['cost'], 2) . "</b> | Margen: <b>" . number_format($p['margin_percent'], 1) . "%</b></p>";
+                $html .= "</div>";
+            }
+            $html .= "</div>";
+        }
+
+        // Block 6: Diagnóstico & Recomendaciones (IA)
+        $html .= "<div class='alert alert-warning mt-4 border-0 shadow-sm'>";
+        $html .= "<h5><i class='fas fa-lightbulb text-dark mr-2'></i> <b>Diagnóstico Estratégico y Acciones Recomendadas</b></h5>";
+        $html .= "<hr class='my-2 bg-dark'>";
+        
+        // Diagnose 1: Opex vs Sales
+        if ($opexSalesRatio > 30) {
+            $html .= "<p class='small mb-2'>⚠️ <b>Alerta de Costos Operativos:</b> El OPEX representa el <b>" . number_format($opexSalesRatio, 1) . "%</b> de tus ventas netas. Esto es un indicador alto. Te sugerimos revisar las categorías de gastos y aplicar recortes o buscar economías de escala.</p>";
+        } else {
+            $html .= "<p class='small mb-2'>✅ <b>Eficiencia Operativa:</b> El OPEX está bajo control, representando un saludable <b>" . number_format($opexSalesRatio, 1) . "%</b> de tus ventas netas.</p>";
+        }
+
+        // Diagnose 2: Margins
+        if ($grossMargin < 20) {
+            $html .= "<p class='small mb-2'>⚠️ <b>Alerta de Margen Bruto:</b> Tu margen bruto promedio es de <b>" . number_format($grossMargin, 1) . "%</b>. Se recomienda revisar la lista de precios de los productos identificados con bajo margen en la pestaña correspondiente o renegociar costos con proveedores.</p>";
+        } else {
+            $html .= "<p class='small mb-2'>✅ <b>Márgenes Saludables:</b> Tu margen bruto del <b>" . number_format($grossMargin, 1) . "%</b> es óptimo para la sostenibilidad del negocio.</p>";
+        }
+
+        // Diagnose 3: Debt & Cash flow
+        if ($debtRatio > 50) {
+            $html .= "<p class='small mb-0'>⚠️ <b>Riesgo de Liquidez:</b> Las cuentas por pagar representan el <b>" . number_format($debtRatio, 1) . "%</b> de tus activos totales. Se recomienda acelerar la cobranza de las CxC ($" . number_format($totalCxC, 2) . ") o lanzar promociones rápidas de inventario inactivo para inyectar liquidez a cajas y bancos.</p>";
+        } elseif ($totalCash < $totalCxP) {
+            $html .= "<p class='small mb-0'>ℹ️ <b>Sugerencia de Tesorería:</b> Tu efectivo disponible en bancos ($" . number_format($totalCash, 2) . ") es menor que tus cuentas por pagar ($" . number_format($totalCxP, 2) . "). Prioriza el cobro a clientes a crédito y el control estricto de gastos en la próxima semana.</p>";
+        } else {
+            $html .= "<p class='small mb-0'>✅ <b>Solvencia de Caja:</b> Cuentas con suficiente saldo líquido ($" . number_format($totalCash, 2) . ") para cubrir tus compromisos inmediatos con proveedores ($" . number_format($totalCxP, 2) . ").</p>";
+        }
+
+        $html .= "</div>";
+        $html .= "</div>";
+
+        return $html;
     }
 }

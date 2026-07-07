@@ -6,9 +6,12 @@
                     <!-- Title & Date Selector -->
                     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
                         <h3><i class="fas fa-chart-pie text-primary"></i> Análisis Estratégico y Patrimonio</h3>
-                        <div class="form-group mb-0 d-flex align-items-center">
+                        <div class="form-group mb-0 d-flex align-items-center flex-wrap">
                             <label class="mr-2 font-weight-bold text-dark mb-0">Seleccionar Mes:</label>
-                            <input type="month" class="form-control form-control-sm" wire:model.live="selectedMonth" style="width: 180px;">
+                            <input type="month" class="form-control form-control-sm mr-2" wire:model.live="selectedMonth" style="width: 180px;">
+                            <button wire:click="toggleInterpretationModal" class="btn btn-info btn-sm" style="background-color: #17a2b8; border-color: #17a2b8;">
+                                <i class="fas fa-brain"></i> Analizar Resultados (IA)
+                            </button>
                         </div>
                     </div>
 
@@ -37,7 +40,7 @@
                             <div class="row">
                                 <!-- Net Sales -->
                                 <div class="col-md-3 mb-3">
-                                    <div class="card border-0 shadow-sm bg-gradient-info text-white">
+                                    <div class="card border-0 shadow-sm bg-gradient-info text-white" style="cursor: help;" title="Ingresos totales de ventas menos las devoluciones aprobadas en el mes seleccionado. Excluye insumos y materias primas.">
                                         <div class="card-body">
                                             <h6 class="text-white-50">Ventas Netas ({{ $monthName }})</h6>
                                             <h3>${{ number_format($current['netSales'], 2) }}</h3>
@@ -66,7 +69,7 @@
                                 </div>
                                 <!-- Cost of Goods Sold (COGS) -->
                                 <div class="col-md-3 mb-3">
-                                    <div class="card border-0 shadow-sm bg-gradient-secondary text-white">
+                                    <div class="card border-0 shadow-sm bg-gradient-secondary text-white" style="cursor: help;" title="Costo acumulado de adquisición o producción de los productos vendidos durante el mes. Excluye insumos y materias primas.">
                                         <div class="card-body">
                                             <h6 class="text-white-50">Costo de Ventas (COGS)</h6>
                                             <h3>${{ number_format($current['cogs'], 2) }}</h3>
@@ -78,7 +81,7 @@
                                 </div>
                                 <!-- Operational Expenses (OPEX) -->
                                 <div class="col-md-3 mb-3">
-                                    <div class="card border-0 shadow-sm bg-gradient-danger text-white">
+                                    <div class="card border-0 shadow-sm bg-gradient-danger text-white" style="cursor: help;" title="Gastos operativos y fijos registrados para el mes seleccionado (ej. Nómina, Alquiler, Servicios).">
                                         <div class="card-body">
                                             <h6 class="text-white-50">Gastos Fijos (OPEX)</h6>
                                             <h3>${{ number_format($current['opex'], 2) }}</h3>
@@ -90,7 +93,7 @@
                                 </div>
                                 <!-- Net Profit -->
                                 <div class="col-md-3 mb-3">
-                                    <div class="card border-0 shadow-sm bg-gradient-success text-white">
+                                    <div class="card border-0 shadow-sm bg-gradient-success text-white" style="cursor: help;" title="Ganancia final del negocio calculada como Ventas Netas menos el Costo de Ventas (COGS) y los Gastos Operativos (OPEX).">
                                         <div class="card-body">
                                             <h6 class="text-white-50">Utilidad Neta Real</h6>
                                             <h3>${{ number_format($current['netProfit'], 2) }}</h3>
@@ -186,7 +189,7 @@
                             <div class="row">
                                 <!-- Inventory Value -->
                                 <div class="col-md-3 mb-3">
-                                    <div class="card bg-white border border-info shadow-none">
+                                    <div class="card bg-white border border-info shadow-none" style="cursor: help;" title="Valor monetario del stock actual en almacén calculado al costo base de compra. Excluye insumos y materias primas.">
                                         <div class="card-body text-center">
                                             <h6 class="text-muted font-weight-bold">Inventario a Costo</h6>
                                             <h3 class="text-info">${{ number_format($patrimony['inventoryValue'], 2) }}</h3>
@@ -196,7 +199,7 @@
                                 </div>
                                 <!-- Accounts Receivable (CxC) -->
                                 <div class="col-md-3 mb-3">
-                                    <div class="card bg-white border border-primary shadow-none">
+                                    <div class="card bg-white border border-primary shadow-none" style="cursor: help;" title="Monto total pendiente por cobrar de ventas realizadas a crédito (Cartera activa).">
                                         <div class="card-body text-center">
                                             <h6 class="text-muted font-weight-bold">Cuentas por Cobrar</h6>
                                             <h3 class="text-primary">${{ number_format($patrimony['totalCxC'], 2) }}</h3>
@@ -206,7 +209,7 @@
                                 </div>
                                 <!-- Cash & Banks -->
                                 <div class="col-md-3 mb-3">
-                                    <div class="card bg-white border border-success shadow-none">
+                                    <div class="card bg-white border border-success shadow-none" style="cursor: help;" title="Saldo líquido estimado en caja y bancos (Entradas totales por ventas/pagos menos salidas por cambios, cuentas por pagar y OPEX).">
                                         <div class="card-body text-center">
                                             <h6 class="text-muted font-weight-bold">Efectivo y Bancos</h6>
                                             <h3 class="text-success">${{ number_format($patrimony['totalCash'], 2) }}</h3>
@@ -216,7 +219,7 @@
                                 </div>
                                 <!-- Accounts Payable (CxP) -->
                                 <div class="col-md-3 mb-3">
-                                    <div class="card bg-white border border-danger shadow-none">
+                                    <div class="card bg-white border border-danger shadow-none" style="cursor: help;" title="Monto total de deudas pendientes con proveedores por compras realizadas a crédito.">
                                         <div class="card-body text-center">
                                             <h6 class="text-muted font-weight-bold">Cuentas por Pagar</h6>
                                             <h3 class="text-danger">${{ number_format($patrimony['totalCxP'], 2) }}</h3>
@@ -523,7 +526,26 @@
                     </div>
 
                 </div>
+    <!-- Modal de Interpretación Analítica -->
+    @if($showInterpretationModal)
+    <div class="modal show d-block" style="background: rgba(0,0,0,0.6); z-index: 9999;" tabindex="-1" role="dialog" wire:key="interpretation-modal">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+            <div class="modal-content shadow-lg border-0">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title text-white font-weight-bold"><i class="fas fa-brain mr-2 text-info"></i> Interpretador de Resultados Analíticos</h5>
+                    <button type="button" class="close text-white" wire:click="toggleInterpretationModal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body p-4 bg-white" style="max-height: 70vh; overflow-y: auto;">
+                    {!! $this->getInterpretation() !!}
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" wire:click="toggleInterpretationModal"><i class="fas fa-times mr-1"></i> Cerrar Análisis</button>
+                </div>
             </div>
         </div>
     </div>
+    @endif
 </div>
+
