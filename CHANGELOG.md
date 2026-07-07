@@ -1,3 +1,8 @@
+## [1.10.219] - 2026-07-07
+### Fixed
+- **Actualización Forzada de Scripts de Instalación (.bat)**:
+  * Agregado paso explícito de copia y asignación de permisos de escritura a todos los archivos por lotes de Windows (`.bat`) durante el proceso de instalación de actualizaciones. Esto soluciona problemas en los que archivos de instalación antiguos de servicios o scripts de backup (como `instalar_servicios.bat`) no se sobrescribían con las nuevas versiones en los clientes, garantizando la correcta instalación de nuevos servicios como `JSPOS_Scheduler`.
+
 ## [1.10.218] - 2026-07-07
 ### Fixed
 - **Validación de Stock de Último Momento (Facturación POS)**:

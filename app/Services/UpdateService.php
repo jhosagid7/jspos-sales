@@ -165,6 +165,25 @@ class UpdateService
             $files = File::directories($extractPath);
             if (count($files) > 0) {
                 $source = $files[0];
+                
+                // Force copy root batch files explicitly to ensure windows installer and backup scripts are updated
+                $batFiles = ['instalar_servicios.bat', 'desinstalar-servicio.bat', 'backup.bat', 'backup_cliente.bat'];
+                foreach ($batFiles as $batFile) {
+                    $srcFile = $source . '/' . $batFile;
+                    $dstFile = base_path($batFile);
+                    if (File::exists($srcFile)) {
+                        try {
+                            if (File::exists($dstFile)) {
+                                @chmod($dstFile, 0777); // Try to remove read-only or locks
+                            }
+                            File::copy($srcFile, $dstFile);
+                            Log::info("Updater: Force updated batch file {$batFile}");
+                        } catch (\Exception $e) {
+                            Log::error("Updater: Failed to update batch file {$batFile}: " . $e->getMessage());
+                        }
+                    }
+                }
+
                 File::copyDirectory($source, base_path());
             }
 
