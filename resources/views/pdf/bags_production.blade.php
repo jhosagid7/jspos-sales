@@ -129,8 +129,17 @@
 <body>
     @php
         $config = \App\Models\Configuration::first();
-        $statusText = $production->status == 'sent' ? 'PROCESADO' : ($production->status == 'approved' ? 'APROBADO' : 'PENDIENTE');
-        $watermarkColor = $production->status == 'sent' ? '#28a745' : ($production->status == 'approved' ? '#007bff' : '#dc3545');
+        $statusText = $statusOverride ?? ($production->status == 'sent' ? 'PROCESADO' : ($production->status == 'approved' ? 'APROBADO' : 'PENDIENTE'));
+        
+        if ($statusText == 'ORIGINAL' || $statusText == 'ORIGINAL LEVANTADO') {
+            $watermarkColor = '#dc3545'; // Red
+        } elseif ($statusText == 'APROBADO' || $statusText == 'APROBADA') {
+            $watermarkColor = '#007bff'; // Blue
+        } elseif ($statusText == 'PROCESADO') {
+            $watermarkColor = '#28a745'; // Green
+        } else {
+            $watermarkColor = '#dc3545'; // Fallback Red
+        }
     @endphp
 
     <div class="watermark" style="color: {{ $watermarkColor }};">
@@ -192,7 +201,7 @@
                             @endif
                         </strong><br>
                         Levantado por: <strong>{{ $production->user->name ?? 'N/A' }}</strong><br>
-                        Estado: <strong>{{ $production->status == 'sent' ? 'PROCESADO' : ($production->status == 'approved' ? 'APROBADO' : 'PENDIENTE') }}</strong>
+                        Estado: <strong>{{ $statusText }}</strong>
                     </td>
                 </tr>
             </tbody>

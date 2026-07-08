@@ -23,6 +23,7 @@ class Settings extends Component
     public $backupEmails; // Backup Emails
     public $purchasingCalculationMode, $purchasingCoverageDays; // Purchasing Intelligence
     public $productionEmailRecipients, $productionEmailSubject, $productionEmailBody; // Production Email Settings
+    public $bagsAdminEmailRecipients; // Bags Admin Email Recipients
     public $sopladosEmailRecipients, $sopladosEmailSubject, $sopladosEmailBody; // Soplados Email Settings
     
     // Printer Auth
@@ -132,6 +133,7 @@ class Settings extends Component
 
             // Production Email Settings
             $this->productionEmailRecipients = is_array($config->production_email_recipients) ? implode(', ', $config->production_email_recipients) : $config->production_email_recipients;
+            $this->bagsAdminEmailRecipients = is_array($config->bags_admin_email_recipients) ? implode(', ', $config->bags_admin_email_recipients) : $config->bags_admin_email_recipients;
             $this->productionEmailSubject = $config->production_email_subject ?: '[SALUDO], Reporte Diario de Producción - [FECHA] (Lote #[PRODUCCION_ID]) - [EMPRESA]';
             $this->productionEmailBody = $config->production_email_body ?: "[SALUDO],\n\nAdjunto a este correo electrónico se encuentra el reporte oficial detallado correspondiente a la jornada de producción del [FECHA].\n\nA continuación, se presenta un resumen de los lotes procesados y consolidados durante este turno:\n\n==================================================\n📝 DATOS GENERALES DE LA ORDEN DE TRABAJO\n==================================================\n• Lote de Producción: #[PRODUCCION_ID]\n• Fecha de Cierre: [FECHA]\n• Operador a Cargo del Reporte: [USUARIO]\n• Empresa / Planta: [EMPRESA]\n\n==================================================\n📊 TOTALES DE PLANTA\n==================================================\n• Cantidad Total Producida: [CANTIDAD_TOTAL] unidades\n• Peso Total de Material Procesado: [PESO_TOTAL] Kg\n\n==================================================\n📦 DESGLOSE POR PRODUCTO Y TIPO DE MATERIAL\n==================================================\n[RESUMEN_DETALLES]\n\n*(El detalle técnico por bobina individual, tipo de resina (Original/Recuperado), y mermas de extrusión y soplado se encuentra desglosado en el PDF adjunto).*\n\n==================================================\n🔍 OBSERVACIONES Y EVENTUALIDADES DE JORNADA\n==================================================\n[NOTA]\n\n--------------------------------------------------\nEste es un reporte automático emitido por el Sistema de Control de Producción y Ventas de [EMPRESA].\n\nQuedamos atentos a cualquier consulta técnica o administrativa.\n\nAtentamente,\nDepartamento de Control de Calidad y Manufactura\n[EMPRESA]";
 
@@ -300,6 +302,7 @@ class Settings extends Component
                 'purchasing_calculation_mode' => $this->purchasingCalculationMode,
                 'purchasing_coverage_days' => intval($this->purchasingCoverageDays),
                 'production_email_recipients' => array_filter(array_map('trim', explode(',', $this->productionEmailRecipients))),
+                'bags_admin_email_recipients' => array_filter(array_map('trim', explode(',', $this->bagsAdminEmailRecipients))),
                 'production_email_subject' => trim($this->productionEmailSubject),
                 'production_email_body' => trim($this->productionEmailBody),
                 'soplados_email_recipients' => array_filter(array_map('trim', explode(',', $this->sopladosEmailRecipients))),

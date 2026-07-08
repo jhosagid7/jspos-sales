@@ -252,39 +252,109 @@ class CargosList extends Component
             }
             
             $config = \App\Models\Configuration::first();
-            if (!$config || empty($config->production_email_recipients)) {
+            if (!$config) {
                 return;
             }
-            
-            // Generate PDFs for each production day
+
+            $hasGeneralRecipients = !empty($config->production_email_recipients);
+            $hasAdminRecipients = !empty($config->bags_admin_email_recipients);
+
+            if (!$hasGeneralRecipients && !$hasAdminRecipients) {
+                return;
+            }
+
             $pdfs = [];
+            $adminPdfs = [];
             $totalWeight = 0;
             $totalQuantity = 0;
             $resumenDetalles = "";
-            
+
             foreach ($productions as $prod) {
-                $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.bags_production', ['production' => $prod]);
-                $pdf->setPaper('letter', 'portrait');
-                $pdfContent = $pdf->output();
-                
                 $prodDateStr = \Carbon\Carbon::parse($prod->production_date)->format('Y-m-d');
-                $pdfs[] = [
-                    'content' => $pdfContent,
-                    'name'    => 'produccion_bolsas_' . $prodDateStr . '_lote_' . $prod->id . '.pdf',
-                ];
-                
+
+                // 1. Generate standard PDF for general recipients
+                if ($hasGeneralRecipients) {
+                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.bags_production', ['production' => $prod]);
+                    $pdf->setPaper('letter', 'portrait');
+                    $pdfs[] = [
+                        'content' => $pdf->output(),
+                        'name'    => 'produccion_bolsas_' . $prodDateStr . '_lote_' . $prod->id . '.pdf',
+                    ];
+                }
+
+                // 2. Generate original & approved PDFs for bags administration
+                if ($hasAdminRecipients) {
+                    // Original PDF
+                    $pdfOriginal = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.bags_production', [
+                        'production' => $prod,
+                        'statusOverride' => 'ORIGINAL'
+                    ]);
+                    $pdfOriginal->setPaper('letter', 'portrait');
+                    $adminPdfs[] = [
+                        'content' => $pdfOriginal->output(),
+                        'name'    => 'planilla_ORIGINAL_lote_' . $prod->id . '_' . $prodDateStr . '.pdf',
+                    ];
+
+                    // Approved PDF (map approved details from cargos)
+                    $prodCargos = $approvedCargos->where('production_id', $prod->id);
+                    $approvedProd = clone $prod;
+                    $approvedDetails = collect();
+
+                    foreach ($prodCargos as $cargo) {
+                        foreach ($cargo->details as $cd) {
+                            $metadata = $cd->items_json ? json_decode($cd->items_json, true) : null;
+                            $isVariable = $cd->product->is_variable_quantity;
+                            $quantity = $isVariable ? 0 : $cd->quantity;
+                            $weight = $isVariable ? $cd->quantity : 0;
+
+                            if ($isVariable && !empty($metadata)) {
+                                $weight = array_sum(array_column($metadata, 'weight'));
+                                $quantity = count($metadata);
+                            }
+
+                            $opName = 'N/A';
+                            if ($metadata && count($metadata) > 0) {
+                                $opName = $metadata[0]['operator_name'] ?? 'N/A';
+                            }
+
+                            $approvedDetails->push(new \App\Models\ProductionDetail([
+                                'product_id' => $cd->product_id,
+                                'production_date' => $cargo->date,
+                                'warehouse_id' => $cargo->warehouse_id,
+                                'quantity' => $quantity,
+                                'weight' => $weight,
+                                'cost' => $cd->cost,
+                                'operator_name' => $opName,
+                                'metadata' => $metadata,
+                            ]));
+                        }
+                    }
+
+                    $approvedProd->setRelation('details', $approvedDetails);
+
+                    $pdfApproved = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.bags_production', [
+                        'production' => $approvedProd,
+                        'statusOverride' => 'APROBADO'
+                    ]);
+                    $pdfApproved->setPaper('letter', 'portrait');
+                    $adminPdfs[] = [
+                        'content' => $pdfApproved->output(),
+                        'name'    => 'planilla_APROBADA_lote_' . $prod->id . '_' . $prodDateStr . '.pdf',
+                    ];
+                }
+
                 // Aggregate metrics for email body
                 $prodWeight = $prod->details->sum('weight');
                 $prodQty = $prod->details->sum('quantity');
                 $totalWeight += $prodWeight;
                 $totalQuantity += $prodQty;
-                
+
                 $resumenDetalles .= "📅 Día de Producción: " . \Carbon\Carbon::parse($prod->production_date)->format('d/m/Y') . " (Lote #{$prod->id})\n";
                 $resumenDetalles .= "• Cantidad: " . number_format($prodQty, 2) . " unidades\n";
                 $resumenDetalles .= "• Peso: " . number_format($prodWeight, 2) . " Kg\n";
                 $resumenDetalles .= "--------------------------------------------------\n";
             }
-            
+
             // Email metadata replacements
             $date = \Carbon\Carbon::now()->format('d/m/Y');
             $greeting = "Hola";
@@ -296,35 +366,46 @@ class CargosList extends Component
             } else {
                 $greeting = "Buenas noches";
             }
-            
-            $user = auth()->user()->name;
+
+            $user = auth()->user()->name ?? 'Administrador';
             $businessName = $config->business_name ?? 'Fábrica de Bolsas';
-            
             $prodIdsStr = $productionIds->implode(', ');
-            
-            $subject = (!empty($config->production_email_subject)) ? $config->production_email_subject : "Planilla de Levantamiento de la Fábrica de Bolsas - Lote #[PRODUCCION_ID] - [FECHA]";
-            $subject = str_replace('[FECHA]', $date, $subject);
-            $subject = str_replace('[PESO_TOTAL]', number_format($totalWeight, 2), $subject);
-            $subject = str_replace('[RESUMEN_DETALLES]', $resumenDetalles, $subject);
-            $subject = str_replace('[EMPRESA]', $businessName, $subject);
-            $subject = str_replace('[PRODUCCION_ID]', $prodIdsStr, $subject);
-            
-            $body = (!empty($config->production_email_body)) ? $config->production_email_body : "[SALUDO],\n\nAdjunto a este correo electrónico se encuentra el reporte consolidado detallado correspondiente al levantamiento de la Fábrica de Bolsas del [FECHA].\n\nA continuación, se presenta un resumen de la planilla procesada y aprobada:\n\n==================================================\n📊 RESUMEN DE LEVANTAMIENTO\n==================================================\n• Lote(s) de Producción: #[PRODUCCION_ID]\n• Fecha de Registro: [FECHA]\n• Aprobado Por: [USUARIO]\n• Empresa / Planta: [EMPRESA]\n• Cantidad Total Levantada: [CANTIDAD_TOTAL] unidades\n• Peso Total Levantado: [PESO_TOTAL] Kg\n\n==================================================\n📝 DETALLE POR PLANILLA\n==================================================\n[RESUMEN_DETALLES]\n\n*(El desglose por producto, peso por rollo y operario fabricante se encuentra detallado en los archivos PDF adjuntos independientes para cada lote).* \n\n--------------------------------------------------\nEste es un reporte automático emitido por el Sistema de Control de Producción y Ventas de [EMPRESA].\n\nQuedamos atentos a cualquier consulta técnica o administrativa.\n\nAtentamente,\nDepartamento de Control de Calidad y Manufactura\n[EMPRESA]";
-            
-            $body = str_replace('[FECHA]', $date, $body);
-            $body = str_replace('[SALUDO]', $greeting, $body);
-            $body = str_replace('[USUARIO]', $user, $body);
-            $body = str_replace('[CANTIDAD_TOTAL]', number_format($totalQuantity, 2), $body);
-            $body = str_replace('[PESO_TOTAL]', number_format($totalWeight, 2), $body);
-            $body = str_replace('[RESUMEN_DETALLES]', $resumenDetalles, $body);
-            $body = str_replace('[EMPRESA]', $businessName, $body);
-            $body = str_replace('[PRODUCCION_ID]', $prodIdsStr, $body);
-            
-            $body = nl2br($body);
-            
-            \Illuminate\Support\Facades\Mail::to($config->production_email_recipients)
-                ->queue(new \App\Mail\BagsProductionConsolidatedMail($subject, $body, $pdfs));
+
+            // 1. Send general management email
+            if ($hasGeneralRecipients) {
+                $subject = (!empty($config->production_email_subject)) ? $config->production_email_subject : "Planilla de Levantamiento de la Fábrica de Bolsas - Lote #[PRODUCCION_ID] - [FECHA]";
+                $subject = str_replace('[FECHA]', $date, $subject);
+                $subject = str_replace('[PESO_TOTAL]', number_format($totalWeight, 2), $subject);
+                $subject = str_replace('[RESUMEN_DETALLES]', $resumenDetalles, $subject);
+                $subject = str_replace('[EMPRESA]', $businessName, $subject);
+                $subject = str_replace('[PRODUCCION_ID]', $prodIdsStr, $subject);
+
+                $body = (!empty($config->production_email_body)) ? $config->production_email_body : "[SALUDO],\n\nAdjunto a este correo electrónico se encuentra el reporte consolidado detallado correspondiente al levantamiento de la Fábrica de Bolsas del [FECHA].\n\nA continuación, se presenta un resumen de la planilla procesada y aprobada:\n\n==================================================\n📊 RESUMEN DE LEVANTAMIENTO\n==================================================\n• Lote(s) de Producción: #[PRODUCCION_ID]\n• Fecha de Registro: [FECHA]\n• Aprobado Por: [USUARIO]\n• Empresa / Planta: [EMPRESA]\n• Cantidad Total Levantada: [CANTIDAD_TOTAL] unidades\n• Peso Total Levantado: [PESO_TOTAL] Kg\n\n==================================================\n📝 DETALLE POR PLANILLA\n==================================================\n[RESUMEN_DETALLES]\n\n*(El desglose por producto, peso por rollo y operario fabricante se encuentra detallado en los archivos PDF adjuntos independientes para cada lote).* \n\n--------------------------------------------------\nEste es un reporte automático emitido por el Sistema de Control de Producción y Ventas de [EMPRESA].\n\nQuedamos atentos a cualquier consulta técnica o administrativa.\n\nAtentamente,\nDepartamento de Control de Calidad y Manufactura\n[EMPRESA]";
+                $body = str_replace('[FECHA]', $date, $body);
+                $body = str_replace('[SALUDO]', $greeting, $body);
+                $body = str_replace('[USUARIO]', $user, $body);
+                $body = str_replace('[CANTIDAD_TOTAL]', number_format($totalQuantity, 2), $body);
+                $body = str_replace('[PESO_TOTAL]', number_format($totalWeight, 2), $body);
+                $body = str_replace('[RESUMEN_DETALLES]', $resumenDetalles, $body);
+                $body = str_replace('[EMPRESA]', $businessName, $body);
+                $body = str_replace('[PRODUCCION_ID]', $prodIdsStr, $body);
+                $body = nl2br($body);
+
+                \Illuminate\Support\Facades\Mail::to($config->production_email_recipients)
+                    ->queue(new \App\Mail\BagsProductionConsolidatedMail($subject, $body, $pdfs));
+            }
+
+            // 2. Send audit email to bags administration
+            if ($hasAdminRecipients) {
+                $adminSubject = "AUDITORÍA: Planilla Original vs. Aprobada - Lote(s) #{$prodIdsStr} - {$date}";
                 
+                $adminBody = "Estimada Administración,\n\nSe ha completado el procesamiento y aprobación del cargo para los siguientes lotes de producción de la Fábrica de Bolsas:\n\n• Lotes de Producción: #{$prodIdsStr}\n• Fecha de Aprobación: {$date}\n• Aprobado Por: {$user}\n• Empresa: {$businessName}\n\nSe adjuntan a este correo las planillas correspondientes en dos versiones para fines de control y auditoría:\n1. **Planilla Original**: Tal como fue registrada inicialmente por el operador desde la aplicación móvil.\n2. **Planilla Aprobada**: Refleja las cantidades finales que fueron aprobadas e ingresadas al inventario.\n\nPor favor, conserve estos archivos para sus registros contables y control de pérdidas.\n\nAtentamente,\nDepartamento de Control de Calidad y Manufactura\n{$businessName}";
+                $adminBody = nl2br($adminBody);
+
+                \Illuminate\Support\Facades\Mail::to($config->bags_admin_email_recipients)
+                    ->queue(new \App\Mail\BagsProductionConsolidatedMail($adminSubject, $adminBody, $adminPdfs));
+            }
+
             $this->dispatch('noty', msg: 'Correo consolidado enviado correctamente.');
             
         } catch (\Exception $e) {

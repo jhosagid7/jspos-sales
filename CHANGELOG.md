@@ -1,3 +1,14 @@
+## [1.10.220] - 2026-07-08
+### Added
+- **Configuración de Destinatarios de Administración (Fábrica de Bolsas)**:
+  * Agregado el campo `bags_admin_email_recipients` en la base de datos y un nuevo control textarea en la pestaña de Ajustes de Producción para configurar los correos electrónicos específicos de la administración de la fábrica de bolsas.
+
+### Changed
+- **Redirección de Notificaciones de Levantamiento de Producción**:
+  * Modificado el envío de la copia del levantamiento original desde la app móvil. Ahora se envía directamente al correo personal del operador registrado (`auth()->user()->email`) para servirle como comprobante digital de su jornada, liberando de correos individuales e innecesarios la bandeja de entrada de la gerencia general.
+- **Auditoría Dual en Cargos de Bolsas**:
+  * Modificada la aprobación de cargos de bolsas en la Web. Cuando se aprueban los cargos, el sistema envía un correo consolidado a la administración de bolsas que adjunta, en el mismo mensaje, tanto la planilla con los datos del levantamiento original del operador (Marca de agua: `ORIGINAL`) como la planilla con las cantidades definitivas ingresadas al inventario tras las correcciones del administrador (Marca de agua: `APROBADO`).
+
 ## [1.10.219] - 2026-07-07
 ### Fixed
 - **Actualización Forzada de Scripts de Instalación (.bat)**:

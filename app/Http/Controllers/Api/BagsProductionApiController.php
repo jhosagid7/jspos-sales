@@ -102,10 +102,13 @@ class BagsProductionApiController extends Controller
 
             DB::commit();
 
-            // Send immediate receipt email with original PDF to production_email_recipients
+            // Send immediate receipt email with original PDF to the operator or production_email_recipients
             try {
                 $config = Configuration::first();
-                if ($config && !empty($config->production_email_recipients)) {
+                $operatorEmail = auth()->user()->email ?? null;
+                $recipient = !empty($operatorEmail) ? $operatorEmail : ($config ? $config->production_email_recipients : null);
+
+                if (!empty($recipient)) {
                     $production->load(['details.product', 'user']);
 
                     $date = Carbon::parse($production->production_date)->format('d/m/Y');
@@ -150,7 +153,7 @@ class BagsProductionApiController extends Controller
                     $pdfContent = $pdf->output();
                     $fileName = 'levantamiento_original_lote_' . $production->id . '.pdf';
 
-                    \Illuminate\Support\Facades\Mail::to($config->production_email_recipients)
+                    \Illuminate\Support\Facades\Mail::to($recipient)
                         ->queue(new \App\Mail\ProductionReportMail($subject, $body, $pdfContent, $fileName));
                 }
             } catch (\Exception $mailEx) {

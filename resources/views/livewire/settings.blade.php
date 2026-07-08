@@ -902,6 +902,12 @@
                                     </div>
 
                                     <div class="col-sm-12">
+                                        <label class="form-label">DESTINATARIOS DE ADMINISTRACIÓN (Separados por coma)</label>
+                                        <textarea wire:model="bagsAdminEmailRecipients" class="form-control" cols="30" rows="2" placeholder="admin1@correo.com, admin2@correo.com"></textarea>
+                                        <small class="text-muted">Estos correos de administración recibirán tanto la planilla original como la aprobada cuando se confirme el Cargo.</small>
+                                    </div>
+
+                                    <div class="col-sm-12">
                                         <label class="form-label">ASUNTO DEL CORREO</label>
                                         <input wire:model="productionEmailSubject" type="text" class="form-control" placeholder="[SALUDO], Reporte Diario de Producción - [FECHA] (Lote #[PRODUCCION_ID]) - [EMPRESA]">
                                     </div>

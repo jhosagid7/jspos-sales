@@ -43,6 +43,7 @@ class Configuration extends Model
         'purchasing_calculation_mode',
         'purchasing_coverage_days',
         'production_email_recipients',
+        'bags_admin_email_recipients',
         'production_email_subject',
         'production_email_body',
         'soplados_email_recipients',
@@ -81,6 +82,7 @@ class Configuration extends Model
     protected $casts = [
         'backup_emails' => 'array',
         'production_email_recipients' => 'array',
+        'bags_admin_email_recipients' => 'array',
         'soplados_email_recipients' => 'array',
         'is_network' => 'boolean',
         'enable_shared_cash_register' => 'boolean',
