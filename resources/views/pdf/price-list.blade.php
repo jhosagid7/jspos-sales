@@ -65,6 +65,12 @@
         @endif
 
         <strong style="text-decoration: underline;">LISTA DE PRECIOS SUJETA A CAMBIO SIN PREVIO AVISO.</strong>
+
+        @if(!empty($customNotes))
+        <div style="margin-top: 10px; padding: 6px; border: 1px solid #ffc107; background-color: #fff3cd; color: #856404; font-size: 9px; border-radius: 4px; line-height: 1.3;">
+            {!! nl2br(e($customNotes)) !!}
+        </div>
+        @endif
     </div>
 
     <table>

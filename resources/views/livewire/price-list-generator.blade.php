@@ -267,6 +267,17 @@
                                   </div>
                               </div>
 
+                              {{-- Custom Notes --}}
+                              <div class="row mb-4 p-3 bg-light rounded border border-info">
+                                  <div class="col-12">
+                                      <h6 class="font-weight-bold text-info"><i class="fas fa-edit"></i> Nota Personalizada en PDF (Opcional)</h6>
+                                      <p class="text-muted small">Este texto aparecerá destacado en la cabecera de la lista de precios PDF.</p>
+                                      <div class="form-group mb-0">
+                                          <textarea wire:model="customNotes" class="form-control" rows="3" placeholder="Escriba alguna advertencia, promoción o nota de validez aquí..."></textarea>
+                                      </div>
+                                  </div>
+                              </div>
+
                              <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group" wire:ignore>

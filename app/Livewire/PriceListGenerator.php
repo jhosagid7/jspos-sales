@@ -20,6 +20,9 @@ class PriceListGenerator extends Component
     public $enableBinanceBcvConversion = false;
     public $useBinanceMarkup = false;
     
+    // Custom notes property
+    public $customNotes;
+    
     protected $listeners = ['selected_customer' => 'handleSelectedCustomer'];
 
     public function handleSelectedCustomer($id)
@@ -130,6 +133,9 @@ class PriceListGenerator extends Component
         $this->categories = \App\Models\Category::orderBy('name')->get();
         $this->suppliers = \App\Models\Supplier::orderBy('name')->get();
         $this->tags = \App\Models\Tag::orderBy('name')->get();
+
+        // Default custom note detailing rate validity
+        $this->customNotes = "Nota: Los precios expresados en esta lista son referenciales y son válidos únicamente para el día de su emisión (" . now()->format('d/m/Y') . "), debido a la fluctuación diaria de las tasas de cambio de referencia.";
     }
 
     public function addCustomRule()
@@ -472,7 +478,8 @@ class PriceListGenerator extends Component
         $showInfoBlock = $this->showInfoBlock;
 
         $decimals = $this->decimals;
-        $pdf = Pdf::loadView('pdf.price-list', compact('groupedData', 'date', 'headerData', 'footerCode', 'customer', 'columns', 'columnLabels', 'showInfoBlock', 'decimals'));
+        $customNotes = $this->customNotes;
+        $pdf = Pdf::loadView('pdf.price-list', compact('groupedData', 'date', 'headerData', 'footerCode', 'customer', 'columns', 'columnLabels', 'showInfoBlock', 'decimals', 'customNotes'));
         
         $filename = "Lista_Precios_" . now()->format('d-m-Y') . ".pdf";
 

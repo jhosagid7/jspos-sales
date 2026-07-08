@@ -1,3 +1,9 @@
+## [1.10.222] - 2026-07-08
+### Added
+- **Notas Personalizadas en PDF de Lista de Precios**:
+  * Agregado un campo textarea de "Nota Personalizada en PDF" en la interfaz del generador de listas de precios. Este texto se renderiza en un recuadro destacado de advertencia justo arriba de la tabla del PDF.
+  * Configurada una nota predeterminada sobre la validez diaria de los precios basada en la fluctuación de tasas, evitando malentendidos con listas impresas días anteriores.
+
 ## [1.10.221] - 2026-07-08
 ### Added
 - **Conversión de Tasas Binance / BCV en Lista de Precios**:
