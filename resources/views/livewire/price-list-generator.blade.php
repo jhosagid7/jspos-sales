@@ -241,6 +241,32 @@
                                  </div>
                              </div>
 
+                             {{-- Binance/BCV Price Adjustments --}}
+                              <div class="row mb-4 p-3 bg-light rounded border border-warning">
+                                  <div class="col-12">
+                                      <h6 class="font-weight-bold text-warning"><i class="fas fa-hand-holding-usd"></i> Conversión de Tasas (Binance a BCV)</h6>
+                                      <p class="text-muted small">Ajusta los precios de la lista para clientes que pagan en bolívares a la tasa oficial del BCV, protegiendo el valor de reposición según la tasa Binance.</p>
+                                  </div>
+                                  <div class="col-md-6 mb-3 d-flex align-items-center">
+                                      <div class="custom-control custom-checkbox">
+                                          <input type="checkbox" class="custom-control-input" id="enable_binance_bcv" wire:model.live="enableBinanceBcvConversion">
+                                          <label class="custom-control-label font-weight-bold" for="enable_binance_bcv">
+                                              Habilitar Conversión Binance / BCV
+                                          </label>
+                                          <span class="d-block text-muted small">Fórmula: Precio * Tasa Binance / Tasa BCV</span>
+                                      </div>
+                                  </div>
+                                  <div class="col-md-6 mb-3 d-flex align-items-center">
+                                      <div class="custom-control custom-checkbox">
+                                          <input type="checkbox" class="custom-control-input" id="use_binance_markup" wire:model.live="useBinanceMarkup" @if(!$enableBinanceBcvConversion) disabled @endif>
+                                          <label class="custom-control-label font-weight-bold {{ !$enableBinanceBcvConversion ? 'text-muted' : '' }}" for="use_binance_markup">
+                                              Incluir Puntos de Ajuste (Incremento)
+                                          </label>
+                                          <span class="d-block text-muted small">Usa (Tasa Binance + Ajuste Bs.) en la fórmula.</span>
+                                      </div>
+                                  </div>
+                              </div>
+
                              <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group" wire:ignore>

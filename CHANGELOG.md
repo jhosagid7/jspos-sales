@@ -1,3 +1,8 @@
+## [1.10.221] - 2026-07-08
+### Added
+- **Conversión de Tasas Binance / BCV en Lista de Precios**:
+  * Agregada la opción "Habilitar Conversión Binance / BCV" y "Incluir Puntos de Ajuste (Incremento)" en la UI de generación de listas de precios. Esto permite calcular y mostrar precios en dólares inflados según la tasa Binance y reconvertidos a tasa oficial BCV, permitiendo al comercio cobrar en bolívares a la tasa oficial manteniendo el valor de reposición real del inventario.
+
 ## [1.10.220] - 2026-07-08
 ### Added
 - **Configuración de Destinatarios de Administración (Fábrica de Bolsas)**:

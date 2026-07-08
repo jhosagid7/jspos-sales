@@ -16,6 +16,10 @@ class PriceListGenerator extends Component
     public $customers;
     public $customerId;
     
+    // Binance/BCV price conversion properties
+    public $enableBinanceBcvConversion = false;
+    public $useBinanceMarkup = false;
+    
     protected $listeners = ['selected_customer' => 'handleSelectedCustomer'];
 
     public function handleSelectedCustomer($id)
@@ -276,8 +280,41 @@ class PriceListGenerator extends Component
         $calculator = new PriceCalculatorService();
         $groupedData = [];
 
+        // Check if Binance / BCV conversion is active
+        $conversionFactor = 1.0;
+        if ($this->enableBinanceBcvConversion) {
+            $config = Configuration::first();
+            $bcvRate = $config ? floatval($config->bcv_rate) : 0;
+            $binanceRate = $config ? floatval($config->binance_rate) : 0;
+            
+            if ($this->useBinanceMarkup && $config) {
+                $binanceRate += floatval($config->binance_markup_points);
+            }
+            
+            if ($bcvRate > 0) {
+                $conversionFactor = $binanceRate / $bcvRate;
+            }
+            Log::info("Binance/BCV price conversion active", [
+                'bcvRate' => $bcvRate,
+                'binanceRate' => $binanceRate,
+                'factor' => $conversionFactor
+            ]);
+        }
+
         foreach ($products as $product) {
             $pricing = $calculator->calculate($product, $sellerConfig, $customer);
+            
+            // Apply Binance/BCV conversion factor if enabled
+            if ($this->enableBinanceBcvConversion && $conversionFactor != 1.0) {
+                $pricing['base_price'] *= $conversionFactor;
+                $pricing['commission'] *= $conversionFactor;
+                $pricing['freight'] *= $conversionFactor;
+                $pricing['base_markup'] *= $conversionFactor;
+                $pricing['exchange_diff'] *= $conversionFactor;
+                $pricing['net_price'] *= $conversionFactor;
+                $pricing['final_price'] *= $conversionFactor;
+                $pricing['tax_amount'] *= $conversionFactor;
+            }
             
             // Filter fields based on selection
             $row = [];
