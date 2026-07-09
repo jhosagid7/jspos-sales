@@ -13,73 +13,109 @@ app.use(express.json());
 // Setup file upload for attachments (PDFs)
 const upload = multer({ dest: 'uploads/' });
 
-// WhatsApp Client Initialization
-const client = new Client({
-    authStrategy: new LocalAuth({ dataPath: 'sessions' }),
-    puppeteer: {
-        headless: false,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--disable-gpu'
-        ]
-    }
-});
-
 const qrcodeLib = require('qrcode');
 
+let client = null;
 let isReady = false;
 let currentQrBase64 = null;
 let connectionStatus = 'DISCONNECTED';
+let isInitializing = false;
 
-client.on('qr', async (qr) => {
-    console.log('----------------------------------------------------');
-    console.log('Escanea este código QR con el WhatsApp de la Tienda');
-    console.log('----------------------------------------------------');
-    qrcode.generate(qr, { small: true });
-
-    try {
-        currentQrBase64 = await qrcodeLib.toDataURL(qr);
-        connectionStatus = 'QR_READY';
-    } catch (err) {
-        console.error('Error generating base64 QR:', err);
+async function initializeClient() {
+    if (isInitializing) {
+        console.log('Ya se está inicializando una instancia del cliente...');
+        return;
     }
-});
+    isInitializing = true;
 
-client.on('ready', () => {
-    console.log('✅ Cliente de WhatsApp está LISTO y CONECTADO!');
-    isReady = true;
-    currentQrBase64 = null;
-    connectionStatus = 'CONNECTED';
-});
+    if (client) {
+        try {
+            console.log('Destruyendo cliente anterior...');
+            await client.destroy();
+        } catch (err) {
+            console.error('Error al destruir el cliente anterior:', err);
+        }
+    }
 
-client.on('authenticated', () => {
-    console.log('✅ Autenticación exitosa!');
-    connectionStatus = 'AUTHENTICATED';
-});
-
-client.on('auth_failure', msg => {
-    console.error('❌ Error de autenticación:', msg);
-    connectionStatus = 'AUTH_FAILED';
-    currentQrBase64 = null;
-});
-
-client.on('disconnected', (reason) => {
-    console.log('❌ Cliente desconectado:', reason);
     isReady = false;
     currentQrBase64 = null;
     connectionStatus = 'DISCONNECTED';
-    console.log('Reiniciando cliente...');
-    client.initialize();
-});
+
+    console.log('Inicializando nueva instancia de WhatsApp Client...');
+    client = new Client({
+        authStrategy: new LocalAuth({ dataPath: 'sessions' }),
+        puppeteer: {
+            headless: false,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--no-first-run',
+                '--no-zygote',
+                '--disable-gpu',
+                '--disable-features=IsolateOrigins,site-per-process',
+                '--disable-site-isolation-trials'
+            ]
+        }
+    });
+
+    client.on('qr', async (qr) => {
+        console.log('----------------------------------------------------');
+        console.log('Escanea este código QR con el WhatsApp de la Tienda');
+        console.log('----------------------------------------------------');
+        qrcode.generate(qr, { small: true });
+
+        try {
+            currentQrBase64 = await qrcodeLib.toDataURL(qr);
+            connectionStatus = 'QR_READY';
+        } catch (err) {
+            console.error('Error generating base64 QR:', err);
+        }
+    });
+
+    client.on('ready', () => {
+        console.log('✅ Cliente de WhatsApp está LISTO y CONECTADO!');
+        isReady = true;
+        currentQrBase64 = null;
+        connectionStatus = 'CONNECTED';
+    });
+
+    client.on('authenticated', () => {
+        console.log('✅ Autenticación exitosa!');
+        connectionStatus = 'AUTHENTICATED';
+    });
+
+    client.on('auth_failure', msg => {
+        console.error('❌ Error de autenticación:', msg);
+        connectionStatus = 'AUTH_FAILED';
+        currentQrBase64 = null;
+    });
+
+    client.on('disconnected', (reason) => {
+        console.log('❌ Cliente desconectado:', reason);
+        isReady = false;
+        currentQrBase64 = null;
+        connectionStatus = 'DISCONNECTED';
+        console.log('Reiniciando cliente por desconexión...');
+        setTimeout(() => {
+            initializeClient();
+        }, 3000);
+    });
+
+    try {
+        await client.initialize();
+    } catch (err) {
+        console.error('Error al inicializar client:', err);
+        isReady = false;
+        connectionStatus = 'DISCONNECTED';
+    } finally {
+        isInitializing = false;
+    }
+}
 
 // Initialize WhatsApp client
-console.log('Inicializando WhatsApp...');
-client.initialize();
+initializeClient();
 
 // API ENDPOINTS //
 
@@ -109,14 +145,47 @@ app.get('/qr', (req, res) => {
 // Logout User
 app.post('/logout', async (req, res) => {
     try {
-        await client.logout();
+        console.log('Solicitud de cierre de sesión recibida.');
+        
         isReady = false;
-        currentQrBase64 = null;
         connectionStatus = 'DISCONNECTED';
-        res.json({ success: true, message: 'Se ha cerrado la sesión exitosamente.' });
+        currentQrBase64 = null;
+
+        if (client) {
+            try {
+                await client.logout();
+            } catch (logoutError) {
+                console.warn('Advertencia durante logout remoto:', logoutError);
+            }
+            try {
+                await client.destroy();
+            } catch (destroyError) {
+                console.error('Error cerrando el navegador client:', destroyError);
+            }
+        }
+
+        // Borrar carpeta de sesión para empezar totalmente limpio
+        const sessionsDir = path.join(__dirname, 'sessions');
+        if (fs.existsSync(sessionsDir)) {
+            try {
+                fs.rmSync(sessionsDir, { recursive: true, force: true });
+                console.log('Directorio de sesión eliminado de disco.');
+            } catch (fsError) {
+                console.error('No se pudo borrar el directorio de sesión:', fsError);
+            }
+        }
+
+        res.json({ success: true, message: 'Se ha cerrado la sesión y limpiado los archivos de sesión.' });
+
+        // Inicializar un nuevo cliente en segundo plano para generar un QR de inmediato
+        console.log('Re-inicializando cliente después de logout...');
+        setTimeout(() => {
+            initializeClient();
+        }, 1000);
+
     } catch (error) {
-        console.error('Error cerrando sesión:', error);
-        res.status(500).json({ success: false, error: 'No se pudo cerrar la sesión.' });
+        console.error('Error general durante el cierre de sesión:', error);
+        res.status(500).json({ success: false, error: 'No se pudo cerrar la sesión de forma limpia.' });
     }
 });
 
@@ -136,6 +205,18 @@ app.get('/groups', async (req, res) => {
         res.json({ success: true, groups });
     } catch (error) {
         console.error('Error obteniendo grupos:', error);
+
+        // Detectar si el error es debido a pérdida de contexto o frame desprendido
+        if (error.message && (
+            error.message.includes('detached Frame') || 
+            error.message.includes('Session closed') || 
+            error.message.includes('Execution context was destroyed') ||
+            error.message.includes('Target closed')
+        )) {
+            console.log('⚠️ Error crítico de Puppeteer detectado. Reiniciando cliente de WhatsApp...');
+            initializeClient();
+        }
+
         res.status(500).json({ success: false, error: error.message });
     }
 });
@@ -182,6 +263,18 @@ app.post('/send', upload.single('attachment'), async (req, res) => {
         res.json({ success: true, response: response.id._serialized });
     } catch (error) {
         console.error('Error enviando mensaje:', error);
+
+        // Detectar si el error es debido a pérdida de contexto o frame desprendido
+        if (error.message && (
+            error.message.includes('detached Frame') || 
+            error.message.includes('Session closed') || 
+            error.message.includes('Execution context was destroyed') ||
+            error.message.includes('Target closed')
+        )) {
+            console.log('⚠️ Error crítico de Puppeteer detectado al enviar mensaje. Reiniciando cliente de WhatsApp...');
+            initializeClient();
+        }
+
         res.status(500).json({ success: false, error: error.message || 'Error interno del servidor' });
     }
 });

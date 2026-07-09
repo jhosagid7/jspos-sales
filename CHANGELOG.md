@@ -1,3 +1,10 @@
+## [1.10.223] - 2026-07-09
+### Fixed
+- **Carga de Grupos de WhatsApp en Configuración**:
+  * Corregido el problema de desprendimiento de frames de Puppeteer (*detached Frame*) desactivando el aislamiento de sitios (`site-per-process`).
+  * Implementado ciclo de vida dinámico del cliente y auto-sanación automática en caso de pérdida de contexto del navegador.
+  * Optimizado el endpoint de cierre de sesión (`/logout`) para liberar bloqueos y borrar carpetas de sesión limpiamente.
+
 ## [1.10.222] - 2026-07-08
 ### Added
 - **Notas Personalizadas en PDF de Lista de Precios**:
