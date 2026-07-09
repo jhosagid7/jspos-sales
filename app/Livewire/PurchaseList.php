@@ -54,12 +54,12 @@ class PurchaseList extends Component
         $this->dispatch('hide-modal', 'detailsModal');
     }
 
-    /*
     public function destroy($id)
     {
-        // Implement cancellation logic if needed (revert stock, etc.)
-        // For now, just delete if status is pending? 
-        // Or "Anular" which keeps record but reverts stock.
+        $purchase = Purchase::find($id);
+        if ($purchase && $purchase->status === 'pending') {
+            $purchase->delete();
+            $this->dispatch('noty', msg: 'Compra pendiente eliminada correctamente');
+        }
     }
-    */
 }

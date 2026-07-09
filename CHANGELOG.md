@@ -1,3 +1,8 @@
+## [1.10.227] - 2026-07-09
+### Added
+- **Eliminación de Pedidos Pendientes desde el Listado**:
+  * Agregado un botón de eliminar (ícono papelera roja) en la pantalla de "Listado de Compras" exclusivo para compras en estado "PENDIENTE", permitiendo limpiar órdenes huérfanas o duplicadas de forma directa y segura.
+
 ## [1.10.226] - 2026-07-09
 ### Fixed
 - **Carga de Stock en Pedidos Pendientes y Duplicidad de Folios**:

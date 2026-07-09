@@ -65,6 +65,11 @@
                                         <a href="{{ route('purchases.pdf', $purchase->id) }}" target="_blank" class="btn btn-info btn-sm" title="Imprimir">
                                             <i class="fas fa-print"></i>
                                         </a>
+                                        @if($purchase->status === 'pending')
+                                        <button wire:click.prevent="destroy({{$purchase->id}})" wire:confirm="¿Deseas eliminar este pedido pendiente? (Esto no afectará el stock actual)" class="btn btn-danger btn-sm" title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        @endif
                                     </td>
                             </tr>
                             @endforeach
