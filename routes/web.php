@@ -119,6 +119,7 @@ Route::middleware('auth')->group(function () {
     Route::get('production/{id}/pdf', [\App\Http\Controllers\ProductionController::class, 'pdf'])->name('production.pdf')->middleware(['can:production.index', 'module:module_production']);
     Route::get('production-report', \App\Livewire\ProductionReport::class)->name('production.report')->middleware(['can:production.index']);
     Route::get('soplados/shifts', \App\Livewire\Soplados\ShiftList::class)->name('soplados.shifts')->middleware(['can:production.index']);
+    Route::get('soplados/shifts/{shift}/pdf', [\App\Http\Controllers\ReportController::class, 'sopladosShiftPdf'])->name('soplados.shifts.pdf')->middleware(['can:production.index']);
     Route::get('soplados/formulas', \App\Livewire\Soplados\Formulas::class)->name('soplados.formulas')->middleware(['can:production.index']);
     Route::get('soplados/inventories', \App\Livewire\Soplados\SopladosInventoriesList::class)->name('soplados.inventories')->middleware(['can:production.index']);
 

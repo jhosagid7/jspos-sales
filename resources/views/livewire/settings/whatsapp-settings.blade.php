@@ -299,9 +299,11 @@
                                         <thead class="table-light">
                                             <tr>
                                                 <th>Nombre del Grupo</th>
-                                                <th class="text-center" style="width: 150px;">Tasa de Cambio</th>
-                                                <th class="text-center" style="width: 150px;">Cierre Diario</th>
-                                                <th class="text-center" style="width: 150px;">Reporte Semanal PDF</th>
+                                                <th class="text-center" style="width: 120px;">Tasa de Cambio</th>
+                                                <th class="text-center" style="width: 120px;">Cierre Diario</th>
+                                                <th class="text-center" style="width: 120px;">Reporte Semanal PDF</th>
+                                                <th class="text-center" style="width: 120px;">Soplados (Turno)</th>
+                                                <th class="text-center" style="width: 120px;">Soplados (Semanal)</th>
                                                 <th>Identificador (JID)</th>
                                             </tr>
                                         </thead>
@@ -311,7 +313,9 @@
                                                     $isRate = in_array($group['id'], $selectedRateGroups);
                                                     $isClosure = in_array($group['id'], $selectedClosureGroups);
                                                     $isWeekly = in_array($group['id'], $selectedWeeklyReportGroups);
-                                                    $anySelected = $isRate || $isClosure || $isWeekly;
+                                                    $isSopladosShift = in_array($group['id'], $selectedSopladosShiftGroups);
+                                                    $isSopladosWeekly = in_array($group['id'], $selectedSopladosWeeklyGroups);
+                                                    $anySelected = $isRate || $isClosure || $isWeekly || $isSopladosShift || $isSopladosWeekly;
                                                 @endphp
                                                 <tr class="{{ $anySelected ? 'table-success' : '' }}">
                                                     <td class="{{ $anySelected ? 'font-weight-bold' : '' }}">
@@ -335,6 +339,18 @@
                                                                class="form-check-input"
                                                                wire:click="toggleGroup('{{ $group['id'] }}', 'weekly_report')"
                                                                {{ $isWeekly ? 'checked' : '' }}>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <input type="checkbox" 
+                                                               class="form-check-input"
+                                                               wire:click="toggleGroup('{{ $group['id'] }}', 'soplados_shift')"
+                                                               {{ $isSopladosShift ? 'checked' : '' }}>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <input type="checkbox" 
+                                                               class="form-check-input"
+                                                               wire:click="toggleGroup('{{ $group['id'] }}', 'soplados_weekly')"
+                                                               {{ $isSopladosWeekly ? 'checked' : '' }}>
                                                     </td>
                                                     <td><code>{{ $group['id'] }}</code></td>
                                                 </tr>
@@ -450,7 +466,7 @@
                                     </div>
 
                                     <div class="form-group mb-3 position-relative" x-data="{ open: false }">
-                                        <label class="fw-bold text-dark"><i class="fab fa-whatsapp text-success me-1"></i> Usuarios de WhatsApp</label>
+                                        <label class="fw-bold text-dark"><i class="fab fa-whatsapp text-success me-1"></i> Logins de WhatsApp</label>
                                         <input type="text" 
                                                wire:model.live="searchWeeklyReportQuery" 
                                                class="form-control border-success" 
@@ -476,6 +492,113 @@
                                                 </span>
                                             @endforeach
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mt-4 pt-4 border-top">
+                                <!-- SOPLADOS (TURNO) -->
+                                <div class="col-md-4 border-end">
+                                    <h6 class="text-primary mb-3"><i class="fas fa-sync text-success me-1"></i> Soplados (Cierre de Turno)</h6>
+                                    
+                                    <div class="form-group mb-3">
+                                        <label class="fw-bold text-dark"><i class="fas fa-envelope text-success me-1"></i> Correos Electrónicos</label>
+                                        <textarea wire:model="sopladosEmailRecipients" class="form-control border-success" rows="3" placeholder="ejemplo1@correo.com, ejemplo2@correo.com"></textarea>
+                                        <small class="text-muted">Separados por comas (se sincroniza con Ajustes > Email).</small>
+                                    </div>
+
+                                    <div class="form-group mb-3 position-relative" x-data="{ open: false }">
+                                        <label class="fw-bold text-dark"><i class="fab fa-whatsapp text-success me-1"></i> Usuarios de WhatsApp</label>
+                                        <input type="text" 
+                                               wire:model.live="searchSopladosShiftQuery" 
+                                               class="form-control border-success" 
+                                               placeholder="Buscar usuario..."
+                                               @focus="open = true"
+                                               @click.away="open = false">
+                                        
+                                        @if(!empty($sopladosShiftUsersResults))
+                                            <ul class="list-group position-absolute w-100 shadow" style="z-index: 1000; max-height: 200px; overflow-y: auto;" x-show="open">
+                                                @foreach($sopladosShiftUsersResults as $result)
+                                                    <li class="list-group-item list-group-item-action py-2" style="cursor: pointer;" wire:click="selectUser({{ $result['id'] }}, 'soplados_shift')" @click="open = false">
+                                                        <strong>{{ $result['name'] }}</strong> <span class="text-muted">({{ $result['phone'] }})</span>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        @endif
+
+                                        <div class="mt-2 d-flex flex-wrap gap-1">
+                                            @foreach($selectedSopladosShiftUsersList as $user)
+                                                <span class="badge bg-success p-2 d-inline-flex align-items-center text-white">
+                                                    {{ $user->name }}
+                                                    <button type="button" wire:click="removeUser({{ $user->id }}, 'soplados_shift')" class="btn-close btn-close-white ms-2" style="font-size: 0.65rem;" aria-label="Remove"></button>
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- SOPLADOS (SEMANAL) -->
+                                <div class="col-md-4 border-end">
+                                    <h6 class="text-primary mb-3"><i class="fas fa-file-invoice text-success me-1"></i> Soplados (Semanal Consolidado)</h6>
+                                    
+                                    <div class="form-group mb-3">
+                                        <label class="fw-bold text-dark"><i class="fas fa-envelope text-success me-1"></i> Correos Electrónicos</label>
+                                        <textarea wire:model="emailSopladosWeeklyRecipients" class="form-control border-success" rows="3" placeholder="ejemplo1@correo.com, ejemplo2@correo.com"></textarea>
+                                        <small class="text-muted">Separados por comas.</small>
+                                    </div>
+
+                                    <div class="form-group mb-3 position-relative" x-data="{ open: false }">
+                                        <label class="fw-bold text-dark"><i class="fab fa-whatsapp text-success me-1"></i> Usuarios de WhatsApp</label>
+                                        <input type="text" 
+                                               wire:model.live="searchSopladosWeeklyQuery" 
+                                               class="form-control border-success" 
+                                               placeholder="Buscar usuario..."
+                                               @focus="open = true"
+                                               @click.away="open = false">
+                                        
+                                        @if(!empty($sopladosWeeklyUsersResults))
+                                            <ul class="list-group position-absolute w-100 shadow" style="z-index: 1000; max-height: 200px; overflow-y: auto;" x-show="open">
+                                                @foreach($sopladosWeeklyUsersResults as $result)
+                                                    <li class="list-group-item list-group-item-action py-2" style="cursor: pointer;" wire:click="selectUser({{ $result['id'] }}, 'soplados_weekly')" @click="open = false">
+                                                        <strong>{{ $result['name'] }}</strong> <span class="text-muted">({{ $result['phone'] }})</span>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        @endif
+
+                                        <div class="mt-2 d-flex flex-wrap gap-1">
+                                            @foreach($selectedSopladosWeeklyUsersList as $user)
+                                                <span class="badge bg-success p-2 d-inline-flex align-items-center text-white">
+                                                    {{ $user->name }}
+                                                    <button type="button" wire:click="removeUser({{ $user->id }}, 'soplados_weekly')" class="btn-close btn-close-white ms-2" style="font-size: 0.65rem;" aria-label="Remove"></button>
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- PLANIFICACIÓN SEMANAL -->
+                                <div class="col-md-4">
+                                    <h6 class="text-primary mb-3"><i class="fas fa-calendar-alt text-success me-1"></i> Programación de Reportes Semanales</h6>
+                                    
+                                    <div class="form-group mb-3">
+                                        <label class="fw-bold text-dark">Día de la Semana para Envío</label>
+                                        <select wire:model="weeklyReportSendDay" class="form-control border-success">
+                                            <option value="1">Lunes</option>
+                                            <option value="2">Martes</option>
+                                            <option value="3">Miércoles</option>
+                                            <option value="4">Jueves</option>
+                                            <option value="5">Viernes</option>
+                                            <option value="6">Sábado</option>
+                                            <option value="0">Domingo</option>
+                                        </select>
+                                        <small class="text-muted">Día programado para enviar los consolidados semanales.</small>
+                                    </div>
+
+                                    <div class="form-group mb-3">
+                                        <label class="fw-bold text-dark">Hora de Envío</label>
+                                        <input type="time" wire:model="weeklyReportSendHour" class="form-control border-success">
+                                        <small class="text-muted">Hora del día en formato 24h.</small>
                                     </div>
                                 </div>
                             </div>

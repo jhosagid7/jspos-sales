@@ -147,11 +147,69 @@ class ShiftController extends Controller
         return response()->json(['success' => true, 'message' => 'Turno cerrado correctamente']);
     }
 
+    public function compileShiftData($shift)
+    {
+        $goodQuantity = 0;
+        $damagedQuantity = 0;
+        $productionOutputs = [];
+        $materialsConsumed = [];
+
+        foreach ($shift->productionLogs as $log) {
+            foreach ($log->outputs as $out) {
+                $pName = $out->product->name ?? 'Producto';
+                $qty = floatval($out->quantity);
+                if (in_array($out->quality, ['1st', '2nd'])) {
+                    $goodQuantity += $qty;
+                } else if ($out->quality === 'damaged') {
+                    $damagedQuantity += $qty;
+                }
+                
+                $qualityLabel = $out->quality === '1st' ? '1ra Calidad' : ($out->quality === '2nd' ? '2da Calidad' : 'Defectuoso');
+                $key = "{$pName} ({$qualityLabel})";
+                $productionOutputs[$key] = ($productionOutputs[$key] ?? 0) + $qty;
+            }
+            
+            foreach ($log->materials as $mat) {
+                $pName = $mat->product->name ?? 'Material';
+                $qty = floatval($mat->quantity);
+                $materialsConsumed[$pName] = ($materialsConsumed[$pName] ?? 0) + $qty;
+            }
+        }
+
+        $totalProduced = $goodQuantity + $damagedQuantity;
+        $efficiency = $totalProduced > 0 ? ($goodQuantity / $totalProduced) * 100 : 100;
+
+        $operatorsList = $shift->users->pluck('name')->implode(', ');
+        if (empty($operatorsList)) {
+            $operatorsList = $shift->user->name ?? 'Operador';
+        }
+
+        return [
+            'shift' => $shift,
+            'goodQuantity' => $goodQuantity,
+            'damagedQuantity' => $damagedQuantity,
+            'totalProduced' => $totalProduced,
+            'efficiency' => $efficiency,
+            'productionOutputs' => $productionOutputs,
+            'materialsConsumed' => $materialsConsumed,
+            'operatorsList' => $operatorsList,
+            'config' => \App\Models\Configuration::first()
+        ];
+    }
+
     private function sendShiftCloseEmail($shiftId)
     {
         try {
             $config = \App\Models\Configuration::first();
-            if (!$config || empty($config->soplados_email_recipients)) {
+            if (!$config) {
+                return;
+            }
+
+            $emailRecipients = $config->soplados_email_recipients ?: [];
+            $waGroups = $config->whatsapp_soplados_shift_groups ?: [];
+            $waUsers = $config->whatsapp_soplados_shift_users ?: [];
+
+            if (empty($emailRecipients) && empty($waGroups) && empty($waUsers)) {
                 return;
             }
 
@@ -166,35 +224,31 @@ class ShiftController extends Controller
                 return;
             }
 
-            $goodQuantity = 0;
-            $damagedQuantity = 0;
-            $productionOutputs = [];
-            $materialsConsumed = [];
+            // Compile data
+            $data = $this->compileShiftData($shift);
 
-            foreach ($shift->productionLogs as $log) {
-                foreach ($log->outputs as $out) {
-                    $pName = $out->product->name ?? 'Producto';
-                    $qty = floatval($out->quantity);
-                    if (in_array($out->quality, ['1st', '2nd'])) {
-                        $goodQuantity += $qty;
-                    } else if ($out->quality === 'damaged') {
-                        $damagedQuantity += $qty;
-                    }
-                    
-                    $qualityLabel = $out->quality === '1st' ? '1ra Calidad' : ($out->quality === '2nd' ? '2da Calidad' : 'Defectuoso');
-                    $key = "{$pName} ({$qualityLabel})";
-                    $productionOutputs[$key] = ($productionOutputs[$key] ?? 0) + $qty;
-                }
-                
-                foreach ($log->materials as $mat) {
-                    $pName = $mat->product->name ?? 'Material';
-                    $qty = floatval($mat->quantity);
-                    $materialsConsumed[$pName] = ($materialsConsumed[$pName] ?? 0) + $qty;
-                }
+            // Generate PDF
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.soplados-shift', $data);
+
+            // Ensure directory exists
+            $reportsDir = storage_path('app/public/reports/soplados');
+            if (!\Illuminate\Support\Facades\File::exists($reportsDir)) {
+                \Illuminate\Support\Facades\File::makeDirectory($reportsDir, 0755, true);
             }
 
-            $totalProduced = $goodQuantity + $damagedQuantity;
-            $efficiency = $totalProduced > 0 ? ($goodQuantity / $totalProduced) * 100 : 100;
+            $fileName = 'Reporte_Turno_Soplados_' . $shift->id . '.pdf';
+            $filePath = $reportsDir . '/' . $fileName;
+
+            // Save PDF permanently
+            \Illuminate\Support\Facades\File::put($filePath, $pdf->output());
+
+            $goodQuantity = $data['goodQuantity'];
+            $damagedQuantity = $data['damagedQuantity'];
+            $totalProduced = $data['totalProduced'];
+            $efficiency = $data['efficiency'];
+            $productionOutputs = $data['productionOutputs'];
+            $materialsConsumed = $data['materialsConsumed'];
+            $operatorsList = $data['operatorsList'];
 
             $resumenProductionRows = [];
             foreach ($productionOutputs as $name => $qty) {
@@ -207,11 +261,6 @@ class ShiftController extends Controller
                 $resumenMaterialsRows[] = "• {$name}: " . number_format($qty, 2) . " Kg";
             }
             $resumenMaterials = !empty($resumenMaterialsRows) ? implode("\n", $resumenMaterialsRows) : '• Ninguno';
-
-            $operatorsList = $shift->users->pluck('name')->implode(', ');
-            if (empty($operatorsList)) {
-                $operatorsList = $shift->user->name ?? 'Operador';
-            }
 
             $date = $shift->start_time ? $shift->start_time->locale('es')->isoFormat('dddd, D [de] MMMM [de] YYYY') : now()->locale('es')->isoFormat('dddd, D [de] MMMM [de] YYYY');
             $user = auth()->user()->name ?? ($shift->user->name ?? 'Supervisor');
@@ -254,10 +303,50 @@ class ShiftController extends Controller
             $body = str_replace('[NOTA]', $shift->notes ?? 'Sin observaciones', $body);
             $body = str_replace('[EMPRESA]', $businessName, $body);
 
-            $body = nl2br($body);
+            $bodyHtml = nl2br($body);
 
-            \Illuminate\Support\Facades\Mail::to($config->soplados_email_recipients)
-                ->queue(new \App\Mail\SopladosShiftReportMail($subject, $body));
+            // Send Email
+            if (!empty($emailRecipients)) {
+                \Illuminate\Support\Facades\Mail::to($emailRecipients)
+                    ->queue(new \App\Mail\SopladosShiftReportMail($subject, $bodyHtml, $filePath));
+            }
+
+            // Send WhatsApp
+            try {
+                $whatsappService = app(\App\Services\WhatsappService::class);
+                if ($whatsappService->checkStatus()) {
+                    $companyName = strtoupper($config->business_name ?: 'SISTEMA');
+                    $waMessage = "📄 *REPORTE DE CIERRE DE TURNO - SOPLADOS*\n" .
+                                 "🏢 *{$companyName}*\n" .
+                                 "📅 *{$date}*\n" .
+                                 "-----------------------------------\n" .
+                                 "• *Turno:* {$tipoTurno}\n" .
+                                 "• *Horario:* {$horaInicio} a {$horaFin}\n" .
+                                 "• *Operadores:* {$operatorsList}\n" .
+                                 "• *Rendimiento (Yield):* " . number_format($efficiency, 2) . "%\n" .
+                                 "• *Prod. Buena:* " . number_format($goodQuantity, 0) . " unds\n" .
+                                 "• *Merma:* " . number_format($damagedQuantity, 0) . " unds\n" .
+                                 "-----------------------------------\n" .
+                                 "Adjunto encontrarás el reporte oficial en PDF.";
+
+                    // Send to Groups
+                    if (!empty($waGroups)) {
+                        foreach ($waGroups as $groupId) {
+                            $whatsappService->sendMessage($groupId, $waMessage, $filePath);
+                        }
+                    }
+
+                    // Send to specific Users
+                    if (!empty($waUsers)) {
+                        $users = \App\Models\User::whereIn('id', $waUsers)->whereNotNull('phone')->get();
+                        foreach ($users as $u) {
+                            $whatsappService->sendMessage($u->phone, $waMessage, $filePath);
+                        }
+                    }
+                }
+            } catch (\Exception $waEx) {
+                \Illuminate\Support\Facades\Log::error("Failed to send Soplados shift report to WhatsApp: " . $waEx->getMessage());
+            }
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error("Failed to send Soplados shift report email: " . $e->getMessage());
         }

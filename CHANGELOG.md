@@ -1,3 +1,12 @@
+## [1.10.228] - 2026-07-09
+### Added
+- **Reportes Semanales y Cierres de Turno en Soplados**:
+  * Implementado envío automático de PDF adjunto de cierre de turno de Soplados por Email y WhatsApp a grupos y usuarios individuales configurados.
+  * Agregada opción de descarga de PDF del reporte de turno directamente desde el historial de turnos (Listado de Soplados).
+  * Diseñado y programado el Reporte Semanal Consolidado de Soplados, que incluye el último inventario físico cargado al sistema.
+  * Agregada configuración en el panel de WhatsApp para seleccionar qué grupos y usuarios de WhatsApp reciben el reporte de turno y el reporte semanal consolidado.
+  * Añadida planificación dinámica en `Console/Kernel` para configurar el día de la semana y la hora de envío de los reportes semanales desde la interfaz.
+
 ## [1.10.227] - 2026-07-09
 ### Added
 - **Eliminación de Pedidos Pendientes desde el Listado**:

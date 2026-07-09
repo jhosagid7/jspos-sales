@@ -46,6 +46,7 @@
                                     <th class="table-th text-white text-center">INICIO</th>
                                     <th class="table-th text-white text-center">FIN</th>
                                     <th class="table-th text-white text-center">ESTADO</th>
+                                    <th class="table-th text-white text-center">ACCIONES</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -67,6 +68,11 @@
                                         @else
                                             <span class="badge badge-secondary">CERRADO</span>
                                         @endif
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="{{ route('soplados.shifts.pdf', $shift->id) }}" target="_blank" class="btn btn-dark p-1" title="Ver PDF">
+                                            <i class="fas fa-file-pdf text-danger fa-lg"></i>
+                                        </a>
                                     </td>
                                 </tr>
                                 @endforeach

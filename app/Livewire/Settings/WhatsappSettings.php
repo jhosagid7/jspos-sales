@@ -29,22 +29,35 @@ class WhatsappSettings extends Component
     public $selectedRateGroups = [];
     public $selectedClosureGroups = [];
     public $selectedWeeklyReportGroups = [];
+    public $selectedSopladosShiftGroups = [];
+    public $selectedSopladosWeeklyGroups = [];
 
     public $emailRateRecipients = '';
     public $emailClosureRecipients = '';
     public $emailWeeklyReportRecipients = '';
+    public $emailSopladosWeeklyRecipients = '';
 
     public $selectedRateUsers = [];
     public $selectedClosureUsers = [];
     public $selectedWeeklyReportUsers = [];
+    public $selectedSopladosShiftUsers = [];
+    public $selectedSopladosWeeklyUsers = [];
 
     public $searchRateQuery = '';
     public $searchClosureQuery = '';
     public $searchWeeklyReportQuery = '';
+    public $searchSopladosShiftQuery = '';
+    public $searchSopladosWeeklyQuery = '';
 
     public $rateUsersResults = [];
     public $closureUsersResults = [];
     public $weeklyReportUsersResults = [];
+    public $sopladosShiftUsersResults = [];
+    public $sopladosWeeklyUsersResults = [];
+
+    // Weekly scheduling config
+    public $weeklyReportSendDay = 6;
+    public $weeklyReportSendHour = '10:00';
 
     public function mount()
     {
@@ -52,12 +65,22 @@ class WhatsappSettings extends Component
         $this->selectedRateGroups = $config->whatsapp_rate_groups ?? [];
         $this->selectedClosureGroups = $config->whatsapp_closure_groups ?? [];
         $this->selectedWeeklyReportGroups = $config->whatsapp_weekly_report_groups ?? [];
+        $this->selectedSopladosShiftGroups = $config->whatsapp_soplados_shift_groups ?? [];
+        $this->selectedSopladosWeeklyGroups = $config->whatsapp_soplados_weekly_groups ?? [];
+
         $this->emailRateRecipients = implode(', ', $config->email_rate_recipients ?? []);
         $this->emailClosureRecipients = implode(', ', $config->email_closure_recipients ?? []);
         $this->emailWeeklyReportRecipients = implode(', ', $config->email_weekly_report_recipients ?? []);
+        $this->emailSopladosWeeklyRecipients = implode(', ', $config->email_soplados_weekly_recipients ?? []);
+
         $this->selectedRateUsers = $config->whatsapp_rate_users ?? [];
         $this->selectedClosureUsers = $config->whatsapp_closure_users ?? [];
         $this->selectedWeeklyReportUsers = $config->whatsapp_weekly_report_users ?? [];
+        $this->selectedSopladosShiftUsers = $config->whatsapp_soplados_shift_users ?? [];
+        $this->selectedSopladosWeeklyUsers = $config->whatsapp_soplados_weekly_users ?? [];
+
+        $this->weeklyReportSendDay = $config->weekly_report_send_day ?? 6;
+        $this->weeklyReportSendHour = $config->weekly_report_send_hour ?? '10:00';
         $saleTemplate = WhatsappTemplate::firstOrCreate(
             ['event_type' => 'sale_created'],
             ['subject' => $this->sale_subject, 'body' => $this->sale_body, 'is_active' => true, 'dispatch_mode' => 'auto']
@@ -145,6 +168,18 @@ class WhatsappSettings extends Component
             } else {
                 $this->selectedWeeklyReportGroups[] = $groupId;
             }
+        } elseif ($actionType === 'soplados_shift') {
+            if (in_array($groupId, $this->selectedSopladosShiftGroups)) {
+                $this->selectedSopladosShiftGroups = array_values(array_diff($this->selectedSopladosShiftGroups, [$groupId]));
+            } else {
+                $this->selectedSopladosShiftGroups[] = $groupId;
+            }
+        } elseif ($actionType === 'soplados_weekly') {
+            if (in_array($groupId, $this->selectedSopladosWeeklyGroups)) {
+                $this->selectedSopladosWeeklyGroups = array_values(array_diff($this->selectedSopladosWeeklyGroups, [$groupId]));
+            } else {
+                $this->selectedSopladosWeeklyGroups[] = $groupId;
+            }
         }
     }
 
@@ -210,6 +245,7 @@ class WhatsappSettings extends Component
             $rateEmails = array_values(array_filter(array_map('trim', explode(',', $this->emailRateRecipients))));
             $closureEmails = array_values(array_filter(array_map('trim', explode(',', $this->emailClosureRecipients))));
             $weeklyEmails = array_values(array_filter(array_map('trim', explode(',', $this->emailWeeklyReportRecipients))));
+            $sopladosWeeklyEmails = array_values(array_filter(array_map('trim', explode(',', $this->emailSopladosWeeklyRecipients))));
 
             $config->update([
                 'whatsapp_rate_groups' => $this->selectedRateGroups,
@@ -221,6 +257,13 @@ class WhatsappSettings extends Component
                 'whatsapp_rate_users' => $this->selectedRateUsers,
                 'whatsapp_closure_users' => $this->selectedClosureUsers,
                 'whatsapp_weekly_report_users' => $this->selectedWeeklyReportUsers,
+                'whatsapp_soplados_shift_groups' => $this->selectedSopladosShiftGroups,
+                'whatsapp_soplados_shift_users' => $this->selectedSopladosShiftUsers,
+                'whatsapp_soplados_weekly_groups' => $this->selectedSopladosWeeklyGroups,
+                'whatsapp_soplados_weekly_users' => $this->selectedSopladosWeeklyUsers,
+                'email_soplados_weekly_recipients' => $sopladosWeeklyEmails,
+                'weekly_report_send_day' => (int) $this->weeklyReportSendDay,
+                'weekly_report_send_hour' => trim($this->weeklyReportSendHour),
             ]);
         }
 
@@ -269,6 +312,34 @@ class WhatsappSettings extends Component
             ->toArray();
     }
 
+    public function updatedSearchSopladosShiftQuery()
+    {
+        if (strlen($this->searchSopladosShiftQuery) < 2) {
+            $this->sopladosShiftUsersResults = [];
+            return;
+        }
+        $this->sopladosShiftUsersResults = \App\Models\User::where('name', 'like', '%' . $this->searchSopladosShiftQuery . '%')
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->limit(5)
+            ->get(['id', 'name', 'phone'])
+            ->toArray();
+    }
+
+    public function updatedSearchSopladosWeeklyQuery()
+    {
+        if (strlen($this->searchSopladosWeeklyQuery) < 2) {
+            $this->sopladosWeeklyUsersResults = [];
+            return;
+        }
+        $this->sopladosWeeklyUsersResults = \App\Models\User::where('name', 'like', '%' . $this->searchSopladosWeeklyQuery . '%')
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->limit(5)
+            ->get(['id', 'name', 'phone'])
+            ->toArray();
+    }
+
     public function selectUser($userId, $type)
     {
         if ($type === 'rate') {
@@ -289,6 +360,18 @@ class WhatsappSettings extends Component
             }
             $this->searchWeeklyReportQuery = '';
             $this->weeklyReportUsersResults = [];
+        } elseif ($type === 'soplados_shift') {
+            if (!in_array($userId, $this->selectedSopladosShiftUsers)) {
+                $this->selectedSopladosShiftUsers[] = $userId;
+            }
+            $this->searchSopladosShiftQuery = '';
+            $this->sopladosShiftUsersResults = [];
+        } elseif ($type === 'soplados_weekly') {
+            if (!in_array($userId, $this->selectedSopladosWeeklyUsers)) {
+                $this->selectedSopladosWeeklyUsers[] = $userId;
+            }
+            $this->searchSopladosWeeklyQuery = '';
+            $this->sopladosWeeklyUsersResults = [];
         }
     }
 
@@ -300,6 +383,10 @@ class WhatsappSettings extends Component
             $this->selectedClosureUsers = array_values(array_diff($this->selectedClosureUsers, [$userId]));
         } elseif ($type === 'weekly_report') {
             $this->selectedWeeklyReportUsers = array_values(array_diff($this->selectedWeeklyReportUsers, [$userId]));
+        } elseif ($type === 'soplados_shift') {
+            $this->selectedSopladosShiftUsers = array_values(array_diff($this->selectedSopladosShiftUsers, [$userId]));
+        } elseif ($type === 'soplados_weekly') {
+            $this->selectedSopladosWeeklyUsers = array_values(array_diff($this->selectedSopladosWeeklyUsers, [$userId]));
         }
     }
 
@@ -308,11 +395,15 @@ class WhatsappSettings extends Component
         $rateUsers = \App\Models\User::whereIn('id', $this->selectedRateUsers)->get(['id', 'name', 'phone']);
         $closureUsers = \App\Models\User::whereIn('id', $this->selectedClosureUsers)->get(['id', 'name', 'phone']);
         $weeklyUsers = \App\Models\User::whereIn('id', $this->selectedWeeklyReportUsers)->get(['id', 'name', 'phone']);
+        $sopladosShiftUsers = \App\Models\User::whereIn('id', $this->selectedSopladosShiftUsers)->get(['id', 'name', 'phone']);
+        $sopladosWeeklyUsers = \App\Models\User::whereIn('id', $this->selectedSopladosWeeklyUsers)->get(['id', 'name', 'phone']);
 
         return view('livewire.settings.whatsapp-settings', [
             'selectedRateUsersList' => $rateUsers,
             'selectedClosureUsersList' => $closureUsers,
             'selectedWeeklyUsersList' => $weeklyUsers,
+            'selectedSopladosShiftUsersList' => $sopladosShiftUsers,
+            'selectedSopladosWeeklyUsersList' => $sopladosWeeklyUsers,
         ]);
     }
 }

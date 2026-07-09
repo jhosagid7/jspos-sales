@@ -83,6 +83,13 @@ class Configuration extends Model
         'whatsapp_rate_users',
         'whatsapp_closure_users',
         'whatsapp_weekly_report_users',
+        'whatsapp_soplados_shift_groups',
+        'whatsapp_soplados_shift_users',
+        'whatsapp_soplados_weekly_groups',
+        'whatsapp_soplados_weekly_users',
+        'email_soplados_weekly_recipients',
+        'weekly_report_send_day',
+        'weekly_report_send_hour',
     ];
 
     protected $casts = [
@@ -105,6 +112,12 @@ class Configuration extends Model
         'whatsapp_rate_users' => 'array',
         'whatsapp_closure_users' => 'array',
         'whatsapp_weekly_report_users' => 'array',
+        'whatsapp_soplados_shift_groups' => 'array',
+        'whatsapp_soplados_shift_users' => 'array',
+        'whatsapp_soplados_weekly_groups' => 'array',
+        'whatsapp_soplados_weekly_users' => 'array',
+        'email_soplados_weekly_recipients' => 'array',
+        'weekly_report_send_day' => 'integer',
     ];
 
     public function defaultWarehouse()

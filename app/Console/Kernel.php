@@ -20,10 +20,29 @@ class Kernel extends ConsoleKernel
             ->dailyAt('22:00')
             ->runInBackground();
 
-        // Reporte Semanal de Ingresos en PDF por WhatsApp los Sábados a las 10:00 PM
+        // Dynamically schedule weekly reports based on DB configuration
+        $weeklyReportDay = 6;
+        $weeklyReportHour = '22:00';
+        try {
+            $config = \App\Models\Configuration::first();
+            if ($config) {
+                $weeklyReportDay = $config->weekly_report_send_day !== null ? (int) $config->weekly_report_send_day : 6;
+                $weeklyReportHour = $config->weekly_report_send_hour ?: '22:00';
+            }
+        } catch (\Exception $e) {
+            // Fallback to default in case DB is not initialized or migrated yet
+        }
+
+        // Reporte Semanal de Ingresos en PDF por WhatsApp
         $schedule->command('app:send-weekly-report')
             ->timezone('America/Caracas')
-            ->weeklyOn(6, '22:00') // 6 representa Sábado
+            ->weeklyOn($weeklyReportDay, $weeklyReportHour)
+            ->runInBackground();
+
+        // Reporte Consolidado Semanal de Soplados en PDF por WhatsApp y Email
+        $schedule->command('app:send-soplados-weekly-report')
+            ->timezone('America/Caracas')
+            ->weeklyOn($weeklyReportDay, $weeklyReportHour)
             ->runInBackground();
 
         // Limpieza diaria de respaldos antiguos a las 11:00 PM

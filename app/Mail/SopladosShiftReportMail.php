@@ -7,6 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Queue\SerializesModels;
 
 class SopladosShiftReportMail extends Mailable
@@ -15,14 +16,16 @@ class SopladosShiftReportMail extends Mailable
 
     public $subjectLine;
     public $bodyContent;
+    public $attachmentPath;
 
     /**
      * Create a new message instance.
      */
-    public function __construct($subject, $body)
+    public function __construct($subject, $body, $attachmentPath = null)
     {
         $this->subjectLine = $subject;
         $this->bodyContent = $body;
+        $this->attachmentPath = $attachmentPath;
     }
 
     /**
@@ -50,6 +53,10 @@ class SopladosShiftReportMail extends Mailable
      */
     public function attachments(): array
     {
-        return [];
+        $attachments = [];
+        if ($this->attachmentPath && file_exists($this->attachmentPath)) {
+            $attachments[] = Attachment::fromPath($this->attachmentPath);
+        }
+        return $attachments;
     }
 }

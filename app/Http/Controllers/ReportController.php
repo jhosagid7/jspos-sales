@@ -3777,5 +3777,24 @@ class ReportController extends Controller
 
         return $pdf->stream($fileName);
     }
+
+    public function sopladosShiftPdf($id)
+    {
+        $shift = \App\Models\Shift::with([
+            'users',
+            'warehouse',
+            'productionLogs.outputs.product',
+            'productionLogs.materials.product'
+        ])->findOrFail($id);
+
+        $shiftController = new \App\Http\Controllers\Api\Soplados\ShiftController();
+        $data = $shiftController->compileShiftData($shift);
+
+        $pdf = Pdf::loadView('pdf.soplados-shift', $data);
+        
+        $fileName = 'Reporte_Turno_Soplados_' . $shift->id . '_' . ($shift->start_time ? $shift->start_time->format('Ymd') : '') . '.pdf';
+
+        return $pdf->stream($fileName);
+    }
 }
 
