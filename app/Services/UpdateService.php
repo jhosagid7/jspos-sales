@@ -166,7 +166,23 @@ class UpdateService
             if (count($files) > 0) {
                 $source = $files[0];
                 
-                // Force copy root batch files explicitly to ensure windows installer and backup scripts are updated
+                // 1. Detener servicios de Windows para liberar los archivos
+                $services = ['JSPOS_WhatsApp_API', 'JSPOS_Queue_Worker', 'JSPOS_Scheduler'];
+                $nssmPath = base_path('nssm/nssm.exe');
+                if (File::exists($nssmPath)) {
+                    foreach ($services as $service) {
+                        try {
+                            @shell_exec('"' . $nssmPath . '" stop ' . $service);
+                            Log::info("Updater: Deteniendo servicio de Windows: {$service}");
+                        } catch (\Exception $e) {
+                            Log::warning("Updater: No se pudo detener el servicio {$service} antes de copiar: " . $e->getMessage());
+                        }
+                    }
+                    // Esperar 1 segundo para dar tiempo a liberar los archivos
+                    sleep(1);
+                }
+
+                // 2. Copiar archivos del lote .bat primero
                 $batFiles = ['instalar_servicios.bat', 'desinstalar-servicio.bat', 'backup.bat', 'backup_cliente.bat'];
                 foreach ($batFiles as $batFile) {
                     $srcFile = $source . '/' . $batFile;
@@ -184,7 +200,27 @@ class UpdateService
                     }
                 }
 
-                File::copyDirectory($source, base_path());
+                // 3. Copiar el resto del proyecto rastreando fallos
+                $failedFiles = [];
+                $this->copyDirectoryWithTracking($source, base_path(), $failedFiles);
+
+                // 4. Levantar los servicios de Windows de nuevo
+                if (File::exists($nssmPath)) {
+                    foreach ($services as $service) {
+                        try {
+                            @shell_exec('"' . $nssmPath . '" start ' . $service);
+                            Log::info("Updater: Iniciando servicio de Windows: {$service}");
+                        } catch (\Exception $e) {
+                            Log::warning("Updater: No se pudo iniciar el servicio {$service} después de copiar: " . $e->getMessage());
+                        }
+                    }
+                }
+
+                // 5. Si hubo fallos de copia, lanzar error
+                if (!empty($failedFiles)) {
+                    $fileList = implode(', ', $failedFiles);
+                    throw new \Exception("La actualización se completó parcialmente. Algunos archivos no pudieron ser sobrescritos porque están bloqueados o en uso por el sistema. Por favor detenga manualmente los servicios en la máquina del cliente e intente de nuevo. Archivos fallidos: " . $fileList);
+                }
             }
 
             // Explicitly update version.txt
@@ -201,6 +237,43 @@ class UpdateService
             return true;
         } else {
             throw new \Exception("Failed to unzip update.");
+        }
+    }
+
+    /**
+     * Copia un directorio rastreando y recolectando los archivos que fallen.
+     */
+    protected function copyDirectoryWithTracking($source, $destination, &$failedFiles = [])
+    {
+        if (!File::isDirectory($source)) {
+            return;
+        }
+
+        if (!File::exists($destination)) {
+            File::makeDirectory($destination, 0755, true, true);
+        }
+
+        $items = new \FilesystemIterator($source, \FilesystemIterator::SKIP_DOTS);
+
+        foreach ($items as $item) {
+            $target = $destination . '/' . $item->getFilename();
+
+            if ($item->isDir()) {
+                $this->copyDirectoryWithTracking($item->getPathname(), $target, $failedFiles);
+            } else {
+                try {
+                    // Intentar quitar atributos de solo lectura si existe
+                    if (File::exists($target)) {
+                        @chmod($target, 0777);
+                    }
+                    // Copiar y registrar si falla
+                    if (!@copy($item->getPathname(), $target)) {
+                        $failedFiles[] = str_replace(base_path() . '/', '', $target);
+                    }
+                } catch (\Exception $e) {
+                    $failedFiles[] = str_replace(base_path() . '/', '', $target) . " (" . $e->getMessage() . ")";
+                }
+            }
         }
     }
 

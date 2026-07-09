@@ -1,3 +1,10 @@
+## [1.10.224] - 2026-07-09
+### Fixed
+- **Actualización del Sistema (Fallo Silencioso por Bloqueos)**:
+  * Implementada parada automática de los servicios de Windows (`JSPOS_WhatsApp_API`, `JSPOS_Queue_Worker`, `JSPOS_Scheduler`) antes de la actualización para evitar archivos bloqueados.
+  * Añadida copia con rastreo de fallos (`copyDirectoryWithTracking`) para detectar fallas al sobrescribir archivos y reportar error ruidoso en la interfaz.
+  * Reactivación de los servicios de Windows después de la actualización.
+
 ## [1.10.223] - 2026-07-09
 ### Fixed
 - **Carga de Grupos de WhatsApp en Configuración**:
