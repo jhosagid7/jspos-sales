@@ -233,10 +233,31 @@ class SendDailyClosureNotification extends Command
                       "💰 *Total General:* $" . number_format($totalGeneral, 2) . " USD\n" .
                       "📥 *Total Recibido (Caja):* $" . number_format($totalRecibido, 2) . " USD";
 
+        // Dispatch via Email
+        try {
+            $emailRecipients = $config->email_closure_recipients ?: [];
+            if (!empty($emailRecipients)) {
+                $companyName = strtoupper($config->business_name ?: 'SISTEMA');
+                $subject = "📊 Cierre Diario de Ventas - {$companyName}";
+                
+                // Formatear texto para Markdown de email
+                $emailBody = str_replace("\n", "\n\n", $waMessage);
+                
+                \Illuminate\Support\Facades\Mail::to($emailRecipients)->queue(new \App\Mail\GenericNotificationMail(
+                    $subject,
+                    $emailBody
+                ));
+                $this->info("Daily closure report sent successfully via email.");
+            }
+        } catch (\Exception $e) {
+            $this->error("Error sending daily closure email notification: " . $e->getMessage());
+        }
+
         // Dispatch via WhatsApp
         try {
             $whatsappService = app(WhatsappService::class);
             if ($whatsappService->checkStatus()) {
+                // Send to Groups
                 $selectedGroups = $config->whatsapp_closure_groups ?: [];
                 if (empty($selectedGroups)) {
                     $whatsappService->sendToGroupByName('Diferencial', $waMessage);
@@ -245,7 +266,16 @@ class SendDailyClosureNotification extends Command
                         $whatsappService->sendMessage($groupId, $waMessage);
                     }
                 }
-                $this->info("Daily closure report sent successfully.");
+
+                // Send to specific Users
+                $selectedUsers = $config->whatsapp_closure_users ?: [];
+                if (!empty($selectedUsers)) {
+                    $users = \App\Models\User::whereIn('id', $selectedUsers)->whereNotNull('phone')->get();
+                    foreach ($users as $user) {
+                        $whatsappService->sendMessage($user->phone, $waMessage);
+                    }
+                }
+                $this->info("Daily closure report sent successfully via WhatsApp.");
             } else {
                 $this->warn("WhatsApp client is offline. Skipping send.");
             }

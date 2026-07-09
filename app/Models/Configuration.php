@@ -77,6 +77,12 @@ class Configuration extends Model
         'whatsapp_closure_groups',
         'whatsapp_weekly_report_groups',
         'price_list_decimals',
+        'email_rate_recipients',
+        'email_closure_recipients',
+        'email_weekly_report_recipients',
+        'whatsapp_rate_users',
+        'whatsapp_closure_users',
+        'whatsapp_weekly_report_users',
     ];
 
     protected $casts = [
@@ -93,6 +99,12 @@ class Configuration extends Model
         'whatsapp_closure_groups' => 'array',
         'whatsapp_weekly_report_groups' => 'array',
         'price_list_decimals' => 'integer',
+        'email_rate_recipients' => 'array',
+        'email_closure_recipients' => 'array',
+        'email_weekly_report_recipients' => 'array',
+        'whatsapp_rate_users' => 'array',
+        'whatsapp_closure_users' => 'array',
+        'whatsapp_weekly_report_users' => 'array',
     ];
 
     public function defaultWarehouse()

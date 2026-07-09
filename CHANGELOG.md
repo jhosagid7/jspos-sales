@@ -1,3 +1,10 @@
+## [1.10.225] - 2026-07-09
+### Added
+- **Notificaciones Adicionales (Correos y Contactos WhatsApp)**:
+  * Agregado soporte para ingresar listas de correos electrónicos personalizadas para recibir notificaciones de tasa de cambio, cierre de caja diario y reporte semanal.
+  * Implementado un buscador y gestor dinámico de usuarios en la configuración para seleccionar contactos específicos que reciban notificaciones de tasa, cierre y reporte semanal mediante WhatsApp.
+  * Separados los canales de envío para garantizar que el correo electrónico siga funcionando incluso si WhatsApp se desconecta.
+
 ## [1.10.224] - 2026-07-09
 ### Fixed
 - **Actualización del Sistema (Fallo Silencioso por Bloqueos)**:
