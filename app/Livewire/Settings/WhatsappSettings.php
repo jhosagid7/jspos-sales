@@ -30,12 +30,34 @@ class WhatsappSettings extends Component
     public $selectedClosureGroups = [];
     public $selectedWeeklyReportGroups = [];
 
+    public $emailRateRecipients = '';
+    public $emailClosureRecipients = '';
+    public $emailWeeklyReportRecipients = '';
+
+    public $selectedRateUsers = [];
+    public $selectedClosureUsers = [];
+    public $selectedWeeklyReportUsers = [];
+
+    public $searchRateQuery = '';
+    public $searchClosureQuery = '';
+    public $searchWeeklyReportQuery = '';
+
+    public $rateUsersResults = [];
+    public $closureUsersResults = [];
+    public $weeklyReportUsersResults = [];
+
     public function mount()
     {
         $config = \App\Models\Configuration::first();
         $this->selectedRateGroups = $config->whatsapp_rate_groups ?? [];
         $this->selectedClosureGroups = $config->whatsapp_closure_groups ?? [];
         $this->selectedWeeklyReportGroups = $config->whatsapp_weekly_report_groups ?? [];
+        $this->emailRateRecipients = implode(', ', $config->email_rate_recipients ?? []);
+        $this->emailClosureRecipients = implode(', ', $config->email_closure_recipients ?? []);
+        $this->emailWeeklyReportRecipients = implode(', ', $config->email_weekly_report_recipients ?? []);
+        $this->selectedRateUsers = $config->whatsapp_rate_users ?? [];
+        $this->selectedClosureUsers = $config->whatsapp_closure_users ?? [];
+        $this->selectedWeeklyReportUsers = $config->whatsapp_weekly_report_users ?? [];
         $saleTemplate = WhatsappTemplate::firstOrCreate(
             ['event_type' => 'sale_created'],
             ['subject' => $this->sale_subject, 'body' => $this->sale_body, 'is_active' => true, 'dispatch_mode' => 'auto']
@@ -185,18 +207,112 @@ class WhatsappSettings extends Component
 
         $config = \App\Models\Configuration::first();
         if ($config) {
+            $rateEmails = array_values(array_filter(array_map('trim', explode(',', $this->emailRateRecipients))));
+            $closureEmails = array_values(array_filter(array_map('trim', explode(',', $this->emailClosureRecipients))));
+            $weeklyEmails = array_values(array_filter(array_map('trim', explode(',', $this->emailWeeklyReportRecipients))));
+
             $config->update([
                 'whatsapp_rate_groups' => $this->selectedRateGroups,
                 'whatsapp_closure_groups' => $this->selectedClosureGroups,
                 'whatsapp_weekly_report_groups' => $this->selectedWeeklyReportGroups,
+                'email_rate_recipients' => $rateEmails,
+                'email_closure_recipients' => $closureEmails,
+                'email_weekly_report_recipients' => $weeklyEmails,
+                'whatsapp_rate_users' => $this->selectedRateUsers,
+                'whatsapp_closure_users' => $this->selectedClosureUsers,
+                'whatsapp_weekly_report_users' => $this->selectedWeeklyReportUsers,
             ]);
         }
 
         $this->dispatch('noty', msg: 'CONFIGURACIÓN DE WHATSAPP GUARDADA');
     }
 
+    public function updatedSearchRateQuery()
+    {
+        if (strlen($this->searchRateQuery) < 2) {
+            $this->rateUsersResults = [];
+            return;
+        }
+        $this->rateUsersResults = \App\Models\User::where('name', 'like', '%' . $this->searchRateQuery . '%')
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->limit(5)
+            ->get(['id', 'name', 'phone'])
+            ->toArray();
+    }
+
+    public function updatedSearchClosureQuery()
+    {
+        if (strlen($this->searchClosureQuery) < 2) {
+            $this->closureUsersResults = [];
+            return;
+        }
+        $this->closureUsersResults = \App\Models\User::where('name', 'like', '%' . $this->searchClosureQuery . '%')
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->limit(5)
+            ->get(['id', 'name', 'phone'])
+            ->toArray();
+    }
+
+    public function updatedSearchWeeklyReportQuery()
+    {
+        if (strlen($this->searchWeeklyReportQuery) < 2) {
+            $this->weeklyReportUsersResults = [];
+            return;
+        }
+        $this->weeklyReportUsersResults = \App\Models\User::where('name', 'like', '%' . $this->searchWeeklyReportQuery . '%')
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->limit(5)
+            ->get(['id', 'name', 'phone'])
+            ->toArray();
+    }
+
+    public function selectUser($userId, $type)
+    {
+        if ($type === 'rate') {
+            if (!in_array($userId, $this->selectedRateUsers)) {
+                $this->selectedRateUsers[] = $userId;
+            }
+            $this->searchRateQuery = '';
+            $this->rateUsersResults = [];
+        } elseif ($type === 'closure') {
+            if (!in_array($userId, $this->selectedClosureUsers)) {
+                $this->selectedClosureUsers[] = $userId;
+            }
+            $this->searchClosureQuery = '';
+            $this->closureUsersResults = [];
+        } elseif ($type === 'weekly_report') {
+            if (!in_array($userId, $this->selectedWeeklyReportUsers)) {
+                $this->selectedWeeklyReportUsers[] = $userId;
+            }
+            $this->searchWeeklyReportQuery = '';
+            $this->weeklyReportUsersResults = [];
+        }
+    }
+
+    public function removeUser($userId, $type)
+    {
+        if ($type === 'rate') {
+            $this->selectedRateUsers = array_values(array_diff($this->selectedRateUsers, [$userId]));
+        } elseif ($type === 'closure') {
+            $this->selectedClosureUsers = array_values(array_diff($this->selectedClosureUsers, [$userId]));
+        } elseif ($type === 'weekly_report') {
+            $this->selectedWeeklyReportUsers = array_values(array_diff($this->selectedWeeklyReportUsers, [$userId]));
+        }
+    }
+
     public function render()
     {
-        return view('livewire.settings.whatsapp-settings');
+        $rateUsers = \App\Models\User::whereIn('id', $this->selectedRateUsers)->get(['id', 'name', 'phone']);
+        $closureUsers = \App\Models\User::whereIn('id', $this->selectedClosureUsers)->get(['id', 'name', 'phone']);
+        $weeklyUsers = \App\Models\User::whereIn('id', $this->selectedWeeklyReportUsers)->get(['id', 'name', 'phone']);
+
+        return view('livewire.settings.whatsapp-settings', [
+            'selectedRateUsersList' => $rateUsers,
+            'selectedClosureUsersList' => $closureUsers,
+            'selectedWeeklyUsersList' => $weeklyUsers,
+        ]);
     }
 }

@@ -349,6 +349,138 @@
                             @endif
                         </div>
                     </div>
+
+                    <!-- SECCIÓN: NOTIFICACIONES ADICIONALES (CORREOS Y USUARIOS WHATSAPP) -->
+                    <div class="row mt-4 pt-4 border-top">
+                        <div class="col-12">
+                            <h5 class="text-success mb-3">
+                                <i class="fas fa-envelope-open-text"></i> Notificaciones Adicionales (Correos y Contactos de WhatsApp)
+                            </h5>
+                            <p class="text-muted">Introduce correos electrónicos o selecciona usuarios del sistema para enviarles notificaciones de tasa de cambio, cierre de caja diario o reportes semanales.</p>
+                            
+                            <div class="row">
+                                <!-- TASA DE CAMBIO -->
+                                <div class="col-md-4 border-end">
+                                    <h6 class="text-primary mb-3"><i class="fas fa-dollar-sign text-success me-1"></i> Tasa de Cambio</h6>
+                                    
+                                    <div class="form-group mb-3">
+                                        <label class="fw-bold text-dark"><i class="fas fa-envelope text-success me-1"></i> Correos Electrónicos</label>
+                                        <textarea wire:model="emailRateRecipients" class="form-control border-success" rows="3" placeholder="ejemplo1@correo.com, ejemplo2@correo.com"></textarea>
+                                        <small class="text-muted">Separados por comas.</small>
+                                    </div>
+
+                                    <div class="form-group mb-3 position-relative" x-data="{ open: false }">
+                                        <label class="fw-bold text-dark"><i class="fab fa-whatsapp text-success me-1"></i> Usuarios de WhatsApp</label>
+                                        <input type="text" 
+                                               wire:model.live="searchRateQuery" 
+                                               class="form-control border-success" 
+                                               placeholder="Buscar usuario..."
+                                               @focus="open = true"
+                                               @click.away="open = false">
+                                        
+                                        @if(!empty($rateUsersResults))
+                                            <ul class="list-group position-absolute w-100 shadow" style="z-index: 1000; max-height: 200px; overflow-y: auto;" x-show="open">
+                                                @foreach($rateUsersResults as $result)
+                                                    <li class="list-group-item list-group-item-action py-2" style="cursor: pointer;" wire:click="selectUser({{ $result['id'] }}, 'rate')" @click="open = false">
+                                                        <strong>{{ $result['name'] }}</strong> <span class="text-muted">({{ $result['phone'] }})</span>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        @endif
+
+                                        <div class="mt-2 d-flex flex-wrap gap-1">
+                                            @foreach($selectedRateUsersList as $user)
+                                                <span class="badge bg-success p-2 d-inline-flex align-items-center text-white">
+                                                    {{ $user->name }}
+                                                    <button type="button" wire:click="removeUser({{ $user->id }}, 'rate')" class="btn-close btn-close-white ms-2" style="font-size: 0.65rem;" aria-label="Remove"></button>
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- CIERRE DIARIO -->
+                                <div class="col-md-4 border-end">
+                                    <h6 class="text-primary mb-3"><i class="fas fa-calculator text-success me-1"></i> Cierre Diario</h6>
+                                    
+                                    <div class="form-group mb-3">
+                                        <label class="fw-bold text-dark"><i class="fas fa-envelope text-success me-1"></i> Correos Electrónicos</label>
+                                        <textarea wire:model="emailClosureRecipients" class="form-control border-success" rows="3" placeholder="ejemplo1@correo.com, ejemplo2@correo.com"></textarea>
+                                        <small class="text-muted">Separados por comas.</small>
+                                    </div>
+
+                                    <div class="form-group mb-3 position-relative" x-data="{ open: false }">
+                                        <label class="fw-bold text-dark"><i class="fab fa-whatsapp text-success me-1"></i> Usuarios de WhatsApp</label>
+                                        <input type="text" 
+                                               wire:model.live="searchClosureQuery" 
+                                               class="form-control border-success" 
+                                               placeholder="Buscar usuario..."
+                                               @focus="open = true"
+                                               @click.away="open = false">
+                                        
+                                        @if(!empty($closureUsersResults))
+                                            <ul class="list-group position-absolute w-100 shadow" style="z-index: 1000; max-height: 200px; overflow-y: auto;" x-show="open">
+                                                @foreach($closureUsersResults as $result)
+                                                    <li class="list-group-item list-group-item-action py-2" style="cursor: pointer;" wire:click="selectUser({{ $result['id'] }}, 'closure')" @click="open = false">
+                                                        <strong>{{ $result['name'] }}</strong> <span class="text-muted">({{ $result['phone'] }})</span>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        @endif
+
+                                        <div class="mt-2 d-flex flex-wrap gap-1">
+                                            @foreach($selectedClosureUsersList as $user)
+                                                <span class="badge bg-success p-2 d-inline-flex align-items-center text-white">
+                                                    {{ $user->name }}
+                                                    <button type="button" wire:click="removeUser({{ $user->id }}, 'closure')" class="btn-close btn-close-white ms-2" style="font-size: 0.65rem;" aria-label="Remove"></button>
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- REPORTE SEMANAL PDF -->
+                                <div class="col-md-4">
+                                    <h6 class="text-primary mb-3"><i class="fas fa-file-pdf text-success me-1"></i> Reporte Semanal PDF</h6>
+                                    
+                                    <div class="form-group mb-3">
+                                        <label class="fw-bold text-dark"><i class="fas fa-envelope text-success me-1"></i> Correos Electrónicos</label>
+                                        <textarea wire:model="emailWeeklyReportRecipients" class="form-control border-success" rows="3" placeholder="ejemplo1@correo.com, ejemplo2@correo.com"></textarea>
+                                        <small class="text-muted">Separados por comas.</small>
+                                    </div>
+
+                                    <div class="form-group mb-3 position-relative" x-data="{ open: false }">
+                                        <label class="fw-bold text-dark"><i class="fab fa-whatsapp text-success me-1"></i> Usuarios de WhatsApp</label>
+                                        <input type="text" 
+                                               wire:model.live="searchWeeklyReportQuery" 
+                                               class="form-control border-success" 
+                                               placeholder="Buscar usuario..."
+                                               @focus="open = true"
+                                               @click.away="open = false">
+                                        
+                                        @if(!empty($weeklyReportUsersResults))
+                                            <ul class="list-group position-absolute w-100 shadow" style="z-index: 1000; max-height: 200px; overflow-y: auto;" x-show="open">
+                                                @foreach($weeklyReportUsersResults as $result)
+                                                    <li class="list-group-item list-group-item-action py-2" style="cursor: pointer;" wire:click="selectUser({{ $result['id'] }}, 'weekly_report')" @click="open = false">
+                                                        <strong>{{ $result['name'] }}</strong> <span class="text-muted">({{ $result['phone'] }})</span>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        @endif
+
+                                        <div class="mt-2 d-flex flex-wrap gap-1">
+                                            @foreach($selectedWeeklyUsersList as $user)
+                                                <span class="badge bg-success p-2 d-inline-flex align-items-center text-white">
+                                                    {{ $user->name }}
+                                                    <button type="button" wire:click="removeUser({{ $user->id }}, 'weekly_report')" class="btn-close btn-close-white ms-2" style="font-size: 0.65rem;" aria-label="Remove"></button>
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

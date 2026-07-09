@@ -65,10 +65,32 @@ class SendWeeklyReportNotification extends Command
                      "-----------------------------------\n" .
                      "Adjunto encontrarás el reporte detallado en PDF correspondiente a la semana.";
 
+        // Send via Email
+        try {
+            $emailRecipients = $config->email_weekly_report_recipients ?: [];
+            if (!empty($emailRecipients)) {
+                $companyName = strtoupper($config->business_name ?: 'SISTEMA');
+                $subject = "📄 Reporte Semanal de Ingresos - {$companyName}";
+                
+                // Formatear texto para Markdown de email
+                $emailBody = str_replace("\n", "\n\n", $waMessage);
+                
+                \Illuminate\Support\Facades\Mail::to($emailRecipients)->queue(new \App\Mail\GenericNotificationMail(
+                    $subject,
+                    $emailBody,
+                    $filePath
+                ));
+                $this->info("Weekly report PDF sent successfully via email.");
+            }
+        } catch (\Exception $e) {
+            $this->error("Error sending weekly report email notification: " . $e->getMessage());
+        }
+
         // Send via WhatsApp
         try {
             $whatsappService = app(WhatsappService::class);
             if ($whatsappService->checkStatus()) {
+                // Send to Groups
                 $selectedGroups = $config->whatsapp_weekly_report_groups ?: [];
                 if (empty($selectedGroups)) {
                     $whatsappService->sendToGroupByName('Diferencial', $waMessage, $filePath);
@@ -77,7 +99,16 @@ class SendWeeklyReportNotification extends Command
                         $whatsappService->sendMessage($groupId, $waMessage, $filePath);
                     }
                 }
-                $this->info("Weekly report PDF sent successfully.");
+
+                // Send to specific Users
+                $selectedUsers = $config->whatsapp_weekly_report_users ?: [];
+                if (!empty($selectedUsers)) {
+                    $users = \App\Models\User::whereIn('id', $selectedUsers)->whereNotNull('phone')->get();
+                    foreach ($users as $user) {
+                        $whatsappService->sendMessage($user->phone, $waMessage, $filePath);
+                    }
+                }
+                $this->info("Weekly report PDF sent successfully via WhatsApp.");
             } else {
                 $this->warn("WhatsApp client is offline. Skipping send.");
             }

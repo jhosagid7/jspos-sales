@@ -283,4 +283,36 @@ class WhatsappGroupsConfigurationTest extends TestCase
 
         Carbon::setTestNow(); // Reset
     }
+
+    public function test_whatsapp_settings_can_search_and_select_users_and_send_notifications()
+    {
+        $targetUser = User::factory()->create([
+            'name' => 'Eliecer Bermudez',
+            'phone' => '584121112233'
+        ]);
+
+        $this->mock(WhatsappService::class, function ($mock) {
+            $mock->shouldReceive('checkStatus')->andReturn(true);
+            $mock->shouldReceive('getGroups')->andReturn([]);
+        });
+
+        // Test Livewire component search and select
+        Livewire::actingAs($this->adminUser)
+            ->test(WhatsappSettings::class)
+            ->set('searchRateQuery', 'Eliecer')
+            ->assertSet('rateUsersResults', [
+                ['id' => $targetUser->id, 'name' => 'Eliecer Bermudez', 'phone' => '584121112233']
+            ])
+            ->call('selectUser', $targetUser->id, 'rate')
+            ->assertSet('selectedRateUsers', [$targetUser->id])
+            ->call('removeUser', $targetUser->id, 'rate')
+            ->assertSet('selectedRateUsers', [])
+            ->call('selectUser', $targetUser->id, 'rate')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        // Verify database configuration has updated
+        $config = Configuration::first();
+        $this->assertEquals([$targetUser->id], $config->whatsapp_rate_users);
+    }
 }

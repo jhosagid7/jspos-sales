@@ -699,22 +699,44 @@ class Settings extends Component
             // Reload currencies in session
             $this->loadCurrencies();
 
-            // Send WhatsApp notification to "Diferencial" group
+            // Send email and WhatsApp notifications
             try {
+                $companyName = strtoupper($config->business_name ?: 'SISTEMA');
+                $dateStr = now()->format('d/m/Y');
+                $bcvStr = number_format(floatval($this->bcvRate), 2, '.', '');
+                $monitorStr = number_format(floatval($this->binanceRate), 2, '.', '');
+                $diffVal = floatval($this->bcvRate) > 0 ? (floatval($this->binanceRate) / floatval($this->bcvRate)) : 0;
+                $diffVal = floor(round($diffVal, 8) * 10000) / 10000;
+                $diferencialStr = number_format($diffVal, 4, '.', '');
+                $sistemaVal = floatval($inflatedRate);
+                $sistemaStr = ($sistemaVal == intval($sistemaVal)) ? intval($sistemaVal) : number_format($sistemaVal, 2, '.', '');
+
+                // 1. Send Email if configured
+                $emailRecipients = $config->email_rate_recipients ?: [];
+                if (!empty($emailRecipients)) {
+                    try {
+                        $emailMessage = "**{$companyName}**\n\n" .
+                                     "**Fecha:** {$dateStr}\n\n" .
+                                     "**BCV:** {$bcvStr}\n\n" .
+                                     "**MONITOR:** {$monitorStr}\n\n" .
+                                     "**DIFERENCIAL:** {$diferencialStr}\n\n" .
+                                     "**SISTEMA:** {$sistemaStr}";
+
+                        $subject = "🟢 Tasa de Cambio del Día - {$companyName}";
+                        \Illuminate\Support\Facades\Mail::to($emailRecipients)->queue(new \App\Mail\GenericNotificationMail(
+                            $subject,
+                            $emailMessage
+                        ));
+                        \Illuminate\Support\Facades\Log::info("Updater: Rate notification email queued to: " . implode(', ', $emailRecipients));
+                    } catch (\Exception $mailEx) {
+                        \Illuminate\Support\Facades\Log::error("Error enviando tasa por Email: " . $mailEx->getMessage());
+                    }
+                }
+
+                // 2. Send WhatsApp
                 $whatsappService = app(\App\Services\WhatsappService::class);
                 $status = $whatsappService->checkStatus();
                 if ($status) {
-                    $companyName = strtoupper($config->business_name ?: 'SISTEMA');
-                    $dateStr = now()->format('d/m/Y');
-                    $bcvStr = number_format(floatval($this->bcvRate), 2, '.', '');
-                    $monitorStr = number_format(floatval($this->binanceRate), 2, '.', '');
-                    $diffVal = floatval($this->bcvRate) > 0 ? (floatval($this->binanceRate) / floatval($this->bcvRate)) : 0;
-                    // Truncate to 4 decimal places to match user's custom formatting
-                    $diffVal = floor(round($diffVal, 8) * 10000) / 10000;
-                    $diferencialStr = number_format($diffVal, 4, '.', '');
-                    $sistemaVal = floatval($inflatedRate);
-                    $sistemaStr = ($sistemaVal == intval($sistemaVal)) ? intval($sistemaVal) : number_format($sistemaVal, 2, '.', '');
-
                     $waMessage = "{$companyName}\n" .
                                  "{$dateStr}\n" .
                                  "BCV: {$bcvStr}\n" .
@@ -722,6 +744,7 @@ class Settings extends Component
                                  "DIFERENCIAL: {$diferencialStr}\n" .
                                  "SISTEMA: {$sistemaStr}";
 
+                    // Send to Groups
                     $selectedGroups = $config->whatsapp_rate_groups ?: [];
                     if (empty($selectedGroups)) {
                         $whatsappService->sendToGroupByName('Diferencial', $waMessage);
@@ -730,9 +753,18 @@ class Settings extends Component
                             $whatsappService->sendMessage($groupId, $waMessage);
                         }
                     }
+
+                    // Send to specific Users
+                    $selectedUsers = $config->whatsapp_rate_users ?: [];
+                    if (!empty($selectedUsers)) {
+                        $users = \App\Models\User::whereIn('id', $selectedUsers)->whereNotNull('phone')->get();
+                        foreach ($users as $user) {
+                            $whatsappService->sendMessage($user->phone, $waMessage);
+                        }
+                    }
                 }
             } catch (\Exception $ex) {
-                \Illuminate\Support\Facades\Log::error("Error enviando tasa al grupo de WhatsApp: " . $ex->getMessage());
+                \Illuminate\Support\Facades\Log::error("Error enviando notificaciones de tasa: " . $ex->getMessage());
             }
 
             $this->dispatch('noty', msg: 'Tasas Globales y Ajuste actualizados correctamente');
