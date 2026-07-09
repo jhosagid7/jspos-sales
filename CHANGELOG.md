@@ -1,3 +1,10 @@
+## [1.10.226] - 2026-07-09
+### Fixed
+- **Carga de Stock en Pedidos Pendientes y Duplicidad de Folios**:
+  * Removido el incremento inmediato de stock al guardar un pedido de compra en estado pendiente ("Guardar como Orden"). El stock ahora solo se actualiza al finalizarse.
+  * Corregida la duplicidad de folios en la base de datos al procesar un pedido o requisición pendiente. Ahora el sistema actualiza el registro original (folio) en lugar de crear una compra nueva duplicada.
+  * Añadida validación de colección segura en la lectura del carrito desde la sesión para prevenir fallas de tipo en peticiones concurrentes de Livewire.
+
 ## [1.10.225] - 2026-07-09
 ### Added
 - **Notificaciones Adicionales (Correos y Contactos WhatsApp)**:

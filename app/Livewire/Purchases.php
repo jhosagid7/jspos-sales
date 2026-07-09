@@ -172,7 +172,7 @@ class Purchases extends Component
             session()->forget('purchase_order_from_report');
             $this->dispatch('noty', msg: 'Orden generada desde Reporte de Rotación');
         } elseif (session()->has("purchase_cart")) {
-            $this->cart = session("purchase_cart");
+            $this->cart = collect(session("purchase_cart"));
         } else {
             $this->cart = new Collection;
         }
@@ -196,8 +196,15 @@ class Purchases extends Component
 
         if ($purchase) {
             $this->cart = new Collection;
-            $this->notes = "Clonada desde Compra #{$purchase->id}. " . $purchase->notes;
             $this->flete = $purchase->flete;
+
+            if ($purchase->status === 'pending') {
+                $this->order_selected_id = $purchase->id;
+                $this->notes = $purchase->notes;
+            } else {
+                $this->order_selected_id = null;
+                $this->notes = "Clonada desde Compra #{$purchase->id}. " . $purchase->notes;
+            }
             
             // Set Supplier in session
             $supplier_array = [
@@ -601,6 +608,7 @@ class Purchases extends Component
     public function clear()
     {
         $this->cart = new Collection;
+        $this->order_selected_id = null;
         $this->save();
         $this->dispatch('focus-search');
     }
@@ -785,21 +793,53 @@ class Purchases extends Component
         DB::beginTransaction();
         try {
 
-            $purchase = Purchase::create([
-                'total' => $this->totalCart(),
-                'flete' => $this->flete,
-                'items' => $this->itemsCart,
-                'discount' => 0,
-                'status' => $this->status,
-                'type' => $this->purchaseType,
-                'supplier_id' => $this->supplier['id'],
-                'warehouse_id' => $this->warehouse_id,
-                'user_id' =>  Auth()->user()->id,
-                'notes' => $this->notes,
-            ]);
+            if ($this->order_selected_id) {
+                $purchase = Purchase::find($this->order_selected_id);
+                if ($purchase) {
+                    $purchase->update([
+                        'total' => $this->totalCart(),
+                        'flete' => $this->flete,
+                        'items' => $this->itemsCart,
+                        'discount' => 0,
+                        'status' => $this->status,
+                        'type' => $this->purchaseType,
+                        'supplier_id' => $this->supplier['id'],
+                        'warehouse_id' => $this->warehouse_id,
+                        'user_id' =>  Auth()->user()->id,
+                        'notes' => $this->notes,
+                    ]);
+                    $purchase->details()->delete();
+                } else {
+                    $purchase = Purchase::create([
+                        'total' => $this->totalCart(),
+                        'flete' => $this->flete,
+                        'items' => $this->itemsCart,
+                        'discount' => 0,
+                        'status' => $this->status,
+                        'type' => $this->purchaseType,
+                        'supplier_id' => $this->supplier['id'],
+                        'warehouse_id' => $this->warehouse_id,
+                        'user_id' =>  Auth()->user()->id,
+                        'notes' => $this->notes,
+                    ]);
+                }
+            } else {
+                $purchase = Purchase::create([
+                    'total' => $this->totalCart(),
+                    'flete' => $this->flete,
+                    'items' => $this->itemsCart,
+                    'discount' => 0,
+                    'status' => $this->status,
+                    'type' => $this->purchaseType,
+                    'supplier_id' => $this->supplier['id'],
+                    'warehouse_id' => $this->warehouse_id,
+                    'user_id' =>  Auth()->user()->id,
+                    'notes' => $this->notes,
+                ]);
+            }
 
 
-            $cart = session("purchase_cart");
+            $cart = collect(session("purchase_cart", []));
 
             // insert sale detail
             $details = $cart->map(function ($item) use ($purchase) {
@@ -1017,7 +1057,7 @@ class Purchases extends Component
             ]);
 
 
-            $cart = session("purchase_cart");
+            $cart = collect(session("purchase_cart", []));
 
             // insert sale detail
             $details = $cart->map(function ($item) use ($purchase) {
@@ -1074,15 +1114,7 @@ class Purchases extends Component
                 }
             }
 
-            //update stocks?
-            // If it's an order (pending), maybe we don't increase stock yet?
-            // In Sales, pending sales DEDUCT stock.
-            // In Purchases, pending purchases SHOULD NOT increase stock until received?
-            // However, the current Store() method increments stock regardless of status.
-            // Let's follow the existing Store() logic which increments stock.
-            foreach ($cart as  $item) {
-                Product::find($item['pid'])->increment('stock_qty', $item['qty']);
-            }
+            // For pending orders, we DO NOT increment stock until they are finalized/received.
 
             DB::commit();
 
@@ -1137,6 +1169,8 @@ class Purchases extends Component
             $this->dispatch('noty', msg: 'Orden no encontrada');
             return;
         }
+
+        $this->order_selected_id = $purchase->id;
 
         // Set Supplier
         if($purchase->supplier) {
