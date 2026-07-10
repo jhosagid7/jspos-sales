@@ -148,6 +148,38 @@ class BagsProductionApiTest extends TestCase
         $response->assertJsonMissing(['sku' => 'OTHER-PROD']);
     }
 
+    public function test_get_products_includes_products_from_bolsas_category()
+    {
+        // Create a category named "BOLSAS"
+        $categoryBolsas = Category::create([
+            'name' => 'BOLSAS',
+        ]);
+
+        // Create a product under the BOLSAS category, without M&F tag or supplier
+        $productInBolsasCategory = Product::create([
+            'sku' => 'BOL-BAG-ONLY',
+            'name' => 'Bolsa de Pruebas Sin Tag',
+            'description' => 'Bolsa test',
+            'cost' => 0.50,
+            'price' => 1.00,
+            'stock_qty' => 10,
+            'low_stock' => 1,
+            'manage_stock' => true,
+            'category_id' => $categoryBolsas->id,
+            'supplier_id' => $this->supplierOther->id,
+            'status' => 1,
+            'is_variable_quantity' => false,
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->getJson('/api/bolsas/products');
+
+        $response->assertStatus(200);
+
+        // Should include the product under BOLSAS category
+        $response->assertJsonFragment(['sku' => 'BOL-BAG-ONLY']);
+    }
+
     public function test_get_products_with_search_filter()
     {
         $response = $this->actingAs($this->user)

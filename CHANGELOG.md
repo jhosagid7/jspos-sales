@@ -1,3 +1,8 @@
+## [1.10.229] - 2026-07-10
+### Fixed
+- **Listado de Productos en App de Bolsas**:
+  * Modificada la API de producción de bolsas para que retorne todos los productos pertenecientes a la categoría "BOLSAS", solucionando el problema donde algunas bolsas (por ejemplo, variantes "Baja") no se listaban en la app móvil debido a la falta de etiquetas.
+
 ## [1.10.228] - 2026-07-09
 ### Added
 - **Reportes Semanales y Cierres de Turno en Soplados**:

@@ -28,6 +28,9 @@ class BagsProductionApiController extends Controller
                 })
                 ->orWhereHas('supplier', function ($sub) {
                     $sub->where('name', 'like', '%M&F Steel%');
+                })
+                ->orWhereHas('category', function ($sub) {
+                    $sub->where('name', 'BOLSAS');
                 });
             });
 
