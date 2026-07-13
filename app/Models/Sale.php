@@ -168,8 +168,8 @@ class Sale extends Model
             return $ret->total_returned / $rate;
         });
         
-        // Subtract initial payments made at checkout
-        $initialPaidUSD = $this->paymentDetails->sum(function($detail) {
+        // Subtract initial payments made at checkout (exclude credit/CREDITO payment details)
+        $initialPaidUSD = $this->paymentDetails->whereNotIn('payment_method', ['CREDITO', 'credit', 'Credito'])->sum(function($detail) {
             $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
             return $detail->amount / $rate;
         });
@@ -273,7 +273,7 @@ class Sale extends Model
             }
         });
         
-        $initialPaidUSD = $this->paymentDetails->sum(function($detail) {
+        $initialPaidUSD = $this->paymentDetails->whereNotIn('payment_method', ['CREDITO', 'credit', 'Credito'])->sum(function($detail) {
             $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
             return $detail->amount / $rate;
         });

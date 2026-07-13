@@ -36,6 +36,10 @@ class Customer extends Authenticatable
         'credit_limit',
         'usd_payment_discount',
         'usd_payment_discount_tag',
+        'credit_score',
+        'credit_status',
+        'credit_limit_recommended',
+        'last_credit_scoring_at',
         // WhatsApp configuration fields
         'whatsapp_notify_sales',
         'whatsapp_notify_payments',

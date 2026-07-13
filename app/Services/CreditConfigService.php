@@ -63,10 +63,10 @@ class CreditConfigService
         
         // Bloqueo para clientes nuevos o en mora (Scoring / Bootstrapping)
         // Si el cliente es nuevo y no tiene asignado un límite manual > 0, bloqueamos el crédito.
-        // Si el cliente está en mora ('defaulted'), bloqueamos el crédito por seguridad.
+        // Si el cliente está en mora ('defaulted') Y tiene facturas vencidas sin saldar, bloqueamos el crédito por seguridad.
         if (
             ($customer->credit_status === 'new' || $customer->credit_status === null) && ($customer->credit_limit === null || $customer->credit_limit <= 0) ||
-            $customer->credit_status === 'defaulted'
+            ($customer->credit_status === 'defaulted' && self::hasUnpaidOverdueInvoices($customer))
         ) {
             return [
                 'allow_credit' => false,
@@ -311,5 +311,50 @@ class CreditConfigService
             'usd_payment_discount' => $usdPaymentDiscount,
             'usd_payment_discount_tag' => $snapshot['usd_payment_discount_tag'] ?? 'PD'
         ];
+    }
+
+    /**
+     * Verifica si el cliente tiene facturas vencidas activas (sin saldar).
+     *
+     * @param Customer $customer
+     * @return bool
+     */
+    public static function hasUnpaidOverdueInvoices(Customer $customer): bool
+    {
+        $outstandingSales = \App\Models\Sale::where('customer_id', $customer->id)
+            ->whereNotIn('status', ['returned', 'voided', 'paid'])
+            ->get();
+
+        foreach ($outstandingSales as $sale) {
+            // Calcular balance pendiente en USD
+            $approvedPaymentsUSD = $sale->payments->where('status', 'approved')->sum(function($payment) {
+                $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
+                return $payment->amount / $rate;
+            });
+            
+            $totalReturnsUSD = $sale->returns->where('refund_method', 'debt_reduction')->where('status', 'approved')->sum(function($ret) use ($sale) {
+                $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                return $ret->total_returned / $rate;
+            });
+            
+            $initialPaidUSD = $sale->paymentDetails->whereNotIn('payment_method', ['CREDITO', 'credit', 'Credito'])->sum(function($detail) {
+                $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
+                return $detail->amount / $rate;
+            });
+
+            $totalUSD = $sale->total_usd > 0 ? $sale->total_usd : ($sale->primary_exchange_rate > 0 ? $sale->total / $sale->primary_exchange_rate : $sale->total);
+            
+            $pending = max(0, $totalUSD - ($approvedPaymentsUSD + $initialPaidUSD + $totalReturnsUSD));
+            
+            if ($pending > 0.01) {
+                $startDate = $sale->delivered_at ? \Carbon\Carbon::parse($sale->delivered_at) : \Carbon\Carbon::parse($sale->created_at);
+                $dueDate = $startDate->addDays($sale->credit_days ?? 0);
+                if (now()->gt($dueDate)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

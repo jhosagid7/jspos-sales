@@ -3863,11 +3863,20 @@ class Sales extends Component
                 $saleType = 'credit';
                 $status = 'pending';
             } elseif (!empty($this->payments)) {
-                 $methods = collect($this->payments)->pluck('method')->unique();
+                $methods = collect($this->payments)->pluck('method')->unique();
+                $hasCredit = collect($this->payments)->contains(function($p) {
+                    return in_array(strtoupper($p['method'] ?? ''), ['CREDITO', 'CREDIT']);
+                });
+
+                if ($hasCredit) {
+                    $status = 'pending';
+                }
+
                 if ($methods->count() > 1) {
                     $saleType = 'mixed';
                 } elseif ($methods->isNotEmpty()) {
-                    $saleType = $methods->first();
+                    $firstMethod = $methods->first();
+                    $saleType = in_array(strtoupper($firstMethod), ['CREDITO', 'CREDIT']) ? 'credit' : strtolower($firstMethod);
                 }
                 
                 // Construir notas
@@ -4292,6 +4301,9 @@ class Sales extends Component
             // Guardar detalles de pagos en múltiples monedas
             if (!empty($this->payments)) {
                 foreach ($this->payments as $payment) {
+                    if (in_array(strtoupper($payment['method'] ?? ''), ['CREDITO', 'CREDIT'])) {
+                        continue;
+                    }
                     $zelleRecordId = null;
 
                     Log::info("Processing payment in Sales", ['method' => $payment['method'], 'has_zelle_sender' => isset($payment['zelle_sender'])]);

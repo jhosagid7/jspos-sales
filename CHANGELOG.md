@@ -1,3 +1,15 @@
+## [1.10.236] - 2026-07-13
+### Added
+- **Campos de Scoring en Cliente**:
+  * Se agregaron las columnas `credit_score`, `credit_status`, `credit_limit_recommended`, `last_credit_scoring_at` al array `$fillable` del modelo `Customer` para soportar actualizaciones de scoring.
+### Changed
+- **Desbloqueo Dinámico del Crédito de Clientes**:
+  * Modificada la resolución de la configuración del crédito en `CreditConfigService` para que los clientes bloqueados históricamente (`defaulted`) puedan volver a comprar a crédito dinámicamente una vez paguen todas sus facturas de crédito vencidas.
+- **Flujo de Caja en Ventas a Crédito**:
+  * Corregido el modelo `Sale` para excluir los métodos de pago `'CREDITO'` de los montos iniciales pagados, evitando que las ventas a crédito sean marcadas falsamente como pagadas de contado.
+- **Registro Correcto de Ventas a Crédito**:
+  * Modificado el guardado de venta en el panel POS (`Sales.php`) para no insertar registros de pago ficticios en la base de datos para créditos y guardar el estado y tipo de venta correctamente como pendiente (`pending`) y a crédito (`credit`).
+
 ## [1.10.235] - 2026-07-13
 ### Added
 - **KPI de Segunda Calidad en Rendimiento Semanal**:
