@@ -8,11 +8,26 @@ use App\Models\SopladosProductionTarget;
 
 class SopladosProductionTargetSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
+        // Auto-link variants to their base products to avoid NULL production_target_id on client databases
+        $baseBotellon = Product::where('name', 'like', 'BOTELLON 18.9%AZUL%')
+            ->orWhere('name', 'like', 'BOTELLON 18.9%BLUE%')
+            ->first();
+            
+        if ($baseBotellon) {
+            Product::where('name', 'like', 'BOTELLON 18.9%')
+                ->where('id', '!=', $baseBotellon->id)
+                ->update(['production_target_id' => $baseBotellon->id]);
+        }
+
+        $baseGalon = Product::where('name', 'ENVASE PET GALON 3.785 42UND')->first();
+        if ($baseGalon) {
+            Product::where('name', 'like', 'ENVASE PET GALON 3.785 42UND%')
+                ->where('id', '!=', $baseGalon->id)
+                ->update(['production_target_id' => $baseGalon->id]);
+        }
+
         $products = Product::whereHas('tags', function($q) {
             $q->where('name', 'soplados');
         })->where('is_raw_material', false)->get();

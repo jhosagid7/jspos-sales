@@ -1,3 +1,8 @@
+## [1.10.233] - 2026-07-13
+### Changed
+- **Vinculación Automática de Variantes de Productos**:
+  * Se agregó lógica automática en `SopladosProductionTargetSeeder` para relacionar y vincular las variantes existentes en la base de datos (por ejemplo, botellones de colores y galón con/sin asa) con su producto base representador, asegurando la correcta consolidación de metas en los reportes de rendimiento por turno sin requerir configuración manual por parte del cliente.
+
 ## [1.10.232] - 2026-07-13
 ### Added
 - **Validación de Stock en Despacho de Traspasos**:
