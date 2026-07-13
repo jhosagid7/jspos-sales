@@ -79,7 +79,8 @@ class ProductionReport extends Component
           ->where('status', 'closed')
           ->get();
 
-        $totalGood = 0;
+        $total1st = 0;
+        $total2nd = 0;
         $totalDamaged = 0;
         $productionOutputs = [];
         $materialsConsumed = [];
@@ -89,8 +90,10 @@ class ProductionReport extends Component
                 foreach ($log->outputs as $out) {
                     if (!$out->product) continue;
                     $qty = floatval($out->quantity);
-                    if (in_array($out->quality, ['1st', '2nd'])) {
-                        $totalGood += $qty;
+                    if ($out->quality === '1st') {
+                        $total1st += $qty;
+                    } else if ($out->quality === '2nd') {
+                        $total2nd += $qty;
                     } else if ($out->quality === 'damaged') {
                         $totalDamaged += $qty;
                     }
@@ -111,8 +114,8 @@ class ProductionReport extends Component
             }
         }
 
-        $totalWeekProduced = $totalGood + $totalDamaged;
-        $weekEfficiency = $totalWeekProduced > 0 ? ($totalGood / $totalWeekProduced) * 100 : 100;
+        $totalWeekProduced = $total1st + $total2nd + $totalDamaged;
+        $weekEfficiency = $totalWeekProduced > 0 ? (($total1st + $total2nd) / $totalWeekProduced) * 100 : 100;
 
         $targets = \App\Models\SopladosProductionTarget::with('product')->get()->keyBy('product_id');
         $shiftsData = [];
@@ -299,7 +302,8 @@ class ProductionReport extends Component
             'dateFrom' => $start->toDateString(),
             'dateTo' => $end->toDateString(),
             'shifts' => $shifts,
-            'totalGood' => $totalGood,
+            'totalGood' => $total1st,
+            'totalSecond' => $total2nd,
             'totalDamaged' => $totalDamaged,
             'totalWeekProduced' => $totalWeekProduced,
             'weekEfficiency' => $weekEfficiency,

@@ -1,3 +1,9 @@
+## [1.10.235] - 2026-07-13
+### Added
+- **KPI de Segunda Calidad en Rendimiento Semanal**:
+  * Se agregó una tarjeta KPI dedicada en la sección "Rendimiento Consolidado de la Semana" del PDF para mostrar por separado el total de unidades producidas de segunda calidad (2da Calidad).
+  * Rediseñada la distribución del bloque KPI a 5 columnas (Primera Calidad, Segunda Calidad, Merma, Total Procesado y Rendimiento) para mantener el formato equilibrado.
+
 ## [1.10.234] - 2026-07-13
 ### Changed
 - **Desagrupación Visual de Variantes en Tablas del Reporte**:

@@ -42,7 +42,8 @@ class SendSopladosWeeklyReport extends Command
           ->where('status', 'closed')
           ->get();
 
-        $totalGood = 0;
+        $total1st = 0;
+        $total2nd = 0;
         $totalDamaged = 0;
         $productionOutputs = [];
         $materialsConsumed = [];
@@ -52,8 +53,10 @@ class SendSopladosWeeklyReport extends Command
                 foreach ($log->outputs as $out) {
                     if (!$out->product) continue;
                     $qty = floatval($out->quantity);
-                    if (in_array($out->quality, ['1st', '2nd'])) {
-                        $totalGood += $qty;
+                    if ($out->quality === '1st') {
+                        $total1st += $qty;
+                    } else if ($out->quality === '2nd') {
+                        $total2nd += $qty;
                     } else if ($out->quality === 'damaged') {
                         $totalDamaged += $qty;
                     }
@@ -74,8 +77,8 @@ class SendSopladosWeeklyReport extends Command
             }
         }
 
-        $totalWeekProduced = $totalGood + $totalDamaged;
-        $weekEfficiency = $totalWeekProduced > 0 ? ($totalGood / $totalWeekProduced) * 100 : 100;
+        $totalWeekProduced = $total1st + $total2nd + $totalDamaged;
+        $weekEfficiency = $totalWeekProduced > 0 ? (($total1st + $total2nd) / $totalWeekProduced) * 100 : 100;
 
         // Fetch targets and calculate shift compliance
         $targets = \App\Models\SopladosProductionTarget::with('product')->get()->keyBy('product_id');
@@ -267,7 +270,8 @@ class SendSopladosWeeklyReport extends Command
             'dateFrom' => $start->toDateString(),
             'dateTo' => $end->toDateString(),
             'shifts' => $shifts,
-            'totalGood' => $totalGood,
+            'totalGood' => $total1st,
+            'totalSecond' => $total2nd,
             'totalDamaged' => $totalDamaged,
             'totalWeekProduced' => $totalWeekProduced,
             'weekEfficiency' => $weekEfficiency,

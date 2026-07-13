@@ -147,31 +147,37 @@
 
     {{-- KPIs --}}
     <div class="section-header">Rendimiento Consolidado de la Semana</div>
-    <table style="width: 100%; margin-bottom: 20px;" cellspacing="10">
+    <table style="width: 100%; margin-bottom: 20px;" cellspacing="5">
         <tbody>
             <tr>
-                <td style="width: 25%;">
+                <td style="width: 20%;">
                     <div class="kpi-card">
-                        <div style="color: #555;">Prod. Buena Semanal</div>
-                        <div class="kpi-value" style="color: #2e7d32;">{{ number_format($totalGood, 0) }} unds</div>
+                        <div style="color: #555; font-size: 9px;">1ra Calidad (Buena)</div>
+                        <div class="kpi-value" style="color: #2e7d32; font-size: 13px;">{{ number_format($totalGood, 0) }} unds</div>
                     </div>
                 </td>
-                <td style="width: 25%;">
+                <td style="width: 20%;">
                     <div class="kpi-card">
-                        <div style="color: #555;">Merma (Defectuoso)</div>
-                        <div class="kpi-value" style="color: #c62828;">{{ number_format($totalDamaged, 0) }} unds</div>
+                        <div style="color: #555; font-size: 9px;">2da Calidad (Segunda)</div>
+                        <div class="kpi-value" style="color: #ef6c00; font-size: 13px;">{{ number_format($totalSecond, 0) }} unds</div>
                     </div>
                 </td>
-                <td style="width: 25%;">
+                <td style="width: 20%;">
                     <div class="kpi-card">
-                        <div style="color: #555;">Total Procesado</div>
-                        <div class="kpi-value" style="color: #1565c0;">{{ number_format($totalWeekProduced, 0) }} unds</div>
+                        <div style="color: #555; font-size: 9px;">Merma (Defectuoso)</div>
+                        <div class="kpi-value" style="color: #c62828; font-size: 13px;">{{ number_format($totalDamaged, 0) }} unds</div>
                     </div>
                 </td>
-                <td style="width: 25%;">
+                <td style="width: 20%;">
                     <div class="kpi-card">
-                        <div style="color: #555;">Rendimiento (Yield)</div>
-                        <div class="kpi-value" style="color: #2e7d32;">{{ number_format($weekEfficiency, 2) }}%</div>
+                        <div style="color: #555; font-size: 9px;">Total Procesado</div>
+                        <div class="kpi-value" style="color: #1565c0; font-size: 13px;">{{ number_format($totalWeekProduced, 0) }} unds</div>
+                    </div>
+                </td>
+                <td style="width: 20%;">
+                    <div class="kpi-card">
+                        <div style="color: #555; font-size: 9px;">Rendimiento (Yield)</div>
+                        <div class="kpi-value" style="color: #2e7d32; font-size: 13px;">{{ number_format($weekEfficiency, 2) }}%</div>
                     </div>
                 </td>
             </tr>
