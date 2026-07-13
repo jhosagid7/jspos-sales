@@ -16,11 +16,12 @@ class Customers extends Component
     public $sellers = [];
     public $search;
     public $editing;
-    public $tab = 1; // Active tab (1=General, 2=Commercial, 3=Sales History, 4=Credit Config)
+    public $tab = 1; // Active tab (1=General, 2=Commercial, 3=Sales History, 4=Credit Config, 5=Credit Scoring/AI)
     public $customerCommission1Threshold, $customerCommission1Percentage, $customerCommission2Threshold, $customerCommission2Percentage;
     public $commission_percent = 0, $freight_percent = 0, $exchange_diff_percent = 0, $base_markup_percent = 0, $current_batch = '1', $agreement, $showDeleted = false;
     public $password;
     public $discountRules = []; // Array of discount rules for this customer
+    public $creditScoringResult = [];
 
     protected $rules = [
         'customer.name' => 'required|max:200|unique:customers,name',
@@ -150,6 +151,17 @@ class Customers extends Component
         $this->resetCommissionFields();
         $this->password = null;
         $this->editing = true;
+        
+        $this->creditScoringResult = [
+            'credit_score' => 100,
+            'credit_status' => 'new',
+            'credit_limit_recommended' => 0.00,
+            'days_since_registration' => 0,
+            'cash_purchase_count' => 0,
+            'average_cash_purchase' => 0.00,
+            'ai_analysis' => 'El cliente es catalogado como **NUEVO**. Por tanto, se sugiere mantener su cupo en $0.00 hasta construir historial.',
+        ];
+
         $this->dispatch('init-new');
     }
 
@@ -183,9 +195,27 @@ class Customers extends Component
         // Load discount rules
         $this->loadDiscountRules();
 
+        // Run credit scoring evaluation
+        try {
+            $this->creditScoringResult = \App\Services\CustomerCreditScoringService::evaluate($this->customer);
+            $this->customer->refresh();
+        } catch (\Exception $e) {
+            $this->creditScoringResult = [];
+            \Illuminate\Support\Facades\Log::error("Failed to run credit scoring evaluation for customer ID {$this->customer->id}: " . $e->getMessage());
+        }
+
         $this->tab = 1; // Reset to first tab
         $this->password = null;
         $this->editing = true;
+    }
+
+    public function applyRecommendedCreditLimit()
+    {
+        if (isset($this->creditScoringResult['credit_limit_recommended'])) {
+            $this->customer->credit_limit = $this->creditScoringResult['credit_limit_recommended'];
+            $this->customer->allow_credit = $this->creditScoringResult['credit_limit_recommended'] > 0;
+            $this->dispatch('noty', msg: 'Límite de crédito sugerido aplicado');
+        }
     }
 
     public function cancelEdit()

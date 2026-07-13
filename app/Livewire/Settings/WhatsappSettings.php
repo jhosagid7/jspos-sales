@@ -36,24 +36,28 @@ class WhatsappSettings extends Component
     public $emailClosureRecipients = '';
     public $emailWeeklyReportRecipients = '';
     public $emailSopladosWeeklyRecipients = '';
+    public $emailCreditAuthRecipients = '';
 
     public $selectedRateUsers = [];
     public $selectedClosureUsers = [];
     public $selectedWeeklyReportUsers = [];
     public $selectedSopladosShiftUsers = [];
     public $selectedSopladosWeeklyUsers = [];
+    public $selectedCreditAuthUsers = [];
 
     public $searchRateQuery = '';
     public $searchClosureQuery = '';
     public $searchWeeklyReportQuery = '';
     public $searchSopladosShiftQuery = '';
     public $searchSopladosWeeklyQuery = '';
+    public $searchCreditAuthQuery = '';
 
     public $rateUsersResults = [];
     public $closureUsersResults = [];
     public $weeklyReportUsersResults = [];
     public $sopladosShiftUsersResults = [];
     public $sopladosWeeklyUsersResults = [];
+    public $creditAuthUsersResults = [];
 
     // Weekly scheduling config
     public $weeklyReportSendDay = 6;
@@ -72,12 +76,14 @@ class WhatsappSettings extends Component
         $this->emailClosureRecipients = implode(', ', $config->email_closure_recipients ?? []);
         $this->emailWeeklyReportRecipients = implode(', ', $config->email_weekly_report_recipients ?? []);
         $this->emailSopladosWeeklyRecipients = implode(', ', $config->email_soplados_weekly_recipients ?? []);
+        $this->emailCreditAuthRecipients = implode(', ', $config->email_credit_auth_recipients ?? []);
 
         $this->selectedRateUsers = $config->whatsapp_rate_users ?? [];
         $this->selectedClosureUsers = $config->whatsapp_closure_users ?? [];
         $this->selectedWeeklyReportUsers = $config->whatsapp_weekly_report_users ?? [];
         $this->selectedSopladosShiftUsers = $config->whatsapp_soplados_shift_users ?? [];
         $this->selectedSopladosWeeklyUsers = $config->whatsapp_soplados_weekly_users ?? [];
+        $this->selectedCreditAuthUsers = $config->whatsapp_credit_auth_users ?? [];
 
         $this->weeklyReportSendDay = $config->weekly_report_send_day ?? 6;
         $this->weeklyReportSendHour = $config->weekly_report_send_hour ?? '10:00';
@@ -246,6 +252,7 @@ class WhatsappSettings extends Component
             $closureEmails = array_values(array_filter(array_map('trim', explode(',', $this->emailClosureRecipients))));
             $weeklyEmails = array_values(array_filter(array_map('trim', explode(',', $this->emailWeeklyReportRecipients))));
             $sopladosWeeklyEmails = array_values(array_filter(array_map('trim', explode(',', $this->emailSopladosWeeklyRecipients))));
+            $creditAuthEmails = array_values(array_filter(array_map('trim', explode(',', $this->emailCreditAuthRecipients))));
 
             $config->update([
                 'whatsapp_rate_groups' => $this->selectedRateGroups,
@@ -262,6 +269,8 @@ class WhatsappSettings extends Component
                 'whatsapp_soplados_weekly_groups' => $this->selectedSopladosWeeklyGroups,
                 'whatsapp_soplados_weekly_users' => $this->selectedSopladosWeeklyUsers,
                 'email_soplados_weekly_recipients' => $sopladosWeeklyEmails,
+                'email_credit_auth_recipients' => $creditAuthEmails,
+                'whatsapp_credit_auth_users' => $this->selectedCreditAuthUsers,
                 'weekly_report_send_day' => (int) $this->weeklyReportSendDay,
                 'weekly_report_send_hour' => trim($this->weeklyReportSendHour),
             ]);
@@ -340,6 +349,20 @@ class WhatsappSettings extends Component
             ->toArray();
     }
 
+    public function updatedSearchCreditAuthQuery()
+    {
+        if (strlen($this->searchCreditAuthQuery) < 2) {
+            $this->creditAuthUsersResults = [];
+            return;
+        }
+        $this->creditAuthUsersResults = \App\Models\User::where('name', 'like', '%' . $this->searchCreditAuthQuery . '%')
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->limit(5)
+            ->get(['id', 'name', 'phone'])
+            ->toArray();
+    }
+
     public function selectUser($userId, $type)
     {
         if ($type === 'rate') {
@@ -372,6 +395,12 @@ class WhatsappSettings extends Component
             }
             $this->searchSopladosWeeklyQuery = '';
             $this->sopladosWeeklyUsersResults = [];
+        } elseif ($type === 'credit_auth') {
+            if (!in_array($userId, $this->selectedCreditAuthUsers)) {
+                $this->selectedCreditAuthUsers[] = $userId;
+            }
+            $this->searchCreditAuthQuery = '';
+            $this->creditAuthUsersResults = [];
         }
     }
 
@@ -387,6 +416,8 @@ class WhatsappSettings extends Component
             $this->selectedSopladosShiftUsers = array_values(array_diff($this->selectedSopladosShiftUsers, [$userId]));
         } elseif ($type === 'soplados_weekly') {
             $this->selectedSopladosWeeklyUsers = array_values(array_diff($this->selectedSopladosWeeklyUsers, [$userId]));
+        } elseif ($type === 'credit_auth') {
+            $this->selectedCreditAuthUsers = array_values(array_diff($this->selectedCreditAuthUsers, [$userId]));
         }
     }
 
@@ -397,6 +428,7 @@ class WhatsappSettings extends Component
         $weeklyUsers = \App\Models\User::whereIn('id', $this->selectedWeeklyReportUsers)->get(['id', 'name', 'phone']);
         $sopladosShiftUsers = \App\Models\User::whereIn('id', $this->selectedSopladosShiftUsers)->get(['id', 'name', 'phone']);
         $sopladosWeeklyUsers = \App\Models\User::whereIn('id', $this->selectedSopladosWeeklyUsers)->get(['id', 'name', 'phone']);
+        $creditAuthUsers = \App\Models\User::whereIn('id', $this->selectedCreditAuthUsers)->get(['id', 'name', 'phone']);
 
         return view('livewire.settings.whatsapp-settings', [
             'selectedRateUsersList' => $rateUsers,
@@ -404,6 +436,7 @@ class WhatsappSettings extends Component
             'selectedWeeklyUsersList' => $weeklyUsers,
             'selectedSopladosShiftUsersList' => $sopladosShiftUsers,
             'selectedSopladosWeeklyUsersList' => $sopladosWeeklyUsers,
+            'selectedCreditAuthUsersList' => $creditAuthUsers,
         ]);
     }
 }

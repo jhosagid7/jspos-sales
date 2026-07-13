@@ -55,3 +55,6 @@ nssm/*.bak
 
 # Google Drive Backup Key
 google-drive-key.json
+
+# WhatsApp uploads
+/whatsapp-api/uploads/

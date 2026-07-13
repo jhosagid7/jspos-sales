@@ -15,12 +15,12 @@ use App\Livewire\AccountsReceivableReport;
 use App\Livewire\AccountsPayableReport;
 use App\Livewire\PartialPayment;
 use App\Livewire\PurchasePartialPayment;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Spatie\Permission\Models\Permission;
 
 class AccountsReceivableReportTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     protected $user;
     protected $customer;
@@ -192,10 +192,26 @@ class AccountsReceivableReportTest extends TestCase
     public function test_credit_sale_with_full_initial_payment_resolves_to_paid_at_checkout()
     {
         // Setup Customer
-        $customer = Customer::create(['name' => 'Montenegro Customer']);
+        $customer = Customer::create([
+            'name' => 'Montenegro Customer',
+            'allow_credit' => true,
+            'credit_limit' => 1000.00
+        ]);
+        $customer->credit_status = 'active';
+        $customer->saveQuietly();
 
         // Create a mock category
         $category = \App\Models\Category::create(['name' => 'Test Category']);
+
+        // Create warehouse
+        $warehouse = \App\Models\Warehouse::create([
+            'name' => 'General Warehouse',
+            'is_active' => true
+        ]);
+
+        // Associate user to warehouse
+        $this->user->warehouse_id = $warehouse->id;
+        $this->user->save();
 
         // Create a mock product
         $product = \App\Models\Product::create([
@@ -212,6 +228,9 @@ class AccountsReceivableReportTest extends TestCase
             'category_id' => $category->id,
             'freight_type' => 'none'
         ]);
+
+        // Attach product to warehouse with stock
+        $product->warehouses()->attach($warehouse->id, ['stock_qty' => 10]);
 
         // Create an active cash register for the user
         \App\Models\CashRegister::create([
@@ -233,12 +252,13 @@ class AccountsReceivableReportTest extends TestCase
                 'total' => 100.00,
                 'sku' => $product->sku,
                 'name' => $product->name,
-                'pricelist' => []
+                'pricelist' => [],
+                'warehouse_id' => $warehouse->id
             ]
         ]]);
 
         // Test Livewire Sales component
-        Livewire::actingAs($this->user)
+        $component = Livewire::actingAs($this->user)
             ->test(\App\Livewire\Sales::class)
             ->call('setCustomer', $customer->toArray())
             ->set('payType', 2) // Credit type
@@ -256,7 +276,8 @@ class AccountsReceivableReportTest extends TestCase
                     'exchange_rate' => 1.0
                 ]
             ])
-            ->call('Store');
+            ->call('Store')
+            ->assertHasNoErrors();
 
         // Check if sale exists and its status is paid (instead of pending)
         $sale = Sale::where('customer_id', $customer->id)->latest()->first();

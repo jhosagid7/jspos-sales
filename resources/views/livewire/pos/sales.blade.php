@@ -472,16 +472,31 @@
                             @module('module_credits')
                             @can('payments.method_credit')
                                 @php
-                                    $creditEnabled = !empty($customer['id']) && 
-                                                     !empty($creditConfig['allow_credit']) && 
-                                                     $creditConfig['allow_credit'] === true;
+                                    $hasCustomer = !empty($customer['id']);
+                                    $baseCreditEnabled = $hasCustomer && !empty($creditConfig['base_allow_credit']) && $creditConfig['base_allow_credit'] === true;
+                                    $isCreditBlocked = $baseCreditEnabled && (empty($creditConfig['allow_credit']) || $creditConfig['allow_credit'] === false);
                                 @endphp
                                 <div class="col-4 text-center mb-2" 
-                                     @if($creditEnabled) wire:click="initPayment(2)" style="cursor: pointer;" @else style="cursor: not-allowed; opacity: 0.5;" @endif>
-                                    <div class="btn btn-outline-info btn-block p-2 {{ !$creditEnabled ? 'disabled' : '' }}">
-                                        <i class="fas fa-credit-card fa-2x mb-1"></i>
-                                        <div style="font-size: 0.7rem;">Crédito</div>
-                                    </div>
+                                     @if($baseCreditEnabled) wire:click="initPayment(2)" style="cursor: pointer;" @else style="cursor: not-allowed; opacity: 0.5;" @endif>
+                                    @if(!$baseCreditEnabled)
+                                        <div class="btn btn-outline-secondary btn-block p-2 disabled">
+                                            <i class="fas fa-credit-card fa-2x mb-1"></i>
+                                            <div style="font-size: 0.7rem;">Crédito</div>
+                                        </div>
+                                    @elseif($isCreditBlocked)
+                                        <div class="btn btn-outline-danger btn-block p-2 position-relative" title="Crédito Bloqueado (Clic para solicitar autorización)">
+                                            <i class="fas fa-lock fa-2x mb-1"></i>
+                                            <div style="font-size: 0.7rem;">Crédito (Bloq)</div>
+                                            <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
+                                                <span class="visually-hidden">Bloqueado</span>
+                                            </span>
+                                        </div>
+                                    @else
+                                        <div class="btn btn-outline-info btn-block p-2">
+                                            <i class="fas fa-credit-card fa-2x mb-1"></i>
+                                            <div style="font-size: 0.7rem;">Crédito</div>
+                                        </div>
+                                    @endif
                                 </div>
                             @endcan
                             @endmodule
@@ -509,6 +524,7 @@
     @include('livewire.pos.partials.script')
     @include('livewire.pos.partials.shortcuts')
     @include('livewire.pos.partials.unit-selection-modal')
+    @include('livewire.pos.partials.credit-auth-modal')
 
     <!-- Modal Stock Warning -->
     <div wire:ignore.self class="modal fade" id="modalStockWarning" tabindex="-1" role="dialog" aria-labelledby="modalStockWarningLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">

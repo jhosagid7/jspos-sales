@@ -1,3 +1,29 @@
+## [1.10.231] - 2026-07-13
+### Added
+- **Módulo de Metas de Producción de Soplados**:
+  * Nuevo panel CRUD completo para gestionar las metas de producción mínima y máxima por envase para los turnos de Fábrica Soplados.
+  * Nuevo botón web "Descargar Reporte Soplados (PDF)" en el historial de reportes de producción, permitiendo exportar el reporte consolidado de cualquier rango de fechas.
+### Changed
+- **Consolidación y Agrupación por Envase Base**:
+  * El cálculo del rendimiento por turno y del reporte consolidado semanal de Soplados ahora agrupa automáticamente las variantes (con/sin asa, diferentes colores) bajo su producto meta representador (vinculado mediante `production_target_id`).
+- **Separación estricta de depósitos**:
+  * Los movimientos de materia prima se clasifican y muestran por destino (PLANTA SOPLADOS vs ZONA).
+- **Estabilidad de Envíos de Reportes**:
+  * Cambiado el envío del reporte semanal en PDF por correo electrónico de encolado a envío síncrono directo para garantizar que el archivo PDF adjunto se procese y entregue siempre sin problemas de persistencia.
+
+## [1.10.230] - 2026-07-10
+### Added
+- **Autorización de Crédito vía PIN (Bypass)**:
+  * Nuevo flujo para solicitar autorización de crédito cuando el cliente está moroso o no cumple las políticas.
+  * Modal en el POS para solicitud a supervisores.
+  * Envío automático de PIN temporal (15 min) vía Correo y WhatsApp a los autorizadores configurados.
+  * Validación de PIN en tiempo real para autorizar la factura específica en proceso.
+- **Módulo de Capacidad de Pago y Score Crediticio de Clientes**:
+  * Nuevo algoritmo inteligente para calcular score crediticio de 0-100 y recomendación automática de límite de crédito en base a compras previas y puntualidad en pagos.
+  * Análisis e interpretación tipo "Inteligencia Artificial" (IA) visual en la pestaña "Estudio de Crédito" en ficha del Cliente.
+  * Bloqueo automático en el POS al tratar de realizar ventas a crédito a clientes nuevos ('new') sin límite manual, o clientes caídos en mora/default ('defaulted').
+  * Leyendas informativas en el sistema que explican a los operadores (y a los clientes) la política de compras mínimas de contado ("Cupo Semilla").
+
 ## [1.10.229] - 2026-07-10
 ### Fixed
 - **Listado de Productos en App de Bolsas**:

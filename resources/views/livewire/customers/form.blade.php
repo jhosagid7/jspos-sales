@@ -80,6 +80,20 @@
                         </a>
                     </li>
                     @endmodule
+                    
+                    {{-- Tab 6: Estudio de Crédito & Score IA --}}
+                    @module('module_credits')
+                    <li class="nav-item mb-2">
+                        <a class="nav-link {{ $tab == 6 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                           wire:click.prevent="$set('tab',6)" href="#">
+                            <i class="fas fa-brain fa-2x"></i>
+                            <div>
+                                <h6 class="mb-0">Score & Crédito IA</h6>
+                                <small class="{{ $tab == 6 ? 'text-white' : 'text-muted' }}">Estudio de capacidad</small>
+                            </div>
+                        </a>
+                    </li>
+                    @endmodule
                 </ul>
             </div>
 
@@ -549,6 +563,112 @@
                     </div>
                     @endmodule
 
+                    {{-- Tab 6: Score & Crédito IA --}}
+                    @module('module_credits')
+                    <div class="tab-pane fade {{ $tab == 6 ? 'active show' : '' }}" role="tabpanel">
+                        <div class="sidebar-body">
+                            <h5 class="text-primary mb-4"><i class="fas fa-brain me-2"></i> Estudio de Crédito & Score Inteligente</h5>
+
+                            {{-- KPI Cards --}}
+                            <div class="row g-3 mb-4">
+                                {{-- Card 1: Score --}}
+                                <div class="col-md-4">
+                                    <div class="card bg-light border-0 shadow-sm h-100">
+                                        <div class="card-body text-center p-3">
+                                            <span class="text-muted d-block mb-1">Score de Puntualidad</span>
+                                            @php
+                                                $score = $creditScoringResult['credit_score'] ?? 100;
+                                                $badgeColor = $score >= 85 ? 'bg-success' : ($score >= 60 ? 'bg-warning text-dark' : 'bg-danger text-white');
+                                            @endphp
+                                            <div class="d-inline-flex rounded-circle {{ $badgeColor }} p-3 mb-2 font-weight-bold" style="font-size: 1.8rem; width: 80px; height: 80px; line-height: 48px; align-items: center; justify-content: center;">
+                                                {{ $score }}
+                                            </div>
+                                            <small class="d-block font-weight-bold">
+                                                {{ $score >= 85 ? 'Excelente Pagador' : ($score >= 60 ? 'Pago Regular' : 'Alto Riesgo (Moroso)') }}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Card 2: Capacidad de Pago --}}
+                                <div class="col-md-4">
+                                    <div class="card bg-light border-0 shadow-sm h-100">
+                                        <div class="card-body p-3">
+                                            <span class="text-muted d-block mb-2 text-center">Capacidad de Compra</span>
+                                            <div class="mb-1" style="font-size: 0.9rem;">
+                                                <i class="fas fa-shopping-cart text-primary me-1"></i> Compras Contado: 
+                                                <strong>{{ $creditScoringResult['cash_purchase_count'] ?? 0 }}</strong>
+                                            </div>
+                                            <div class="mb-1" style="font-size: 0.9rem;">
+                                                <i class="fas fa-dollar-sign text-success me-1"></i> Ticket Promedio: 
+                                                <strong>${{ number_format($creditScoringResult['average_cash_purchase'] ?? 0.00, 2) }}</strong>
+                                            </div>
+                                            <div style="font-size: 0.9rem;">
+                                                <i class="fas fa-calendar-day text-info me-1"></i> Antigüedad: 
+                                                <strong>{{ $creditScoringResult['days_since_registration'] ?? 0 }} días</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Card 3: Cupo Recomendado --}}
+                                <div class="col-md-4">
+                                    <div class="card bg-light border-0 shadow-sm h-100">
+                                        <div class="card-body text-center p-3">
+                                            <span class="text-muted d-block mb-2">Cupo Crediticio Sugerido</span>
+                                            <h3 class="text-success mb-2">${{ number_format($creditScoringResult['credit_limit_recommended'] ?? 0.00, 2) }}</h3>
+                                            @if(isset($creditScoringResult['credit_limit_recommended']) && $creditScoringResult['credit_limit_recommended'] > 0)
+                                                <button type="button" class="btn btn-xs btn-outline-success" wire:click="applyRecommendedCreditLimit">
+                                                    <i class="fas fa-check-double me-1"></i> Aplicar Sugerido
+                                                </button>
+                                            @else
+                                                <span class="badge bg-secondary p-1">Sin sugerencia disponible</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- AI analysis card --}}
+                            <div class="card border-0 shadow-sm mb-4" style="background: rgba(27, 94, 32, 0.05);">
+                                <div class="card-body p-3">
+                                    <h6 class="text-success mb-2"><i class="fas fa-magic me-1"></i> Diagnóstico y Análisis IA</h6>
+                                    <p class="text-dark mb-0 font-italic" style="font-size: 0.9rem;">
+                                        {!! preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', e($creditScoringResult['ai_analysis'] ?? '')) !!}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {{-- Legend Card for Operator --}}
+                            <div class="card border-info">
+                                <div class="card-header bg-info text-white p-2">
+                                    <h6 class="mb-0 text-white"><i class="fas fa-info-circle me-1"></i> Guía de Interpretación (Leyenda para Operadores)</h6>
+                                </div>
+                                <div class="card-body p-3 bg-light" style="font-size: 0.85rem;">
+                                    <p class="mb-2">El motor de crédito evalúa automáticamente a los clientes bajo las siguientes reglas:</p>
+                                    <ul class="list-unstyled ps-0 mb-0">
+                                        <li class="mb-2">
+                                            <span class="badge bg-secondary me-1 text-white">NUEVO (Bootstrapping)</span>
+                                            Clientes con menos de <strong>30 días de registro</strong> o menos de <strong>3 compras de contado</strong> finalizadas. Su cupo recomendado siempre será <strong>$0.00</strong> (Crédito Bloqueado) para evitar fraudes iniciales.
+                                        </li>
+                                        <li class="mb-2">
+                                            <span class="badge bg-success me-1">Riesgo Bajo (Score 85 - 100)</span>
+                                            Clientes puntuales que pagan sin demoras. Califican para un cupo recomendado del <strong>30% de su ticket promedio de compra</strong>.
+                                        </li>
+                                        <li class="mb-2">
+                                            <span class="badge bg-warning text-dark me-1">Riesgo Medio (Score 60 - 84)</span>
+                                            Clientes que registran retrasos ocasionales menores a 5 días. Califican para un cupo reducido al <strong>20% de su compra promedio</strong>.
+                                        </li>
+                                        <li>
+                                            <span class="badge bg-danger me-1 text-white">Riesgo Alto / Moroso (Score < 60)</span>
+                                            Clientes con más de 5 días de mora promedio o facturas vencidas sin saldar. El sistema <strong>bloqueará automáticamente la opción de crédito</strong>.
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endmodule
                 </div>
             </div>
         </div>

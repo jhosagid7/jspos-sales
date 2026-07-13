@@ -235,6 +235,127 @@
         </tbody>
     </table>
 
+    {{-- Rendimiento de Producción por Turno --}}
+    <div class="section-header">Rendimiento de Producción por Turno</div>
+    @if(count($shiftsData) > 0)
+        <table class="table" style="font-size: 8px; margin-bottom: 20px;">
+            <thead>
+                <tr>
+                    <th style="width: 12%;">Fecha</th>
+                    <th style="width: 10%;">Turno</th>
+                    <th style="width: 25%;">Operadores / Supervisor</th>
+                    <th style="width: 23%;">Envase Producido</th>
+                    <th class="text-right" style="width: 10%;">Prod. Buena</th>
+                    <th class="text-right" style="width: 10%;">Meta Turno</th>
+                    <th class="text-right" style="width: 10%;">Cumplimiento</th>
+                    <th class="text-center" style="width: 10%;">Estatus</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($shiftsData as $sd)
+                    @php $rowspan = count($sd['outputs']); @endphp
+                    @if($rowspan > 0)
+                        @php $first = true; @endphp
+                        @foreach($sd['outputs'] as $pId => $out)
+                            <tr>
+                                @if($first)
+                                    <td rowspan="{{ $rowspan }}" style="vertical-align: middle;"><strong>{{ $sd['date'] }}</strong></td>
+                                    <td rowspan="{{ $rowspan }}" style="vertical-align: middle;">{{ $sd['type'] }}</td>
+                                    <td rowspan="{{ $rowspan }}" style="vertical-align: middle; font-size: 8px; color: #555;">{{ $sd['users'] }}</td>
+                                    @php $first = false; @endphp
+                                @endif
+                                <td>{{ $out['name'] }}</td>
+                                <td class="text-right"><strong>{{ number_format($out['quantity'], 0) }}</strong> unds</td>
+                                <td class="text-right">{{ $out['min'] > 0 ? number_format($out['min'], 0) . ' - ' . number_format($out['max'], 0) : 'Sin Meta' }}</td>
+                                <td class="text-right">
+                                    @if($out['min'] > 0)
+                                        {{ number_format($out['compliance_pct'], 1) }}%
+                                    @else
+                                        -
+                                    @endif
+                                </td>
+                                <td class="text-center">
+                                    @if($out['min'] > 0)
+                                        <span class="{{ $out['status'] === 'Cumplido' ? 'text-success' : 'text-danger' }}" style="font-weight: bold;">
+                                            {{ $out['status'] }}
+                                        </span>
+                                    @else
+                                        <span style="color: #666;">-</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    @else
+                        <tr>
+                            <td><strong>{{ $sd['date'] }}</strong></td>
+                            <td>{{ $sd['type'] }}</td>
+                            <td style="font-size: 8px; color: #555;">{{ $sd['users'] }}</td>
+                            <td colspan="5" class="text-center text-muted">Sin producción registrada en este turno.</td>
+                        </tr>
+                    @endif
+                @endforeach
+            </tbody>
+        </table>
+    @else
+        <p class="text-muted" style="margin-bottom: 20px;">No se registraron turnos cerrados en este período.</p>
+    @endif
+
+    {{-- Ingresos de Insumos / Materias Primas --}}
+    <div class="section-header">Ingresos de Insumos / Materias Primas en la Semana</div>
+    @if(count($weeklyEntries) > 0)
+        <table class="table" style="font-size: 8px; margin-bottom: 20px;">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Insumo / Materia Prima</th>
+                    <th class="text-right">Cantidad</th>
+                    <th>Depósito Destino</th>
+                    <th>Origen / Método</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($weeklyEntries as $entry)
+                    <tr>
+                         <td>{{ $entry['date'] }}</td>
+                         <td><strong>{{ $entry['product'] }}</strong></td>
+                         <td class="text-right"><strong>{{ number_format($entry['quantity'], 2) }}</strong></td>
+                         <td>{{ $entry['destination'] }}</td>
+                         <td>{{ $entry['source'] }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @else
+        <p class="text-muted" style="margin-bottom: 20px;">No se registraron ingresos de insumos en este período.</p>
+    @endif
+
+    {{-- Existencias y Ubicación de Insumos --}}
+    <div class="section-header">Existencias y Ubicación Actual de Insumos</div>
+    @if(count($rawMaterialStocks) > 0)
+        <table class="table" style="font-size: 8px; margin-bottom: 20px;">
+            <thead>
+                <tr>
+                    <th>Materia Prima / Insumo</th>
+                    <th class="text-right">Stock en Zona (ID 4)</th>
+                    <th class="text-right">Stock en Planta Soplados (ID 3)</th>
+                    <th class="text-right" style="background-color: #f1f3f5;">Stock Consolidado Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($rawMaterialStocks as $stock)
+                    <tr>
+                         <td><strong>{{ $stock['name'] }}</strong></td>
+                         <td class="text-right">{{ number_format($stock['zona_stock'], 2) }} {{ $stock['unit'] }}</td>
+                         <td class="text-right">{{ number_format($stock['soplados_stock'], 2) }} {{ $stock['unit'] }}</td>
+                         <td class="text-right" style="background-color: #fafafa;"><strong>{{ number_format($stock['total_stock'], 2) }}</strong> {{ $stock['unit'] }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @else
+        <p class="text-muted" style="margin-bottom: 20px;">No hay materias primas de soplado configuradas en el sistema.</p>
+    @endif
+
     {{-- Último Inventario realizado --}}
     <div class="section-header">Último Inventario Realizado en Soplados</div>
     @if($lastInventory)

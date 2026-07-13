@@ -100,7 +100,7 @@ Route::middleware('auth')->group(function () {
     Route::get('customer-statement', CustomerStatement::class)->name('customer-statement')->middleware('can:customer_statement.index');
     Route::get('debit-note/{note}/pdf', [\App\Http\Controllers\DebitNoteController::class, 'pdf'])->name('debit-note.pdf')->middleware('can:manage_debit_notes');
     Route::get('sales', Sales::class)->name('sales')->middleware(['can:sales.index', \App\Http\Middleware\EnsureCashRegisterIsOpen::class]);
-
+    Route::get('credit-authorizations', \App\Livewire\CreditAuthorizationsList::class)->name('credit.authorizations')->middleware(['can:sales.index']);
     Route::get('purchases', Purchases::class)->name('purchases')->middleware(['can:purchases.create', 'module:module_purchases']); // Usually create
     Route::get('purchase-list', \App\Livewire\PurchaseList::class)->name('purchase.list')->middleware(['can:purchases.index', 'module:module_purchases']);
     Route::get('inventories', Inventory::class)->name('inventories')->middleware('can:inventory.index');
@@ -122,6 +122,7 @@ Route::middleware('auth')->group(function () {
     Route::get('soplados/shifts/{shift}/pdf', [\App\Http\Controllers\ReportController::class, 'sopladosShiftPdf'])->name('soplados.shifts.pdf')->middleware(['can:production.index']);
     Route::get('soplados/formulas', \App\Livewire\Soplados\Formulas::class)->name('soplados.formulas')->middleware(['can:production.index']);
     Route::get('soplados/inventories', \App\Livewire\Soplados\SopladosInventoriesList::class)->name('soplados.inventories')->middleware(['can:production.index']);
+    Route::get('soplados/expected-production', \App\Livewire\Soplados\ExpectedProductionList::class)->name('soplados.expected-production')->middleware(['can:production.index']);
 
     Route::get('descargos', \App\Livewire\Descargos\DescargosList::class)->name('descargos')->middleware('can:adjustments.create');
     Route::get('descargos/create', \App\Livewire\Descargos\CreateDescargo::class)->name('descargos.create')->middleware('can:adjustments.create');

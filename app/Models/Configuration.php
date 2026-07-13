@@ -90,6 +90,8 @@ class Configuration extends Model
         'email_soplados_weekly_recipients',
         'weekly_report_send_day',
         'weekly_report_send_hour',
+        'email_credit_auth_recipients',
+        'whatsapp_credit_auth_users',
     ];
 
     protected $casts = [
@@ -117,6 +119,8 @@ class Configuration extends Model
         'whatsapp_soplados_weekly_groups' => 'array',
         'whatsapp_soplados_weekly_users' => 'array',
         'email_soplados_weekly_recipients' => 'array',
+        'email_credit_auth_recipients' => 'array',
+        'whatsapp_credit_auth_users' => 'array',
         'weekly_report_send_day' => 'integer',
     ];
 

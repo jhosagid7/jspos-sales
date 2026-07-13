@@ -166,6 +166,12 @@ class Sales extends Component
     public $customerAgreement = null;
     public $sellerAgreement = null;
 
+    // Credit Authorization
+    public $showCreditAuthModal = false;
+    public $creditAuthPin = '';
+    public $pendingCreditAuthId = null;
+    public $creditAuthStatusMessage = '';
+    public $creditAuthApproved = false;
 
     public function updatedSelectedPaymentMethod($value)
     {
@@ -410,15 +416,32 @@ class Sales extends Component
                 return;
             }
 
-            // Validar que el cliente tenga crédito habilitado
-            if (!isset($this->creditConfig['allow_credit']) || !$this->creditConfig['allow_credit']) {
-                $this->dispatch('noty', msg: 'El cliente no tiene crédito habilitado');
-                return;
-            }
-            
             // Validar que haya un cliente seleccionado
             if (!$this->customer || !isset($this->customer['id'])) {
                 $this->dispatch('noty', msg: 'Debe seleccionar un cliente para venta a crédito');
+                return;
+            }
+
+            // Validar que el cliente tenga crédito habilitado
+            if ((!isset($this->creditConfig['allow_credit']) || !$this->creditConfig['allow_credit']) && !$this->creditAuthApproved) {
+                // Check if they are completely disabled at the config level (base_allow_credit)
+                if (isset($this->creditConfig['base_allow_credit']) && !$this->creditConfig['base_allow_credit']) {
+                    $this->dispatch('noty', msg: 'El cliente no tiene habilitada la opción de crédito.');
+                    return;
+                }
+
+                $customerModel = \App\Models\Customer::find($this->customer['id']);
+                if ($customerModel) {
+                    if ($customerModel->credit_status === 'new' || $customerModel->credit_status === 'defaulted' || !empty($this->customer['has_overdue'])) {
+                        $this->showCreditAuthModal = true;
+                        $isMoroso = $customerModel->credit_status === 'defaulted' || !empty($this->customer['has_overdue']);
+                        $msg = $isMoroso ? 'Venta de crédito denegada: Score crediticio insuficiente (Cliente Moroso).' : 'Venta de crédito denegada: Cliente nuevo sin compras mínimas de contado requeridas.';
+                        $this->creditAuthStatusMessage = $msg;
+                        $this->dispatch('open-credit-auth-modal');
+                        return;
+                    }
+                }
+                $this->dispatch('noty', msg: 'El cliente no tiene crédito habilitado');
                 return;
             }
 
@@ -429,14 +452,18 @@ class Sales extends Component
             }
             
             // Validar límite de crédito
-            $validation = \App\Services\CreditConfigService::validateCreditLimit(
-                \App\Models\Customer::find($this->customer['id']),
-                $this->totalCart
-            );
-            
-            if (!$validation['allowed']) {
-                $this->dispatch('noty', msg: $validation['message']);
-                return;
+            if (!$this->creditAuthApproved) {
+                $validation = \App\Services\CreditConfigService::validateCreditLimit(
+                    \App\Models\Customer::find($this->customer['id']),
+                    $this->totalCart
+                );
+                
+                if (!$validation['allowed']) {
+                    $this->showCreditAuthModal = true;
+                    $this->creditAuthStatusMessage = $validation['message'];
+                    $this->dispatch('open-credit-auth-modal');
+                    return;
+                }
             }
             
             // Obtener moneda principal
@@ -467,6 +494,8 @@ class Sales extends Component
             
             return;
         }
+
+
         
         // PAGO CON BILLETERA
         if ($this->selectedPaymentMethod === 'wallet') {
@@ -3750,6 +3779,46 @@ class Sales extends Component
             $this->loadCreditConfig();
         }
 
+        // VALIDAR MOROSIDAD Y LÍMITE DE CRÉDITO ANTES DE GUARDAR
+        if ($type == 2 || $hasCreditPayment) {
+            if ((!isset($this->creditConfig['allow_credit']) || !$this->creditConfig['allow_credit']) && !$this->creditAuthApproved) {
+                if (isset($this->creditConfig['base_allow_credit']) && !$this->creditConfig['base_allow_credit']) {
+                    $this->dispatch('noty', msg: 'El cliente no tiene habilitada la opción de crédito.');
+                    return;
+                }
+                $customerModel = \App\Models\Customer::find($this->customer['id']);
+                if ($customerModel) {
+                    if ($customerModel->credit_status === 'new' || $customerModel->credit_status === 'defaulted' || !empty($this->customer['has_overdue'])) {
+                        $this->showCreditAuthModal = true;
+                        $isMoroso = $customerModel->credit_status === 'defaulted' || !empty($this->customer['has_overdue']);
+                        $msg = $isMoroso ? 'Venta de crédito denegada: Score crediticio insuficiente (Cliente Moroso).' : 'Venta de crédito denegada: Cliente nuevo sin compras mínimas.';
+                        $this->creditAuthStatusMessage = $msg;
+                        $this->dispatch('open-credit-auth-modal');
+                        return;
+                    }
+                }
+                $this->dispatch('noty', msg: 'El cliente no tiene crédito habilitado');
+                return;
+            }
+            
+            // Validar límite
+            if (!$this->creditAuthApproved) {
+                // If it's mixed, validate only the credit portion. If it's type 2, validate the full cart.
+                $creditAmountToValidate = $type == 2 ? $this->totalCart : collect($this->payments)->firstWhere('method', 'CREDITO')['amount'];
+                $validation = \App\Services\CreditConfigService::validateCreditLimit(
+                    \App\Models\Customer::find($this->customer['id']),
+                    $creditAmountToValidate
+                );
+                
+                if (!$validation['allowed']) {
+                    $this->showCreditAuthModal = true;
+                    $this->creditAuthStatusMessage = $validation['message'];
+                    $this->dispatch('open-credit-auth-modal');
+                    return;
+                }
+            }
+        }
+
         // Validar que si se seleccionó Banco/Zelle, se haya agregado el pago a la lista
         if ($this->selectedPaymentMethod === 'bank' && empty($this->payments)) {
             $this->dispatch('noty', msg: 'POR FAVOR AGREGUE EL PAGO (BOTÓN "+") ANTES DE GUARDAR');
@@ -4443,6 +4512,15 @@ class Sales extends Component
                     $sourceOrder->delete();
                     Log::info("Order {$this->order_id} deleted after successful sale.");
                 }
+            }
+
+            // Vincular la autorización de crédito con esta venta (si aplica)
+            if ($this->pendingCreditAuthId) {
+                $auth = \App\Models\CreditAuthorization::find($this->pendingCreditAuthId);
+                if ($auth) {
+                    $auth->update(['sale_id' => $sale->id]);
+                }
+                $this->pendingCreditAuthId = null; // reset for next sale
             }
 
             DB::commit();
@@ -5177,5 +5255,111 @@ class Sales extends Component
         $this->order_selected_id = null;
         $this->orderHistory = [];
         $this->details = [];
+    }
+
+    public function requestCreditAuthorization()
+    {
+        if (!$this->customer) {
+            return;
+        }
+
+        $pin = strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 6)); // Generar PIN de 6 caracteres
+        
+        $auth = \App\Models\CreditAuthorization::create([
+            'customer_id' => $this->customer['id'],
+            'requested_by_id' => auth()->id(),
+            'pin_code' => $pin,
+            'status' => 'pending',
+            'amount_requested' => $this->totalCart,
+            'expires_at' => now()->addMinutes(15),
+        ]);
+
+        $this->pendingCreditAuthId = $auth->id;
+
+        // Enviar notificaciones
+        $config = \App\Models\Configuration::first();
+        $message = "Solicitud de Autorización de Crédito en POS.\n" .
+                   "Vendedor: " . auth()->user()->name . "\n" .
+                   "Cliente: " . $this->customer['name'] . "\n" .
+                   "Monto Solicitado: $" . number_format($this->totalCart, 2) . "\n" .
+                   "Motivo: " . $this->creditAuthStatusMessage . "\n\n" .
+                   "PIN DE AUTORIZACIÓN: " . $pin . "\n" .
+                   "(Válido por 15 minutos)";
+
+        // Enviar por correo
+        if (!empty($config->email_credit_auth_recipients)) {
+            foreach ($config->email_credit_auth_recipients as $email) {
+                // Assuming basic mail sending setup (replace with appropriate Mail facade usage)
+                try {
+                    \Illuminate\Support\Facades\Mail::raw($message, function($msg) use ($email) {
+                        $msg->to(trim($email))->subject('Autorización de Crédito POS - PIN: ' . substr($message, -6));
+                    });
+                } catch (\Exception $e) {
+                    \Log::error("Error enviando email auth credito: " . $e->getMessage());
+                }
+            }
+        }
+
+        // Enviar por WhatsApp
+        if (!empty($config->whatsapp_credit_auth_users)) {
+            $whatsappService = app(\App\Services\WhatsappService::class);
+            if ($whatsappService->checkStatus()) {
+                $users = \App\Models\User::whereIn('id', $config->whatsapp_credit_auth_users)->get();
+                foreach ($users as $u) {
+                    if ($u->phone) {
+                        $phone = preg_replace('/[^0-9]/', '', $u->phone);
+                        if (strlen($phone) >= 10) {
+                            $whatsappService->sendMessage($phone, $message);
+                        }
+                    }
+                }
+            }
+        }
+
+        $this->dispatch('noty', msg: 'Solicitud enviada a los supervisores. Esperando PIN.', type: 'success');
+    }
+
+    public $creditAuthSupervisorId;
+
+    public function validateCreditPIN()
+    {
+        $this->validate([
+            'creditAuthPin' => 'required|string',
+            'creditAuthSupervisorId' => 'required',
+        ], [
+            'creditAuthSupervisorId.required' => 'Debe seleccionar el supervisor que autorizó.',
+        ]);
+
+        if (!$this->pendingCreditAuthId) {
+            $this->dispatch('noty', msg: 'No hay solicitud pendiente.', type: 'error');
+            return;
+        }
+
+        $auth = \App\Models\CreditAuthorization::find($this->pendingCreditAuthId);
+
+        if (!$auth || $auth->status !== 'pending' || $auth->isExpired()) {
+            if ($auth && $auth->isExpired() && $auth->status === 'pending') {
+                $auth->update(['status' => 'expired']);
+            }
+            $this->dispatch('noty', msg: 'El PIN ha expirado o no es válido.', type: 'error');
+            return;
+        }
+
+        if (strtoupper(trim($this->creditAuthPin)) === strtoupper($auth->pin_code)) {
+            // Aprobado
+            $this->creditAuthApproved = true;
+            $this->showCreditAuthModal = false;
+            $auth->update([
+                'status' => 'used',
+                'approved_by_id' => $this->creditAuthSupervisorId,
+            ]);
+            $this->dispatch('close-credit-auth-modal');
+            $this->dispatch('noty', msg: 'Crédito Autorizado Correctamente', type: 'success');
+            
+            // Re-ejecutar pago
+            $this->addPayment();
+        } else {
+            $this->dispatch('noty', msg: 'PIN Incorrecto', type: 'error');
+        }
     }
 }

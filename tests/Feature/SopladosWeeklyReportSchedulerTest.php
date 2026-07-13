@@ -16,13 +16,13 @@ use App\Models\SopladosInventory;
 use App\Models\SopladosInventoryDetail;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Livewire\Livewire;
 use Carbon\Carbon;
 
 class SopladosWeeklyReportSchedulerTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     protected $user;
     protected $warehouse;
@@ -198,8 +198,8 @@ class SopladosWeeklyReportSchedulerTest extends TestCase
 
         $this->assertEquals(0, $exitCode);
 
-        // Assert mail was queued to boss
-        Mail::assertQueued(\App\Mail\GenericNotificationMail::class, function ($mail) {
+        // Assert mail was sent to boss
+        Mail::assertSent(\App\Mail\GenericNotificationMail::class, function ($mail) {
             $this->assertTrue($mail->hasTo('boss@soplados.com'));
             $this->assertStringContainsString('Reporte Semanal Consolidado de Soplados', $mail->subjectLine);
             $this->assertNotNull($mail->attachmentPath);

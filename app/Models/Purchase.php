@@ -29,6 +29,11 @@ class Purchase extends Model
         return $this->belongsTo(Supplier::class);
     }
 
+    public function warehouse()
+    {
+        return $this->belongsTo(Warehouse::class);
+    }
+
 
     function details()
     {

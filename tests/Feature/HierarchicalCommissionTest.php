@@ -8,12 +8,12 @@ use App\Models\Sale;
 use App\Models\Customer;
 use App\Models\Configuration;
 use App\Services\CommissionService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Carbon\Carbon;
 
 class HierarchicalCommissionTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     protected function setUp(): void
     {
@@ -254,7 +254,11 @@ class HierarchicalCommissionTest extends TestCase
             'phone' => '0412-1111111',
             'email' => 'customer@email.com',
             'seller_id' => $seller->id,
+            'allow_credit' => true,
+            'credit_limit' => 1000.00
         ]);
+        $customer->credit_status = 'active';
+        $customer->saveQuietly();
 
         $customerConfig = \App\Models\CustomerConfig::create([
             'customer_id' => $customer->id,
@@ -370,7 +374,11 @@ class HierarchicalCommissionTest extends TestCase
             'phone' => '0412-1111111',
             'email' => 'markup@email.com',
             'seller_id' => $seller->id,
+            'allow_credit' => true,
+            'credit_limit' => 1000.00
         ]);
+        $customer->credit_status = 'active';
+        $customer->saveQuietly();
 
         $customerConfig = \App\Models\CustomerConfig::create([
             'customer_id' => $customer->id,

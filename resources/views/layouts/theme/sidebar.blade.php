@@ -87,9 +87,15 @@
                     <ul class="nav nav-treeview">
                         @can('sales.index')
                         <li class="nav-item">
-                            <a href="{{ route('sales') }}" class="nav-link {{ Request::is('sales*') ? 'active' : '' }}">
+                            <a href="{{ route('sales') }}" class="nav-link {{ Request::is('sales') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Ventas (POS)</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('credit.authorizations') }}" class="nav-link {{ Request::is('credit-authorizations') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon text-warning"></i>
+                                <p>Historial Auth. Crédito</p>
                             </a>
                         </li>
                         @endcan
@@ -322,6 +328,12 @@
                             <a href="{{ route('soplados.inventories') }}" class="nav-link {{ Request::is('soplados/inventories*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Historial Inventarios</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('soplados.expected-production') }}" class="nav-link {{ Request::is('soplados/expected-production') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Metas de Producción</p>
                             </a>
                         </li>
                     </ul>

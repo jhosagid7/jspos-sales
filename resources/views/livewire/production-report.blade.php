@@ -1,7 +1,10 @@
 <div>
     <div class="card">
-        <div class="card-header bg-primary">
-            <h4 class="text-white">Reporte de Producción y Rendimiento</h4>
+        <div class="card-header bg-primary d-flex justify-content-between align-items-center">
+            <h4 class="text-white mb-0">Reporte de Producción y Rendimiento</h4>
+            <button class="btn btn-info btn-sm fw-bold shadow-sm" wire:click="downloadSopladosReport" wire:loading.attr="disabled">
+                <i class="fas fa-file-pdf mr-1"></i> Descargar Reporte Soplados (PDF)
+            </button>
         </div>
         <div class="card-body">
             <div class="row mb-4">
