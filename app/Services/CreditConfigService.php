@@ -61,6 +61,16 @@ class CreditConfigService
             $baseAllowCredit = $globalConfig->global_allow_credit ?? true;
         }
         
+        // Resolve normal credit days
+        $resolvedCreditDays = 0;
+        if ($customer->credit_days !== null && $customer->credit_days > 0) {
+            $resolvedCreditDays = $customer->credit_days;
+        } elseif ($seller && $seller->seller_credit_days !== null && $seller->seller_credit_days > 0) {
+            $resolvedCreditDays = $seller->seller_credit_days;
+        } else {
+            $resolvedCreditDays = $globalConfig->global_credit_days ?? 30;
+        }
+
         // Bloqueo para clientes nuevos o en mora (Scoring / Bootstrapping)
         // Si el cliente es nuevo y no tiene asignado un límite manual > 0, bloqueamos el crédito.
         // Si el cliente está en mora ('defaulted') Y tiene facturas vencidas sin saldar, bloqueamos el crédito por seguridad.
@@ -71,7 +81,7 @@ class CreditConfigService
             return [
                 'allow_credit' => false,
                 'base_allow_credit' => $baseAllowCredit, // Permite saber si el botón en la UI se debe mostrar (para hacer bypass) o no.
-                'credit_days' => 0,
+                'credit_days' => $resolvedCreditDays,
                 'credit_limit' => 0.00,
                 'usd_payment_discount' => $usdPaymentDiscount, 
                 'usd_payment_discount_tag' => $usdPaymentDiscountTag,

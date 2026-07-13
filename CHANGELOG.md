@@ -1,3 +1,8 @@
+## [1.10.237] - 2026-07-13
+### Changed
+- **Preservación de Días de Crédito en Bypass por PIN**:
+  * Se corrigió `CreditConfigService` para que retorne los días de crédito configurados originalmente (del cliente, vendedor o global) en lugar de `0` al resolver la configuración de un cliente con crédito bloqueado. Esto asegura que si el bloqueo es puenteado vía código PIN, la venta se guarde y la factura se imprima con sus días de crédito correspondientes en lugar de salir como "CONTADO / Sin días de crédito".
+
 ## [1.10.236] - 2026-07-13
 ### Added
 - **Campos de Scoring en Cliente**:

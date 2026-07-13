@@ -204,4 +204,113 @@ class CustomerCreditBlockAndPinTest extends TestCase
         // Verify that NO sale_payment_details were created for CREDITO
         $this->assertCount(0, $sale->paymentDetails);
     }
+
+    public function test_credit_sale_with_pin_bypass_saves_original_credit_days()
+    {
+        // Authenticate seller
+        $this->actingAs($this->adminUser);
+
+        // Setup customer with explicit credit_days and defaulted status (with overdue invoice)
+        $customer = Customer::create([
+            'name' => 'Defaulted Customer',
+            'phone' => '12345678',
+            'seller_id' => $this->adminUser->id,
+            'allow_credit' => true,
+            'credit_limit' => 500,
+            'credit_days' => 8, // Customer original credit days
+            'credit_status' => 'defaulted',
+        ]);
+
+        // Create an unpaid overdue invoice to trigger the block
+        Sale::create([
+            'reference' => 'SALE-OVERDUE',
+            'customer_id' => $customer->id,
+            'type' => 'credit',
+            'status' => 'pending',
+            'credit_days' => 10,
+            'total_usd' => 100,
+            'total' => 100,
+            'items' => 1,
+            'user_id' => $this->adminUser->id,
+            'created_at' => now()->subDays(15), // Overdue
+        ]);
+
+        \App\Models\SellerConfig::create([
+            'user_id' => $this->adminUser->id,
+            'commission_percent' => 10.00,
+            'freight_percent' => 6.00,
+            'exchange_diff_percent' => 60.00,
+        ]);
+
+        \App\Models\CustomerConfig::create([
+            'customer_id' => $customer->id,
+            'commission_percent' => 8.00,
+            'freight_percent' => 6.00,
+            'exchange_diff_percent' => 45.00,
+        ]);
+
+        // Setup product
+        $product = \App\Models\Product::create([
+            'name' => 'Test Product',
+            'sku' => 'TEST-01',
+            'price' => 50.00,
+            'cost' => 0.00,
+            'manage_stock' => 0,
+            'stock_qty' => 0,
+            'low_stock' => 0,
+            'status' => 'available',
+            'show_in_sales' => true,
+            'category_id' => $this->category->id,
+            'supplier_id' => $this->supplier->id,
+        ]);
+
+        config(['tenant.modules' => ['module_credits']]);
+
+        // Test Livewire component
+        $component = Livewire::test(\App\Livewire\Sales::class)
+            ->call('setCustomer', $customer->toArray());
+
+        // Verify credit config has allow_credit = false but credit_days = 8
+        $creditConfig = $component->get('creditConfig');
+        $this->assertFalse($creditConfig['allow_credit']);
+        $this->assertEquals(8, $creditConfig['credit_days']);
+
+        $cartItem = [
+            'id' => $product->id,
+            'pid' => $product->id,
+            'sku' => $product->sku,
+            'name' => $product->name,
+            'qty' => 1,
+            'price' => 50.00,
+            'base_price' => 50.00,
+            'sale_price' => 50.00,
+            'tax' => 0.00,
+            'total' => 50.00,
+            'pricelist' => [],
+        ];
+
+        session(['cart' => [$cartItem]]);
+        $component->set('cart', collect([$cartItem]));
+        $component->set('totalCart', 50.00);
+        $component->set('itemsCart', 1);
+
+        // Approve credit bypass via PIN (simulate setting bypass flag)
+        $component->set('creditAuthApproved', true);
+
+        // Simulate choosing credit method in unified payment modal
+        $component->set('selectedPaymentMethod', 'credit');
+        $component->set('paymentAgreement', 'USD');
+        $component->call('addPayment');
+
+        // Finalize sale by calling Store
+        $component->call('Store', new \App\Services\CashRegisterService());
+
+        // Verify sale is saved in DB with credit_days = 8 (the original client credit days)
+        $sale = Sale::where('customer_id', $customer->id)
+            ->orderBy('id', 'desc')
+            ->first();
+            
+        $this->assertNotNull($sale);
+        $this->assertEquals(8, $sale->credit_days);
+    }
 }
