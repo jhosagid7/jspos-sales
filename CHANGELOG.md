@@ -1,3 +1,9 @@
+## [1.10.234] - 2026-07-13
+### Changed
+- **Desagrupación Visual de Variantes en Tablas del Reporte**:
+  * Modificada la sección de producción semanal ("Total Producido por Envase") y el rendimiento por turno ("Rendimiento de Producción por Turno") para listar cada color o variante de envase en su propia fila con su respectiva cantidad producida (sin agruparlos bajo el nombre del producto base representador).
+  * La validación de metas de producción por turno ahora suma internamente las cantidades de todas las variantes de una misma familia durante el turno (por ejemplo, amarillo + morado), mostrando el cumplimiento (%) y estatus correspondiente para cada variante de forma individual basándose en el total combinado de la familia.
+
 ## [1.10.233] - 2026-07-13
 ### Changed
 - **Vinculación Automática de Variantes de Productos**:

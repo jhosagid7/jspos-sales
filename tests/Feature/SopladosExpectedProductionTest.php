@@ -356,35 +356,64 @@ class SopladosExpectedProductionTest extends TestCase
         $targets = SopladosProductionTarget::get()->keyBy('product_id');
 
         $shiftOutputs = [];
+        
+        // 1. Calculate family totals
+        $familyTotals = [];
+        foreach ($shifts[0]->productionLogs as $l) {
+            foreach ($l->outputs as $out) {
+                if (in_array($out->quality, ['1st', '2nd'])) {
+                    $qty = floatval($out->quantity);
+                    $familyId = $out->product->production_target_id ?? $out->product_id;
+                    $familyTotals[$familyId] = ($familyTotals[$familyId] ?? 0) + $qty;
+                }
+            }
+        }
+
+        // 2. Build rows
         foreach ($shifts[0]->productionLogs as $l) {
             foreach ($l->outputs as $out) {
                 $qty = floatval($out->quantity);
                 $pId = $out->product_id;
-                $targetProductId = $out->product->production_target_id ?? $pId;
-                $targetProduct = $out->product->productionTarget ?? $out->product;
-                $pName = $targetProduct->name;
+                $familyId = $out->product->production_target_id ?? $pId;
 
-                if (!isset($shiftOutputs[$targetProductId])) {
-                    $target = $targets->get($targetProductId);
-                    $shiftOutputs[$targetProductId] = [
-                        'name' => $pName,
+                if (!isset($shiftOutputs[$pId])) {
+                    $target = $targets->get($familyId);
+                    $shiftOutputs[$pId] = [
+                        'name' => $out->product->name,
                         'quantity' => 0,
+                        'family_id' => $familyId,
                         'min' => $target ? $target->min_target : 0,
                         'max' => $target ? $target->max_target : 0,
                     ];
                 }
                 if (in_array($out->quality, ['1st', '2nd'])) {
-                    $shiftOutputs[$targetProductId]['quantity'] += $qty;
+                    $shiftOutputs[$pId]['quantity'] += $qty;
                 }
             }
         }
 
-        // We assert that the products are consolidated under the mainProduct ID
-        $this->assertCount(1, $shiftOutputs);
+        // 3. Compliance
+        foreach ($shiftOutputs as $pId => &$outData) {
+            $familyId = $outData['family_id'];
+            $familyQty = $familyTotals[$familyId] ?? 0;
+            $min = $outData['min'];
+            if ($min > 0) {
+                $outData['compliance_pct'] = round(($familyQty / $min) * 100, 2);
+                $outData['status'] = $familyQty >= $min ? 'Cumplido' : 'No Cumplido';
+            }
+        }
+
+        // We assert that the products are separate but have same compliance based on sum (1500)
+        $this->assertCount(2, $shiftOutputs);
         $this->assertArrayHasKey($mainProduct->id, $shiftOutputs);
-        $this->assertEquals(1500, $shiftOutputs[$mainProduct->id]['quantity']);
-        $this->assertEquals(1200, $shiftOutputs[$mainProduct->id]['min']);
-        $this->assertEquals(1600, $shiftOutputs[$mainProduct->id]['max']);
+        $this->assertArrayHasKey($childProduct->id, $shiftOutputs);
+        $this->assertEquals(1000, $shiftOutputs[$mainProduct->id]['quantity']);
+        $this->assertEquals(500, $shiftOutputs[$childProduct->id]['quantity']);
+        // Compliance pct is calculated based on sum (1500) compared to min target of mainProduct (1200) -> 125%
+        $this->assertEquals(125.0, $shiftOutputs[$mainProduct->id]['compliance_pct']);
+        $this->assertEquals(125.0, $shiftOutputs[$childProduct->id]['compliance_pct']);
+        $this->assertEquals('Cumplido', $shiftOutputs[$mainProduct->id]['status']);
+        $this->assertEquals('Cumplido', $shiftOutputs[$childProduct->id]['status']);
     }
 
     public function test_download_soplados_report_action_returns_pdf_download()

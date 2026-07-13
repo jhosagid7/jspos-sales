@@ -95,8 +95,8 @@ class ProductionReport extends Component
                         $totalDamaged += $qty;
                     }
                     
-                    $targetProduct = $out->product->productionTarget ?? $out->product;
-                    $pName = $targetProduct->name;
+                    // Use actual product name for detail table
+                    $pName = $out->product->name;
 
                     $qualityLabel = $out->quality === '1st' ? '1ra Calidad' : ($out->quality === '2nd' ? '2da Calidad' : 'Defectuoso');
                     $key = "{$pName} ({$qualityLabel})";
@@ -122,6 +122,20 @@ class ProductionReport extends Component
             $shiftDamaged = 0;
             $shiftOutputs = [];
 
+            // 1. Calculate family totals for the shift
+            $familyTotals = [];
+            foreach ($shift->productionLogs as $log) {
+                foreach ($log->outputs as $out) {
+                    if (!$out->product) continue;
+                    if (in_array($out->quality, ['1st', '2nd'])) {
+                        $qty = floatval($out->quantity);
+                        $familyId = $out->product->production_target_id ?? $out->product_id;
+                        $familyTotals[$familyId] = ($familyTotals[$familyId] ?? 0) + $qty;
+                    }
+                }
+            }
+
+            // 2. Build rows by individual product ID
             foreach ($shift->productionLogs as $log) {
                 foreach ($log->outputs as $out) {
                     if (!$out->product) continue;
@@ -133,33 +147,34 @@ class ProductionReport extends Component
                     }
 
                     $pId = $out->product_id;
-                    $targetProductId = $out->product->production_target_id ?? $pId;
-                    $targetProduct = $out->product->productionTarget ?? $out->product;
-                    $pName = $targetProduct->name;
+                    $familyId = $out->product->production_target_id ?? $pId;
 
-                    if (!isset($shiftOutputs[$targetProductId])) {
-                        $target = $targets->get($targetProductId);
-                        $shiftOutputs[$targetProductId] = [
-                            'name' => $pName,
+                    if (!isset($shiftOutputs[$pId])) {
+                        $target = $targets->get($familyId);
+                        $shiftOutputs[$pId] = [
+                            'name' => $out->product->name,
                             'quantity' => 0,
+                            'family_id' => $familyId,
                             'min' => $target ? $target->min_target : 0,
                             'max' => $target ? $target->max_target : 0,
                         ];
                     }
                     if (in_array($out->quality, ['1st', '2nd'])) {
-                        $shiftOutputs[$targetProductId]['quantity'] += $qty;
+                        $shiftOutputs[$pId]['quantity'] += $qty;
                     }
                 }
             }
 
+            // 3. Calculate compliance using family totals
             foreach ($shiftOutputs as $pId => &$outData) {
-                $qty = $outData['quantity'];
+                $familyId = $outData['family_id'];
+                $familyQty = $familyTotals[$familyId] ?? 0;
                 $min = $outData['min'];
                 $max = $outData['max'];
 
                 if ($min > 0) {
-                    $outData['compliance_pct'] = round(($qty / $min) * 100, 2);
-                    if ($qty >= $min) {
+                    $outData['compliance_pct'] = round(($familyQty / $min) * 100, 2);
+                    if ($familyQty >= $min) {
                         $outData['status'] = 'Cumplido';
                     } else {
                         $outData['status'] = 'No Cumplido';
