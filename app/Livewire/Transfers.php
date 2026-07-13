@@ -164,12 +164,26 @@ class Transfers extends Component
 
         DB::beginTransaction();
         try {
+            $details = TransferDetail::where('transfer_id', $transfer->id)->get();
+            
+            // Validate stock of all products that manage stock
+            foreach ($details as $detail) {
+                $product = \App\Models\Product::find($detail->product_id);
+                if ($product && $product->manage_stock == 1) {
+                    $stock = \App\Models\ProductWarehouse::where('product_id', $detail->product_id)
+                        ->where('warehouse_id', $transfer->from_warehouse_id)
+                        ->value('stock_qty') ?? 0;
+                    if ($stock < $detail->quantity) {
+                        throw new \Exception("Stock insuficiente en el almacén de origen para el producto: {$product->name} (Disponible: {$stock}, Solicitado: {$detail->quantity})");
+                    }
+                }
+            }
+
             $transfer->update([
                 'status' => 'dispatched',
                 'dispatched_by_id' => Auth::user()->id
             ]);
 
-            $details = TransferDetail::where('transfer_id', $transfer->id)->get();
             foreach ($details as $detail) {
                 $this->updateStock($transfer->from_warehouse_id, $detail->product_id, -$detail->quantity);
             }

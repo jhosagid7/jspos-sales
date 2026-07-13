@@ -43,7 +43,7 @@ class SopladosProductionTargetSeeder extends Seeder
             }
 
             if ($min > 0 && $max > 0) {
-                SopladosProductionTarget::updateOrCreate(
+                SopladosProductionTarget::firstOrCreate(
                     ['product_id' => $product->id],
                     ['min_target' => $min, 'max_target' => $max]
                 );

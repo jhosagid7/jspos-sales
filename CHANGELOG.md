@@ -1,3 +1,11 @@
+## [1.10.232] - 2026-07-13
+### Added
+- **Validación de Stock en Despacho de Traspasos**:
+  * Implementada validación en tiempo real para bloquear los despachos de traspasos si el depósito origen no cuenta con suficiente stock disponible, previniendo valores de inventario negativos.
+### Changed
+- **Seguridad en Seeding de Metas**:
+  * Modificado el seeder de metas base de soplados (`SopladosProductionTargetSeeder`) para utilizar `firstOrCreate` en lugar de `updateOrCreate`. Esto previene que una actualización automática del sistema sobrescriba las metas de producción personalizadas por el usuario.
+
 ## [1.10.231] - 2026-07-13
 ### Added
 - **Módulo de Metas de Producción de Soplados**:

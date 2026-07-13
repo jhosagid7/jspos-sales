@@ -396,4 +396,58 @@ class SopladosExpectedProductionTest extends TestCase
             ->call('downloadSopladosReport')
             ->assertFileDownloaded();
     }
+
+    public function test_dispatch_transfer_fails_when_insufficient_stock()
+    {
+        // 1. Create a product that manages stock
+        $product = Product::create([
+            'sku' => 'TRANSFER-TEST-SKU',
+            'name' => 'Transfer Test Product',
+            'cost' => 0.50,
+            'price' => 1.50,
+            'stock_qty' => 0,
+            'manage_stock' => true,
+            'low_stock' => 5,
+            'category_id' => $this->category->id,
+            'supplier_id' => $this->supplier->id,
+            'status' => 'available',
+        ]);
+
+        // 2. Set stock in Zona to 3 (which is less than 10)
+        $product->warehouses()->attach($this->warehouseZona->id, ['stock_qty' => 3]);
+
+        // 3. Create a pending transfer of 10 units from Zona to Soplados
+        $transfer = \App\Models\Transfer::create([
+            'from_warehouse_id' => $this->warehouseZona->id,
+            'to_warehouse_id' => $this->warehouseSoplados->id,
+            'user_id' => $this->user->id,
+            'status' => 'pending'
+        ]);
+        TransferDetail::create([
+            'transfer_id' => $transfer->id,
+            'product_id' => $product->id,
+            'quantity' => 10
+        ]);
+
+        // 4. Try dispatching via Livewire and verify it fails
+        Livewire::actingAs($this->user)
+            ->test(\App\Livewire\Transfers::class)
+            ->call('dispatchTransferFromWeb', $transfer->id)
+            ->assertDispatched('error', function ($name, $params) {
+                $message = is_array($params) ? ($params[0] ?? '') : $params;
+                return str_contains($message, 'Stock insuficiente');
+            });
+
+        // Verify status is still pending and stock is not deducted
+        $this->assertEquals('pending', $transfer->fresh()->status);
+        $this->assertEquals(3, \App\Models\ProductWarehouse::where('product_id', $product->id)->where('warehouse_id', $this->warehouseZona->id)->value('stock_qty'));
+
+        // 5. Try dispatching via API and verify it fails with 400
+        $response = $this->actingAs($this->user, 'sanctum')
+            ->postJson("/api/soplados/transfers/{$transfer->id}/dispatch");
+
+        $response->assertStatus(400);
+        $response->assertJsonPath('success', false);
+        $response->assertJsonFragment(['message' => 'Error al despachar: Stock insuficiente en el almacén de origen para el producto: Transfer Test Product (Disponible: 3.00, Solicitado: 10.00)']);
+    }
 }

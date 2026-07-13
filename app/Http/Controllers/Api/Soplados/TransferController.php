@@ -78,6 +78,19 @@ class TransferController extends Controller
         try {
             \Illuminate\Support\Facades\DB::beginTransaction();
 
+            // Validate stock of all products that manage stock
+            foreach ($transfer->details as $detail) {
+                $product = \App\Models\Product::find($detail->product_id);
+                if ($product && $product->manage_stock == 1) {
+                    $stock = \App\Models\ProductWarehouse::where('product_id', $detail->product_id)
+                        ->where('warehouse_id', $transfer->from_warehouse_id)
+                        ->value('stock_qty') ?? 0;
+                    if ($stock < $detail->quantity) {
+                        throw new \Exception("Stock insuficiente en el almacén de origen para el producto: {$product->name} (Disponible: {$stock}, Solicitado: {$detail->quantity})");
+                    }
+                }
+            }
+
             // Use 'dispatched' for consistency with web admin badges
             $transfer->update([
                 'status' => 'dispatched',
@@ -94,7 +107,7 @@ class TransferController extends Controller
 
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\DB::rollBack();
-            return response()->json(['success' => false, 'message' => 'Error al despachar: ' . $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => 'Error al despachar: ' . $e->getMessage()], 400);
         }
     }
 
