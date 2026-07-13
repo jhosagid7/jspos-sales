@@ -285,6 +285,7 @@ class UpdateService
         // Also run permission seeder to ensure new features are accessible
         Artisan::call('db:seed', ['--class' => 'PermissionSeeder', '--force' => true]);
         Artisan::call('db:seed', ['--class' => 'RoleSeeder', '--force' => true]);
+        Artisan::call('db:seed', ['--class' => 'SopladosProductionTargetSeeder', '--force' => true]);
 
         // Fix: Manual repair for warehouse_id in order_details if they are null
         \App\Models\OrderDetail::whereNull('warehouse_id')->update(['warehouse_id' => 1]);
