@@ -1,3 +1,10 @@
+## [1.10.238] - 2026-07-13
+### Changed
+- **Desglose de Calidades en Tabla de Rendimiento por Turno (Reporte Soplados)**:
+  * La tabla "Rendimiento de Producción por Turno" ahora muestra tres columnas de cantidad separadas por color: **1ra Cal.** (verde), **2da Cal.** (naranja) y **Merma** (rojo), en lugar de una única columna que sumaba 1ra y 2da juntas.
+  * Las columnas de 2da Calidad y Merma muestran un guión (`-`) cuando no hay unidades de ese tipo, mejorando la lectura del reporte.
+  * Aplica tanto al PDF enviado por correo/WhatsApp (`SendSopladosWeeklyReport`) como al descargado manualmente desde la web (`ProductionReport`).
+
 ## [1.10.237] - 2026-07-13
 ### Changed
 - **Preservación de Días de Crédito en Bypass por PIN**:

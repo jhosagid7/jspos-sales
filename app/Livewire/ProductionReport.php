@@ -157,13 +157,22 @@ class ProductionReport extends Component
                         $shiftOutputs[$pId] = [
                             'name' => $out->product->name,
                             'quantity' => 0,
+                            'qty_1st' => 0,
+                            'qty_2nd' => 0,
+                            'qty_damaged' => 0,
                             'family_id' => $familyId,
                             'min' => $target ? $target->min_target : 0,
                             'max' => $target ? $target->max_target : 0,
                         ];
                     }
-                    if (in_array($out->quality, ['1st', '2nd'])) {
+                    if ($out->quality === '1st') {
                         $shiftOutputs[$pId]['quantity'] += $qty;
+                        $shiftOutputs[$pId]['qty_1st'] += $qty;
+                    } elseif ($out->quality === '2nd') {
+                        $shiftOutputs[$pId]['quantity'] += $qty;
+                        $shiftOutputs[$pId]['qty_2nd'] += $qty;
+                    } elseif ($out->quality === 'damaged') {
+                        $shiftOutputs[$pId]['qty_damaged'] += $qty;
                     }
                 }
             }

@@ -247,14 +247,16 @@
         <table class="table" style="font-size: 8px; margin-bottom: 20px;">
             <thead>
                 <tr>
-                    <th style="width: 12%;">Fecha</th>
-                    <th style="width: 10%;">Turno</th>
-                    <th style="width: 25%;">Operadores / Supervisor</th>
-                    <th style="width: 23%;">Envase Producido</th>
-                    <th class="text-right" style="width: 10%;">Prod. Buena</th>
+                    <th style="width: 10%;">Fecha</th>
+                    <th style="width: 7%;">Turno</th>
+                    <th style="width: 18%;">Operadores / Supervisor</th>
+                    <th style="width: 20%;">Envase Producido</th>
+                    <th class="text-right" style="width: 8%;">1ra Cal.</th>
+                    <th class="text-right" style="width: 8%;">2da Cal.</th>
+                    <th class="text-right" style="width: 7%;">Merma</th>
                     <th class="text-right" style="width: 10%;">Meta Turno</th>
-                    <th class="text-right" style="width: 10%;">Cumplimiento</th>
-                    <th class="text-center" style="width: 10%;">Estatus</th>
+                    <th class="text-right" style="width: 7%;">Cumpl.</th>
+                    <th class="text-center" style="width: 5%;">Estatus</th>
                 </tr>
             </thead>
             <tbody>
@@ -271,7 +273,21 @@
                                     @php $first = false; @endphp
                                 @endif
                                 <td>{{ $out['name'] }}</td>
-                                <td class="text-right"><strong>{{ number_format($out['quantity'], 0) }}</strong> unds</td>
+                                <td class="text-right" style="color: #2e7d32;"><strong>{{ number_format($out['qty_1st'] ?? 0, 0) }}</strong></td>
+                                <td class="text-right" style="color: #ef6c00;">
+                                    @if(($out['qty_2nd'] ?? 0) > 0)
+                                        <strong>{{ number_format($out['qty_2nd'], 0) }}</strong>
+                                    @else
+                                        <span style="color: #aaa;">-</span>
+                                    @endif
+                                </td>
+                                <td class="text-right" style="color: #c62828;">
+                                    @if(($out['qty_damaged'] ?? 0) > 0)
+                                        <strong>{{ number_format($out['qty_damaged'], 0) }}</strong>
+                                    @else
+                                        <span style="color: #aaa;">-</span>
+                                    @endif
+                                </td>
                                 <td class="text-right">{{ $out['min'] > 0 ? number_format($out['min'], 0) . ' - ' . number_format($out['max'], 0) : 'Sin Meta' }}</td>
                                 <td class="text-right">
                                     @if($out['min'] > 0)
@@ -296,7 +312,7 @@
                             <td><strong>{{ $sd['date'] }}</strong></td>
                             <td>{{ $sd['type'] }}</td>
                             <td style="font-size: 8px; color: #555;">{{ $sd['users'] }}</td>
-                            <td colspan="5" class="text-center text-muted">Sin producción registrada en este turno.</td>
+                            <td colspan="7" class="text-center text-muted">Sin producción registrada en este turno.</td>
                         </tr>
                     @endif
                 @endforeach
