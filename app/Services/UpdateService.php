@@ -391,16 +391,21 @@ class UpdateService
             $tables[] = $row->{$dbNameKey};
         }
 
-        $sql = "-- JSPOS Database Backup\n";
-        $sql .= "-- Generated: " . now()->toIso8601String() . "\n\n";
-        $sql .= "SET FOREIGN_KEY_CHECKS=0;\n\n";
+        $fileHandle = fopen($filePath, 'w');
+        if (!$fileHandle) {
+            throw new \Exception("Cannot open backup file for writing: " . $filePath);
+        }
+
+        fwrite($fileHandle, "-- JSPOS Database Backup\n");
+        fwrite($fileHandle, "-- Generated: " . now()->toIso8601String() . "\n\n");
+        fwrite($fileHandle, "SET FOREIGN_KEY_CHECKS=0;\n\n");
 
         foreach ($tables as $table) {
             // Structure
             $createTable = \Illuminate\Support\Facades\DB::select("SHOW CREATE TABLE `{$table}`");
             $createTableSql = (array)$createTable[0];
-            $sql .= "DROP TABLE IF EXISTS `{$table}`;\n";
-            $sql .= $createTableSql['Create Table'] . ";\n\n";
+            fwrite($fileHandle, "DROP TABLE IF EXISTS `{$table}`;\n");
+            fwrite($fileHandle, $createTableSql['Create Table'] . ";\n\n");
 
             // Data using offset pagination for memory efficiency
             $count = \Illuminate\Support\Facades\DB::table($table)->count();
@@ -416,15 +421,14 @@ class UpdateService
                         return "'" . addslashes($value) . "'";
                     }, array_values($rowArray));
 
-                    $sql .= "INSERT INTO `{$table}` (" . implode(', ', $keysList) . ") VALUES (" . implode(', ', $valuesList) . ");\n";
+                    fwrite($fileHandle, "INSERT INTO `{$table}` (" . implode(', ', $keysList) . ") VALUES (" . implode(', ', $valuesList) . ");\n");
                 }
             }
-            $sql .= "\n";
+            fwrite($fileHandle, "\n");
         }
 
-        $sql .= "SET FOREIGN_KEY_CHECKS=1;\n";
-
-        File::put($filePath, $sql);
+        fwrite($fileHandle, "SET FOREIGN_KEY_CHECKS=1;\n");
+        fclose($fileHandle);
     }
 
     /**

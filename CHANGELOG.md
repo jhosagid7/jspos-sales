@@ -1,3 +1,9 @@
+## [1.10.246] - 2026-07-14
+### Fixed
+- **Optimización de Memoria en Exportación de Base de Datos para Copias de Seguridad (Rollback)**:
+  * Se modificó la función `exportDatabaseSql` en `UpdateService` para utilizar flujos de archivos nativos de PHP (`fopen`, `fwrite`, `fclose`) al generar respaldos SQL de la base de datos antes de las actualizaciones.
+  * Esto sustituye la acumulación previa del dump completo en un único string de memoria PHP (que causaba desbordamientos de memoria RAM "Allowed memory size exhausted" y dejaba el asistente de actualización colgado indefinidamente en 10% "Creando copia de seguridad...") por una escritura directa a disco de muy bajo consumo de recursos, garantizando la velocidad y estabilidad del proceso en producción con bases de datos de gran tamaño.
+
 ## [1.10.245] - 2026-07-14
 ### Changed
 - **Detalle de Facturas Vencidas en Notificación de Crédito**:
