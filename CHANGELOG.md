@@ -1,3 +1,9 @@
+## [1.10.241] - 2026-07-14
+### Fixed
+- **Validación y Bloqueo de Crédito solo por Facturas Vencidas**:
+  * Se corrigió `CreditConfigService` para que el bloqueo de crédito y la posterior solicitud de PIN de supervisor ocurra únicamente cuando el cliente tenga facturas vencidas activas (sin saldar).
+  * Se eliminó el bloqueo automático por defecto para clientes nuevos o sin límite de crédito personalizado asignado, permitiendo que operen con el límite heredado (vendedor o global) sin requerir PIN si no están en mora.
+
 ## [1.10.240] - 2026-07-14
 ### Fixed
 - **Seeder `SopladosSecondQualityLinkerSeeder` actualizado para PET individuales**:

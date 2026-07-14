@@ -112,6 +112,25 @@ class CustomerCreditBlockAndPinTest extends TestCase
         $this->assertEquals(0, $config['credit_limit']);
     }
 
+    public function test_new_customer_without_overdue_invoices_is_allowed_credit()
+    {
+        $customer = Customer::create([
+            'name' => 'New Customer Test',
+            'phone' => '12345678',
+            'credit_status' => 'new',
+            'allow_credit' => false, // Inherit global credit settings (since false is used as fallback)
+            'credit_limit' => 0.00,
+        ]);
+
+        // Resolve credit config
+        $config = CreditConfigService::getCreditConfig($customer);
+
+        // Since there are no unpaid overdue invoices, they shouldn't be blocked.
+        // They should inherit global settings (allow_credit = true, limit = 500)
+        $this->assertTrue($config['allow_credit']);
+        $this->assertEquals(500, $config['credit_limit']);
+    }
+
     public function test_credit_sale_with_credito_payment_detail_saves_correctly_as_credit_pending()
     {
         // Authenticate seller

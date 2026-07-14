@@ -71,13 +71,9 @@ class CreditConfigService
             $resolvedCreditDays = $globalConfig->global_credit_days ?? 30;
         }
 
-        // Bloqueo para clientes nuevos o en mora (Scoring / Bootstrapping)
-        // Si el cliente es nuevo y no tiene asignado un límite manual > 0, bloqueamos el crédito.
-        // Si el cliente está en mora ('defaulted') Y tiene facturas vencidas sin saldar, bloqueamos el crédito por seguridad.
-        if (
-            ($customer->credit_status === 'new' || $customer->credit_status === null) && ($customer->credit_limit === null || $customer->credit_limit <= 0) ||
-            ($customer->credit_status === 'defaulted' && self::hasUnpaidOverdueInvoices($customer))
-        ) {
+        // Bloqueo para clientes con facturas vencidas
+        // Si el cliente tiene facturas vencidas sin saldar, bloqueamos el crédito por seguridad.
+        if (self::hasUnpaidOverdueInvoices($customer)) {
             return [
                 'allow_credit' => false,
                 'base_allow_credit' => $baseAllowCredit, // Permite saber si el botón en la UI se debe mostrar (para hacer bypass) o no.
@@ -94,8 +90,8 @@ class CreditConfigService
         // A. Configuración de Cliente
         if ($customer->allow_credit !== null && $customer->allow_credit !== false) {
             return [
-                'allow_credit' => $customer->allow_credit,
-                'base_allow_credit' => $baseAllowCredit,
+                'allow_credit' => (bool)$customer->allow_credit,
+                'base_allow_credit' => (bool)$baseAllowCredit,
                 'credit_days' => $customer->credit_days,
                 'credit_limit' => $customer->credit_limit,
                 'usd_payment_discount' => $usdPaymentDiscount, 
@@ -109,8 +105,8 @@ class CreditConfigService
         // B. Configuración de Vendedor
         if ($seller && $seller->seller_allow_credit !== null && $seller->seller_allow_credit !== false) {
             return [
-                'allow_credit' => $seller->seller_allow_credit,
-                'base_allow_credit' => $baseAllowCredit,
+                'allow_credit' => (bool)$seller->seller_allow_credit,
+                'base_allow_credit' => (bool)$baseAllowCredit,
                 'credit_days' => $seller->seller_credit_days,
                 'credit_limit' => $seller->seller_credit_limit,
                 'usd_payment_discount' => $usdPaymentDiscount, 
@@ -123,8 +119,8 @@ class CreditConfigService
 
         // C. Configuración Global
         return [
-            'allow_credit' => $globalConfig->global_allow_credit ?? true,
-            'base_allow_credit' => $baseAllowCredit,
+            'allow_credit' => (bool)($globalConfig->global_allow_credit ?? true),
+            'base_allow_credit' => (bool)$baseAllowCredit,
             'credit_days' => $globalConfig->global_credit_days ?? 30,
             'credit_limit' => $globalConfig->global_credit_limit,
             'usd_payment_discount' => $usdPaymentDiscount, 
