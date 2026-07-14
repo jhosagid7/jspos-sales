@@ -1,3 +1,9 @@
+## [1.10.240] - 2026-07-14
+### Fixed
+- **Seeder `SopladosSecondQualityLinkerSeeder` actualizado para PET individuales**:
+  * Cada medida PET (330ml, 500ml, 1000ml, 1500ml, Galón) se vincula a su propio producto de segunda calidad por separado, a diferencia de los botellones 18.9L que comparten un único producto de 2da.
+  * Mapeo correcto: 330ML → `ENVASE DE SEGUNDA PET 330ML`, 500ML → `ENVASE DE SEGUNDA PET 500ML`, 1000ML → `ENVASES DE SEGUNDA PET 1000ML`, 1500ML → `ENVASES DE SEGUNDA PET BULTO 1500ML`, Galón → `ENVASE DE SEGUNDA PET GALON 3.785`.
+
 ## [1.10.239] - 2026-07-14
 ### Added
 - **Campo `second_quality_product_id` en Productos (Inventario Soplados)**:
