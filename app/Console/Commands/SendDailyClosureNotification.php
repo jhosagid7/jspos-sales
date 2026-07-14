@@ -210,35 +210,35 @@ class SendDailyClosureNotification extends Command
         $dateFormatted = $dateParsed->format('d/m/Y');
         $dayName = strtoupper($dateParsed->locale('es')->dayName);
 
-        $waMessage = "📊 *CIERRE DE VENTAS DIARIAS*\n" .
-                     "🏢 *{$companyName}*\n" .
-                     "📅 *{$dayName} ({$dateFormatted})*\n" .
+        $waMessage = "*CIERRE DE VENTAS DIARIAS*\n\n" .
+                     "*Empresa:* {$companyName}\n" .
+                     "*Fecha:* {$dayName} ({$dateFormatted})\n" .
                      "-----------------------------------\n";
 
         foreach ($categories as $cat) {
             $contado = $dayData[$cat]['contado'];
             $cobranza = $dayData[$cat]['cobranza'];
             if ($contado > 0 || $cobranza > 0) {
-                $waMessage .= "📍 *{$cat}*:\n";
+                $waMessage .= "*{$cat}*:\n";
                 if ($contado > 0) $waMessage .= "   • Contado: $" . number_format($contado, 2) . " USD\n";
                 if ($cobranza > 0) $waMessage .= "   • Cobranza: $" . number_format($cobranza, 2) . " USD\n";
             }
         }
 
         $waMessage .= "-----------------------------------\n" .
-                      "💵 *Subtotal Contado:* $" . number_format($subtotalContado, 2) . " USD\n" .
-                      "💳 *Subtotal Cobranza:* $" . number_format($subtotalCobranza, 2) . " USD\n" .
-                      "📈 *Ventas a Crédito:* $" . number_format($dayCreditTotal, 2) . " USD\n" .
+                      "*Subtotal Contado:* $" . number_format($subtotalContado, 2) . " USD\n" .
+                      "*Subtotal Cobranza:* $" . number_format($subtotalCobranza, 2) . " USD\n" .
+                      "*Ventas a Crédito:* $" . number_format($dayCreditTotal, 2) . " USD\n" .
                       "-----------------------------------\n" .
-                      "💰 *Total General:* $" . number_format($totalGeneral, 2) . " USD\n" .
-                      "📥 *Total Recibido (Caja):* $" . number_format($totalRecibido, 2) . " USD";
+                      "*Total General:* $" . number_format($totalGeneral, 2) . " USD\n" .
+                      "*Total Recibido (Caja):* $" . number_format($totalRecibido, 2) . " USD";
 
         // Dispatch via Email
         try {
             $emailRecipients = $config->email_closure_recipients ?: [];
             if (!empty($emailRecipients)) {
                 $companyName = strtoupper($config->business_name ?: 'SISTEMA');
-                $subject = "📊 Cierre Diario de Ventas - {$companyName}";
+                $subject = "Cierre Diario de Ventas - {$companyName}";
                 
                 // Formatear texto para Markdown de email
                 $emailBody = str_replace("\n", "\n\n", $waMessage);

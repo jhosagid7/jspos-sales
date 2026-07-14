@@ -50,12 +50,12 @@ class SettingsWhatsappNotificationTest extends TestCase
         $this->mock(WhatsappService::class, function ($mock) {
             $mock->shouldReceive('checkStatus')->once()->andReturn(true);
             
-            $expectedMessage = "FABRICA DE PLASTICOS M&M STEEL\n" .
-                now()->format('d/m/Y') . "\n" .
-                "BCV: 639.70\n" .
-                "MONITOR: 735.06\n" .
-                "DIFERENCIAL: 1.1490\n" .
-                "SISTEMA: 760";
+            $expectedMessage = "*FABRICA DE PLASTICOS M&M STEEL*\n" .
+                now()->format('d/m/Y') . "\n\n" .
+                "*BCV:* 639.70\n" .
+                "*MONITOR:* 735.06\n" .
+                "*DIFERENCIAL:* 1.1490\n" .
+                "*SISTEMA:* 760";
                 
             $mock->shouldReceive('sendToGroupByName')
                 ->once()
@@ -82,12 +82,12 @@ class SettingsWhatsappNotificationTest extends TestCase
         $this->mock(WhatsappService::class, function ($mock) {
             $mock->shouldReceive('checkStatus')->once()->andReturn(true);
             
-            $expectedMessage = "FABRICA DE PLASTICOS M&M STEEL\n" .
-                now()->format('d/m/Y') . "\n" .
-                "BCV: 639.70\n" .
-                "MONITOR: 735.06\n" .
-                "DIFERENCIAL: 1.1490\n" .
-                "SISTEMA: 760";
+            $expectedMessage = "*FABRICA DE PLASTICOS M&M STEEL*\n" .
+                now()->format('d/m/Y') . "\n\n" .
+                "*BCV:* 639.70\n" .
+                "*MONITOR:* 735.06\n" .
+                "*DIFERENCIAL:* 1.1490\n" .
+                "*SISTEMA:* 760";
                 
             $mock->shouldReceive('sendMessage')
                 ->once()

@@ -59,9 +59,9 @@ class SendWeeklyReportNotification extends Command
         $companyName = strtoupper($config->business_name ?: 'SISTEMA');
         $weekLabel = $reportComponent->weekLabel;
 
-        $waMessage = "📄 *REPORTE SEMANAL DE INGRESOS*\n" .
-                     "🏢 *{$companyName}*\n" .
-                     "📅 *{$weekLabel}*\n" .
+        $waMessage = "*REPORTE SEMANAL DE INGRESOS*\n\n" .
+                     "*Empresa:* {$companyName}\n" .
+                     "*Semana:* {$weekLabel}\n" .
                      "-----------------------------------\n" .
                      "Adjunto encontrarás el reporte detallado en PDF correspondiente a la semana.";
 
@@ -70,7 +70,7 @@ class SendWeeklyReportNotification extends Command
             $emailRecipients = $config->email_weekly_report_recipients ?: [];
             if (!empty($emailRecipients)) {
                 $companyName = strtoupper($config->business_name ?: 'SISTEMA');
-                $subject = "📄 Reporte Semanal de Ingresos - {$companyName}";
+                $subject = "Reporte Semanal de Ingresos - {$companyName}";
                 
                 // Formatear texto para Markdown de email
                 $emailBody = str_replace("\n", "\n\n", $waMessage);

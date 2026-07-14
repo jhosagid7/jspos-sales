@@ -737,12 +737,12 @@ class Settings extends Component
                 $whatsappService = app(\App\Services\WhatsappService::class);
                 $status = $whatsappService->checkStatus();
                 if ($status) {
-                    $waMessage = "{$companyName}\n" .
-                                 "{$dateStr}\n" .
-                                 "BCV: {$bcvStr}\n" .
-                                 "MONITOR: {$monitorStr}\n" .
-                                 "DIFERENCIAL: {$diferencialStr}\n" .
-                                 "SISTEMA: {$sistemaStr}";
+                    $waMessage = "*{$companyName}*\n" .
+                                 "{$dateStr}\n\n" .
+                                 "*BCV:* {$bcvStr}\n" .
+                                 "*MONITOR:* {$monitorStr}\n" .
+                                 "*DIFERENCIAL:* {$diferencialStr}\n" .
+                                 "*SISTEMA:* {$sistemaStr}";
 
                     // Send to Groups
                     $selectedGroups = $config->whatsapp_rate_groups ?: [];

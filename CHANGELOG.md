@@ -1,3 +1,10 @@
+## [1.10.247] - 2026-07-14
+### Changed
+- **Formato Limpio y Remoción de Emojis en Notificaciones de WhatsApp y Correo**:
+  * Se removieron todos los emojis (como 📄, 🏢, 📅, 📝, 📊, 📦, ⚙️, 🔍, 📍, 💵, 💳, 📈, 💰, 📥) de las notificaciones enviadas a WhatsApp y correos electrónicos del sistema (tasas de cambio, cierres de turno de soplados, reportes semanales de ingresos, reportes consolidados semanales de soplados y cierres diarios de ventas).
+  * Se formatearon los títulos y subtítulos clave con negritas de WhatsApp (`*texto*`) y saltos de línea dobles para una presentación clara, limpia y muy legible.
+  * Se actualizaron las pruebas de notificaciones de WhatsApp correspondientes para validar la salida estructurada con negritas y sin emojis.
+
 ## [1.10.246] - 2026-07-14
 ### Fixed
 - **Optimización de Memoria en Exportación de Base de Datos para Copias de Seguridad (Rollback)**:

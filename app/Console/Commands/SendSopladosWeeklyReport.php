@@ -310,7 +310,7 @@ class SendSopladosWeeklyReport extends Command
             $emailRecipients = $config->email_soplados_weekly_recipients ?: [];
             if (!empty($emailRecipients)) {
                 $companyName = strtoupper($config->business_name ?: 'SISTEMA');
-                $subject = "📄 Reporte Semanal Consolidado de Soplados - {$companyName}";
+                $subject = "Reporte Semanal Consolidado de Soplados - {$companyName}";
                 $emailBody = "Estimados,\n\nAdjunto a este correo encontrarán el reporte semanal consolidado correspondiente al período del " . $start->format('d/m/Y') . " al " . $end->format('d/m/Y') . " de la planta de Soplados.\n\nEste reporte consolida los turnos de manufactura y el último inventario físico cargado al sistema.\n\nAtentamente,\nControl de Calidad y Soplado";
 
                 \Illuminate\Support\Facades\Mail::to($emailRecipients)->send(new \App\Mail\GenericNotificationMail(
@@ -329,9 +329,9 @@ class SendSopladosWeeklyReport extends Command
             $whatsappService = app(WhatsappService::class);
             if ($whatsappService->checkStatus()) {
                 $companyName = strtoupper($config->business_name ?: 'SISTEMA');
-                $waMessage = "📄 *REPORTE CONSOLIDADO SEMANAL - SOPLADOS*\n" .
-                             "🏢 *{$companyName}*\n" .
-                             "📅 *Período:* " . $start->format('d/m/Y') . " al " . $end->format('d/m/Y') . "\n" .
+                $waMessage = "*REPORTE CONSOLIDADO SEMANAL - SOPLADOS*\n\n" .
+                             "*Empresa:* {$companyName}\n" .
+                             "*Período:* " . $start->format('d/m/Y') . " al " . $end->format('d/m/Y') . "\n" .
                              "-----------------------------------\n" .
                              "• *Turnos Cerrados:* " . $shifts->count() . "\n" .
                              "• *Rendimiento (Yield):* " . number_format($weekEfficiency, 2) . "%\n" .
