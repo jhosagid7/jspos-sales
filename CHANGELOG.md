@@ -1,3 +1,9 @@
+## [1.10.243] - 2026-07-14
+### Fixed
+- **Exclusión de Productos de Segunda Calidad Destino en Inventario (Soplados)**:
+  * Se modificó `InventoryController` para excluir todos los productos marcados como destino de segunda calidad (`second_quality_product_id`) de los listados de inventario (`index` y `productsForCount`) de la app de soplados.
+  * Esto previene que se muestren tarjetas de conteo individuales redundantes o fuera de lugar (como `BOTELLON 18.9LTS 2DA SURT.` o `ENVASE DE SEGUNDA PET 330ML`), garantizando que en Soplados solo se cuenten y reporten por color u original, y la acumulación en el producto de segunda se realice tras bambalinas.
+
 ## [1.10.242] - 2026-07-14
 ### Fixed
 - **Autovinculación y Autoetiquetado de Productos de Segunda Calidad (Soplados)**:

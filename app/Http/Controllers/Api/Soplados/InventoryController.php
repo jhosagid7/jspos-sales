@@ -21,10 +21,17 @@ class InventoryController extends Controller
         $soplados_id = $config->soplados_warehouse_id ?? $config->default_warehouse_id ?? 1;
         $warehouse_id = auth()->user()->warehouse_id ?? $soplados_id;
 
-        // 1. Get Soplados Products (Tagged with 'soplados')
+        $secondQualityDestinationIds = Product::whereNotNull('second_quality_product_id')
+            ->pluck('second_quality_product_id')
+            ->unique()
+            ->all();
+
+        // 1. Get Soplados Products (Tagged with 'soplados', excluding target second quality products)
         $allIds = Product::whereHas('tags', function($q) {
                 $q->where('name', 'soplados');
-            })->pluck('id');
+            })
+            ->whereNotIn('id', $secondQualityDestinationIds)
+            ->pluck('id');
 
         // 2. Query stock in the plant warehouse
         $inventory = Product::with(['productWarehouses' => function($q) use ($warehouse_id) {
@@ -187,13 +194,19 @@ class InventoryController extends Controller
         $soplados_id = $config->soplados_warehouse_id ?? $config->default_warehouse_id ?? 1;
         $warehouse_id = auth()->user()->warehouse_id ?? $soplados_id;
 
-        // 1. Get Finished Products (Tagged with 'soplados' and is_raw_material = false)
+        $secondQualityDestinationIds = Product::whereNotNull('second_quality_product_id')
+            ->pluck('second_quality_product_id')
+            ->unique()
+            ->all();
+
+        // 1. Get Finished Products (Tagged with 'soplados' and is_raw_material = false, excluding target second quality products)
         $finishedProducts = Product::with(['productionTarget', 'secondQualityProduct', 'productWarehouses' => function($q) use ($warehouse_id) {
                 $q->where('warehouse_id', $warehouse_id);
             }])
             ->whereHas('tags', function($q) {
                 $q->where('name', 'soplados');
             })
+            ->whereNotIn('id', $secondQualityDestinationIds)
             ->where('is_raw_material', false)
             ->get();
 
