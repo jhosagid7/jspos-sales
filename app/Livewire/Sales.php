@@ -5288,23 +5288,43 @@ class Sales extends Component
 
         $this->pendingCreditAuthId = $auth->id;
 
+        $overdueDetails = "";
+        if (!empty($this->customer['outstanding_invoices'])) {
+            $overdueInvoices = collect($this->customer['outstanding_invoices'])->where('is_overdue', true);
+            if ($overdueInvoices->isNotEmpty()) {
+                $overdueDetails .= "\n*DETALLE DE FACTURAS VENCIDAS:*\n";
+                foreach ($overdueInvoices as $inv) {
+                    try {
+                        $dueDateObj = \Carbon\Carbon::createFromFormat('d/m/Y', $inv['due_date'])->startOfDay();
+                        $today = now()->startOfDay();
+                        $daysLate = $today->diffInDays($dueDateObj, false);
+                        $daysLateAbs = abs($daysLate);
+                        $daysLateStr = $daysLate < 0 ? "{$daysLateAbs} días vencida" : "vence hoy";
+                    } catch (\Exception $e) {
+                        $daysLateStr = "vencida";
+                    }
+                    $overdueDetails .= "• Fac #" . $inv['invoice_number'] . " | Vence: " . $inv['due_date'] . " (" . $daysLateStr . ") | Pendiente: " . $inv['currency_symbol'] . number_format($inv['pending'], 2) . "\n";
+                }
+            }
+        }
+
         // Enviar notificaciones
         $config = \App\Models\Configuration::first();
-        $message = "Solicitud de Autorización de Crédito en POS.\n" .
-                   "Vendedor: " . auth()->user()->name . "\n" .
-                   "Cliente: " . $this->customer['name'] . "\n" .
-                   "Monto Solicitado: $" . number_format($this->totalCart, 2) . "\n" .
-                   "Motivo: " . $this->creditAuthStatusMessage . "\n\n" .
-                   "PIN DE AUTORIZACIÓN: " . $pin . "\n" .
+        $message = "*SOLICITUD DE AUTORIZACIÓN DE CRÉDITO*\n\n" .
+                   "*Vendedor:* " . auth()->user()->name . "\n" .
+                   "*Cliente:* " . $this->customer['name'] . "\n" .
+                   "*Monto Solicitado:* $" . number_format($this->totalCart, 2) . "\n\n" .
+                   "*Motivo:* " . $this->creditAuthStatusMessage . "\n" .
+                   $overdueDetails . "\n" .
+                   "*PIN DE AUTORIZACIÓN:* " . $pin . "\n" .
                    "(Válido por 15 minutos)";
 
         // Enviar por correo
         if (!empty($config->email_credit_auth_recipients)) {
             foreach ($config->email_credit_auth_recipients as $email) {
-                // Assuming basic mail sending setup (replace with appropriate Mail facade usage)
                 try {
-                    \Illuminate\Support\Facades\Mail::raw($message, function($msg) use ($email) {
-                        $msg->to(trim($email))->subject('Autorización de Crédito POS - PIN: ' . substr($message, -6));
+                    \Illuminate\Support\Facades\Mail::raw($message, function($msg) use ($email, $pin) {
+                        $msg->to(trim($email))->subject('Autorización de Crédito POS - PIN: ' . $pin);
                     });
                 } catch (\Exception $e) {
                     \Log::error("Error enviando email auth credito: " . $e->getMessage());

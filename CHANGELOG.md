@@ -1,3 +1,10 @@
+## [1.10.245] - 2026-07-14
+### Changed
+- **Detalle de Facturas Vencidas en Notificación de Crédito**:
+  * Se modificó `requestCreditAuthorization` para adjuntar una lista desglosada de las facturas vencidas del cliente moroso (número de factura, fecha de vencimiento, días de retraso y monto pendiente por cobrar) en el cuerpo del mensaje de autorización de crédito.
+  * Se eliminaron los emojis de la notificación y se dio formato a los títulos con negritas de WhatsApp (`*texto*`) para una presentación más formal y legible en WhatsApp y correo electrónico.
+  * Se mejoró la generación del asunto en el correo para asociar la variable del PIN directamente de forma limpia.
+
 ## [1.10.244] - 2026-07-14
 ### Fixed
 - **Exclusión Exclusiva del Botellón de Segunda Surtido en Inventario (Soplados)**:
