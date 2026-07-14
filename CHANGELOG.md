@@ -1,3 +1,9 @@
+## [1.10.242] - 2026-07-14
+### Fixed
+- **Autovinculación y Autoetiquetado de Productos de Segunda Calidad (Soplados)**:
+  * Se modificó `SopladosSecondQualityLinkerSeeder` para buscar productos de segunda calidad en la base de datos basándose únicamente en el nombre, sin filtrar inicialmente por la etiqueta `soplados`.
+  * Se agregó autoetiquetado automático de modo que si encuentra el producto homólogo de segunda calidad (creado manualmente por el usuario), le asocia la etiqueta `soplados` automáticamente en el sistema y luego realiza el enlace. Esto soluciona el problema por el cual los campos de segunda calidad desaparecían de la app al no contar previamente con la etiqueta en base de datos.
+
 ## [1.10.241] - 2026-07-14
 ### Fixed
 - **Validación y Bloqueo de Crédito solo por Facturas Vencidas**:

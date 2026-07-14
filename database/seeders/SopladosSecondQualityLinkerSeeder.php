@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\Product;
+use App\Models\Tag;
 
 /**
  * Links finished soplados products to their second quality homolog product
@@ -25,7 +26,10 @@ class SopladosSecondQualityLinkerSeeder extends Seeder
 {
     public function run(): void
     {
+        $sopladosTag = Tag::firstOrCreate(['name' => 'soplados']);
+
         // --- 1. BOTELLONES (18.9L) → Single "BOTELLON DE 2DA" product ---
+        // Find by name containing BOTELLON and 2DA/SEGUNDA and 18/18.9
         $botellon2da = Product::where(function ($q) {
                 $q->where('name', 'like', '%BOTELLON%')
                   ->orWhere('name', 'like', '%BOTELLÓN%');
@@ -34,12 +38,29 @@ class SopladosSecondQualityLinkerSeeder extends Seeder
                 $q->where('name', 'like', '%2DA%')
                   ->orWhere('name', 'like', '%SEGUNDA%');
             })
-            ->whereHas('tags', function ($q) {
-                $q->where('name', 'soplados');
-            })
+            ->where('name', 'like', '%18%')
             ->first();
 
+        // Fallback search if no specific 18.9L second quality was found
+        if (!$botellon2da) {
+            $botellon2da = Product::where(function ($q) {
+                    $q->where('name', 'like', '%BOTELLON%')
+                      ->orWhere('name', 'like', '%BOTELLÓN%');
+                })
+                ->where(function ($q) {
+                    $q->where('name', 'like', '%2DA%')
+                      ->orWhere('name', 'like', '%SEGUNDA%');
+                })
+                ->where('name', 'not like', '%12%') // exclude 12L
+                ->first();
+        }
+
         if ($botellon2da) {
+            // Auto-tag the second quality product with 'soplados' if missing
+            if (!$botellon2da->tags()->where('name', 'soplados')->exists()) {
+                $botellon2da->tags()->attach($sopladosTag->id);
+            }
+
             $updated = Product::where(function ($q) {
                     $q->where('name', 'like', '%BOTELLON 18.9%')
                       ->orWhere('name', 'like', '%BOTELLÓN 18.9%');
@@ -65,7 +86,7 @@ class SopladosSecondQualityLinkerSeeder extends Seeder
         ];
 
         foreach ($petMappings as $sizeKey => $sizeTerms) {
-            // Find the SEGUNDA product for this size
+            // Find the SEGUNDA product for this size without filtering by soplados tag initially
             $segunda = Product::where(function ($q) {
                     $q->where('name', 'like', '%2DA%')
                       ->orWhere('name', 'like', '%SEGUNDA%');
@@ -77,14 +98,16 @@ class SopladosSecondQualityLinkerSeeder extends Seeder
                         }
                     });
                 })
-                ->whereHas('tags', function ($q) {
-                    $q->where('name', 'soplados');
-                })
                 ->first();
 
             if (!$segunda) {
                 $this->command->warn("No se encontró producto de 2da para PET {$sizeKey}. Omitiendo.");
                 continue;
+            }
+
+            // Auto-tag the second quality product with 'soplados' if missing
+            if (!$segunda->tags()->where('name', 'soplados')->exists()) {
+                $segunda->tags()->attach($sopladosTag->id);
             }
 
             // Find first-quality PET products of this size (exclude the segunda itself)
