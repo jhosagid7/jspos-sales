@@ -1,3 +1,8 @@
+## [1.10.244] - 2026-07-14
+### Fixed
+- **Exclusión Exclusiva del Botellón de Segunda Surtido en Inventario (Soplados)**:
+  * Se refinó la exclusión del `InventoryController` para que solo oculte de la lista de conteo de la app los productos de segunda calidad que se deriven de productos de tipo botellón (como `BOTELLON 18.9LTS 2DA SURT.`), manteniendo los productos de segunda calidad de los envases PET visibles e independientes para conteo individual si así se requiere.
+
 ## [1.10.243] - 2026-07-14
 ### Fixed
 - **Exclusión de Productos de Segunda Calidad Destino en Inventario (Soplados)**:

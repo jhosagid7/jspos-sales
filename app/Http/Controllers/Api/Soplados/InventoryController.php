@@ -21,7 +21,11 @@ class InventoryController extends Controller
         $soplados_id = $config->soplados_warehouse_id ?? $config->default_warehouse_id ?? 1;
         $warehouse_id = auth()->user()->warehouse_id ?? $soplados_id;
 
-        $secondQualityDestinationIds = Product::whereNotNull('second_quality_product_id')
+        $secondQualityDestinationIds = Product::where(function($q) {
+                $q->where('name', 'like', '%BOTELLON%')
+                  ->orWhere('name', 'like', '%BOTELLÓN%');
+            })
+            ->whereNotNull('second_quality_product_id')
             ->pluck('second_quality_product_id')
             ->unique()
             ->all();
@@ -194,7 +198,11 @@ class InventoryController extends Controller
         $soplados_id = $config->soplados_warehouse_id ?? $config->default_warehouse_id ?? 1;
         $warehouse_id = auth()->user()->warehouse_id ?? $soplados_id;
 
-        $secondQualityDestinationIds = Product::whereNotNull('second_quality_product_id')
+        $secondQualityDestinationIds = Product::where(function($q) {
+                $q->where('name', 'like', '%BOTELLON%')
+                  ->orWhere('name', 'like', '%BOTELLÓN%');
+            })
+            ->whereNotNull('second_quality_product_id')
             ->pluck('second_quality_product_id')
             ->unique()
             ->all();
