@@ -188,7 +188,7 @@ class InventoryController extends Controller
         $warehouse_id = auth()->user()->warehouse_id ?? $soplados_id;
 
         // 1. Get Finished Products (Tagged with 'soplados' and is_raw_material = false)
-        $finishedProducts = Product::with(['productionTarget', 'productWarehouses' => function($q) use ($warehouse_id) {
+        $finishedProducts = Product::with(['productionTarget', 'secondQualityProduct', 'productWarehouses' => function($q) use ($warehouse_id) {
                 $q->where('warehouse_id', $warehouse_id);
             }])
             ->whereHas('tags', function($q) {
@@ -223,10 +223,11 @@ class InventoryController extends Controller
             $target_id = null;
             $target_name = null;
 
-            if ($p->production_target_id) {
-                $target = $p->productionTarget;
-                $target_id = $p->production_target_id;
-                $target_name = $target->name ?? 'Segunda';
+            // Use second_quality_product_id to identify the 2da calidad homolog product
+            if ($p->second_quality_product_id) {
+                $secondQualityProduct = $p->secondQualityProduct;
+                $target_id = $p->second_quality_product_id;
+                $target_name = $secondQualityProduct ? $secondQualityProduct->name : '2da Calidad';
                 
                 $targetWarehouseStock = \App\Models\ProductWarehouse::where('product_id', $target_id)
                     ->where('warehouse_id', $warehouse_id)
@@ -353,8 +354,8 @@ class InventoryController extends Controller
                 $diff_merma = null;
 
                 if ($pData['type'] === 'finished_product') {
-                    if ($p->production_target_id) {
-                        $pwSegunda = \App\Models\ProductWarehouse::where('product_id', $p->production_target_id)
+                    if ($p->second_quality_product_id) {
+                        $pwSegunda = \App\Models\ProductWarehouse::where('product_id', $p->second_quality_product_id)
                             ->where('warehouse_id', $warehouse_id)
                             ->first();
                         $system_segunda = $pwSegunda->stock_qty ?? 0;
@@ -465,8 +466,8 @@ class InventoryController extends Controller
             foreach ($inventory->details as $detail) {
                 $this->setWarehouseStock($detail->product_id, $inventory->warehouse_id, $detail->counted_primera);
 
-                if ($detail->type === 'finished_product' && $detail->product->production_target_id) {
-                    $this->setWarehouseStock($detail->product->production_target_id, $inventory->warehouse_id, $detail->counted_segunda);
+                if ($detail->type === 'finished_product' && $detail->product->second_quality_product_id) {
+                    $this->setWarehouseStock($detail->product->second_quality_product_id, $inventory->warehouse_id, $detail->counted_segunda);
                 }
             }
 

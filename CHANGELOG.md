@@ -1,9 +1,21 @@
+## [1.10.239] - 2026-07-14
+### Added
+- **Campo `second_quality_product_id` en Productos (Inventario Soplados)**:
+  * Nueva migración que agrega `second_quality_product_id` a la tabla `products`, separando la lógica de agrupación de colores/variantes (`production_target_id`) de la lógica de producto homólogo de segunda calidad.
+  * Nuevo seeder `SopladosSecondQualityLinkerSeeder` que vincula automáticamente los botellones 18.9L (todos los colores) al producto `BOTELLON DE 2DA`, y los PET (330ml, 500ml, 1000ml, 1500ml, galón) al producto `PET DE 2DA` si existe. Idempotente: seguro de ejecutar múltiples veces.
+  * El seeder se ejecuta automáticamente en cada actualización del sistema (`UpdateService`).
+
+### Fixed
+- **Campo "2da Calidad" no aparecía en inventario para PET 330/500/1000/1500/Galón**:
+  * El `InventoryController` ahora usa `second_quality_product_id` para determinar si un producto tiene homólogo de segunda calidad, en lugar de `production_target_id`. Esto permite que los envases PET muestren la sección de "2da Calidad" en la app de inventario una vez que el producto `PET DE 2DA` esté creado y vinculado.
+  * La lógica de `storeCount` y `acceptCount` fue actualizada con el mismo campo para guardar y aplicar correctamente el stock de segunda calidad al aceptar el inventario.
+
 ## [1.10.238] - 2026-07-13
 ### Changed
 - **Desglose de Calidades en Tabla de Rendimiento por Turno (Reporte Soplados)**:
   * La tabla "Rendimiento de Producción por Turno" ahora muestra tres columnas de cantidad separadas por color: **1ra Cal.** (verde), **2da Cal.** (naranja) y **Merma** (rojo), en lugar de una única columna que sumaba 1ra y 2da juntas.
   * Las columnas de 2da Calidad y Merma muestran un guión (`-`) cuando no hay unidades de ese tipo, mejorando la lectura del reporte.
-  * Aplica tanto al PDF enviado por correo/WhatsApp (`SendSopladosWeeklyReport`) como al descargado manualmente desde la web (`ProductionReport`).
+  *44565563'¿ Aplica tanto al PDF enviado por correo/WhatsApp (`SendSopladosWeeklyReport`) 4como al descargado manualmente desde la web (`ProductionReport`).
 
 ## [1.10.237] - 2026-07-13
 ### Changed

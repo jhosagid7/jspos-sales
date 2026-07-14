@@ -48,6 +48,7 @@ class Product extends Model
         'supplier_id',
         'category_id',
         'production_target_id',
+        'second_quality_product_id',
         'max_stock',
         'brand',
         'presentation',
@@ -133,6 +134,11 @@ class Product extends Model
     public function productionTarget()
     {
         return $this->belongsTo(Product::class, 'production_target_id');
+    }
+
+    public function secondQualityProduct()
+    {
+        return $this->belongsTo(Product::class, 'second_quality_product_id');
     }
 
     public function warehouses()

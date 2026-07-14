@@ -113,7 +113,7 @@ class SopladosInventoryTest extends TestCase
             'stock_qty' => 100,
             'low_stock' => 0,
             'manage_stock' => false,
-            'production_target_id' => $this->secondQualityProduct->id,
+            'second_quality_product_id' => $this->secondQualityProduct->id,
             'category_id' => $this->category->id,
             'supplier_id' => $supplier->id,
             'status' => 1,
