@@ -1567,6 +1567,9 @@ class ReportController extends Controller
                               ->orWhere('sku', 'like', "%{$token}%")
                               ->orWhereHas('category', function ($subQuery) use ($token) {
                                   $subQuery->where('name', 'like', "%{$token}%");
+                              })
+                              ->orWhereHas('tags', function ($subQuery) use ($token) {
+                                  $subQuery->where('name', 'like', "%{$token}%");
                               });
                         });
                     }

@@ -72,6 +72,9 @@ class InventoryReportFilterTest extends TestCase
             'stock_qty' => 20,
             'low_stock' => 5,
         ]);
+
+        $tag = \App\Models\Tag::firstOrCreate(['name' => 'soplados']);
+        $this->rawMaterial->tags()->attach($tag->id);
     }
 
     public function test_inventory_report_loads_with_default_products_filter()
@@ -99,6 +102,16 @@ class InventoryReportFilterTest extends TestCase
             ->set('product_type', 'all')
             ->assertSee('FINISHED PRODUCT')
             ->assertSee('RAW INSUMO MATERIAL');
+    }
+
+    public function test_inventory_report_can_search_by_tag()
+    {
+        Livewire::actingAs($this->user)
+            ->test(InventoryReport::class)
+            ->set('product_type', 'all')
+            ->set('search', 'soplados')
+            ->assertSee('RAW INSUMO MATERIAL')
+            ->assertDontSee('FINISHED PRODUCT');
     }
 
     public function test_open_pdf_preview_includes_product_type_parameter()

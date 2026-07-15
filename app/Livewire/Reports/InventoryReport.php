@@ -80,6 +80,9 @@ class InventoryReport extends Component
                                   ->orWhere('sku', 'like', "%{$token}%")
                                   ->orWhereHas('category', function ($subQuery) use ($token) {
                                       $subQuery->where('name', 'like', "%{$token}%");
+                                  })
+                                  ->orWhereHas('tags', function ($subQuery) use ($token) {
+                                      $subQuery->where('name', 'like', "%{$token}%");
                                   });
                             });
                         }
@@ -150,6 +153,9 @@ class InventoryReport extends Component
                             $q->where('name', 'like', "%{$token}%")
                               ->orWhere('sku', 'like', "%{$token}%")
                               ->orWhereHas('category', function ($subQuery) use ($token) {
+                                  $subQuery->where('name', 'like', "%{$token}%");
+                              })
+                              ->orWhereHas('tags', function ($subQuery) use ($token) {
                                   $subQuery->where('name', 'like', "%{$token}%");
                               });
                         });

@@ -1,3 +1,10 @@
+## [1.10.249] - 2026-07-15
+### Added
+- **Búsqueda por Tag/Etiqueta en Reporte de Inventario**:
+  * Se modificó la consulta del buscador tanto en el componente Livewire `InventoryReport` como en el controlador PDF `ReportController` para incluir la relación `tags` utilizando `orWhereHas('tags')`.
+  * Esto permite buscar términos asignados como etiquetas a los productos (por ejemplo, "soplados", "pet", "tapas") desde la barra de búsqueda de Inventario.
+  * Se añadieron casos de prueba a la suite `InventoryReportFilterTest` para verificar el correcto funcionamiento de la búsqueda por etiquetas.
+
 ## [1.10.248] - 2026-07-15
 ### Added
 - **Filtro de Productos e Insumos / Materias Primas en Reporte de Inventario**:
