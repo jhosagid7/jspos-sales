@@ -114,6 +114,21 @@ class InventoryReportFilterTest extends TestCase
             ->assertDontSee('FINISHED PRODUCT');
     }
 
+    public function test_inventory_report_can_search_by_multiple_tags()
+    {
+        // rawMaterial has tag soplados (from setUp)
+        // Let's attach tag pet to the finished product
+        $tagB = \App\Models\Tag::firstOrCreate(['name' => 'pet']);
+        $this->product->tags()->attach($tagB->id);
+
+        Livewire::actingAs($this->user)
+            ->test(InventoryReport::class)
+            ->set('product_type', 'all')
+            ->set('search', 'soplados pet')
+            ->assertSee('RAW INSUMO MATERIAL') // Tag soplados
+            ->assertSee('FINISHED PRODUCT'); // Tag pet
+    }
+
     public function test_open_pdf_preview_includes_product_type_parameter()
     {
         $component = Livewire::actingAs($this->user)

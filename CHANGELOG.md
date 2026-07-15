@@ -1,3 +1,11 @@
+## [1.10.250] - 2026-07-15
+### Changed
+- **Búsqueda Flexible Multi-Tag (OR) en Reporte de Inventario**:
+  * Se optimizó la consulta del buscador en `InventoryReport` y `ReportController::inventoryPdf` para implementar una lógica de búsqueda flexible (`OR`) entre múltiples etiquetas.
+  * Esto permite que buscar términos como "soplados pet" devuelva todos los productos asociados con el tag "soplados" O con el tag "pet" simultáneamente, evitando listas vacías producto del comportamiento estricto `AND` anterior.
+  * Se mantiene la búsqueda estricta (`AND`) para campos de texto planos (Nombre, SKU, Categoría) para garantizar la relevancia de los resultados.
+  * Se actualizó la suite de pruebas unitarias `InventoryReportFilterTest` para cubrir la búsqueda combinada multi-tag.
+
 ## [1.10.249] - 2026-07-15
 ### Added
 - **Búsqueda por Tag/Etiqueta en Reporte de Inventario**:

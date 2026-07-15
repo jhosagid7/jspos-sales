@@ -73,20 +73,30 @@ class InventoryReport extends Component
                 ->when($this->category_id !== 'all', fn($q) => $q->where('category_id', $this->category_id))
                 ->when($this->search !== '', function ($query) {
                     $tokens = explode(' ', trim($this->search));
-                    foreach ($tokens as $token) {
-                        if (!empty($token)) {
-                            $query->where(function($q) use ($token) {
-                                $q->where('name', 'like', "%{$token}%")
-                                  ->orWhere('sku', 'like', "%{$token}%")
-                                  ->orWhereHas('category', function ($subQuery) use ($token) {
-                                      $subQuery->where('name', 'like', "%{$token}%");
-                                  })
-                                  ->orWhereHas('tags', function ($subQuery) use ($token) {
-                                      $subQuery->where('name', 'like', "%{$token}%");
-                                  });
+                    $query->where(function($q) use ($tokens) {
+                        $q->where(function($andQuery) use ($tokens) {
+                            foreach ($tokens as $token) {
+                                if (!empty($token)) {
+                                    $andQuery->where(function($subQuery) use ($token) {
+                                        $subQuery->where('name', 'like', "%{$token}%")
+                                                 ->orWhere('sku', 'like', "%{$token}%")
+                                                 ->orWhereHas('category', function ($catQuery) use ($token) {
+                                                     $catQuery->where('name', 'like', "%{$token}%");
+                                                 });
+                                    });
+                                }
+                            }
+                        })
+                        ->orWhereHas('tags', function ($tagQuery) use ($tokens) {
+                            $tagQuery->where(function($sub) use ($tokens) {
+                                foreach ($tokens as $token) {
+                                    if (!empty($token)) {
+                                        $sub->orWhere('name', 'like', "%{$token}%");
+                                    }
+                                }
                             });
-                        }
-                    }
+                        });
+                    });
                 })->pluck('id')->map(fn($id) => (string)$id)->toArray();
         } else {
             $this->selected_products = [];
@@ -147,20 +157,30 @@ class InventoryReport extends Component
             })
             ->when(!$this->show_only_selected && $this->search !== '', function ($query) {
                 $tokens = explode(' ', trim($this->search));
-                foreach ($tokens as $token) {
-                    if (!empty($token)) {
-                        $query->where(function($q) use ($token) {
-                            $q->where('name', 'like', "%{$token}%")
-                              ->orWhere('sku', 'like', "%{$token}%")
-                              ->orWhereHas('category', function ($subQuery) use ($token) {
-                                  $subQuery->where('name', 'like', "%{$token}%");
-                              })
-                              ->orWhereHas('tags', function ($subQuery) use ($token) {
-                                  $subQuery->where('name', 'like', "%{$token}%");
-                              });
+                $query->where(function($q) use ($tokens) {
+                    $q->where(function($andQuery) use ($tokens) {
+                        foreach ($tokens as $token) {
+                            if (!empty($token)) {
+                                $andQuery->where(function($subQuery) use ($token) {
+                                    $subQuery->where('name', 'like', "%{$token}%")
+                                             ->orWhere('sku', 'like', "%{$token}%")
+                                             ->orWhereHas('category', function ($catQuery) use ($token) {
+                                                 $catQuery->where('name', 'like', "%{$token}%");
+                                             });
+                                });
+                            }
+                        }
+                    })
+                    ->orWhereHas('tags', function ($tagQuery) use ($tokens) {
+                        $tagQuery->where(function($sub) use ($tokens) {
+                            foreach ($tokens as $token) {
+                                if (!empty($token)) {
+                                    $sub->orWhere('name', 'like', "%{$token}%");
+                                }
+                            }
                         });
-                    }
-                }
+                    });
+                });
             })
             ->with(['category', 'supplier', 'warehouses'])
             ->orderBy('name')
