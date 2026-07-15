@@ -24,6 +24,7 @@ class InventoryReport extends Component
     public $search = '';
     public $supplier_id = 'all';
     public $category_id = 'all';
+    public $product_type = 'products'; // products, raw_materials, all
     
     // Configuración de columnas
     public $columns = [
@@ -66,6 +67,8 @@ class InventoryReport extends Component
     {
         if ($value) {
             $this->selected_products = Product::where('status', 'available')
+                ->when($this->product_type === 'products', fn($q) => $q->where('is_raw_material', false))
+                ->when($this->product_type === 'raw_materials', fn($q) => $q->where('is_raw_material', true))
                 ->when($this->supplier_id !== 'all', fn($q) => $q->where('supplier_id', $this->supplier_id))
                 ->when($this->category_id !== 'all', fn($q) => $q->where('category_id', $this->category_id))
                 ->when($this->search !== '', function ($query) {
@@ -96,7 +99,7 @@ class InventoryReport extends Component
     {
         // Reset selection ONLY if specifically requested or if logic dictates, 
         // but NOT on search to allow cumulative selection as requested by user.
-        if (in_array($propertyName, ['supplier_id', 'category_id'])) {
+        if (in_array($propertyName, ['supplier_id', 'category_id', 'product_type'])) {
             $this->resetPage();
         }
 
@@ -124,6 +127,12 @@ class InventoryReport extends Component
     public function getProductsData()
     {
         return Product::where('status', 'available')
+            ->when($this->product_type === 'products', function ($q) {
+                $q->where('is_raw_material', false);
+            })
+            ->when($this->product_type === 'raw_materials', function ($q) {
+                $q->where('is_raw_material', true);
+            })
             ->when($this->show_only_selected, function ($q) {
                 $q->whereIn('id', $this->selected_products);
             })
@@ -162,7 +171,8 @@ class InventoryReport extends Component
             'search' => $this->search,
             'warehouses' => json_encode($this->selected_warehouses),
             'show_total' => $this->show_total_stock,
-            'selected_ids' => count($this->selected_products) > 0 ? implode(',', $this->selected_products) : null
+            'selected_ids' => count($this->selected_products) > 0 ? implode(',', $this->selected_products) : null,
+            'product_type' => $this->product_type
         ];
 
         $this->pdfUrl = route('reports.inventory.pdf', $params);

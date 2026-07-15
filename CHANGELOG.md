@@ -1,3 +1,11 @@
+## [1.10.248] - 2026-07-15
+### Added
+- **Filtro de Productos e Insumos / Materias Primas en Reporte de Inventario**:
+  * Se integró una nueva opción de filtrado ("Filtro de Inventario") en la columna lateral del módulo "Reporte de Inventario / Stock" para permitir al usuario alternar entre visualizar "Solo Productos" (donde `is_raw_material = false`), "Solo Insumos / Materia Prima" (donde `is_raw_material = true`) y "Todos".
+  * Se configuró "Solo Productos" como la opción seleccionada por defecto para no alterar el comportamiento histórico del módulo.
+  * Se adaptó la lógica de selección de elementos individuales/todos, el renderizado de la tabla y la exportación a formato PDF en `ReportController::inventoryPdf` para heredar este criterio de filtrado dinámicamente.
+  * Se añadieron pruebas unitarias completas en `InventoryReportFilterTest` para validar los comportamientos de filtrado y parámetros de PDF correspondientes.
+
 ## [1.10.247] - 2026-07-14
 ### Changed
 - **Formato Limpio y Remoción de Emojis en Notificaciones de WhatsApp y Correo**:

@@ -8,6 +8,15 @@
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
+                        <label class="f-14 font-weight-bold">Filtro de Inventario</label>
+                        <select wire:model.live="product_type" class="form-control form-control-sm">
+                            <option value="products">Solo Productos</option>
+                            <option value="raw_materials">Solo Insumos / Materia Prima</option>
+                            <option value="all">Todos</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="f-14 font-weight-bold">Proveedor</label>
                         <select wire:model.live="supplier_id" class="form-control form-control-sm">
                             <option value="all">Todos los Proveedores</option>

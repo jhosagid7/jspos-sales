@@ -1540,8 +1540,15 @@ class ReportController extends Controller
         $selected_ids = $request->get('selected_ids') ? explode(',', $request->get('selected_ids')) : [];
         $selected_warehouses = json_decode($request->get('warehouses'), true) ?? [];
         $show_total = $request->get('show_total', true);
+        $product_type = $request->get('product_type', 'products');
 
         $products = \App\Models\Product::where('status', 'available')
+            ->when($product_type === 'products', function ($q) {
+                $q->where('is_raw_material', false);
+            })
+            ->when($product_type === 'raw_materials', function ($q) {
+                $q->where('is_raw_material', true);
+            })
             ->when(!empty($selected_ids), function ($q) use ($selected_ids) {
                 $q->whereIn('id', $selected_ids);
             })
