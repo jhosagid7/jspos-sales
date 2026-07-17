@@ -496,14 +496,29 @@ class ExchangeDiffReport extends Component
             $usdReal = $amountOriginal / $binanceRate;
             $diff = $usdReal - $usdCredited;
 
+            $saleTotalUSD = floatval($p->sale_total_usd ?: 0);
+            $saleDiffAmount = floatval($p->sale_exchange_diff_amount ?: 0);
+            $surchargePortion = $saleTotalUSD > 0 ? ($usdCredited * ($saleDiffAmount / $saleTotalUSD)) : 0;
+            $netDiff = $diff + $surchargePortion;
+
             $status = 'green';
             $msg = 'Cumple Rentabilidad';
-            if ($diff < -0.01) {
-                $status = 'red';
-                $msg = 'Fuga de Capital';
-            } elseif ($payRate != $binanceRate) {
-                $status = 'orange';
-                $msg = 'Desviación de Tasa';
+            if ($p->payment_agreement === 'BCV' || $surchargePortion > 0) {
+                if ($netDiff < -0.01) {
+                    $status = 'red';
+                    $msg = 'Fuga Real (Cojín Insuficiente)';
+                } else {
+                    $status = 'green';
+                    $msg = 'Cojín Eficiente';
+                }
+            } else {
+                if ($diff < -0.01) {
+                    $status = 'red';
+                    $msg = 'Fuga de Capital';
+                } elseif (abs($payRate - $binanceRate) > 0.01) {
+                    $status = 'orange';
+                    $msg = 'Desviación de Tasa';
+                }
             }
 
             $processedPayments[] = [
@@ -520,6 +535,8 @@ class ExchangeDiffReport extends Component
                 'usd_credited' => $usdCredited,
                 'usd_real' => $usdReal,
                 'diff' => $diff,
+                'surcharge_portion' => $surchargePortion,
+                'net_diff' => $netDiff,
                 'status' => $status,
                 'msg' => $msg
             ];
@@ -583,14 +600,29 @@ class ExchangeDiffReport extends Component
                 $usdReal = $amountOriginal / $binanceRate;
                 $diff = $usdReal - $usdCredited;
 
+                $saleTotalUSD = floatval($p->sale_total_usd ?: 0);
+                $saleDiffAmount = floatval($p->sale_exchange_diff_amount ?: 0);
+                $surchargePortion = $saleTotalUSD > 0 ? ($usdCredited * ($saleDiffAmount / $saleTotalUSD)) : 0;
+                $netDiff = $diff + $surchargePortion;
+
                 $status = 'green';
                 $msg = 'Cumple Rentabilidad';
-                if ($diff < -0.01) {
-                    $status = 'red';
-                    $msg = 'Fuga de Capital';
-                } elseif (abs($payRate - $binanceRate) > 0.01) {
-                    $status = 'orange';
-                    $msg = 'Desviación de Tasa';
+                if ($p->payment_agreement === 'BCV' || $surchargePortion > 0) {
+                    if ($netDiff < -0.01) {
+                        $status = 'red';
+                        $msg = 'Fuga Real (Cojín Insuficiente)';
+                    } else {
+                        $status = 'green';
+                        $msg = 'Cojín Eficiente';
+                    }
+                } else {
+                    if ($diff < -0.01) {
+                        $status = 'red';
+                        $msg = 'Fuga de Capital';
+                    } elseif (abs($payRate - $binanceRate) > 0.01) {
+                        $status = 'orange';
+                        $msg = 'Desviación de Tasa';
+                    }
                 }
 
                 $processedItems[] = [
@@ -607,6 +639,8 @@ class ExchangeDiffReport extends Component
                     'usd_credited' => $usdCredited,
                     'usd_real' => $usdReal,
                     'diff' => $diff,
+                    'surcharge_portion' => $surchargePortion,
+                    'net_diff' => $netDiff,
                     'status' => $status,
                     'msg' => $msg
                 ];

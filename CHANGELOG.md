@@ -1,3 +1,12 @@
+## [1.10.253] - 2026-07-17
+### Changed
+- **Auditoría de Diferencial Cambiario: Evaluación Neta de Rentabilidad con Cojín de Recargo (Opción A)**:
+  * Se implementó el cálculo y evaluación del diferencial neto para facturas con acuerdo `BCV` y recargo por diferencial configurado.
+  * El estado de auditoría en la tabla y en el PDF ahora evalúa si el recargo cobrado absorbe exitosamente la brecha cambiaria (`Diferencial Neto = Diferencial Directo + Cojín Facturado >= -0.01`).
+  * Cuando el cojín es suficiente, la fila se califica en verde como `Cojín Eficiente` (o `Cumple`), evitando falsas alertas de fuga de capital por el diferencial directo negativo de la tasa BCV vs Binance.
+  * Si la devaluación supera el recargo configurado (`Diferencial Neto < -0.01`), se marca en rojo como `Fuga Real (Cojín Insuficiente)`.
+  * La columna de Diferencial en la tabla web y PDF ahora muestra como monto principal el resultado neto e incluye un desglose claro (`Directo: -X.XX (+Cojín Y.YY)`).
+
 ## [1.10.252] - 2026-07-17
 ### Changed
 - **Dashboard Estratégico: Etiquetas de Semanas con Rango de Fechas Legibles**:

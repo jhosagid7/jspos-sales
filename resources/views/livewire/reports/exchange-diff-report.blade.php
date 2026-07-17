@@ -222,16 +222,23 @@
                                         <td class="text-center text-info font-weight-bold">{{ number_format($p['binance_rate'], 2) }}</td>
                                         <td class="text-right font-weight-bold">${{ number_format($p['usd_credited'], 2) }}</td>
                                         <td class="text-right font-weight-bold">${{ number_format($p['usd_real'], 2) }}</td>
-                                        <td class="text-right font-weight-bold @if($p['diff'] < 0) text-danger @else text-success @endif">
-                                            ${{ number_format($p['diff'], 2) }}
+                                        <td class="text-right font-weight-bold @if(($p['surcharge_portion'] > 0 ? $p['net_diff'] : $p['diff']) < 0) text-danger @else text-success @endif">
+                                            @if($p['surcharge_portion'] > 0)
+                                                ${{ number_format($p['net_diff'], 2) }}
+                                                <small class="d-block text-muted f-11" title="Diferencial Directo: ${{ number_format($p['diff'], 2) }} | Cojín Facturado: +${{ number_format($p['surcharge_portion'], 2) }}">
+                                                    Directo: ${{ number_format($p['diff'], 2) }} <span class="text-warning font-weight-bold">(+Cojín ${{ number_format($p['surcharge_portion'], 2) }})</span>
+                                                </small>
+                                            @else
+                                                ${{ number_format($p['diff'], 2) }}
+                                            @endif
                                         </td>
                                         <td class="text-center">
                                             @if($p['status'] === 'green')
-                                                <span class="badge badge-success px-2 py-1"><i class="fas fa-check-circle mr-1"></i> Cumple</span>
+                                                <span class="badge badge-success px-2 py-1"><i class="fas fa-check-circle mr-1"></i> {{ $p['msg'] ?? 'Cumple' }}</span>
                                             @elseif($p['status'] === 'orange')
-                                                <span class="badge badge-warning px-2 py-1" style="color: #fff; background-color: #fd7e14;"><i class="fas fa-exclamation-triangle mr-1"></i> Desviación</span>
+                                                <span class="badge badge-warning px-2 py-1" style="color: #fff; background-color: #fd7e14;"><i class="fas fa-exclamation-triangle mr-1"></i> {{ $p['msg'] ?? 'Desviación' }}</span>
                                             @else
-                                                <span class="badge badge-danger px-2 py-1"><i class="fas fa-times-circle mr-1"></i> Fuga</span>
+                                                <span class="badge badge-danger px-2 py-1"><i class="fas fa-times-circle mr-1"></i> {{ $p['msg'] ?? 'Fuga' }}</span>
                                             @endif
                                         </td>
                                     </tr>

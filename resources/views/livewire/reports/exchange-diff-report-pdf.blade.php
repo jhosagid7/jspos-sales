@@ -215,16 +215,21 @@
                     <td class="text-center font-bold" style="color: #17a2b8;">{{ number_format($p['binance_rate'], 2) }}</td>
                     <td class="text-right font-bold">${{ number_format($p['usd_credited'], 2) }}</td>
                     <td class="text-right font-bold">${{ number_format($p['usd_real'], 2) }}</td>
-                    <td class="text-right font-bold @if($p['diff'] < 0) text-danger @else text-success @endif">
-                        ${{ number_format($p['diff'], 2) }}
+                    <td class="text-right font-bold @if(($p['surcharge_portion'] > 0 ? $p['net_diff'] : $p['diff']) < 0) text-danger @else text-success @endif">
+                        @if($p['surcharge_portion'] > 0)
+                            ${{ number_format($p['net_diff'], 2) }}
+                            <div style="font-size: 7pt; color: #666;">Dir: ${{ number_format($p['diff'], 2) }} (+${{ number_format($p['surcharge_portion'], 2) }})</div>
+                        @else
+                            ${{ number_format($p['diff'], 2) }}
+                        @endif
                     </td>
                     <td class="text-center">
                         @if($p['status'] === 'green')
-                            <span class="badge-success">Cumple</span>
+                            <span class="badge-success">{{ $p['msg'] ?? 'Cumple' }}</span>
                         @elseif($p['status'] === 'orange')
-                            <span class="badge-warning">Desviación</span>
+                            <span class="badge-warning">{{ $p['msg'] ?? 'Desviación' }}</span>
                         @else
-                            <span class="badge-danger">Fuga</span>
+                            <span class="badge-danger">{{ $p['msg'] ?? 'Fuga' }}</span>
                         @endif
                     </td>
                 </tr>

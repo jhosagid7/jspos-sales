@@ -270,4 +270,87 @@ class ExchangeDiffReportTest extends TestCase
         $htmlCustomer = $componentWithCustomer->instance()->getInterpretation();
         $this->assertStringContainsString('Análisis Cambiario del Cliente: Exchange Customer', $htmlCustomer);
     }
+
+    public function test_exchange_diff_report_option_a_net_cushion_evaluation()
+    {
+        $this->actingAs($this->adminUser);
+        $today = Carbon::now()->format('Y-m-d');
+
+        ExchangeRateHistory::create([
+            'rate_type' => 'BinanceReal',
+            'rate' => 60.00,
+            'user_id' => $this->adminUser->id,
+            'created_at' => Carbon::now()->startOfDay()->addHours(8)
+        ]);
+
+        // Sale 1: BCV agreement with sufficient surcharge cushion ($20 surcharge on $120 total)
+        $saleSufficient = Sale::create([
+            'user_id' => $this->adminUser->id,
+            'customer_id' => $this->customer->id,
+            'total' => 120.00,
+            'total_usd' => 120.00,
+            'items' => 1,
+            'status' => 'pending',
+            'type' => 'credit',
+            'primary_currency_code' => 'USD',
+            'primary_exchange_rate' => 50.00,
+            'payment_agreement' => 'BCV',
+            'exchange_diff_amount' => 20.00,
+            'invoice_number' => 2001
+        ]);
+
+        // Payment for Sale 1: pays full 6000 VED at rate 50.00 ($120 credited). Real USD = 6000 / 60 = $100.
+        // Direct diff = -20. Surcharge portion = 20. Net diff = 0. Should be green / Cojín Eficiente.
+        SalePaymentDetail::create([
+            'sale_id' => $saleSufficient->id,
+            'payment_method' => 'cash',
+            'currency_code' => 'VED',
+            'amount' => 6000.00,
+            'exchange_rate' => 50.00,
+            'amount_in_primary_currency' => 120.00
+        ]);
+
+        // Sale 2: BCV agreement with insufficient surcharge cushion ($10 surcharge on $120 total)
+        $saleInsufficient = Sale::create([
+            'user_id' => $this->adminUser->id,
+            'customer_id' => $this->customer->id,
+            'total' => 120.00,
+            'total_usd' => 120.00,
+            'items' => 1,
+            'status' => 'pending',
+            'type' => 'credit',
+            'primary_currency_code' => 'USD',
+            'primary_exchange_rate' => 50.00,
+            'payment_agreement' => 'BCV',
+            'exchange_diff_amount' => 10.00,
+            'invoice_number' => 2002
+        ]);
+
+        // Payment for Sale 2: pays full 6000 VED at rate 50.00 ($120 credited). Real USD = 6000 / 60 = $100.
+        // Direct diff = -20. Surcharge portion = 10. Net diff = -10. Should be red / Fuga Real (Cojín Insuficiente).
+        SalePaymentDetail::create([
+            'sale_id' => $saleInsufficient->id,
+            'payment_method' => 'cash',
+            'currency_code' => 'VED',
+            'amount' => 6000.00,
+            'exchange_rate' => 50.00,
+            'amount_in_primary_currency' => 120.00
+        ]);
+
+        Livewire::test(ExchangeDiffReport::class)
+            ->set('dateFrom', $today)
+            ->set('dateTo', $today)
+            ->call('searchData')
+            ->assertViewHas('payments', function ($payments) {
+                if (count($payments) !== 2) return false;
+                $p1 = collect($payments->items())->firstWhere('invoice_number', 2001);
+                $p2 = collect($payments->items())->firstWhere('invoice_number', 2002);
+                return $p1['status'] === 'green'
+                    && $p1['msg'] === 'Cojín Eficiente'
+                    && abs($p1['net_diff'] - 0.0) < 0.01
+                    && $p2['status'] === 'red'
+                    && $p2['msg'] === 'Fuga Real (Cojín Insuficiente)'
+                    && abs($p2['net_diff'] - (-10.0)) < 0.01;
+            });
+    }
 }
