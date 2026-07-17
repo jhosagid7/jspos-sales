@@ -1,3 +1,8 @@
+## [1.10.252] - 2026-07-17
+### Changed
+- **Dashboard Estratégico: Etiquetas de Semanas con Rango de Fechas Legibles**:
+  * Las etiquetas del gráfico de tendencia semanal ahora muestran el rango de fechas exacto de cada semana (ej. `27/05-02/06`) en lugar del número de semana ISO (ej. `Sem 22`), facilitando la lectura e interpretación de los datos históricos.
+
 ## [1.10.251] - 2026-07-17
 ### Added
 - **Dashboard Estratégico: Gráfico de Tendencia Lineal de Crecimiento**:

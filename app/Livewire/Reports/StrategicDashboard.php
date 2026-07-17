@@ -377,7 +377,7 @@ class StrategicDashboard extends Component
                 $start = $week->copy()->startOfWeek();
                 $end = $week->copy()->endOfWeek();
                 $metrics = $this->calculateRangeMetrics($start, $end);
-                $labels[] = 'Sem ' . $week->format('W');
+                $labels[] = $start->format('d/m') . '-' . $end->format('d/m');
                 $sales[] = round($metrics['netSales'], 2);
                 $profit[] = round($metrics['netProfit'], 2);
             }
