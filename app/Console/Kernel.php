@@ -57,6 +57,21 @@ class Kernel extends ConsoleKernel
             ->everyTwoHours()
             ->between('6:00', '22:00')
             ->runInBackground();
+
+        // Cierre diario de bancos (tesorería)
+        $treasuryCutoffHour = '17:00';
+        try {
+            $config = \App\Models\Configuration::first();
+            if ($config) {
+                $treasuryCutoffHour = $config->treasury_cutoff_hour ?: '17:00';
+            }
+        } catch (\Exception $e) {
+        }
+
+        $schedule->command('treasury:bank-cutoff')
+            ->timezone('America/Caracas')
+            ->dailyAt($treasuryCutoffHour)
+            ->runInBackground();
     }
 
     /**

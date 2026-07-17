@@ -367,7 +367,7 @@
 
                 {{-- MÓDULO 4: FINANZAS Y AUDITORÍA --}}
                 @unlessrole('Driver')
-                @canany(['cash_register.close', 'customer_statement.index', 'reports.financial', 'zelle_index', 'bank_index', 'payments.approve_custom_rate'])
+                @canany(['cash_register.close', 'customer_statement.index', 'reports.financial', 'zelle_index', 'bank_index', 'payments.approve_custom_rate', 'treasury.index'])
                 <li class="nav-item">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-file-invoice-dollar"></i>
@@ -495,6 +495,17 @@
                             </ul>
                         </li>
                         @endcanany
+                        @endmodule
+
+                        @module('module_treasury')
+                        @can('treasury.index')
+                        <li class="nav-item">
+                            <a href="{{ route('treasury.dashboard') }}" class="nav-link {{ Request::is('treasury*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Tesorería / Bancos</p>
+                            </a>
+                        </li>
+                        @endcan
                         @endmodule
                     </ul>
                 </li>

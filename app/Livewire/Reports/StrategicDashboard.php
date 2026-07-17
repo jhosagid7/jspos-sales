@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\Auth;
 class StrategicDashboard extends Component
 {
     public $selectedMonth;
+    public $selectedDay;
+    public $comparisonScope = 'monthly'; // 'daily', 'weekly', 'monthly', 'quarterly', 'yearly'
     public $activeTab = 'growth';
     public $showInterpretationModal = false;
 
@@ -30,6 +32,21 @@ class StrategicDashboard extends Component
     {
         session(['pos' => 'Análisis Estratégico']);
         $this->selectedMonth = Carbon::today()->format('Y-m');
+        $this->selectedDay = Carbon::today()->format('Y-m-d');
+    }
+
+    public function updatedSelectedMonth($value)
+    {
+        if ($value) {
+            $this->selectedDay = Carbon::parse($value . '-01')->format('Y-m-d');
+        }
+    }
+
+    public function updatedSelectedDay($value)
+    {
+        if ($value) {
+            $this->selectedMonth = Carbon::parse($value)->format('Y-m');
+        }
     }
 
     public function addOpex()
@@ -76,181 +93,395 @@ class StrategicDashboard extends Component
 
     private function getDashboardData()
     {
-        $dt = Carbon::parse($this->selectedMonth . '-01');
-        $year = $dt->year;
-        $month = $dt->month;
+        $currencies = \App\Models\Currency::all();
+        $primaryCurrency = $currencies->where('is_primary', 1)->first() ?? $currencies->first();
+        $primaryCode = $primaryCurrency ? $primaryCurrency->code : 'USD';
 
-        // Current Period Data
-        $currentPeriod = $this->calculatePeriodMetrics($month, $year);
+        $refDate = Carbon::parse($this->selectedDay);
+        
+        $currentStart = null;
+        $currentEnd = null;
+        $prevStart = null;
+        $prevEnd = null;
+        $yearAgoStart = null;
+        $yearAgoEnd = null;
 
-        // Previous Month Data
-        $prevDt = $dt->copy()->subMonth();
-        $prevPeriod = $this->calculatePeriodMetrics($prevDt->month, $prevDt->year);
+        $periodLabel = '';
+        $prevLabel = '';
+        $yearAgoLabel = '';
 
-        // Same Month Last Year Data
-        $yearAgoDt = $dt->copy()->subYear();
-        $yearAgoPeriod = $this->calculatePeriodMetrics($yearAgoDt->month, $yearAgoDt->year);
+        if ($this->comparisonScope === 'daily') {
+            $currentStart = $refDate->copy()->startOfDay();
+            $currentEnd = $refDate->copy()->endOfDay();
+            
+            $prevStart = $refDate->copy()->subDay()->startOfDay();
+            $prevEnd = $refDate->copy()->subDay()->endOfDay();
+            
+            $yearAgoStart = $refDate->copy()->subYear()->startOfDay();
+            $yearAgoEnd = $refDate->copy()->subYear()->endOfDay();
 
-        // Calculate Weekly Breakdown for Current Month
-        $weeklyBreakdown = $this->calculateWeeklyBreakdown($dt);
+            $periodLabel = 'Día ' . $refDate->format('d/m/Y');
+            $prevLabel = 'vs día anterior';
+            $yearAgoLabel = 'vs año anterior';
+        } elseif ($this->comparisonScope === 'weekly') {
+            $currentStart = $refDate->copy()->startOfWeek();
+            $currentEnd = $refDate->copy()->endOfWeek();
+            
+            $prevStart = $refDate->copy()->subWeek()->startOfWeek();
+            $prevEnd = $refDate->copy()->subWeek()->endOfWeek();
+            
+            $yearAgoStart = $refDate->copy()->subYear()->startOfWeek();
+            $yearAgoEnd = $refDate->copy()->subYear()->endOfWeek();
 
-        // Calculate Current Patrimonio Neto (Wealth Snapshot)
+            $periodLabel = 'Semana ' . $refDate->format('W') . ' (' . $currentStart->format('d/m') . ' al ' . $currentEnd->format('d/m') . ')';
+            $prevLabel = 'vs semana anterior';
+            $yearAgoLabel = 'vs año anterior';
+        } elseif ($this->comparisonScope === 'quarterly') {
+            $currentStart = $refDate->copy()->startOfQuarter();
+            $currentEnd = $refDate->copy()->endOfQuarter();
+            
+            $prevStart = $refDate->copy()->subQuarter()->startOfQuarter();
+            $prevEnd = $refDate->copy()->subQuarter()->endOfQuarter();
+            
+            $yearAgoStart = $refDate->copy()->subYear()->startOfQuarter();
+            $yearAgoEnd = $refDate->copy()->subYear()->endOfQuarter();
+
+            $periodLabel = 'Trimestre Q' . ceil($refDate->month / 3) . ' ' . $refDate->year;
+            $prevLabel = 'vs trimestre anterior';
+            $yearAgoLabel = 'vs año anterior';
+        } elseif ($this->comparisonScope === 'yearly') {
+            $currentStart = $refDate->copy()->startOfYear();
+            $currentEnd = $refDate->copy()->endOfYear();
+            
+            $prevStart = $refDate->copy()->subYear()->startOfYear();
+            $prevEnd = $refDate->copy()->subYear()->endOfYear();
+            
+            $yearAgoStart = $refDate->copy()->subYears(2)->startOfYear();
+            $yearAgoEnd = $refDate->copy()->subYears(2)->endOfYear();
+
+            $periodLabel = 'Año ' . $refDate->year;
+            $prevLabel = 'vs año anterior';
+            $yearAgoLabel = 'vs hace 2 años';
+        } else { // monthly
+            $currentStart = $refDate->copy()->startOfMonth();
+            $currentEnd = $refDate->copy()->endOfMonth();
+            
+            $prevStart = $refDate->copy()->subMonth()->startOfMonth();
+            $prevEnd = $refDate->copy()->subMonth()->endOfMonth();
+            
+            $yearAgoStart = $refDate->copy()->subYear()->startOfMonth();
+            $yearAgoEnd = $refDate->copy()->subYear()->endOfMonth();
+
+            $periodLabel = strtoupper($refDate->locale('es')->monthName) . ' ' . $refDate->year;
+            $prevLabel = 'vs mes anterior';
+            $yearAgoLabel = 'vs año anterior';
+        }
+
+        $currentPeriod = $this->calculateRangeMetrics($currentStart, $currentEnd);
+        $prevPeriod = $this->calculateRangeMetrics($prevStart, $prevEnd);
+        $yearAgoPeriod = $this->calculateRangeMetrics($yearAgoStart, $yearAgoEnd);
+
+        $linearTrend = $this->getLinearGrowthTrend($this->comparisonScope, $refDate);
+        $breakdownData = $this->calculateDetailedBreakdown($this->comparisonScope, $refDate);
         $patrimonyData = $this->calculateCurrentPatrimony();
+        $abcData = $this->calculateCustomerABC($refDate->month, $refDate->year);
+        $productMargins = $this->calculateProductMargins($refDate->month, $refDate->year);
 
-        // Calculate Customer ABC Analysis (All time or current year to be meaningful)
-        $abcData = $this->calculateCustomerABC($month, $year);
+        $startDateStr = $currentStart->format('Y-m-d');
+        $endDateStr = $currentEnd->format('Y-m-d');
+        $yearMonthStr = $refDate->format('Y-m');
 
-        // Calculate Product Margin Contrib (Current Month)
-        $productMargins = $this->calculateProductMargins($month, $year);
-
-        // Load OPEX List for the current selected month
-        $opexList = OperationalExpense::where('year_month', $this->selectedMonth)
+        $manualOpexList = OperationalExpense::where('year_month', $yearMonthStr)
             ->orderBy('id', 'desc')
             ->get();
+
+        $bankExpensesList = \App\Models\BankExpense::with(['bank', 'category'])
+            ->whereBetween('expense_date', [$startDateStr, $endDateStr])
+            ->get();
+
+        $unifiedOpexList = collect();
+
+        foreach ($manualOpexList as $item) {
+            $amount = (float)$item->amount;
+            if ($this->comparisonScope === 'daily') {
+                $amount = $amount / $refDate->daysInMonth;
+            } elseif ($this->comparisonScope === 'weekly') {
+                $amount = ($amount / $refDate->daysInMonth) * 7;
+            }
+
+            $unifiedOpexList->push((object)[
+                'id' => $item->id,
+                'category' => $item->category,
+                'description' => $item->description . ($this->comparisonScope !== 'monthly' ? ' (Proporcional)' : ''),
+                'amount' => $amount,
+                'is_bank' => false,
+                'bank_name' => null,
+                'date' => null,
+            ]);
+        }
+
+        foreach ($bankExpensesList as $item) {
+            $rate = 1.0;
+            $currencyCode = $item->bank->currency_code;
+            if ($currencyCode !== $primaryCode) {
+                $curr = $currencies->where('code', $currencyCode)->first();
+                $rate = $curr && $curr->exchange_rate > 0 ? $curr->exchange_rate : 1.0;
+            }
+            $amountInPrimary = $rate > 0 ? ($item->amount / $rate) : $item->amount;
+
+            $desc = $item->description;
+            if ($item->beneficiary) {
+                $desc = ($desc ? $desc . ' | ' : '') . 'Beneficiario: ' . $item->beneficiary;
+            }
+            if ($item->reference) {
+                $desc = ($desc ? $desc . ' | ' : '') . 'Ref: ' . $item->reference;
+            }
+
+            $unifiedOpexList->push((object)[
+                'id' => $item->id,
+                'category' => $item->category ? $item->category->name : 'Gasto Bancario',
+                'description' => $desc,
+                'amount' => (float)$amountInPrimary,
+                'is_bank' => true,
+                'bank_name' => $item->bank->name,
+                'date' => Carbon::parse($item->expense_date)->format('d/m/Y'),
+            ]);
+        }
+
+        $opexList = $unifiedOpexList->sortByDesc('amount');
 
         return [
             'current' => $currentPeriod,
             'prev' => $prevPeriod,
             'yearAgo' => $yearAgoPeriod,
-            'weeklyBreakdown' => $weeklyBreakdown,
+            'weeklyBreakdown' => $breakdownData,
+            'linearTrend' => $linearTrend,
             'patrimony' => $patrimonyData,
             'abc' => $abcData,
             'productMargins' => $productMargins,
             'opexList' => $opexList,
-            'monthName' => strtoupper($dt->locale('es')->monthName) . ' ' . $year,
+            'monthName' => $periodLabel,
+            'prevLabel' => $prevLabel,
+            'yearAgoLabel' => $yearAgoLabel,
         ];
     }
 
-    private function calculatePeriodMetrics($month, $year)
+    private function calculateRangeMetrics($start, $end)
     {
-        // 1. Gross Sales (USD)
+        $startDate = $start->copy()->startOfDay();
+        $endDate = $end->copy()->endOfDay();
+
         $grossSales = DB::table('sale_details')
             ->join('sales', 'sale_details.sale_id', '=', 'sales.id')
             ->join('products', 'sale_details.product_id', '=', 'products.id')
-            ->whereMonth('sales.created_at', $month)
-            ->whereYear('sales.created_at', $year)
+            ->whereBetween('sales.created_at', [$startDate, $endDate])
             ->whereNotIn('sales.status', ['voided', 'cancelled', 'anulated', 'returned'])
             ->whereNull('sales.deletion_approved_at')
             ->where('products.is_raw_material', false)
             ->sum(DB::raw('sale_details.quantity * (sale_details.sale_price / COALESCE(NULLIF(sales.primary_exchange_rate, 0), 1))'));
 
-        // 2. Returns (USD)
         $returns = DB::table('sale_return_details')
             ->join('sale_returns', 'sale_return_details.sale_return_id', '=', 'sale_returns.id')
             ->join('sales', 'sale_returns.sale_id', '=', 'sales.id')
             ->join('products', 'sale_return_details.product_id', '=', 'products.id')
-            ->whereMonth('sale_returns.created_at', $month)
-            ->whereYear('sale_returns.created_at', $year)
+            ->whereBetween('sale_returns.created_at', [$startDate, $endDate])
             ->where('sale_returns.status', 'approved')
             ->where('products.is_raw_material', false)
             ->sum(DB::raw('sale_return_details.subtotal / COALESCE(NULLIF(sales.primary_exchange_rate, 0), 1)'));
 
         $netSales = max(0, $grossSales - $returns);
 
-        // 3. Cost of Goods Sold (COGS)
         $cogs = DB::table('sale_details')
             ->join('sales', 'sale_details.sale_id', '=', 'sales.id')
             ->join('products', 'sale_details.product_id', '=', 'products.id')
             ->whereNotIn('sales.status', ['voided', 'cancelled', 'anulated', 'returned'])
             ->whereNull('sales.deletion_approved_at')
-            ->whereMonth('sales.created_at', $month)
-            ->whereYear('sales.created_at', $year)
+            ->whereBetween('sales.created_at', [$startDate, $endDate])
             ->where('products.is_raw_material', false)
             ->sum(DB::raw('sale_details.quantity * COALESCE(products.cost, 0)'));
 
         $grossProfit = max(0, $netSales - $cogs);
         $grossMarginPercent = $netSales > 0 ? ($grossProfit / $netSales) * 100 : 0;
 
-        // 4. OPEX (Operational Expenses)
-        $yearMonth = sprintf('%04d-%02d', $year, $month);
-        $opex = OperationalExpense::where('year_month', $yearMonth)->sum('amount');
+        $manualOpex = $this->getManualOpexForRange($startDate, $endDate);
+        
+        $bankOpexAnalysis = \App\Services\BankTreasuryService::getGlobalExpenseAnalysis($startDate->format('Y-m-d'), $endDate->format('Y-m-d'));
+        $bankOpex = $bankOpexAnalysis['total_amount'] ?? 0.0;
+
+        $opex = $manualOpex + $bankOpex;
 
         $netProfit = $grossProfit - $opex;
         $netMarginPercent = $netSales > 0 ? ($netProfit / $netSales) * 100 : 0;
 
         return [
-            'grossSales' => $grossSales,
-            'returns' => $returns,
-            'netSales' => $netSales,
-            'cogs' => $cogs,
-            'grossProfit' => $grossProfit,
-            'grossMarginPercent' => $grossMarginPercent,
-            'opex' => $opex,
-            'netProfit' => $netProfit,
-            'netMarginPercent' => $netMarginPercent,
+            'grossSales' => (float)$grossSales,
+            'returns' => (float)$returns,
+            'netSales' => (float)$netSales,
+            'cogs' => (float)$cogs,
+            'grossProfit' => (float)$grossProfit,
+            'grossMarginPercent' => (float)$grossMarginPercent,
+            'opex' => (float)$opex,
+            'netProfit' => (float)$netProfit,
+            'netMarginPercent' => (float)$netMarginPercent,
         ];
     }
 
-    private function calculateWeeklyBreakdown($dt)
+    private function getManualOpexForRange($start, $end)
     {
-        $startOfMonth = $dt->copy()->startOfMonth();
-        $endOfMonth = $dt->copy()->endOfMonth();
+        $total = 0.0;
+        
+        $months = [];
+        $temp = $start->copy()->startOfDay();
+        $endDay = $end->copy()->endOfDay();
+        while ($temp <= $endDay) {
+            $months[] = $temp->format('Y-m');
+            $temp->addMonth();
+        }
+        $months = array_unique($months);
 
-        $daysByWeek = [];
-        $currentDate = $startOfMonth->copy();
-        while ($currentDate <= $endOfMonth) {
-            $weekKey = $currentDate->format('o-W');
-            if (!isset($daysByWeek[$weekKey])) {
-                $daysByWeek[$weekKey] = [];
-            }
-            $daysByWeek[$weekKey][] = $currentDate->copy();
-            $currentDate->addDay();
+        $opexByMonth = OperationalExpense::whereIn('year_month', $months)
+            ->select('year_month', DB::raw('SUM(amount) as total'))
+            ->groupBy('year_month')
+            ->pluck('total', 'year_month')
+            ->toArray();
+
+        $curr = $start->copy()->startOfDay();
+        while ($curr <= $endDay) {
+            $ym = $curr->format('Y-m');
+            $monthOpex = $opexByMonth[$ym] ?? 0.0;
+            $daysInMonth = $curr->daysInMonth;
+            $total += $monthOpex / $daysInMonth;
+            $curr->addDay();
         }
 
-        $weeks = [];
-        $weekLabels = [];
-        $salesData = [];
-        $profitData = [];
+        return $total;
+    }
 
-        $weekIndex = 1;
-        foreach ($daysByWeek as $weekKey => $days) {
-            $start = collect($days)->min()->startOfDay();
-            $end = collect($days)->max()->endOfDay();
+    private function getLinearGrowthTrend($scope, $refDate)
+    {
+        $labels = [];
+        $sales = [];
+        $profit = [];
 
-            // Weekly Net Sales
-            $grossSales = DB::table('sale_details')
-                ->join('sales', 'sale_details.sale_id', '=', 'sales.id')
-                ->join('products', 'sale_details.product_id', '=', 'products.id')
-                ->whereBetween('sales.created_at', [$start, $end])
-                ->whereNotIn('sales.status', ['voided', 'cancelled', 'anulated', 'returned'])
-                ->whereNull('sales.deletion_approved_at')
-                ->where('products.is_raw_material', false)
-                ->sum(DB::raw('sale_details.quantity * (sale_details.sale_price / COALESCE(NULLIF(sales.primary_exchange_rate, 0), 1))'));
-
-            $returns = DB::table('sale_return_details')
-                ->join('sale_returns', 'sale_return_details.sale_return_id', '=', 'sale_returns.id')
-                ->join('sales', 'sale_returns.sale_id', '=', 'sales.id')
-                ->join('products', 'sale_return_details.product_id', '=', 'products.id')
-                ->whereBetween('sale_returns.created_at', [$start, $end])
-                ->where('sale_returns.status', 'approved')
-                ->where('products.is_raw_material', false)
-                ->sum(DB::raw('sale_return_details.subtotal / COALESCE(NULLIF(sales.primary_exchange_rate, 0), 1)'));
-
-            $netSales = max(0, $grossSales - $returns);
-
-            // Weekly COGS
-            $cogs = DB::table('sale_details')
-                ->join('sales', 'sale_details.sale_id', '=', 'sales.id')
-                ->join('products', 'sale_details.product_id', '=', 'products.id')
-                ->whereNotIn('sales.status', ['voided', 'cancelled', 'anulated', 'returned'])
-                ->whereNull('sales.deletion_approved_at')
-                ->whereBetween('sales.created_at', [$start, $end])
-                ->where('products.is_raw_material', false)
-                ->sum(DB::raw('sale_details.quantity * COALESCE(products.cost, 0)'));
-
-            $grossProfit = max(0, $netSales - $cogs);
-
-            $weekLabels[] = "Semana " . $weekIndex . " (" . $start->format('d/m') . ")";
-            $salesData[] = round($netSales, 2);
-            $profitData[] = round($grossProfit, 2);
-
-            $weekIndex++;
+        if ($scope === 'daily') {
+            for ($i = 14; $i >= 0; $i--) {
+                $day = $refDate->copy()->subDays($i);
+                $metrics = $this->calculateRangeMetrics($day, $day);
+                $labels[] = $day->format('d/m');
+                $sales[] = round($metrics['netSales'], 2);
+                $profit[] = round($metrics['netProfit'], 2);
+            }
+        } elseif ($scope === 'weekly') {
+            for ($i = 7; $i >= 0; $i--) {
+                $week = $refDate->copy()->subWeeks($i);
+                $start = $week->copy()->startOfWeek();
+                $end = $week->copy()->endOfWeek();
+                $metrics = $this->calculateRangeMetrics($start, $end);
+                $labels[] = 'Sem ' . $week->format('W');
+                $sales[] = round($metrics['netSales'], 2);
+                $profit[] = round($metrics['netProfit'], 2);
+            }
+        } elseif ($scope === 'quarterly') {
+            for ($i = 5; $i >= 0; $i--) {
+                $q = $refDate->copy()->subMonths($i * 3);
+                $start = $q->copy()->startOfQuarter();
+                $end = $q->copy()->endOfQuarter();
+                $metrics = $this->calculateRangeMetrics($start, $end);
+                $labels[] = 'Q' . ceil($q->month / 3) . ' ' . $q->format('y');
+                $sales[] = round($metrics['netSales'], 2);
+                $profit[] = round($metrics['netProfit'], 2);
+            }
+        } elseif ($scope === 'yearly') {
+            for ($i = 3; $i >= 0; $i--) {
+                $yr = $refDate->copy()->subYears($i);
+                $start = $yr->copy()->startOfYear();
+                $end = $yr->copy()->endOfYear();
+                $metrics = $this->calculateRangeMetrics($start, $end);
+                $labels[] = $yr->format('Y');
+                $sales[] = round($metrics['netSales'], 2);
+                $profit[] = round($metrics['netProfit'], 2);
+            }
+        } else { // monthly
+            for ($i = 11; $i >= 0; $i--) {
+                $m = $refDate->copy()->subMonths($i);
+                $start = $m->copy()->startOfMonth();
+                $end = $m->copy()->endOfMonth();
+                $metrics = $this->calculateRangeMetrics($start, $end);
+                $labels[] = $m->locale('es')->shortMonthName . ' ' . $m->format('y');
+                $sales[] = round($metrics['netSales'], 2);
+                $profit[] = round($metrics['netProfit'], 2);
+            }
         }
 
         return [
-            'labels' => $weekLabels,
-            'sales' => $salesData,
-            'profit' => $profitData,
+            'labels' => $labels,
+            'sales' => $sales,
+            'profit' => $profit,
+        ];
+    }
+
+    private function calculateDetailedBreakdown($scope, $refDate)
+    {
+        $labels = [];
+        $sales = [];
+        $profit = [];
+
+        if ($scope === 'daily' || $scope === 'weekly') {
+            $startOfWeek = $refDate->copy()->startOfWeek();
+            for ($i = 0; $i < 7; $i++) {
+                $day = $startOfWeek->copy()->addDays($i);
+                $metrics = $this->calculateRangeMetrics($day, $day);
+                
+                $daysEs = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+                $labels[] = $daysEs[$i] . ' ' . $day->format('d/m');
+                $sales[] = round($metrics['netSales'], 2);
+                $profit[] = round($metrics['grossProfit'], 2);
+            }
+        } elseif ($scope === 'yearly') {
+            $startOfYear = $refDate->copy()->startOfYear();
+            for ($i = 0; $i < 12; $i++) {
+                $month = $startOfYear->copy()->addMonths($i);
+                $start = $month->copy()->startOfMonth();
+                $end = $month->copy()->endOfMonth();
+                $metrics = $this->calculateRangeMetrics($start, $end);
+                
+                $monthsEs = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+                $labels[] = $monthsEs[$i];
+                $sales[] = round($metrics['netSales'], 2);
+                $profit[] = round($metrics['grossProfit'], 2);
+            }
+        } else { // monthly or quarterly
+            $startOfMonth = $refDate->copy()->startOfMonth();
+            $endOfMonth = $refDate->copy()->endOfMonth();
+
+            $daysByWeek = [];
+            $currentDate = $startOfMonth->copy();
+            while ($currentDate <= $endOfMonth) {
+                $weekKey = $currentDate->format('o-W');
+                if (!isset($daysByWeek[$weekKey])) {
+                    $daysByWeek[$weekKey] = [];
+                }
+                $daysByWeek[$weekKey][] = $currentDate->copy();
+                $currentDate->addDay();
+            }
+
+            $weekIndex = 1;
+            foreach ($daysByWeek as $weekKey => $days) {
+                $start = collect($days)->min()->startOfDay();
+                $end = collect($days)->max()->endOfDay();
+                $metrics = $this->calculateRangeMetrics($start, $end);
+
+                $labels[] = "Semana " . $weekIndex . " (" . $start->format('d/m') . ")";
+                $sales[] = round($metrics['netSales'], 2);
+                $profit[] = round($metrics['grossProfit'], 2);
+                $weekIndex++;
+            }
+        }
+
+        return [
+            'labels' => $labels,
+            'sales' => $sales,
+            'profit' => $profit,
         ];
     }
 
@@ -338,7 +569,9 @@ class StrategicDashboard extends Component
         $delta = 0;
         for ($i = 0; $i < $monthsAgo; $i++) {
             $dt = Carbon::today()->subMonths($i);
-            $metrics = $this->calculatePeriodMetrics($dt->month, $dt->year);
+            $start = $dt->copy()->startOfMonth();
+            $end = $dt->copy()->endOfMonth();
+            $metrics = $this->calculateRangeMetrics($start, $end);
             // Profit added to net equity
             $delta += $metrics['netProfit'];
         }

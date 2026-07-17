@@ -136,6 +136,10 @@ Route::middleware('auth')->group(function () {
     Route::get('asignar', AsignarPermisos::class)->name('asignar')->middleware(['can:permissions.assign', 'module:module_roles']);
     Route::get('commissions', \App\Livewire\Commissions::class)->name('commissions')->middleware(['can:reports.commissions', 'module:module_commissions']); // Or a specific manage permission?
     
+    // Treasury
+    Route::get('treasury', \App\Livewire\Treasury\BankTreasury::class)->name('treasury.dashboard')->middleware(['can:treasury.index', 'module:module_treasury']);
+    Route::get('reports/bank-treasury/pdf', [\App\Http\Controllers\ReportController::class, 'bankTreasuryPdf'])->name('reports.bank.treasury.pdf')->middleware(['can:treasury.index', 'module:module_treasury']);
+    
     // Label Generator
     Route::get('labels', \App\Livewire\LabelGenerator::class)->name('labels.index')->middleware(['can:products.labels', 'module:module_labels']);
     Route::get('labels/pdf', [\App\Http\Controllers\LabelController::class, 'generate'])->name('labels.pdf')->middleware(['can:products.labels', 'module:module_labels']);

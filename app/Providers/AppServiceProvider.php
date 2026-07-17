@@ -68,5 +68,17 @@ class AppServiceProvider extends ServiceProvider
         } catch (\Throwable $th) {
             // Fails silently
         }
+
+        // Auto-enable new treasury module in local environment for testing
+        if (app()->environment('local')) {
+            $modules = config('tenant.modules', []);
+            if (!is_array($modules)) {
+                $modules = [];
+            }
+            if (!in_array('module_treasury', $modules)) {
+                $modules[] = 'module_treasury';
+                config(['tenant.modules' => $modules]);
+            }
+        }
     }
 }

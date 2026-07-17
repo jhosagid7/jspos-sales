@@ -7,8 +7,23 @@
                     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
                         <h3><i class="fas fa-chart-pie text-primary"></i> Análisis Estratégico y Patrimonio</h3>
                         <div class="form-group mb-0 d-flex align-items-center flex-wrap">
-                            <label class="mr-2 font-weight-bold text-dark mb-0">Seleccionar Mes:</label>
-                            <input type="month" class="form-control form-control-sm mr-2" wire:model.live="selectedMonth" style="width: 180px;">
+                            <label class="mr-2 font-weight-bold text-dark mb-0">Rango:</label>
+                            <select wire:model.live="comparisonScope" class="form-control form-control-sm mr-2" style="width: 130px;">
+                                <option value="daily">Diario</option>
+                                <option value="weekly">Semanal</option>
+                                <option value="monthly">Mensual</option>
+                                <option value="quarterly">Trimestral</option>
+                                <option value="yearly">Anual</option>
+                            </select>
+
+                            @if($comparisonScope === 'daily')
+                                <label class="mr-2 font-weight-bold text-dark mb-0">Día:</label>
+                                <input type="date" class="form-control form-control-sm mr-2" wire:model.live="selectedDay" style="width: 150px;">
+                            @else
+                                <label class="mr-2 font-weight-bold text-dark mb-0">Mes Ancla:</label>
+                                <input type="month" class="form-control form-control-sm mr-2" wire:model.live="selectedMonth" style="width: 160px;">
+                            @endif
+
                             <button wire:click="toggleInterpretationModal" class="btn btn-info btn-sm" style="background-color: #17a2b8; border-color: #17a2b8;">
                                 <i class="fas fa-brain"></i> Analizar Resultados (IA)
                             </button>
@@ -51,16 +66,16 @@
                                                 @endphp
                                                 <div>
                                                     @if($diffPrevSales >= 0)
-                                                        <span class="text-white font-weight-bold"><i class="fas fa-arrow-up"></i> +{{ number_format($diffPrevSales, 1) }}%</span> vs mes anterior
+                                                        <span class="text-white font-weight-bold"><i class="fas fa-arrow-up"></i> +{{ number_format($diffPrevSales, 1) }}%</span> {{ $prevLabel }}
                                                     @else
-                                                        <span class="text-white font-weight-bold"><i class="fas fa-arrow-down"></i> {{ number_format($diffPrevSales, 1) }}%</span> vs mes anterior
+                                                        <span class="text-white font-weight-bold"><i class="fas fa-arrow-down"></i> {{ number_format($diffPrevSales, 1) }}%</span> {{ $prevLabel }}
                                                     @endif
                                                 </div>
                                                 <div class="mt-1">
                                                     @if($diffYearSales >= 0)
-                                                        <span class="text-white font-weight-bold"><i class="fas fa-arrow-up"></i> +{{ number_format($diffYearSales, 1) }}%</span> vs año anterior
+                                                        <span class="text-white font-weight-bold"><i class="fas fa-arrow-up"></i> +{{ number_format($diffYearSales, 1) }}%</span> {{ $yearAgoLabel }}
                                                     @else
-                                                        <span class="text-white font-weight-bold"><i class="fas fa-arrow-down"></i> {{ number_format($diffYearSales, 1) }}%</span> vs año anterior
+                                                        <span class="text-white font-weight-bold"><i class="fas fa-arrow-down"></i> {{ number_format($diffYearSales, 1) }}%</span> {{ $yearAgoLabel }}
                                                     @endif
                                                 </div>
                                             </div>
@@ -104,16 +119,16 @@
                                                 @endphp
                                                 <div>
                                                     @if($diffPrevProfit >= 0)
-                                                        <span class="text-white font-weight-bold"><i class="fas fa-arrow-up"></i> +{{ number_format($diffPrevProfit, 1) }}%</span> vs mes anterior
+                                                        <span class="text-white font-weight-bold"><i class="fas fa-arrow-up"></i> +{{ number_format($diffPrevProfit, 1) }}%</span> {{ $prevLabel }}
                                                     @else
-                                                        <span class="text-white font-weight-bold"><i class="fas fa-arrow-down"></i> {{ number_format($diffPrevProfit, 1) }}%</span> vs mes anterior
+                                                        <span class="text-white font-weight-bold"><i class="fas fa-arrow-down"></i> {{ number_format($diffPrevProfit, 1) }}%</span> {{ $prevLabel }}
                                                     @endif
                                                 </div>
                                                 <div class="mt-1">
                                                     @if($diffYearProfit >= 0)
-                                                        <span class="text-white font-weight-bold"><i class="fas fa-arrow-up"></i> +{{ number_format($diffYearProfit, 1) }}%</span> vs año anterior
+                                                        <span class="text-white font-weight-bold"><i class="fas fa-arrow-up"></i> +{{ number_format($diffYearProfit, 1) }}%</span> {{ $yearAgoLabel }}
                                                     @else
-                                                        <span class="text-white font-weight-bold"><i class="fas fa-arrow-down"></i> {{ number_format($diffYearProfit, 1) }}%</span> vs año anterior
+                                                        <span class="text-white font-weight-bold"><i class="fas fa-arrow-down"></i> {{ number_format($diffYearProfit, 1) }}%</span> {{ $yearAgoLabel }}
                                                     @endif
                                                 </div>
                                             </div>
@@ -121,13 +136,14 @@
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Weekly Evolution Chart -->
+                            <!-- Evolution and Trend Charts -->
                             <div class="row mt-4">
-                                <div class="col-md-12">
-                                    <div class="card border-0 shadow-sm">
-                                        <div class="card-header bg-transparent border-0">
-                                            <h5 class="mb-0 text-dark font-weight-bold">Velocidad Semanal de Ventas y Rentabilidad</h5>
+                                <!-- Detailed Period Chart -->
+                                <div class="col-md-6 mb-4">
+                                    <div class="card border-0 shadow-sm h-100">
+                                        <div class="card-header bg-transparent border-0 pb-0">
+                                            <h5 class="mb-0 text-dark font-weight-bold">Detalle del Periodo Seleccionado</h5>
+                                            <small class="text-muted">Desglose de ventas y ganancias brutas</small>
                                         </div>
                                          <div class="card-body"
                                               data-labels="{{ json_encode($weeklyBreakdown['labels'] ?? []) }}"
@@ -142,7 +158,7 @@
                                                       const isDarkMode = document.body.classList.contains('dark-mode');
                                                       const textColor = isDarkMode ? '#e4e4e4' : '#333333';
                                                       const chartBg = isDarkMode ? 'transparent' : '#ffffff';
-
+ 
                                                       Highcharts.chart(this.$refs.chart, {
                                                           chart: { type: 'column', backgroundColor: chartBg },
                                                           title: { text: '' },
@@ -174,10 +190,70 @@
                                               }"
                                               x-init="render()"
                                               @chart-updated.window="$nextTick(() => render())">
-                                             <div x-ref="chart" style="height: 350px;" wire:ignore></div>
+                                             <div x-ref="chart" style="height: 320px;" wire:ignore></div>
                                          </div>
                                     </div>
                                 </div>
+
+                                <!-- Linear Growth Trend Chart -->
+                                <div class="col-md-6 mb-4">
+                                    <div class="card border-0 shadow-sm h-100">
+                                        <div class="card-header bg-transparent border-0 pb-0">
+                                            <h5 class="mb-0 text-dark font-weight-bold">Gráfico de Crecimiento y Tendencia Lineal</h5>
+                                            <small class="text-muted">Evolución de ventas y utilidades netas históricas</small>
+                                        </div>
+                                         <div class="card-body"
+                                              data-labels="{{ json_encode($linearTrend['labels'] ?? []) }}"
+                                              data-sales="{{ json_encode($linearTrend['sales'] ?? []) }}"
+                                              data-profit="{{ json_encode($linearTrend['profit'] ?? []) }}"
+                                              x-data="{
+                                                  render() {
+                                                      const labels = JSON.parse(this.$el.getAttribute('data-labels') || '[]');
+                                                      const sales = JSON.parse(this.$el.getAttribute('data-sales') || '[]').map(Number);
+                                                      const profit = JSON.parse(this.$el.getAttribute('data-profit') || '[]').map(Number);
+                                                      
+                                                      const isDarkMode = document.body.classList.contains('dark-mode');
+                                                      const textColor = isDarkMode ? '#e4e4e4' : '#333333';
+                                                      const chartBg = isDarkMode ? 'transparent' : '#ffffff';
+ 
+                                                      Highcharts.chart(this.$refs.chart, {
+                                                          chart: { type: 'line', backgroundColor: chartBg },
+                                                          title: { text: '' },
+                                                          xAxis: {
+                                                              categories: labels,
+                                                              labels: { style: { color: textColor } }
+                                                          },
+                                                          yAxis: {
+                                                              title: { text: 'Monto ($ USD)', style: { color: textColor } },
+                                                              labels: { style: { color: textColor } }
+                                                          },
+                                                          tooltip: { shared: true },
+                                                          legend: { itemStyle: { color: textColor } },
+                                                          credits: { enabled: false },
+                                                          series: [
+                                                              {
+                                                                  name: 'Tendencia Ventas',
+                                                                  data: sales,
+                                                                  color: '#007bff',
+                                                                  dashStyle: 'Solid'
+                                                              },
+                                                              {
+                                                                  name: 'Tendencia Ut. Neta',
+                                                                  data: profit,
+                                                                  color: '#fd7e14',
+                                                                  dashStyle: 'ShortDash'
+                                                              }
+                                                          ]
+                                                      });
+                                                  }
+                                              }"
+                                              x-init="render()"
+                                              @chart-updated.window="$nextTick(() => render())">
+                                             <div x-ref="chart" style="height: 320px;" wire:ignore></div>
+                                         </div>
+                                    </div>
+                                </div>
+                            </div> </div>
                             </div>
                         </div>
                         @endif
@@ -496,24 +572,45 @@
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        @foreach($opexList as $item)
-                                                        <tr>
-                                                            <td><span class="badge badge-secondary">{{ $item->category }}</span></td>
-                                                            <td>{{ $item->description ?? 'Sin descripción' }}</td>
-                                                            <td class="text-right text-danger font-weight-bold">${{ number_format($item->amount, 2) }}</td>
-                                                            <td class="text-center">
-                                                                <button wire:click="deleteOpex({{ $item->id }})" class="btn btn-danger btn-sm p-1">
-                                                                    <i class="fas fa-trash"></i>
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                        @endforeach
+                                                         @foreach($opexList as $item)
+                                                         <tr>
+                                                             <td>
+                                                                 @if($item->is_bank)
+                                                                     <span class="badge badge-info"><i class="fas fa-university mr-1"></i> {{ $item->category }}</span>
+                                                                 @else
+                                                                     <span class="badge badge-secondary">{{ $item->category }}</span>
+                                                                 @endif
+                                                             </td>
+                                                             <td>
+                                                                 @if($item->is_bank)
+                                                                     {{ $item->description }}
+                                                                     <small class="text-muted d-block mt-1">
+                                                                         <i class="fas fa-university mr-1"></i> Cuenta: {{ $item->bank_name }} ({{ $item->date }})
+                                                                     </small>
+                                                                 @else
+                                                                     {{ $item->description ?? 'Sin descripción' }}
+                                                                 @endif
+                                                             </td>
+                                                             <td class="text-right text-danger font-weight-bold">${{ number_format($item->amount, 2) }}</td>
+                                                             <td class="text-center">
+                                                                 @if($item->is_bank)
+                                                                     <span class="badge badge-light text-muted" style="font-size: 10px;" title="Gasto bancario real. Administrar desde Tesorería.">
+                                                                         <i class="fas fa-lock text-muted mr-1"></i> Banco
+                                                                     </span>
+                                                                 @else
+                                                                     <button wire:click="deleteOpex({{ $item->id }})" class="btn btn-danger btn-sm p-1" title="Eliminar gasto manual">
+                                                                         <i class="fas fa-trash"></i>
+                                                                     </button>
+                                                                 @endif
+                                                             </td>
+                                                         </tr>
+                                                         @endforeach
 
-                                                        @if($opexList->isEmpty())
-                                                        <tr>
-                                                            <td colspan="4" class="text-center py-4 text-muted">No se han registrado gastos operativos para este mes.</td>
-                                                        </tr>
-                                                        @endif
+                                                         @if($opexList->isEmpty())
+                                                         <tr>
+                                                             <td colspan="4" class="text-center py-4 text-muted">No se han registrado gastos operativos para este mes.</td>
+                                                         </tr>
+                                                         @endif
                                                     </tbody>
                                                 </table>
                                             </div>

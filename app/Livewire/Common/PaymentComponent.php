@@ -606,7 +606,7 @@ class PaymentComponent extends Component
         // Validate Cash Payment Date
         if ($this->paymentMethod == 'cash') {
              $this->validate([
-                 'paymentDate' => 'required|date'
+                 'paymentDate' => 'required|date|before_or_equal:today'
              ]);
         }
 
@@ -615,7 +615,7 @@ class PaymentComponent extends Component
             if ($this->isZelleSelected) {
                  $this->validate([
                     'zelleSender' => 'required',
-                    'zelleDate' => 'required|date',
+                    'zelleDate' => 'required|date|before_or_equal:today',
                     'zelleAmount' => 'required|numeric|min:0.01',
                     'zelleImage' => 'required|image|max:2048', 
                 ]);
@@ -632,7 +632,7 @@ class PaymentComponent extends Component
                 $this->validate([
                     'bankId' => 'required',
                     'bankReference' => 'required',
-                    'bankDate' => 'required|date',
+                    'bankDate' => 'required|date|before_or_equal:today',
                     'bankGlobalAmount' => 'required|numeric|min:0.01', // Total Deposit
                     'amount' => 'required|numeric|min:0.01', // Amount to Use
                     'bankImage' => 'required|image|max:2048', 

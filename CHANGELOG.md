@@ -1,3 +1,21 @@
+## [1.10.251] - 2026-07-17
+### Added
+- **Dashboard Estratégico: Gráfico de Tendencia Lineal de Crecimiento**:
+  * Se añadió un segundo gráfico de tipo línea (`Highcharts line`) al lado del gráfico de barras existente en el tab de crecimiento del Dashboard Estratégico.
+  * El nuevo gráfico muestra la **evolución histórica** de Ventas Netas y Utilidad Neta usando los datos de `$linearTrend`, permitiendo identificar visualmente si la empresa está creciendo, estancada o decreciendo.
+  * La fila de gráficos pasó de una sola columna (`col-md-12`) a dos columnas (`col-md-6`): "Detalle del Periodo Seleccionado" y "Gráfico de Crecimiento y Tendencia Lineal".
+
+### Changed
+- **Dashboard Estratégico: Etiquetas de Comparación Dinámicas en KPIs**:
+  * Las tarjetas KPI de "Ventas Netas" y "Utilidad Neta Real" ahora muestran etiquetas de comparación dinámicas (`{{ $prevLabel }}` / `{{ $yearAgoLabel }}`) en lugar del texto fijo "vs mes anterior" / "vs año anterior".
+  * Las etiquetas se adaptan automáticamente al rango seleccionado (ej. "vs día anterior", "vs semana anterior", "vs mes anterior", "vs trimestre anterior", "vs año anterior").
+
+### Fixed
+- **Dashboard Estratégico: Corrección de Método Eliminado en Cálculo de Patrimonio**:
+  * Se corrigió `estimateEquityDeltaForMonths()` que llamaba al método eliminado `calculatePeriodMetrics()`. Ahora utiliza correctamente `calculateRangeMetrics($start, $end)` con fechas de inicio/fin de mes calculadas dinámicamente.
+- **Tests: Tolerancia de Precisión Flotante en OPEX**:
+  * Se corrigió el test `consolidates bank expenses in opex` cambiando `assertEquals(450.00)` por `assertEqualsWithDelta(450.00, ..., 0.01)` para manejar correctamente imprecisiones de punto flotante en sumas monetarias.
+
 ## [1.10.250] - 2026-07-15
 ### Changed
 - **Búsqueda Flexible Multi-Tag (OR) en Reporte de Inventario**:

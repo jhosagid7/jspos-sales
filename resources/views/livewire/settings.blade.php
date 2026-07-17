@@ -146,6 +146,20 @@
                                 </div>
                             </a>
                         </li>
+
+                        {{-- Tab 12: Configuración de Tesorería --}}
+                        @module('module_treasury')
+                        <li class="nav-item mb-2">
+                            <a class="nav-link {{ $tab == 12 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                               wire:click.prevent="$set('tab',12)" href="#">
+                                <i class="fa fa-university fa-2x"></i>
+                                <div>
+                                    <h6 class="mb-0">Tesorería</h6>
+                                    <small class="{{ $tab == 12 ? 'text-white' : 'text-muted' }}">Cortes y Categorías</small>
+                                </div>
+                            </a>
+                        </li>
+                        @endmodule
                     </ul>
                 </div>
 
@@ -590,6 +604,24 @@
                                             <input wire:model="newBankPhone" type="text" class="form-control" placeholder="0414...">
                                             @error('newBankPhone') <span class="text-danger small">{{ $message }}</span> @enderror
                                         </div>
+                                        <div class="col-md-2">
+                                            <div class="custom-control custom-checkbox mt-4 pt-1">
+                                                <input type="checkbox" wire:model.live="newBankIsTracked" class="custom-control-input" id="newBankIsTracked">
+                                                <label class="custom-control-label font-weight-bold" for="newBankIsTracked">Auditado</label>
+                                            </div>
+                                        </div>
+                                        @if($newBankIsTracked)
+                                            <div class="col-md-2">
+                                                <label>Saldo Inicial</label>
+                                                <input wire:model="newBankInitialBalance" type="number" step="0.01" class="form-control" placeholder="0.00">
+                                                @error('newBankInitialBalance') <span class="text-danger small">{{ $message }}</span> @enderror
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label>Fecha de Inicio</label>
+                                                <input wire:model="newBankInitialBalanceDate" type="date" class="form-control">
+                                                @error('newBankInitialBalanceDate') <span class="text-danger small">{{ $message }}</span> @enderror
+                                            </div>
+                                        @endif
                                         <div class="col-12 text-end mt-3">
                                             @if($selectedBankId)
                                                 <button wire:click="resetBankForm" class="btn btn-outline-secondary me-2">
@@ -619,6 +651,8 @@
                                                     <th>Cédula</th>
                                                     <th>Pago Móvil</th>
                                                     <th>Moneda</th>
+                                                    <th>Seguimiento</th>
+                                                    <th>Saldo Actual</th>
                                                     <th class="text-center">Acciones</th>
                                                 </tr>
                                             </thead>
@@ -631,6 +665,16 @@
                                                         <td>{{ $bank->cedula }}</td>
                                                         <td>{{ $bank->phone }}</td>
                                                         <td><span class="badge bg-light text-dark">{{ $bank->currency_code }}</span></td>
+                                                        <td>
+                                                            @if($bank->is_tracked)
+                                                                <span class="badge bg-success text-white">SÍ (Auditado)</span>
+                                                                <div class="text-muted small mt-1">Ini: ${{ number_format($bank->initial_balance, 2) }}</div>
+                                                                <div class="text-muted small">Desde: {{ $bank->initial_balance_date ? $bank->initial_balance_date->format('d/m/Y') : '-' }}</div>
+                                                            @else
+                                                                <span class="badge bg-secondary text-white">NO</span>
+                                                            @endif
+                                                        </td>
+                                                        <td><strong>${{ number_format($bank->current_balance, 2) }}</strong></td>
                                                         <td class="text-center">
                                                             <div class="btn-group">
                                                                 <button wire:click="editBank({{ $bank->id }})" class="btn btn-outline-primary btn-sm">
@@ -1220,6 +1264,48 @@ Departamento de Control de Calidad y Manufactura
                                 </form>
                             </div>
                         </div>
+
+                        {{-- TAB 12: CONFIGURACIÓN DE TESORERÍA --}}
+                        @module('module_treasury')
+                        <div class="tab-pane fade {{ $tab == 12 ? 'active show' : '' }}" id="treasury-settings" role="tabpanel"
+                            aria-labelledby="treasury-settings-tab">
+                            <div class="sidebar-body">
+                                <form class="row g-3">
+                                    <div class="col-12">
+                                        <div class="alert alert-light-primary" role="alert">
+                                            <i class="fas fa-university"></i> Configura los parámetros globales de la Tesorería y Auditoría Bancaria.
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-sm-12 col-md-6">
+                                        <label class="form-label text-uppercase font-weight-bold">Hora de Corte Diario Automático</label>
+                                        <input wire:model="treasuryCutoffHour" type="text" class="form-control" placeholder="17:00">
+                                        <small class="text-muted">Hora en que el sistema generará los cortes de caja del día de forma automática (Formato HH:MM, ej: 17:00 para las 5:00 PM).</small>
+                                        @error('treasuryCutoffHour') <span class="text-danger small">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <div class="col-sm-12 col-md-6">
+                                        <label class="form-label text-uppercase font-weight-bold">Arqueo Diario Automático</label>
+                                        <div class="form-check form-switch pl-0 mt-2">
+                                            <div class="custom-control custom-switch">
+                                                <input type="checkbox" class="custom-control-input" id="treasuryAutoClose" wire:model="treasuryAutoClose">
+                                                <label class="custom-control-label" for="treasuryAutoClose">Habilitar cierre de bancos automatizado en scheduler</label>
+                                            </div>
+                                        </div>
+                                        <small class="text-muted">Si se desactiva, los cierres diarios de bancos deberán realizarse manualmente en la sección de Tesorería.</small>
+                                        @error('treasuryAutoClose') <span class="text-danger small">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <div class="col-12 mt-4">
+                                        <button class="btn btn-primary" wire:click.prevent="saveConfig" wire:loading.attr="disabled">
+                                            <span wire:loading.remove wire:target="saveConfig">Guardar Configuración</span>
+                                            <span wire:loading wire:target="saveConfig">Guardando...</span>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        @endmodule
 
                     </div>
                 </div>

@@ -92,6 +92,8 @@ class Configuration extends Model
         'weekly_report_send_hour',
         'email_credit_auth_recipients',
         'whatsapp_credit_auth_users',
+        'treasury_cutoff_hour',
+        'treasury_auto_close',
     ];
 
     protected $casts = [
@@ -122,6 +124,7 @@ class Configuration extends Model
         'email_credit_auth_recipients' => 'array',
         'whatsapp_credit_auth_users' => 'array',
         'weekly_report_send_day' => 'integer',
+        'treasury_auto_close' => 'boolean',
     ];
 
     public function defaultWarehouse()

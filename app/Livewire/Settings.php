@@ -17,6 +17,8 @@ class Settings extends Component
     public $enableSharedCashRegister; // Nuevo: Caja Compartida
     public $sequentialCutOffDate;
     public $catalogueShowPrices, $catalogueShowBasePrices;
+    public $treasuryCutoffHour = '17:00';
+    public $treasuryAutoClose = true;
     public $discountRules = [];
 
     public $logo, $logo_preview; // Logo properties
@@ -100,8 +102,10 @@ class Settings extends Component
             $this->salesViewMode = $config->sales_view_mode;
             $this->defaultWarehouseId = $config->default_warehouse_id;
             $this->sopladosWarehouseId = $config->soplados_warehouse_id;
-        $this->bolsasWarehouseId = $config->bolsas_warehouse_id;
-        $this->productionMaterialsWarehouseId = $config->production_materials_warehouse_id;
+            $this->bolsasWarehouseId = $config->bolsas_warehouse_id;
+            $this->productionMaterialsWarehouseId = $config->production_materials_warehouse_id;
+            $this->treasuryCutoffHour = $config->treasury_cutoff_hour ?? '17:00';
+            $this->treasuryAutoClose = (bool) $config->treasury_auto_close;
             
             // Convert seconds to HH:MM:SS
             $seconds = $config->sales_edit_timeout ?? 1800; // default 30 min
@@ -350,6 +354,8 @@ class Settings extends Component
                 'bcv_rate' => $this->bcvRate,
                 'binance_rate' => $this->binanceRate,
                 'binance_markup_points' => $this->binanceMarkupPoints,
+                'treasury_cutoff_hour' => $this->treasuryCutoffHour,
+                'treasury_auto_close' => $this->treasuryAutoClose ? 1 : 0,
             ]);
             
             $this->saveDiscountRules();
@@ -474,6 +480,9 @@ class Settings extends Component
     public $newBankPhone;
     public $account_holder;
     public $selectedBankId = null; // Para rastrear si estamos editando
+    public $newBankIsTracked = false;
+    public $newBankInitialBalance = 0;
+    public $newBankInitialBalanceDate;
 
     public function loadBanks()
     {
@@ -491,6 +500,9 @@ class Settings extends Component
             $this->newBankCedula = $bank->cedula;
             $this->newBankPhone = $bank->phone;
             $this->account_holder = $bank->account_holder;
+            $this->newBankIsTracked = (bool) $bank->is_tracked;
+            $this->newBankInitialBalance = (float) $bank->initial_balance;
+            $this->newBankInitialBalanceDate = $bank->initial_balance_date ? $bank->initial_balance_date->format('Y-m-d') : null;
             
             $this->dispatch('noty', msg: 'Datos del banco cargados para editar');
         }
@@ -498,7 +510,7 @@ class Settings extends Component
 
     public function resetBankForm()
     {
-        $this->reset(['newBankName', 'newBankCurrency', 'newBankAccountNumber', 'newBankCedula', 'newBankPhone', 'account_holder', 'selectedBankId']);
+        $this->reset(['newBankName', 'newBankCurrency', 'newBankAccountNumber', 'newBankCedula', 'newBankPhone', 'account_holder', 'selectedBankId', 'newBankIsTracked', 'newBankInitialBalance', 'newBankInitialBalanceDate']);
         $this->resetValidation();
     }
 
@@ -518,6 +530,15 @@ class Settings extends Component
             'account_holder.required' => 'El titular es obligatorio',
         ]);
 
+        if ($this->newBankIsTracked) {
+            $this->validate([
+                'newBankInitialBalance' => 'required|numeric|min:0',
+                'newBankInitialBalanceDate' => 'required|date',
+            ], [
+                'newBankInitialBalanceDate.required' => 'La fecha de inicio de seguimiento es obligatoria si el banco es auditado.',
+            ]);
+        }
+
         if ($this->selectedBankId) {
             $bank = \App\Models\Bank::find($this->selectedBankId);
             $bank->update([
@@ -527,10 +548,18 @@ class Settings extends Component
                 'cedula' => $this->newBankCedula,
                 'phone' => $this->newBankPhone,
                 'account_holder' => $this->account_holder,
+                'is_tracked' => $this->newBankIsTracked,
+                'initial_balance' => $this->newBankIsTracked ? $this->newBankInitialBalance : 0,
+                'initial_balance_date' => $this->newBankIsTracked ? $this->newBankInitialBalanceDate : null,
             ]);
+            
+            // Recalculate balance for this bank
+            if ($this->newBankIsTracked) {
+                \App\Services\BankTreasuryService::recalculateBalance($bank->id);
+            }
             $msg = 'Banco actualizado con éxito.';
         } else {
-            \App\Models\Bank::create([
+            $bank = \App\Models\Bank::create([
                 'name' => strtoupper($this->newBankName),
                 'currency_code' => $this->newBankCurrency,
                 'account_number' => $this->newBankAccountNumber,
@@ -538,8 +567,16 @@ class Settings extends Component
                 'phone' => $this->newBankPhone,
                 'account_holder' => $this->account_holder,
                 'sort' => \App\Models\Bank::count() + 1,
-                'state' => 1
+                'state' => 1,
+                'is_tracked' => $this->newBankIsTracked,
+                'initial_balance' => $this->newBankIsTracked ? $this->newBankInitialBalance : 0,
+                'initial_balance_date' => $this->newBankIsTracked ? $this->newBankInitialBalanceDate : null,
             ]);
+            
+            // Recalculate balance for this bank
+            if ($this->newBankIsTracked) {
+                \App\Services\BankTreasuryService::recalculateBalance($bank->id);
+            }
             $msg = 'Banco agregado con éxito.';
         }
 

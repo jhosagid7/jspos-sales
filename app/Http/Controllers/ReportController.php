@@ -3816,5 +3816,177 @@ class ReportController extends Controller
 
         return $pdf->stream($fileName);
     }
+
+    public function bankTreasuryPdf(Request $request)
+    {
+        $bankId = $request->input('bank_id', 'all');
+        $dateFrom = $request->input('date_from', Carbon::now()->startOfMonth()->format('Y-m-d'));
+        $dateTo = $request->input('date_to', Carbon::now()->endOfMonth()->format('Y-m-d'));
+        $type = $request->input('type', 'dashboard'); // 'dashboard', 'expenses', 'transfers', 'closures'
+
+        $config = \App\Models\Configuration::first();
+        $user = auth()->user();
+        $date = Carbon::now()->format('d/m/Y');
+        $time = Carbon::now()->format('h:i A');
+
+        $currencies = \App\Models\Currency::all();
+        $primaryCurrency = $currencies->where('is_primary', 1)->first() ?? $currencies->first();
+        $primaryCode = $primaryCurrency ? $primaryCurrency->code : 'USD';
+
+        if ($bankId === 'all') {
+            $analysis = \App\Services\BankTreasuryService::getGlobalExpenseAnalysis($dateFrom, $dateTo);
+            $bankName = "Todas las Cuentas Bancarias";
+            $currencyCode = $primaryCode;
+            $bank = null;
+        } else {
+            $analysis = \App\Services\BankTreasuryService::getExpenseAnalysis((int) $bankId, $dateFrom, $dateTo);
+            $bank = \App\Models\Bank::find($bankId);
+            $bankName = $bank ? $bank->name : "Cuenta Seleccionada";
+            $currencyCode = $bank ? $bank->currency_code : 'USD';
+        }
+
+        $movements = collect();
+
+        if ($type === 'closures') {
+            $closuresQuery = \Illuminate\Support\Facades\DB::table('bank_daily_closures')
+                ->select(
+                    'bank_daily_closures.*',
+                    'banks.name as bank_name',
+                    'banks.currency_code',
+                    'users.name as user_name'
+                )
+                ->join('banks', 'bank_daily_closures.bank_id', '=', 'banks.id')
+                ->leftJoin('users', 'bank_daily_closures.closed_by', '=', 'users.id')
+                ->whereBetween('bank_daily_closures.closure_date', [$dateFrom, $dateTo]);
+
+            if ($bankId !== 'all') {
+                $closuresQuery->where('bank_daily_closures.bank_id', $bankId);
+            }
+
+            $movements = $closuresQuery->orderBy('bank_daily_closures.closure_date', 'desc')->get();
+
+        } else {
+            $hasIncomes = ($type === 'dashboard');
+            $hasExpenses = ($type === 'dashboard' || $type === 'expenses');
+            $hasTransfers = ($type === 'dashboard' || $type === 'transfers');
+
+            $queries = [];
+
+            if ($hasIncomes) {
+                $movementsQuery = \Illuminate\Support\Facades\DB::table('bank_records')
+                    ->select(
+                        'bank_records.id',
+                        'bank_records.payment_date as date',
+                        'bank_records.amount',
+                        'bank_records.reference',
+                        \Illuminate\Support\Facades\DB::raw("'INGRESO' as type"),
+                        'banks.name as bank_name',
+                        'banks.currency_code',
+                        \Illuminate\Support\Facades\DB::raw('NULL as category_name'),
+                        \Illuminate\Support\Facades\DB::raw('NULL as beneficiary')
+                    )
+                    ->join('banks', 'bank_records.bank_id', '=', 'banks.id')
+                    ->where('banks.is_tracked', true)
+                    ->whereBetween('bank_records.payment_date', [$dateFrom, $dateTo]);
+
+                if ($bankId !== 'all') {
+                    $movementsQuery->where('banks.id', $bankId);
+                }
+                $queries[] = $movementsQuery;
+            }
+
+            if ($hasExpenses) {
+                $expensesQuery = \Illuminate\Support\Facades\DB::table('bank_expenses')
+                    ->select(
+                        'bank_expenses.id',
+                        'bank_expenses.expense_date as date',
+                        'bank_expenses.amount',
+                        'bank_expenses.reference',
+                        \Illuminate\Support\Facades\DB::raw("'GASTO' as type"),
+                        'banks.name as bank_name',
+                        'banks.currency_code',
+                        'bank_expense_categories.name as category_name',
+                        'bank_expenses.beneficiary'
+                    )
+                    ->join('banks', 'bank_expenses.bank_id', '=', 'banks.id')
+                    ->join('bank_expense_categories', 'bank_expenses.category_id', '=', 'bank_expense_categories.id')
+                    ->whereBetween('bank_expenses.expense_date', [$dateFrom, $dateTo]);
+
+                if ($bankId !== 'all') {
+                    $expensesQuery->where('banks.id', $bankId);
+                }
+                $queries[] = $expensesQuery;
+            }
+
+            if ($hasTransfers) {
+                $transfersOutQuery = \Illuminate\Support\Facades\DB::table('bank_transfers')
+                    ->select(
+                        'bank_transfers.id',
+                        'bank_transfers.transfer_date as date',
+                        'bank_transfers.amount_from as amount',
+                        'bank_transfers.reference',
+                        \Illuminate\Support\Facades\DB::raw("'TRANSFER_OUT' as type"),
+                        'from_banks.name as bank_name',
+                        'from_banks.currency_code',
+                        \Illuminate\Support\Facades\DB::raw("'Transferencia Enviada' as category_name"),
+                        'to_banks.name as beneficiary'
+                    )
+                    ->join('banks as from_banks', 'bank_transfers.from_bank_id', '=', 'from_banks.id')
+                    ->join('banks as to_banks', 'bank_transfers.to_bank_id', '=', 'to_banks.id')
+                    ->whereBetween('bank_transfers.transfer_date', [$dateFrom, $dateTo]);
+
+                if ($bankId !== 'all') {
+                    $transfersOutQuery->where('from_bank_id', $bankId);
+                }
+                $queries[] = $transfersOutQuery;
+
+                $transfersInQuery = \Illuminate\Support\Facades\DB::table('bank_transfers')
+                    ->select(
+                        'bank_transfers.id',
+                        'bank_transfers.transfer_date as date',
+                        'bank_transfers.amount_to as amount',
+                        'bank_transfers.reference',
+                        \Illuminate\Support\Facades\DB::raw("'TRANSFER_IN' as type"),
+                        'to_banks.name as bank_name',
+                        'to_banks.currency_code',
+                        \Illuminate\Support\Facades\DB::raw("'Transferencia Recibida' as category_name"),
+                        'from_banks.name as beneficiary'
+                    )
+                    ->join('banks as from_banks', 'bank_transfers.from_bank_id', '=', 'from_banks.id')
+                    ->join('banks as to_banks', 'bank_transfers.to_bank_id', '=', 'to_banks.id')
+                    ->whereBetween('bank_transfers.transfer_date', [$dateFrom, $dateTo]);
+
+                if ($bankId !== 'all') {
+                    $transfersInQuery->where('to_bank_id', $bankId);
+                }
+                $queries[] = $transfersInQuery;
+            }
+
+            if (!empty($queries)) {
+                $baseQuery = array_shift($queries);
+                foreach ($queries as $q) {
+                    $baseQuery->unionAll($q);
+                }
+                $movements = $baseQuery->orderBy('date', 'desc')->orderBy('id', 'desc')->get();
+            }
+        }
+
+        $pdf = Pdf::loadView('reports.bank-treasury-pdf', [
+            'bank' => $bank,
+            'bankName' => $bankName,
+            'currencyCode' => $currencyCode,
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+            'analysis' => $analysis,
+            'movements' => $movements,
+            'config' => $config,
+            'user' => $user,
+            'date' => $date,
+            'time' => $time,
+            'type' => $type,
+        ]);
+
+        return $pdf->stream('Reporte_Tesoreria_' . Carbon::now()->format('Ymd_His') . '.pdf');
+    }
 }
 

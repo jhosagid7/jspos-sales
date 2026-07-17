@@ -178,4 +178,67 @@ class StrategicDashboardTest extends TestCase
         $this->assertStringContainsString('Rentabilidad y Márgenes', $html);
         $this->assertStringContainsString('Patrimonio y Solvencia Activa', $html);
     }
+
+    public function test_consolidates_bank_expenses_in_opex()
+    {
+        $this->actingAs($this->adminUser);
+
+        // 1. Create a bank
+        $bank = \App\Models\Bank::create([
+            'name' => 'Provincial Test',
+            'account_holder' => 'John Doe',
+            'account_number' => '1234567890',
+            'cedula' => 'V-12345',
+            'phone' => '12345',
+            'currency_code' => 'USD',
+            'is_tracked' => true,
+            'initial_balance' => 1000.00,
+            'current_balance' => 1000.00,
+            'initial_balance_date' => now()->startOfMonth()->format('Y-m-d'),
+            'state' => true,
+        ]);
+
+        // 2. Create a bank expense category
+        $category = \App\Models\BankExpenseCategory::create([
+            'name' => 'Nómina / Sueldos',
+            'is_essential' => true,
+            'is_active' => true,
+        ]);
+
+        // 3. Create a bank expense
+        \App\Models\BankExpense::create([
+            'bank_id' => $bank->id,
+            'category_id' => $category->id,
+            'amount' => 150.00,
+            'expense_date' => now()->format('Y-m-d'),
+            'description' => 'Pago Quincena',
+            'user_id' => $this->adminUser->id,
+        ]);
+
+        // 4. Create a manual operational expense
+        OperationalExpense::create([
+            'year_month' => now()->format('Y-m'),
+            'category' => 'Alquiler',
+            'amount' => 300.00,
+            'description' => 'Alquiler Oficina',
+        ]);
+
+        // 5. Test Livewire StrategicDashboard
+        $component = Livewire::test(\App\Livewire\Reports\StrategicDashboard::class)
+            ->set('selectedMonth', now()->format('Y-m'));
+
+        // Check if current OPEX is the sum of manual ($300) + bank ($150) = $450
+        $current = $component->viewData('current');
+        
+        $this->assertEqualsWithDelta(450.00, $current['opex'], 0.01);
+
+        // Check if the opexList contains both entries
+        $opexList = $component->viewData('opexList');
+        $this->assertCount(2, $opexList);
+
+        $bankItem = $opexList->where('is_bank', true)->first();
+        $this->assertNotNull($bankItem);
+        $this->assertEquals(150.00, $bankItem->amount);
+        $this->assertEquals('Nómina / Sueldos', $bankItem->category);
+    }
 }

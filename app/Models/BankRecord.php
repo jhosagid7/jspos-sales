@@ -48,4 +48,15 @@ class BankRecord extends Model
     {
         return $this->belongsTo(DebitNote::class);
     }
+
+    protected static function booted()
+    {
+        static::saved(function ($bankRecord) {
+            \App\Services\BankTreasuryService::recalculateBalance($bankRecord->bank_id);
+        });
+
+        static::deleted(function ($bankRecord) {
+            \App\Services\BankTreasuryService::recalculateBalance($bankRecord->bank_id);
+        });
+    }
 }
