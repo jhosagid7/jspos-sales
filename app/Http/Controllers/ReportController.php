@@ -3596,7 +3596,27 @@ class ReportController extends Controller
             });
         }
 
-        $detailedSales = $detailedSales->orderBy('sales.created_at', 'desc')->take(100)->get();
+        $invoiceLimit = request('invoiceLimit', '100');
+        $invoiceStatus = request('invoiceStatus', 'all');
+
+        if ($invoiceLimit === 'none') {
+            $detailedSales = collect([]);
+        } else {
+            if ($invoiceStatus === 'pending') {
+                $detailedSales->where('sales.status', 'pending');
+            } elseif ($invoiceStatus === 'paid') {
+                $detailedSales->where('sales.status', 'paid');
+            }
+
+            $detailedSales = $detailedSales->orderBy('sales.created_at', 'desc');
+
+            if ($invoiceLimit === '100') {
+                $detailedSales = $detailedSales->take(100)->get();
+            } else {
+                // all
+                $detailedSales = $detailedSales->get();
+            }
+        }
 
         $config = \App\Models\Configuration::first();
         $user = auth()->user();
@@ -3608,6 +3628,8 @@ class ReportController extends Controller
             'detailedSales' => $detailedSales,
             'metric' => $metric,
             'periodType' => $periodType,
+            'invoiceLimit' => $invoiceLimit,
+            'invoiceStatus' => $invoiceStatus,
             'config' => $config,
             'user' => $user,
             'date' => $date,

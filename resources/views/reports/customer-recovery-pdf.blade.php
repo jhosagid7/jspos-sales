@@ -240,6 +240,9 @@
                             @if(!isset($columns) || $columns['taxpayer_id'])
                                 <span style="color: #555;">RIF/Cédula: {{ $customer->taxpayer_id ?: 'N/A' }}</span><br>
                             @endif
+                            @if(!isset($columns) || !empty($columns['address']))
+                                <span style="color: #555; font-size: 7.5pt;">Dir: {{ $customer->address ?: 'N/A' }}</span><br>
+                            @endif
                             @if(!isset($columns) || $columns['phone'])
                                 <strong>Telf:</strong> {{ $customer->phone ?: 'N/A' }}<br>
                             @endif

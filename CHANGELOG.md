@@ -1,3 +1,12 @@
+## [1.10.254] - 2026-07-21
+### Added
+- **Reporte de Desempeño de Vendedores: Filtros de Facturas en PDF**:
+  * Se añadieron nuevos filtros para limitar el historial de ventas mostrado en la exportación a PDF (Últimas 100, Todas, o Ninguna) y para filtrar las facturas por su estatus (Todas, Pendientes, Pagadas), brindando mayor control sobre la generación del documento y permitiendo ahorrar páginas de impresión cuando no se requiere el detalle.
+
+### Fixed
+- **Reporte Recuperación PDF**:
+  * Se corrigió un problema donde la dirección del cliente no se estaba imprimiendo en el documento PDF de "Reporte de Recuperación de Clientes Inactivos", a pesar de que la columna estuviera seleccionada en la configuración visual.
+
 ## [1.10.253] - 2026-07-17
 ### Changed
 - **Auditoría de Diferencial Cambiario: Evaluación Neta de Rentabilidad con Cojín de Recargo (Opción A)**:

@@ -15,6 +15,8 @@ class SellersPerformanceReport extends Component
     public $dateFrom = '';
     public $dateTo = '';
     public $metric = 'amount'; // amount, count, commission, net_sales, pending_debt
+    public $invoiceLimit = '100'; // 100, all, none
+    public $invoiceStatus = 'all'; // all, pending, paid
     public $showReport = false;
     public $showPdfModal = false;
     public $pdfUrl = '';
@@ -51,6 +53,8 @@ class SellersPerformanceReport extends Component
             'dateFrom' => $this->dateFrom,
             'dateTo' => $this->dateTo,
             'metric' => $this->metric,
+            'invoiceLimit' => $this->invoiceLimit,
+            'invoiceStatus' => $this->invoiceStatus,
         ];
 
         $this->pdfUrl = route('reports.sellers.performance.pdf', $params);

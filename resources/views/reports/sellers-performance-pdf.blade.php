@@ -145,7 +145,11 @@
     <div class="filter-info">
         <strong>Parámetros de Consulta:</strong><br>
         • Rango de Fechas: {{ $dateFromStr ? \Carbon\Carbon::parse($dateFromStr)->format('d/m/Y') : 'Inicio' }} al {{ $dateToStr ? \Carbon\Carbon::parse($dateToStr)->format('d/m/Y') : 'Fin' }}<br>
-        • Agrupación temporal (Gráfico): {{ strtoupper($periodType) }} | Métrica: {{ strtoupper($metric) }}
+        • Agrupación temporal (Gráfico): {{ strtoupper($periodType) }} | Métrica: {{ strtoupper($metric) }}<br>
+        • Estatus Facturas: 
+        @if($invoiceStatus === 'pending') Solo Pendientes
+        @elseif($invoiceStatus === 'paid') Solo Pagadas
+        @else Todas @endif
     </div>
 
     <!-- KPIs de Resumen -->
@@ -218,8 +222,9 @@
         </tbody>
     </table>
 
+    @if($invoiceLimit !== 'none')
     <!-- Registro Detallado de Facturas -->
-    <div class="section-title">Historial Detallado de Ventas @if($detailedSales->count() >= 100) (Últimas 100 facturas) @endif</div>
+    <div class="section-title">Historial Detallado de Ventas @if($invoiceLimit === '100') (Últimas 100 facturas) @elseif($invoiceLimit === 'all') (Todas las facturas) @endif</div>
     <table class="table">
         <thead>
             <tr>
@@ -256,6 +261,7 @@
             @endforelse
         </tbody>
     </table>
+    @endif
 
     <!-- Firmas -->
     <table class="footer-signatures" style="width: 100%; border-collapse: collapse;">

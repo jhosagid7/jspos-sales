@@ -47,6 +47,26 @@
                         </select>
                     </div>
 
+                    <!-- Estatus de Facturas (Para Detalle) -->
+                    <div class="mt-3">
+                        <span class="f-14"><b>Estatus de Facturas (PDF)</b></span>
+                        <select wire:model.live="invoiceStatus" class="form-control form-control-sm mt-1">
+                            <option value="all">Todas</option>
+                            <option value="pending">Solo Pendientes</option>
+                            <option value="paid">Solo Pagadas</option>
+                        </select>
+                    </div>
+
+                    <!-- Límite de Facturas (Para Detalle) -->
+                    <div class="mt-3">
+                        <span class="f-14"><b>Límite de Facturas (PDF)</b></span>
+                        <select wire:model.live="invoiceLimit" class="form-control form-control-sm mt-1">
+                            <option value="100">Mostrar Últimas 100</option>
+                            <option value="all">Mostrar Todas</option>
+                            <option value="none">Ocultar Facturas</option>
+                        </select>
+                    </div>
+
                     <!-- Rango de Fechas -->
                     <div class="mt-3">
                         <span class="f-14"><b>Desde</b></span>
