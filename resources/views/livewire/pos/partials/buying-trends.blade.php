@@ -1,16 +1,16 @@
 @if($customer && count($trends) > 0)
-<div class="card card-outline card-success shadow-sm mt-3 animate__animated animate__fadeIn" style="border-radius: 15px; overflow: hidden;" wire:ignore.self>
+<div x-data="{ expanded: false }" class="card card-outline card-success shadow-sm mt-3 animate__animated animate__fadeIn" :class="{ 'collapsed-card': !expanded }" style="border-radius: 15px; overflow: hidden;" wire:ignore.self>
     <div class="card-header bg-white border-bottom-0">
         <h3 class="card-title text-success font-weight-bold">
             <i class="fas fa-fire mr-2"></i> Sugerencias para {{ explode(' ', $customer['name'])[0] }}
         </h3>
         <div class="card-tools">
-            <button type="button" class="btn btn-tool text-success" data-card-widget="collapse" style="transition: transform 0.3s ease;">
-                <i class="fas fa-minus"></i>
+            <button type="button" class="btn btn-tool text-success" @click="expanded = !expanded" style="transition: transform 0.3s ease;">
+                <i class="fas" :class="expanded ? 'fa-minus' : 'fa-plus'"></i>
             </button>
         </div>
     </div>
-    <div class="card-body p-2" style="max-height: 450px; overflow-y: auto;">
+    <div class="card-body p-2" x-show="expanded" style="max-height: 450px; overflow-y: auto; display: none;">
         <div class="list-group list-group-flush">
             @foreach($trends as $trend)
                 <div class="list-group-item list-group-item-action p-2 border-0 mb-2 trend-item" 
@@ -55,7 +55,7 @@
             @endforeach
         </div>
     </div>
-    <div class="card-footer bg-light p-2 text-center">
+    <div class="card-footer bg-light p-2 text-center" x-show="expanded" style="display: none;">
         <small class="text-muted"><i class="fas fa-magic mr-1"></i> Basado en historial reciente</small>
     </div>
 </div>

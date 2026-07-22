@@ -92,13 +92,11 @@ class OrderController extends Controller
             }
 
             if ($isNew) {
-                // Generate official folio P + 8 digits
-                $lastOrder = Order::orderBy('id', 'desc')->first();
-                $nextNum = 1;
-                if ($lastOrder && preg_match('/P(\d+)/', $lastOrder->order_number, $matches)) {
-                    $nextNum = (int)$matches[1] + 1;
-                }
-                $orderNumber = 'P' . str_pad($nextNum, 8, '0', STR_PAD_LEFT);
+                // Generate Order Number consistently using Configuration table
+                $config_ord = \App\Models\Configuration::lockForUpdate()->first();
+                $config_ord->order_sequence += 1;
+                $config_ord->save();
+                $orderNumber = 'P' . str_pad($config_ord->order_sequence, 8, '0', STR_PAD_LEFT);
 
                 $order = Order::create([
                     'order_number' => $orderNumber,

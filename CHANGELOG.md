@@ -1,3 +1,13 @@
+## [1.10.255] - 2026-07-22
+### Added
+- **POS**: Se añadió visualización de notas de orden en el Resumen (Checkout), mostrando las instrucciones del vendedor.
+
+### Fixed
+- **Creación de Folios API**: Se corrigió el problema de folios duplicados donde los vendedores foráneos desde la API y el cajero web pisaban los mismos números de orden, al sincronizar la API con el contador global de configuración del sistema.
+
+### Changed
+- **POS Sugerencias**: La tarjeta de Tendencias y Sugerencias de Compra ahora inicia colapsada y utiliza estado persistente de AlpineJS para evitar cerrarse durante los refrescos de Livewire.
+
 ## [1.10.254] - 2026-07-21
 ### Added
 - **Reporte de Desempeño de Vendedores: Filtros de Facturas en PDF**:

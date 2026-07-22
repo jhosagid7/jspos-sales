@@ -134,6 +134,13 @@
                             </div>
                         </div>
 
+                        @if($order_notes)
+                            <div class="alert alert-info py-2 px-3 mb-2 shadow-sm" style="font-size: 0.85rem; border-left: 4px solid #17a2b8; background-color: #e8f4f8; color: #0c5460;">
+                                <strong><i class="fas fa-sticky-note mr-1"></i> Notas de la Orden:</strong><br>
+                                <span style="white-space: pre-wrap;">{{ $order_notes }}</span>
+                            </div>
+                        @endif
+
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <label class="mb-0"></label>
                             <div class="custom-control custom-switch">

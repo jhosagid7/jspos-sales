@@ -73,6 +73,7 @@ class Sales extends Component
     public $selectedProductForUnits = null;
 
     public $order_selected_id, $customer_name, $amount;
+    public $order_notes = null;
     public $order_id, $ordersObt, $order_note, $details = [];
     public $pagination = 5, $status;
     public $confirmation_code = null;
@@ -1550,6 +1551,7 @@ class Sales extends Component
         $this->order_id = $orderId;
         $this->driver_id = $order->driver_id;
         $this->paymentAgreement = $order->payment_agreement ?? 'USD';
+        $this->order_notes = $order->notes;
         
         // Restore configuration from order
         $this->applyCommissions = (bool) $order->apply_commissions;
@@ -2957,6 +2959,7 @@ class Sales extends Component
 
     public function clear()
     {
+        $this->order_notes = null;
         // Ensure cart is a collection
         if (!($this->cart instanceof \Illuminate\Support\Collection)) {
             $this->cart = collect($this->cart);
