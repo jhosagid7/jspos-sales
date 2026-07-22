@@ -282,6 +282,17 @@ class Customers extends Component
             $this->customer->email_dispatch_mode = 'auto';
         }
 
+        // Convert empty strings to null for nullable integer/decimal fields
+        if ($this->customer->credit_limit === '') {
+            $this->customer->credit_limit = null;
+        }
+        if ($this->customer->credit_days === '') {
+            $this->customer->credit_days = null;
+        }
+        if ($this->customer->usd_payment_discount === '') {
+            $this->customer->usd_payment_discount = null;
+        }
+
         // Handle defaults for optional fields if empty/null
         if (empty($this->customer->wallet_balance)) {
             $this->customer->wallet_balance = 0;

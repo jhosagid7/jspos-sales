@@ -28,21 +28,29 @@ class CustomerCreditScoringService
         $totalCashAmount = $cashSales->sum('total_usd');
         $averageCashPurchase = $cashPurchaseCount > 0 ? ($totalCashAmount / $cashPurchaseCount) : 0.00;
 
-        // Si es cliente nuevo y no cumple los requisitos mínimos (30 días de registro y 3 compras de contado)
-        if ($daysSinceRegistration < 30 || $cashPurchaseCount < 3) {
-            $status = 'new';
-            $score = 100;
-            $recommendedLimit = 0.00;
+        // Evaluamos ventas a crédito
+        $creditSales = Sale::where('customer_id', $customer->id)
+            ->where('type', 'credit')
+            ->whereNotIn('status', ['voided', 'cancelled', 'anulated'])
+            ->get();
 
-            $aiAnalysis = "El cliente es catalogado como **NUEVO**. Aún no cumple con el periodo mínimo de 30 días de registro (lleva {$daysSinceRegistration} días) o el mínimo de 3 compras de contado realizadas (lleva {$cashPurchaseCount}). Por tanto, se sugiere mantener su cupo en $0.00 hasta construir historial.";
+        $totalCreditSales = $creditSales->count();
+
+        // Si NO tiene ventas a crédito, evaluamos requisitos mínimos para "Nuevo"
+        if ($totalCreditSales === 0) {
+            if ($daysSinceRegistration < 30 || $cashPurchaseCount < 3) {
+                $status = 'new';
+                $score = 100;
+                $recommendedLimit = 0.00;
+                $aiAnalysis = "El cliente es catalogado como **NUEVO**. Aún no cumple con el periodo mínimo de 30 días de registro (lleva {$daysSinceRegistration} días) o el mínimo de 3 compras de contado realizadas (lleva {$cashPurchaseCount}). Por tanto, se sugiere mantener su cupo en $0.00 hasta construir historial.";
+            } else {
+                $status = 'active'; // Riesgo Bajo / Excelente
+                $score = 100;
+                $recommendedLimit = round($averageCashPurchase * 0.30, 2);
+                $aiAnalysis = "El cliente califica para crédito por antigüedad e historial de contado. Ha realizado **{$cashPurchaseCount} compras de contado** con un ticket promedio de **$" . number_format($averageCashPurchase, 2) . "**. Se recomienda iniciar con un **Cupo Semilla de $" . number_format($recommendedLimit, 2) . "** (30% de su promedio de compras).";
+            }
         } else {
-            // Evaluamos ventas a crédito
-            $creditSales = Sale::where('customer_id', $customer->id)
-                ->where('type', 'credit')
-                ->whereNotIn('status', ['voided', 'cancelled', 'anulated'])
-                ->get();
-
-            $totalCreditSales = $creditSales->count();
+            // SI TIENE VENTAS A CRÉDITO, evaluamos su puntualidad e historial
             $delayedInvoicesCount = 0;
             $totalMoraDays = 0;
 
@@ -75,13 +83,8 @@ class CustomerCreditScoringService
                 $recommendedLimit = round($averageCashPurchase * 0.30, 2);
             }
 
-            // Generar Síntesis Dinámica (AI Analysis)
-            if ($totalCreditSales === 0) {
-                $aiAnalysis = "El cliente califica para crédito por antigüedad e historial de contado. Ha realizado **{$cashPurchaseCount} compras de contado** con un ticket promedio de **$" . number_format($averageCashPurchase, 2) . "**. Se recomienda iniciar con un **Cupo Semilla de $" . number_format($recommendedLimit, 2) . "** (30% de su promedio de compras).";
-            } else {
-                $statusText = $score >= 85 ? "Riesgo Bajo (Excelente Pagador)" : ($score >= 60 ? "Riesgo Medio (Pagos Regulares)" : "Riesgo Alto (Moroso)");
-                $aiAnalysis = "El cliente posee un perfil de **{$statusText}**. Tiene un Score de Puntualidad de **{$score}/100** con un retraso promedio de **" . number_format($averageMoraDays, 1) . " días** por factura. Su ticket promedio de contado es de **$" . number_format($averageCashPurchase, 2) . "**. Cupo de crédito sugerido: **$" . number_format($recommendedLimit, 2) . "**.";
-            }
+            $statusText = $score >= 85 ? "Riesgo Bajo (Excelente Pagador)" : ($score >= 60 ? "Riesgo Medio (Pagos Regulares)" : "Riesgo Alto (Moroso)");
+            $aiAnalysis = "El cliente posee un perfil de **{$statusText}**. Tiene un Score de Puntualidad de **{$score}/100** con un retraso promedio de **" . number_format($averageMoraDays, 1) . " días** por factura. Su ticket promedio de contado es de **$" . number_format($averageCashPurchase, 2) . "**. Cupo de crédito sugerido: **$" . number_format($recommendedLimit, 2) . "**.";
         }
 
         // Persistir resultados

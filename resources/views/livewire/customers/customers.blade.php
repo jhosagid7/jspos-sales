@@ -65,7 +65,48 @@
                             <tbody>
                                 @forelse ($customers as $item)
                                     <tr>
-                                        <td> {{ $item->name }}</td>
+                                        <td> 
+                                            <div class="fw-bold">{{ $item->name }}</div>
+                                            @php
+                                                $creditConfig = \App\Services\CreditConfigService::getCreditConfig($item, $item->seller);
+                                                $isMoroso = \App\Services\CreditConfigService::hasUnpaidOverdueInvoices($item);
+                                            @endphp
+                                            <div class="mt-1 d-flex flex-wrap" style="gap: 5px;">
+                                                @if($creditConfig['allow_credit'])
+                                                    <span class="badge badge-success shadow-sm" title="Límite: {{ $creditConfig['credit_limit'] ? '$'.number_format($creditConfig['credit_limit'], 2) : 'Ilimitado' }}">
+                                                        <i class="fas fa-credit-card"></i> {{ $creditConfig['credit_limit'] ? '$'.number_format($creditConfig['credit_limit'], 0) : 'Ilimitado' }}
+                                                    </span>
+                                                    <span class="badge badge-info shadow-sm" title="Plazo para pagar">
+                                                        <i class="fas fa-clock"></i> {{ $creditConfig['credit_days'] }}d
+                                                    </span>
+                                                @else
+                                                    <span class="badge badge-secondary shadow-sm">
+                                                        <i class="fas fa-ban"></i> Sin Crédito
+                                                    </span>
+                                                @endif
+
+                                                @if($item->credit_status === 'new')
+                                                    <span class="badge badge-warning shadow-sm">
+                                                        <i class="fas fa-star"></i> Nuevo
+                                                    </span>
+                                                @endif
+
+                                                @if($isMoroso)
+                                                    @php
+                                                        $overdueStats = \App\Services\CreditConfigService::getOverdueStats($item);
+                                                    @endphp
+                                                    <span class="badge badge-danger shadow-sm" title="{{ $overdueStats['count'] }} facturas atrasadas. Deuda: ${{ number_format($overdueStats['debt'], 2) }}">
+                                                        <i class="fas fa-exclamation-triangle"></i> Moroso (${{ number_format($overdueStats['debt'], 0) }} / {{ $overdueStats['max_days'] }}d)
+                                                    </span>
+                                                @endif
+
+                                                @if($creditConfig['usd_payment_discount'])
+                                                    <span class="badge badge-primary shadow-sm" title="Descuento en Divisas">
+                                                        <i class="fas fa-tags"></i> -{{ number_format($creditConfig['usd_payment_discount'], 0) }}% USD
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </td>
                                         <td>{{ $item->address }}</td>
                                         <td>{{ $item->city }}</td>
                                         <td>{{ $item->phone }}</td>

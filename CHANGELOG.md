@@ -1,3 +1,11 @@
+## [1.10.256] - 2026-07-22
+### Added
+- **Módulo Clientes**: Se añadieron insignias (badges) visuales en la tabla de clientes para mostrar la configuración crediticia (Límite, Plazo, Descuento) y un resumen dinámico del estado de la deuda para clientes morosos (total vencido y días de retraso).
+
+### Fixed
+- **Evaluación Crediticia**: Se corrigió el algoritmo de "Cliente Nuevo" que ocultaba el historial real y la morosidad de un cliente con crédito activo si no cumplía el requisito inicial de compras de contado.
+- **Formulario de Clientes**: Se resolvió un error de base de datos que impedía guardar los cambios cuando el usuario dejaba en blanco el campo de límite de crédito, convirtiéndolo correctamente a un valor nulo.
+
 ## [1.10.255] - 2026-07-22
 ### Added
 - **POS**: Se añadió visualización de notas de orden en el Resumen (Checkout), mostrando las instrucciones del vendedor.

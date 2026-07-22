@@ -320,6 +320,62 @@ class CreditConfigService
     }
 
     /**
+     * Devuelve las estadisticas de mora de un cliente
+     * 
+     * @param Customer $customer
+     * @return array
+     */
+    public static function getOverdueStats(Customer $customer): array
+    {
+        $outstandingSales = \App\Models\Sale::where('customer_id', $customer->id)
+            ->whereNotIn('status', ['returned', 'voided', 'paid'])
+            ->with(['payments', 'returns', 'paymentDetails'])
+            ->get();
+
+        $stats = [
+            'debt' => 0.0,
+            'count' => 0,
+            'max_days' => 0
+        ];
+
+        foreach ($outstandingSales as $sale) {
+            $approvedPaymentsUSD = $sale->payments->where('status', 'approved')->sum(function($payment) {
+                $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
+                return $payment->amount / $rate;
+            });
+            
+            $totalReturnsUSD = $sale->returns->where('refund_method', 'debt_reduction')->where('status', 'approved')->sum(function($ret) use ($sale) {
+                $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                return $ret->total_returned / $rate;
+            });
+            
+            $initialPaidUSD = $sale->paymentDetails->whereNotIn('payment_method', ['CREDITO', 'credit', 'Credito'])->sum(function($detail) {
+                $rate = $detail->exchange_rate > 0 ? $detail->exchange_rate : 1;
+                return $detail->amount / $rate;
+            });
+
+            $totalUSD = $sale->total_usd > 0 ? $sale->total_usd : ($sale->primary_exchange_rate > 0 ? $sale->total / $sale->primary_exchange_rate : $sale->total);
+            
+            $pending = max(0, $totalUSD - ($approvedPaymentsUSD + $initialPaidUSD + $totalReturnsUSD));
+            
+            if ($pending > 0.01) {
+                $startDate = $sale->delivered_at ? \Carbon\Carbon::parse($sale->delivered_at) : \Carbon\Carbon::parse($sale->created_at);
+                $dueDate = $startDate->clone()->addDays($sale->credit_days ?? 0);
+                if (now()->gt($dueDate)) {
+                    $stats['debt'] += $pending;
+                    $stats['count']++;
+                    $daysOverdue = now()->diffInDays($dueDate);
+                    if ($daysOverdue > $stats['max_days']) {
+                        $stats['max_days'] = $daysOverdue;
+                    }
+                }
+            }
+        }
+
+        return $stats;
+    }
+
+    /**
      * Verifica si el cliente tiene facturas vencidas activas (sin saldar).
      *
      * @param Customer $customer
