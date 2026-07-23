@@ -52,6 +52,7 @@
                     <th>#Factura</th>
                     <th class="text-center">Emisión</th>
                     <th class="text-center">Vencimiento</th>
+                    <th class="text-center">Días Vencidos</th>
                     <th class="text-right">Monto Original</th>
                     <th class="text-right">Abonos</th>
                     <th class="text-right">Saldo Pendiente</th>
@@ -60,10 +61,25 @@
             </thead>
             <tbody>
                 @foreach($invoices as $inv)
+                    @php
+                        $daysOverdue = 0;
+                        if ($inv['is_overdue']) {
+                            try {
+                                $dueDateObj = \Carbon\Carbon::createFromFormat('d/m/Y', $inv['due_date'])->startOfDay();
+                                $daysLate = now()->startOfDay()->diffInDays($dueDateObj, false);
+                                if ($daysLate < 0) {
+                                    $daysOverdue = abs(intval($daysLate));
+                                }
+                            } catch (\Exception $e) {}
+                        }
+                    @endphp
                     <tr class="{{ $inv['is_overdue'] ? 'overdue' : '' }}">
                         <td><strong>{{ $inv['invoice_number'] }}</strong></td>
                         <td class="text-center">{{ $inv['created_at'] }}</td>
                         <td class="text-center">{{ $inv['due_date'] }}</td>
+                        <td class="text-center" style="color: {{ $daysOverdue > 0 ? '#dc3545' : 'inherit' }}">
+                            {{ $daysOverdue > 0 ? $daysOverdue : '-' }}
+                        </td>
                         <td class="text-right">${{ number_format($inv['total'], 2) }}</td>
                         <td class="text-right">${{ number_format($inv['paid'], 2) }}</td>
                         <td class="text-right"><strong>${{ number_format($inv['pending'], 2) }}</strong></td>
@@ -79,7 +95,7 @@
             </tbody>
             <tfoot>
                 <tr class="total-row">
-                    <td colspan="5" class="text-right">TOTAL DEUDA:</td>
+                    <td colspan="6" class="text-right">TOTAL DEUDA:</td>
                     <td class="text-right" style="color: #dc3545;">${{ number_format($totalDebt, 2) }}</td>
                     <td></td>
                 </tr>

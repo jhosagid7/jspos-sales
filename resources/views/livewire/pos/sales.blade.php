@@ -599,6 +599,7 @@
                                         <th>#Factura</th>
                                         <th>Emisión</th>
                                         <th>Vencimiento</th>
+                                        <th class="text-center">Días Vencidos</th>
                                         <th class="text-right">Original</th>
                                         <th class="text-right">Abonos</th>
                                         <th class="text-right">Saldo</th>
@@ -607,10 +608,29 @@
                                 </thead>
                                 <tbody>
                                     @foreach($customer['outstanding_invoices'] as $inv)
+                                        @php
+                                            $daysOverdue = 0;
+                                            if ($inv['is_overdue']) {
+                                                try {
+                                                    $dueDateObj = \Carbon\Carbon::createFromFormat('d/m/Y', $inv['due_date'])->startOfDay();
+                                                    $daysLate = now()->startOfDay()->diffInDays($dueDateObj, false);
+                                                    if ($daysLate < 0) {
+                                                        $daysOverdue = abs(intval($daysLate));
+                                                    }
+                                                } catch (\Exception $e) {}
+                                            }
+                                        @endphp
                                         <tr class="{{ $inv['is_overdue'] ? 'table-danger' : '' }}">
                                             <td><strong>{{ $inv['invoice_number'] }}</strong></td>
                                             <td>{{ $inv['created_at'] }}</td>
                                             <td>{{ $inv['due_date'] }}</td>
+                                            <td class="text-center">
+                                                @if($daysOverdue > 0)
+                                                    <span class="text-danger font-weight-bold">{{ $daysOverdue }}</span>
+                                                @else
+                                                    -
+                                                @endif
+                                            </td>
                                             <td class="text-right">{{ $inv['currency_symbol'] ?? '$' }} {{ number_format($inv['total'], 4) }}</td>
                                             <td class="text-right">{{ $inv['currency_symbol'] ?? '$' }} {{ number_format($inv['paid'], 4) }}</td>
                                             <td class="text-right"><strong>{{ $inv['currency_symbol'] ?? '$' }} {{ number_format($inv['pending'], 4) }}</strong></td>
@@ -626,7 +646,7 @@
                                 </tbody>
                                 <tfoot class="font-weight-bold bg-light">
                                     <tr>
-                                        <td colspan="5" class="text-right font-weight-bold">TOTAL DEUDA:</td>
+                                        <td colspan="6" class="text-right font-weight-bold">TOTAL DEUDA:</td>
                                         <td class="text-right text-danger font-weight-bold">
                                             @if(isset($customer['debt_totals']))
                                                 @foreach($customer['debt_totals'] as $currency => $data)

@@ -1,3 +1,9 @@
+## [1.10.258] - 2026-07-23
+
+### Added
+- **Módulo de Ventas**: Se agregó la columna "Días Vencidos" en la ventana modal de "Facturas Pendientes", calculando y mostrando en tiempo real los días de retraso para facturas vencidas.
+- **Reportes (PDF)**: Se incorporó la columna "Días Vencidos" en el reporte en PDF de "Facturas Pendientes de Pago" (Estado de Cuenta del Cliente) para mantener la consistencia con la vista en pantalla.
+
 ## [1.10.257] - 2026-07-23
 
 ### Changed
