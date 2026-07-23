@@ -66,7 +66,7 @@ class CustomerPaymentRelationshipReport extends Component
         $this->dateTo = Carbon::now()->format('Y-m-d');
         
         // Header info
-        session(['pos' => 'Relación de Cobros por Cliente']);
+        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'RelaciÃ³n de Cobros por Cliente']);
     }
 
     public function searchData()
@@ -251,7 +251,7 @@ class CustomerPaymentRelationshipReport extends Component
                 'date_emit' => Carbon::parse($r->sale->created_at),
                 'days' => 0,
                 'doc_number' => $r->sale->invoice_number ?? $r->sale->id,
-                'description' => "N/C #{$r->id}: " . ($r->reason ?? 'Devolución'),
+                'description' => "N/C #{$r->id}: " . ($r->reason ?? 'DevoluciÃ³n'),
                 'monto' => $amtUsd,
                 'ingreso' => 0,
                 'is_voided' => false
@@ -355,3 +355,4 @@ class CustomerPaymentRelationshipReport extends Component
         ];
     }
 }
+

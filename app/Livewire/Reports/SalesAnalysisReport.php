@@ -21,7 +21,7 @@ class SalesAnalysisReport extends Component
 
     public function mount()
     {
-        session(['pos' => 'Análisis de Ventas']);
+        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'AnÃ¡lisis de Ventas']);
         $this->dateFrom = Carbon::now()->startOfYear()->format('Y-m-d');
         $this->dateTo = Carbon::now()->format('Y-m-d');
     }
@@ -32,7 +32,7 @@ class SalesAnalysisReport extends Component
         
         $chartData = $this->getChartData();
         $this->dispatch('updateChart', labels: $chartData['labels'], datasets: $chartData['datasets']);
-        $this->dispatch('noty', msg: 'ANÁLISIS DE VENTAS ACTUALIZADO');
+        $this->dispatch('noty', msg: 'ANÃLISIS DE VENTAS ACTUALIZADO');
     }
 
     public function updated($propertyName)
@@ -224,10 +224,10 @@ class SalesAnalysisReport extends Component
 
             if ($growthPercent > 0) {
                 $growthClass = 'text-success';
-                $growthArrow = '↑';
+                $growthArrow = 'â†‘';
             } elseif ($growthPercent < 0) {
                 $growthClass = 'text-danger';
-                $growthArrow = '↓';
+                $growthArrow = 'â†“';
             }
         }
 
@@ -271,3 +271,4 @@ class SalesAnalysisReport extends Component
         ]);
     }
 }
+

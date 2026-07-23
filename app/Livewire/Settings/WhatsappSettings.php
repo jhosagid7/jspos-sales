@@ -135,7 +135,7 @@ class WhatsappSettings extends Component
 
         $this->loadGroups();
 
-        session(['map' => 'Ajustes', 'child' => ' WhatsApp']);
+        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'Ajustes de WhatsApp']);
     }
 
     public $groups = [];

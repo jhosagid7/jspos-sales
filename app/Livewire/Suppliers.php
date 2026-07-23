@@ -41,7 +41,7 @@ class Suppliers extends Component
         $this->supplier = new Supplier();
         $this->editing = false;
 
-        session(['map' => 'Proveedores', 'child' => ' Componente ']);
+        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'Proveedores']);
     }
 
     protected $listeners = [

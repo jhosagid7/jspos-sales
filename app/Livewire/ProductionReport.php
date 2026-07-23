@@ -13,6 +13,7 @@ class ProductionReport extends Component
 
     public function mount()
     {
+        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'Reporte de Producción y Rendimiento']);
         $this->dateFrom = \Carbon\Carbon::now()->startOfMonth()->format('Y-m-d');
         $this->dateTo = \Carbon\Carbon::now()->format('Y-m-d');
     }

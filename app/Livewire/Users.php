@@ -94,7 +94,7 @@ class Users extends Component
         $this->resetCommissionFields();
         $this->editing = false;
 
-        session(['map' => 'Usuarios', 'child' => ' Componente ']);
+        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'Usuarios']);
 
         // Cargar los roles permitidos según módulos y permisos
         $this->loadAllowedRoles();

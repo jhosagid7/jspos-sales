@@ -36,7 +36,7 @@ class Products extends Component
 
         $this->editing = false;
 
-        session(['map' => 'Productos', 'child' => ' Componente ']);
+        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'Productos']);
 
         $this->categories = Category::orderBy('name')->get();
 

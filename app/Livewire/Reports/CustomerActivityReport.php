@@ -21,7 +21,7 @@ class CustomerActivityReport extends Component
 
     public function mount()
     {
-        session(['pos' => 'Reporte de Actividad de Clientes']);
+        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'Reporte de Actividad de Clientes']);
         $this->dateFrom = Carbon::now()->startOfYear()->format('Y-m-d');
         $this->dateTo = Carbon::now()->format('Y-m-d');
     }
@@ -268,3 +268,4 @@ class CustomerActivityReport extends Component
         ]);
     }
 }
+

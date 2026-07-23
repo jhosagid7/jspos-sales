@@ -11,7 +11,7 @@ class Settings extends Component
 
     function mount()
     {
-        session(['map' => 'Configuraciones', 'child' => ' Sistema ', 'pos' => 'Settings']);
+        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'Configuraciones']);
 
         $this->loadConfig();
     }

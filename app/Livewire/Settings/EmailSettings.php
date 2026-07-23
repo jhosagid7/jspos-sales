@@ -76,7 +76,7 @@ class EmailSettings extends Component
         $this->descargo_body = $descargoTemplate->body;
         $this->descargo_dispatch_mode = $descargoTemplate->dispatch_mode ?? 'auto';
 
-        session(['map' => 'Ajustes', 'child' => ' Correo Electrónico']);
+        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'Ajustes de Correo']);
     }
 
     public function save()

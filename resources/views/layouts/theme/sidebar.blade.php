@@ -26,6 +26,28 @@
     if(!empty($theme['sidebar_nav_text_sm']) && filter_var($theme['sidebar_nav_text_sm'], FILTER_VALIDATE_BOOLEAN)) $navClasses[] = 'text-sm';
     $navClassString = implode(' ', $navClasses);
 @endphp
+
+<style>
+    /* Estilo para los sub-menús activos */
+    .nav-sidebar .nav-treeview > .nav-item > .nav-link.active {
+        background-color: rgba(255,255,255,0.09) !important;
+        color: #ffffff !important;
+        border-left: 3px solid #007bff;
+        border-radius: 0 4px 4px 0;
+        font-weight: 500;
+    }
+    
+    /* El ícono circular toma color azul cuando está activo */
+    .nav-sidebar .nav-treeview > .nav-item > .nav-link.active .nav-icon {
+        color: #007bff !important;
+    }
+    
+    /* Efecto Hover suave */
+    .nav-sidebar .nav-treeview > .nav-item > .nav-link:hover {
+        background-color: rgba(255,255,255,0.05);
+        color: #ffffff;
+    }
+</style>
 <aside class="{{ $asideClassString }}">
     <!-- Brand Logo -->
     @php
@@ -63,7 +85,7 @@
                 @unlessrole('Driver')
                 <li class="nav-item">
                     <a href="{{ route('welcome') }}" class="nav-link {{ Request::is('welcome') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-tachometer-alt"></i>
+                        <i class="nav-icon fas fa-tachometer-alt text-primary"></i>
                         <p>DASHBOARD</p>
                     </a>
                 </li>
@@ -78,7 +100,7 @@
                 @unlessrole('Driver')
                 <li class="nav-item">
                     <a href="#" class="nav-link">
-                        <i class="nav-icon fas fa-shopping-cart"></i>
+                        <i class="nav-icon fas fa-shopping-cart text-success"></i>
                         <p>
                             GESTIÓN COMERCIAL
                             <i class="right fas fa-angle-left"></i>
@@ -94,7 +116,7 @@
                         </li>
                         <li class="nav-item">
                             <a href="{{ route('credit.authorizations') }}" class="nav-link {{ Request::is('credit-authorizations') ? 'active' : '' }}">
-                                <i class="far fa-circle nav-icon text-warning"></i>
+                                <i class="far fa-circle nav-icon"></i>
                                 <p>Historial Auth. Crédito</p>
                             </a>
                         </li>
@@ -155,7 +177,7 @@
                 @if($isDriver || $canSeeLogistics)
                 <li class="nav-item">
                     <a href="#" class="nav-link">
-                        <i class="nav-icon fas fa-truck"></i>
+                        <i class="nav-icon fas fa-truck text-info"></i>
                         <p>
                             LOGÍSTICA Y DESPACHO
                             <i class="right fas fa-angle-left"></i>
@@ -194,7 +216,7 @@
                 @unlessrole('Driver')
                 <li class="nav-item">
                     <a href="#" class="nav-link">
-                        <i class="nav-icon fas fa-boxes"></i>
+                        <i class="nav-icon fas fa-boxes text-warning"></i>
                         <p>
                             INVENTARIO Y PRODUCCIÓN
                             <i class="right fas fa-angle-left"></i>
@@ -218,7 +240,7 @@
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a href="{{ route('catalogue.pdf') }}" target="_blank" class="nav-link">
+                                    <a href="{{ route('catalogue.pdf') }}" target="_blank" class="nav-link {{ Route::is('catalogue.pdf*') ? 'active' : '' }}">
                                         <i class="far fa-dot-circle nav-icon"></i>
                                         <p>Catálogo PDF</p>
                                     </a>
@@ -299,7 +321,7 @@
                 @unlessrole('Driver')
                 <li class="nav-item {{ Request::is('production-report*') || Request::is('soplados/*') ? 'menu-open' : '' }}">
                     <a href="#" class="nav-link {{ Request::is('production-report*') || Request::is('soplados/*') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-industry"></i>
+                        <i class="nav-icon fas fa-industry text-danger"></i>
                         <p>
                             FÁBRICA SOPLADOS
                             <i class="right fas fa-angle-left"></i>
@@ -346,7 +368,7 @@
                 @can('production.index')
                 <li class="nav-item {{ Request::is('production*') ? 'menu-open' : '' }}">
                     <a href="#" class="nav-link {{ Request::is('production*') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-shopping-bag"></i>
+                        <i class="nav-icon fas fa-shopping-bag text-secondary"></i>
                         <p>
                             FÁBRICA BOLSAS
                             <i class="right fas fa-angle-left"></i>
@@ -370,7 +392,7 @@
                 @canany(['cash_register.close', 'customer_statement.index', 'reports.financial', 'zelle_index', 'bank_index', 'payments.approve_custom_rate', 'treasury.index'])
                 <li class="nav-item">
                     <a href="#" class="nav-link">
-                        <i class="nav-icon fas fa-file-invoice-dollar"></i>
+                        <i class="nav-icon fas fa-file-invoice-dollar text-success"></i>
                         <p>
                             FINANZAS Y AUDITORÍA
                             <i class="right fas fa-angle-left"></i>
@@ -393,8 +415,16 @@
                                         <p>Cerrar Caja</p>
                                     </a>
                                 </li>
+                                @module('module_credit_auth_history')
                                 <li class="nav-item">
-                                    <a href="{{ route('cash.count') }}" class="nav-link">
+                                    <a href="{{ route('credit.auth.history') }}" class="nav-link {{ Route::is('credit.auth.history*') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Historial Auth. Crédito</p>
+                                    </a>
+                                </li>
+                                @endmodule
+                                <li class="nav-item">
+                                    <a href="{{ route('cash.count') }}" class="nav-link {{ Route::is('cash.count*') ? 'active' : '' }}">
                                         <i class="far fa-dot-circle nav-icon"></i>
                                         <p>Historial Arqueos</p>
                                     </a>
@@ -414,7 +444,7 @@
                             <ul class="nav nav-treeview">
                                 @can('reports.financial')
                                 <li class="nav-item">
-                                    <a href="{{ route('reports.accounts.receivable') }}" class="nav-link">
+                                    <a href="{{ route('reports.accounts.receivable') }}" class="nav-link {{ Route::is('reports.accounts.receivable*') ? 'active' : '' }}">
                                         <i class="far fa-dot-circle nav-icon"></i>
                                         <p>Cuentas por Cobrar</p>
                                     </a>
@@ -438,7 +468,7 @@
                                 @endcan
                                 @can('manage_debit_notes')
                                 <li class="nav-item">
-                                    <a href="{{ route('pos.debit-notes') }}" class="nav-link">
+                                    <a href="{{ route('pos.debit-notes') }}" class="nav-link {{ Route::is('pos.debit-notes*') ? 'active' : '' }}">
                                         <i class="far fa-dot-circle nav-icon"></i>
                                         <p>Notas de Débito</p>
                                     </a>
@@ -447,7 +477,7 @@
                                 @module('module_purchases')
                                 @can('reports.financial')
                                 <li class="nav-item">
-                                    <a href="{{ route('reports.accounts.payables') }}" class="nav-link">
+                                    <a href="{{ route('reports.accounts.payables') }}" class="nav-link {{ Route::is('reports.accounts.payables*') ? 'active' : '' }}">
                                         <i class="far fa-dot-circle nav-icon"></i>
                                         <p>Cuentas por Pagar</p>
                                     </a>
@@ -517,7 +547,7 @@
                 @canany(['customers.index', 'suppliers.index', 'categories.index', 'inventory.index'])
                 <li class="nav-item">
                     <a href="#" class="nav-link">
-                        <i class="nav-icon fas fa-folder"></i>
+                        <i class="nav-icon fas fa-folder text-primary"></i>
                         <p>
                             REGISTROS MAESTROS
                             <i class="right fas fa-angle-left"></i>
@@ -526,7 +556,7 @@
                     <ul class="nav nav-treeview">
                         @can('customers.index')
                         <li class="nav-item">
-                            <a href="{{ route('customers') }}" class="nav-link">
+                            <a href="{{ route('customers') }}" class="nav-link {{ Route::is('customers*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Clientes</p>
                             </a>
@@ -534,7 +564,7 @@
                         @endcan
                         @can('suppliers.index')
                         <li class="nav-item">
-                            <a href="{{ route('suppliers') }}" class="nav-link">
+                            <a href="{{ route('suppliers') }}" class="nav-link {{ Route::is('suppliers*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Proveedores</p>
                             </a>
@@ -542,7 +572,7 @@
                         @endcan
                         @can('categories.index')
                         <li class="nav-item">
-                            <a href="{{ route('categories') }}" class="nav-link">
+                            <a href="{{ route('categories') }}" class="nav-link {{ Route::is('categories*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Categorías</p>
                             </a>
@@ -568,7 +598,7 @@
                 @canany(['reports.sales', 'reports.purchases', 'reports.financial', 'reports.stock'])
                 <li class="nav-item">
                     <a href="#" class="nav-link">
-                        <i class="nav-icon fas fa-chart-line"></i>
+                        <i class="nav-icon fas fa-chart-line text-info"></i>
                         <p>
                             CENTRO DE REPORTES
                             <i class="right fas fa-angle-left"></i>
@@ -585,79 +615,97 @@
                             </a>
                             <ul class="nav nav-treeview">
                                 @can('reports.sales')
+                                @module('module_strategic_analysis')
                                   <li class="nav-item">
                                       <a href="{{ route('reports.strategic') }}" class="nav-link {{ Request::is('reports/strategic*') ? 'active' : '' }}">
-                                          <i class="far fa-dot-circle nav-icon text-warning"></i>
+                                          <i class="far fa-dot-circle nav-icon"></i>
                                           <p>Análisis Estratégico</p>
                                       </a>
                                   </li>
+                                @endmodule
                                   <li class="nav-item">
-                                      <a href="{{ route('reports.sales') }}" class="nav-link">
+                                      <a href="{{ route('reports.sales') }}" class="nav-link {{ Route::is('reports.sales*') ? 'active' : '' }}">
                                           <i class="far fa-dot-circle nav-icon"></i>
                                           <p>Reporte de Ventas</p>
                                       </a>
                                   </li>
                                   <li class="nav-item">
-                                      <a href="{{ route('reports.daily.sales') }}" class="nav-link">
+                                      <a href="{{ route('reports.daily.sales') }}" class="nav-link {{ Route::is('reports.daily.sales*') ? 'active' : '' }}">
                                           <i class="far fa-dot-circle nav-icon"></i>
                                           <p>Ventas Diarias</p>
                                       </a>
                                   </li>
                                   <li class="nav-item">
-                                      <a href="{{ route('reports.payment.relationship') }}" class="nav-link">
+                                      <a href="{{ route('reports.payment.relationship') }}" class="nav-link {{ Route::is('reports.payment.relationship*') ? 'active' : '' }}">
                                           <i class="far fa-dot-circle nav-icon"></i>
                                           <p>Relación de Cobros</p>
                                       </a>
                                   </li>
+                                  @module('module_weekly_income')
                                   <li class="nav-item">
                                       <a href="{{ route('reports.weekly.income') }}" class="nav-link {{ Request::is('reports/weekly-income*') ? 'active' : '' }}">
                                           <i class="far fa-dot-circle nav-icon"></i>
                                           <p>Reporte Semanal de Ingresos</p>
                                       </a>
                                   </li>
+                                  @endmodule
+                                  @module('module_monthly_income')
                                   <li class="nav-item">
                                       <a href="{{ route('reports.monthly.income') }}" class="nav-link {{ Request::is('reports/monthly-income*') ? 'active' : '' }}">
                                           <i class="far fa-dot-circle nav-icon"></i>
                                           <p>Reporte Mensual de Ingresos</p>
                                       </a>
                                   </li>
+                                  @endmodule
+                                  @module('module_customer_report')
                                   <li class="nav-item">
                                       <a href="{{ route('reports.customers') }}" class="nav-link {{ Request::is('reports/customers*') ? 'active' : '' }}">
                                           <i class="far fa-dot-circle nav-icon"></i>
                                           <p>Reporte de Clientes</p>
                                       </a>
                                   </li>
+                                  @endmodule
+                                  @module('module_customer_activity')
                                   <li class="nav-item">
                                       <a href="{{ route('reports.customer.activity') }}" class="nav-link {{ Request::is('reports/customer-activity*') ? 'active' : '' }}">
                                           <i class="far fa-dot-circle nav-icon"></i>
                                           <p>Actividad de Clientes</p>
                                       </a>
                                   </li>
-                                  @module('module_advanced_reports')
+                                  @endmodule
+                                  @module('module_sales_analysis')
                                   <li class="nav-item">
                                       <a href="{{ route('reports.sales.analysis') }}" class="nav-link {{ Request::is('reports/sales-analysis*') ? 'active' : '' }}">
                                           <i class="far fa-dot-circle nav-icon"></i>
                                           <p>Análisis de Ventas</p>
                                       </a>
                                   </li>
+                                  @endmodule
+                                  @module('module_seller_performance')
                                   <li class="nav-item">
                                       <a href="{{ route('reports.sellers.performance') }}" class="nav-link {{ Request::is('reports/sellers-performance*') ? 'active' : '' }}">
                                           <i class="far fa-dot-circle nav-icon"></i>
                                           <p>Desempeño de Vendedores</p>
                                       </a>
                                   </li>
+                                  @endmodule
+                                  @module('module_operator_efficiency')
                                   <li class="nav-item">
                                       <a href="{{ route('reports.operators.precision') }}" class="nav-link {{ Request::is('reports/operators-precision*') ? 'active' : '' }}">
                                           <i class="far fa-dot-circle nav-icon"></i>
                                           <p>Eficiencia de Operadores</p>
                                       </a>
                                   </li>
+                                  @endmodule
+                                  @module('module_differential_audit')
                                   <li class="nav-item">
                                       <a href="{{ route('reports.exchange.diff') }}" class="nav-link {{ Request::is('reports/exchange-diff*') ? 'active' : '' }}">
                                           <i class="far fa-dot-circle nav-icon"></i>
                                           <p>Auditoría de Diferencial</p>
                                       </a>
                                   </li>
+                                  @endmodule
+                                  @module('module_cash_flow')
                                   <li class="nav-item">
                                       <a href="{{ route('reports.cash.flow.forecast') }}" class="nav-link {{ Request::is('reports/cash-flow-forecast*') ? 'active' : '' }}">
                                           <i class="far fa-dot-circle nav-icon"></i>
@@ -667,18 +715,20 @@
                                   @endmodule
                                 @endcan
                                 @can('reports.customer_payment_relationship')
+                                @module('module_collection_audit')
                                 <li class="nav-item">
-                                    <a href="{{ route('reports.customer.payment.relationship') }}" class="nav-link">
+                                    <a href="{{ route('reports.customer.payment.relationship') }}" class="nav-link {{ Route::is('reports.customer.payment.relationship*') ? 'active' : '' }}">
                                         <i class="far fa-dot-circle nav-icon"></i>
                                         <p>Cobros por Cliente</p>
                                     </a>
                                 </li>
+                                @endmodule
                                 @endcan
                             </ul>
                         </li>
 
-                        <li class="nav-item {{ Request::is('reports/inventory*') || Request::is('reports/movements*') || Request::is('reports/best-sellers*') || Request::is('reports/rotation*') ? 'menu-open' : '' }}">
-                            <a href="#" class="nav-link {{ Request::is('reports/inventory*') || Request::is('reports/movements*') || Request::is('reports/best-sellers*') || Request::is('reports/rotation*') ? 'active' : '' }}">
+                        <li class="nav-item {{ Route::is('reports.inventory*') || Route::is('reports.movements*') || Route::is('reports.audit*') || Route::is('reports.best.sellers*') || Route::is('reports.rotation*') ? 'menu-open' : '' }}">
+                            <a href="#" class="nav-link {{ Route::is('reports.inventory*') || Route::is('reports.movements*') || Route::is('reports.audit*') || Route::is('reports.best.sellers*') || Route::is('reports.rotation*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>
                                     Stock y Desempeño
@@ -687,34 +737,34 @@
                             </a>
                             <ul class="nav nav-treeview">
                                 <li class="nav-item">
-                                    <a href="{{ route('reports.inventory') }}" class="nav-link">
+                                    <a href="{{ route('reports.inventory') }}" class="nav-link {{ Route::is('reports.inventory*') ? 'active' : '' }}">
                                         <i class="far fa-dot-circle nav-icon"></i>
                                         <p>Inventario Actual</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a href="{{ route('reports.movements') }}" class="nav-link">
+                                    <a href="{{ route('reports.movements') }}" class="nav-link {{ Route::is('reports.movements*') ? 'active' : '' }}">
                                         <i class="far fa-dot-circle nav-icon"></i>
                                         <p>Kardex (Movimientos)</p>
                                     </a>
                                 </li>
                                 @can('reports.audit')
                                 <li class="nav-item">
-                                    <a href="{{ route('reports.audit') }}" class="nav-link">
+                                    <a href="{{ route('reports.audit') }}" class="nav-link {{ Route::is('reports.audit*') ? 'active' : '' }}">
                                         <i class="far fa-dot-circle nav-icon"></i>
                                         <p>Auditoría de Stock</p>
                                     </a>
                                 </li>
                                 @endcan
                                 <li class="nav-item">
-                                    <a href="{{ route('reports.best.sellers') }}" class="nav-link">
+                                    <a href="{{ route('reports.best.sellers') }}" class="nav-link {{ Route::is('reports.best.sellers*') ? 'active' : '' }}">
                                         <i class="far fa-dot-circle nav-icon"></i>
                                         <p>Más Vendidos</p>
                                     </a>
                                 </li>
                                 @module('module_advanced_reports')
                                 <li class="nav-item">
-                                    <a href="{{ route('reports.rotation') }}" class="nav-link">
+                                    <a href="{{ route('reports.rotation') }}" class="nav-link {{ Route::is('reports.rotation*') ? 'active' : '' }}">
                                         <i class="far fa-dot-circle nav-icon"></i>
                                         <p>Rotación de Stock</p>
                                     </a>
@@ -731,7 +781,7 @@
                 @unlessrole('Driver')
                 <li class="nav-item">
                     <a href="#" class="nav-link">
-                        <i class="nav-icon fas fa-cogs"></i>
+                        <i class="nav-icon fas fa-cogs text-warning"></i>
                         <p>
                             ADMINISTRACIÓN
                             <i class="right fas fa-angle-left"></i>
@@ -750,50 +800,53 @@
                             <ul class="nav nav-treeview">
                                 @can('users.index')
                                 <li class="nav-item">
-                                    <a href="{{ route('users') }}" class="nav-link">
+                                    <a href="{{ route('users') }}" class="nav-link {{ Route::is('users*') ? 'active' : '' }}">
                                         <i class="far fa-dot-circle nav-icon"></i>
                                         <p>Usuarios</p>
                                     </a>
                                 </li>
                                 @endcan
                                 @module('module_roles')
-                                @can('roles.index')
+                                @role('Super Admin')
                                 <li class="nav-item">
-                                    <a href="{{ route('roles') }}" class="nav-link">
+                                    <a href="{{ route('roles') }}" class="nav-link {{ Route::is('roles*') ? 'active' : '' }}">
                                         <i class="far fa-dot-circle nav-icon"></i>
                                         <p>Roles y Permisos</p>
                                     </a>
                                 </li>
-                                @endcan
-                                @can('permissions.assign')
                                 <li class="nav-item">
-                                    <a href="{{ route('asignar') }}" class="nav-link">
+                                    <a href="{{ route('asignar') }}" class="nav-link {{ Route::is('asignar*') ? 'active' : '' }}">
                                         <i class="far fa-dot-circle nav-icon"></i>
                                         <p>Asignación</p>
                                     </a>
                                 </li>
-                                @endcan
+                                @endrole
                                 @endmodule
                             </ul>
                         </li>
                         @endcanany
 
                         @can('collections.audit')
+                        @module('module_collection_audit')
                         <li class="nav-item">
                             <a href="{{ route('audit.sheet') }}" class="nav-link {{ Request::is('audit/sheet*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Auditoría de Cobranza</p>
                             </a>
                         </li>
+                        @endmodule
+                        @module('module_invoice_audit')
                         <li class="nav-item">
                             <a href="{{ route('audit.invoices') }}" class="nav-link {{ Request::is('audit/invoices*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Auditoría de Facturas</p>
                             </a>
                         </li>
+                        @endmodule
                         @endcan
 
                         @can('settings.index')
+                        @role('Super Admin')
                         <li class="nav-item">
                             <a href="{{ route('devices') }}" class="nav-link {{ Request::is('devices') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
@@ -811,31 +864,32 @@
                             </a>
                             <ul class="nav nav-treeview">
                                 <li class="nav-item">
-                                    <a href="{{ route('settings.whatsapp') }}" class="nav-link">
+                                    <a href="{{ route('settings.whatsapp') }}" class="nav-link {{ Route::is('settings.whatsapp*') ? 'active' : '' }}">
                                         <i class="far fa-dot-circle nav-icon"></i>
                                         <p>WhatsApp Config</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a href="{{ route('settings.whatsapp_outbox') }}" class="nav-link">
+                                    <a href="{{ route('settings.whatsapp_outbox') }}" class="nav-link {{ Route::is('settings.whatsapp_outbox*') ? 'active' : '' }}">
                                         <i class="far fa-dot-circle nav-icon"></i>
                                         <p>WA Bandeja</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a href="{{ route('settings.email') }}" class="nav-link">
+                                    <a href="{{ route('settings.email') }}" class="nav-link {{ Route::is('settings.email*') ? 'active' : '' }}">
                                         <i class="far fa-dot-circle nav-icon"></i>
                                         <p>Email Config</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a href="{{ route('settings.email_outbox') }}" class="nav-link">
+                                    <a href="{{ route('settings.email_outbox') }}" class="nav-link {{ Route::is('settings.email_outbox*') ? 'active' : '' }}">
                                         <i class="far fa-dot-circle nav-icon"></i>
                                         <p>Email Bandeja</p>
                                     </a>
                                 </li>
                             </ul>
                         </li>
+                        @endrole
 
                         <li class="nav-item {{ Request::is('settings') || Request::is('updates*') || Request::is('backups*') || Request::is('settings/license-generator*') ? 'menu-open' : '' }}">
                             <a href="#" class="nav-link {{ Request::is('settings') || Request::is('updates*') || Request::is('backups*') || Request::is('settings/license-generator*') ? 'active' : '' }}">
@@ -852,6 +906,7 @@
                                         <p>Configuración</p>
                                     </a>
                                 </li>
+                                @role('Super Admin')
                                 @module('module_updates')
                                 @can('settings.update')
                                 <li class="nav-item">
@@ -878,7 +933,6 @@
                                         <p>Licencia</p>
                                     </a>
                                 </li>
-                                @role('Super Admin')
                                 <li class="nav-item">
                                     <a href="{{ route('settings.license_generator') }}" class="nav-link {{ Request::is('settings/license-generator*') ? 'active' : '' }}">
                                         <i class="far fa-dot-circle nav-icon"></i>

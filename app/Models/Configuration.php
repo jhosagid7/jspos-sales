@@ -12,6 +12,8 @@ class Configuration extends Model
     protected $table = 'configurations';
 
     protected $fillable = [
+        'plan_type',
+        'addon_modules',
         'business_name',
         'address',
         'city',
@@ -97,6 +99,8 @@ class Configuration extends Model
     ];
 
     protected $casts = [
+        'addon_modules' => 'array',
+        'local_overrides' => 'array',
         'backup_emails' => 'array',
         'production_email_recipients' => 'array',
         'bags_admin_email_recipients' => 'array',
@@ -130,5 +134,41 @@ class Configuration extends Model
     public function defaultWarehouse()
     {
         return $this->belongsTo(Warehouse::class, 'default_warehouse_id');
+    }
+
+    /**
+     * Comprueba si la suscripción actual cumple o supera el plan requerido.
+     * Ejemplo: si el plan requerido es 'pro', y la empresa tiene 'premium', retorna true.
+     */
+    public function hasPlan($plan)
+    {
+        $hierarchy = ['basic' => 1, 'pro' => 2, 'premium' => 3];
+        $currentPlanLevel = $hierarchy[$this->plan_type ?? 'premium'] ?? 3;
+        $requiredPlanLevel = $hierarchy[$plan] ?? 1;
+        
+        return $currentPlanLevel >= $requiredPlanLevel;
+    }
+
+    /**
+     * Comprueba si un módulo adicional a la carta está activo.
+     * Evalúa primero local_overrides.
+     */
+    public function hasAddon($addon)
+    {
+        // 1. Verificar si hay un override local que force habilitar o deshabilitar
+        if (!empty($this->local_overrides) && isset($this->local_overrides[$addon])) {
+            return (bool) $this->local_overrides[$addon];
+        }
+
+        // 2. Si no hay override, validar lo que diga la licencia
+        // Los modulos estan dentro de la data de la licencia, no en addon_modules de DB
+        $licenseModules = config('tenant.modules');
+        if ($licenseModules === null) {
+            // Si por alguna razón no pasó por el middleware, lo leemos directo
+            $status = app(\App\Services\LicenseService::class)->checkLicense();
+            $licenseModules = $status['modules'] ?? [];
+        }
+        
+        return in_array($addon, $licenseModules);
     }
 }

@@ -38,7 +38,7 @@ class ProductMovementsReport extends Component
         $this->dateFrom = Carbon::now()->startOfMonth()->format('Y-m-d');
         $this->dateTo = Carbon::now()->format('Y-m-d');
         $this->warehouses_list = DB::table('warehouses')->where('is_active', 1)->get();
-        session(['pos' => 'Resumen de Movimientos de Producto']);
+        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'Resumen de Movimientos de Producto']);
     }
 
     public function render()
@@ -169,7 +169,7 @@ class ProductMovementsReport extends Component
             })
             ->sum('quantity_returned');
 
-        // Ventas Anuladas (Entradas por anulación/eliminación)
+        // Ventas Anuladas (Entradas por anulaciÃ³n/eliminaciÃ³n)
         $inBefore += DB::table('sale_details')
             ->join('sales', 'sales.id', '=', 'sale_details.sale_id')
             ->where('product_id', $this->product_id)
@@ -387,7 +387,7 @@ class ProductMovementsReport extends Component
             })
             ->select(
                 'rd.created_at as movement_date',
-                DB::raw("'Devolución (NC)' as type"),
+                DB::raw("'DevoluciÃ³n (NC)' as type"),
                 'r.id as reference',
                 'u.name as operator',
                 'c.name as detail',
@@ -418,7 +418,7 @@ class ProductMovementsReport extends Component
                 DB::raw("'Venta Anulada (Reingreso)' as type"),
                 's.invoice_number as reference',
                 DB::raw("COALESCE(u.name, u2.name, 'Sistema') as operator"),
-                DB::raw("CONCAT('Anulación: ', COALESCE(s.deletion_reason, 'N/A')) as detail"),
+                DB::raw("CONCAT('AnulaciÃ³n: ', COALESCE(s.deletion_reason, 'N/A')) as detail"),
                 'w.name as warehouse_name',
                 'sd.quantity as quantity_in',
                 DB::raw("0 as quantity_out")
@@ -479,3 +479,4 @@ class ProductMovementsReport extends Component
             ->get();
     }
 }
+

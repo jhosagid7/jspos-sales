@@ -1,3 +1,11 @@
+## [1.10.257] - 2026-07-23
+
+### Changed
+- Mejoras visuales en el título principal de las páginas (breadcrumbs).
+- Se implementó la asignación de iconos dinámicos para cada sección de la plataforma (Ventas, Productos, Clientes, Reportes, Configuraciones, etc).
+- Se limpiaron los textos redundantes y variables de sesión cruzadas que mostraban etiquetas erróneas en los títulos de vistas.
+- Corrección de iconos en módulos como Finanzas y Producción para que armonicen visualmente con el menú lateral principal.
+
 ## [1.10.256] - 2026-07-22
 ### Added
 - **Módulo Clientes**: Se añadieron insignias (badges) visuales en la tabla de clientes para mostrar la configuración crediticia (Límite, Plazo, Descuento) y un resumen dinámico del estado de la deuda para clientes morosos (total vencido y días de retraso).

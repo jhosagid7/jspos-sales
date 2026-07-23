@@ -42,6 +42,9 @@ class CashRegister extends Component
 
     public function mount(CashRegisterService $service)
     {
+        // Set breadcrumb titles
+        session(['map' => '', 'child' => 'Cierre de Caja', 'rest' => '', 'pos' => 'Finanzas y Auditoría']);
+        
         // Inicializar fechas para historial
         $this->dateFrom = now()->startOfMonth()->format('Y-m-d');
         $this->dateTo = now()->format('Y-m-d');

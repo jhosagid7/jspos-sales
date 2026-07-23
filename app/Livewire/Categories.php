@@ -42,7 +42,7 @@ class Categories extends Component
         $this->category = new Category();
         $this->editing = false;
 
-        session(['map' => 'Categorías', 'child' => ' Componente ']);
+        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'Categorías']);
     }
 
 

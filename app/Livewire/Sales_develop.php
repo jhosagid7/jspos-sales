@@ -708,7 +708,7 @@ class Sales extends Component
             $this->cart = new Collection;
         }
 
-        session(['map' => 'Ventas', 'child' => ' Componente ', 'pos' => 'M├ôDULO DE VENTAS']);
+        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'M├ôDULO DE VENTAS']);
 
         $this->config = Configuration::first();
 

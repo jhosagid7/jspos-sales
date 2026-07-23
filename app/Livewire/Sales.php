@@ -954,7 +954,7 @@ class Sales extends Component
             $this->cart = new Collection;
         }
 
-        session(['map' => 'Ventas', 'child' => ' Componente ', 'pos' => 'MÓDULO DE VENTAS']);
+        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'MÓDULO DE VENTAS']);
 
         $this->banks = Bank::orderBy('sort')->get();
         if ($this->banks->isNotEmpty()) {

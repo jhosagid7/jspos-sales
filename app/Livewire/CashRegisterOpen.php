@@ -15,6 +15,8 @@ class CashRegisterOpen extends Component
 
     public function mount(CashRegisterService $service)
     {
+        session(['map' => '', 'child' => 'Apertura de Caja', 'rest' => '', 'pos' => 'Finanzas y Auditoría']);
+        
         if ($service->hasOpenRegister(Auth::id())) {
             return redirect()->route('sales');
         }

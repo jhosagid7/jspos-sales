@@ -41,7 +41,7 @@ class CashCount extends Component
 
     function mount()
     {
-        session(['map' => "", 'child' => '', 'pos' => 'Arqueo de Caja']);
+        session(['map' => '', 'child' => 'Arqueo de Caja', 'rest' => '', 'pos' => 'Finanzas y Auditoría']);
 
         $this->users = User::orderBy('name')->get();
         $this->currencies = Currency::orderBy('is_primary', 'desc')->get();

@@ -29,7 +29,7 @@ class DispatchReport extends Component
     public $seller_id = 'all';
     public $sellers = [];
     
-    // Configuración de columnas (basado en el requerimiento del usuario)
+    // ConfiguraciÃ³n de columnas (basado en el requerimiento del usuario)
     public $columns = [
         'invoice' => true,
         'destination' => true,
@@ -55,7 +55,7 @@ class DispatchReport extends Component
 
     public function mount()
     {
-        // El reporte solo debe ser accesible si el módulo de despacho está activo
+        // El reporte solo debe ser accesible si el mÃ³dulo de despacho estÃ¡ activo
         if (!in_array('module_delivery', config('tenant.modules', []))) {
             return redirect()->to('/dashboard');
         }
@@ -73,10 +73,10 @@ class DispatchReport extends Component
             $this->drivers = User::all();
         }
 
-        // Cargar vendedores filtrados (oficina y foráneos)
+        // Cargar vendedores filtrados (oficina y forÃ¡neos)
         $this->sellers = User::sellers()->orderBy('name')->get();
         
-        session(['pos' => 'Reporte de Despacho']);
+        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'Reporte de Despacho']);
     }
 
     public function render()
@@ -166,3 +166,4 @@ class DispatchReport extends Component
         $this->pdfUrl = '';
     }
 }
+

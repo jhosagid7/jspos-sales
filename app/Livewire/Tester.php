@@ -8,7 +8,7 @@ class Tester extends Component
 {
     function mount()
     {
-        session(['map' => 'Tester', 'child' => ' Componente ']);
+        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'Tester']);
     }
     public function render()
     {

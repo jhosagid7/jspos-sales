@@ -20,20 +20,36 @@ class LicenseGenerator extends Component
         'module_advanced_payments' => 'Pagos en Divisas y Zelle',
         'module_advanced_products' => 'Productos Variables y Tallas',
         'module_labels' => 'Etiquetas de Código de Barras',
-        'module_advanced_reports' => 'Reportes Financieros Reales',
         'module_roles' => 'Control Granular de Roles',
         'module_whatsapp' => 'Integración WhatsApp API',
         'module_commissions' => 'Comisiones a Vendedores',
         'module_production' => 'Manufactura y Producción',
+        'module_soplados' => 'Producción de Soplados',
+        'module_bolsas' => 'Fábrica de Bolsas',
         'module_delivery' => 'Despacho y Mapa de Rutas',
         'module_updates' => 'Actualizaciones del Sistema',
-        'module_backups' => 'Copias de Seguridad (Backups)'
+        'module_backups' => 'Copias de Seguridad (Backups)',
+
+        // Reportes y Analíticas (Granulares)
+        'module_strategic_analysis' => 'Análisis Estratégico',
+        'module_weekly_income' => 'Reporte Semanal de Ingresos',
+        'module_monthly_income' => 'Reporte Mensual de Ingresos',
+        'module_customer_report' => 'Reporte de Clientes',
+        'module_customer_activity' => 'Actividad de Clientes',
+        'module_sales_analysis' => 'Análisis de Ventas',
+        'module_seller_performance' => 'Desempeño de Vendedores',
+        'module_operator_efficiency' => 'Eficiencia de Operadores',
+        'module_differential_audit' => 'Auditoría de Diferencial',
+        'module_cash_flow' => 'Flujo y Cobranza',
+        'module_collection_audit' => 'Auditoría de Cobranza',
+        'module_invoice_audit' => 'Auditoría de Facturas',
+        'module_credit_auth_history' => 'Historial Auth Créditos'
     ];
 
     public function setPreset($plan)
     {
         if ($plan === 'PRO') {
-            $this->selectedModules = ['module_credits', 'module_purchases', 'module_advanced_payments', 'module_multi_warehouse', 'module_advanced_products', 'module_labels', 'module_advanced_reports', 'module_roles'];
+            $this->selectedModules = ['module_credits', 'module_purchases', 'module_advanced_payments', 'module_multi_warehouse', 'module_advanced_products', 'module_labels', 'module_roles'];
             $this->maxDevices = 5;
             $this->selectedPlan = 'PRO';
         } elseif ($plan === 'PREMIUM') {

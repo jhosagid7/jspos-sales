@@ -8,13 +8,14 @@
                 {{-- Sidebar de Pestañas --}}
                 <div class="col-xxl-3 col-xl-4 box-col-4e sidebar-left-wrapper">
                     <ul class="nav flex-column nav-pills me-3" id="settings-pills-tab" role="tablist">
+                        @role('Super Admin')
                         {{-- Tab 1: Configuración General --}}
                         <li class="nav-item mb-2">
                             <a class="nav-link {{ $tab == 1 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                                wire:click.prevent="$set('tab',1)" href="#">
-                                <i class="fa fa-cogs fa-2x"></i>
+                                <i class="fa fa-cogs fa-2x text-primary"></i>
                                 <div>
-                                    <h6 class="mb-0">General</h6>
+                                    <h6 class="mb-0 text-primary">General</h6>
                                     <small class="{{ $tab == 1 ? 'text-white' : 'text-muted' }}">Empresa y contacto</small>
                                 </div>
                             </a>
@@ -24,21 +25,22 @@
                         <li class="nav-item mb-2">
                             <a class="nav-link {{ $tab == 2 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                                wire:click.prevent="$set('tab',2)" href="#">
-                                <i class="fa fa-shopping-cart fa-2x"></i>
+                                <i class="fa fa-shopping-cart fa-2x text-info"></i>
                                 <div>
-                                    <h6 class="mb-0">Ventas</h6>
+                                    <h6 class="mb-0 text-info">Ventas</h6>
                                     <small class="{{ $tab == 2 ? 'text-white' : 'text-muted' }}">Créditos y confirmación</small>
                                 </div>
                             </a>
                         </li>
+                        @endrole
 
                         {{-- Tab 3: Configuración de Monedas --}}
                         <li class="nav-item mb-2">
                             <a class="nav-link {{ $tab == 3 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                                wire:click.prevent="$set('tab',3)" href="#">
-                                <i class="fa fa-coins fa-2x"></i>
+                                <i class="fa fa-coins fa-2x text-success"></i>
                                 <div>
-                                    <h6 class="mb-0">Monedas</h6>
+                                    <h6 class="mb-0 text-success">Monedas</h6>
                                     <small class="{{ $tab == 3 ? 'text-white' : 'text-muted' }}">Monedas y tasas</small>
                                 </div>
                             </a>
@@ -49,23 +51,24 @@
                         <li class="nav-item mb-2">
                             <a class="nav-link {{ $tab == 4 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                                wire:click.prevent="$set('tab',4)" href="#">
-                                <i class="fa fa-university fa-2x"></i>
+                                <i class="fa fa-university fa-2x text-danger"></i>
                                 <div>
-                                    <h6 class="mb-0">Bancos</h6>
+                                    <h6 class="mb-0 text-danger">Bancos</h6>
                                     <small class="{{ $tab == 4 ? 'text-white' : 'text-muted' }}">Bancos y monedas</small>
                                 </div>
                             </a>
                         </li>
                         @endmodule
 
+                        @role('Super Admin')
                         {{-- Tab 5: Configuración de Comisiones --}}
                         @module('module_commissions')
                         <li class="nav-item mb-2">
                             <a class="nav-link {{ $tab == 5 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                                wire:click.prevent="$set('tab',5)" href="#">
-                                <i class="fa fa-chart-line fa-2x"></i>
+                                <i class="fa fa-chart-line fa-2x text-primary"></i>
                                 <div>
-                                    <h6 class="mb-0">Comisiones</h6>
+                                    <h6 class="mb-0 text-primary">Comisiones</h6>
                                     <small class="{{ $tab == 5 ? 'text-white' : 'text-muted' }}">Reglas globales</small>
                                 </div>
                             </a>
@@ -77,9 +80,9 @@
                         <li class="nav-item mb-2">
                             <a class="nav-link {{ $tab == 6 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                                wire:click.prevent="$set('tab',6)" href="#">
-                                <i class="fa fa-shopping-bag fa-2x"></i>
+                                <i class="fa fa-shopping-bag fa-2x text-info"></i>
                                 <div>
-                                    <h6 class="mb-0">Compras</h6>
+                                    <h6 class="mb-0 text-info">Compras</h6>
                                     <small class="{{ $tab == 6 ? 'text-white' : 'text-muted' }}">Inteligencia de Compras</small>
                                 </div>
                             </a>
@@ -89,9 +92,9 @@
                         <li class="nav-item mb-2">
                             <a class="nav-link {{ $tab == 7 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                                wire:click.prevent="$set('tab',7)" href="#">
-                                <i class="fa fa-mobile fa-2x"></i>
+                                <i class="fa fa-mobile fa-2x text-secondary"></i>
                                 <div>
-                                    <h6 class="mb-0">Móvil</h6>
+                                    <h6 class="mb-0 text-secondary">Móvil</h6>
                                     <small class="{{ $tab == 7 ? 'text-white' : 'text-muted' }}">Escáner y Cámara</small>
                                 </div>
                             </a>
@@ -101,9 +104,9 @@
                         <li class="nav-item mb-2">
                             <a class="nav-link {{ $tab == 8 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                                wire:click.prevent="$set('tab',8)" href="#">
-                                <i class="fa fa-industry fa-2x"></i>
+                                <i class="fa fa-industry fa-2x text-dark"></i>
                                 <div>
-                                    <h6 class="mb-0">Producción</h6>
+                                    <h6 class="mb-0 text-dark">Producción</h6>
                                     <small class="{{ $tab == 8 ? 'text-white' : 'text-muted' }}">Emails y reportes</small>
                                 </div>
                             </a>
@@ -115,9 +118,9 @@
                         <li class="nav-item mb-2">
                             <a class="nav-link {{ $tab == 9 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                                wire:click.prevent="$set('tab',9)" href="#">
-                                <i class="fa fa-credit-card fa-2x"></i>
+                                <i class="fa fa-credit-card fa-2x text-success"></i>
                                 <div>
-                                    <h6 class="mb-0">Crédito Global</h6>
+                                    <h6 class="mb-0 text-success">Crédito Global</h6>
                                     <small class="{{ $tab == 9 ? 'text-white' : 'text-muted' }}">Reglas por defecto</small>
                                 </div>
                             </a>
@@ -128,9 +131,9 @@
                         <li class="nav-item mb-2">
                             <a class="nav-link {{ $tab == 10 ? 'active show' : '' }} d-flex align-items-center gap-4 p-3" 
                                wire:click.prevent="$set('tab', 10)" href="#">
-                                <i class="fa fa-percent fa-2x"></i>
+                                <i class="fa fa-percent fa-2x text-danger"></i>
                                 <div>
-                                    <h6 class="mb-0">Precios Masivos</h6>
+                                    <h6 class="mb-0 text-danger">Precios Masivos</h6>
                                     <small class="{{ $tab == 10 ? 'text-white' : 'text-muted' }}">Aumentos por Lote</small>
                                 </div>
                             </a>
@@ -139,9 +142,9 @@
                         <li class="nav-item mb-2">
                             <a class="nav-link {{ $tab == 11 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                                wire:click.prevent="$set('tab',11)" href="#">
-                                <i class="fa fa-book fa-2x"></i>
+                                <i class="fa fa-book fa-2x text-primary"></i>
                                 <div>
-                                    <h6 class="mb-0">Catálogo</h6>
+                                    <h6 class="mb-0 text-primary">Catálogo</h6>
                                     <small class="{{ $tab == 11 ? 'text-white' : 'text-muted' }}">Configuración de PDF</small>
                                 </div>
                             </a>
@@ -152,14 +155,39 @@
                         <li class="nav-item mb-2">
                             <a class="nav-link {{ $tab == 12 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
                                wire:click.prevent="$set('tab',12)" href="#">
-                                <i class="fa fa-university fa-2x"></i>
+                                <i class="fa fa-university fa-2x text-info"></i>
                                 <div>
-                                    <h6 class="mb-0">Tesorería</h6>
+                                    <h6 class="mb-0 text-info">Tesorería</h6>
                                     <small class="{{ $tab == 12 ? 'text-white' : 'text-muted' }}">Cortes y Categorías</small>
                                 </div>
                             </a>
                         </li>
                         @endmodule
+
+                        {{-- Tab 13: Anulación de Licencia (Local Overrides) --}}
+                        <li class="nav-item mb-2">
+                            <a class="nav-link {{ $tab == 13 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                               wire:click.prevent="$set('tab',13)" href="#">
+                                <i class="fa fa-key fa-2x text-warning"></i>
+                                <div>
+                                    <h6 class="mb-0 text-warning">Licencia Local</h6>
+                                    <small class="{{ $tab == 13 ? 'text-white' : 'text-muted' }}">Anulación Super Admin</small>
+                                </div>
+                            </a>
+                        </li>
+                        @endrole
+
+                        {{-- Tab 14: Mi Licencia (Client view) --}}
+                        <li class="nav-item mb-2">
+                            <a class="nav-link {{ $tab == 14 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                               wire:click.prevent="$set('tab',14)" href="#">
+                                <i class="fa fa-id-card fa-2x text-success"></i>
+                                <div>
+                                    <h6 class="mb-0 text-success">Mi Licencia</h6>
+                                    <small class="{{ $tab == 14 ? 'text-white' : 'text-muted' }}">Estado y Módulos</small>
+                                </div>
+                            </a>
+                        </li>
                     </ul>
                 </div>
 
@@ -1306,6 +1334,189 @@ Departamento de Control de Calidad y Manufactura
                             </div>
                         </div>
                         @endmodule
+
+                        {{-- TAB 13: ANULACIÓN DE LICENCIA (LOCAL OVERRIDES) --}}
+                        @role('Super Admin')
+                        <div class="tab-pane fade {{ $tab == 13 ? 'active show' : '' }}" id="local-overrides" role="tabpanel">
+                            <div class="sidebar-body">
+                                <h5>Panel de Anulación (Local Overrides)</h5>
+                                <p class="text-muted">Como Super Admin, puedes forzar la activación o desactivación de cualquier módulo ignorando lo estipulado en la licencia generada.</p>
+                                
+                                <div class="alert alert-warning">
+                                    <i class="fa fa-exclamation-triangle"></i> Los cheques aquí encendidos habilitarán el módulo sin importar la licencia. Los apagados dejarán que la licencia decida (o puedes forzarlos a apagado cambiando la lógica en código, por ahora on = forzado activado, off = no forzado).
+                                    <br><small><i>Nota: Actualmente, si el check está encendido, el módulo se considera habilitado para todo el sistema.</i></small>
+                                </div>
+
+                                <div class="row mt-4">
+                                    @php
+                                        // Re-use the same list of available modules from LicenseGenerator or hardcode the keys
+                                        $overrideModules = [
+                                            'module_credits' => 'Créditos y Cuentas por Cobrar',
+                                            'module_purchases' => 'Compras a Proveedores',
+                                            'module_multi_warehouse' => 'Múltiples Depósitos y Traspasos',
+                                            'module_advanced_payments' => 'Pagos en Divisas y Zelle',
+                                            'module_advanced_products' => 'Productos Variables y Tallas',
+                                            'module_labels' => 'Etiquetas de Código de Barras',
+                                            'module_roles' => 'Control Granular de Roles',
+                                            'module_whatsapp' => 'Integración WhatsApp API',
+                                            'module_commissions' => 'Comisiones a Vendedores',
+                                            'module_production' => 'Manufactura y Producción',
+                                            'module_soplados' => 'Producción de Soplados',
+                                            'module_bolsas' => 'Fábrica de Bolsas',
+                                            'module_delivery' => 'Despacho y Mapa de Rutas',
+                                            'module_updates' => 'Actualizaciones del Sistema',
+                                            'module_backups' => 'Copias de Seguridad (Backups)',
+                                            'module_strategic_analysis' => 'Análisis Estratégico',
+                                            'module_weekly_income' => 'Reporte Semanal de Ingresos',
+                                            'module_monthly_income' => 'Reporte Mensual de Ingresos',
+                                            'module_customer_report' => 'Reporte de Clientes',
+                                            'module_customer_activity' => 'Actividad de Clientes',
+                                            'module_sales_analysis' => 'Análisis de Ventas',
+                                            'module_seller_performance' => 'Desempeño de Vendedores',
+                                            'module_operator_efficiency' => 'Eficiencia de Operadores',
+                                            'module_differential_audit' => 'Auditoría de Diferencial',
+                                            'module_cash_flow' => 'Flujo y Cobranza',
+                                            'module_collection_audit' => 'Auditoría de Cobranza',
+                                            'module_invoice_audit' => 'Auditoría de Facturas',
+                                            'module_credit_auth_history' => 'Historial Auth Créditos'
+                                        ];
+
+                                        $pureLicenseModules = config('tenant.modules');
+                                        if ($pureLicenseModules === null) {
+                                            $pureLicenseModules = app(\App\Services\LicenseService::class)->checkLicense()['modules'] ?? [];
+                                        }
+                                    @endphp
+
+                                    @foreach($overrideModules as $key => $name)
+                                    @php
+                                        $isLicensed = in_array($key, $pureLicenseModules);
+                                    @endphp
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-group">
+                                            <label class="font-weight-bold" for="override_{{ $key }}">
+                                                @if($isLicensed)
+                                                    <i class="fas fa-check-circle text-success me-1" title="Incluido en la Licencia"></i>
+                                                @else
+                                                    <i class="fas fa-lock text-secondary me-1" title="No Incluido en la Licencia"></i>
+                                                @endif
+                                                {{ $name }}
+                                            </label>
+                                            <select wire:model.defer="localOverrides.{{ $key }}" class="form-control" id="override_{{ $key }}">
+                                                <option value="">Predeterminado (Según Licencia)</option>
+                                                <option value="1">Forzar Activado</option>
+                                                <option value="0">Forzar Desactivado</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    @endforeach
+                                </div>
+
+                                <div class="row mt-4">
+                                    <div class="col-sm-12 text-center">
+                                        <button wire:click.prevent="saveOverrides" class="btn btn-warning btn-lg px-5">
+                                            <i class="fas fa-save"></i> Guardar Anulaciones (Overrides)
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @endrole
+
+                        {{-- TAB 14: MI LICENCIA (VISTA DEL CLIENTE) --}}
+                        <div class="tab-pane fade {{ $tab == 14 ? 'active show' : '' }}" id="my-license" role="tabpanel">
+                            <div class="sidebar-body">
+                                @php
+                                    $licenseStatus = app(\App\Services\LicenseService::class)->checkLicense();
+                                    $configModel = \App\Models\Configuration::first();
+                                    
+                                    $allModules = [
+                                        'module_credits' => 'Créditos y Cuentas por Cobrar',
+                                        'module_purchases' => 'Compras a Proveedores',
+                                        'module_multi_warehouse' => 'Múltiples Depósitos y Traspasos',
+                                        'module_advanced_payments' => 'Pagos en Divisas y Zelle',
+                                        'module_advanced_products' => 'Productos Variables y Tallas',
+                                        'module_labels' => 'Etiquetas de Código de Barras',
+                                        'module_roles' => 'Control Granular de Roles',
+                                        'module_whatsapp' => 'Integración WhatsApp API',
+                                        'module_commissions' => 'Comisiones a Vendedores',
+                                        'module_production' => 'Manufactura y Producción',
+                                        'module_soplados' => 'Producción de Soplados',
+                                        'module_bolsas' => 'Fábrica de Bolsas',
+                                        'module_delivery' => 'Despacho y Mapa de Rutas',
+                                        'module_updates' => 'Actualizaciones del Sistema',
+                                        'module_backups' => 'Copias de Seguridad (Backups)',
+                                        'module_strategic_analysis' => 'Análisis Estratégico',
+                                        'module_weekly_income' => 'Reporte Semanal de Ingresos',
+                                        'module_monthly_income' => 'Reporte Mensual de Ingresos',
+                                        'module_customer_report' => 'Reporte de Clientes',
+                                        'module_customer_activity' => 'Actividad de Clientes',
+                                        'module_sales_analysis' => 'Análisis de Ventas',
+                                        'module_seller_performance' => 'Desempeño de Vendedores',
+                                        'module_operator_efficiency' => 'Eficiencia de Operadores',
+                                        'module_differential_audit' => 'Auditoría de Diferencial',
+                                        'module_cash_flow' => 'Flujo y Cobranza',
+                                        'module_collection_audit' => 'Auditoría de Cobranza',
+                                        'module_invoice_audit' => 'Auditoría de Facturas',
+                                        'module_credit_auth_history' => 'Historial Auth Créditos'
+                                    ];
+                                @endphp
+
+                                <h5>Resumen de Mi Licencia</h5>
+                                <p class="text-muted">Aquí puedes ver el estado actual de tu suscripción y los módulos a los que tienes acceso.</p>
+                                
+                                <div class="row mb-4">
+                                    <div class="col-md-4">
+                                        <div class="card bg-light border-0 shadow-sm">
+                                            <div class="card-body text-center">
+                                                <h6 class="text-uppercase text-muted fw-bold">Estado</h6>
+                                                <h4 class="{{ $licenseStatus['status'] == 'active' ? 'text-success' : 'text-danger' }} fw-bold mb-0">
+                                                    {{ $licenseStatus['status'] == 'active' ? 'Activa' : 'Vencida / Inválida' }}
+                                                </h4>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card bg-light border-0 shadow-sm">
+                                            <div class="card-body text-center">
+                                                <h6 class="text-uppercase text-muted fw-bold">Días Restantes</h6>
+                                                <h4 class="{{ $licenseStatus['days_remaining'] > 15 ? 'text-primary' : 'text-warning' }} fw-bold mb-0">
+                                                    {{ $licenseStatus['days_remaining'] }} <small class="text-muted">días</small>
+                                                </h4>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card bg-light border-0 shadow-sm">
+                                            <div class="card-body text-center">
+                                                <h6 class="text-uppercase text-muted fw-bold">Tipo de Plan</h6>
+                                                <h4 class="text-info fw-bold mb-0">
+                                                    {{ ucfirst($configModel->plan_type ?? 'Premium') }}
+                                                </h4>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <h6 class="fw-bold mb-3 border-bottom pb-2">Módulos de tu Plan</h6>
+                                <div class="row">
+                                    @foreach($allModules as $key => $name)
+                                        @php
+                                            $hasModule = $configModel ? $configModel->hasAddon($key) : false;
+                                        @endphp
+                                        <div class="col-md-6 mb-2">
+                                            <div class="d-flex align-items-center p-2 rounded {{ $hasModule ? 'bg-white shadow-sm border-left-success' : 'bg-light text-muted' }}" style="border-left: 4px solid {{ $hasModule ? '#28a745' : '#dee2e6' }};">
+                                                @if($hasModule)
+                                                    <i class="fas fa-check-circle text-success fs-5 me-3"></i>
+                                                @else
+                                                    <i class="fas fa-lock text-secondary fs-5 me-3"></i>
+                                                @endif
+                                                <span class="{{ $hasModule ? 'fw-bold' : '' }}">{{ $name }}</span>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
 
                     </div>
                 </div>

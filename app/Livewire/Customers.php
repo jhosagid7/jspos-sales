@@ -85,7 +85,7 @@ class Customers extends Component
         $this->resetCommissionFields();
         $this->editing = false;
 
-        session(['map' => 'Clientes', 'child' => ' Componente ']);
+        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'Clientes']);
     }
 
 

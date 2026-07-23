@@ -20,6 +20,7 @@ class Settings extends Component
     public $treasuryCutoffHour = '17:00';
     public $treasuryAutoClose = true;
     public $discountRules = [];
+    public $localOverrides = []; // For super admin to override license modules
 
     public $logo, $logo_preview; // Logo properties
     public $backupEmails; // Backup Emails
@@ -61,7 +62,7 @@ class Settings extends Component
 
     function mount()
     {
-        session(['map' => 'Configuraciones', 'child' => ' Sistema ', 'pos' => 'Settings']);
+        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'Configuraciones']);
 
         $this->loadConfig();
         $this->loadCurrencies();
@@ -168,8 +169,32 @@ class Settings extends Component
             
             // Load Discount Rules
             $this->loadDiscountRules();
+
+            // Load Local Overrides
+            $overrides = is_array($config->local_overrides) ? $config->local_overrides : (json_decode($config->local_overrides, true) ?? []);
+            
+            $availableKeys = [
+                'module_credits', 'module_purchases', 'module_multi_warehouse', 'module_advanced_payments',
+                'module_advanced_products', 'module_labels', 'module_roles', 'module_whatsapp', 'module_commissions',
+                'module_production', 'module_soplados', 'module_bolsas', 'module_delivery', 'module_updates',
+                'module_backups', 'module_strategic_analysis', 'module_weekly_income', 'module_monthly_income',
+                'module_customer_report', 'module_customer_activity', 'module_sales_analysis', 'module_seller_performance',
+                'module_operator_efficiency', 'module_differential_audit', 'module_cash_flow', 'module_collection_audit',
+                'module_invoice_audit', 'module_credit_auth_history'
+            ];
+
+            $this->localOverrides = [];
+            foreach ($availableKeys as $key) {
+                if (isset($overrides[$key])) {
+                    $this->localOverrides[$key] = (bool) $overrides[$key] ? '1' : '0';
+                } else {
+                    $this->localOverrides[$key] = '';
+                }
+            }
         }
     }
+
+
 
     function saveConfig()
     {
@@ -366,6 +391,32 @@ class Settings extends Component
 
         } catch (\Throwable $th) {
             $this->dispatch('noty', msg: "Error al intentar actualizar la configuración general: " . $th->getMessage());
+        }
+    }
+
+    public function saveOverrides()
+    {
+        try {
+            $config = Configuration::find($this->setting_id);
+            if ($config) {
+                $filteredOverrides = [];
+                foreach ($this->localOverrides as $key => $value) {
+                    // If value is exactly "1", it's true. If "0", it's false. If "" or null, we ignore it.
+                    if ($value === '1' || $value === 1 || $value === true) {
+                        $filteredOverrides[$key] = true;
+                    } elseif ($value === '0' || $value === 0 || $value === false) {
+                        $filteredOverrides[$key] = false;
+                    }
+                }
+                
+                $config->local_overrides = $filteredOverrides;
+                $config->save();
+                
+                $this->localOverrides = $filteredOverrides;
+                $this->dispatch('noty', msg: "Sobrescrituras de Licencia actualizadas correctamente");
+            }
+        } catch (\Throwable $th) {
+            $this->dispatch('noty', msg: "Error al actualizar sobrescrituras: " . $th->getMessage());
         }
     }
 

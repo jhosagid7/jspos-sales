@@ -48,7 +48,7 @@ class CustomerReport extends Component
 
     public function mount()
     {
-        session(['pos' => 'Reporte de Clientes']);
+        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'Reporte de Clientes']);
         $this->sellers = User::sellers()->orderBy('name')->get();
     }
 
@@ -225,3 +225,4 @@ class CustomerReport extends Component
         ]);
     }
 }
+
