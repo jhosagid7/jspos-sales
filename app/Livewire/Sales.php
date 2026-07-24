@@ -926,6 +926,20 @@ class Sales extends Component
         $this->change = 0;
     }
 
+    #[On('set-variable-price-and-add')]
+    public function setVariablePriceAndAdd($price, $customName = null)
+    {
+        if ($this->pendingProductToAdd) {
+            $product = Product::find($this->pendingProductToAdd);
+            if ($product) {
+                $this->AddProduct($product, $this->pendingQtyToAdd, $this->pendingWarehouseId, $price, $customName);
+            }
+            $this->pendingProductToAdd = null;
+            $this->pendingQtyToAdd = 1;
+            $this->pendingWarehouseId = null;
+        }
+    }
+
     public function mount()
     {
         $this->trends = collect();
@@ -1151,6 +1165,27 @@ class Sales extends Component
 
 
         $this->customer = session('sale_customer', null);
+
+        if (in_array('module_pos_optimizations', config('tenant.modules', []))) {
+            if (!$this->customer) {
+                $defaultCustomer = \App\Models\Customer::where('type', 'Consumidor Final')->first()
+                    ?? \App\Models\Customer::first();
+
+                if (!$defaultCustomer) {
+                    $defaultCustomer = \App\Models\Customer::create([
+                        'name' => 'Consumidor Final',
+                        'address' => 'N/A',
+                        'email' => 'final@cliente.com',
+                        'phone' => '00000000',
+                        'type' => 'Consumidor Final',
+                        'customer_commission_1_percentage' => 0,
+                        'customer_commission_1_threshold' => 0
+                    ]);
+                }
+                $this->customer = $defaultCustomer->toArray();
+                session(['sale_customer' => $this->customer]);
+            }
+        }
         
         // Re-hydrate config models if lost (e.g., F5 refresh loses untyped component properties)
         if ($this->customer) {
@@ -1884,7 +1919,7 @@ class Sales extends Component
         }
 
         $service = app(\App\Services\BuyingTrendService::class);
-        $this->trends = $service->getTrends($this->customer['id'], $this->warehouse_id);
+                $this->trends = $service->getTrends($this->customer['id'], $this->warehouse_id);
     }
 
     public function addToCartFromTrend($productId)
@@ -1895,7 +1930,9 @@ class Sales extends Component
         }
     }
 
-    function AddProduct(Product $product, $qty = 1, $warehouseId = null)
+
+
+    function AddProduct(Product $product, $qty = 1, $warehouseId = null, $customPrice = null, $customName = null)
     {
         // Guard Clause: Foreign Sellers MUST select a customer first
         if (!Auth::user()->can('sales.manage_adjustments') && !$this->customer) {
@@ -1906,6 +1943,15 @@ class Sales extends Component
         // Determine which warehouse to use
         // If specific warehouse passed, use it. Otherwise use global selection.
         $targetWarehouseId = $warehouseId ?? $this->warehouse_id;
+
+        // VARIABLE PRICE CHECK
+        if ($product->is_variable_price && $customPrice === null) {
+            $this->pendingProductToAdd = $product->id;
+            $this->pendingQtyToAdd = $qty;
+            $this->pendingWarehouseId = $targetWarehouseId ?: (\App\Models\Warehouse::first()->id ?? null);
+            $this->dispatch('prompt-variable-price', productName: $product->name);
+            return;
+        }
 
         // Fallback: If no warehouse selected, try to use the first active one
         if (!$targetWarehouseId) {
@@ -1996,7 +2042,8 @@ class Sales extends Component
         $existingItem = $this->cart->first(function ($item) use ($product, $targetWarehouseId) {
             return $item['pid'] === $product->id && 
                    ($item['warehouse_id'] ?? null) == $targetWarehouseId &&
-                   !isset($item['product_item_id']); // Only merge if it's NOT a specific item
+                   !isset($item['product_item_id']) &&
+                   !$product->is_variable_price; // Do not merge variable price products
         });
 
         if ($existingItem) {
@@ -2127,9 +2174,18 @@ class Sales extends Component
             }
         }
 
-        // Determine Base Price (Volume or Standard)
-        $basePrice = $this->determinePrice($product, $qty);
-        $basePriceInPrimary = $basePrice * $exchangeRate;
+        if ($customPrice !== null) {
+            $conversionFactor = $this->getConversionFactor();
+            if ($conversionFactor > 0) {
+                $customPrice = $customPrice / $conversionFactor;
+            }
+            $basePrice = $customPrice;
+            $basePriceInPrimary = $customPrice * $exchangeRate;
+        } else {
+            // Determine Base Price (Volume or Standard)
+            $basePrice = $this->determinePrice($product, $qty);
+            $basePriceInPrimary = $basePrice * $exchangeRate;
+        }
 
         // Calculate Extras (Commission, Freight, Diff)
         $comm = 0;
@@ -2209,7 +2265,7 @@ class Sales extends Component
         $itemCart = [
             'id' => $uid,
             'pid' => $product->id,
-            'name' => $product->name,
+            'name' => $customName ?? $product->name,
             'sku' => $product->sku,
             'price1' => $basePriceInPrimary, 
             'price2' => $product->price2 * $exchangeRate, 
@@ -4577,15 +4633,29 @@ class Sales extends Component
             session()->forget('totalCartAtPayment');
 
             // mike42
-            $this->printSale($sale->id);
+            if (in_array('module_pos_optimizations', config('tenant.modules', []))) {
+                // Fire-and-forget: launch in background process so HTTP response is not blocked
+                $saleIdForPrint = $sale->id;
+                try {
+                    $phpBin = PHP_BINARY;
+                    $artisan = base_path('artisan');
+                    // On Windows, use cmd /c START /B to detach the child process
+                    $cmd = 'cmd /c START /B "" "' . $phpBin . '" "' . $artisan . '" pos:print-sale ' . $saleIdForPrint . ' > nul 2>&1';
+                    pclose(popen($cmd, 'r'));
+                } catch (\Throwable $pe) {
+                    \Illuminate\Support\Facades\Log::warning("Could not launch background print process: " . $pe->getMessage());
+                }
+            } else {
+                $this->printSale($sale->id);
+            }
 
             // base64 / printerapp
-            $b64 = $this->jsonData($sale->id);
-
-            $this->dispatch(
-                'print-json',
-                data: $b64
-            );
+            try {
+                $b64 = $this->jsonData($sale->id);
+                $this->dispatch('print-json', data: $b64);
+            } catch (\Throwable $je) {
+                \Illuminate\Support\Facades\Log::warning("jsonData dispatch failed: " . $je->getMessage());
+            }
         } catch (\Exception $th) {
             DB::rollBack();
             $this->dispatch('noty', msg: "Error al intentar guardar la venta \n {$th->getMessage()}");

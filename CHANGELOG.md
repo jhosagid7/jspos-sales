@@ -1,3 +1,13 @@
+## [1.10.259] - 2026-07-23
+
+### Added
+- **Reporte Cobranza por Vendedor**: Se agregó la funcionalidad para dividir la cobranza proporcionalmente entre los departamentos LOCAL y GRAVADO.
+- **Reporte Cobranza por Vendedor**: Se añadieron casillas de configuración visual para mostrar u ocultar el Monto Original, Tasa de Cambio y Equivalente USD.
+- **Reporte Cobranza por Vendedor (PDF)**: Se agregó la opción para imprimir firmas de "Cajero" y "Supervisor" al final del reporte en PDF.
+
+### Fixed
+- **Reporte Cobranza por Vendedor**: Se corrigió el espaciado y cálculo de columnas (colspan) en el reporte de pantalla y PDF para evitar el desalineamiento visual en los totales cuando se ocultan ciertas columnas.
+
 ## [1.10.258] - 2026-07-23
 
 ### Added

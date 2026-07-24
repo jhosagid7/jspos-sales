@@ -180,7 +180,8 @@ class Settings extends Component
                 'module_backups', 'module_strategic_analysis', 'module_weekly_income', 'module_monthly_income',
                 'module_customer_report', 'module_customer_activity', 'module_sales_analysis', 'module_seller_performance',
                 'module_operator_efficiency', 'module_differential_audit', 'module_cash_flow', 'module_collection_audit',
-                'module_invoice_audit', 'module_credit_auth_history'
+                'module_invoice_audit', 'module_credit_auth_history', 'module_departments', 'module_services',
+                'module_pos_optimizations', 'module_seller_grouped'
             ];
 
             $this->localOverrides = [];

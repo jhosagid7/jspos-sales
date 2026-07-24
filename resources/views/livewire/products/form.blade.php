@@ -186,19 +186,19 @@
                                         <div id="editor2"></div>
                                     </div>
                                 </div>
-                                {{-- type --}}
-                                <div class="col-sm-12 col-md-3">
-                                    <label class="form-label">Tipo <span class="txt-danger">*</span></label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fa fa-shapes"></i></span>
-                                        <select wire:model="form.type" class="form-control form-select" required="">
-                                            <option value="service">Servicio</option>
-                                            <option value="physical">Producto Físico</option>
-                                        </select>
+                                @if(in_array('module_services', config('tenant.modules', [])))
+                                    {{-- type --}}
+                                    <div class="col-sm-12 col-md-3">
+                                        <label class="form-label">Tipo <span class="txt-danger">*</span></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fa fa-shapes"></i></span>
+                                            <select wire:model="form.type" class="form-control form-select" required="">
+                                                <option value="service">Servicio</option>
+                                                <option value="physical">Producto Físico</option>
+                                            </select>
+                                        </div>
                                     </div>
-                                    {{-- @error('type') <span class="text-danger">{{ $message }}</span>
-                                    @enderror --}}
-                                </div>
+                                @endif
                                 {{-- status --}}
                                 <div class="col-sm-12 col-md-3">
                                     <label class="form-label">Estatus <span class="txt-danger">*</span></label>
@@ -309,6 +309,15 @@
                                             Al vender, deberás seleccionar el item específico.
                                         </small>
                                     </div>
+                                    @if(in_array('module_services', config('tenant.modules', [])))
+                                    <div class="form-check form-switch mt-2">
+                                        <input class="form-check-input" type="checkbox" id="variablePriceSwitch" wire:model="form.is_variable_price">
+                                        <label class="form-check-label text-danger font-weight-bold" for="variablePriceSwitch">Precio Variable (Servicios/Diseños)</label>
+                                        <small class="form-text text-muted d-block">
+                                            Activa esta opción para que el punto de venta (POS) te pida ingresar el precio al momento de agregarlo a la venta.
+                                        </small>
+                                    </div>
+                                    @endif
                                 </div>
                             </form>
                             <div class="mt-3">
@@ -414,16 +423,22 @@
                                                     <div class="col-12">
                                                         <div class="input-group">
                                                             <span class="input-group-text"><i class="fa fa-truck"></i></span>
-                                                            <select wire:model="form.supplier_id" class="form-control form-select"
-                                                                id="supplier">
-                                                                <option value="0" disabled> Seleccionar</option>
-                                                                @foreach ($suppliers as $supplier)
-                                                                    <option value="{{ $supplier->id }}"
-                                                                        {{ $supplier->id == $form->supplier_id ? 'selected' : '' }}>
-                                                                        {{ $supplier->name }}
-                                                                    </option>
-                                                                @endforeach
-                                                            </select>
+                                                            @if($form->type === 'service')
+                                                                <select class="form-control form-select" disabled>
+                                                                    <option value="0" selected>No requerido para Servicios</option>
+                                                                </select>
+                                                            @else
+                                                                <select wire:model="form.supplier_id" class="form-control form-select"
+                                                                    id="supplier">
+                                                                    <option value="0" disabled> Seleccionar</option>
+                                                                    @foreach ($suppliers as $supplier)
+                                                                        <option value="{{ $supplier->id }}"
+                                                                            {{ $supplier->id == $form->supplier_id ? 'selected' : '' }}>
+                                                                            {{ $supplier->name }}
+                                                                        </option>
+                                                                    @endforeach
+                                                                </select>
+                                                            @endif
                                                         </div>
                                                         @error('form.supplier_id')
                                                             <span class="text-danger">{{ $message }}</span>
@@ -589,14 +604,22 @@
                             <form class="row g-3">
                                 <div class="col-sm-12 col-md-6">
                                     <label class="form-label">Administrar Stock</label>
-                                    <select wire:model="form.manage_stock" class="form-control form-select">
-                                        <option value="1">Si, Controlar Stock</option>
-                                        <option value="0">Vender sin Límites</option>
-                                    </select>
+                                    @if($form->type === 'service')
+                                        <select class="form-control form-select" disabled>
+                                            <option value="0" selected>Vender sin Límites (Automático para Servicios)</option>
+                                        </select>
+                                    @else
+                                        <select wire:model="form.manage_stock" class="form-control form-select">
+                                            <option value="1">Si, Controlar Stock</option>
+                                            <option value="0">Vender sin Límites</option>
+                                        </select>
+                                    @endif
                                 </div>
                                 <div class="col-sm-12 col-md-6">
                                     <label class="form-label">Stock Actual</label>
-                                    @if((!empty($form->product_components) && !$form->is_pre_assembled) || $form->is_variable_quantity)
+                                    @if($form->type === 'service')
+                                        <input type="text" class="form-control" value="0 (Automático para Servicios)" disabled>
+                                    @elseif((!empty($form->product_components) && !$form->is_pre_assembled) || $form->is_variable_quantity)
                                         <input type="text" class="form-control" value="Calculado Dinámicamente" disabled>
                                         <small class="text-info">
                                             @if($form->is_variable_quantity)
@@ -611,11 +634,19 @@
                                 </div>
                                 <div class="col-sm-12 col-md-6">
                                     <label class="form-label">Stock Mínimo (Alerta)</label>
-                                    <input wire:model="form.low_stock" class="form-control" type="number">
+                                    @if($form->type === 'service')
+                                        <input class="form-control" type="text" value="0 (Desactivado para Servicios)" disabled>
+                                    @else
+                                        <input wire:model="form.low_stock" class="form-control" type="number">
+                                    @endif
                                 </div>
                                 <div class="col-sm-12 col-md-6">
                                     <label class="form-label">Stock Máximo (Ideal)</label>
-                                    <input wire:model="form.max_stock" class="form-control" type="number">
+                                    @if($form->type === 'service')
+                                        <input class="form-control" type="text" value="0 (Desactivado para Servicios)" disabled>
+                                    @else
+                                        <input wire:model="form.max_stock" class="form-control" type="number">
+                                    @endif
                                 </div>
                             </form>
 

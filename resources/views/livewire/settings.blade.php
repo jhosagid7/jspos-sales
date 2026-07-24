@@ -1457,7 +1457,11 @@ Departamento de Control de Calidad y Manufactura
                                         'module_cash_flow' => 'Flujo y Cobranza',
                                         'module_collection_audit' => 'Auditoría de Cobranza',
                                         'module_invoice_audit' => 'Auditoría de Facturas',
-                                        'module_credit_auth_history' => 'Historial Auth Créditos'
+                                        'module_credit_auth_history' => 'Historial Auth Créditos',
+                                        'module_departments' => 'Departamentos de Productos',
+                                        'module_services' => 'Servicios y Precios Variables',
+                                        'module_pos_optimizations' => 'Optimizaciones del POS',
+                                        'module_seller_grouped' => 'Reporte Agrupado por Vendedor'
                                     ];
                                 @endphp
 

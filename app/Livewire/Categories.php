@@ -24,17 +24,59 @@ class Categories extends Component
     public $category_id, $upload, $savedImg, $editing, $search, $records, $pagination = 5;
 
 
-    protected $rules =
-    [
-        'category.name' => "required|min:2|max:50|unique:categories,name"
-    ];
+    // Properties for inline department creation
+    public $btnCreateDept = false;
+    public $newDeptName = '';
+    public $newDeptType = 'local';
+
+    public function rules()
+    {
+        $rules = [
+            'category.name' => "required|min:2|max:50|unique:categories,name" . ($this->category->id ? ",{$this->category->id}" : "")
+        ];
+
+        if (in_array('module_departments', config('tenant.modules', []))) {
+            $rules['category.department_id'] = "required|exists:departments,id";
+        }
+
+        return $rules;
+    }
 
     protected $messages = [
         'category.name.required' => 'El nombre de la categoría es obligatorio.',
         'category.name.min' => 'El nombre de la categoría debe tener al menos 2 caracteres.',
         'category.name.max' => 'El nombre de la categoría no puede tener más de 50 caracteres.',
         'category.name.unique' => 'El nombre de la categoría ya existe.',
+        'category.department_id.required' => 'El departamento es obligatorio.',
+        'category.department_id.exists' => 'El departamento seleccionado no es válido.',
     ];
+
+    public function saveDepartment()
+    {
+        $this->validate([
+            'newDeptName' => 'required|min:2|max:50|unique:departments,name',
+            'newDeptType' => 'required|in:local,gravado',
+        ], [
+            'newDeptName.required' => 'El nombre del departamento es obligatorio.',
+            'newDeptName.min' => 'El nombre debe tener al menos 2 caracteres.',
+            'newDeptName.max' => 'El nombre no puede tener más de 50 caracteres.',
+            'newDeptName.unique' => 'El departamento ya existe.',
+            'newDeptType.required' => 'El tipo de reporte es obligatorio.',
+            'newDeptType.in' => 'El tipo de reporte debe ser local o gravado.',
+        ]);
+
+        $dept = \App\Models\Department::create([
+            'name' => trim($this->newDeptName),
+            'report_type' => $this->newDeptType,
+        ]);
+
+        $this->category->department_id = $dept->id;
+        $this->newDeptName = '';
+        $this->newDeptType = 'local';
+        $this->btnCreateDept = false;
+
+        $this->dispatch('noty', msg: 'DEPARTAMENTO CREADO Y SELECCIONADO');
+    }
 
 
     public function mount()

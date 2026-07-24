@@ -18,16 +18,37 @@ class CashRegisterService
     public function getActiveCashRegister($userId = null)
     {
         $userId = $userId ?? Auth::id();
-        return CashRegister::where('user_id', $userId)
+        $register = CashRegister::where('user_id', $userId)
             ->where('status', 'open')
             ->first();
+
+        if (in_array('module_pos_optimizations', config('tenant.modules', []))) {
+            if (!$register && $userId) {
+                try {
+                    $register = $this->openRegister($userId, [], 'Apertura automática de caja para POS');
+                } catch (\Exception $e) {
+                    \Log::error("Failed to auto-open cash register for user {$userId}: " . $e->getMessage());
+                }
+            }
+        }
+
+        return $register;
     }
 
     /**
-     * Verificar si el usuario tiene caja abierta
+     * Verifica si el usuario tiene una caja abierta
      */
     public function hasOpenRegister($userId = null)
     {
+        if (in_array('module_pos_optimizations', config('tenant.modules', []))) {
+            $userId = $userId ?? Auth::id();
+            if (!$userId) return false;
+            
+            return CashRegister::where('user_id', $userId)
+                ->where('status', 'open')
+                ->exists();
+        }
+
         return $this->getActiveCashRegister($userId) !== null;
     }
 
@@ -115,6 +136,12 @@ class CashRegisterService
     {
         $currentBalance = $this->getBalance($cashRegisterId, $currencyCode);
         
+        if (in_array('module_pos_optimizations', config('tenant.modules', []))) {
+            // Bypassed: always allow giving change to prevent blocking POS sales.
+            // Balance will register normally (and can go negative if no opening cash was entered).
+            return ['valid' => true, 'current_balance' => $currentBalance];
+        }
+
         if ($currentBalance < $amountNeeded) {
             return [
                 'valid' => false,

@@ -108,6 +108,7 @@ class Products extends Component
         $this->form->name = $product->name;
         $this->form->sku = $product->sku;
         $this->form->description = $product->description;
+        $this->form->type = $product->type;
         $this->form->cost = $product->cost;
         $this->form->price = $product->price;
         $this->form->manage_stock = $product->manage_stock;
@@ -132,6 +133,7 @@ class Products extends Component
         $this->form->allow_decimal = (bool) $product->allow_decimal;
         $this->form->show_in_sales = (bool) $product->show_in_sales;
         $this->form->is_raw_material = (bool) $product->is_raw_material;
+        $this->form->is_variable_price = (bool) $product->is_variable_price;
         $this->form->tags = $product->tags->pluck('name')->implode(',');
         $this->form->values = $product->priceList->toArray();
         

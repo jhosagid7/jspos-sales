@@ -184,6 +184,54 @@
             });
         }
 
+        Livewire.on('show-variable-modal', event => {
+            $('#variableItemModal').modal('show')
+        })
+
+        Livewire.on('prompt-variable-price', event => {
+            let productName = event[0].productName || 'Producto';
+            swal({
+                title: 'PRECIO VARIABLE - ' + productName,
+                text: 'Ingresa el precio del servicio:',
+                content: {
+                    element: "input",
+                    attributes: {
+                        placeholder: "Ej: 15.50",
+                        type: "number",
+                        step: "any"
+                    },
+                },
+                buttons: {
+                    cancel: "Cancelar",
+                    confirm: "Siguiente"
+                }
+            }).then((price) => {
+                if (price === null) return;
+                if (price === '' || isNaN(parseFloat(price)) || parseFloat(price) <= 0) {
+                    swal("¡Error!", "Debes ingresar un precio válido mayor a 0.", "error");
+                    return;
+                }
+                
+                swal({
+                    title: 'DESCRIPCIÓN (Opcional)',
+                    text: 'Ingresa una descripción para el trabajo realizado (Ej: Diseño de Logo):',
+                    content: {
+                        element: "input",
+                        attributes: {
+                            placeholder: "Descripción detallada",
+                            type: "text",
+                        },
+                    },
+                    buttons: {
+                        cancel: "Omitir",
+                        confirm: "Aceptar"
+                    }
+                }).then((desc) => {
+                    Livewire.dispatch('set-variable-price-and-add', { price: parseFloat(price), customName: desc });
+                });
+            });
+        })
+
         Livewire.on('close-process-order', event => {
             $('#modalProcessOrder').modal('hide')
         })

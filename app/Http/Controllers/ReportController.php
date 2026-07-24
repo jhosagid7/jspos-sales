@@ -1540,15 +1540,8 @@ class ReportController extends Controller
         $selected_ids = $request->get('selected_ids') ? explode(',', $request->get('selected_ids')) : [];
         $selected_warehouses = json_decode($request->get('warehouses'), true) ?? [];
         $show_total = $request->get('show_total', true);
-        $product_type = $request->get('product_type', 'products');
 
         $products = \App\Models\Product::where('status', 'available')
-            ->when($product_type === 'products', function ($q) {
-                $q->where('is_raw_material', false);
-            })
-            ->when($product_type === 'raw_materials', function ($q) {
-                $q->where('is_raw_material', true);
-            })
             ->when(!empty($selected_ids), function ($q) use ($selected_ids) {
                 $q->whereIn('id', $selected_ids);
             })
@@ -1560,30 +1553,17 @@ class ReportController extends Controller
             })
             ->when(empty($selected_ids) && $search, function ($query) use ($search) {
                 $tokens = explode(' ', trim($search));
-                $query->where(function($q) use ($tokens) {
-                    $q->where(function($andQuery) use ($tokens) {
-                        foreach ($tokens as $token) {
-                            if (!empty($token)) {
-                                $andQuery->where(function($subQuery) use ($token) {
-                                    $subQuery->where('name', 'like', "%{$token}%")
-                                             ->orWhere('sku', 'like', "%{$token}%")
-                                             ->orWhereHas('category', function ($catQuery) use ($token) {
-                                                 $catQuery->where('name', 'like', "%{$token}%");
-                                             });
-                                });
-                            }
-                        }
-                    })
-                    ->orWhereHas('tags', function ($tagQuery) use ($tokens) {
-                        $tagQuery->where(function($sub) use ($tokens) {
-                            foreach ($tokens as $token) {
-                                if (!empty($token)) {
-                                    $sub->orWhere('name', 'like', "%{$token}%");
-                                }
-                            }
+                foreach ($tokens as $token) {
+                    if (!empty($token)) {
+                        $query->where(function($q) use ($token) {
+                            $q->where('name', 'like', "%{$token}%")
+                              ->orWhere('sku', 'like', "%{$token}%")
+                              ->orWhereHas('category', function ($subQuery) use ($token) {
+                                  $subQuery->where('name', 'like', "%{$token}%");
+                              });
                         });
-                    });
-                });
+                    }
+                }
             })
             ->with(['category', 'supplier', 'warehouses'])
             ->orderBy('name')
@@ -3596,27 +3576,7 @@ class ReportController extends Controller
             });
         }
 
-        $invoiceLimit = request('invoiceLimit', '100');
-        $invoiceStatus = request('invoiceStatus', 'all');
-
-        if ($invoiceLimit === 'none') {
-            $detailedSales = collect([]);
-        } else {
-            if ($invoiceStatus === 'pending') {
-                $detailedSales->where('sales.status', 'pending');
-            } elseif ($invoiceStatus === 'paid') {
-                $detailedSales->where('sales.status', 'paid');
-            }
-
-            $detailedSales = $detailedSales->orderBy('sales.created_at', 'desc');
-
-            if ($invoiceLimit === '100') {
-                $detailedSales = $detailedSales->take(100)->get();
-            } else {
-                // all
-                $detailedSales = $detailedSales->get();
-            }
-        }
+        $detailedSales = $detailedSales->orderBy('sales.created_at', 'desc')->take(100)->get();
 
         $config = \App\Models\Configuration::first();
         $user = auth()->user();
@@ -3628,8 +3588,6 @@ class ReportController extends Controller
             'detailedSales' => $detailedSales,
             'metric' => $metric,
             'periodType' => $periodType,
-            'invoiceLimit' => $invoiceLimit,
-            'invoiceStatus' => $invoiceStatus,
             'config' => $config,
             'user' => $user,
             'date' => $date,
@@ -3839,176 +3797,196 @@ class ReportController extends Controller
         return $pdf->stream($fileName);
     }
 
-    public function bankTreasuryPdf(Request $request)
+    public function sellerGroupedPdf(Request $request)
     {
-        $bankId = $request->input('bank_id', 'all');
-        $dateFrom = $request->input('date_from', Carbon::now()->startOfMonth()->format('Y-m-d'));
-        $dateTo = $request->input('date_to', Carbon::now()->endOfMonth()->format('Y-m-d'));
-        $type = $request->input('type', 'dashboard'); // 'dashboard', 'expenses', 'transfers', 'closures'
+        $dateFrom        = $request->get('dateFrom', Carbon::today()->format('Y-m-d'));
+        $dateTo          = $request->get('dateTo',   Carbon::today()->format('Y-m-d'));
+        $splitByDepartment = $request->get('splitByDepartment', 0) == 1;
+        $selectedOperators = $request->get('selectedOperators')
+            ? array_filter(explode(',', $request->get('selectedOperators')))
+            : [];
+            
+        $showOriginalAmount = $request->get('showOriginalAmount', 1) == 1;
+        $showExchangeRate = $request->get('showExchangeRate', 1) == 1;
+        $showUsdAmount = $request->get('showUsdAmount', 1) == 1;
+        $showSignatures = $request->get('showSignatures', 0) == 1;
 
-        $config = \App\Models\Configuration::first();
-        $user = auth()->user();
-        $date = Carbon::now()->format('d/m/Y');
-        $time = Carbon::now()->format('h:i A');
+        // 0. Subconsulta de proporciones
+        $salesProportions = DB::table('sale_details')
+            ->join('products', 'sale_details.product_id', '=', 'products.id')
+            ->join('categories', 'products.category_id', '=', 'categories.id')
+            ->leftJoin('departments', 'categories.department_id', '=', 'departments.id')
+            ->select(
+                'sale_details.sale_id',
+                DB::raw("SUM(CASE WHEN departments.report_type = 'local' THEN sale_details.quantity * sale_details.sale_price ELSE 0 END) as local_subtotal"),
+                DB::raw("SUM(CASE WHEN departments.report_type = 'gravado' THEN sale_details.quantity * sale_details.sale_price ELSE 0 END) as gravado_subtotal"),
+                DB::raw("SUM(sale_details.quantity * sale_details.sale_price) as total_subtotal")
+            )
+            ->groupBy('sale_details.sale_id');
 
-        $currencies = \App\Models\Currency::all();
-        $primaryCurrency = $currencies->where('is_primary', 1)->first() ?? $currencies->first();
-        $primaryCode = $primaryCurrency ? $primaryCurrency->code : 'USD';
+        $posPaymentsQuery = DB::table('sale_payment_details')
+            ->join('sales', 'sale_payment_details.sale_id', '=', 'sales.id')
+            ->leftJoin('users', 'sales.user_id', '=', 'users.id')
+            ->leftJoinSub($salesProportions, 'proportions', 'sales.id', '=', 'proportions.sale_id')
+            ->where('sales.status', '<>', 'returned')
+            ->whereNull('sales.deletion_approved_at')
+            ->where('sale_payment_details.created_at', '>=', $dateFrom . ' 00:00:00')
+            ->where('sale_payment_details.created_at', '<=', $dateTo . ' 23:59:59');
 
-        if ($bankId === 'all') {
-            $analysis = \App\Services\BankTreasuryService::getGlobalExpenseAnalysis($dateFrom, $dateTo);
-            $bankName = "Todas las Cuentas Bancarias";
-            $currencyCode = $primaryCode;
-            $bank = null;
-        } else {
-            $analysis = \App\Services\BankTreasuryService::getExpenseAnalysis((int) $bankId, $dateFrom, $dateTo);
-            $bank = \App\Models\Bank::find($bankId);
-            $bankName = $bank ? $bank->name : "Cuenta Seleccionada";
-            $currencyCode = $bank ? $bank->currency_code : 'USD';
+        if (!empty($selectedOperators)) {
+            $posPaymentsQuery->whereIn('sales.user_id', $selectedOperators);
         }
 
-        $movements = collect();
+        $posPayments = $posPaymentsQuery->select([
+            'sales.user_id',
+            DB::raw("COALESCE(users.name, 'SISTEMA / ONLINE') as seller_name"),
+            'sale_payment_details.payment_method as method',
+            'sale_payment_details.currency_code as currency',
+            DB::raw("SUM(sale_payment_details.amount) as total_amount"),
+            DB::raw("AVG(sale_payment_details.exchange_rate) as avg_rate"),
+            DB::raw("SUM(sale_payment_details.amount_in_primary_currency) as total_usd"),
+            DB::raw("SUM(sale_payment_details.amount * CASE WHEN proportions.total_subtotal > 0 THEN (proportions.local_subtotal / proportions.total_subtotal) ELSE 1 END) as local_amount"),
+            DB::raw("SUM(sale_payment_details.amount_in_primary_currency * CASE WHEN proportions.total_subtotal > 0 THEN (proportions.local_subtotal / proportions.total_subtotal) ELSE 1 END) as local_usd"),
+            DB::raw("SUM(sale_payment_details.amount * CASE WHEN proportions.total_subtotal > 0 THEN (proportions.gravado_subtotal / proportions.total_subtotal) ELSE 0 END) as gravado_amount"),
+            DB::raw("SUM(sale_payment_details.amount_in_primary_currency * CASE WHEN proportions.total_subtotal > 0 THEN (proportions.gravado_subtotal / proportions.total_subtotal) ELSE 0 END) as gravado_usd")
+        ])->groupBy('sales.user_id', 'users.name', 'sale_payment_details.payment_method', 'sale_payment_details.currency_code')->get();
 
-        if ($type === 'closures') {
-            $closuresQuery = \Illuminate\Support\Facades\DB::table('bank_daily_closures')
-                ->select(
-                    'bank_daily_closures.*',
-                    'banks.name as bank_name',
-                    'banks.currency_code',
-                    'users.name as user_name'
-                )
-                ->join('banks', 'bank_daily_closures.bank_id', '=', 'banks.id')
-                ->leftJoin('users', 'bank_daily_closures.closed_by', '=', 'users.id')
-                ->whereBetween('bank_daily_closures.closure_date', [$dateFrom, $dateTo]);
+        $abonosQuery = DB::table('payments')
+            ->join('sales', 'payments.sale_id', '=', 'sales.id')
+            ->leftJoin('users', 'payments.user_id', '=', 'users.id')
+            ->leftJoinSub($salesProportions, 'proportions', 'sales.id', '=', 'proportions.sale_id')
+            ->where('sales.status', '<>', 'returned')
+            ->whereNull('sales.deletion_approved_at')
+            ->where('payments.status', 'approved')
+            ->where('payments.payment_date', '>=', $dateFrom . ' 00:00:00')
+            ->where('payments.payment_date', '<=', $dateTo . ' 23:59:59');
 
-            if ($bankId !== 'all') {
-                $closuresQuery->where('bank_daily_closures.bank_id', $bankId);
-            }
+        if (!empty($selectedOperators)) {
+            $abonosQuery->whereIn('payments.user_id', $selectedOperators);
+        }
 
-            $movements = $closuresQuery->orderBy('bank_daily_closures.closure_date', 'desc')->get();
+        $abonos = $abonosQuery->select([
+            'payments.user_id',
+            DB::raw("COALESCE(users.name, 'SISTEMA / ONLINE') as seller_name"),
+            'payments.pay_way as method',
+            'payments.currency as currency',
+            DB::raw("SUM(payments.amount) as total_amount"),
+            DB::raw("AVG(payments.exchange_rate) as avg_rate"),
+            DB::raw("SUM(payments.amount / CASE WHEN payments.exchange_rate > 0 THEN payments.exchange_rate ELSE 1 END) as total_usd"),
+            DB::raw("SUM(payments.amount * CASE WHEN proportions.total_subtotal > 0 THEN (proportions.local_subtotal / proportions.total_subtotal) ELSE 1 END) as local_amount"),
+            DB::raw("SUM((payments.amount / CASE WHEN payments.exchange_rate > 0 THEN payments.exchange_rate ELSE 1 END) * CASE WHEN proportions.total_subtotal > 0 THEN (proportions.local_subtotal / proportions.total_subtotal) ELSE 1 END) as local_usd"),
+            DB::raw("SUM(payments.amount * CASE WHEN proportions.total_subtotal > 0 THEN (proportions.gravado_subtotal / proportions.total_subtotal) ELSE 0 END) as gravado_amount"),
+            DB::raw("SUM((payments.amount / CASE WHEN payments.exchange_rate > 0 THEN payments.exchange_rate ELSE 1 END) * CASE WHEN proportions.total_subtotal > 0 THEN (proportions.gravado_subtotal / proportions.total_subtotal) ELSE 0 END) as gravado_usd")
+        ])->groupBy('payments.user_id', 'users.name', 'payments.pay_way', 'payments.currency')->get();
 
-        } else {
-            $hasIncomes = ($type === 'dashboard');
-            $hasExpenses = ($type === 'dashboard' || $type === 'expenses');
-            $hasTransfers = ($type === 'dashboard' || $type === 'transfers');
+        $allRaw = $posPayments->concat($abonos);
 
-            $queries = [];
-
-            if ($hasIncomes) {
-                $movementsQuery = \Illuminate\Support\Facades\DB::table('bank_records')
-                    ->select(
-                        'bank_records.id',
-                        'bank_records.payment_date as date',
-                        'bank_records.amount',
-                        'bank_records.reference',
-                        \Illuminate\Support\Facades\DB::raw("'INGRESO' as type"),
-                        'banks.name as bank_name',
-                        'banks.currency_code',
-                        \Illuminate\Support\Facades\DB::raw('NULL as category_name'),
-                        \Illuminate\Support\Facades\DB::raw('NULL as beneficiary')
-                    )
-                    ->join('banks', 'bank_records.bank_id', '=', 'banks.id')
-                    ->where('banks.is_tracked', true)
-                    ->whereBetween('bank_records.payment_date', [$dateFrom, $dateTo]);
-
-                if ($bankId !== 'all') {
-                    $movementsQuery->where('banks.id', $bankId);
+        $unpivoted = collect();
+        foreach ($allRaw as $row) {
+            if ($splitByDepartment) {
+                if ($row->local_amount > 0.01) {
+                    $unpivoted->push((object)[
+                        'seller_name' => $row->seller_name,
+                        'method' => $row->method,
+                        'currency' => $row->currency,
+                        'department_type' => 'LOCAL',
+                        'total_amount' => $row->local_amount,
+                        'total_usd' => $row->local_usd,
+                        'avg_rate' => $row->avg_rate
+                    ]);
                 }
-                $queries[] = $movementsQuery;
-            }
-
-            if ($hasExpenses) {
-                $expensesQuery = \Illuminate\Support\Facades\DB::table('bank_expenses')
-                    ->select(
-                        'bank_expenses.id',
-                        'bank_expenses.expense_date as date',
-                        'bank_expenses.amount',
-                        'bank_expenses.reference',
-                        \Illuminate\Support\Facades\DB::raw("'GASTO' as type"),
-                        'banks.name as bank_name',
-                        'banks.currency_code',
-                        'bank_expense_categories.name as category_name',
-                        'bank_expenses.beneficiary'
-                    )
-                    ->join('banks', 'bank_expenses.bank_id', '=', 'banks.id')
-                    ->join('bank_expense_categories', 'bank_expenses.category_id', '=', 'bank_expense_categories.id')
-                    ->whereBetween('bank_expenses.expense_date', [$dateFrom, $dateTo]);
-
-                if ($bankId !== 'all') {
-                    $expensesQuery->where('banks.id', $bankId);
+                if ($row->gravado_amount > 0.01) {
+                    $unpivoted->push((object)[
+                        'seller_name' => $row->seller_name,
+                        'method' => $row->method,
+                        'currency' => $row->currency,
+                        'department_type' => 'GRAVADO',
+                        'total_amount' => $row->gravado_amount,
+                        'total_usd' => $row->gravado_usd,
+                        'avg_rate' => $row->avg_rate
+                    ]);
                 }
-                $queries[] = $expensesQuery;
-            }
-
-            if ($hasTransfers) {
-                $transfersOutQuery = \Illuminate\Support\Facades\DB::table('bank_transfers')
-                    ->select(
-                        'bank_transfers.id',
-                        'bank_transfers.transfer_date as date',
-                        'bank_transfers.amount_from as amount',
-                        'bank_transfers.reference',
-                        \Illuminate\Support\Facades\DB::raw("'TRANSFER_OUT' as type"),
-                        'from_banks.name as bank_name',
-                        'from_banks.currency_code',
-                        \Illuminate\Support\Facades\DB::raw("'Transferencia Enviada' as category_name"),
-                        'to_banks.name as beneficiary'
-                    )
-                    ->join('banks as from_banks', 'bank_transfers.from_bank_id', '=', 'from_banks.id')
-                    ->join('banks as to_banks', 'bank_transfers.to_bank_id', '=', 'to_banks.id')
-                    ->whereBetween('bank_transfers.transfer_date', [$dateFrom, $dateTo]);
-
-                if ($bankId !== 'all') {
-                    $transfersOutQuery->where('from_bank_id', $bankId);
-                }
-                $queries[] = $transfersOutQuery;
-
-                $transfersInQuery = \Illuminate\Support\Facades\DB::table('bank_transfers')
-                    ->select(
-                        'bank_transfers.id',
-                        'bank_transfers.transfer_date as date',
-                        'bank_transfers.amount_to as amount',
-                        'bank_transfers.reference',
-                        \Illuminate\Support\Facades\DB::raw("'TRANSFER_IN' as type"),
-                        'to_banks.name as bank_name',
-                        'to_banks.currency_code',
-                        \Illuminate\Support\Facades\DB::raw("'Transferencia Recibida' as category_name"),
-                        'from_banks.name as beneficiary'
-                    )
-                    ->join('banks as from_banks', 'bank_transfers.from_bank_id', '=', 'from_banks.id')
-                    ->join('banks as to_banks', 'bank_transfers.to_bank_id', '=', 'to_banks.id')
-                    ->whereBetween('bank_transfers.transfer_date', [$dateFrom, $dateTo]);
-
-                if ($bankId !== 'all') {
-                    $transfersInQuery->where('to_bank_id', $bankId);
-                }
-                $queries[] = $transfersInQuery;
-            }
-
-            if (!empty($queries)) {
-                $baseQuery = array_shift($queries);
-                foreach ($queries as $q) {
-                    $baseQuery->unionAll($q);
-                }
-                $movements = $baseQuery->orderBy('date', 'desc')->orderBy('id', 'desc')->get();
+            } else {
+                $unpivoted->push((object)[
+                    'seller_name' => $row->seller_name,
+                    'method' => $row->method,
+                    'currency' => $row->currency,
+                    'department_type' => 'GENERAL',
+                    'total_amount' => $row->total_amount,
+                    'total_usd' => $row->total_usd,
+                    'avg_rate' => $row->avg_rate
+                ]);
             }
         }
 
-        $pdf = Pdf::loadView('reports.bank-treasury-pdf', [
-            'bank' => $bank,
-            'bankName' => $bankName,
-            'currencyCode' => $currencyCode,
-            'dateFrom' => $dateFrom,
-            'dateTo' => $dateTo,
-            'analysis' => $analysis,
-            'movements' => $movements,
-            'config' => $config,
-            'user' => $user,
-            'date' => $date,
-            'time' => $time,
-            'type' => $type,
-        ]);
+        $reportData = $unpivoted->groupBy('seller_name')->map(function($sellerPayments) use ($splitByDepartment) {
+            if ($splitByDepartment) {
+                return $sellerPayments->groupBy('department_type')->map(function($deptGroup) {
+                    return $deptGroup->groupBy(function($item) {
+                        return $item->method . '-' . $item->currency;
+                    })->map(function($methodGroup) {
+                        $first = $methodGroup->first();
+                        return (object)[
+                            'method' => $first->method,
+                            'currency' => $first->currency,
+                            'total_amount' => $methodGroup->sum('total_amount'),
+                            'avg_rate' => $methodGroup->avg('avg_rate'),
+                            'total_usd' => $methodGroup->sum('total_usd'),
+                        ];
+                    })->values();
+                });
+            } else {
+                return $sellerPayments->groupBy(function($item) {
+                    return $item->method . '-' . $item->currency;
+                })->map(function($methodGroup) {
+                    $first = $methodGroup->first();
+                    return (object)[
+                        'method' => $first->method,
+                        'currency' => $first->currency,
+                        'total_amount' => $methodGroup->sum('total_amount'),
+                        'avg_rate' => $methodGroup->avg('avg_rate'),
+                        'total_usd' => $methodGroup->sum('total_usd'),
+                    ];
+                })->values();
+            }
+        });
 
-        return $pdf->stream('Reporte_Tesoreria_' . Carbon::now()->format('Ymd_His') . '.pdf');
+        $totalGeneralUsd = 0;
+        foreach ($reportData as $sellerName => $payments) {
+            if ($splitByDepartment) {
+                foreach ($payments as $deptPayments) {
+                    foreach ($deptPayments as $p) {
+                        $totalGeneralUsd += $p->total_usd;
+                    }
+                }
+            } else {
+                foreach ($payments as $p) {
+                    $totalGeneralUsd += $p->total_usd;
+                }
+            }
+        }
+
+        $config = Configuration::first();
+
+        $pdf = Pdf::loadView('reports.seller-grouped-report-pdf', [
+            'reportData'      => $reportData,
+            'totalGeneralUsd' => $totalGeneralUsd,
+            'config'          => $config,
+            'dateFrom'    => $dateFrom,
+            'dateTo'      => $dateTo,
+            'splitByDepartment' => $splitByDepartment,
+            'showOriginalAmount' => $showOriginalAmount,
+            'showExchangeRate' => $showExchangeRate,
+            'showUsdAmount' => $showUsdAmount,
+            'showSignatures' => $showSignatures,
+            'generatedAt' => Carbon::now()->format('d/m/Y H:i'),
+        ])->setPaper('a4', 'landscape');
+
+        $filename = 'Reporte_Vendedores_'
+            . Carbon::parse($dateFrom)->format('Ymd') . '_'
+            . Carbon::parse($dateTo)->format('Ymd') . '.pdf';
+
+        return $pdf->stream($filename);
     }
 }
 

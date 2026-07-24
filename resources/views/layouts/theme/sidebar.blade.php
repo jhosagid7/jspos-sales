@@ -689,6 +689,14 @@
                                       </a>
                                   </li>
                                   @endmodule
+                                  @module('module_seller_grouped')
+                                  <li class="nav-item">
+                                      <a href="{{ route('reports.seller_grouped') }}" class="nav-link {{ Request::is('reports/seller-grouped*') ? 'active' : '' }}">
+                                          <i class="far fa-dot-circle nav-icon"></i>
+                                          <p>Cobranza por Operador</p>
+                                      </a>
+                                  </li>
+                                  @endmodule
                                   @module('module_operator_efficiency')
                                   <li class="nav-item">
                                       <a href="{{ route('reports.operators.precision') }}" class="nav-link {{ Request::is('reports/operators-precision*') ? 'active' : '' }}">

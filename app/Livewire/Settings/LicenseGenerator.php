@@ -38,18 +38,26 @@ class LicenseGenerator extends Component
         'module_customer_activity' => 'Actividad de Clientes',
         'module_sales_analysis' => 'Análisis de Ventas',
         'module_seller_performance' => 'Desempeño de Vendedores',
+        'module_seller_grouped' => 'Reporte Agrupado por Vendedor',
         'module_operator_efficiency' => 'Eficiencia de Operadores',
         'module_differential_audit' => 'Auditoría de Diferencial',
         'module_cash_flow' => 'Flujo y Cobranza',
         'module_collection_audit' => 'Auditoría de Cobranza',
         'module_invoice_audit' => 'Auditoría de Facturas',
-        'module_credit_auth_history' => 'Historial Auth Créditos'
+        'module_credit_auth_history' => 'Historial Auth Créditos',
+        
+        // Módulos Especiales de Catálogo y Servicios
+        'module_departments' => 'Departamentos de Productos',
+        'module_services' => 'Servicios y Precios Variables',
+        
+        // Optimizaciones
+        'module_pos_optimizations' => 'Optimizaciones del POS (Caja, Cliente Default, Impresión en 2do Plano)'
     ];
 
     public function setPreset($plan)
     {
         if ($plan === 'PRO') {
-            $this->selectedModules = ['module_credits', 'module_purchases', 'module_advanced_payments', 'module_multi_warehouse', 'module_advanced_products', 'module_labels', 'module_roles'];
+            $this->selectedModules = ['module_credits', 'module_purchases', 'module_advanced_payments', 'module_multi_warehouse', 'module_advanced_products', 'module_labels', 'module_roles', 'module_departments', 'module_seller_grouped', 'module_services', 'module_pos_optimizations'];
             $this->maxDevices = 5;
             $this->selectedPlan = 'PRO';
         } elseif ($plan === 'PREMIUM') {

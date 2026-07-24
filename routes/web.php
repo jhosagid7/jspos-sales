@@ -177,6 +177,8 @@ Route::middleware('auth')->group(function () {
         Route::get('sales-analysis/pdf', [\App\Http\Controllers\ReportController::class, 'salesAnalysisPdf'])->name('reports.sales.analysis.pdf')->middleware(['can:reports.sales', 'module:module_sales_analysis']);
         Route::get('sellers-performance', \App\Livewire\Reports\SellersPerformanceReport::class)->name('reports.sellers.performance')->middleware(['can:reports.sales', 'module:module_seller_performance']);
         Route::get('sellers-performance/pdf', [\App\Http\Controllers\ReportController::class, 'sellersPerformancePdf'])->name('reports.sellers.performance.pdf')->middleware(['can:reports.sales', 'module:module_seller_performance']);
+        Route::get('seller-grouped', \App\Livewire\Reports\SellerGroupedReport::class)->name('reports.seller_grouped')->middleware(['can:reports.sales', 'module:module_seller_grouped']);
+        Route::get('seller-grouped/pdf', [\App\Http\Controllers\ReportController::class, 'sellerGroupedPdf'])->name('reports.seller_grouped.pdf')->middleware(['can:reports.sales', 'module:module_seller_grouped']);
         Route::get('operators-precision', \App\Livewire\Reports\BillingOperatorsReport::class)->name('reports.operators.precision')->middleware(['can:reports.sales', 'module:module_operator_efficiency']);
         Route::get('operators-precision/pdf', [\App\Http\Controllers\ReportController::class, 'billingOperatorsPdf'])->name('reports.operators.precision.pdf')->middleware(['can:reports.sales', 'module:module_operator_efficiency']);
         Route::get('exchange-diff', \App\Livewire\Reports\ExchangeDiffReport::class)->name('reports.exchange.diff')->middleware(['can:reports.sales', 'module:module_differential_audit']);
