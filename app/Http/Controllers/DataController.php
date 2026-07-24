@@ -76,6 +76,7 @@ class DataController extends Controller
         // Load outstanding invoices
         $outstandingSales = \App\Models\Sale::where('customer_id', $customerId)
             ->where('credit_days', '>', 0)
+            ->whereNotIn('status', ['returned', 'voided', 'paid'])
             ->with([
                 'payments' => function($q) {
                     $q->where('status', 'approved');

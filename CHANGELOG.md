@@ -1,3 +1,8 @@
+## [1.10.260] - 2026-07-24
+
+### Fixed
+- **Estado de Cuenta (PDF)**: Se corrigió una discrepancia en el "Saldo Pendiente" total donde facturas pagadas, anuladas o devueltas se incluían erróneamente en el PDF pero no en la vista en pantalla (UI).
+
 ## [1.10.259] - 2026-07-23
 
 ### Added
