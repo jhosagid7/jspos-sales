@@ -1,3 +1,8 @@
+## [1.10.265] - 2026-07-26
+
+### Fixed
+- **Licencias**: Se corrigió un error en la migración de `client_name` que causaba que la actualización fallara si la columna ya existía previamente en la base de datos local.
+
 ## [1.10.264] - 2026-07-26
 
 ### Fixed
