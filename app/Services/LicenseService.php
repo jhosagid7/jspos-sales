@@ -73,8 +73,17 @@ class LicenseService
             License::create([
                 'license_key' => $licenseKey,
                 'client_id' => $data['client_id'],
+                'client_name' => $data['client_name'] ?? null,
                 'expires_at' => Carbon::parse($data['expires_at']),
             ]);
+
+            // Update configuration plan type to match the new license type
+            if (isset($data['type'])) {
+                $config = \App\Models\Configuration::first();
+                if ($config) {
+                    $config->update(['plan_type' => strtolower($data['type'])]);
+                }
+            }
             
             // Clear cache so the new license is loaded immediately
             Cache::forget('active_license_v2');

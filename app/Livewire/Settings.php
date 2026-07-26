@@ -34,7 +34,7 @@ class Settings extends Component
     public $printerHost, $printerShare;
     public $printerUser, $printerPassword;
 
-    public $licenseNotificationEmail, $licenseRequestEmail;
+    public $licenseNotificationEmail, $licenseRequestEmail, $licenseRequestPhone;
 
     public $tab = 1; // Control de pestañas
     
@@ -147,9 +147,10 @@ class Settings extends Component
             $this->sopladosEmailSubject = $config->soplados_email_subject ?: '[SALUDO], Reporte del Turno de Soplado - [FECHA] ([TIPO_TURNO]) - [EMPRESA]';
             $this->sopladosEmailBody = $config->soplados_email_body ?: "[SALUDO],\n\nAdjunto a este correo electrónico se encuentra el reporte oficial correspondiente al cierre del turno de soplado y manufactura de botellones/envases del [FECHA].\n\nA continuación, se presenta un resumen de los resultados del turno:\n\n==================================================\n📝 DATOS GENERALES DEL TURNO\n==================================================\n• Tipo de Turno: [TIPO_TURNO]\n• Horario del Turno: [HORA_INICIO] a [HORA_FIN]\n• Planta / Almacén: [ALMACEN]\n• Operadores del Turno: [OPERADORES]\n• Empresa: [EMPRESA]\n\n==================================================\n📊 TOTALES Y RENDIMIENTO DEL TURNO\n==================================================\n• Total Producido (1ra y 2da Calidad): [BUENA_CANTIDAD] unidades\n• Unidades Defectuosas (Merma/Desecho): [DESECHADA_CANTIDAD] unidades\n• Total Procesado (Buena + Defectuosa): [TOTAL_PRODUCIDO] unidades\n• Eficiencia del Turno (Yield): [EFICIENCIA]%\n\n==================================================\n📦 DETALLE DE ENVASES SOPLADOS (1RA Y 2DA CALIDAD)\n==================================================\n[RESUMEN_PRODUCCION]\n\n==================================================\n⚙️ MATERIALES Y MATERIA PRIMA CONSUMIDA\n==================================================\n[RESUMEN_MATERIALES]\n\n==================================================\n🔍 OBSERVACIONES / EVENTUALIDADES DEL TURNO\n==================================================\n[NOTA]\n\n--------------------------------------------------\nEste es un reporte automático de manufactura de Soplados emitido por [EMPRESA].\n\nQuedamos atentos a cualquier consulta técnica o administrativa.\n\nAtentamente,\nDepartamento de Control de Calidad y Soplado\n[EMPRESA]";
 
-            // License Emails
+            // License Emails and Phone
             $this->licenseNotificationEmail = $config->license_notification_email;
             $this->licenseRequestEmail = $config->license_request_email;
+            $this->licenseRequestPhone = $config->license_request_phone;
 
             // Global Credit Config
             $this->globalAllowCredit = (bool) $config->global_allow_credit;
@@ -343,6 +344,7 @@ class Settings extends Component
                 'printer_password' => $this->isNetwork ? trim($this->printerPassword) : null,
                 'license_notification_email' => trim($this->licenseNotificationEmail),
                 'license_request_email' => trim($this->licenseRequestEmail),
+                'license_request_phone' => trim($this->licenseRequestPhone),
                 'enable_shared_cash_register' => $this->enableSharedCashRegister ? 1 : 0,
                 'catalogue_show_prices' => $this->catalogueShowPrices ? 1 : 0,
                 'catalogue_show_base_prices' => $this->catalogueShowBasePrices ? 1 : 0,

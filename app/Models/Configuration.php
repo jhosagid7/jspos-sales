@@ -62,6 +62,7 @@ class Configuration extends Model
         'global_usd_payment_discount_tag',
         'license_notification_email',
         'license_request_email',
+        'license_request_phone',
         'bcv_rate',
         'binance_rate',
         'binance_markup_points',

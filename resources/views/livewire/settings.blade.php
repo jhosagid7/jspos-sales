@@ -320,6 +320,12 @@
                                     </div>
 
                                     <div class="col-sm-12 col-md-6">
+                                        <label class="form-label">WHATSAPP SOLICITUD RENOVACIÓN (Incluir código país)</label>
+                                        <input wire:model="licenseRequestPhone" type="text" class="form-control" placeholder="584141234567">
+                                        @error('licenseRequestPhone') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <div class="col-sm-12 col-md-6">
                                         <label class="form-label">LOGO DE LA EMPRESA</label>
                                         <input type="file" wire:model="logo" accept="image/png, image/jpeg, image/jpg" class="form-control">
                                         @error('logo') <span class="text-danger">{{ $message }}</span> @enderror

@@ -25,6 +25,10 @@ Route::post('print', function (Request $request) {
     return '200 ok';
 });
 
+// License Remote Synchronization Route
+Route::post('/license/push', [App\Http\Controllers\Api\LicenseReceiverController::class, 'push'])
+    ->withoutMiddleware([\App\Http\Middleware\CheckDeviceAuthorization::class]);
+
 // VIP Customer App Routes
 Route::prefix('vip')->group(function () {
     Route::post('/login', [App\Http\Controllers\Api\Vip\CustomerAuthController::class, 'login']);

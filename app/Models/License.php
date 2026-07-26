@@ -12,6 +12,7 @@ class License extends Model
     protected $fillable = [
         'license_key',
         'client_id',
+        'client_name',
         'expires_at',
     ];
 

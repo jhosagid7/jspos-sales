@@ -16,6 +16,9 @@
                 <div class="modal-body">
                     <div class="text-center mb-4">
                         <h4 class="text-secondary mb-1">Licencia de: <strong>{{ $businessName }}</strong></h4>
+                        @if($clientName)
+                            <h5 class="text-muted mb-2"><i class="fas fa-user-tag text-info"></i> {{ $clientName }}</h5>
+                        @endif
                         
                         @if((int)$daysRemaining <= 5)
                             <h3 class="text-danger mt-2">{{ $daysRemaining }} Días Restantes</h3>
@@ -80,6 +83,11 @@
                 setTimeout(() => {
                     window.location.reload();
                 }, 1500);
+            });
+
+            @this.on('open-whatsapp', (data) => {
+                let url = typeof data === 'string' ? data : (data.url || data[0].url);
+                if(url) window.open(url, '_blank');
             });
         });
 

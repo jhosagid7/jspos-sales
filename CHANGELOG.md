@@ -1,3 +1,8 @@
+## [1.10.261] - 2026-07-26
+
+### Added
+- **Licencias**: Se incluyó el ID del cliente en la metadata interna del correo de "Solicitud de Renovación de Licencia" para permitir que el Servidor de Licencias procese la solicitud y notifique automáticamente a la oficina central.
+
 ## [1.10.260] - 2026-07-24
 
 ### Fixed

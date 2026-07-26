@@ -15,6 +15,7 @@ class LicenseRenewer extends Component
     public $clientId;
     public $licenseType;
     public $businessName;
+    public $clientName;
     public $showModal = false;
 
     protected $listeners = ['trigger-license-modal' => 'openModal'];
@@ -28,6 +29,9 @@ class LicenseRenewer extends Component
             $this->clientId = $service->getClientId();
             $this->licenseType = $status['type'] ?? 'NO ACTIVA';
             $this->businessName = Configuration::first()->business_name ?? 'Empresa Genérica';
+            
+            $latestLicense = \App\Models\License::latest('id')->first();
+            $this->clientName = $latestLicense ? $latestLicense->client_name : '';
         } else {
             $this->daysRemaining = $daysRemaining;
         }
@@ -82,32 +86,54 @@ class LicenseRenewer extends Component
     public function requestRenewal()
     {
         $config = Configuration::first();
-        $recipient = $config->license_request_email;
+        $email = $config->license_request_email;
+        $phone = $config->license_request_phone;
 
-        if (!$recipient) {
-            $this->dispatch('noty', msg: 'No hay correo configurado para solicitudes. Contacte a soporte.');
+        if (!$email && !$phone) {
+            $this->dispatch('noty', msg: 'No hay correo ni teléfono configurado para solicitudes. Contacte a soporte.');
             return;
         }
 
         try {
             $clientId = app(LicenseService::class)->getClientId();
             $businessName = $config->business_name ?? 'Sin nombre';
+            $clientName = '';
+            
+            // Check if we have a client_name from latest license
+            $latestLicense = \App\Models\License::latest('id')->first();
+            if ($latestLicense && $latestLicense->client_name) {
+                $clientName = " ({$latestLicense->client_name})";
+            }
 
-            $subject = "Solicitud de Renovación de Licencia - " . $businessName;
-            $body = "El cliente '$businessName' (ID: $clientId) ha solicitado una renovación de licencia.\n\n" .
+            $subject = "Solicitud de Renovación de Licencia - " . $businessName . $clientName;
+            $body = "El cliente '*{$businessName}*'$clientName (ID: $clientId) ha solicitado una renovación de licencia.\n\n" .
                     "Por favor contacte al cliente para gestionar la renovación.";
 
-            // Using raw mail for simplicity as requested, ensuring mail config is set in .env
-            Mail::raw($body, function ($message) use ($recipient, $subject) {
-                $message->to($recipient)
-                        ->subject($subject);
-            });
+            // Send email if configured
+            if ($email) {
+                try {
+                    Mail::raw($body, function ($message) use ($email, $subject) {
+                        $message->to($email)
+                                ->subject($subject);
+                    });
+                } catch (\Exception $e) {
+                    Log::error("License Request Email Error: " . $e->getMessage());
+                }
+            }
+
+            // Dispatch event for WhatsApp if configured
+            if ($phone) {
+                // Remove any non-numeric characters from phone
+                $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
+                $encodedText = urlencode($body);
+                $this->dispatch('open-whatsapp', url: "https://wa.me/{$cleanPhone}?text={$encodedText}");
+            }
 
             $this->dispatch('hide-license-modal');
             $this->dispatch('noty', msg: 'Solicitud enviada correctamente.');
 
         } catch (\Exception $e) {
-            Log::error("License Request Email Error: " . $e->getMessage());
+            Log::error("License Request Error: " . $e->getMessage());
             $this->dispatch('noty', msg: 'Error al enviar la solicitud. Verifique su conexión.');
         }
     }
