@@ -2,6 +2,7 @@
 
 ### Fixed
 - **Licencias**: Se agregó una migración faltante de base de datos para la columna `license_request_phone` en la tabla `configurations` que causaba errores al guardar ajustes generales en instalaciones de clientes.
+- **Licencias**: Se agregó una migración faltante para la columna `client_name` en la tabla `licenses` que causaba que la activación de la licencia fallara silenciosamente en los clientes no actualizados.
 
 ## [1.10.262] - 2026-07-26
 
