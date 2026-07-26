@@ -1,3 +1,8 @@
+## [1.10.262] - 2026-07-26
+
+### Changed
+- **Licencias**: La notificación de WhatsApp para solicitudes de renovación ahora se envía silenciosamente a través del servicio interno (`WhatsappService`) en lugar de abrir una nueva pestaña del navegador con WhatsApp Web.
+
 ## [1.10.261] - 2026-07-26
 
 ### Added

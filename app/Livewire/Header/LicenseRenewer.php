@@ -121,12 +121,14 @@ class LicenseRenewer extends Component
                 }
             }
 
-            // Dispatch event for WhatsApp if configured
+            // Send via internal WhatsApp API if configured
             if ($phone) {
-                // Remove any non-numeric characters from phone
-                $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
-                $encodedText = urlencode($body);
-                $this->dispatch('open-whatsapp', url: "https://wa.me/{$cleanPhone}?text={$encodedText}");
+                try {
+                    $whatsappService = app(\App\Services\WhatsappService::class);
+                    $whatsappService->sendMessage($phone, $body);
+                } catch (\Exception $e) {
+                    Log::error("WhatsApp Notification Error: " . $e->getMessage());
+                }
             }
 
             $this->dispatch('hide-license-modal');
