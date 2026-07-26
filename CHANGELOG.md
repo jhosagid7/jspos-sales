@@ -1,3 +1,8 @@
+## [1.10.263] - 2026-07-26
+
+### Fixed
+- **Licencias**: Se agregó una migración faltante de base de datos para la columna `license_request_phone` en la tabla `configurations` que causaba errores al guardar ajustes generales en instalaciones de clientes.
+
 ## [1.10.262] - 2026-07-26
 
 ### Changed
