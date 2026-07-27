@@ -97,6 +97,7 @@ class Configuration extends Model
         'whatsapp_credit_auth_users',
         'treasury_cutoff_hour',
         'treasury_auto_close',
+        'sales_show_rate_badge',
     ];
 
     protected $casts = [
@@ -130,6 +131,7 @@ class Configuration extends Model
         'whatsapp_credit_auth_users' => 'array',
         'weekly_report_send_day' => 'integer',
         'treasury_auto_close' => 'boolean',
+        'sales_show_rate_badge' => 'boolean',
     ];
 
     public function defaultWarehouse()

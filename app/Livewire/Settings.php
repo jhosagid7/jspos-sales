@@ -11,7 +11,7 @@ class Settings extends Component
     use \Livewire\WithFileUploads;
 
     public $setting_id = 0, $businessName, $phone, $taxpayerId, $vat, $printerName, $website, $leyend, $creditDays = 15, $address, $city, $creditPurchaseDays, $confirmationCode, $decimals;
-    public $checkStockReservation, $salesViewMode, $salesEditTimeout;
+    public $checkStockReservation, $salesViewMode, $salesEditTimeout, $salesShowRateBadge;
     public $globalCommission1Threshold, $globalCommission1Percentage, $globalCommission2Threshold, $globalCommission2Percentage;
     public $globalAllowCredit, $globalCreditDays, $globalCreditLimit, $globalUsdPaymentDiscount, $globalUsdPaymentDiscountTag;
     public $enableSharedCashRegister; // Nuevo: Caja Compartida
@@ -101,6 +101,7 @@ class Settings extends Component
             $this->logo_preview = $config->logo; // Load existing logo
             $this->checkStockReservation = (bool) $config->check_stock_reservation;
             $this->salesViewMode = $config->sales_view_mode;
+            $this->salesShowRateBadge = (bool) ($config->sales_show_rate_badge ?? true);
             $this->defaultWarehouseId = $config->default_warehouse_id;
             $this->sopladosWarehouseId = $config->soplados_warehouse_id;
             $this->bolsasWarehouseId = $config->bolsas_warehouse_id;
@@ -324,6 +325,7 @@ class Settings extends Component
                 'global_commission_2_percentage' => $this->globalCommission2Percentage,
                 'check_stock_reservation' => $this->checkStockReservation ? 1 : 0,
                 'sales_view_mode' => $this->salesViewMode,
+                'sales_show_rate_badge' => $this->salesShowRateBadge,
                 'default_warehouse_id' => $this->defaultWarehouseId,
                 'soplados_warehouse_id' => $this->sopladosWarehouseId,
             'bolsas_warehouse_id' => $this->bolsasWarehouseId,

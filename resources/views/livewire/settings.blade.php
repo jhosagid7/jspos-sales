@@ -396,6 +396,16 @@
                                         @error('salesViewMode') <span class="text-danger">{{ $message }}</span> @enderror
                                     </div>
 
+                                    <div class="col-sm-12 col-md-6 mt-3 mt-md-0">
+                                        <label class="form-label">MOSTRAR ETIQUETA DE TASA DE CAMBIO (VENTAS)</label>
+                                        <div class="form-check form-switch pl-0">
+                                            <div class="custom-control custom-switch">
+                                                <input type="checkbox" class="custom-control-input" id="salesShowRateBadge" wire:model="salesShowRateBadge">
+                                                <label class="custom-control-label" for="salesShowRateBadge">Mostrar etiqueta "Tasa: 900.00" cuando se factura en otra moneda</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div class="col-sm-12 col-md-6">
                                         <label class="form-label">VALIDAR STOCK RESERVADO</label>
                                         <div class="form-check form-switch pl-0">

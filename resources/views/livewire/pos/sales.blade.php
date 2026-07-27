@@ -91,7 +91,7 @@
                     <div class="form-group mb-3 border-bottom pb-3">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <label class="font-weight-bold mb-0">Moneda Factura / Ticket:</label>
-                            @if($invoiceExchangeRate != 1)
+                            @if($invoiceExchangeRate != 1 && (\App\Models\Configuration::first()->sales_show_rate_badge ?? true))
                                 <span class="badge badge-info" style="font-size: 0.9em;">
                                     Tasa: {{ number_format($invoiceExchangeRate, 4) }}
                                 </span>

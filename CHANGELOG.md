@@ -1,3 +1,8 @@
+## [1.10.269] - 2026-07-26
+
+### Added
+- **Configuración**: Se agregó un nuevo switch en el panel de Configuraciones ("Mostrar etiqueta de Tasa de Cambio (Ventas)") que permite ocultar el globo flotante que dice "Tasa: 900.00" cuando se factura en una moneda distinta a la principal. Por defecto viene activado para mantener la compatibilidad anterior, pero ahora puede apagarse a petición del cliente para limpiar aún más la interfaz del cajero.
+
 ## [1.10.268] - 2026-07-26
 
 ### Added
