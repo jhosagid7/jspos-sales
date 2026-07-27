@@ -1,9 +1,9 @@
-## [1.10.265] - 2026-07-26
+## [1.10.266] - 2026-07-26
 
 ### Fixed
-- **Licencias**: Se corrigió un error en la migración de `client_name` que causaba que la actualización fallara si la columna ya existía previamente en la base de datos local.
+- **Clientes**: Se corrigió un error en instalaciones nuevas (con modo estricto de MySQL) que impedía crear clientes desde el módulo de clientes, debido a que los campos de comisiones vacíos (`customer_commission`) se enviaban como cadenas vacías (`""`) en lugar de `null` a columnas de tipo numérico.
 
-## [1.10.264] - 2026-07-26
+## [1.10.265] - 2026-07-26
 
 ### Fixed
 - **Licencias**: Se agregó una migración faltante para la columna `client_name` en la tabla `licenses` que causaba que la activación de la licencia fallara silenciosamente en los clientes no actualizados.

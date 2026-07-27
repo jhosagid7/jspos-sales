@@ -253,10 +253,10 @@ class Customers extends Component
             $this->customer->password = $this->password;
         }
 
-        $this->customer->customer_commission_1_threshold = $this->customerCommission1Threshold;
-        $this->customer->customer_commission_1_percentage = $this->customerCommission1Percentage;
-        $this->customer->customer_commission_2_threshold = $this->customerCommission2Threshold;
-        $this->customer->customer_commission_2_percentage = $this->customerCommission2Percentage;
+        $this->customer->customer_commission_1_threshold = $this->customerCommission1Threshold === '' ? null : $this->customerCommission1Threshold;
+        $this->customer->customer_commission_1_percentage = $this->customerCommission1Percentage === '' ? null : $this->customerCommission1Percentage;
+        $this->customer->customer_commission_2_threshold = $this->customerCommission2Threshold === '' ? null : $this->customerCommission2Threshold;
+        $this->customer->customer_commission_2_percentage = $this->customerCommission2Percentage === '' ? null : $this->customerCommission2Percentage;
 
         // Ensure credit fields are saved (checkboxes need explicit handling)
         // Ensure boolean fields are saved correctly (checkboxes send false if unchecked or omit if disabled)
