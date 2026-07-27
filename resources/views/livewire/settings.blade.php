@@ -405,6 +405,38 @@
                                             </div>
                                         </div>
                                     </div>
+                                    
+                                    <div class="col-sm-12 col-md-6 mt-3 mt-md-0">
+                                        <label class="form-label">CONTROLES DE COMISIONES Y FLETES (VENTAS)</label>
+                                        <div class="form-check form-switch pl-0">
+                                            <div class="custom-control custom-switch">
+                                                <input type="checkbox" class="custom-control-input" id="salesShowCommissions" wire:model="salesShowCommissions">
+                                                <label class="custom-control-label" for="salesShowCommissions">Mostrar control "Aplicar Comisiones"</label>
+                                            </div>
+                                            <div class="custom-control custom-switch mt-2">
+                                                <input type="checkbox" class="custom-control-input" id="salesShowFreight" wire:model="salesShowFreight">
+                                                <label class="custom-control-label" for="salesShowFreight">Mostrar control "Aplicar Solo Flete"</label>
+                                            </div>
+                                            <div class="custom-control custom-switch mt-2">
+                                                <input type="checkbox" class="custom-control-input" id="salesShowBreakdownFreight" wire:model="salesShowBreakdownFreight">
+                                                <label class="custom-control-label" for="salesShowBreakdownFreight">Mostrar control "Desglosar Flete"</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-sm-12 col-md-6 mt-3 mt-md-0">
+                                        <label class="form-label">SELECTORES DE DEPÓSITO Y CHOFER (VENTAS)</label>
+                                        <div class="form-check form-switch pl-0">
+                                            <div class="custom-control custom-switch">
+                                                <input type="checkbox" class="custom-control-input" id="salesShowWarehouse" wire:model="salesShowWarehouse">
+                                                <label class="custom-control-label" for="salesShowWarehouse">Mostrar selector de "Tienda Principal" (Depósito)</label>
+                                            </div>
+                                            <div class="custom-control custom-switch mt-2">
+                                                <input type="checkbox" class="custom-control-input" id="salesShowDriver" wire:model="salesShowDriver">
+                                                <label class="custom-control-label" for="salesShowDriver">Mostrar selector de "Chofer"</label>
+                                            </div>
+                                        </div>
+                                    </div>
 
                                     <div class="col-sm-12 col-md-6">
                                         <label class="form-label">VALIDAR STOCK RESERVADO</label>

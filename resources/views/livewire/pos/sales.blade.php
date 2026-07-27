@@ -1,4 +1,7 @@
 <div>
+    @php
+        $sysConfig = \App\Models\Configuration::first();
+    @endphp
     <div class="row">
         <div class="col-sm-12 col-md-9 mb-3 mb-md-0">
             @include('livewire.pos.partials.items')
@@ -125,6 +128,7 @@
                             @endif
                             
                             @module('module_commissions')
+                            @if($sysConfig->sales_show_commissions)
                             <div class="custom-control custom-switch" title="{{ ($sellerConfig || $customerConfig) ? '' : 'Seleccione un cliente con conf. comercial para habilitar' }}">
                                 <input type="checkbox" class="custom-control-input" id="customSwitch1" wire:model.live="applyCommissions" {{ ($sellerConfig || $customerConfig) ? '' : 'disabled' }}>
                                 <label class="custom-control-label" for="customSwitch1" style="font-size: 0.8rem;">
@@ -132,6 +136,7 @@
                                     @if(!$sellerConfig && !$customerConfig) <i class="fas fa-lock text-muted" style="font-size: 0.7em;"></i> @endif
                                 </label>
                             </div>
+                            @endif
                         </div>
 
                         @if($order_notes)
@@ -141,6 +146,7 @@
                             </div>
                         @endif
 
+                        @if($sysConfig->sales_show_freight)
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <label class="mb-0"></label>
                             <div class="custom-control custom-switch">
@@ -150,7 +156,9 @@
                                 </label>
                             </div>
                         </div>
+                        @endif
 
+                        @if($sysConfig->sales_show_breakdown_freight)
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <label class="mb-0"></label>
                             <div class="custom-control custom-switch">
@@ -160,6 +168,7 @@
                                 </label>
                             </div>
                         </div>
+                        @endif
                         @endmodule
                         @else
                         {{-- VISTA PARA VENDEDORES FORÁNEOS (SIN PERMISO DE AJUSTES) --}}
@@ -295,7 +304,8 @@
                         @endif
 
                         @module('module_multi_warehouse')
-                        <div class="input-group mb-2">
+                        @if($sysConfig->sales_show_warehouse)
+                        <div class="input-group mb-2" title="Tienda que despacha. (Afecta Stock)">
                             <div class="input-group-prepend">
                                 <span class="input-group-text"><i class="fas fa-warehouse"></i></span>
                             </div>
@@ -305,9 +315,11 @@
                                 @endforeach
                             </select>
                         </div>
+                        @endif
                         @endmodule
 
                         @module('module_delivery')
+                        @if($sysConfig->sales_show_driver)
                         <div class="input-group mb-2">
                             <div class="input-group-prepend">
                                 <span class="input-group-text"><i class="fas fa-truck"></i></span>
@@ -319,6 +331,7 @@
                                 @endforeach
                             </select>
                         </div>
+                        @endif
                         @endmodule
 
                         <div class="input-group" wire:ignore>

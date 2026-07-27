@@ -98,6 +98,11 @@ class Configuration extends Model
         'treasury_cutoff_hour',
         'treasury_auto_close',
         'sales_show_rate_badge',
+        'sales_show_commissions',
+        'sales_show_freight',
+        'sales_show_breakdown_freight',
+        'sales_show_warehouse',
+        'sales_show_driver',
     ];
 
     protected $casts = [
@@ -132,6 +137,11 @@ class Configuration extends Model
         'weekly_report_send_day' => 'integer',
         'treasury_auto_close' => 'boolean',
         'sales_show_rate_badge' => 'boolean',
+        'sales_show_commissions' => 'boolean',
+        'sales_show_freight' => 'boolean',
+        'sales_show_breakdown_freight' => 'boolean',
+        'sales_show_warehouse' => 'boolean',
+        'sales_show_driver' => 'boolean',
     ];
 
     public function defaultWarehouse()

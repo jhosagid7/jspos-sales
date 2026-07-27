@@ -1,3 +1,14 @@
+## [1.10.270] - 2026-07-26
+
+### Added
+- **Configuración**: Se agregaron 5 nuevos interruptores en el módulo de Configuraciones (Pestaña Ventas) para controlar la visibilidad de los siguientes elementos en la vista del cajero:
+  - Selector de "Tienda Principal" (Depósito).
+  - Selector de "Chofer" (Módulo Delivery).
+  - Control de "Aplicar Comisiones".
+  - Control de "Aplicar Solo Flete".
+  - Control de "Desglosar Flete".
+- A petición, estos controles vienen **ocultos por defecto** para limpiar aún más la pantalla del cajero. Quienes los necesiten, deben encenderlos explícitamente en el panel de Configuraciones.
+
 ## [1.10.269] - 2026-07-26
 
 ### Added
