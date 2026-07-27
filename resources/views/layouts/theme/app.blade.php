@@ -24,35 +24,34 @@
     $theme = auth()->user()->theme ?? [];
     $bodyClasses = [];
     if(!empty($theme['dark_mode']) && filter_var($theme['dark_mode'], FILTER_VALIDATE_BOOLEAN)) $bodyClasses[] = 'dark-mode';
-    // Force Fixed Layout and Fixed Navbar by default unless explicitly disabled
-    if(!isset($theme['layout_navbar_fixed'])) {
-        $bodyClasses[] = 'layout-navbar-fixed';
-    } elseif(filter_var($theme['layout_navbar_fixed'], FILTER_VALIDATE_BOOLEAN)) {
+    // Header Fixed
+    if(!isset($theme['layout_navbar_fixed']) || filter_var($theme['layout_navbar_fixed'], FILTER_VALIDATE_BOOLEAN)) {
         $bodyClasses[] = 'layout-navbar-fixed';
     }
 
-    if(!empty($theme['sidebar_collapse']) && filter_var($theme['sidebar_collapse'], FILTER_VALIDATE_BOOLEAN)) $bodyClasses[] = 'sidebar-collapse';
+    // Sidebar Collapsed
+    if(!isset($theme['sidebar_collapse']) || filter_var($theme['sidebar_collapse'], FILTER_VALIDATE_BOOLEAN)) {
+        $bodyClasses[] = 'sidebar-collapse';
+    }
 
-    // Force Fixed Sidebar by default unless explicitly disabled
-    if(!isset($theme['layout_fixed'])) {
-        $bodyClasses[] = 'layout-fixed';
-    } elseif(filter_var($theme['layout_fixed'], FILTER_VALIDATE_BOOLEAN)) {
+    // Sidebar Fixed
+    if(!isset($theme['layout_fixed']) || filter_var($theme['layout_fixed'], FILTER_VALIDATE_BOOLEAN)) {
         $bodyClasses[] = 'layout-fixed';
     }
 
-    if(!empty($theme['sidebar_mini']) && filter_var($theme['sidebar_mini'], FILTER_VALIDATE_BOOLEAN)) $bodyClasses[] = 'sidebar-mini';
+    // Sidebar Mini
+    if(!isset($theme['sidebar_mini']) || filter_var($theme['sidebar_mini'], FILTER_VALIDATE_BOOLEAN)) {
+        $bodyClasses[] = 'sidebar-mini';
+    }
+
+    // Footer Fixed
+    if(!isset($theme['layout_footer_fixed']) || filter_var($theme['layout_footer_fixed'], FILTER_VALIDATE_BOOLEAN)) {
+        $bodyClasses[] = 'layout-footer-fixed';
+    }
+
     if(!empty($theme['sidebar_mini_md']) && filter_var($theme['sidebar_mini_md'], FILTER_VALIDATE_BOOLEAN)) $bodyClasses[] = 'sidebar-mini-md';
     if(!empty($theme['sidebar_mini_xs']) && filter_var($theme['sidebar_mini_xs'], FILTER_VALIDATE_BOOLEAN)) $bodyClasses[] = 'sidebar-mini-xs';
-    if(!empty($theme['layout_footer_fixed']) && filter_var($theme['layout_footer_fixed'], FILTER_VALIDATE_BOOLEAN)) $bodyClasses[] = 'layout-footer-fixed';
     if(!empty($theme['body_text_sm']) && filter_var($theme['body_text_sm'], FILTER_VALIDATE_BOOLEAN)) $bodyClasses[] = 'text-sm';
-    
-    // Default classes to ensure basic layout works if nothing stored
-    if(empty($bodyClasses)) {
-        $bodyClasses[] = 'sidebar-mini';
-        $bodyClasses[] = 'sidebar-collapse';
-        $bodyClasses[] = 'layout-fixed';
-        $bodyClasses[] = 'layout-navbar-fixed';
-    }
     
     $bodyClassString = implode(' ', array_unique($bodyClasses));
 @endphp

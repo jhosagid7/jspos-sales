@@ -20,7 +20,7 @@
     $navClasses = ['nav', 'nav-pills', 'nav-sidebar', 'flex-column'];
     if(!empty($theme['sidebar_nav_flat']) && filter_var($theme['sidebar_nav_flat'], FILTER_VALIDATE_BOOLEAN)) $navClasses[] = 'nav-flat';
     if(!empty($theme['sidebar_nav_legacy']) && filter_var($theme['sidebar_nav_legacy'], FILTER_VALIDATE_BOOLEAN)) $navClasses[] = 'nav-legacy';
-    if(!empty($theme['sidebar_nav_compact']) && filter_var($theme['sidebar_nav_compact'], FILTER_VALIDATE_BOOLEAN)) $navClasses[] = 'nav-compact';
+    if(!isset($theme['sidebar_nav_compact']) || filter_var($theme['sidebar_nav_compact'], FILTER_VALIDATE_BOOLEAN)) $navClasses[] = 'nav-compact';
     if(!empty($theme['sidebar_nav_child_indent']) && filter_var($theme['sidebar_nav_child_indent'], FILTER_VALIDATE_BOOLEAN)) $navClasses[] = 'nav-child-indent';
     if(!empty($theme['sidebar_nav_child_hide']) && filter_var($theme['sidebar_nav_child_hide'], FILTER_VALIDATE_BOOLEAN)) $navClasses[] = 'nav-collapse-hide-child';
     if(!empty($theme['sidebar_nav_text_sm']) && filter_var($theme['sidebar_nav_text_sm'], FILTER_VALIDATE_BOOLEAN)) $navClasses[] = 'text-sm';

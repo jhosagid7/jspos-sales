@@ -1,3 +1,8 @@
+## [1.10.267] - 2026-07-26
+
+### Changed
+- **Diseño / Interfaz**: Se modificó la configuración de visualización por defecto para todas las instalaciones nuevas y usuarios sin preferencias guardadas. Ahora el sistema viene de fábrica con la barra lateral cerrada (`Sidebar Collapsed` y `Sidebar Mini`), menú lateral compacto (`Nav Compact`), y tanto el encabezado como el pie de página fijos. Esto soluciona los problemas de visualización en pantallas de menor resolución (como laptops) asegurando que el módulo de ventas tenga suficiente espacio sin descuadrarse.
+
 ## [1.10.266] - 2026-07-26
 
 ### Fixed
