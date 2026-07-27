@@ -168,9 +168,21 @@
     }
 
 
+    // Auto-zoom for laptop screens (between 992px and 1400px)
+    // Helps the POS sales table fit properly without squishing
+    function applyAutoZoom() {
+        if (window.innerWidth <= 1400 && window.innerWidth >= 992) {
+            document.body.style.zoom = "0.9";
+        } else {
+            document.body.style.zoom = "1";
+        }
+    }
+    
+    // Apply on load and listen to resizes
+    window.addEventListener('resize', applyAutoZoom);
+    applyAutoZoom();
+
   })
-
-
 
 </script>
 

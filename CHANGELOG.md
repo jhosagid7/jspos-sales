@@ -1,3 +1,8 @@
+## [1.10.268] - 2026-07-26
+
+### Added
+- **Diseño / Interfaz**: Se agregó una función de `auto-zoom` (alejamiento inteligente) que detecta monitores y laptops con pantallas intermedias o pequeñas (entre 992px y 1400px de ancho) y reduce automáticamente la escala visual al 90%. Esto garantiza que el módulo de ventas y otros componentes pesados se ajusten a la perfección sin amontonar los botones ni desbordar la pantalla.
+
 ## [1.10.267] - 2026-07-26
 
 ### Changed
