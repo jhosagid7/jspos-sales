@@ -1,3 +1,8 @@
+## [1.10.275] - 2026-07-29
+
+### Fixed
+- **Redondeo de Facturación**: Se unificó y corrigió el redondeo de los componentes en los cálculos de facturas (comisión, flete, recargo y diferencial cambiario). Ahora el sistema redondea cada término individualmente a los decimales configurados antes de realizar sumas intermedias y aplicar la diferencia cambiaria, alineándose con el cálculo esperado.
+
 ## [1.10.274] - 2026-07-29
 
 ### Added
