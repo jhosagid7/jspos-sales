@@ -1,3 +1,10 @@
+## [1.10.273] - 2026-07-29
+
+### Changed
+- **API Ventas / Tasas de Cambio**: Se ajustó la consulta de tasas Binance para la App Móvil:
+  - Se eliminaron de los desplegables las tasas con ajuste ("Binance Ajustada"). Únicamente se muestran las tasas reales.
+  - Se renombró la etiqueta visual de "Binance Real" a simplemente "Binance" (ej: `845.68 Bs. (Binance - PM)`).
+
 ## [1.10.272] - 2026-07-29
 
 ### Added

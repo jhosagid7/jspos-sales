@@ -233,7 +233,7 @@ class PaymentController extends Controller
                     }
                 } else {
                     $rateType = 'Binance';
-                    $recordsBinance = \App\Models\ExchangeRateHistory::whereIn('rate_type', ['BinanceReal', 'Binance'])
+                    $recordsBinance = \App\Models\ExchangeRateHistory::where('rate_type', 'BinanceReal')
                         ->whereBetween('created_at', [$dayStart, $dayEnd])
                         ->orderBy('created_at', 'desc')
                         ->get();
@@ -243,22 +243,12 @@ class PaymentController extends Controller
                             ->where('created_at', '<=', $dayEnd)
                             ->orderBy('created_at', 'desc')
                             ->first();
-                        $latestInflated = \App\Models\ExchangeRateHistory::where('rate_type', 'Binance')
-                            ->where('created_at', '<=', $dayEnd)
-                            ->orderBy('created_at', 'desc')
-                            ->first();
 
                         if ($latestReal) {
+                            $periodLabel = $latestReal->period ? " - {$latestReal->period}" : "";
                             $rateOptions[] = [
                                 'rate' => floatval($latestReal->rate),
-                                'label' => number_format($latestReal->rate, 2) . " Bs. (Binance Real)",
-                                'rate_type' => 'Binance'
-                            ];
-                        }
-                        if ($latestInflated && (! $latestReal || floatval($latestInflated->rate) !== floatval($latestReal->rate))) {
-                            $rateOptions[] = [
-                                'rate' => floatval($latestInflated->rate),
-                                'label' => number_format($latestInflated->rate, 2) . " Bs. (Binance Ajustada)",
+                                'label' => number_format($latestReal->rate, 2) . " Bs. (Binance{$periodLabel})",
                                 'rate_type' => 'Binance'
                             ];
                         }
@@ -266,11 +256,10 @@ class PaymentController extends Controller
                         foreach ($recordsBinance as $r) {
                             $exists = collect($rateOptions)->contains('rate', floatval($r->rate));
                             if (!$exists) {
-                                $lbl = $r->rate_type === 'BinanceReal' ? 'Binance Real' : 'Binance Ajustada';
                                 $periodLabel = $r->period ? " - {$r->period}" : "";
                                 $rateOptions[] = [
                                     'rate' => floatval($r->rate),
-                                    'label' => number_format($r->rate, 2) . " Bs. ({$lbl}{$periodLabel})",
+                                    'label' => number_format($r->rate, 2) . " Bs. (Binance{$periodLabel})",
                                     'rate_type' => 'Binance'
                                 ];
                             }
