@@ -1558,7 +1558,8 @@ class _PendingSalesScreenState extends State<PendingSalesScreen> {
           final s = _sales[i];
           double total = (s['total_usd'] as num).toDouble();
           double debt = (s['debt_usd'] as num).toDouble();
-          double paid = total - debt;
+          double paid = (s['paid_usd'] != null) ? (s['paid_usd'] as num).toDouble() : (total - debt);
+          double pending = (s['pending_usd'] != null) ? (s['pending_usd'] as num).toDouble() : 0.0;
           
           return Container(
             margin: const EdgeInsets.only(bottom: 15),
@@ -1587,6 +1588,21 @@ class _PendingSalesScreenState extends State<PendingSalesScreen> {
                                letterSpacing: 0.5
                              ),
                            )
+                        ],
+                        if (pending > 0) ...[
+                          const SizedBox(height: 5),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(color: const Color(0xFFFFF3CD), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFFFFEEBA))),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.access_time_rounded, size: 12, color: Color(0xFF856404)),
+                                const SizedBox(width: 4),
+                                Text("POR BAJAR: \$${pending.toStringAsFixed(2)}", style: const TextStyle(color: Color(0xFF856404), fontWeight: FontWeight.w900, fontSize: 9)),
+                              ],
+                            ),
+                          )
                         ]
                       ])),
                       IconButton(
@@ -1604,6 +1620,8 @@ class _PendingSalesScreenState extends State<PendingSalesScreen> {
                     children: [
                       _smallStat('TOTAL', '\$${total.toStringAsFixed(2)}', Colors.grey),
                       _smallStat('ABONADO', '\$${paid.toStringAsFixed(2)}', Colors.green),
+                      if (pending > 0)
+                        _smallStat('POR BAJAR', '\$${pending.toStringAsFixed(2)}', Colors.amber.shade800, isBold: true),
                       _smallStat('DEBE', '\$${debt.toStringAsFixed(2)}', Colors.red, isBold: true),
                       ElevatedButton(
                         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (ctx) => UploadPaymentForm(baseUrl: _baseUrl, saleId: s['id'], invoice: s['invoice_number'], debt: debt))),
@@ -1940,15 +1958,45 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
   
   List<dynamic> _banks = [];
   List<dynamic> _currencies = [];
+  List<dynamic> _rateOptions = [];
+  dynamic _selectedRateOption;
   File? _image;
   bool _isLoading = false;
   String _baseUrl = "";
+  String _rateTypeLabel = "";
+
+  bool _userHasEditedAmount = false;
 
   @override
   void initState() { 
     super.initState(); 
-    _amountController.text = widget.debt.toStringAsFixed(2);
+    _amountController.addListener(_onAmountOrRateChanged);
+    _rateController.addListener(_onAmountOrRateChanged);
     _init(); 
+  }
+
+  @override
+  void dispose() {
+    _amountController.removeListener(_onAmountOrRateChanged);
+    _rateController.removeListener(_onAmountOrRateChanged);
+    super.dispose();
+  }
+
+  void _onAmountOrRateChanged() {
+    setState(() {});
+  }
+
+  void _updateAmountBasedOnCurrency() {
+    bool isUSD = _selectedCurrency == null || _selectedCurrency['code'] == 'USD';
+    double rate = double.tryParse(_rateController.text) ?? 1.0;
+    if (!_userHasEditedAmount) {
+      if (!isUSD && rate > 0) {
+        double localAmount = widget.debt * rate;
+        _amountController.text = localAmount.toStringAsFixed(2);
+      } else {
+        _amountController.text = widget.debt.toStringAsFixed(2);
+      }
+    }
   }
   
   _init() async {
@@ -1956,7 +2004,8 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
     _baseUrl = prefs.getString('base_url') ?? "";
     final token = prefs.getString('token');
     try {
-      final res = await http.get(Uri.parse('$_baseUrl/api/vip/payments/form-data'), headers: {
+      final dateStr = DateFormat('yyyy-MM-dd').format(_paymentDate);
+      final res = await http.get(Uri.parse('$_baseUrl/api/vip/payments/form-data?sale_id=${widget.saleId}&date=$dateStr'), headers: {
         'Authorization': 'Bearer $token', 
         'Accept': 'application/json',
         'X-Device-Token': prefs.getString('device_token') ?? ''
@@ -1970,7 +2019,23 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
              _selectedCurrency = _currencies.firstWhere((c) => c['code'] == 'USD', orElse: () => _currencies.first);
              _rateController.text = _selectedCurrency['exchange_rate']?.toString() ?? '1.0';
            }
-           if (_banks.isNotEmpty) _selectedBank = _banks.first;
+           if (data['rate_options'] != null && (data['rate_options'] as List).isNotEmpty) {
+             _rateOptions = data['rate_options'];
+             _selectedRateOption = _rateOptions.first;
+             _rateController.text = _selectedRateOption['rate'].toString();
+             _rateTypeLabel = _selectedRateOption['label']?.toString() ?? '';
+           } else if (data['calculated_rate'] != null) {
+             _rateController.text = data['calculated_rate'].toString();
+             _rateTypeLabel = data['rate_type'] == 'BCV' ? 'Tasa BCV del día' : 'Tasa Divisa del día';
+           }
+           if (_banks.isNotEmpty) {
+             _selectedBank = _banks.first;
+             _selectedMethod = _selectedBank['name'].toString().toLowerCase().contains('zelle') ? 'zelle' : 'bank';
+             final bankCurrency = _currencies.firstWhere((c) => c['code'] == _selectedBank['currency_code'], orElse: () => null);
+             if (bankCurrency != null) _selectedCurrency = bankCurrency;
+           }
+           _userHasEditedAmount = false;
+           _updateAmountBasedOnCurrency();
         });
       }
     } catch (e) { debugPrint("Err Data: $e"); }
@@ -2018,7 +2083,43 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
       context: context, initialDate: _paymentDate, firstDate: DateTime(2024), lastDate: DateTime.now(),
       builder: (context, child) => Theme(data: Theme.of(context).copyWith(colorScheme: const ColorScheme.light(primary: Color(0xFF1B263B))), child: child!),
     );
-    if (picked != null) setState(() => _paymentDate = picked);
+    if (picked != null) {
+      setState(() => _paymentDate = picked);
+      _fetchRateForDate(picked);
+    }
+  }
+
+  Future<void> _fetchRateForDate(DateTime date) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final dateStr = DateFormat('yyyy-MM-dd').format(date);
+      final res = await http.get(
+        Uri.parse('$_baseUrl/api/vip/payments/form-data?sale_id=${widget.saleId}&date=$dateStr'),
+        headers: {
+          'Authorization': 'Bearer $token', 
+          'Accept': 'application/json',
+          'X-Device-Token': prefs.getString('device_token') ?? ''
+        }
+      );
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body);
+        setState(() {
+          if (data['rate_options'] != null && (data['rate_options'] as List).isNotEmpty) {
+            _rateOptions = data['rate_options'];
+            _selectedRateOption = _rateOptions.first;
+            _rateController.text = _selectedRateOption['rate'].toString();
+            _rateTypeLabel = _selectedRateOption['label']?.toString() ?? '';
+          } else if (data['calculated_rate'] != null) {
+            _rateOptions = [];
+            _selectedRateOption = null;
+            _rateController.text = data['calculated_rate'].toString();
+            _rateTypeLabel = data['rate_type'] == 'BCV' ? 'Tasa BCV del día' : 'Tasa Divisa del día';
+          }
+          _updateAmountBasedOnCurrency();
+        });
+      }
+    } catch (e) { debugPrint("Err Rate: $e"); }
   }
 
   Future<void> _submit() async {
@@ -2027,7 +2128,7 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
       return;
     }
 
-    bool isVED = _selectedCurrency != null && _selectedCurrency['code'] == 'VED';
+    bool isUSD = _selectedCurrency == null || _selectedCurrency['code'] == 'USD';
     bool isZelle = _selectedMethod == 'zelle';
 
     if (_payType == 'bank' && _selectedBank == null) {
@@ -2035,8 +2136,8 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
       return;
     }
 
-    if (isVED && _rateController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("La tasa de cambio es obligatoria para VED"), backgroundColor: Colors.red));
+    if (!isUSD && _rateController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("La tasa de cambio es obligatoria"), backgroundColor: Colors.red));
       return;
     }
 
@@ -2045,7 +2146,7 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
       return;
     }
 
-    if ((isZelle || isVED) && _issuerController.text.isEmpty) {
+    if ((isZelle || !isUSD) && _issuerController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("El nombre del titular/emisor es obligatorio"), backgroundColor: Colors.red));
       return;
     }
@@ -2095,8 +2196,14 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
 
   @override
   Widget build(BuildContext context) {
-    bool isVED = _selectedCurrency != null && _selectedCurrency['code'] == 'VED';
-    bool isZelle = _payType == 'bank' && _selectedMethod == 'zelle';
+    bool isUSD = _selectedCurrency == null || _selectedCurrency['code'] == 'USD';
+    String currCode = _selectedCurrency?['code'] ?? 'USD';
+    bool isVED = currCode == 'VED';
+    String currSymbol = _selectedCurrency?['symbol'] ?? (currCode == 'VED' ? 'Bs.' : (currCode == 'COP' ? 'COP' : '\$'));
+
+    double amountLocal = double.tryParse(_amountController.text) ?? 0.0;
+    double rate = double.tryParse(_rateController.text) ?? 1.0;
+    double amountUsd = !isUSD ? (rate > 0 ? (amountLocal / rate) : 0.0) : amountLocal;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -2124,9 +2231,17 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
             _sectionTitle("Método de Pago"),
             const SizedBox(height: 15),
             Row(children: [
-               Expanded(child: _methodButton('Efectivo', Icons.payments_rounded, Colors.green, _payType == 'cash', () => setState(() => _payType = 'cash'))),
+               Expanded(child: _methodButton('Efectivo', Icons.payments_rounded, Colors.green, _payType == 'cash', () => setState(() {
+                 _payType = 'cash';
+                 _userHasEditedAmount = false;
+                 _updateAmountBasedOnCurrency();
+               }))),
                const SizedBox(width: 15),
-               Expanded(child: _methodButton('Banco / Zelle', Icons.account_balance_rounded, const Color(0xFF00B4D8), _payType == 'bank', () => setState(() => _payType = 'bank'))),
+               Expanded(child: _methodButton('Banco / Zelle', Icons.account_balance_rounded, const Color(0xFF00B4D8), _payType == 'bank', () => setState(() {
+                 _payType = 'bank';
+                 _userHasEditedAmount = false;
+                 _updateAmountBasedOnCurrency();
+               }))),
             ]),
             
             const SizedBox(height: 25),
@@ -2145,8 +2260,12 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
                     final bankCurrency = _currencies.firstWhere((c) => c['code'] == v['currency_code'], orElse: () => null);
                     if (bankCurrency != null) {
                       _selectedCurrency = bankCurrency;
-                      _rateController.text = bankCurrency['exchange_rate']?.toString() ?? '1.0';
+                      if (bankCurrency['code'] != 'USD') {
+                        _rateController.text = bankCurrency['exchange_rate']?.toString() ?? '1.0';
+                      }
                     }
+                    _userHasEditedAmount = false;
+                    _updateAmountBasedOnCurrency();
                   }),
                 )),
               ),
@@ -2161,7 +2280,7 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                    Row(children: [
-                    Expanded(flex: 2, child: _textField(_amountController, "Monto", Icons.attach_money_rounded, numeric: true)),
+                    Expanded(flex: 2, child: _textField(_amountController, isUSD ? "Monto" : "Monto en $currCode ($currSymbol)", isUSD ? Icons.attach_money_rounded : Icons.account_balance_wallet_outlined, numeric: true, onChanged: (val) => _userHasEditedAmount = true)),
                      const SizedBox(width: 10),
                      Expanded(child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2181,12 +2300,32 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
                                 items: _currencies.map((c) => DropdownMenuItem(value: c, child: Text(c['code'].toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)))).toList(),
                                 onChanged: (dynamic v) => setState(() {
                                   _selectedCurrency = v;
-                                  _rateController.text = v['exchange_rate']?.toString() ?? '1.0';
+                                  _userHasEditedAmount = false;
+                                  _updateAmountBasedOnCurrency();
                                 }),
                             ))),
                       ],
                     )),
                   ]),
+
+                  if (!isUSD) ...[
+                    const SizedBox(height: 15),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8F5E9),
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: Colors.green.shade300)
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Equivalente a pagar:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1B263B))),
+                          Text("\$${amountUsd.toStringAsFixed(2)} USD", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.green.shade800)),
+                        ],
+                      ),
+                    ),
+                  ],
                   
                   const SizedBox(height: 15),
                   InkWell(
@@ -2204,13 +2343,41 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
                     ),
                   ),
 
-                  if (isVED) ... [
+                  if (!isUSD) ... [
                     const SizedBox(height: 15),
-                    _textField(_rateController, "Tasa de Cambio (Obligatoria)", Icons.trending_up_rounded, numeric: true),
-                    const Padding(
-                      padding: EdgeInsets.only(top: 5, left: 5),
-                      child: Text("Tasa configurada en el sistema", style: TextStyle(fontSize: 10, color: Color(0xFF00B4D8), fontWeight: FontWeight.bold)),
-                    )
+                    if (_rateOptions.length > 1) ...[
+                      const Text("Seleccione Tasa del Día", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                      const SizedBox(height: 5),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(color: const Color(0xFFF1F3F5), borderRadius: BorderRadius.circular(15)),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton(
+                            value: _selectedRateOption,
+                            isExpanded: true,
+                            items: _rateOptions.map((opt) => DropdownMenuItem(
+                              value: opt,
+                              child: Text(opt['label'].toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            )).toList(),
+                            onChanged: (dynamic v) => setState(() {
+                              _selectedRateOption = v;
+                              _rateController.text = v['rate'].toString();
+                              _rateTypeLabel = v['label'].toString();
+                              _updateAmountBasedOnCurrency();
+                            }),
+                          ),
+                        ),
+                      ),
+                    ] else ...[
+                      _textField(_rateController, "Tasa de Cambio (No Editable)", Icons.trending_up_rounded, numeric: true, readOnly: true),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 5, left: 5),
+                        child: Text(
+                          _rateTypeLabel.isNotEmpty ? _rateTypeLabel : "Tasa configurada en el sistema", 
+                          style: const TextStyle(fontSize: 10, color: Color(0xFF00B4D8), fontWeight: FontWeight.bold)
+                        ),
+                      )
+                    ],
                   ],
 
                   if (_payType == 'bank' && _selectedBank != null) ... [
@@ -2274,19 +2441,21 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
     child: Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF1B263B))),
   );
   
-  Widget _textField(TextEditingController controller, String label, IconData icon, {bool numeric = false}) => Column(
+  Widget _textField(TextEditingController controller, String label, IconData icon, {bool numeric = false, bool readOnly = false, Function(String)? onChanged}) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
       const SizedBox(height: 5),
       TextField(
         controller: controller, 
+        readOnly: readOnly,
+        onChanged: onChanged,
         keyboardType: numeric ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text, 
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: readOnly ? Colors.grey.shade800 : Colors.black),
         decoration: InputDecoration(
           prefixIcon: Icon(icon, size: 18, color: const Color(0xFF00B4D8)), 
           filled: true, 
-          fillColor: const Color(0xFFF1F3F5),
+          fillColor: readOnly ? const Color(0xFFE9ECEF) : const Color(0xFFF1F3F5),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
           contentPadding: const EdgeInsets.symmetric(vertical: 12)
         ),

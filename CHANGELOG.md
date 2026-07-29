@@ -1,3 +1,14 @@
+## [1.10.276] - 2026-07-29
+
+### Added
+- **App VIP Clientes (`v1.1.7+70`)**: Se portaron las mejoras de pagos multimoneda a la aplicación de clientes VIP:
+  - Soporte multimoneda dinámico (VED, COP, USD, EUR) con conversión automática del monto según la divisa del instrumento seleccionado.
+  - Recálculo en tiempo real del monto y equivalencia en USD al cambiar fecha, banco o tasa.
+  - Bloqueo de edición manual en la tasa de cambio (campo no editable, solo lectura del sistema).
+  - Selector de tasa cuando existen múltiples opciones para una misma fecha (BCV, Binance, Paralelo).
+  - Indicador verde de "Equivalente a pagar" en USD visible cuando la moneda seleccionada no es dólares.
+  - Restricción de fechas futuras en el calendario de abonos.
+
 ## [1.10.275] - 2026-07-29
 
 ### Fixed
