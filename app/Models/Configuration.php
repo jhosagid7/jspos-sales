@@ -28,6 +28,7 @@ class Configuration extends Model
         'global_commission_2_threshold',
         'global_commission_2_percentage',
         'website',
+        'auto_select_default_customer',
         'credit_days',
         'credit_purchase_days',
         'confirmation_code',

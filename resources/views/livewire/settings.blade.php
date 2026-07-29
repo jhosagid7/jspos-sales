@@ -450,6 +450,18 @@
                                     </div>
 
                                     <div class="col-sm-12 col-md-6">
+                                        <label class="form-label">CLIENTE POR DEFECTO (POS)</label>
+                                        <div class="form-check form-switch pl-0">
+                                            <div class="custom-control custom-switch">
+                                                <input type="checkbox" class="custom-control-input" id="autoSelectDefaultCustomer" wire:model="autoSelectDefaultCustomer">
+                                                <label class="custom-control-label" for="autoSelectDefaultCustomer">Auto-seleccionar cliente genérico en ventas</label>
+                                            </div>
+                                            @error('autoSelectDefaultCustomer') <span class="text-danger">{{ $message }}</span> @enderror
+                                        </div>
+                                    </div>
+
+
+                                    <div class="col-sm-12 col-md-6">
                                         <label class="form-label">MODO CAJA COMPARTIDA (Oficina)</label>
                                         <div class="form-check form-switch pl-0">
                                             <div class="custom-control custom-switch">

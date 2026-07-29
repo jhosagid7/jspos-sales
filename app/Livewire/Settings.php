@@ -11,7 +11,7 @@ class Settings extends Component
     use \Livewire\WithFileUploads;
 
     public $setting_id = 0, $businessName, $phone, $taxpayerId, $vat, $printerName, $website, $leyend, $creditDays = 15, $address, $city, $creditPurchaseDays, $confirmationCode, $decimals;
-    public $checkStockReservation, $salesViewMode, $salesEditTimeout, $salesShowRateBadge;
+    public $checkStockReservation, $salesViewMode, $salesEditTimeout, $salesShowRateBadge, $autoSelectDefaultCustomer;
     public $salesShowCommissions, $salesShowFreight, $salesShowBreakdownFreight, $salesShowWarehouse, $salesShowDriver;
     public $globalCommission1Threshold, $globalCommission1Percentage, $globalCommission2Threshold, $globalCommission2Percentage;
     public $globalAllowCredit, $globalCreditDays, $globalCreditLimit, $globalUsdPaymentDiscount, $globalUsdPaymentDiscountTag;
@@ -101,6 +101,7 @@ class Settings extends Component
             $this->globalCommission2Percentage = $config->global_commission_2_percentage;
             $this->logo_preview = $config->logo; // Load existing logo
             $this->checkStockReservation = (bool) $config->check_stock_reservation;
+            $this->autoSelectDefaultCustomer = (bool) $config->auto_select_default_customer;
             $this->salesViewMode = $config->sales_view_mode;
             $this->salesShowRateBadge = (bool) ($config->sales_show_rate_badge ?? true);
             $this->salesShowCommissions = (bool) $config->sales_show_commissions;
@@ -330,6 +331,7 @@ class Settings extends Component
                 'global_commission_2_threshold' => $this->globalCommission2Threshold,
                 'global_commission_2_percentage' => $this->globalCommission2Percentage,
                 'check_stock_reservation' => $this->checkStockReservation ? 1 : 0,
+                'auto_select_default_customer' => $this->autoSelectDefaultCustomer ? 1 : 0,
                 'sales_view_mode' => $this->salesViewMode,
                 'sales_show_rate_badge' => $this->salesShowRateBadge,
                 'sales_show_commissions' => $this->salesShowCommissions,

@@ -1166,7 +1166,7 @@ class Sales extends Component
 
         $this->customer = session('sale_customer', null);
 
-        if (in_array('module_pos_optimizations', config('tenant.modules', []))) {
+        if (in_array('module_pos_optimizations', config('tenant.modules', [])) && $this->config->auto_select_default_customer) {
             if (!$this->customer) {
                 $defaultCustomer = \App\Models\Customer::where('type', 'Consumidor Final')->first()
                     ?? \App\Models\Customer::first();
@@ -1209,8 +1209,8 @@ class Sales extends Component
                 $hasCustomerConfig = ($this->customerConfig && ($this->customerConfig->commission_percent > 0 || $this->customerConfig->freight_percent > 0 || $this->customerConfig->exchange_diff_percent > 0));
 
                 if ($hasCustomerConfig) {
-                    $this->applyCommissions = true;
-                    $this->applyFreight = true;
+                    $this->applyCommissions = $this->config->sales_show_commissions ? true : false;
+                    $this->applyFreight = $this->config->sales_show_freight ? true : false;
                 }
             }
         }
@@ -3226,8 +3226,8 @@ class Sales extends Component
             $hasCustomerConfig = ($this->customerConfig && ($this->customerConfig->commission_percent > 0 || $this->customerConfig->freight_percent > 0 || $this->customerConfig->exchange_diff_percent > 0));
 
             if ($hasCustomerConfig) {
-                $this->applyCommissions = true;
-                $this->applyFreight = true;
+                $this->applyCommissions = $this->config->sales_show_commissions ? true : false;
+                $this->applyFreight = $this->config->sales_show_freight ? true : false;
             } else {
                 $this->applyCommissions = false;
                 $this->applyFreight = false;
@@ -3350,7 +3350,7 @@ class Sales extends Component
 
             // Foreign Seller Enforce Logic
             if (!auth()->user()->can('sales.manage_adjustments')) {
-                $this->applyCommissions = $this->sellerConfig ? true : false;
+                $this->applyCommissions = ($this->sellerConfig && $this->config->sales_show_commissions) ? true : false;
                 $this->applyFreight = false;
                 $this->is_freight_broken_down = false;
             }

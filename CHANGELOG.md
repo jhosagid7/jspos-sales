@@ -1,3 +1,11 @@
+## [1.10.271] - 2026-07-29
+
+### Added
+- **Configuración**: Se agregó la opción "Auto-seleccionar cliente genérico en ventas" en Ajustes. Permite decidir si el cliente "Consumidor Final" se carga automáticamente al abrir el punto de venta. Por defecto, esta opción está apagada para forzar la selección manual.
+
+### Changed
+- **Reportes**: Se eliminó el auto-cargado del cliente seleccionado en POS al entrar a los reportes. Ahora los reportes iniciarán con el buscador vacío.
+
 ## [1.10.270] - 2026-07-26
 
 ### Added

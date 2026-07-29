@@ -81,8 +81,6 @@ class SalesReport extends Component
 
     public function render()
     {
-        $this->customer = session('sale_customer', null);
-
         $reportData = $this->getReport();
         
         $groupedSales = $reportData['groupedSales'] ?? null;
