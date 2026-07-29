@@ -54,16 +54,17 @@ class PriceCalculatorService
         $diff = 0;
 
         if ($applyCommissions) {
+            $decimals = \App\Services\ConfigurationService::getDecimalPlaces();
             $commissionPercent = floatval($customerConfig->commission_percent);
             $freightPercent = floatval($customerConfig->freight_percent);
             $exchangeDiffPercent = floatval($customerConfig->exchange_diff_percent);
             $baseMarkupPercent = floatval($customerConfig->base_markup_percent ?? 0);
             
             // Commission
-            $comm = ($basePriceInPrimary * $commissionPercent) / 100;
+            $comm = round(($basePriceInPrimary * $commissionPercent) / 100, $decimals);
 
             // Markup
-            $markup = ($basePriceInPrimary * $baseMarkupPercent) / 100;
+            $markup = round(($basePriceInPrimary * $baseMarkupPercent) / 100, $decimals);
             
             // Freight (Smart Logic)
             if ($product->freight_type != 'none') {
@@ -76,15 +77,15 @@ class PriceCalculatorService
                 // General Freight
                 $freightUnit = ($basePriceInPrimary * $freightPercent) / 100;
             }
-            $freight = $freightUnit;
+            $freight = round($freightUnit, $decimals);
 
             // Intermediate Price (Base + Markup + Comm + Freight)
-            $intermediatePrice = $basePriceInPrimary + $comm + $freight + $markup;
+            $intermediatePrice = round($basePriceInPrimary + $comm + $freight + $markup, $decimals);
             
             // Exchange Diff (Applied on Intermediate Price)
-            $diff = ($intermediatePrice * $exchangeDiffPercent) / 100;
+            $diff = round(($intermediatePrice * $exchangeDiffPercent) / 100, $decimals);
             
-            $salePrice = $intermediatePrice + $diff;
+            $salePrice = round($intermediatePrice + $diff, $decimals);
         } else {
             $salePrice = $basePriceInPrimary;
         }

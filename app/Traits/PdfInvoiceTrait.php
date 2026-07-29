@@ -1059,14 +1059,15 @@ trait PdfInvoiceTrait
             }
 
             // Recalculate amounts based on Total Base
-            $commAmount = $totalBase * ($commPercent / 100);
+            $decimals = \App\Services\ConfigurationService::getDecimalPlaces();
+            $commAmount = round($totalBase * ($commPercent / 100), $decimals);
             if ($sale->created_at >= \App\Services\ConfigurationService::getSequentialCutOffDate()) {
-                $intermediateTotal = $totalBase + $commAmount + $totalFreightAmount;
-                $diffAmount = $intermediateTotal * ($diffPercent / 100);
-                $computedTotal = $intermediateTotal + $diffAmount;
+                $intermediateTotal = round($totalBase + $commAmount + $totalFreightAmount, $decimals);
+                $diffAmount = round($intermediateTotal * ($diffPercent / 100), $decimals);
+                $computedTotal = round($intermediateTotal + $diffAmount, $decimals);
             } else {
-                $diffAmount = $totalBase * ($diffPercent / 100);
-                $computedTotal = $totalBase + $commAmount + $diffAmount + $totalFreightAmount;
+                $diffAmount = round($totalBase * ($diffPercent / 100), $decimals);
+                $computedTotal = round($totalBase + $commAmount + $diffAmount + $totalFreightAmount, $decimals);
             }
             
             $data = [

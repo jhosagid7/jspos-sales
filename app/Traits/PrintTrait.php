@@ -1064,17 +1064,19 @@ trait PrintTrait
                 }
 
                 if ($productFreightTotal > 0) {
-                     $printer->text("Flete (Productos): " . $currencySymbol . number_format($productFreightTotal, 2) . "\n");
+                     $printer->text("Flete (Productos): " . $currencySymbol . number_format($productFreightTotal, $decimals) . "\n");
                 }
 
                 if ($diffPercent > 0) {
                       if ($sale->created_at >= \App\Services\ConfigurationService::getSequentialCutOffDate()) {
-                           $intermediateTotal = $totalBase + ($totalBase * $commPercent / 100) + ($totalBase * $markupPercent / 100) + $configFreightTotal + $productFreightTotal;
-                           $amt = $intermediateTotal * ($diffPercent / 100);
+                           $commAmt = round($totalBase * ($commPercent / 100), $decimals);
+                           $markupAmt = round($totalBase * ($markupPercent / 100), $decimals);
+                           $intermediateTotal = round($totalBase + $commAmt + $markupAmt + $configFreightTotal + $productFreightTotal, $decimals);
+                           $amt = round($intermediateTotal * ($diffPercent / 100), $decimals);
                       } else {
-                           $amt = $totalBase * ($diffPercent / 100);
+                           $amt = round($totalBase * ($diffPercent / 100), $decimals);
                       }
-                      $printer->text("Dif. Cambiaria (" . number_format($diffPercent, 2) . "%): " . $currencySymbol . number_format($amt, 2) . "\n");
+                      $printer->text("Dif. Cambiaria (" . number_format($diffPercent, 2) . "%): " . $currencySymbol . number_format($amt, $decimals) . "\n");
                  }
 
                 $printer->text($separator . "\n");

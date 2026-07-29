@@ -2481,8 +2481,8 @@ class Sales extends Component
                  $activeDiff = floatval($this->customerConfig->exchange_diff_percent);
                  $activeMarkup = floatval($this->customerConfig->base_markup_percent ?? 0);
                  
-                 $comm = ($basePriceInPrimary * $activeComm) / 100;
-                 $markup = ($basePriceInPrimary * $activeMarkup) / 100;
+                 $comm = round(($basePriceInPrimary * $activeComm) / 100, $decimals);
+                 $markup = round(($basePriceInPrimary * $activeMarkup) / 100, $decimals);
             }
         }
 
@@ -2491,6 +2491,7 @@ class Sales extends Component
             
             // Convert Total Freight to Per Unit for the formula
             $freightUnit = ($qty > 0) ? ($freightTotal / $qty) : 0;
+            $freightUnit = round($freightUnit, $decimals);
         } else {
             $freightTotal = 0;
             $freightUnit = 0;
@@ -2499,14 +2500,14 @@ class Sales extends Component
         // IF breakdown is ON, we DO NOT add freight to the Unit Price
         if ($this->is_freight_broken_down) {
              // Freight is calculated separately, not in unit price
-             $intermediatePrice = $basePriceInPrimary + $comm + $markup;
-             $diff = ($intermediatePrice * $activeDiff) / 100;
-             $salePrice = $intermediatePrice + $diff;
+             $intermediatePrice = round($basePriceInPrimary + $comm + $markup, $decimals);
+             $diff = round(($intermediatePrice * $activeDiff) / 100, $decimals);
+             $salePrice = round($intermediatePrice + $diff, $decimals);
         } else {
              // Freight is included in unit price
-             $intermediatePrice = $basePriceInPrimary + $comm + $freightUnit + $markup;
-             $diff = ($intermediatePrice * $activeDiff) / 100;
-             $salePrice = $intermediatePrice + $diff;
+             $intermediatePrice = round($basePriceInPrimary + $comm + $freightUnit + $markup, $decimals);
+             $diff = round(($intermediatePrice * $activeDiff) / 100, $decimals);
+             $salePrice = round($intermediatePrice + $diff, $decimals);
         }
 
 

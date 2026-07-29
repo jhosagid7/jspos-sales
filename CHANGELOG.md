@@ -1,3 +1,13 @@
+## [1.10.272] - 2026-07-29
+
+### Added
+- **API y App Vendedor Foráneo**: Mejoras integrales en la pantalla de abonos de la aplicación móvil (`v1.1.35+67`):
+  - Soporte multimoneda dinámico (VED, COP, USD, EUR) en la app móvil.
+  - Conversión automática del monto inicial según la divisa seleccionada y tasa del día (`Monto = Deuda * Tasa`).
+  - Recálculo en tiempo real del monto en moneda local y su equivalencia exacta en Dólares ($ USD) al cambiar la fecha o seleccionar diferentes tasas del día.
+  - Bloqueo de edición manual en la tasa de cambio con selector deslizable cuando existen múltiples tasas en una misma fecha.
+  - Restricción de selección de fechas futuras en el calendario de abonos.
+
 ## [1.10.271] - 2026-07-29
 
 ### Added

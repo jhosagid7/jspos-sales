@@ -174,11 +174,135 @@ class PaymentController extends Controller
     /**
      * Get available banks and currencies for the payment form.
      */
-    public function formData()
+    public function formData(Request $request)
     {
+        $saleId = $request->query('sale_id');
+        $dateStr = $request->query('date', date('Y-m-d'));
+
+        $rateOptions = [];
+        $calculatedRate = null;
+        $rateType = null;
+        $isBcv = false;
+
+        if ($saleId) {
+            $sale = Sale::find($saleId);
+            if ($sale) {
+                $isBcv = ($sale->payment_agreement === 'BCV');
+                $dayStart = \Carbon\Carbon::parse($dateStr)->startOfDay();
+                $dayEnd = \Carbon\Carbon::parse($dateStr)->endOfDay();
+
+                if ($isBcv) {
+                    $rateType = 'BCV';
+                    $recordsBCV = \App\Models\ExchangeRateHistory::where('rate_type', 'BCV')
+                        ->whereBetween('created_at', [$dayStart, $dayEnd])
+                        ->orderBy('created_at', 'desc')
+                        ->get();
+
+                    if ($recordsBCV->isEmpty()) {
+                        $latestBCV = \App\Models\ExchangeRateHistory::where('rate_type', 'BCV')
+                            ->where('created_at', '<=', $dayEnd)
+                            ->orderBy('created_at', 'desc')
+                            ->first();
+                        if ($latestBCV) {
+                            $recordsBCV = collect([$latestBCV]);
+                        }
+                    }
+
+                    foreach ($recordsBCV as $r) {
+                        $exists = collect($rateOptions)->contains('rate', floatval($r->rate));
+                        if (!$exists) {
+                            $periodLabel = $r->period ? " - {$r->period}" : "";
+                            $rateOptions[] = [
+                                'rate' => floatval($r->rate),
+                                'label' => number_format($r->rate, 2) . " Bs. (BCV{$periodLabel})",
+                                'rate_type' => 'BCV'
+                            ];
+                        }
+                    }
+
+                    if (empty($rateOptions)) {
+                        $config = \App\Models\Configuration::first();
+                        $bcvVal = $config ? floatval($config->bcv_rate) : null;
+                        if ($bcvVal) {
+                            $rateOptions[] = [
+                                'rate' => $bcvVal,
+                                'label' => number_format($bcvVal, 2) . " Bs. (Tasa Oficial BCV)",
+                                'rate_type' => 'BCV'
+                            ];
+                        }
+                    }
+                } else {
+                    $rateType = 'Binance';
+                    $recordsBinance = \App\Models\ExchangeRateHistory::whereIn('rate_type', ['BinanceReal', 'Binance'])
+                        ->whereBetween('created_at', [$dayStart, $dayEnd])
+                        ->orderBy('created_at', 'desc')
+                        ->get();
+
+                    if ($recordsBinance->isEmpty()) {
+                        $latestReal = \App\Models\ExchangeRateHistory::where('rate_type', 'BinanceReal')
+                            ->where('created_at', '<=', $dayEnd)
+                            ->orderBy('created_at', 'desc')
+                            ->first();
+                        $latestInflated = \App\Models\ExchangeRateHistory::where('rate_type', 'Binance')
+                            ->where('created_at', '<=', $dayEnd)
+                            ->orderBy('created_at', 'desc')
+                            ->first();
+
+                        if ($latestReal) {
+                            $rateOptions[] = [
+                                'rate' => floatval($latestReal->rate),
+                                'label' => number_format($latestReal->rate, 2) . " Bs. (Binance Real)",
+                                'rate_type' => 'Binance'
+                            ];
+                        }
+                        if ($latestInflated && (! $latestReal || floatval($latestInflated->rate) !== floatval($latestReal->rate))) {
+                            $rateOptions[] = [
+                                'rate' => floatval($latestInflated->rate),
+                                'label' => number_format($latestInflated->rate, 2) . " Bs. (Binance Ajustada)",
+                                'rate_type' => 'Binance'
+                            ];
+                        }
+                    } else {
+                        foreach ($recordsBinance as $r) {
+                            $exists = collect($rateOptions)->contains('rate', floatval($r->rate));
+                            if (!$exists) {
+                                $lbl = $r->rate_type === 'BinanceReal' ? 'Binance Real' : 'Binance Ajustada';
+                                $periodLabel = $r->period ? " - {$r->period}" : "";
+                                $rateOptions[] = [
+                                    'rate' => floatval($r->rate),
+                                    'label' => number_format($r->rate, 2) . " Bs. ({$lbl}{$periodLabel})",
+                                    'rate_type' => 'Binance'
+                                ];
+                            }
+                        }
+                    }
+
+                    if (empty($rateOptions)) {
+                        $config = \App\Models\Configuration::first();
+                        $binanceVal = $config ? floatval($config->binance_rate) : null;
+                        if ($binanceVal) {
+                            $rateOptions[] = [
+                                'rate' => $binanceVal,
+                                'label' => number_format($binanceVal, 2) . " Bs. (Binance)",
+                                'rate_type' => 'Binance'
+                            ];
+                        }
+                    }
+                }
+
+                if (!empty($rateOptions)) {
+                    $calculatedRate = $rateOptions[0]['rate'];
+                }
+            }
+        }
+
         return response()->json([
             'banks' => Bank::orderBy('sort')->get(),
-            'currencies' => Currency::all()
+            'currencies' => Currency::all(),
+            'calculated_rate' => $calculatedRate,
+            'rate_type' => $rateType,
+            'is_bcv' => $isBcv,
+            'rate_options' => $rateOptions,
         ]);
     }
 
