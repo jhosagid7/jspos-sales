@@ -1,3 +1,10 @@
+## [1.10.274] - 2026-07-29
+
+### Added
+- **Módulo de Abonos (Cuentas por Cobrar)**: Se incorporó la columna **Por Bajar** (Abono Pendiente) en la tabla del módulo de Abonos a Cuenta:
+  - Muestra una etiqueta resaltada (`badge-warning`) con el icono de reloj y el monto exacto en dólares de abonos/pagos notificados desde la app móvil que aún están pendientes por bajar/aprobar.
+  - En la columna **Debe**, se muestra un indicador explicativo que indica el saldo que restaría al cliente una vez aprobado dicho abono pendiente (`Restaría: $XX.XX`).
+
 ## [1.10.273] - 2026-07-29
 
 ### Changed

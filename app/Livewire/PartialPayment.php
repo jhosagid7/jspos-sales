@@ -109,7 +109,7 @@ class PartialPayment extends Component
         
         // Calcular totales correctos
         $sales->getCollection()->transform(function($sale) use ($primaryCurrency) {
-            // Calcular total pagado en USD
+            // Calcular total pagado en USD (aprobados)
             $totalPaidUSD = $sale->payments->whereNotIn('status', ['pending', 'rejected'])->sum(function($p) {
                 $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
                 $amountUSD = $p->amount / $rate; 
@@ -120,6 +120,12 @@ class PartialPayment extends Component
                 } else {
                     return $amountUSD + $discountVal;
                 }
+            });
+
+            // Calcular pagos pendientes por aprobar/bajar
+            $pendingPaidUSD = $sale->payments->where('status', 'pending')->sum(function($p) {
+                $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
+                return $p->amount / $rate;
             });
             
             // Pagos iniciales (si los hay)
@@ -146,6 +152,7 @@ class PartialPayment extends Component
             // Asignar valores para la vista (convertidos a moneda principal actual)
             $sale->total_display = $totalUSD * $primaryCurrency->exchange_rate;
             $sale->total_paid_display = ($totalPaidUSD + $initialPaidUSD) * $primaryCurrency->exchange_rate;
+            $sale->pending_paid_display = $pendingPaidUSD * $primaryCurrency->exchange_rate;
             $sale->total_returns_display = $totalReturnsUSD * $primaryCurrency->exchange_rate;
             $sale->debt_display = $debtUSD * $primaryCurrency->exchange_rate;
             

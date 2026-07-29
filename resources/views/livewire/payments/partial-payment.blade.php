@@ -27,6 +27,7 @@
                                         <th class='p-2'>Venta</th>
                                         <th class='p-2'>Total</th>
                                         <th class='p-2'>Abonado</th>
+                                        <th class='p-2 text-warning' title="Abonos notificados pendientes por aprobar">Por Bajar</th>
                                         <th class='p-2'>N/C</th>
                                         <th class='p-2'>Debe</th>
                                         <th class='p-2'></th>
@@ -68,13 +69,14 @@
                                                     {{ app('fun')->dateFormat($sale->created_at) }}</small>
                                             </td>
                                             <td data-label="Total">${{ number_format($sale->total_display, 2) }}</td>
-                                            <td data-label="Abonado">
-                                                ${{ number_format($sale->total_paid_display, 2) }}
-                                                @if($sale->payments->where('status', 'pending')->count() > 0)
-                                                    <br>
-                                                    <span class="badge badge-warning text-white mt-1" title="Contiene pagos pendientes por aprobar">
-                                                        <i class="fas fa-clock"></i> Pago por aprobar
+                                            <td data-label="Abonado">${{ number_format($sale->total_paid_display, 2) }}</td>
+                                            <td data-label="Por Bajar">
+                                                @if(($sale->pending_paid_display ?? 0) > 0)
+                                                    <span class="badge badge-warning text-dark font-weight-bold" style="font-size: 0.85rem;" title="Monto de abonos notificados pendientes por bajar/aprobar">
+                                                        <i class="fas fa-clock"></i> ${{ number_format($sale->pending_paid_display, 2) }}
                                                     </span>
+                                                @else
+                                                    <span class="text-muted">$0.00</span>
                                                 @endif
                                             </td>
                                             <td data-label="N/C" class="text-warning font-weight-bold">
@@ -84,7 +86,14 @@
                                                     $0.00
                                                 @endif
                                             </td>
-                                            <td data-label="Debe">${{ number_format($sale->debt_display, 2) }}</td>
+                                            <td data-label="Debe">
+                                                <div class="font-weight-bold">${{ number_format($sale->debt_display, 2) }}</div>
+                                                @if(($sale->pending_paid_display ?? 0) > 0)
+                                                    <small class="text-info d-block font-weight-bold" style="font-size: 0.73rem;" title="Saldo restante tras aprobar el abono pendiente">
+                                                        (Restaría: ${{ number_format(max(0, $sale->debt_display - $sale->pending_paid_display), 2) }})
+                                                    </small>
+                                                @endif
+                                            </td>
                                             <td data-label="Acciones">
 
 
