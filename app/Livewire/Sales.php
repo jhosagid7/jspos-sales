@@ -2187,78 +2187,13 @@ class Sales extends Component
             $basePriceInPrimary = $basePrice * $exchangeRate;
         }
 
-        // Calculate Extras (Commission, Freight, Diff)
-        $comm = 0;
-        $freight = 0;
-        $diff = 0;
-
-        $customerConfig = $this->customerConfig;
-
-        // Regla de Moneda para Reglas de Precio (USD/COP únicamente)
-        $currency = collect($this->currencies)->firstWhere('id', $this->invoiceCurrency_id);
-        $currencyCode = $currency ? strtoupper($currency->code) : '';
-        $isUsdOrCop = in_array($currencyCode, ['USD', 'COP']);
-
-        if ($customerConfig && ($this->applyCommissions || $this->applyFreight)) {
-            
-            // Priority 1: Customer Config
-            $commissionPercent = floatval($customerConfig->commission_percent);
-            $freightPercent = floatval($customerConfig->freight_percent);
-            $exchangeDiffPercent = floatval($customerConfig->exchange_diff_percent);
-
-            // Commission
-            $comm = ($basePriceInPrimary * $commissionPercent) / 100;
-            
-            // Freight (Smart Logic)
-            if ($product->freight_type != 'none') {
-                // Product Specific Freight
-                if ($product->freight_type == 'fixed') {
-                    $freightUnit = $product->freight_value; // Fixed amount per unit
-                } else {
-                    $freightUnit = ($basePriceInPrimary * $product->freight_value) / 100;
-                }
-            } else {
-                // General Freight
-                $freightUnit = ($basePriceInPrimary * $freightPercent) / 100;
-            }
-            $freight = $freightUnit; // Total freight added to unit price
-
-            // Intermediate Price (Base + Comm + Freight)
-            $intermediatePrice = $basePriceInPrimary + $comm + $freight;
-            
-            // Exchange Diff (Applied on Intermediate Price)
-            $diff = ($intermediatePrice * $exchangeDiffPercent) / 100;
-
-            $salePrice = $intermediatePrice + $diff;
-        } else {
-            $salePrice = $basePriceInPrimary;
-        }
-
-        // Obtener el número de decimales configurados
+        // Calculate price using unified Calculator (Commission, Recargo/Markup, Freight, Diff with proper rounding)
+        // This ensures AddProduct uses the exact same formula as updateQty and recalculateCartWithSellerConfig
+        $values = $this->Calculator($basePriceInPrimary, $qty, $product);
         $decimals = ConfigurationService::getDecimalPlaces();
-
-        // Obtener el IVA desde la configuración
-        $iva = ConfigurationService::getVat() / 100;
-
-        // Determinamos el precio de venta (con IVA)
-        if ($iva > 0) {
-            $precioUnitarioSinIva =  $salePrice / (1 + $iva);
-            // ... Logic continues ...
-            $subtotalNeto =   $precioUnitarioSinIva * $this->formatAmount($qty);
-            $montoIva = $subtotalNeto  * $iva;
-            $totalConIva =  $subtotalNeto + $montoIva;
-
-            $tax = round($montoIva, $decimals);
-            $total = round($totalConIva, $decimals);
-        } else {
-            $precioUnitarioSinIva =  $salePrice;
-            $subtotalNeto =   $precioUnitarioSinIva * $this->formatAmount($qty);
-            $montoIva = 0;
-            $totalConIva =  $subtotalNeto + $montoIva;
-
-            $tax = round($montoIva, $decimals);
-            $total = round($totalConIva, $decimals);
-        }
+        $salePrice = $values['sale_price'];
+        $tax = round($values['iva'], $decimals);
+        $total = $this->formatAmount(round($values['total'], $decimals));
 
         $uid = uniqid() . $product->id;
 

@@ -276,3 +276,33 @@ L
 2026-07-15 11:03:04 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
 2026-07-15 11:55:04 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 6 - VIP Customer
 2026-07-15 11:55:04 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
+2026-07-29 17:49:10 | [POST] PATH: api/vip/login | IP: 192.168.194.58 | USER: NULL
+2026-07-29 17:49:10 | RESPONSE (401): {"message":"Credenciales inv\u00e1lidas o acceso no autorizado para esta cuenta."}
+2026-07-29 17:49:16 | [POST] PATH: api/vip/login | IP: 192.168.194.58 | USER: NULL
+2026-07-29 17:49:16 | RESPONSE (401): {"message":"Credenciales inv\u00e1lidas o acceso no autorizado para esta cuenta."}
+2026-07-29 17:50:09 | [POST] PATH: api/vip/login | IP: 192.168.194.58 | USER: NULL
+2026-07-29 17:50:09 | RESPONSE (200): {"status":"success","access_token":"1326|IWMQsQIaKvJ20u6H7dLfeyAJjWONwNl0lTngUQqpd844d87c","token_ty
+2026-07-29 17:50:16 | [GET] PATH: api/vip/sales/pending | IP: 192.168.194.58 | USER: NULL
+2026-07-29 17:50:16 | RESPONSE (200): []
+2026-07-29 17:50:18 | [GET] PATH: api/vip/sales | IP: 192.168.194.58 | USER: NULL
+2026-07-29 17:50:18 | RESPONSE (200): [{"id":2770,"invoice_number":"F00002770","order_number":"P00000588","total":"33.80","is_freight_brok
+2026-07-29 17:50:26 | [GET] PATH: api/vip/sales/pending | IP: 192.168.194.58 | USER: NULL
+2026-07-29 17:50:26 | RESPONSE (200): []
+2026-07-29 17:50:56 | [GET] PATH: api/vip/me | IP: 192.168.194.58 | USER: NULL
+2026-07-29 17:50:56 | RESPONSE (200): {"status":"success","customer":{"id":349,"name":"Jhonny Pirela","address":"Urbanizaci\u00f3n Prado H
+2026-07-29 17:50:58 | [GET] PATH: api/vip/sales/pending | IP: 192.168.194.58 | USER: NULL
+2026-07-29 17:50:58 | RESPONSE (200): [{"id":3082,"invoice_number":"F00003078","date":"2026-07-29","due_date":"2026-08-10","days_overdue":
+2026-07-29 17:51:00 | [GET] PATH: api/vip/payments/history | IP: 192.168.194.58 | USER: NULL
+2026-07-29 17:51:00 | RESPONSE (200): []
+2026-07-29 17:51:02 | [GET] PATH: api/vip/payments/form-data | IP: 192.168.194.58 | USER: NULL
+2026-07-29 17:51:03 | RESPONSE (200): {"banks":[{"id":1,"name":"Bancolombia","account_holder":null,"account_number":"","cedula":"","phone"
+2026-07-29 17:51:13 | [GET] PATH: api/vip/payments/form-data | IP: 192.168.194.58 | USER: NULL
+2026-07-29 17:51:13 | RESPONSE (200): {"banks":[{"id":1,"name":"Bancolombia","account_holder":null,"account_number":"","cedula":"","phone"
+2026-07-29 17:51:44 | [POST] PATH: api/vip/payments/upload | IP: 192.168.194.58 | USER: NULL
+2026-07-29 17:51:44 | RESPONSE (200): {"status":"success","message":"Pago subido con \u00e9xito. Pendiente de aprobaci\u00f3n.","payment_i
+2026-07-29 17:51:51 | [GET] PATH: api/vip/me | IP: 192.168.194.58 | USER: NULL
+2026-07-29 17:51:51 | RESPONSE (200): {"status":"success","customer":{"id":349,"name":"Jhonny Pirela","address":"Urbanizaci\u00f3n Prado H
+2026-07-29 17:51:53 | [GET] PATH: api/vip/sales/pending | IP: 192.168.194.58 | USER: NULL
+2026-07-29 17:51:53 | RESPONSE (200): [{"id":3082,"invoice_number":"F00003078","date":"2026-07-29","due_date":"2026-08-10","days_overdue":
+2026-07-29 17:51:56 | [GET] PATH: api/vip/payments/history | IP: 192.168.194.58 | USER: NULL
+2026-07-29 17:51:56 | RESPONSE (200): [{"id":2250,"type":"payment","method":"deposit","amount":"10989.03","currency":"VED","reference":"31

@@ -1,3 +1,8 @@
+## [1.10.277] - 2026-07-29
+
+### Fixed
+- **Cálculo de Precios en AddProduct (Bug Crítico)**: Se corrigió un error grave donde el método `AddProduct` en el POS tenía su propia fórmula de cálculo inline que **no incluía el Recargo (base_markup_percent)** y **no aplicaba redondeo intermedio**. Esto causaba que los totales fueran incorrectos al agregar productos al carrito. Se reemplazó la lógica duplicada con una llamada al método `Calculator` unificado, que es el mismo usado por `updateQty` y `recalculateCartWithSellerConfig`, garantizando consistencia en todos los caminos de cálculo (Comisión + Recargo + Flete + Diferencial con redondeo correcto).
+
 ## [1.10.276] - 2026-07-29
 
 ### Added
