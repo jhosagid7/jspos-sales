@@ -1511,7 +1511,8 @@ class _PendingSalesScreenState extends State<PendingSalesScreen> {
           final s = _sales[i];
           double total = (s['total_usd'] as num).toDouble();
           double debt = (s['debt_usd'] as num).toDouble();
-          double paid = total - debt;
+          double paid = (s['paid_usd'] != null) ? (s['paid_usd'] as num).toDouble() : (total - debt);
+          double pending = (s['pending_usd'] != null) ? (s['pending_usd'] as num).toDouble() : 0.0;
           
           return Container(
             margin: const EdgeInsets.only(bottom: 15),
@@ -1540,6 +1541,21 @@ class _PendingSalesScreenState extends State<PendingSalesScreen> {
                                letterSpacing: 0.5
                              ),
                            )
+                        ],
+                        if (pending > 0) ...[
+                          const SizedBox(height: 5),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(color: const Color(0xFFFFF3CD), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFFFFEEBA))),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.access_time_rounded, size: 12, color: Color(0xFF856404)),
+                                const SizedBox(width: 4),
+                                Text("POR BAJAR: \$${pending.toStringAsFixed(2)}", style: const TextStyle(color: Color(0xFF856404), fontWeight: FontWeight.w900, fontSize: 9)),
+                              ],
+                            ),
+                          )
                         ]
                       ])),
                       IconButton(
@@ -1557,6 +1573,8 @@ class _PendingSalesScreenState extends State<PendingSalesScreen> {
                     children: [
                       _smallStat('TOTAL', '\$${total.toStringAsFixed(2)}', Colors.grey),
                       _smallStat('ABONADO', '\$${paid.toStringAsFixed(2)}', Colors.green),
+                      if (pending > 0)
+                        _smallStat('POR BAJAR', '\$${pending.toStringAsFixed(2)}', Colors.amber.shade800, isBold: true),
                       _smallStat('DEBE', '\$${debt.toStringAsFixed(2)}', Colors.red, isBold: true),
                       ElevatedButton(
                         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (ctx) => UploadPaymentForm(saleId: s['id'], invoice: s['invoice_number'], debt: debt))),

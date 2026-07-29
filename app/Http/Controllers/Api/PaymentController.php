@@ -57,6 +57,11 @@ class PaymentController extends Controller
                 return $detail->amount / $rate;
             });
 
+            $pendingPaidUSD = $sale->payments->where('status', 'pending')->sum(function($p) {
+                $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
+                return $p->amount / $rate;
+            });
+
             $totalReturnsUSD = $sale->returns->where('refund_method', 'debt_reduction')->sum('total_returned') / ($sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1);
             
             $totalUSD = $sale->total_usd ?: ($sale->total / ($sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1));
@@ -81,8 +86,12 @@ class PaymentController extends Controller
                 'due_date' => $dueDate->format('Y-m-d'),
                 'days_overdue' => $daysOverdue,
                 'total_usd' => round($totalUSD, 2),
+                'paid_usd' => round($totalPaidUSD + $initialPaidUSD, 2),
+                'pending_usd' => round($pendingPaidUSD, 2),
                 'debt_usd' => round($debtUSD, 2),
                 'total_display' => round($totalUSD * $primaryCurrency->exchange_rate, 2),
+                'paid_display' => round(($totalPaidUSD + $initialPaidUSD) * $primaryCurrency->exchange_rate, 2),
+                'pending_display' => round($pendingPaidUSD * $primaryCurrency->exchange_rate, 2),
                 'debt_display' => round($debtUSD * $primaryCurrency->exchange_rate, 2),
                 'currency_symbol' => $primaryCurrency->symbol
             ];
