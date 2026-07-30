@@ -306,3 +306,5 @@ L
 2026-07-29 17:51:53 | RESPONSE (200): [{"id":3082,"invoice_number":"F00003078","date":"2026-07-29","due_date":"2026-08-10","days_overdue":
 2026-07-29 17:51:56 | [GET] PATH: api/vip/payments/history | IP: 192.168.194.58 | USER: NULL
 2026-07-29 17:51:56 | RESPONSE (200): [{"id":2250,"type":"payment","method":"deposit","amount":"10989.03","currency":"VED","reference":"31
+2026-07-29 17:56:17 | [GET] PATH: api/vip/sales/pending | IP: 192.168.194.58 | USER: NULL
+2026-07-29 17:56:17 | RESPONSE (200): [{"id":3082,"invoice_number":"F00003078","date":"2026-07-29","due_date":"2026-08-10","days_overdue":

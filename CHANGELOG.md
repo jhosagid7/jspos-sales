@@ -1,3 +1,13 @@
+## [1.10.278] - 2026-07-30
+
+### Fixed
+- **Exclusividad Mutua entre Controles de Comisión y Flete**: Se corrigió la lógica de los controles del POS para garantizar que `Aplicar Comisión` y `Aplicar Solo Flete` sean mutuamente excluyentes. Al activar uno, el otro se desactiva automáticamente.
+- **Fórmula de Precio Integral con Comisión**: La fórmula con `Aplicar Comisión` activo ahora calcula correctamente: `(Base + Comisión% + Recargo% + Flete%) × (1 + Diferencial%)`. Ejemplo: base $10 + comm 0.50 + recargo 0.40 + flete 0.60 = $11.50 × 1.30 = **$14.95**.
+- **Fórmula Solo Flete**: Con `Aplicar Solo Flete` activo, el precio resulta únicamente `Base + Flete%` sin aplicar comisión, recargo ni diferencial cambiario.
+
+### Added
+- **Suite de Pruebas Automatizadas (Feature Tests)**: Se creó `SalesControlsMutualExclusivityTest` con 4 pruebas de integración que validan empíricamente la lógica de negocio: exclusividad mutua, fórmula comisión (14.95), solo flete (10.60) y precio base sin controles (10.00). Todos los tests pasan satisfactoriamente.
+
 ## [1.10.277] - 2026-07-29
 
 ### Fixed

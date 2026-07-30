@@ -384,7 +384,10 @@ class Sales extends Component
 
     public function updatedApplyCommissions()
     {
-        session(['applyCommissions' => $this->applyCommissions]);
+        if ($this->applyCommissions) {
+            $this->applyFreight = false;
+        }
+        session(['applyCommissions' => $this->applyCommissions, 'applyFreight' => $this->applyFreight]);
         $this->recalculateCartWithSellerConfig();
         $this->recalculateFreightTotal(); // Ensure freight is recalculated
         $this->dispatch('noty', msg: 'COMISIONES DE VENTA ACTUALIZADAS');
@@ -392,7 +395,10 @@ class Sales extends Component
 
     public function updatedApplyFreight()
     {
-        session(['applyFreight' => $this->applyFreight]);
+        if ($this->applyFreight) {
+            $this->applyCommissions = false;
+        }
+        session(['applyCommissions' => $this->applyCommissions, 'applyFreight' => $this->applyFreight]);
         $this->recalculateCartWithSellerConfig();
         $this->recalculateFreightTotal();
         $this->dispatch('noty', msg: 'CONFIGURACIÓN DE FLETE ACTUALIZADA');
@@ -1210,7 +1216,11 @@ class Sales extends Component
 
                 if ($hasCustomerConfig) {
                     $this->applyCommissions = $this->config->sales_show_commissions ? true : false;
-                    $this->applyFreight = $this->config->sales_show_freight ? true : false;
+                    if ($this->applyCommissions) {
+                        $this->applyFreight = false;
+                    } else {
+                        $this->applyFreight = $this->config->sales_show_freight ? true : false;
+                    }
                 }
             }
         }
@@ -3163,7 +3173,11 @@ class Sales extends Component
 
             if ($hasCustomerConfig) {
                 $this->applyCommissions = $this->config->sales_show_commissions ? true : false;
-                $this->applyFreight = $this->config->sales_show_freight ? true : false;
+                if ($this->applyCommissions) {
+                    $this->applyFreight = false;
+                } else {
+                    $this->applyFreight = $this->config->sales_show_freight ? true : false;
+                }
             } else {
                 $this->applyCommissions = false;
                 $this->applyFreight = false;
@@ -4670,7 +4684,7 @@ class Sales extends Component
                         // 'user_id' => Auth()->user()->id, // DO NOT OVERWRITE OWNER
                         'status' => 'pending',
                         'apply_commissions' => $this->applyCommissions,
-                        'apply_freight' => $this->applyCommissions || $this->applyFreight,
+                        'apply_freight' => $this->applyFreight,
                         'is_freight_broken_down' => $this->is_freight_broken_down,
                         'invoice_currency_id' => $this->invoiceCurrency_id,
                         'driver_id' => $this->driver_id ?: null,
@@ -4780,7 +4794,7 @@ class Sales extends Component
                     'user_id' => Auth()->user()->id,
                     'status' => 'pending',
                     'apply_commissions' => $this->applyCommissions,
-                    'apply_freight' => $this->applyCommissions || $this->applyFreight,
+                    'apply_freight' => $this->applyFreight,
                     'is_freight_broken_down' => $this->is_freight_broken_down,
                     'invoice_currency_id' => $this->invoiceCurrency_id,
                     'driver_id' => $this->driver_id ?: null,
