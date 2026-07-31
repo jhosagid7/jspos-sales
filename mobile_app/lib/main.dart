@@ -25,7 +25,6 @@ class JSPOSMobile extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1A237E), primary: const Color(0xFF1A237E)),
         useMaterial3: true,
-        textTheme: GoogleFonts.outfitTextTheme(),
       ),
       home: const LoginScreen(),
     );
@@ -140,9 +139,11 @@ class _LoginScreenState extends State<LoginScreen> {
     }); 
 
     if (userToken.isNotEmpty) {
-      if (mounted) {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
-      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
+        }
+      });
     }
   }
 
@@ -583,6 +584,7 @@ class CatalogScreen extends StatefulWidget {
 }
 
 class _CatalogScreenState extends State<CatalogScreen> {
+  final List<Product> _allProducts = [];
   final List<Product> _products = [];
   final List<Customer> _customers = [];
   final List<CartItem> _cart = [];
@@ -596,6 +598,21 @@ class _CatalogScreenState extends State<CatalogScreen> {
   bool _isDeadlineActive = false;
 
   double get _cartTotal => _cart.fold(0, (sum, item) => sum + item.total);
+
+  void _filterProducts(String query) {
+    final s = query.trim().toLowerCase();
+    setState(() {
+      if (s.isEmpty) {
+        _products.clear();
+        _products.addAll(_allProducts);
+      } else {
+        _products.clear();
+        _products.addAll(_allProducts.where((p) =>
+          p.name.toLowerCase().contains(s) || p.sku.toLowerCase().contains(s)
+        ));
+      }
+    });
+  }
 
   @override
   @override
@@ -831,8 +848,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
     final prefs = await SharedPreferences.getInstance();
     try {
       final token = prefs.getString('token');
-      String url = '$_baseUrl/api/products?search=$search';
-      if (_selectedCustomer != null) url += '&customer_id=${_selectedCustomer!.id}';
+      String url = '$_baseUrl/api/products';
+      if (_selectedCustomer != null) url += '?customer_id=${_selectedCustomer!.id}';
       final response = await http.get(Uri.parse(url), headers: {
         'Authorization': 'Bearer $token', 
         'Accept': 'application/json',
@@ -841,15 +858,14 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
       if (response.statusCode == 200) {
         final List decoded = json.decode(response.body);
-        if (search.isEmpty && _selectedCustomer == null) {
+        if (_selectedCustomer == null) {
           await prefs.setString('cached_products', response.body);
         }
         if (mounted) {
-          setState(() {
-            _products.clear();
-            _products.addAll(decoded.map((e) => Product.fromJson(e)).toList());
-            _isLoading = false;
-          });
+          _allProducts.clear();
+          _allProducts.addAll(decoded.map((e) => Product.fromJson(e)).toList());
+          _filterProducts(_searchController.text);
+          setState(() => _isLoading = false);
         }
         return;
       }
@@ -861,19 +877,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
     if (cachedStr != null && cachedStr.isNotEmpty) {
       try {
         final List decoded = json.decode(cachedStr);
-        List filtered = decoded;
-        if (search.isNotEmpty) {
-          final s = search.toLowerCase();
-          filtered = filtered.where((p) => 
-            (p['name'] ?? '').toString().toLowerCase().contains(s) ||
-            (p['sku'] ?? '').toString().toLowerCase().contains(s)
-          ).toList();
-        }
         if (mounted) {
-          setState(() {
-            _products.clear();
-            _products.addAll(filtered.map((e) => Product.fromJson(e)).toList());
-          });
+          _allProducts.clear();
+          _allProducts.addAll(decoded.map((e) => Product.fromJson(e)).toList());
+          _filterProducts(_searchController.text);
         }
       } catch (err) {
         debugPrint("Error leyendo productos en caché: $err");
@@ -1024,16 +1031,26 @@ class _CatalogScreenState extends State<CatalogScreen> {
       child: TextField(
         controller: _searchController, 
         decoration: InputDecoration(
-          hintText: 'Buscar producto...', 
+          hintText: 'Buscar producto por nombre o SKU...', 
           hintStyle: TextStyle(color: Colors.grey.shade400),
           prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF00B4D8)), 
+          suffixIcon: _searchController.text.isNotEmpty 
+            ? IconButton(
+                icon: const Icon(Icons.clear_rounded, color: Colors.grey),
+                onPressed: () {
+                  _searchController.clear();
+                  _filterProducts('');
+                },
+              )
+            : null,
           filled: true,
           fillColor: Colors.white,
           contentPadding: const EdgeInsets.symmetric(vertical: 15),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
         ), 
-        onSubmitted: (v) => _fetchProducts(v)
+        onChanged: (v) => _filterProducts(v),
+        onSubmitted: (v) => _filterProducts(v),
       )
     );
   }

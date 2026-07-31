@@ -1,3 +1,11 @@
+## [1.10.292] - 2026-07-31
+
+### Fixed
+- **Buscador Offline en Tiempo Real y Apertura Offline Instantánea (App Vendedor Foráneo v1.1.40)**:
+  - **Eliminación de Dependencia Web de Fuentes**: Se eliminó la descarga HTTP de Google Fonts para evitar bloqueos/esperas de renderizado al abrir la app completamente sin internet.
+  - **Auto-Login Robusto en Primer Frame**: Envolvió la redirección de sesión guardada dentro de `addPostFrameCallback` para garantizar que la app abra instantáneamente sin internet.
+  - **Motor de Búsqueda Offline en Tiempo Real**: Se implementó filtrado in-memory con `_allProducts` y `_filterProducts()` conectado al evento `onChanged` de la barra de búsqueda. Ahora al escribir cualquier letra o SKU, los productos se filtran inmediatamente (0ms de retraso) tanto online como offline.
+
 ## [1.10.291] - 2026-07-31
 
 ### Added
