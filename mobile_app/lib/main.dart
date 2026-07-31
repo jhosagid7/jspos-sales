@@ -758,19 +758,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   Widget _connectionStatusBanner() {
     if (_isOnline && _pendingOfflineCount == 0) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 15),
-        color: Colors.green.shade700,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.wifi_rounded, color: Colors.white, size: 14),
-            SizedBox(width: 6),
-            Text("EN LÍNEA - SERVIDOR CONECTADO", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5)),
-          ],
-        ),
-      );
+      return const SizedBox.shrink();
     }
 
     return Container(
@@ -990,11 +978,13 @@ class _CatalogScreenState extends State<CatalogScreen> {
           setState(() {
             _customers.clear();
             _customers.addAll(decoded.map((e) => Customer.fromJson(e)).toList());
+            _isOnline = true;
           });
         }
         return;
       }
     } catch (e) {
+      if (mounted) setState(() => _isOnline = false);
       debugPrint("Sin conexión al cargar clientes. Cargando de caché local...");
     }
 
@@ -1036,11 +1026,15 @@ class _CatalogScreenState extends State<CatalogScreen> {
           _allProducts.clear();
           _allProducts.addAll(decoded.map((e) => Product.fromJson(e)).toList());
           _filterProducts(_searchController.text);
-          setState(() => _isLoading = false);
+          setState(() {
+            _isOnline = true;
+            _isLoading = false;
+          });
         }
         return;
       }
     } catch (e) {
+      if (mounted) setState(() => _isOnline = false);
       debugPrint("Sin conexión al cargar productos. Cargando de caché local...");
     }
 

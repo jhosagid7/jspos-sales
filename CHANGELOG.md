@@ -1,3 +1,11 @@
+## [1.10.296] - 2026-07-31
+
+### Fixed
+- **Auto-Detección Automática de Red y Ocultamiento Inteligente de Banner (App Vendedor Foráneo v1.1.43)**:
+  - **Auto-Actualización de Estado de Red**: Se corrigió el flujo para que `_fetchProducts()` y `_fetchCustomers()` actualicen `_isOnline = true` automáticamente al recibir `200 OK` del servidor sin requerir presionar el botón sincronizar.
+  - **Ocultamiento Limpio de Banner**: Cuando la app está conectada a internet y no hay pedidos pendientes por enviar, la barra verde se oculta automáticamente para dejar la pantalla completamente limpia.
+  - **Aviso Naranja Exclusivo para Offline/Pendientes**: El banner naranja `📡 MODO OFFLINE` aparece únicamente cuando el dispositivo está sin señal o cuando hay pre-órdenes locales pendientes de sincronización.
+
 ## [1.10.295] - 2026-07-31
 
 ### Added
