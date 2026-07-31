@@ -4603,28 +4603,11 @@ class Sales extends Component
             session()->forget('change');
             session()->forget('totalCartAtPayment');
 
-            // mike42
-            if (in_array('module_pos_optimizations', config('tenant.modules', []))) {
-                // Fire-and-forget: launch in background process so HTTP response is not blocked
-                $saleIdForPrint = $sale->id;
-                try {
-                    $phpBin = PHP_BINARY;
-                    if (str_contains(strtolower($phpBin), 'php-cgi')) {
-                        $phpBin = str_ireplace('php-cgi.exe', 'php.exe', $phpBin);
-                        $phpBin = str_ireplace('php-cgi', 'php', $phpBin);
-                    }
-                    $artisan = base_path('artisan');
-                    if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-                        $cmd = 'cmd /c START "" /B "' . $phpBin . '" "' . $artisan . '" pos:print-sale ' . $saleIdForPrint . ' > nul 2>&1';
-                    } else {
-                        $cmd = '"' . $phpBin . '" "' . $artisan . '" pos:print-sale ' . $saleIdForPrint . ' > /dev/null 2>&1 &';
-                    }
-                    pclose(popen($cmd, 'r'));
-                } catch (\Throwable $pe) {
-                    \Illuminate\Support\Facades\Log::warning("Could not launch background print process: " . $pe->getMessage());
-                }
-            } else {
+            // Automatic Ticket Printing via ESC/POS connector
+            try {
                 $this->printSale($sale->id);
+            } catch (\Throwable $pe) {
+                \Illuminate\Support\Facades\Log::warning("Could not print sale ticket: " . $pe->getMessage());
             }
 
             // base64 / printerapp

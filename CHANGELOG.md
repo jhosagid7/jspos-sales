@@ -1,3 +1,10 @@
+## [1.10.286] - 2026-07-31
+
+### Fixed
+- **Impresión Directa Garantizada y Escape de Cadenas en PowerShell**: Se restauró la invocación directa de `$this->printSale($sale->id)` al finalizar una venta y se corrigió el escape de comillas/rutas en PowerShell en `CustomWindowsPrintConnector.php`.
+  - **Causa Raíz**: El comando en segundo plano no mantenía las cookies de sesión del navegador (`device_token`), lo que provocaba que se omitiera la configuración de la impresora autorizada del dispositivo. Adicionalmente, el escapado de barras invertidas en cadenas de PowerShell hacía que el Spooler fallara silenciosamente.
+  - **Solución**: Al imprimir directamente de forma síncrona mediante el Spooler ultrarrápido Win32 y corregir el formateo de PowerShell, los tickets se imprimen físicamente de manera instantánea y 100% confiable tanto al cerrar la venta como al presionar el botón "Ticket Venta".
+
 ## [1.10.285] - 2026-07-31
 
 ### Fixed

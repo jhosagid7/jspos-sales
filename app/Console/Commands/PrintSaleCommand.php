@@ -17,7 +17,7 @@ class PrintSaleCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'pos:print-sale {sale_id}';
+    protected $signature = 'pos:print-sale {sale_id} {device_uuid?}';
 
     /**
      * The console command description.
@@ -32,6 +32,11 @@ class PrintSaleCommand extends Command
     public function handle()
     {
         $saleId = $this->argument('sale_id');
+        $deviceUuid = $this->argument('device_uuid');
+        if ($deviceUuid) {
+            session(['device_token' => $deviceUuid]);
+        }
+
         $sale = Sale::with(['user'])->find($saleId);
 
         if (!$sale) {

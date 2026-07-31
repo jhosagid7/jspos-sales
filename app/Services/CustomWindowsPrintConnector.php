@@ -210,33 +210,90 @@ class CustomWindowsPrintConnector implements PrintConnector
         $tmpFile = tempnam(sys_get_temp_dir(), "escraw");
         file_put_contents($tmpFile, $data);
 
-        $psScript = '$code = @"' . "\n"
-                  . 'using System; using System.IO; using System.Runtime.InteropServices; ' . "\n"
-                  . 'public class RawPrinterW { ' . "\n"
-                  . '[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)] public class DOCINFOW { [MarshalAs(UnmanagedType.LPWStr)] public string pDocName; [MarshalAs(UnmanagedType.LPWStr)] public string pOutputFile; [MarshalAs(UnmanagedType.LPWStr)] public string pDataType; } ' . "\n"
-                  . '[DllImport("winspool.Drv", EntryPoint = "OpenPrinterW", SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)] public static extern bool OpenPrinter([MarshalAs(UnmanagedType.LPWStr)] string szPrinter, out IntPtr hPrinter, IntPtr pd); ' . "\n"
-                  . '[DllImport("winspool.Drv", EntryPoint = "ClosePrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)] public static extern bool ClosePrinter(IntPtr hPrinter); ' . "\n"
-                  . '[DllImport("winspool.Drv", EntryPoint = "StartDocPrinterW", SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)] public static extern bool StartDocPrinter(IntPtr hPrinter, Int32 level, [In, MarshalAs(UnmanagedType.LPStruct)] DOCINFOW di); ' . "\n"
-                  . '[DllImport("winspool.Drv", EntryPoint = "EndDocPrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)] public static extern bool EndDocPrinter(IntPtr hPrinter); ' . "\n"
-                  . '[DllImport("winspool.Drv", EntryPoint = "StartPagePrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)] public static extern bool StartPagePrinter(IntPtr hPrinter); ' . "\n"
-                  . '[DllImport("winspool.Drv", EntryPoint = "EndPagePrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)] public static extern bool EndPagePrinter(IntPtr hPrinter); ' . "\n"
-                  . '[DllImport("winspool.Drv", EntryPoint = "WritePrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)] public static extern bool WritePrinter(IntPtr hPrinter, IntPtr pBytes, Int32 dwCount, out Int32 dwWritten); ' . "\n"
-                  . 'public static bool Send(string pName, byte[] bytes) { ' . "\n"
-                  . 'Int32 written = 0; IntPtr h = new IntPtr(0); DOCINFOW di = new DOCINFOW(); bool ok = false; ' . "\n"
-                  . 'di.pDocName = "POS Ticket"; di.pDataType = "RAW"; ' . "\n"
-                  . 'if (OpenPrinter(pName, out h, IntPtr.Zero)) { if (StartDocPrinter(h, 1, di)) { if (StartPagePrinter(h)) { IntPtr p = Marshal.AllocCoTaskMem(bytes.Length); Marshal.Copy(bytes, 0, p, bytes.Length); ok = WritePrinter(h, p, bytes.Length, out written); Marshal.FreeCoTaskMem(p); EndPagePrinter(h); } EndDocPrinter(h); } ClosePrinter(h); } ' . "\n"
-                  . 'return ok; } } ' . "\n"
-                  . '"@' . "\n"
-                  . 'Add-Type -TypeDefinition $code;' . "\n"
-                  . '$bytes = [System.IO.File]::ReadAllBytes("' . str_replace('\\', '\\\\', $tmpFile) . '");' . "\n"
-                  . '$ok = [RawPrinterW]::Send("' . str_replace('\\', '\\\\', $printerName) . '", $bytes);' . "\n"
-                  . 'if ($ok) { exit 0 } else { exit 1 }';
+        $escapedTmpFile = str_replace("'", "''", $tmpFile);
+        $escapedPrinterName = str_replace("'", "''", $printerName);
+
+        $psScript = <<<POWERSHELL
+Add-Type -TypeDefinition @"
+using System;
+using System.IO;
+using System.Runtime.InteropServices;
+
+public class RawPrinterW {
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public class DOCINFOW {
+        [MarshalAs(UnmanagedType.LPWStr)] public string pDocName;
+        [MarshalAs(UnmanagedType.LPWStr)] public string pOutputFile;
+        [MarshalAs(UnmanagedType.LPWStr)] public string pDataType;
+    }
+    [DllImport("winspool.Drv", EntryPoint = "OpenPrinterW", SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+    public static extern bool OpenPrinter([MarshalAs(UnmanagedType.LPWStr)] string szPrinter, out IntPtr hPrinter, IntPtr pd);
+
+    [DllImport("winspool.Drv", EntryPoint = "ClosePrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+    public static extern bool ClosePrinter(IntPtr hPrinter);
+
+    [DllImport("winspool.Drv", EntryPoint = "StartDocPrinterW", SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+    public static extern bool StartDocPrinter(IntPtr hPrinter, Int32 level, [In, MarshalAs(UnmanagedType.LPStruct)] DOCINFOW di);
+
+    [DllImport("winspool.Drv", EntryPoint = "EndDocPrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+    public static extern bool EndDocPrinter(IntPtr hPrinter);
+
+    [DllImport("winspool.Drv", EntryPoint = "StartPagePrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+    public static extern bool StartPagePrinter(IntPtr hPrinter);
+
+    [DllImport("winspool.Drv", EntryPoint = "EndPagePrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+    public static extern bool EndPagePrinter(IntPtr hPrinter);
+
+    [DllImport("winspool.Drv", EntryPoint = "WritePrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+    public static extern bool WritePrinter(IntPtr hPrinter, IntPtr pBytes, Int32 dwCount, out Int32 dwWritten);
+
+    public static bool Send(string pName, byte[] bytes) {
+        Int32 written = 0;
+        IntPtr h = new IntPtr(0);
+        DOCINFOW di = new DOCINFOW();
+        bool ok = false;
+
+        di.pDocName = "POS Ticket";
+        di.pDataType = "RAW";
+
+        if (OpenPrinter(pName, out h, IntPtr.Zero)) {
+            if (StartDocPrinter(h, 1, di)) {
+                if (StartPagePrinter(h)) {
+                    IntPtr p = Marshal.AllocCoTaskMem(bytes.Length);
+                    Marshal.Copy(bytes, 0, p, bytes.Length);
+                    ok = WritePrinter(h, p, bytes.Length, out written);
+                    Marshal.FreeCoTaskMem(p);
+                    EndPagePrinter(h);
+                }
+                EndDocPrinter(h);
+            }
+            ClosePrinter(h);
+        }
+        return ok;
+    }
+}
+"@
+
+\$bytes = [System.IO.File]::ReadAllBytes('{$escapedTmpFile}')
+\$ok = [RawPrinterW]::Send('{$escapedPrinterName}', \$bytes)
+if (\$ok) {
+    exit 0
+} else {
+    exit 1
+}
+POWERSHELL;
 
         $psFile = tempnam(sys_get_temp_dir(), "psp") . ".ps1";
         file_put_contents($psFile, $psScript);
 
-        $cmd = 'powershell -NoProfile -ExecutionPolicy Bypass -File "' . $psFile . '"';
+        $cmd = 'powershell -NoProfile -ExecutionPolicy Bypass -File "' . $psFile . '" 2>&1';
         exec($cmd, $out, $ret);
+
+        if ($ret !== 0) {
+            \Illuminate\Support\Facades\Log::warning("sendToWin32Spooler failed for {$printerName} with exit code {$ret}: " . implode(" | ", $out));
+        } else {
+            \Illuminate\Support\Facades\Log::info("sendToWin32Spooler succeeded for {$printerName}: " . implode(" | ", $out));
+        }
 
         @unlink($psFile);
         @unlink($tmpFile);
