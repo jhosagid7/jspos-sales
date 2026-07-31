@@ -308,3 +308,37 @@ L
 2026-07-29 17:51:56 | RESPONSE (200): [{"id":2250,"type":"payment","method":"deposit","amount":"10989.03","currency":"VED","reference":"31
 2026-07-29 17:56:17 | [GET] PATH: api/vip/sales/pending | IP: 192.168.194.58 | USER: NULL
 2026-07-29 17:56:17 | RESPONSE (200): [{"id":3082,"invoice_number":"F00003078","date":"2026-07-29","due_date":"2026-08-10","days_overdue":
+2026-07-31 17:55:39 | [GET] PATH: api/vip/products | IP: 192.168.194.58 | USER: NULL
+2026-07-31 17:55:40 | RESPONSE (401): {"message":"Unauthenticated."}
+2026-07-31 17:55:40 | [GET] PATH: api/vip/products | IP: 192.168.194.58 | USER: NULL
+2026-07-31 17:55:41 | RESPONSE (401): {"message":"Unauthenticated."}
+2026-07-31 17:55:58 | [POST] PATH: api/vip/login | IP: 192.168.194.58 | USER: NULL
+2026-07-31 17:55:58 | RESPONSE (401): {"message":"Credenciales inv\u00e1lidas o acceso no autorizado para esta cuenta."}
+2026-07-31 17:56:05 | [POST] PATH: api/vip/login | IP: 192.168.194.58 | USER: NULL
+2026-07-31 17:56:05 | RESPONSE (401): {"message":"Credenciales inv\u00e1lidas o acceso no autorizado para esta cuenta."}
+2026-07-31 17:56:53 | [POST] PATH: api/vip/login | IP: 192.168.194.58 | USER: NULL
+2026-07-31 17:56:54 | RESPONSE (200): {"status":"success","access_token":"1509|8iKlFRF3GtO5PzYMBnKuQnH2qyo8OgmPCvnxfP2mc1cf0664","token_ty
+2026-07-31 17:57:01 | [GET] PATH: api/vip/products | IP: 192.168.194.58 | USER: NULL
+2026-07-31 17:57:03 | RESPONSE (200): [{"id":1,"name":"BANDEJAS A1 EUROPLAST X500UND","sku":"BP03A1E","price":12.94,"stock":89,"reserved_s
+2026-07-31 17:57:08 | [GET] PATH: api/vip/products | IP: 192.168.194.58 | USER: NULL
+2026-07-31 17:57:09 | RESPONSE (200): [{"id":1,"name":"BANDEJAS A1 EUROPLAST X500UND","sku":"BP03A1E","price":12.94,"stock":89,"reserved_s
+2026-07-31 17:57:10 | [GET] PATH: api/vip/products | IP: 192.168.194.58 | USER: NULL
+2026-07-31 17:57:12 | RESPONSE (200): [{"id":1,"name":"BANDEJAS A1 EUROPLAST X500UND","sku":"BP03A1E","price":12.94,"stock":89,"reserved_s
+2026-07-31 17:59:42 | [POST] PATH: api/vip/orders | IP: 192.168.194.58 | USER: NULL
+2026-07-31 17:59:42 | RESPONSE (200): {"success":true,"message":"Pedido guardado en borrador con \u00e9xito","order_id":1414,"order_number
+2026-07-31 17:59:43 | [POST] PATH: api/vip/orders | IP: 192.168.194.58 | USER: NULL
+2026-07-31 17:59:43 | RESPONSE (200): {"success":true,"message":"Pedido guardado en borrador con \u00e9xito","order_id":1415,"order_number
+2026-07-31 17:59:43 | [GET] PATH: api/vip/products | IP: 192.168.194.58 | USER: NULL
+2026-07-31 17:59:45 | RESPONSE (200): [{"id":1,"name":"BANDEJAS A1 EUROPLAST X500UND","sku":"BP03A1E","price":12.94,"stock":89,"reserved_s
+2026-07-31 17:59:46 | [GET] PATH: api/vip/products | IP: 192.168.194.58 | USER: NULL
+2026-07-31 17:59:48 | RESPONSE (200): [{"id":1,"name":"BANDEJAS A1 EUROPLAST X500UND","sku":"BP03A1E","price":12.94,"stock":89,"reserved_s
+2026-07-31 17:59:57 | [GET] PATH: api/vip/orders | IP: 192.168.194.58 | USER: NULL
+2026-07-31 17:59:57 | RESPONSE (200): [{"id":1415,"order_number":"P00000787","customer_id":349,"user_id":11,"driver_id":null,"status":"dra
+2026-07-31 18:00:04 | [DELETE] PATH: api/vip/orders/1414 | IP: 192.168.194.58 | USER: NULL
+2026-07-31 18:00:04 | RESPONSE (200): {"success":true,"message":"Pedido eliminado con \u00e9xito"}
+2026-07-31 18:00:05 | [GET] PATH: api/vip/orders | IP: 192.168.194.58 | USER: NULL
+2026-07-31 18:00:05 | RESPONSE (200): [{"id":1415,"order_number":"P00000787","customer_id":349,"user_id":11,"driver_id":null,"status":"dra
+2026-07-31 18:00:07 | [DELETE] PATH: api/vip/orders/1415 | IP: 192.168.194.58 | USER: NULL
+2026-07-31 18:00:07 | RESPONSE (200): {"success":true,"message":"Pedido eliminado con \u00e9xito"}
+2026-07-31 18:00:08 | [GET] PATH: api/vip/orders | IP: 192.168.194.58 | USER: NULL
+2026-07-31 18:00:08 | RESPONSE (200): []

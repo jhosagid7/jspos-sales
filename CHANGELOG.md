@@ -1,3 +1,13 @@
+## [1.10.298] - 2026-07-31
+
+### Added
+- **Persistencia Offline y Guardado de Borrador en App Fábrica de Bolsas (`mobile_bolsas_app v1.0.6`)**:
+  - **Auto-Guardado de Borrador de Levantamiento (`draft_production_bolsas`)**: Guarda automáticamente los lotes de producción cargados por el operador (cantidades, pesos, rollos variables, operador y observaciones) en la memoria interna del teléfono. Si la app se cierra o el teléfono se apaga, los datos cargados permanecen intactos.
+  - **Cola de Envíos Offline (`pending_offline_production_bolsas`)**: Si el operador envía el levantamiento sin señal o falla la red, el lote se almacena de forma segura en el dispositivo con aviso: `📱 SIN CONEXIÓN: Lote de producción guardado en el teléfono. Se enviará automáticamente al reconectarse.`
+  - **Carga Inmediata 0ms de Catálogo de Bolsas (`cached_products_bolsas`)**: Apertura instantánea del catálogo de productos y tipos de bolsas desde el almacenamiento local sin congelamientos por falta de internet.
+  - **Auto-Login Persistente e Inicio Offline**: Permite abrir la app de producción y operar localmente aun sin señal.
+  - **Banner de Estado y Botón de Sincronización Manual (`🔄`)**: Muestra `📡 MODO OFFLINE (SIN CONEXIÓN)` con el contador de lotes pendientes `📦 X lote(s) pendientes por enviar`, permitiendo sincronización manual con un toque.
+
 ## [1.10.297] - 2026-07-31
 
 ### Added

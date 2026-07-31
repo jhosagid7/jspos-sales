@@ -23,7 +23,6 @@ class BolsasApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1B263B), primary: const Color(0xFF1B263B)),
         useMaterial3: true,
-        textTheme: GoogleFonts.outfitTextTheme(),
       ),
       home: const LoginScreen(),
     );
@@ -67,6 +66,15 @@ class _LoginScreenState extends State<LoginScreen> {
       _appVersion = pkg.version;
       _deviceToken = token;
     });
+
+    final existingToken = prefs.getString('token') ?? '';
+    if (existingToken.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => DashboardScreen(baseUrl: _baseUrl)));
+        }
+      });
+    }
   }
 
   String _generateRandomString(int length) {
@@ -138,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
           'device_name': 'Mobile (Bolsas)',
           'app_type': 'bolsas',
         },
-      ).timeout(const Duration(seconds: 15));
+      ).timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -162,10 +170,29 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error de conexión: $e')),
-        );
+      final prefs = await SharedPreferences.getInstance();
+      final lastEmail = prefs.getString('last_email') ?? '';
+      final existingToken = prefs.getString('token') ?? '';
+      if (_emailController.text.trim().toLowerCase() == lastEmail.trim().toLowerCase() && existingToken.isNotEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('📱 MODO OFFLINE: Sesión iniciada localmente sin conexión.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 4),
+            )
+          );
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => DashboardScreen(baseUrl: _baseUrl)),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error de conexión: $e')),
+          );
+        }
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -499,6 +526,14 @@ class ProductSimple {
             json['is_variable_quantity'] == 1 ||
             json['is_variable_quantity'] == '1',
       );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'sku': sku,
+        'cost': cost,
+        'is_variable_quantity': isVariableQuantity,
+      };
 }
 
 // --- CART ENTRY MODEL ---
@@ -518,6 +553,24 @@ class ProductionEntry {
     required this.productionDate,
     required this.metadata,
   });
+
+  Map<String, dynamic> toJson() => {
+        'product': product.toJson(),
+        'quantity': quantity,
+        'weight': weight,
+        'operator_name': operatorName,
+        'production_date': productionDate.toIso8601String(),
+        'metadata': metadata,
+      };
+
+  factory ProductionEntry.fromJson(Map<String, dynamic> json) => ProductionEntry(
+        product: ProductSimple.fromJson(json['product']),
+        quantity: (json['quantity'] ?? 0.0).toDouble(),
+        weight: (json['weight'] ?? 0.0).toDouble(),
+        operatorName: json['operator_name'] ?? '',
+        productionDate: DateTime.tryParse(json['production_date'] ?? '') ?? DateTime.now(),
+        metadata: json['metadata'] != null ? List<Map<String, dynamic>>.from(json['metadata']) : [],
+      );
 }
 
 // --- REGISTRAR PRODUCCION SCREEN ---
@@ -535,31 +588,311 @@ class _ProductionScreenState extends State<ProductionScreen> {
   bool _isLoadingProducts = false;
   bool _isSubmitting = false;
   final _notesController = TextEditingController();
+  bool _isOnline = false;
+  int _pendingOfflineCount = 0;
+  bool _isSyncing = false;
 
   @override
   void initState() {
     super.initState();
+    _notesController.addListener(_saveDraftProduction);
+    _init();
+  }
+
+  _init() async {
+    final prefs = await SharedPreferences.getInstance();
+    _updatePendingOfflineCount(prefs);
+    _loadCachedData(prefs);
+    await _loadDraftProduction();
+    _syncOfflineProduction();
     _fetchProducts();
   }
 
-  Future<void> _fetchProducts() async {
-    setState(() => _isLoadingProducts = true);
+  void _loadCachedData(SharedPreferences prefs) {
+    final cachedProd = prefs.getString('cached_products_bolsas');
+    if (cachedProd != null && cachedProd.isNotEmpty) {
+      try {
+        final List data = json.decode(cachedProd);
+        if (mounted) {
+          setState(() {
+            _availableProducts = data.map((e) => ProductSimple.fromJson(e)).toList();
+          });
+        }
+      } catch (e) {
+        debugPrint("Error leyendo productos bolsas en caché: $e");
+      }
+    }
+  }
+
+  void _updatePendingOfflineCount(SharedPreferences prefs) {
+    final pendingList = prefs.getStringList('pending_offline_production_bolsas') ?? [];
+    if (mounted) {
+      setState(() {
+        _pendingOfflineCount = pendingList.length;
+      });
+    }
+  }
+
+  Future<void> _saveDraftProduction() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      if (_entries.isEmpty && _notesController.text.trim().isEmpty) {
+        await prefs.remove('draft_production_bolsas');
+        return;
+      }
+      final draftData = {
+        'production_date': _productionDate.toIso8601String(),
+        'notes': _notesController.text,
+        'entries': _entries.map((e) => e.toJson()).toList(),
+      };
+      await prefs.setString('draft_production_bolsas', json.encode(draftData));
+    } catch (e) {
+      debugPrint("Error al guardar borrador de producción: $e");
+    }
+  }
+
+  Future<void> _loadDraftProduction() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final draftStr = prefs.getString('draft_production_bolsas');
+      if (draftStr != null && draftStr.isNotEmpty) {
+        final draft = json.decode(draftStr);
+        if (draft['production_date'] != null) {
+          final dt = DateTime.tryParse(draft['production_date']);
+          if (dt != null) _productionDate = dt;
+        }
+        if (_notesController.text.isEmpty && draft['notes'] != null) {
+          _notesController.text = draft['notes'];
+        }
+        if (_entries.isEmpty && draft['entries'] != null) {
+          final List list = draft['entries'];
+          _entries.addAll(list.map((e) => ProductionEntry.fromJson(e)).toList());
+        }
+        if (mounted) setState(() {});
+      }
+    } catch (e) {
+      debugPrint("Error al cargar borrador de producción: $e");
+    }
+  }
+
+  Future<void> _clearDraftProduction() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('draft_production_bolsas');
+    } catch (e) {
+      debugPrint("Error al limpiar borrador de producción: $e");
+    }
+  }
+
+  Future<void> _savePendingOfflineProduction(Map<String, dynamic> body) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<String> pending = prefs.getStringList('pending_offline_production_bolsas') ?? [];
+      body['created_at_local'] = DateTime.now().toIso8601String();
+      pending.add(json.encode(body));
+      await prefs.setStringList('pending_offline_production_bolsas', pending);
+      _updatePendingOfflineCount(prefs);
+    } catch (e) {
+      debugPrint("Error al guardar producción offline: $e");
+    }
+  }
+
+  Future<void> _syncOfflineProduction() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<String> pending = prefs.getStringList('pending_offline_production_bolsas') ?? [];
+      if (pending.isEmpty) return;
+
+      final token = prefs.getString('token');
+      final List<String> remaining = [];
+      int syncedCount = 0;
+
+      for (String itemJson in pending) {
+        try {
+          final Map<String, dynamic> body = json.decode(itemJson);
+          final response = await http.post(
+            Uri.parse('${widget.baseUrl}/api/bolsas/production'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: json.encode(body),
+          ).timeout(const Duration(seconds: 10));
+
+          final data = json.decode(response.body);
+          if (response.statusCode == 200 && data['success'] == true) {
+            syncedCount++;
+          } else {
+            remaining.add(itemJson);
+          }
+        } catch (_) {
+          remaining.add(itemJson);
+        }
+      }
+
+      await prefs.setStringList('pending_offline_production_bolsas', remaining);
+      _updatePendingOfflineCount(prefs);
+      if (syncedCount > 0 && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ Sincronizados $syncedCount lote(s) de producción guardados offline'),
+            backgroundColor: Colors.green,
+          )
+        );
+      }
+    } catch (e) {
+      debugPrint("Error en sincronización offline de producción: $e");
+    }
+  }
+
+  Future<void> _manualSync() async {
+    if (_isSyncing) return;
+    setState(() => _isSyncing = true);
+    final prefs = await SharedPreferences.getInstance();
+
+    await _syncOfflineProduction();
+
+    bool online = false;
+    try {
       final token = prefs.getString('token');
       final response = await http.get(
         Uri.parse('${widget.baseUrl}/api/bolsas/products'),
         headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
-      ).timeout(const Duration(seconds: 15));
+      ).timeout(const Duration(seconds: 4));
+
       if (response.statusCode == 200) {
-        final List data = json.decode(response.body);
-        setState(() => _availableProducts = data.map((e) => ProductSimple.fromJson(e)).toList());
+        online = true;
+        await _fetchProducts();
       }
     } catch (e) {
-      debugPrint('Fetch bags products err: $e');
-    } finally {
-      setState(() => _isLoadingProducts = false);
+      online = false;
     }
+
+    final pendingList = prefs.getStringList('pending_offline_production_bolsas') ?? [];
+    if (mounted) {
+      setState(() {
+        _isOnline = online;
+        _pendingOfflineCount = pendingList.length;
+        _isSyncing = false;
+      });
+
+      if (online) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ CONECTADO: Catálogo de Bolsas (${_availableProducts.length} tipos) al día.'),
+            backgroundColor: Colors.green.shade800,
+            duration: const Duration(seconds: 4),
+          )
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('📡 MODO OFFLINE: Sin conexión. Se mantienen tus datos locales y $_pendingOfflineCount lote(s) guardado(s).'),
+            backgroundColor: Colors.amber.shade900,
+            duration: const Duration(seconds: 4),
+          )
+        );
+      }
+    }
+  }
+
+  Widget _connectionStatusBanner() {
+    if (_isOnline && _pendingOfflineCount == 0) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 15),
+      color: _isOnline ? Colors.blue.shade800 : Colors.amber.shade900,
+      child: Row(
+        children: [
+          Icon(_isOnline ? Icons.sync_rounded : Icons.wifi_off_rounded, color: Colors.white, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _isOnline ? "EN LÍNEA" : "MODO OFFLINE (SIN CONEXIÓN)", 
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12)
+                ),
+                if (_pendingOfflineCount > 0)
+                  Text(
+                    "📦 $_pendingOfflineCount lote(s) de producción pendiente(s) por enviar",
+                    style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)
+                  ),
+              ],
+            ),
+          ),
+          InkWell(
+            onTap: _isSyncing ? null : _manualSync,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+              child: Row(
+                children: [
+                  if (_isSyncing)
+                    const SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                  else
+                    Icon(Icons.sync_rounded, size: 14, color: _isOnline ? Colors.blue.shade900 : Colors.amber.shade900),
+                  const SizedBox(width: 4),
+                  Text(
+                    _isSyncing ? "PROBANDO..." : "SINCRONIZAR", 
+                    style: TextStyle(color: _isOnline ? Colors.blue.shade900 : Colors.amber.shade900, fontWeight: FontWeight.w900, fontSize: 10)
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _fetchProducts() async {
+    setState(() => _isLoadingProducts = true);
+    final prefs = await SharedPreferences.getInstance();
+    try {
+      final token = prefs.getString('token');
+      final response = await http.get(
+        Uri.parse('${widget.baseUrl}/api/bolsas/products'),
+        headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 3));
+      if (response.statusCode == 200) {
+        final List data = json.decode(response.body);
+        await prefs.setString('cached_products_bolsas', response.body);
+        if (mounted) {
+          setState(() {
+            _availableProducts = data.map((e) => ProductSimple.fromJson(e)).toList();
+            _isOnline = true;
+            _isLoadingProducts = false;
+          });
+        }
+        return;
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isOnline = false);
+      debugPrint('Fetch bags products err: $e');
+    }
+
+    final cachedStr = prefs.getString('cached_products_bolsas');
+    if (cachedStr != null && cachedStr.isNotEmpty) {
+      try {
+        final List data = json.decode(cachedStr);
+        if (mounted) {
+          setState(() {
+            _availableProducts = data.map((e) => ProductSimple.fromJson(e)).toList();
+          });
+        }
+      } catch (err) {
+        debugPrint("Error leyendo productos bolsas en caché: $err");
+      }
+    }
+
+    if (mounted) setState(() => _isLoadingProducts = false);
   }
 
   Future<void> _selectDate() async {
@@ -1016,6 +1349,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
                               productionDate: itemProductionDate,
                               metadata: variableRolls,
                             ));
+                            _saveDraftProduction();
                           });
 
                           // Save last used operator
@@ -1053,26 +1387,26 @@ class _ProductionScreenState extends State<ProductionScreen> {
       return;
     }
     setState(() => _isSubmitting = true);
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    final dateStr = DateFormat('yyyy-MM-dd').format(_productionDate);
+
+    final body = {
+      'production_date': dateStr,
+      'notes': _notesController.text.trim(),
+      'details': _entries
+          .map((e) => {
+                'product_id': e.product.id,
+                'quantity': e.quantity,
+                'weight': e.weight,
+                'operator_name': e.operatorName,
+                'production_date': DateFormat('yyyy-MM-dd').format(e.productionDate),
+                'metadata': e.metadata.isNotEmpty ? e.metadata : null,
+              })
+          .toList(),
+    };
+
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-      final dateStr = DateFormat('yyyy-MM-dd').format(_productionDate);
-
-      final body = {
-        'production_date': dateStr,
-        'notes': _notesController.text.trim(),
-        'details': _entries
-            .map((e) => {
-                  'product_id': e.product.id,
-                  'quantity': e.quantity,
-                  'weight': e.weight,
-                  'operator_name': e.operatorName,
-                  'production_date': DateFormat('yyyy-MM-dd').format(e.productionDate),
-                  'metadata': e.metadata.isNotEmpty ? e.metadata : null,
-                })
-            .toList(),
-      };
-
       final response = await http.post(
         Uri.parse('${widget.baseUrl}/api/bolsas/production'),
         headers: {
@@ -1081,10 +1415,15 @@ class _ProductionScreenState extends State<ProductionScreen> {
           'Content-Type': 'application/json',
         },
         body: json.encode(body),
-      ).timeout(const Duration(seconds: 20));
+      ).timeout(const Duration(seconds: 12));
 
       final data = json.decode(response.body);
       if (response.statusCode == 200 && data['success'] == true) {
+        await _clearDraftProduction();
+        setState(() {
+          _entries.clear();
+          _notesController.clear();
+        });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Levantamiento registrado exitosamente'), backgroundColor: Colors.green),
@@ -1099,10 +1438,21 @@ class _ProductionScreenState extends State<ProductionScreen> {
         }
       }
     } catch (e) {
+      await _savePendingOfflineProduction(body);
+      await _clearDraftProduction();
+      setState(() {
+        _entries.clear();
+        _notesController.clear();
+      });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al enviar: $e'), backgroundColor: Colors.red),
+          const SnackBar(
+            content: Text('📱 SIN CONEXIÓN: Lote de producción guardado en el teléfono. Se enviará automáticamente al reconectarse.'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 5),
+          )
         );
+        Navigator.pop(context);
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -1117,11 +1467,22 @@ class _ProductionScreenState extends State<ProductionScreen> {
         title: const Text('Registrar Levantamiento'),
         backgroundColor: const Color(0xFF1B263B),
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: _isSyncing 
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : const Icon(Icons.sync_rounded, size: 24, color: Colors.white),
+            tooltip: 'Sincronizar Lotes y Datos',
+            onPressed: _isSyncing ? null : _manualSync,
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: _isLoadingProducts
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
+                _connectionStatusBanner(),
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(15),
@@ -1197,7 +1558,10 @@ class _ProductionScreenState extends State<ProductionScreen> {
                                             icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
                                             padding: EdgeInsets.zero,
                                             constraints: const BoxConstraints(),
-                                            onPressed: () => setState(() => _entries.removeAt(i)),
+                                            onPressed: () => setState(() {
+                                              _entries.removeAt(i);
+                                              _saveDraftProduction();
+                                            }),
                                           ),
                                         ],
                                       ),
