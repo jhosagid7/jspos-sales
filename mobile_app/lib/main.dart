@@ -765,22 +765,50 @@ class _CatalogScreenState extends State<CatalogScreen> {
   bool get _isExpired => _isDeadlineActive && _deadline != null && DateTime.now().isAfter(_deadline!);
 
   Future<void> _fetchCustomers() async {
+    final prefs = await SharedPreferences.getInstance();
     try {
-      final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final response = await http.get(Uri.parse('$_baseUrl/api/customers'), headers: {
         'Authorization': 'Bearer $token', 
         'Accept': 'application/json',
         'X-Device-Token': prefs.getString('device_token') ?? ''
-      }).timeout(const Duration(seconds: 15));
-      if (response.statusCode == 200) setState(() { _customers.clear(); _customers.addAll((json.decode(response.body) as List).map((e) => Customer.fromJson(e)).toList()); });
-    } catch (e) { debugPrint("Err Clientes: $e"); }
+      }).timeout(const Duration(seconds: 8));
+
+      if (response.statusCode == 200) {
+        final List decoded = json.decode(response.body);
+        await prefs.setString('cached_customers', response.body);
+        if (mounted) {
+          setState(() {
+            _customers.clear();
+            _customers.addAll(decoded.map((e) => Customer.fromJson(e)).toList());
+          });
+        }
+        return;
+      }
+    } catch (e) {
+      debugPrint("Sin conexión al cargar clientes. Cargando de caché local...");
+    }
+
+    final cachedStr = prefs.getString('cached_customers');
+    if (cachedStr != null && cachedStr.isNotEmpty) {
+      try {
+        final List decoded = json.decode(cachedStr);
+        if (mounted) {
+          setState(() {
+            _customers.clear();
+            _customers.addAll(decoded.map((e) => Customer.fromJson(e)).toList());
+          });
+        }
+      } catch (err) {
+        debugPrint("Error leyendo clientes en caché: $err");
+      }
+    }
   }
 
   Future<void> _fetchProducts([String search = '']) async {
     setState(() { _isLoading = true; _errorMessage = null; });
+    final prefs = await SharedPreferences.getInstance();
     try {
-      final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       String url = '$_baseUrl/api/products?search=$search';
       if (_selectedCustomer != null) url += '&customer_id=${_selectedCustomer!.id}';
@@ -788,11 +816,50 @@ class _CatalogScreenState extends State<CatalogScreen> {
         'Authorization': 'Bearer $token', 
         'Accept': 'application/json',
         'X-Device-Token': prefs.getString('device_token') ?? ''
-      }).timeout(const Duration(seconds: 15));
-      if (response.statusCode == 200) setState(() { _products.clear(); _products.addAll((json.decode(response.body) as List).map((e) => Product.fromJson(e)).toList()); });
-      else setState(() => _errorMessage = "Err Server: ${response.statusCode}");
-    } catch (e) { setState(() => _errorMessage = "Err: $e"); }
-    finally { setState(() => _isLoading = false); }
+      }).timeout(const Duration(seconds: 8));
+
+      if (response.statusCode == 200) {
+        final List decoded = json.decode(response.body);
+        if (search.isEmpty && _selectedCustomer == null) {
+          await prefs.setString('cached_products', response.body);
+        }
+        if (mounted) {
+          setState(() {
+            _products.clear();
+            _products.addAll(decoded.map((e) => Product.fromJson(e)).toList());
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+    } catch (e) {
+      debugPrint("Sin conexión al cargar productos. Cargando de caché local...");
+    }
+
+    final cachedStr = prefs.getString('cached_products');
+    if (cachedStr != null && cachedStr.isNotEmpty) {
+      try {
+        final List decoded = json.decode(cachedStr);
+        List filtered = decoded;
+        if (search.isNotEmpty) {
+          final s = search.toLowerCase();
+          filtered = filtered.where((p) => 
+            (p['name'] ?? '').toString().toLowerCase().contains(s) ||
+            (p['sku'] ?? '').toString().toLowerCase().contains(s)
+          ).toList();
+        }
+        if (mounted) {
+          setState(() {
+            _products.clear();
+            _products.addAll(filtered.map((e) => Product.fromJson(e)).toList());
+          });
+        }
+      } catch (err) {
+        debugPrint("Error leyendo productos en caché: $err");
+      }
+    }
+
+    if (mounted) setState(() => _isLoading = false);
   }
 
   Future<void> _submitOrder() async {

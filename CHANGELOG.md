@@ -1,3 +1,10 @@
+## [1.10.290] - 2026-07-31
+
+### Added
+- **Caché Offline Completo de Clientes y Productos (App Vendedor Foráneo v1.1.38)**:
+  - **Caché Local Automatizado**: Al estar conectado a internet o ZeroTier, la app guarda en caché la lista completa de clientes y productos.
+  - **Funcionamiento 100% Offline**: Si el vendedor se encuentra sin internet/cobertura, la app carga automáticamente los clientes y productos desde el almacenamiento local, permitiendo buscar clientes, consultar catálogo, armar carritos y guardar pre-órdenes totalmente offline.
+
 ## [1.10.289] - 2026-07-31
 
 ### Added
