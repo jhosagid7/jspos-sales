@@ -4615,7 +4615,7 @@ class Sales extends Component
                     }
                     $artisan = base_path('artisan');
                     if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-                        $cmd = 'cmd /c START /B "" "' . $phpBin . '" "' . $artisan . '" pos:print-sale ' . $saleIdForPrint . ' > nul 2>&1';
+                        $cmd = 'cmd /c START "" /B "' . $phpBin . '" "' . $artisan . '" pos:print-sale ' . $saleIdForPrint . ' > nul 2>&1';
                     } else {
                         $cmd = '"' . $phpBin . '" "' . $artisan . '" pos:print-sale ' . $saleIdForPrint . ' > /dev/null 2>&1 &';
                     }

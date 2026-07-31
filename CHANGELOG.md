@@ -1,3 +1,8 @@
+## [1.10.282] - 2026-07-31
+
+### Fixed
+- **Sintaxis de Lanzamiento de Impresión en Segundo Plano en Windows**: Se corrigió el comando ejecutor en `Sales.php` (`storeSale`), modificando la posición del argumento de título de `START /B ""` a `START "" /B`. En la consola CMD de Windows, la posición anterior provocaba que el proceso en segundo plano de impresión fallara en silencio al facturar.
+
 ## [1.10.281] - 2026-07-31
 
 ### Fixed
