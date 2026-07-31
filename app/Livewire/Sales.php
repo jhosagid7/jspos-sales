@@ -4588,9 +4588,16 @@ class Sales extends Component
                 $saleIdForPrint = $sale->id;
                 try {
                     $phpBin = PHP_BINARY;
+                    if (str_contains(strtolower($phpBin), 'php-cgi')) {
+                        $phpBin = str_ireplace('php-cgi.exe', 'php.exe', $phpBin);
+                        $phpBin = str_ireplace('php-cgi', 'php', $phpBin);
+                    }
                     $artisan = base_path('artisan');
-                    // On Windows, use cmd /c START /B to detach the child process
-                    $cmd = 'cmd /c START /B "" "' . $phpBin . '" "' . $artisan . '" pos:print-sale ' . $saleIdForPrint . ' > nul 2>&1';
+                    if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                        $cmd = 'cmd /c START /B "" "' . $phpBin . '" "' . $artisan . '" pos:print-sale ' . $saleIdForPrint . ' > nul 2>&1';
+                    } else {
+                        $cmd = '"' . $phpBin . '" "' . $artisan . '" pos:print-sale ' . $saleIdForPrint . ' > /dev/null 2>&1 &';
+                    }
                     pclose(popen($cmd, 'r'));
                 } catch (\Throwable $pe) {
                     \Illuminate\Support\Facades\Log::warning("Could not launch background print process: " . $pe->getMessage());

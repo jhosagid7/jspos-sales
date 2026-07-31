@@ -1,8 +1,20 @@
+## [1.10.279] - 2026-07-31
+
+### Fixed
+- **Impresión Automática de Tickets de Venta**: Se solucionó el problema por el cual los tickets de factura no se imprimían automáticamente al completar una venta cuando estaba activo el módulo de optimización del POS (`module_pos_optimizations`).
+  - **Causa Raíz**: En `Sales.php`, para no bloquear la respuesta HTTP, el sistema llamaba en segundo plano al comando `php artisan pos:print-sale {id}`. Sin embargo, dicho comando de Artisan no existía en el proyecto, provocando que la ejecución fallara en silencio.
+  - **Solución**: Se creó el comando Artisan `App\Console\Commands\PrintSaleCommand` (`pos:print-sale`), el cual ejecuta el proceso de impresión térmica utilizando `PrintTrait`.
+  - **Compatibilidad CLI**: Se protegieron los llamados a `$this->dispatch()` en `PrintTrait` para prevenir errores al ejecutarse fuera del contexto de Livewire.
+  - **Soporte Ejecutable PHP**: Se añadió resolución inteligente de `PHP_BINARY` para entornos CGI (`php-cgi.exe` -> `php.exe`) y soporte multiplataforma (Windows/Linux).
+
+### Added
+- **Test de Impresión en Segundo Plano**: Se creó `PrintSaleCommandTest` para verificar la ejecución correcta del comando `pos:print-sale`.
+
 ## [1.10.278] - 2026-07-30
 
 ### Fixed
 - **Exclusividad Mutua entre Controles de Comisión y Flete**: Se corrigió la lógica de los controles del POS para garantizar que `Aplicar Comisión` y `Aplicar Solo Flete` sean mutuamente excluyentes. Al activar uno, el otro se desactiva automáticamente.
-- **Fórmula de Precio Integral con Comisión**: La fórmula con `Aplicar Comisión` activo ahora calcula correctamente: `(Base + Comisión% + Recargo% + Flete%) × (1 + Diferencial%)`. Ejemplo: base $10 + comm 0.50 + recargo 0.40 + flete 0.60 = $11.50 × 1.30 = **$14.95**.
+- **Fórmula de Precio Integral con Comisión**: La fórmula con `Aplicar Comisión` activo ahora calcula correctamente: `(Base + Comisión% + Recargo% + Flete%) × (1 + Diferencial%)`. Ejemplo: base $10 + comm $0.50 + recargo $0.40 + flete $0.60 = $11.50, luego se aplica el diferencial cambiario del 30% → $11.50 × 1.30 (**donde 1.30 = 1 + 30%**) = **$14.95**.
 - **Fórmula Solo Flete**: Con `Aplicar Solo Flete` activo, el precio resulta únicamente `Base + Flete%` sin aplicar comisión, recargo ni diferencial cambiario.
 
 ### Added

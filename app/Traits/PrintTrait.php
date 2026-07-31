@@ -229,7 +229,9 @@ trait PrintTrait
             //
         } catch (\Exception $th) {
             Log::info("Error al intentar imprimir el comprobante de venta \n {$th->getMessage()}");
-            $this->dispatch('noty', msg: 'ERROR AL IMPRIMIR: ' . $th->getMessage());
+            if (method_exists($this, 'dispatch')) {
+                $this->dispatch('noty', msg: 'ERROR AL IMPRIMIR: ' . $th->getMessage());
+            }
         }
     }
 
@@ -338,7 +340,9 @@ trait PrintTrait
             //
         } catch (\Exception $th) {
             Log::info("Error al intentar imprimir el comprobante de pago \n {$th->getMessage()}");
-            $this->dispatch('noty', msg: 'ERROR AL IMPRIMIR PAGO: ' . $th->getMessage());
+            if (method_exists($this, 'dispatch')) {
+                $this->dispatch('noty', msg: 'ERROR AL IMPRIMIR PAGO: ' . $th->getMessage());
+            }
         }
     }
 
@@ -438,7 +442,9 @@ trait PrintTrait
             //
         } catch (\Exception $th) {
             Log::info("Error al intentar imprimir el comprobante de pago \n {$th->getMessage()}");
-            $this->dispatch('noty', msg: 'ERROR AL IMPRIMIR ABONO: ' . $th->getMessage());
+            if (method_exists($this, 'dispatch')) {
+                $this->dispatch('noty', msg: 'ERROR AL IMPRIMIR ABONO: ' . $th->getMessage());
+            }
         }
     }
 
@@ -670,7 +676,9 @@ trait PrintTrait
             }
         } catch (\Exception $th) {
             Log::info("Error al intentar imprimir el corte de caja \n {$th->getMessage()} ");
-            $this->dispatch('noty', msg: 'ERROR AL IMPRIMIR CORTE: ' . $th->getMessage());
+            if (method_exists($this, 'dispatch')) {
+                $this->dispatch('noty', msg: 'ERROR AL IMPRIMIR CORTE: ' . $th->getMessage());
+            }
         }
     }
     function printOrder($orderId)
@@ -788,7 +796,9 @@ trait PrintTrait
             //
         } catch (\Exception $th) {
             Log::info("Error al intentar imprimir el comprobante de venta \n {$th->getMessage()}");
-            $this->dispatch('noty', msg: 'ERROR AL IMPRIMIR ORDEN: ' . $th->getMessage());
+            if (method_exists($this, 'dispatch')) {
+                $this->dispatch('noty', msg: 'ERROR AL IMPRIMIR ORDEN: ' . $th->getMessage());
+            }
         }
     }
 
@@ -919,7 +929,9 @@ trait PrintTrait
             }
         } catch (\Exception $th) {
             Log::error("Error printing payment history: " . $th->getMessage());
-            $this->dispatch('noty', msg: 'ERROR IMPRIMIENDO HISTORIAL: ' . $th->getMessage());
+            if (method_exists($this, 'dispatch')) {
+                $this->dispatch('noty', msg: 'ERROR IMPRIMIENDO HISTORIAL: ' . $th->getMessage());
+            }
         }
     }
     function printInternalTicket($saleId)
@@ -1095,7 +1107,9 @@ trait PrintTrait
             }
         } catch (\Exception $th) {
             Log::error("Error printing internal ticket: " . $th->getMessage());
-            $this->dispatch('noty', msg: 'ERROR IMPRIMIENDO TICKET INTERNO: ' . $th->getMessage());
+            if (method_exists($this, 'dispatch')) {
+                $this->dispatch('noty', msg: 'ERROR IMPRIMIENDO TICKET INTERNO: ' . $th->getMessage());
+            }
         }
     }
 }
