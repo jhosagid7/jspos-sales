@@ -1,3 +1,11 @@
+## [1.10.293] - 2026-07-31
+
+### Fixed
+- **Carga de Catálogo Offline Instantánea (0ms) y Búsqueda Multipalabra (App Vendedor Foráneo v1.1.41)**:
+  - **Carga Inmediata desde Caché (0ms)**: Al abrir la pantalla de Catálogo sin conexión, la app lee inmediatamente el catálogo en caché guardado sin esperar timeouts de red de 8-15 segundos.
+  - **Failover a 3 Segundos**: Los intentos de actualización por red pasan a segundo plano con un tiempo de espera de 3s sin bloquear la pantalla ni vaciar los productos en pantalla.
+  - **Búsqueda Inteligente Multipalabra**: La búsqueda ahora permite buscar múltiples términos en cualquier orden (ej: "vaso 8" o "vaso plastico").
+
 ## [1.10.292] - 2026-07-31
 
 ### Fixed

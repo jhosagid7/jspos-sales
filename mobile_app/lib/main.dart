@@ -606,15 +606,17 @@ class _CatalogScreenState extends State<CatalogScreen> {
         _products.clear();
         _products.addAll(_allProducts);
       } else {
+        final words = s.split(RegExp(r'\s+'));
         _products.clear();
-        _products.addAll(_allProducts.where((p) =>
-          p.name.toLowerCase().contains(s) || p.sku.toLowerCase().contains(s)
-        ));
+        _products.addAll(_allProducts.where((p) {
+          final name = p.name.toLowerCase();
+          final sku = p.sku.toLowerCase();
+          return words.every((w) => name.contains(w) || sku.contains(w));
+        }));
       }
     });
   }
 
-  @override
   @override
   void initState() { 
     super.initState(); 
@@ -646,10 +648,47 @@ class _CatalogScreenState extends State<CatalogScreen> {
     String dlStr = prefs.getString('deadline') ?? "";
     if (dlStr.isNotEmpty) _deadline = DateTime.tryParse(dlStr);
     _isDeadlineActive = prefs.getBool('deadline_active') ?? false;
+
+    // CARGAR CACHÉ LOCAL INMEDIATAMENTE (0ms)
+    _loadCachedData(prefs);
+
     await _loadDraftCart();
-    await _syncOfflineOrders();
-    await _fetchCustomers(); 
-    await _fetchProducts(); 
+    _syncOfflineOrders();
+    
+    // ACTUALIZAR EN SEGUNDO PLANO SI HAY RED
+    _fetchCustomers(); 
+    _fetchProducts(); 
+  }
+
+  void _loadCachedData(SharedPreferences prefs) {
+    final cachedCust = prefs.getString('cached_customers');
+    if (cachedCust != null && cachedCust.isNotEmpty) {
+      try {
+        final List decoded = json.decode(cachedCust);
+        if (mounted) {
+          setState(() {
+            _customers.clear();
+            _customers.addAll(decoded.map((e) => Customer.fromJson(e)).toList());
+          });
+        }
+      } catch (e) {
+        debugPrint("Error leyendo clientes en caché: $e");
+      }
+    }
+
+    final cachedProd = prefs.getString('cached_products');
+    if (cachedProd != null && cachedProd.isNotEmpty) {
+      try {
+        final List decoded = json.decode(cachedProd);
+        if (mounted) {
+          _allProducts.clear();
+          _allProducts.addAll(decoded.map((e) => Product.fromJson(e)).toList());
+          _filterProducts(_searchController.text);
+        }
+      } catch (e) {
+        debugPrint("Error leyendo productos en caché: $e");
+      }
+    }
   }
 
   Future<void> _saveDraftCart() async {
@@ -810,7 +849,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
         'Authorization': 'Bearer $token', 
         'Accept': 'application/json',
         'X-Device-Token': prefs.getString('device_token') ?? ''
-      }).timeout(const Duration(seconds: 8));
+      }).timeout(const Duration(seconds: 3));
 
       if (response.statusCode == 200) {
         final List decoded = json.decode(response.body);
@@ -854,7 +893,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
         'Authorization': 'Bearer $token', 
         'Accept': 'application/json',
         'X-Device-Token': prefs.getString('device_token') ?? ''
-      }).timeout(const Duration(seconds: 8));
+      }).timeout(const Duration(seconds: 3));
 
       if (response.statusCode == 200) {
         final List decoded = json.decode(response.body);
