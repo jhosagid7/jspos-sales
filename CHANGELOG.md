@@ -1,3 +1,10 @@
+## [1.10.294] - 2026-07-31
+
+### Fixed
+- **Eliminación del Límite de 50 Productos en la API para Caché Móvil Completo**:
+  - **Causa**: La API de Laravel (`Api\ProductController::index`) tenía un límite estricto `->limit(50)`, por lo cual la app móvil sólo recibía y guardaba los primeros 50 productos de la base de datos (ignorando los otros 487 productos activos).
+  - **Solución**: Se removió el límite de 50 ítems en la API para el catálogo completo de ventas. Ahora la app recibe y almacena localmente los 537 productos completos en la memoria del teléfono para búsqueda offline 100% precisa.
+
 ## [1.10.293] - 2026-07-31
 
 ### Fixed

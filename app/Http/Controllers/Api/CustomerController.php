@@ -47,7 +47,6 @@ class CustomerController extends Controller
                   ->with(['payments', 'returns', 'paymentDetails']);
             }])
             ->orderBy('name', 'asc')
-            ->limit(200)
             ->get();
 
         $formatted = $customers->map(function ($c) {

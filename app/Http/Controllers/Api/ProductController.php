@@ -38,7 +38,6 @@ class ProductController extends Controller
             ->when($search, function ($query, $search) {
                 return $query->search($search);
             })
-            ->limit(50)
             ->get();
 
         $primaryCurrency = \App\Models\Currency::where('is_primary', 1)->first();
