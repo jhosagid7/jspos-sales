@@ -116,6 +116,13 @@
             })
         })
         
+        Livewire.on('open-pdf-tab', data => {
+            let url = data.url || (Array.isArray(data) ? data[0].url : data);
+            if (url) {
+                window.open(url, '_blank');
+            }
+        });
+
         window.notyListenerAdded = true;
     }
 

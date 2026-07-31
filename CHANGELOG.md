@@ -1,3 +1,10 @@
+## [1.10.287] - 2026-07-31
+
+### Added
+- **Botones de Impresión Dual en POS (Ticket 80mm vs Factura Carta PDF)**: Se separó el botón *"Última"* en la barra de herramientas del POS en dos acciones independientes:
+  - **🎟️ Ticket**: Imprime el ticket térmico de 80mm directamente en la impresora POS mediante el Spooler.
+  - **📄 Factura**: Abre la factura PDF en tamaño carta en una pestaña del navegador con el diálogo de impresión listo para enviarse a impresoras de red (ej. Ricoh MP 2554).
+
 ## [1.10.286] - 2026-07-31
 
 ### Fixed

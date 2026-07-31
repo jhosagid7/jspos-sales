@@ -485,9 +485,12 @@
                             class="icon-money"></i>
                         Abonos</button>
                     @endmodule
-                    <button wire:click.prevent="printLast" type="button" class="btn btn-outline-light-2x txt-dark"><i
-                            class="icon-printer"></i>
-                        Última</button>
+                    <button wire:click.prevent="printLast" type="button" class="btn btn-outline-light-2x txt-dark" title="Imprimir Ticket Térmico 80mm">
+                        <i class="icon-printer"></i> Ticket
+                    </button>
+                    <button wire:click.prevent="printLastPdf" type="button" class="btn btn-outline-light-2x txt-dark" title="Imprimir Factura Carta PDF">
+                        <i class="icofont icofont-file-pdf text-danger"></i> Factura
+                    </button>
                 </div>
 
             </div>

@@ -4960,6 +4960,18 @@ class Sales extends Component
         }
     }
 
+    #[On('printLastPdf')]
+    function printLastPdf()
+    {
+        $sale = Sale::latest()->first();
+        if ($sale != null) {
+            $url = route('pos.sales.generatePdfInvoice', ['sale' => $sale->id]);
+            $this->dispatch('open-pdf-tab', url: $url);
+        } else {
+            $this->dispatch('noty', msg: 'NO HAY VENTAS REGISTRADAS');
+        }
+    }
+
     #[On('DestroyOrder')]
     public function DestroyOrder($orderId)
     {
