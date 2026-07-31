@@ -1,3 +1,10 @@
+## [1.10.285] - 2026-07-31
+
+### Fixed
+- **Soporte Unicode `OpenPrinterW` para Impresoras de Red UNC en Windows**: Se actualizó el Spooler de impresión en `CustomWindowsPrintConnector.php` para utilizar las llamadas Unicode `OpenPrinterW` y `StartDocPrinterW`.
+  - **Causa Raíz**: La API anterior `OpenPrinterA` (ANSI) retornaba el error Win32 1801 (`ERROR_INVALID_PRINTER_NAME`) al recibir nombres de impresoras de red compartidas UNC como `\\Desktop-cp7495d\POS80`.
+  - **Solución**: La migración a la API Unicode `OpenPrinterW` resuelve correctamente los nombres de impresoras de red compartidas en Windows 10/11 y envía los datos crudos ESC/POS a la cola de impresión de red física.
+
 ## [1.10.284] - 2026-07-31
 
 ### Fixed
