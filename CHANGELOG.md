@@ -1,3 +1,13 @@
+## [1.10.280] - 2026-07-31
+
+### Fixed
+- **Desactivación de Comisiones y Retorno a Precio Base Limpio**: Se corrigió una falla en `Sales.php` por la cual al desactivar el control `Aplicar Comisiones`, el sistema activaba automáticamente en segundo plano el flete (`applyFreight = true`). Esto causaba que el monto total mostrara un recargo del 6% de flete ($175.2615) en lugar de retornar al precio base limpio ($165.3410).
+  - **Causa Raíz**: En las funciones de hidratación y selección de cliente (`setCustomer`), la rama `else` ejecutaba una asignación forzada (`$this->applyFreight = $this->config->sales_show_freight ? true : false;`), activando el flete cuando la comisión se apagaba.
+  - **Solución**: Se eliminó la asignación forzada en el `else`, asegurando que apagar `Aplicar Comisiones` mantenga `applyFreight` en `false`, garantizando el cálculo exacto sobre la suma base pura del carrito.
+
+### Added
+- **Test de Regresión para Desactivación de Comisiones**: Se incorporó la prueba `test_toggling_off_commissions_does_not_auto_enable_freight` en `SalesControlsMutualExclusivityTest` (6/6 tests pasando).
+
 ## [1.10.279] - 2026-07-31
 
 ### Fixed

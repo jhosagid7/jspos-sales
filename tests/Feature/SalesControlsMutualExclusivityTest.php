@@ -172,4 +172,29 @@ class SalesControlsMutualExclusivityTest extends TestCase
         $this->assertEqualsWithDelta(10.0, $result['sale_price'], 0.01,
             'Sin controles activos, sale_price debe ser igual al precio base');
     }
+
+    /**
+     * @test
+     * Desactivar applyCommissions NO debe activar automáticamente applyFreight.
+     * El precio resultan te debe ser el precio base limpio ($10.00), no $10.60.
+     */
+    public function test_toggling_off_commissions_does_not_auto_enable_freight()
+    {
+        $this->actingAs($this->adminUser);
+
+        $component = Livewire::test(Sales::class)
+            ->set('customer', $this->customer->toArray())
+            ->set('customerConfig', $this->customer->latestCustomerConfig)
+            ->set('applyCommissions', true)
+            ->assertSet('applyCommissions', true)
+            ->assertSet('applyFreight', false)
+            ->set('applyCommissions', false)
+            ->assertSet('applyCommissions', false)
+            ->assertSet('applyFreight', false);
+
+        $result = $component->instance()->Calculator(10.0, 1, $this->product);
+
+        $this->assertEqualsWithDelta(10.0, $result['sale_price'], 0.01,
+            'Al desactivar comisiones, applyFreight debe permanecer en false y retornar el precio base limpio (10.00)');
+    }
 }

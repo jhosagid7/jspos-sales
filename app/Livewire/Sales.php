@@ -1215,11 +1215,15 @@ class Sales extends Component
                 $hasCustomerConfig = ($this->customerConfig && ($this->customerConfig->commission_percent > 0 || $this->customerConfig->freight_percent > 0 || $this->customerConfig->exchange_diff_percent > 0));
 
                 if ($hasCustomerConfig) {
-                    $this->applyCommissions = $this->config->sales_show_commissions ? true : false;
-                    if ($this->applyCommissions) {
+                    if ($this->config->sales_show_commissions) {
+                        $this->applyCommissions = true;
                         $this->applyFreight = false;
+                    } elseif ($this->config->sales_show_freight) {
+                        $this->applyCommissions = false;
+                        $this->applyFreight = true;
                     } else {
-                        $this->applyFreight = $this->config->sales_show_freight ? true : false;
+                        $this->applyCommissions = false;
+                        $this->applyFreight = false;
                     }
                 }
             }
@@ -3172,11 +3176,15 @@ class Sales extends Component
             $hasCustomerConfig = ($this->customerConfig && ($this->customerConfig->commission_percent > 0 || $this->customerConfig->freight_percent > 0 || $this->customerConfig->exchange_diff_percent > 0));
 
             if ($hasCustomerConfig) {
-                $this->applyCommissions = $this->config->sales_show_commissions ? true : false;
-                if ($this->applyCommissions) {
+                if ($this->config->sales_show_commissions) {
+                    $this->applyCommissions = true;
                     $this->applyFreight = false;
+                } elseif ($this->config->sales_show_freight) {
+                    $this->applyCommissions = false;
+                    $this->applyFreight = true;
                 } else {
-                    $this->applyFreight = $this->config->sales_show_freight ? true : false;
+                    $this->applyCommissions = false;
+                    $this->applyFreight = false;
                 }
             } else {
                 $this->applyCommissions = false;
