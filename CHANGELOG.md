@@ -1,3 +1,14 @@
+## [1.10.295] - 2026-07-31
+
+### Added
+- **Indicador de Conexión en Tiempo Real y Botón Manual de Sincronización (App Vendedor Foráneo v1.1.42)**:
+  - **Banner de Estado Superior**: Muestra una barra visible superior que indica en tiempo real si el vendedor está `🟢 EN LÍNEA` o `📡 MODO OFFLINE (SIN CONEXIÓN)`.
+  - **Contador de Pedidos Pendientes**: Si el vendedor guardó pre-órdenes offline, la barra muestra el contador exacto (ej: `📦 2 pedido(s) guardado(s) pendiente(s) por enviar`).
+  - **Botón de Sincronización Manual (🔄)**: Ubicado en la barra superior (AppBar) y en el banner. Al tocarlo o hacer pull-to-refresh en la lista:
+    1. Verifica la conexión con el servidor.
+    2. Envía automáticamente todos los pedidos guardados offline al servidor de la oficina.
+    3. Descarga la versión más fresca del catálogo completo (537 productos y 674 clientes).
+
 ## [1.10.294] - 2026-07-31
 
 ### Fixed

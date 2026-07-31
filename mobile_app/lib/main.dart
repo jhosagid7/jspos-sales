@@ -596,6 +596,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
   String _baseUrl = "";
   DateTime? _deadline;
   bool _isDeadlineActive = false;
+  bool _isOnline = false;
+  int _pendingOfflineCount = 0;
+  bool _isSyncing = false;
 
   double get _cartTotal => _cart.fold(0, (sum, item) => sum + item.total);
 
@@ -689,6 +692,135 @@ class _CatalogScreenState extends State<CatalogScreen> {
         debugPrint("Error leyendo productos en caché: $e");
       }
     }
+  }
+
+  void _updatePendingOfflineCount(SharedPreferences prefs) {
+    final pendingList = prefs.getStringList('pending_offline_orders') ?? [];
+    if (mounted) {
+      setState(() {
+        _pendingOfflineCount = pendingList.length;
+      });
+    }
+  }
+
+  Future<void> _manualSync() async {
+    if (_isSyncing) return;
+    setState(() => _isSyncing = true);
+    final prefs = await SharedPreferences.getInstance();
+
+    await _syncOfflineOrders();
+
+    bool online = false;
+    try {
+      final token = prefs.getString('token');
+      final response = await http.get(Uri.parse('$_baseUrl/api/customers'), headers: {
+        'Authorization': 'Bearer $token', 
+        'Accept': 'application/json',
+        'X-Device-Token': prefs.getString('device_token') ?? ''
+      }).timeout(const Duration(seconds: 4));
+
+      if (response.statusCode == 200) {
+        online = true;
+        await _fetchCustomers();
+        await _fetchProducts();
+      }
+    } catch (e) {
+      online = false;
+    }
+
+    final pendingList = prefs.getStringList('pending_offline_orders') ?? [];
+    if (mounted) {
+      setState(() {
+        _isOnline = online;
+        _pendingOfflineCount = pendingList.length;
+        _isSyncing = false;
+      });
+
+      if (online) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ CONECTADO: Catálogo (${_allProducts.length} productos y ${_customers.length} clientes) al día.'),
+            backgroundColor: Colors.green.shade800,
+            duration: const Duration(seconds: 4),
+          )
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('📡 MODO OFFLINE: Sin conexión. Se mantienen tus datos locales y $_pendingOfflineCount pedido(s) guardado(s).'),
+            backgroundColor: Colors.amber.shade900,
+            duration: const Duration(seconds: 4),
+          )
+        );
+      }
+    }
+  }
+
+  Widget _connectionStatusBanner() {
+    if (_isOnline && _pendingOfflineCount == 0) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 15),
+        color: Colors.green.shade700,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Icon(Icons.wifi_rounded, color: Colors.white, size: 14),
+            SizedBox(width: 6),
+            Text("EN LÍNEA - SERVIDOR CONECTADO", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5)),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 15),
+      color: _isOnline ? Colors.blue.shade800 : Colors.amber.shade900,
+      child: Row(
+        children: [
+          Icon(_isOnline ? Icons.sync_rounded : Icons.wifi_off_rounded, color: Colors.white, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _isOnline ? "EN LÍNEA" : "MODO OFFLINE (SIN CONEXIÓN)", 
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12)
+                ),
+                if (_pendingOfflineCount > 0)
+                  Text(
+                    "📦 $_pendingOfflineCount pedido(s) guardado(s) pendiente(s) por enviar",
+                    style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)
+                  ),
+              ],
+            ),
+          ),
+          InkWell(
+            onTap: _isSyncing ? null : _manualSync,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+              child: Row(
+                children: [
+                  if (_isSyncing)
+                    const SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                  else
+                    Icon(Icons.sync_rounded, size: 14, color: _isOnline ? Colors.blue.shade900 : Colors.amber.shade900),
+                  const SizedBox(width: 4),
+                  Text(
+                    _isSyncing ? "PROBANDO..." : "SINCRONIZAR", 
+                    style: TextStyle(color: _isOnline ? Colors.blue.shade900 : Colors.amber.shade900, fontWeight: FontWeight.w900, fontSize: 10)
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _saveDraftCart() async {
@@ -1002,6 +1134,13 @@ class _CatalogScreenState extends State<CatalogScreen> {
           style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 20)
         ),
         actions: [
+          IconButton(
+            icon: _isSyncing 
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF00B4D8)))
+              : const Icon(Icons.sync_rounded, size: 26, color: Color(0xFF00B4D8)),
+            tooltip: 'Sincronizar Datos y Pedidos',
+            onPressed: _isSyncing ? null : _manualSync,
+          ),
           Stack(
             alignment: Alignment.center,
             children: [
@@ -1021,9 +1160,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () => _fetchProducts(_searchController.text),
+        onRefresh: _manualSync,
         color: const Color(0xFF00B4D8),
         child: Column(children: [
+          _connectionStatusBanner(),
           if (_isExpired) Container(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 15), 
             width: double.infinity,
