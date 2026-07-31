@@ -27,7 +27,6 @@ class JSPOSMobile extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1A237E), primary: const Color(0xFF1A237E)),
         useMaterial3: true,
-        textTheme: GoogleFonts.outfitTextTheme(),
       ),
       home: const LoginScreen(),
     );
@@ -139,6 +138,15 @@ class _LoginScreenState extends State<LoginScreen> {
       _appVersion = pkg.version;
       _deviceToken = token;
     }); 
+
+    final existingToken = prefs.getString('token') ?? '';
+    if (existingToken.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => DashboardScreen(baseUrl: _baseUrl)));
+        }
+      });
+    }
   }
 
   String _generateRandomString(int length) {
@@ -185,7 +193,7 @@ class _LoginScreenState extends State<LoginScreen> {
           'X-Device-Token': _deviceToken
         },
         body: {'email': _emailController.text, 'password': _passwordController.text, 'device_name': 'Mobile (VIP)'},
-      ).timeout(const Duration(seconds: 15));
+      ).timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -195,7 +203,6 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString('user_name', data['customer']['name'] ?? 'VIP Customer');
         await prefs.setString('last_email', _emailController.text);
         
-        // SAVE LOGISTICS INFO (VIP defaults as active deadlines usually don't matter or can be mocked)
         await prefs.setString('deadline', '');
         await prefs.setBool('deadline_active', false);
 
@@ -204,7 +211,23 @@ class _LoginScreenState extends State<LoginScreen> {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Credenciales incorrectas')));
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      final prefs = await SharedPreferences.getInstance();
+      final lastEmail = prefs.getString('last_email') ?? '';
+      final existingToken = prefs.getString('token') ?? '';
+      if (_emailController.text.trim().toLowerCase() == lastEmail.trim().toLowerCase() && existingToken.isNotEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('📱 MODO OFFLINE: Sesión iniciada localmente sin conexión.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 4),
+            )
+          );
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => DashboardScreen(baseUrl: _baseUrl)));
+        }
+      } else {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error de conexión: $e')));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -623,6 +646,7 @@ class CatalogScreen extends StatefulWidget {
 }
 
 class _CatalogScreenState extends State<CatalogScreen> {
+  final List<Product> _allProducts = [];
   final List<Product> _products = [];
   final List<Customer> _customers = [];
   final List<CartItem> _cart = [];
@@ -634,8 +658,28 @@ class _CatalogScreenState extends State<CatalogScreen> {
   late String _baseUrl;
   DateTime? _deadline;
   bool _isDeadlineActive = false;
+  bool _isOnline = false;
+  int _pendingOfflineCount = 0;
+  bool _isSyncing = false;
 
   double get _cartTotal => _cart.fold(0, (sum, item) => sum + item.total);
+
+  void _filterProducts(String query) {
+    final s = query.trim().toLowerCase();
+    setState(() {
+      if (s.isEmpty) {
+        _products.clear();
+        _products.addAll(_allProducts);
+      } else {
+        final words = s.split(RegExp(r'\s+'));
+        _products.clear();
+        _products.addAll(_allProducts.where((p) {
+          final target = "${p.name} ${p.sku}".toLowerCase();
+          return words.every((word) => target.contains(word));
+        }));
+      }
+    });
+  }
 
   @override
   void initState() { 
@@ -646,16 +690,305 @@ class _CatalogScreenState extends State<CatalogScreen> {
     }
     if (widget.initialCustomer != null) _selectedCustomer = widget.initialCustomer;
     if (widget.initialNotes != null) _notesController.text = widget.initialNotes!;
+    _searchController.addListener(() => _filterProducts(_searchController.text));
+    _notesController.addListener(_saveDraftCart);
     _init(); 
   }
+
   _init() async { 
     final prefs = await SharedPreferences.getInstance(); 
     _baseUrl = widget.baseUrl; 
     String dlStr = prefs.getString('deadline') ?? "";
     if (dlStr.isNotEmpty) _deadline = DateTime.tryParse(dlStr);
     _isDeadlineActive = prefs.getBool('deadline_active') ?? false;
+
+    _updatePendingOfflineCount(prefs);
+    _loadCachedData(prefs);
+
+    await _loadDraftCart();
+    _syncOfflineOrders();
+
     await _fetchCustomers(); 
-    await _fetchProducts(); 
+    _fetchProducts(); 
+  }
+
+  void _loadCachedData(SharedPreferences prefs) {
+    final cachedProd = prefs.getString('cached_products_vip');
+    if (cachedProd != null && cachedProd.isNotEmpty) {
+      try {
+        final List decoded = json.decode(cachedProd);
+        if (mounted) {
+          _allProducts.clear();
+          _allProducts.addAll(decoded.map((e) => Product.fromJson(e)).toList());
+          _filterProducts(_searchController.text);
+        }
+      } catch (e) {
+        debugPrint("Error leyendo productos VIP en caché: $e");
+      }
+    }
+  }
+
+  void _updatePendingOfflineCount(SharedPreferences prefs) {
+    final pendingList = prefs.getStringList('pending_offline_orders_vip') ?? [];
+    if (mounted) {
+      setState(() {
+        _pendingOfflineCount = pendingList.length;
+      });
+    }
+  }
+
+  Future<void> _manualSync() async {
+    if (_isSyncing) return;
+    setState(() => _isSyncing = true);
+    final prefs = await SharedPreferences.getInstance();
+
+    await _syncOfflineOrders();
+
+    bool online = false;
+    try {
+      final token = prefs.getString('token');
+      final response = await http.get(Uri.parse('$_baseUrl/api/vip/products'), headers: {
+        'Authorization': 'Bearer $token', 
+        'Accept': 'application/json',
+        'X-Device-Token': prefs.getString('device_token') ?? ''
+      }).timeout(const Duration(seconds: 4));
+
+      if (response.statusCode == 200) {
+        online = true;
+        await _fetchProducts();
+      }
+    } catch (e) {
+      online = false;
+    }
+
+    final pendingList = prefs.getStringList('pending_offline_orders_vip') ?? [];
+    if (mounted) {
+      setState(() {
+        _isOnline = online;
+        _pendingOfflineCount = pendingList.length;
+        _isSyncing = false;
+      });
+
+      if (online) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ CONECTADO: Catálogo VIP (${_allProducts.length} productos) al día.'),
+            backgroundColor: Colors.green.shade800,
+            duration: const Duration(seconds: 4),
+          )
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('📡 MODO OFFLINE: Sin conexión. Se mantienen tus datos locales y $_pendingOfflineCount pedido(s) guardado(s).'),
+            backgroundColor: Colors.amber.shade900,
+            duration: const Duration(seconds: 4),
+          )
+        );
+      }
+    }
+  }
+
+  Widget _connectionStatusBanner() {
+    if (_isOnline && _pendingOfflineCount == 0) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 15),
+      color: _isOnline ? Colors.blue.shade800 : Colors.amber.shade900,
+      child: Row(
+        children: [
+          Icon(_isOnline ? Icons.sync_rounded : Icons.wifi_off_rounded, color: Colors.white, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _isOnline ? "EN LÍNEA" : "MODO OFFLINE (SIN CONEXIÓN)", 
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12)
+                ),
+                if (_pendingOfflineCount > 0)
+                  Text(
+                    "📦 $_pendingOfflineCount pedido(s) guardado(s) pendiente(s) por enviar",
+                    style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)
+                  ),
+              ],
+            ),
+          ),
+          InkWell(
+            onTap: _isSyncing ? null : _manualSync,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+              child: Row(
+                children: [
+                  if (_isSyncing)
+                    const SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                  else
+                    Icon(Icons.sync_rounded, size: 14, color: _isOnline ? Colors.blue.shade900 : Colors.amber.shade900),
+                  const SizedBox(width: 4),
+                  Text(
+                    _isSyncing ? "PROBANDO..." : "SINCRONIZAR", 
+                    style: TextStyle(color: _isOnline ? Colors.blue.shade900 : Colors.amber.shade900, fontWeight: FontWeight.w900, fontSize: 10)
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _saveDraftCart() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (_cart.isEmpty && _notesController.text.trim().isEmpty) {
+        await prefs.remove('draft_order_vip');
+        return;
+      }
+      final draftData = {
+        'customer_id': _selectedCustomer?.id,
+        'customer_name': _selectedCustomer?.name,
+        'notes': _notesController.text,
+        'items': _cart.map((item) => {
+          'product_id': item.product.id,
+          'product_name': item.product.name,
+          'product_sku': item.product.sku,
+          'product_price': item.product.price,
+          'product_stock': item.product.stock,
+          'product_available_stock': item.product.availableStock,
+          'quantity': item.quantity,
+          'customer_id': item.customer.id,
+          'customer_name': item.customer.name,
+        }).toList(),
+      };
+      await prefs.setString('draft_order_vip', json.encode(draftData));
+    } catch (e) {
+      debugPrint("Error al guardar borrador VIP: $e");
+    }
+  }
+
+  Future<void> _loadDraftCart() async {
+    if (widget.initialCart != null && widget.initialCart!.isNotEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final draftStr = prefs.getString('draft_order_vip');
+      if (draftStr != null && draftStr.isNotEmpty) {
+        final draft = json.decode(draftStr);
+        if (_selectedCustomer == null && draft['customer_id'] != null) {
+          _selectedCustomer = Customer(
+            id: draft['customer_id'],
+            name: draft['customer_name'] ?? 'Mi Cuenta',
+          );
+        }
+        if (_notesController.text.isEmpty && draft['notes'] != null) {
+          _notesController.text = draft['notes'];
+        }
+        if (_cart.isEmpty && draft['items'] != null) {
+          final itemsList = draft['items'] as List;
+          for (var item in itemsList) {
+            final prod = Product(
+              id: item['product_id'],
+              name: item['product_name'] ?? '',
+              sku: item['product_sku'] ?? '',
+              price: (item['product_price'] ?? 0.0).toDouble(),
+              stock: (item['product_stock'] ?? 999.0).toDouble(),
+              availableStock: (item['product_available_stock'] ?? 999.0).toDouble(),
+              imagePath: item['product_image'] ?? 'noimage.jpg',
+            );
+            final cust = Customer(
+              id: item['customer_id'] ?? (_selectedCustomer?.id ?? 0),
+              name: item['customer_name'] ?? (_selectedCustomer?.name ?? 'Mi Cuenta'),
+            );
+            _cart.add(CartItem(
+              product: prod,
+              customer: cust,
+              quantity: (item['quantity'] ?? 1.0).toDouble(),
+            ));
+          }
+        }
+        if (mounted) setState(() {});
+      }
+    } catch (e) {
+      debugPrint("Error al cargar borrador VIP: $e");
+    }
+  }
+
+  Future<void> _clearDraftCart() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('draft_order_vip');
+    } catch (e) {
+      debugPrint("Error al limpiar borrador VIP: $e");
+    }
+  }
+
+  Future<void> _savePendingOfflineOrder(Map<String, dynamic> body) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<String> pending = prefs.getStringList('pending_offline_orders_vip') ?? [];
+      body['created_at_local'] = DateTime.now().toIso8601String();
+      body['customer_name'] = _selectedCustomer?.name ?? 'Mi Cuenta';
+      pending.add(json.encode(body));
+      await prefs.setStringList('pending_offline_orders_vip', pending);
+      _updatePendingOfflineCount(prefs);
+    } catch (e) {
+      debugPrint("Error al guardar orden offline VIP: $e");
+    }
+  }
+
+  Future<void> _syncOfflineOrders() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<String> pending = prefs.getStringList('pending_offline_orders_vip') ?? [];
+      if (pending.isEmpty) return;
+
+      final token = prefs.getString('token');
+      final List<String> remaining = [];
+      int syncedCount = 0;
+
+      for (String orderJson in pending) {
+        try {
+          final Map<String, dynamic> body = json.decode(orderJson);
+          final response = await http.post(
+            Uri.parse('$_baseUrl/api/vip/orders'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'X-Device-Token': prefs.getString('device_token') ?? ''
+            },
+            body: json.encode(body),
+          ).timeout(const Duration(seconds: 10));
+
+          if (response.statusCode == 200) {
+            syncedCount++;
+          } else {
+            remaining.add(orderJson);
+          }
+        } catch (_) {
+          remaining.add(orderJson);
+        }
+      }
+
+      await prefs.setStringList('pending_offline_orders_vip', remaining);
+      _updatePendingOfflineCount(prefs);
+      if (syncedCount > 0 && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ Sincronizados $syncedCount pedido(s) VIP guardado(s) offline'),
+            backgroundColor: Colors.green,
+          )
+        );
+      }
+    } catch (e) {
+      debugPrint("Error en sincronización offline VIP: $e");
+    }
   }
 
   bool get _isExpired => _isDeadlineActive && _deadline != null && DateTime.now().isAfter(_deadline!);
@@ -674,20 +1007,51 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   Future<void> _fetchProducts([String search = '']) async {
     setState(() { _isLoading = true; _errorMessage = null; });
+    final prefs = await SharedPreferences.getInstance();
     try {
-      final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
-      String url = '$_baseUrl/api/vip/products?search=$search';
-      if (_selectedCustomer != null) url += '&customer_id=${_selectedCustomer!.id}';
+      String url = '$_baseUrl/api/vip/products';
+      if (_selectedCustomer != null) url += '?customer_id=${_selectedCustomer!.id}';
       final response = await http.get(Uri.parse(url), headers: {
         'Authorization': 'Bearer $token', 
         'Accept': 'application/json',
         'X-Device-Token': prefs.getString('device_token') ?? ''
-      }).timeout(const Duration(seconds: 15));
-      if (response.statusCode == 200) setState(() { _products.clear(); _products.addAll((json.decode(response.body) as List).map((e) => Product.fromJson(e)).toList()); });
-      else setState(() => _errorMessage = "Err Server: ${response.statusCode}");
-    } catch (e) { setState(() => _errorMessage = "Err: $e"); }
-    finally { setState(() => _isLoading = false); }
+      }).timeout(const Duration(seconds: 3));
+
+      if (response.statusCode == 200) {
+        final List decoded = json.decode(response.body);
+        await prefs.setString('cached_products_vip', response.body);
+        if (mounted) {
+          _allProducts.clear();
+          _allProducts.addAll(decoded.map((e) => Product.fromJson(e)).toList());
+          _filterProducts(_searchController.text);
+          setState(() {
+            _isOnline = true;
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isOnline = false);
+      debugPrint("Sin conexión al cargar productos VIP. Cargando de caché local...");
+    }
+
+    final cachedStr = prefs.getString('cached_products_vip');
+    if (cachedStr != null && cachedStr.isNotEmpty) {
+      try {
+        final List decoded = json.decode(cachedStr);
+        if (mounted) {
+          _allProducts.clear();
+          _allProducts.addAll(decoded.map((e) => Product.fromJson(e)).toList());
+          _filterProducts(_searchController.text);
+        }
+      } catch (err) {
+        debugPrint("Error leyendo productos VIP en caché: $err");
+      }
+    }
+
+    if (mounted) setState(() => _isLoading = false);
   }
 
   Future<void> _submitOrder() async {
@@ -697,20 +1061,21 @@ class _CatalogScreenState extends State<CatalogScreen> {
     }
     if (_cart.isEmpty) return;
     setState(() => _isLoading = true);
+    
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    if (_selectedCustomer == null) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Seleccione un cliente'))); return; }
+
+    final items = _cart.where((i) => i.customer.id == _selectedCustomer!.id).map((i) => {'product_id': i.product.id, 'quantity': i.quantity, 'price': i.product.price}).toList();
+
+    final body = {
+      'customer_id': _selectedCustomer!.id, 
+      'items': items, 
+      'notes': _notesController.text
+    };
+    if (widget.originalOrderId != null) body['original_order_id'] = widget.originalOrderId!;
+
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-      if (_selectedCustomer == null) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Seleccione un cliente'))); return; }
-
-      final items = _cart.where((i) => i.customer.id == _selectedCustomer!.id).map((i) => {'product_id': i.product.id, 'quantity': i.quantity, 'price': i.product.price}).toList();
-
-      final body = {
-        'customer_id': _selectedCustomer!.id, 
-        'items': items, 
-        'notes': _notesController.text
-      };
-      if (widget.originalOrderId != null) body['original_order_id'] = widget.originalOrderId!;
-
       final response = await http.post(
         Uri.parse('$_baseUrl/api/vip/orders'),
         headers: {
@@ -720,19 +1085,32 @@ class _CatalogScreenState extends State<CatalogScreen> {
           'X-Device-Token': prefs.getString('device_token') ?? ''
         },
         body: json.encode(body),
-      );
+      ).timeout(const Duration(seconds: 12));
 
       if (response.statusCode == 200) {
-        setState(() { _cart.clear(); _selectedCustomer = null; _notesController.clear(); });
+        await _clearDraftCart();
+        setState(() { _cart.clear(); _notesController.clear(); });
         if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('PRE-ORDEN GUARDADA EXITOSAMENTE'), backgroundColor: Colors.green)); Navigator.pop(context); }
       } else {
         final err = json.decode(response.body)['message'] ?? response.body;
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $err')));
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error de red: $e')));
+      await _savePendingOfflineOrder(body);
+      await _clearDraftCart();
+      setState(() { _cart.clear(); _notesController.clear(); });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('📱 SIN CONEXIÓN: Pedido guardado en el teléfono. Se enviará automáticamente al reconectarse.'), 
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 5),
+          )
+        );
+        Navigator.pop(context);
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -749,6 +1127,13 @@ class _CatalogScreenState extends State<CatalogScreen> {
           style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 20)
         ),
         actions: [
+          IconButton(
+            icon: _isSyncing 
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF00B4D8)))
+              : const Icon(Icons.sync_rounded, size: 26, color: Color(0xFF00B4D8)),
+            tooltip: 'Sincronizar Datos y Pedidos',
+            onPressed: _isSyncing ? null : _manualSync,
+          ),
           Stack(
             alignment: Alignment.center,
             children: [
@@ -768,9 +1153,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () => _fetchProducts(_searchController.text),
+        onRefresh: _manualSync,
         color: const Color(0xFF00B4D8),
         child: Column(children: [
+          _connectionStatusBanner(),
           if (_isExpired) Container(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 15), 
             width: double.infinity,
@@ -797,16 +1183,26 @@ class _CatalogScreenState extends State<CatalogScreen> {
       child: TextField(
         controller: _searchController, 
         decoration: InputDecoration(
-          hintText: 'Buscar producto...', 
+          hintText: 'Buscar producto por nombre o SKU...', 
           hintStyle: TextStyle(color: Colors.grey.shade400),
           prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF00B4D8)), 
+          suffixIcon: _searchController.text.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear_rounded, color: Colors.grey),
+                onPressed: () {
+                  _searchController.clear();
+                  _filterProducts('');
+                },
+              )
+            : null,
           filled: true,
           fillColor: Colors.white,
           contentPadding: const EdgeInsets.symmetric(vertical: 15),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
         ), 
-        onSubmitted: (v) => _fetchProducts(v)
+        onChanged: _filterProducts,
+        onSubmitted: (v) => _filterProducts(v)
       )
     );
   }
@@ -921,6 +1317,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                       } else { 
                         _cart.add(CartItem(product: p, customer: _selectedCustomer!)); 
                       }
+                      _saveDraftCart();
                     });
                   },
                   child: Container(
@@ -969,7 +1366,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Pre-Orden Actual', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
-                if (_cart.isNotEmpty && !_isExpired) IconButton(icon: const Icon(Icons.delete_sweep_rounded, color: Colors.red, size: 28), onPressed: () { setState(() => _cart.clear()); setModalState(() {}); Navigator.pop(context); }),
+                if (_cart.isNotEmpty && !_isExpired) IconButton(icon: const Icon(Icons.delete_sweep_rounded, color: Colors.red, size: 28), onPressed: () { setState(() { _cart.clear(); _saveDraftCart(); }); setModalState(() {}); Navigator.pop(context); }),
               ],
             ),
             const SizedBox(height: 10),
@@ -986,7 +1383,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     Text('\$${_cart[i].total.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF03045E))),
                     const SizedBox(width: 10),
                     if (!_isExpired) ...[
-                      InkWell(onTap: () { setState(() { if (_cart[i].quantity > 1.0) { _cart[i].quantity -= 1.0; } else { _cart.removeAt(i); } }); setModalState(() {}); if (_cart.isEmpty) Navigator.pop(context); }, child: const Icon(Icons.remove_circle_outline_rounded, color: Colors.orange)),
+                      InkWell(onTap: () { setState(() { if (_cart[i].quantity > 1.0) { _cart[i].quantity -= 1.0; } else { _cart.removeAt(i); } _saveDraftCart(); }); setModalState(() {}); if (_cart.isEmpty) Navigator.pop(context); }, child: const Icon(Icons.remove_circle_outline_rounded, color: Colors.orange)),
                       const SizedBox(width: 10),
                       InkWell(
                         onTap: () { 
@@ -995,7 +1392,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No hay más stock disponible (Reservado)'), backgroundColor: Colors.orange));
                              return;
                           }
-                          setState(() => _cart[i].quantity += 1.0); 
+                          setState(() { _cart[i].quantity += 1.0; _saveDraftCart(); }); 
                           setModalState(() {}); 
                         }, 
                         child: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF00B4D8))

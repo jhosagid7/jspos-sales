@@ -1,3 +1,15 @@
+## [1.10.297] - 2026-07-31
+
+### Added
+- **Migración de Arquitectura Offline y Persistencia Completa a la App Cliente VIP (`mobile_vip_app v1.1.8`)**:
+  - **Eliminación del Límite Backend (50 Productos)**: Removido `->limit(50)` en `app/Http/Controllers/Api/Vip/ProductController.php` para entregar el catálogo completo de productos a los clientes VIP.
+  - **Carga Instantánea 0ms desde Caché Local**: La app abre los productos instantáneamente desde `SharedPreferences` (`cached_products_vip`) sin esperar la respuesta de red.
+  - **Auto-Login Persistente e Inicio de Sesión Offline**: El token se mantiene guardado en el teléfono permitiendo abrir el panel sin internet. Si el servidor está inalcanzable, la app permite acceso en modo offline.
+  - **Motor de Búsqueda Offline en Tiempo Real y Multi-Palabra**: Búsqueda local de 0ms por nombre o SKU que filtra coincidiendo múltiples palabras clave.
+  - **Persistencia de Borrador de Pedidos**: Los artículos agregados al carrito y las observaciones se conservan si la app se cierra o reinicia.
+  - **Cola de Pedidos Offline (`pending_offline_orders_vip`)**: Si el cliente envía una pre-orden sin conexión, esta se guarda de forma segura en el teléfono y se reenvía al conectar.
+  - **Banner de Estado y Botón de Sincronización Manual (`🔄`)**: Muestra `📡 MODO OFFLINE` únicamente cuando está sin red o con órdenes pendientes, permitiendo sincronización manual con un toque.
+
 ## [1.10.296] - 2026-07-31
 
 ### Fixed
