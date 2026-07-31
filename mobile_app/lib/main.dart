@@ -577,6 +577,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
   double get _cartTotal => _cart.fold(0, (sum, item) => sum + item.total);
 
   @override
+  @override
   void initState() { 
     super.initState(); 
     if (widget.initialCart != null && widget.initialCart!.isNotEmpty) {
@@ -585,16 +586,180 @@ class _CatalogScreenState extends State<CatalogScreen> {
     }
     if (widget.initialCustomer != null) _selectedCustomer = widget.initialCustomer;
     if (widget.initialNotes != null) _notesController.text = widget.initialNotes!;
+    _notesController.addListener(_onNotesChanged);
     _init(); 
   }
+
+  void _onNotesChanged() {
+    _saveDraftCart();
+  }
+
+  @override
+  void dispose() {
+    _notesController.removeListener(_onNotesChanged);
+    _notesController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
   _init() async { 
     final prefs = await SharedPreferences.getInstance(); 
     _baseUrl = prefs.getString('base_url') ?? "http://192.168.194.66"; 
     String dlStr = prefs.getString('deadline') ?? "";
     if (dlStr.isNotEmpty) _deadline = DateTime.tryParse(dlStr);
     _isDeadlineActive = prefs.getBool('deadline_active') ?? false;
+    await _loadDraftCart();
+    await _syncOfflineOrders();
     await _fetchCustomers(); 
     await _fetchProducts(); 
+  }
+
+  Future<void> _saveDraftCart() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (_cart.isEmpty && _selectedCustomer == null && _notesController.text.trim().isEmpty) {
+        await prefs.remove('draft_order');
+        return;
+      }
+      final draftData = {
+        'customer_id': _selectedCustomer?.id,
+        'customer_name': _selectedCustomer?.name,
+        'customer_debt': _selectedCustomer?.totalDebt,
+        'notes': _notesController.text,
+        'items': _cart.map((item) => {
+          'product_id': item.product.id,
+          'product_name': item.product.name,
+          'product_sku': item.product.sku,
+          'product_price': item.product.price,
+          'product_image': item.product.imagePath,
+          'product_stock': item.product.stock,
+          'product_available_stock': item.product.availableStock,
+          'quantity': item.quantity,
+          'customer_id': item.customer.id,
+          'customer_name': item.customer.name,
+        }).toList(),
+      };
+      await prefs.setString('draft_order', json.encode(draftData));
+    } catch (e) {
+      debugPrint("Error al guardar borrador: $e");
+    }
+  }
+
+  Future<void> _loadDraftCart() async {
+    if (widget.initialCart != null && widget.initialCart!.isNotEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final draftStr = prefs.getString('draft_order');
+      if (draftStr != null && draftStr.isNotEmpty) {
+        final draft = json.decode(draftStr);
+        if (_selectedCustomer == null && draft['customer_id'] != null) {
+          _selectedCustomer = Customer(
+            id: draft['customer_id'],
+            name: draft['customer_name'] ?? 'Cliente',
+            totalDebt: (draft['customer_debt'] ?? 0.0).toDouble(),
+          );
+        }
+        if (_notesController.text.isEmpty && draft['notes'] != null) {
+          _notesController.text = draft['notes'];
+        }
+        if (_cart.isEmpty && draft['items'] != null) {
+          final itemsList = draft['items'] as List;
+          for (var item in itemsList) {
+            final prod = Product(
+              id: item['product_id'],
+              name: item['product_name'] ?? '',
+              sku: item['product_sku'] ?? '',
+              price: (item['product_price'] ?? 0.0).toDouble(),
+              stock: (item['product_stock'] ?? 999.0).toDouble(),
+              availableStock: (item['product_available_stock'] ?? 999.0).toDouble(),
+              imagePath: item['product_image'] ?? 'noimage.jpg',
+            );
+            final cust = Customer(
+              id: item['customer_id'] ?? (_selectedCustomer?.id ?? 0),
+              name: item['customer_name'] ?? (_selectedCustomer?.name ?? 'Cliente'),
+            );
+            _cart.add(CartItem(
+              product: prod,
+              customer: cust,
+              quantity: (item['quantity'] ?? 1.0).toDouble(),
+            ));
+          }
+        }
+        if (mounted) setState(() {});
+      }
+    } catch (e) {
+      debugPrint("Error al cargar borrador: $e");
+    }
+  }
+
+  Future<void> _clearDraftCart() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('draft_order');
+    } catch (e) {
+      debugPrint("Error al limpiar borrador: $e");
+    }
+  }
+
+  Future<void> _savePendingOfflineOrder(Map<String, dynamic> body) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<String> pending = prefs.getStringList('pending_offline_orders') ?? [];
+      body['created_at_local'] = DateTime.now().toIso8601String();
+      body['customer_name'] = _selectedCustomer?.name ?? 'Cliente';
+      pending.add(json.encode(body));
+      await prefs.setStringList('pending_offline_orders', pending);
+    } catch (e) {
+      debugPrint("Error al guardar orden offline: $e");
+    }
+  }
+
+  Future<void> _syncOfflineOrders() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<String> pending = prefs.getStringList('pending_offline_orders') ?? [];
+      if (pending.isEmpty) return;
+
+      final token = prefs.getString('token');
+      final List<String> remaining = [];
+      int syncedCount = 0;
+
+      for (String orderJson in pending) {
+        try {
+          final Map<String, dynamic> body = json.decode(orderJson);
+          final response = await http.post(
+            Uri.parse('$_baseUrl/api/orders'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'X-Device-Token': prefs.getString('device_token') ?? ''
+            },
+            body: json.encode(body),
+          ).timeout(const Duration(seconds: 10));
+
+          if (response.statusCode == 200) {
+            syncedCount++;
+          } else {
+            remaining.add(orderJson);
+          }
+        } catch (_) {
+          remaining.add(orderJson);
+        }
+      }
+
+      await prefs.setStringList('pending_offline_orders', remaining);
+      if (syncedCount > 0 && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ Sincronizados $syncedCount pedido(s) guardado(s) offline'),
+            backgroundColor: Colors.green,
+          )
+        );
+      }
+    } catch (e) {
+      debugPrint("Error en sincronizacion offline: $e");
+    }
   }
 
   bool get _isExpired => _isDeadlineActive && _deadline != null && DateTime.now().isAfter(_deadline!);
@@ -636,20 +801,21 @@ class _CatalogScreenState extends State<CatalogScreen> {
       return;
     }
     if (_cart.isEmpty) return;
+    if (_selectedCustomer == null) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Seleccione un cliente'))); return; }
+
     setState(() => _isLoading = true);
+    final items = _cart.where((i) => i.customer.id == _selectedCustomer!.id).map((i) => {'product_id': i.product.id, 'quantity': i.quantity, 'price': i.product.price}).toList();
+
+    final body = {
+      'customer_id': _selectedCustomer!.id, 
+      'items': items, 
+      'notes': _notesController.text
+    };
+    if (widget.originalOrderId != null) body['original_order_id'] = widget.originalOrderId!;
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
-      if (_selectedCustomer == null) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Seleccione un cliente'))); return; }
-
-      final items = _cart.where((i) => i.customer.id == _selectedCustomer!.id).map((i) => {'product_id': i.product.id, 'quantity': i.quantity, 'price': i.product.price}).toList();
-
-      final body = {
-        'customer_id': _selectedCustomer!.id, 
-        'items': items, 
-        'notes': _notesController.text
-      };
-      if (widget.originalOrderId != null) body['original_order_id'] = widget.originalOrderId!;
 
       final response = await http.post(
         Uri.parse('$_baseUrl/api/orders'),
@@ -660,9 +826,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
           'X-Device-Token': prefs.getString('device_token') ?? ''
         },
         body: json.encode(body),
-      );
+      ).timeout(const Duration(seconds: 12));
 
       if (response.statusCode == 200) {
+        await _clearDraftCart();
         setState(() { _cart.clear(); _selectedCustomer = null; _notesController.clear(); });
         if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('PRE-ORDEN GUARDADA EXITOSAMENTE'), backgroundColor: Colors.green)); Navigator.pop(context); }
       } else {
@@ -670,7 +837,19 @@ class _CatalogScreenState extends State<CatalogScreen> {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $err')));
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error de red: $e')));
+      await _savePendingOfflineOrder(body);
+      await _clearDraftCart();
+      setState(() { _cart.clear(); _selectedCustomer = null; _notesController.clear(); });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('📱 SIN CONEXIÓN: Pedido guardado en el teléfono. Se enviará automáticamente al reconectarse.'), 
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 5),
+          )
+        );
+        Navigator.pop(context);
+      }
     } finally {
       setState(() => _isLoading = false);
     }
@@ -881,6 +1060,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                       } else { 
                         _cart.add(CartItem(product: p, customer: _selectedCustomer!)); 
                       }
+                      _saveDraftCart();
                     });
                   },
                   child: Container(
@@ -911,7 +1091,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
         const SizedBox(height: 20),
         TextField(autofocus: true, decoration: InputDecoration(hintText: "Nombre del cliente...", prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF00B4D8)), filled: true, fillColor: const Color(0xFFF8F9FA), border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none)), onChanged: (v) => setModalState(() => localSearch = v)),
         const SizedBox(height: 20),
-        Expanded(child: ListView.separated(separatorBuilder: (c, i) => const Divider(height: 1), itemCount: filtered.length, itemBuilder: (context, i) => ListTile(contentPadding: const EdgeInsets.symmetric(vertical: 5), leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFF00B4D8).withOpacity(0.1), shape: BoxShape.circle), child: const Icon(Icons.person_rounded, color: Color(0xFF00B4D8), size: 20)), title: Text(filtered[i].name, style: const TextStyle(fontWeight: FontWeight.bold)), onTap: () { setState(() => _selectedCustomer = filtered[i]); _fetchProducts(); Navigator.pop(context); })))
+        Expanded(child: ListView.separated(separatorBuilder: (c, i) => const Divider(height: 1), itemCount: filtered.length, itemBuilder: (context, i) => ListTile(contentPadding: const EdgeInsets.symmetric(vertical: 5), leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFF00B4D8).withOpacity(0.1), shape: BoxShape.circle), child: const Icon(Icons.person_rounded, color: Color(0xFF00B4D8), size: 20)), title: Text(filtered[i].name, style: const TextStyle(fontWeight: FontWeight.bold)), onTap: () { setState(() => _selectedCustomer = filtered[i]); _saveDraftCart(); _fetchProducts(); Navigator.pop(context); })))
       ]));
     }));
   }
@@ -929,7 +1109,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Pre-Orden Actual', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
-                if (_cart.isNotEmpty && !_isExpired) IconButton(icon: const Icon(Icons.delete_sweep_rounded, color: Colors.red, size: 28), onPressed: () { setState(() => _cart.clear()); setModalState(() {}); Navigator.pop(context); }),
+                if (_cart.isNotEmpty && !_isExpired) IconButton(icon: const Icon(Icons.delete_sweep_rounded, color: Colors.red, size: 28), onPressed: () { setState(() => _cart.clear()); _clearDraftCart(); setModalState(() {}); Navigator.pop(context); }),
               ],
             ),
             const SizedBox(height: 10),
@@ -946,7 +1126,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     Text('\$${_cart[i].total.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF03045E))),
                     const SizedBox(width: 10),
                     if (!_isExpired) ...[
-                      InkWell(onTap: () { setState(() { if (_cart[i].quantity > 1.0) { _cart[i].quantity -= 1.0; } else { _cart.removeAt(i); } }); setModalState(() {}); if (_cart.isEmpty) Navigator.pop(context); }, child: const Icon(Icons.remove_circle_outline_rounded, color: Colors.orange)),
+                      InkWell(onTap: () { setState(() { if (_cart[i].quantity > 1.0) { _cart[i].quantity -= 1.0; } else { _cart.removeAt(i); } _saveDraftCart(); }); setModalState(() {}); if (_cart.isEmpty) Navigator.pop(context); }, child: const Icon(Icons.remove_circle_outline_rounded, color: Colors.orange)),
                       const SizedBox(width: 10),
                       InkWell(
                         onTap: () { 
@@ -955,7 +1135,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No hay más stock disponible (Reservado)'), backgroundColor: Colors.orange));
                              return;
                           }
-                          setState(() => _cart[i].quantity += 1.0); 
+                          setState(() { _cart[i].quantity += 1.0; _saveDraftCart(); }); 
                           setModalState(() {}); 
                         }, 
                         child: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF00B4D8))
@@ -1004,6 +1184,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
     if (dlStr.isNotEmpty) _deadline = DateTime.tryParse(dlStr);
     _isDeadlineActive = prefs.getBool('deadline_active') ?? false;
 
+    await _syncPendingOfflineOrders();
+
     final token = prefs.getString('token');
     try {
       final response = await http.get(Uri.parse('$_baseUrl/api/orders'), headers: {
@@ -1017,6 +1199,51 @@ class _OrdersScreenState extends State<OrdersScreen> {
       }
     } catch (e) { debugPrint("Err Historial: $e"); }
     finally { setState(() => _isLoading = false); }
+  }
+
+  Future<void> _syncPendingOfflineOrders() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<String> pending = prefs.getStringList('pending_offline_orders') ?? [];
+      if (pending.isEmpty) return;
+
+      final token = prefs.getString('token');
+      final List<String> remaining = [];
+      int synced = 0;
+
+      for (String orderJson in pending) {
+        try {
+          final Map<String, dynamic> body = json.decode(orderJson);
+          final response = await http.post(
+            Uri.parse('$_baseUrl/api/orders'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'X-Device-Token': prefs.getString('device_token') ?? ''
+            },
+            body: json.encode(body),
+          ).timeout(const Duration(seconds: 10));
+
+          if (response.statusCode == 200) {
+            synced++;
+          } else {
+            remaining.add(orderJson);
+          }
+        } catch (_) {
+          remaining.add(orderJson);
+        }
+      }
+
+      await prefs.setStringList('pending_offline_orders', remaining);
+      if (synced > 0 && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('✅ Sincronizados $synced pedido(s) pendientes offline'), backgroundColor: Colors.green)
+        );
+      }
+    } catch (e) {
+      debugPrint("Error sincronizando en OrdersScreen: $e");
+    }
   }
 
   bool get _isExpired => _isDeadlineActive && _deadline != null && DateTime.now().isAfter(_deadline!);

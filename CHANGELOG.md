@@ -1,3 +1,10 @@
+## [1.10.289] - 2026-07-31
+
+### Added
+- **Persistencia Local de Borradores y Modo Offline (App Vendedor Foráneo)**:
+  - **Auto-Guardado del Borrador**: Los productos agregados, cliente seleccionado y observaciones en el pedido se guardan automáticamente en la memoria local del teléfono (`SharedPreferences`). Si el vendedor minimiza la app, responde una llamada o la app se cierra, al reabrir el pedido se recupera intacto.
+  - **Cola de Pedidos Offline**: Si el vendedor intenta enviar la orden a la oficina sin conexión a internet, la app guarda el pedido localmente en el teléfono notificando al vendedor. Al recuperar la conexión o abrir la sección de pedidos, se sincronizan automáticamente.
+
 ## [1.10.288] - 2026-07-31
 
 ### Improved
