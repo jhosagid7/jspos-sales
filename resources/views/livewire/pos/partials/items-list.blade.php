@@ -290,13 +290,13 @@
             <div class="col-sm-12 col-md-6 d-flex justify-content-end">
                 <div class="btn-group btn-group-pill " role="group" aria-label="Basic example">
                     <livewire:partial-payment key="partial-payment-component" />
-                    <button onclick="processOrder()" type="button" class="btn btn-outline-light-2x txt-dark"><i class="icon-money"></i> Ordenes</button>
-                    <button @if ($totalCart > 0) onclick="cancelSale()" @endif type="button" class="btn btn-outline-light-2x txt-dark"><i class="icon-trash"></i> Cancelar</button>
+                    <button onclick="processOrder()" type="button" class="btn btn-outline-light-2x txt-dark"><i class="icofont icofont-listine-dots text-primary me-1"></i> Ordenes</button>
+                    <button @if ($totalCart > 0) onclick="cancelSale()" @endif type="button" class="btn btn-outline-light-2x txt-dark"><i class="icofont icofont-ui-delete text-danger me-1"></i> Cancelar</button>
                     @module('module_credits')
-                    <button onclick="initPartialPay()" type="button" class="btn btn-outline-light-2x txt-dark"><i class="icon-money"></i> Abonos</button>
+                    <button onclick="initPartialPay()" type="button" class="btn btn-outline-light-2x txt-dark"><i class="icofont icofont-money-bag text-success me-1"></i> Abonos</button>
                     @endmodule
-                    <button wire:click.prevent="printLast" type="button" class="btn btn-outline-light-2x txt-dark" title="Imprimir Ticket Térmico 80mm"><i class="icon-printer"></i> Ticket</button>
-                    <button wire:click.prevent="printLastPdf" type="button" class="btn btn-outline-light-2x txt-dark" title="Imprimir Factura Carta PDF"><i class="icofont icofont-file-pdf text-danger"></i> Factura</button>
+                    <button wire:click.prevent="printLast" type="button" class="btn btn-outline-light-2x txt-dark" title="Imprimir Ticket Térmico 80mm"><i class="icofont icofont-ticket text-info me-1"></i> Ticket</button>
+                    <button wire:click.prevent="printLastPdf" type="button" class="btn btn-outline-light-2x txt-dark" title="Imprimir Factura Carta PDF"><i class="icofont icofont-file-pdf text-danger me-1"></i> Factura</button>
                 </div>
             </div>
         </div>

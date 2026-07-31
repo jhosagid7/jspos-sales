@@ -1,3 +1,8 @@
+## [1.10.288] - 2026-07-31
+
+### Improved
+- **Íconos de Colores en la Botonera de Acciones POS**: Se agregaron íconos temáticos de colores (`icofont`) para todos los botones de la barra de acciones (Ordenes, Cancelar, Abonos, Ticket y Factura) brindando una apariencia moderna y consistente.
+
 ## [1.10.287] - 2026-07-31
 
 ### Added
