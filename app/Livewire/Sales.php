@@ -386,6 +386,8 @@ class Sales extends Component
     {
         if ($this->applyCommissions) {
             $this->applyFreight = false;
+        } else {
+            $this->applyFreight = false;
         }
         session(['applyCommissions' => $this->applyCommissions, 'applyFreight' => $this->applyFreight]);
         $this->recalculateCartWithSellerConfig();
@@ -396,6 +398,8 @@ class Sales extends Component
     public function updatedApplyFreight()
     {
         if ($this->applyFreight) {
+            $this->applyCommissions = false;
+        } else {
             $this->applyCommissions = false;
         }
         session(['applyCommissions' => $this->applyCommissions, 'applyFreight' => $this->applyFreight]);
@@ -1604,8 +1608,12 @@ class Sales extends Component
         
         // Restore configuration from order
         $this->applyCommissions = (bool) $order->apply_commissions;
-    $this->applyFreight = (bool) $order->apply_freight;
-    $this->is_freight_broken_down = (bool) $order->is_freight_broken_down;
+        if ($this->applyCommissions) {
+            $this->applyFreight = false;
+        } else {
+            $this->applyFreight = (bool) $order->apply_freight;
+        }
+        $this->is_freight_broken_down = (bool) $order->is_freight_broken_down;
 
     // Restore Invoice Currency
     if($order->invoice_currency_id) {
@@ -1676,8 +1684,13 @@ class Sales extends Component
             }
 
             // Restaurar Configuraciones (Comisiones, Fletes, etc.)
-            $this->applyCommissions = (bool) ($sale->applied_commission_percent > 0);
-            $this->applyFreight = (bool) ($sale->applied_freight_percent > 0);
+            $hasComm = (floatval($sale->applied_commission_percent) > 0);
+            $this->applyCommissions = $hasComm;
+            if ($hasComm) {
+                $this->applyFreight = false;
+            } else {
+                $this->applyFreight = (floatval($sale->applied_freight_percent) > 0);
+            }
             $this->is_freight_broken_down = (bool) ($sale->is_freight_broken_down ?? false);
             $this->paymentAgreement = $sale->payment_agreement ?? 'USD';
             

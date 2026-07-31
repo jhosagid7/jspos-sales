@@ -1,3 +1,9 @@
+## [1.10.281] - 2026-07-31
+
+### Fixed
+- **Restauración de Órdenes/Ventas y Apagado Estricto de Flete**: Se corrigió un bug en `loadSaleToEdit` y `loadOrderToCart` donde al cargar una venta u orden previa creada con comisiones, el sistema leía `applied_freight_percent > 0` e inicializaba simultáneamente `applyFreight = true`. Esto causaba que al apagar el interruptor `Aplicar Comisiones`, el flete quedara activo internamente ($175.2615) en lugar de limpiar el precio base ($165.3410).
+  - **Solución**: Se actualizó la carga de ventas y órdenes para discriminar si la factura fue emitida con comisiones (`applied_commission_percent > 0`), asegurando que `applyFreight` se establezca en `false`. Asimismo, los manejadores `updatedApplyCommissions` y `updatedApplyFreight` ahora limpian de forma explícita ambos interruptores al apagar cualquiera de los controles.
+
 ## [1.10.280] - 2026-07-31
 
 ### Fixed
