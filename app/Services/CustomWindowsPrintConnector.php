@@ -55,7 +55,7 @@ class CustomWindowsPrintConnector implements PrintConnector
     const PLATFORM_MAC = 1;
     const PLATFORM_WIN = 2;
 
-    const REGEX_LOCAL = "/^(LPT\d|COM\d)$/";
+    const REGEX_LOCAL = "/^(LPT\d|COM\d):?$/i";
     const REGEX_PRINTERNAME = "/^[\d\w-]+(\s[\d\w-]+)*$/";
     
     // MODIFIED REGEX: Allows any character in password/user except control chars. 
@@ -71,13 +71,15 @@ class CustomWindowsPrintConnector implements PrintConnector
         $this->userPassword = null;
         $this->workgroup = null;
 
-        if (preg_match(self::REGEX_LOCAL, $dest) == 1) {
+        $cleanDest = rtrim(trim($dest), ':');
+
+        if (preg_match(self::REGEX_LOCAL, $cleanDest) == 1) {
             if ($this->platform !== self::PLATFORM_WIN) {
                 throw new BadMethodCallException("WindowsPrintConnector can only be used to print to a local printer ('".$dest."') on a Windows computer.");
             }
             $this->isLocal = true;
             $this->hostname = null;
-            $this->printerName = $dest;
+            $this->printerName = strtoupper($cleanDest);
         } elseif (preg_match(self::REGEX_SMB_PERMISSIVE, $dest) == 1) {
             // Connect to samba share, eg smb://host/printer
             $part = parse_url($dest);
@@ -99,6 +101,18 @@ class CustomWindowsPrintConnector implements PrintConnector
                 if (isset($part['pass'])) {
                     $this->userPassword = urldecode($part['pass']);
                 }
+            }
+        } elseif (str_starts_with($dest, '\\\\')) {
+            // Support raw UNC paths like \\COMPUTER\SHARE or \\192.168.1.100\POS80
+            $uncClean = ltrim($dest, '\\');
+            $parts = explode('\\', $uncClean);
+            if (count($parts) >= 2) {
+                $this->hostname = $parts[0];
+                $this->printerName = $parts[1];
+                $this->isLocal = false;
+            } else {
+                $this->printerName = $dest;
+                $this->isLocal = true;
             }
         } elseif (preg_match(self::REGEX_PRINTERNAME, $dest) == 1) {
             $hostname = gethostname();
@@ -139,6 +153,7 @@ class CustomWindowsPrintConnector implements PrintConnector
     {
         if (!$this->isLocal) {
             $device = "\\\\" . $this->hostname . "\\" . $this->printerName;
+            $netUseError = "";
             if ($this->userName !== null) {
                 $user = "/user:" . ($this->workgroup != null ? ($this->workgroup . "\\") : "") . $this->userName;
                 if ($this->userPassword == null) {
@@ -148,28 +163,31 @@ class CustomWindowsPrintConnector implements PrintConnector
                 }
                 
                 $ret = $this->runCommand($command, $outputStr, $errorStr);
-                
-                // If net use failed, we should know why. 
-                // However, often it fails because "Multiple connections to a server... are not allowed".
-                // In that case, we might still be able to print if it was already connected with same credentials.
-                // Or we might need to net use /delete first? 
-                // For now, let's keep going but if copy fails, we append the net use error to the exception.
-                $netUseError = "";
                 if ($ret != 0) {
                      $netUseError = " | net use error: " . trim($errorStr);
                 }
+            } else {
+                // Ensure net use connection is active for UNC share
+                $command = sprintf("net use %s", escapeshellarg($device));
+                $this->runCommand($command, $outputStr, $errorStr);
             }
             
             $filename = tempnam(sys_get_temp_dir(), "escpos");
             file_put_contents($filename, $data);
-            if (!copy($filename, $device)) {
+            if (!@copy($filename, $device)) {
+                 // Fallback 1: Try writing directly to LPT1 if mapped by Windows net use
+                 if (@file_put_contents("LPT1", $data) !== false) {
+                     unlink($filename);
+                     return;
+                 }
                  unlink($filename);
                  $authInfo = $this->userName ? " with User: " . $this->userName : " (No Auth)";
                  throw new Exception("Failed to copy file to printer at $device $authInfo" . $netUseError);
             }
             unlink($filename);
         } else {
-            if (file_put_contents($this->printerName, $data) === false) {
+            $target = rtrim($this->printerName, ':');
+            if (@file_put_contents($target, $data) === false && @file_put_contents($this->printerName, $data) === false) {
                 throw new Exception("Failed to write file to printer at " . $this->printerName);
             }
         }

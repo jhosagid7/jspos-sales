@@ -1,3 +1,10 @@
+## [1.10.283] - 2026-07-31
+
+### Fixed
+- **Soporte Completo para Impresoras de Red UNC (`\\EQUIPO\IMPRESORA`) y Puertos LPT en Windows**: Se mejoró `CustomWindowsPrintConnector` para parsear automáticamente rutas de red compartidas (`\\COMPUTER\SHARE`), sanitizar nombres de puertos con dos puntos (`LPT1:`) y ejecutar reconexiones vía `net use`.
+  - **Causa Raíz**: Las rutas UNC que iniciaban con `\\` eran tratadas por error como archivos locales (`isLocal = true`), intentando escribir directamente con `file_put_contents`, lo cual arrojaba `Permission denied` en PHP sobre Windows.
+  - **Solución**: Se separó el hostname y sharename para reconectar el flujo de red por SMB/Spooler, y se añadió fallback automático a puerto `LPT1` en caso de requerir reescritura directa.
+
 ## [1.10.282] - 2026-07-31
 
 ### Fixed
