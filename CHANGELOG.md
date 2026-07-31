@@ -1,3 +1,10 @@
+## [1.10.284] - 2026-07-31
+
+### Fixed
+- **Integración Nativa con el Servicio de Impresión de Windows (Win32 Print Spooler API)**: Se actualizó `CustomWindowsPrintConnector.php` para utilizar las llamadas a la API de Spooler nativa de Windows (`OpenPrinter`, `StartDocPrinter`, `WritePrinter`).
+  - **Causa Raíz**: Los métodos anteriores basados en comandos `copy` o `file_put_contents` fallaban con errores de permisos o rutas no encontradas cuando PHP se ejecutaba en entorno web/CGI al enviar datos a impresoras locales o de red (`\\DESKTOP-CP7495D\POS80` y `\\192.168.20.105\pos80`).
+  - **Solución**: La API nativa de Windows Spooler entrega la ráfaga de comandos ESC/POS directamente al administrador de colas de impresión de Windows para cualquier impresora instalada, garantizando la impresión física inmediata.
+
 ## [1.10.283] - 2026-07-31
 
 ### Fixed
