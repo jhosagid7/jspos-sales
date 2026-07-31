@@ -130,11 +130,20 @@ class _LoginScreenState extends State<LoginScreen> {
       await prefs.setString('device_token', token);
     }
 
+    String userToken = prefs.getString('token') ?? '';
+    String lastEmail = prefs.getString('last_email') ?? '';
+
     setState(() { 
       _baseUrl = prefs.getString('base_url') ?? 'http://192.168.194.66'; 
-      _emailController.text = prefs.getString('last_email') ?? ''; 
+      _emailController.text = lastEmail; 
       _deviceToken = token;
     }); 
+
+    if (userToken.isNotEmpty) {
+      if (mounted) {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
+      }
+    }
   }
 
   String _generateRandomString(int length) {
@@ -173,6 +182,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _login() async {
     setState(() => _isLoading = true);
+    final prefs = await SharedPreferences.getInstance();
+    final String savedToken = prefs.getString('token') ?? '';
+    final String lastEmail = prefs.getString('last_email') ?? '';
+
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/api/login'),
@@ -181,11 +194,10 @@ class _LoginScreenState extends State<LoginScreen> {
           'X-Device-Token': _deviceToken
         },
         body: {'email': _emailController.text, 'password': _passwordController.text, 'device_name': 'Mobile (Seller)'},
-      ).timeout(const Duration(seconds: 15));
+      ).timeout(const Duration(seconds: 8));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final prefs = await SharedPreferences.getInstance();
         await prefs.setInt('user_id', data['user']['id'] ?? 0);
         await prefs.setString('token', data['token'] ?? '');
         await prefs.setString('user_name', data['user']['name'] ?? 'Vendedor');
@@ -200,7 +212,16 @@ class _LoginScreenState extends State<LoginScreen> {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Credenciales incorrectas')));
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (savedToken.isNotEmpty && _emailController.text.trim().toLowerCase() == lastEmail.trim().toLowerCase()) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('📱 MODO OFFLINE: Sesión iniciada con datos guardados.'), backgroundColor: Colors.orange)
+          );
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
+        }
+      } else {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sin conexión al servidor: $e')));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

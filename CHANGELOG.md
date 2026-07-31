@@ -1,3 +1,10 @@
+## [1.10.291] - 2026-07-31
+
+### Added
+- **Auto-Login Persistente y Modo Offline sin Internet (App Vendedor Foráneo v1.1.39)**:
+  - **Auto-Inicio de Sesión**: Si el vendedor ya inició sesión previamente en la app, al abrir la aplicación sin conexión a internet entra directamente al panel sin pedir volver a autenticarse.
+  - **Fallback de Autenticación Offline**: Si la app está en la pantalla de login sin señal, al presionar "ENTRAR" valida el token previamente guardado permitiendo acceso inmediato a la app en modo offline.
+
 ## [1.10.290] - 2026-07-31
 
 ### Added
