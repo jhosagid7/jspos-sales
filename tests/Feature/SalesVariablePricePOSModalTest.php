@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\Currency;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\SaleDetail;
@@ -30,6 +31,9 @@ class SalesVariablePricePOSModalTest extends TestCase
         $supplier = Supplier::create(['name' => 'Proveedor']);
         $category = Category::create(['name' => 'Servicios']);
         $customer = Customer::create(['name' => 'Cliente General', 'status' => 1]);
+
+        $currencyUsd = Currency::create(['name' => 'Dolar', 'label' => 'USD', 'code' => 'USD', 'symbol' => '$', 'exchange_rate' => 1.0, 'is_primary' => true]);
+        $currencyVed = Currency::create(['name' => 'Bolivar', 'label' => 'Bs', 'code' => 'VED', 'symbol' => 'Bs', 'exchange_rate' => 50.0, 'is_primary' => false]);
 
         $product = Product::create([
             'sku' => 'SERV-DISEÑO',
@@ -67,7 +71,21 @@ class SalesVariablePricePOSModalTest extends TestCase
         $this->assertEquals('Pendón 2x1m', $addedItem['name']);
         $this->assertEquals(45.00, $addedItem['sale_price']);
 
-        // 5. Verify SaleDetail accessor returns custom_name when metadata has custom_name
+        // 5. Update quantity to 2 and verify custom price is retained (not reset to 0)
+        $component->call('updateQty', $addedItem['id'], 2);
+        $cartAfterUpdate = $component->get('cart');
+        $updatedItem = collect($cartAfterUpdate)->firstWhere('id', $addedItem['id']);
+        $this->assertEquals(45.00, $updatedItem['sale_price']);
+        $this->assertEquals(90.00, $updatedItem['total']);
+
+        // 6. Change currency to VED via set('invoiceCurrency_id') and verify price is recalculated correctly from base without resetting to 0
+        $component->set('invoiceCurrency_id', $currencyVed->id);
+        $cartAfterCurrencyChange = $component->get('cart');
+        $currencyItem = collect($cartAfterCurrencyChange)->firstWhere('id', $addedItem['id']);
+        $this->assertEquals(45.00, $currencyItem['sale_price']); // base sale_price in primary USD
+        $this->assertEquals(90.00, $currencyItem['total']); // base total in primary USD
+
+        // 7. Verify SaleDetail accessor returns custom_name when metadata has custom_name
         $detail = new SaleDetail([
             'product_id' => $product->id,
             'metadata' => json_encode(['custom_name' => 'Pendón 2x1m'])

@@ -1,3 +1,13 @@
+## [1.10.302] - 2026-08-01
+
+### Fixed
+- **Persistencia de Precio Personalizado al Modificar Cantidad o Cambiar Moneda**:
+  - **Causa Raíz**: Al incrementar la cantidad (`updateQty`), cambiar la moneda de la venta (`updatedInvoiceCurrencyId`), o recalcular el carrito (`recalculateCartPrices` / `recalculateCartWithSellerConfig`), el sistema recalculaba el precio base llamando a `$this->determinePrice()`. Debido a que los productos de precio variable tienen un precio base por defecto de `0.00` en la base de datos, el precio se restablecía a `0` perdiéndose el monto personalizado introducido por el vendedor.
+  - **Solución**:
+    - Se agregó el flag `'is_custom_price' => true` al ítem del carrito cuando se introduce un precio personalizado o producto variable.
+    - Se actualizaron los métodos de recálculo `updateQty()`, `recalculateCartPrices()`, `recalculateCartWithSellerConfig()` y asignación en grupo de precios para preservar el precio base personalizado de moneda principal (`base_price`), recalculando correctamente los totales al cambiar la cantidad o al convertir de moneda (USD <-> VED/VES).
+  - **Pruebas**: Se actualizó la prueba `Tests\Feature\SalesVariablePricePOSModalTest.php` comprobando exitosamente con 11 aserciones la persistencia del precio personalizado ante cambios de cantidad y conversión de divisas.
+
 ## [1.10.301] - 2026-08-01
 
 ### Fixed

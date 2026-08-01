@@ -802,6 +802,7 @@ class Sales extends Component
         $newItem = $oldItem;
         $newItem['base_price'] = $price; // Update base_price with manual override
         $newItem['sale_price'] = $price; // Temporary, Calculator will overwrite
+        $newItem['is_custom_price'] = true;
 
         $productModel = \App\Models\Product::find($newItem['pid']);
         $values = $this->Calculator($newItem['base_price'], $newItem['qty'], $productModel);
@@ -2248,7 +2249,8 @@ class Sales extends Component
             'warehouse_id' => $targetWarehouseId, // Store warehouse ID
             'freight_type' => $product->freight_type, // Store for recalculation
             'freight_value' => $product->freight_value, // Store for recalculation
-            'base_price' => $basePriceInPrimary // Store original base price to avoid compounding
+            'base_price' => $basePriceInPrimary, // Store original base price to avoid compounding
+            'is_custom_price' => ($customPrice !== null || $product->is_variable_price)
         ];
 
         $this->cart->push($itemCart);
@@ -2281,8 +2283,13 @@ class Sales extends Component
                 $siblingModel = \App\Models\Product::find($cartItem['pid']);
                 if (!$siblingModel) return $cartItem;
 
-                $newBasePrice       = $this->determinePrice($siblingModel, $cartItem['qty']);
-                $newBasePriceInPrim = $newBasePrice * $exchangeRate;
+                if (!empty($cartItem['is_custom_price']) || $siblingModel->is_variable_price) {
+                    $newBasePriceInPrim = $cartItem['base_price'] ?? $cartItem['price1'] ?? 0;
+                    $cartItem['is_custom_price'] = true;
+                } else {
+                    $newBasePrice       = $this->determinePrice($siblingModel, $cartItem['qty']);
+                    $newBasePriceInPrim = $newBasePrice * $exchangeRate;
+                }
 
                 $cartItem['base_price'] = $newBasePriceInPrim;
                 $values = $this->Calculator($newBasePriceInPrim, $cartItem['qty'], $siblingModel);
@@ -2399,8 +2406,13 @@ class Sales extends Component
         foreach ($cartArray as &$item) {
             $productModel = \App\Models\Product::find($item['pid']);
             if ($productModel) {
-                 // Recalcular el precio base usando la lógica de Tiers + Moneda
-                 $baseForCalc = $this->determinePrice($productModel, $item['qty']);
+                 if (!empty($item['is_custom_price']) || $productModel->is_variable_price) {
+                     $baseForCalc = $item['base_price'] ?? $item['price1'] ?? 0;
+                     $item['is_custom_price'] = true;
+                 } else {
+                     // Recalcular el precio base usando la lógica de Tiers + Moneda
+                     $baseForCalc = $this->determinePrice($productModel, $item['qty']);
+                 }
                  
                  $result = $this->Calculator($baseForCalc, $item['qty'], $productModel);
                  $item['base_price'] = $baseForCalc; // Actualizar base_price para futuras referencias
@@ -2886,20 +2898,21 @@ class Sales extends Component
         $productModel = \App\Models\Product::find($newItem['pid']);
         
         // Determine correct base price
-        // If the product has volume tiers, we MUST recalculate based on new QTY
-        $basePriceFromTiers = $this->determinePrice($productModel, $newItem['qty']);
-        
-        $primaryCurrency = CurrencyHelper::getPrimaryCurrency();
-        $exchangeRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
-        
-        // Convert tier price to primary currency
-        $basePriceFromTiersInPrimary = $basePriceFromTiers * $exchangeRate;
+        if (!empty($oldItem['is_custom_price']) || $productModel->is_variable_price) {
+            $basePriceFromTiersInPrimary = $oldItem['base_price'] ?? $oldItem['price1'] ?? 0;
+            $newItem['is_custom_price'] = true;
+        } else {
+            // If the product has volume tiers, we MUST recalculate based on new QTY
+            $basePriceFromTiers = $this->determinePrice($productModel, $newItem['qty']);
+            
+            $primaryCurrency = CurrencyHelper::getPrimaryCurrency();
+            $exchangeRate = $primaryCurrency ? $primaryCurrency->exchange_rate : 1;
+            
+            // Convert tier price to primary currency
+            $basePriceFromTiersInPrimary = $basePriceFromTiers * $exchangeRate;
+        }
 
         // Update base_price in item
-        // Note: If we had a manual override flag, we would check it here. 
-        // For now, we assume if Qty changes, we re-evaluate tiers unless it's a manual price (which we can't easily track without a flag).
-        // However, the previous logic was preserving 'base_price' from oldItem regardless of qty change, which broke tiers.
-        // We will update base_price.
         $newItem['base_price'] = $basePriceFromTiersInPrimary;
 
         $base = $newItem['base_price'];
@@ -2942,13 +2955,13 @@ class Sales extends Component
                 $siblingModel = \App\Models\Product::find($cartItem['pid']);
                 if (!$siblingModel) return $cartItem;
 
-                // Pass the total group quantity so determinePrice finds the correct tier
-                // because determinePrice usually adds qty to existing cart. But here totalGroupQtyInCart is already the expected sum.
-                // NOTE: determinePrice() already does a sum in its body. But it sums cart qty.
-                // We should pass the individual item's cartQty, and let determinePrice add the rest.
-                // Wait, determinePrice takes ($product, $qty) where $qty is the new amount for THIS product.
-                $newBasePrice       = $this->determinePrice($siblingModel, $cartItem['qty']);
-                $newBasePriceInPrim = $newBasePrice * $exchangeRate;
+                if (!empty($cartItem['is_custom_price']) || $siblingModel->is_variable_price) {
+                    $newBasePriceInPrim = $cartItem['base_price'] ?? $cartItem['price1'] ?? 0;
+                    $cartItem['is_custom_price'] = true;
+                } else {
+                    $newBasePrice       = $this->determinePrice($siblingModel, $cartItem['qty']);
+                    $newBasePriceInPrim = $newBasePrice * $exchangeRate;
+                }
 
                 $cartItem['base_price'] = $newBasePriceInPrim;
                 $values = $this->Calculator($newBasePriceInPrim, $cartItem['qty'], $siblingModel);
@@ -3385,10 +3398,12 @@ class Sales extends Component
             }
 
             // Recalculate item totals
-            // Use stored base_price if available (respects manual overrides), otherwise calc from product
-            // Note: determinePrice logic for tiers is missing here, ideally we should re-run determinePrice if it's not a manual override.
-            // But for now, fixing the compounding is priority.
-            $calcBase = $item['base_price'] ?? ($product->price * $exchangeRate);
+            if (!empty($item['is_custom_price']) || $product->is_variable_price) {
+                $calcBase = $item['base_price'] ?? $item['price1'] ?? 0;
+                $item['is_custom_price'] = true;
+            } else {
+                $calcBase = $item['base_price'] ?? ($product->price * $exchangeRate);
+            }
             
             $values = $this->Calculator($calcBase, $item['qty'], $product);
             $decimals = ConfigurationService::getDecimalPlaces();
