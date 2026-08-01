@@ -189,10 +189,11 @@
         })
 
         Livewire.on('prompt-variable-price', event => {
-            let productName = event[0].productName || 'Producto';
+            let payload = Array.isArray(event) ? event[0] : (event || {});
+            let productName = payload.productName || 'Producto';
             swal({
                 title: 'PRECIO VARIABLE - ' + productName,
-                text: 'Ingresa el precio del servicio:',
+                text: 'Ingresa el precio del servicio o producto:',
                 content: {
                     element: "input",
                     attributes: {
@@ -214,16 +215,16 @@
                 
                 swal({
                     title: 'DESCRIPCIÓN (Opcional)',
-                    text: 'Ingresa una descripción para el trabajo realizado (Ej: Diseño de Logo):',
+                    text: 'Ingresa el nombre o descripción del trabajo para la venta (Ej: Diseño de Logo / Servicio de Impresión):',
                     content: {
                         element: "input",
                         attributes: {
-                            placeholder: "Descripción detallada",
+                            placeholder: "Nombre/Descripción personalizada",
                             type: "text",
                         },
                     },
                     buttons: {
-                        cancel: "Omitir",
+                        cancel: "Omitir (Nombre original)",
                         confirm: "Aceptar"
                     }
                 }).then((desc) => {

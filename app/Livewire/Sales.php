@@ -939,10 +939,15 @@ class Sales extends Component
     #[On('set-variable-price-and-add')]
     public function setVariablePriceAndAdd($price, $customName = null)
     {
+        if (is_array($price) && isset($price['price'])) {
+            $customName = $price['customName'] ?? null;
+            $price = $price['price'];
+        }
+
         if ($this->pendingProductToAdd) {
             $product = Product::find($this->pendingProductToAdd);
             if ($product) {
-                $this->AddProduct($product, $this->pendingQtyToAdd, $this->pendingWarehouseId, $price, $customName);
+                $this->AddProduct($product, $this->pendingQtyToAdd, $this->pendingWarehouseId, (float)$price, $customName);
             }
             $this->pendingProductToAdd = null;
             $this->pendingQtyToAdd = 1;

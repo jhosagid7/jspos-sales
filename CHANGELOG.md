@@ -1,3 +1,12 @@
+## [1.10.300] - 2026-08-01
+
+### Fixed
+- **Corrección en Modal de Productos con Precio Variable / Servicios en Ventas (POS)**:
+  - **Causa Raíz en JS**: En Livewire 3 el evento emitido `prompt-variable-price` envía un objeto directo en lugar de un arreglo, por lo que `event[0].productName` lanzaba un error `TypeError: Cannot read properties of undefined` en la consola del navegador impidiendo la apertura del SweetAlert modal.
+  - **Causa Raíz en PHP**: El método receptor `$this->setVariablePriceAndAdd()` en `Sales.php` no estaba adaptado para extraer el objeto payload `{ price, customName }` enviado por Livewire 3.
+  - **Solución**: Se actualizó `resources/views/livewire/pos/partials/script.blade.php` para extraer de manera segura `productName` sin errores de JS. Se actualizó el listener `setVariablePriceAndAdd()` en `Sales.php` para asignar correctamente el precio y la descripción personalizada al carrito.
+  - **Pruebas**: Se creó la prueba de integración `Tests\Feature\SalesVariablePricePOSModalTest.php` pasando limpiamente con 6 aserciones.
+
 ## [1.10.299] - 2026-08-01
 
 ### Fixed
