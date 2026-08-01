@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Category;
 use App\Models\Customer;
 use App\Models\Product;
+use App\Models\SaleDetail;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Models\Warehouse;
@@ -65,5 +66,12 @@ class SalesVariablePricePOSModalTest extends TestCase
         $this->assertNotNull($addedItem);
         $this->assertEquals('Pendón 2x1m', $addedItem['name']);
         $this->assertEquals(45.00, $addedItem['sale_price']);
+
+        // 5. Verify SaleDetail accessor returns custom_name when metadata has custom_name
+        $detail = new SaleDetail([
+            'product_id' => $product->id,
+            'metadata' => json_encode(['custom_name' => 'Pendón 2x1m'])
+        ]);
+        $this->assertEquals('Pendón 2x1m', $detail->custom_name);
     }
 }

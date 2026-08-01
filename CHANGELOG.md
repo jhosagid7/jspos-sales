@@ -1,3 +1,13 @@
+## [1.10.301] - 2026-08-01
+
+### Fixed
+- **Persistencia e Impresión del Nombre/Descripción Personalizada en Factura / Remisión**:
+  - **Causa Raíz**: El nombre personalizado asignado durante la venta POS a productos variables o servicios no se guardaba dentro de los datos del detalle (`metadata`) ni se renderizaba en las facturas/remisiones PDF (`PdfInvoiceTrait.php` / `PdfOrderInvoiceTrait.php`), usando siempre el nombre base del producto en base de datos.
+  - **Solución**:
+    - Se modificó la persistencia de `SaleDetail` y `OrderDetail` en `app/Livewire/Sales.php` para guardar `'custom_name'` dentro de `metadata` cuando el nombre introducido difiera del nombre base del producto.
+    - Se implementaron los accesores `$detail->custom_name` en `App\Models\SaleDetail` y `App\Models\OrderDetail` que retornan la descripción personalizada registrada o el nombre original como respaldo.
+    - Se actualizaron los generadores de PDF (`PdfInvoiceTrait.php`, `PdfOrderInvoiceTrait.php`) y vistas Blade (`sale-detail.blade.php`, `order-detail.blade.php`) para mostrar el nombre personalizado de la factura/remisión.
+
 ## [1.10.300] - 2026-08-01
 
 ### Fixed

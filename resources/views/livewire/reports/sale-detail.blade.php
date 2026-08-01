@@ -183,7 +183,7 @@
                                         <tr class="text-center">
                                             <td>{{ $detail->id }}</td>
                                             <td>
-                                                {{ $detail->product->name }}
+                                                {{ $detail->custom_name }}
 
                                             </td>
                                             <td>{{ $qty }}</td>

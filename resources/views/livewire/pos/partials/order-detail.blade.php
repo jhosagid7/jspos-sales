@@ -25,7 +25,7 @@
                                     @forelse ($details as $detail)
                                         <tr class="text-center">
                                             <td data-label="Folio">{{ $detail->id }}</td>
-                                            <td data-label="Descripción">{{ $detail->product->name }}</td>
+                                            <td data-label="Descripción">{{ $detail->custom_name }}</td>
                                             <td data-label="Cantidad">{{ $detail->quantity }}</td>
                                             <td data-label="Precio">${{ $detail->sale_price }}</td>
                                             <td data-label="Importe">${{ round($detail->sale_price * $detail->quantity, 2) }}</td>

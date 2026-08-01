@@ -4222,24 +4222,32 @@ class Sales extends Component
                      }
                 }
 
-                return [
-                    'product_id' => $item['pid'],
-                    'sale_id' => $sale->id,
-                    'quantity' => round($item['qty'], $decimals),
-                    'regular_price' => round(
-                        ($item['base_price'] ?? $item['price1'] ?? 0) * $conversionFactorForDetails,
-                        $decimals
-                    ),
-                    'sale_price' => round($item['sale_price'] * $conversionFactorForDetails, $decimals),
-                    'freight_amount' => round($freightAmount * $conversionFactorForDetails, $decimals),
+                 $metaData = [];
+                 if (isset($item['product_item_id'])) {
+                     $metaData['product_item_id'] = $item['product_item_id'];
+                 }
+                 if (!empty($item['name']) && isset($product->name) && $item['name'] !== $product->name) {
+                     $metaData['custom_name'] = $item['name'];
+                 }
 
-                    'price_usd' => $priceUSD,
-                    'exchange_rate' => $primaryCurrency->exchange_rate,
-                    'created_at' => Carbon::now(),
-                    'discount' => 0,
-                    'warehouse_id' => $item['warehouse_id'] ?? null, // Store warehouse ID
-                    'metadata' => isset($item['product_item_id']) ? json_encode(['product_item_id' => $item['product_item_id']]) : null
-                ];
+                 return [
+                     'product_id' => $item['pid'],
+                     'sale_id' => $sale->id,
+                     'quantity' => round($item['qty'], $decimals),
+                     'regular_price' => round(
+                         ($item['base_price'] ?? $item['price1'] ?? 0) * $conversionFactorForDetails,
+                         $decimals
+                     ),
+                     'sale_price' => round($item['sale_price'] * $conversionFactorForDetails, $decimals),
+                     'freight_amount' => round($freightAmount * $conversionFactorForDetails, $decimals),
+
+                     'price_usd' => $priceUSD,
+                     'exchange_rate' => $primaryCurrency->exchange_rate,
+                     'created_at' => Carbon::now(),
+                     'discount' => 0,
+                     'warehouse_id' => $item['warehouse_id'] ?? null, // Store warehouse ID
+                     'metadata' => !empty($metaData) ? json_encode($metaData) : null
+                 ];
             })->toArray();
 
             SaleDetail::insert($details);
@@ -4760,6 +4768,15 @@ class Sales extends Component
 
                     // Actualiza los detalles de la orden
                     $details = $cart->map(function ($item) use ($order, $decimals) {
+                        $metaData = [];
+                        if (isset($item['product_item_id'])) {
+                            $metaData['product_item_id'] = $item['product_item_id'];
+                        }
+                        $prod = Product::find($item['pid']);
+                        if (!empty($item['name']) && $prod && $item['name'] !== $prod->name) {
+                            $metaData['custom_name'] = $item['name'];
+                        }
+
                         return [
                             'product_id' => $item['pid'],
                             'order_id' => $order->id,
@@ -4769,7 +4786,7 @@ class Sales extends Component
                             'created_at' => Carbon::now(),
                             'discount' => 0,
                             'warehouse_id' => $item['warehouse_id'] ?? null,
-                            'metadata' => isset($item['product_item_id']) ? json_encode(['product_item_id' => $item['product_item_id']]) : null
+                            'metadata' => !empty($metaData) ? json_encode($metaData) : null
                         ];
                     })->toArray();
 
@@ -4828,6 +4845,15 @@ class Sales extends Component
 
                 // Inserta los detalles de la venta
                 $details = $cart->map(function ($item) use ($order, $decimals) {
+                    $metaData = [];
+                    if (isset($item['product_item_id'])) {
+                        $metaData['product_item_id'] = $item['product_item_id'];
+                    }
+                    $prod = Product::find($item['pid']);
+                    if (!empty($item['name']) && $prod && $item['name'] !== $prod->name) {
+                        $metaData['custom_name'] = $item['name'];
+                    }
+
                     return [
                         'product_id' => $item['pid'],
                         'order_id' => $order->id,
@@ -4837,7 +4863,7 @@ class Sales extends Component
                         'created_at' => Carbon::now(),
                         'discount' => 0,
                         'warehouse_id' => $item['warehouse_id'] ?? null,
-                        'metadata' => isset($item['product_item_id']) ? json_encode(['product_item_id' => $item['product_item_id']]) : null
+                        'metadata' => !empty($metaData) ? json_encode($metaData) : null
                     ];
                 })->toArray();
 
