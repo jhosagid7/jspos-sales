@@ -1,3 +1,11 @@
+## [1.10.299] - 2026-08-01
+
+### Fixed
+- **Corrección en Guardado de "Precio Variable (Servicios/Diseños)" en Productos**:
+  - **Causa Raíz**: El atributo `is_variable_price` no estaba incluido en la propiedad `$fillable` de la clase `App\Models\Product`. Debido a la protección contra asignación masiva de Eloquent, la opción "Precio Variable" se descartaba silenciosamente al guardar o actualizar un producto.
+  - **Solución**: Se agregó `is_variable_price` a `$fillable` y `$casts` en `App\Models\Product.php`. Ahora la opción se guarda correctamente en base de datos.
+  - **Pruebas**: Se creó la prueba de integración `Tests\Feature\ProductVariablePriceTest.php` para validar la persistencia correcta.
+
 ## [1.10.298] - 2026-07-31
 
 ### Added
