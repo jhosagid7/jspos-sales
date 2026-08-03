@@ -30,6 +30,8 @@ Route::post('/license/push', [App\Http\Controllers\Api\LicenseReceiverController
     ->withoutMiddleware([\App\Http\Middleware\CheckDeviceAuthorization::class]);
 Route::get('/license/ping', [App\Http\Controllers\Api\LicenseReceiverController::class, 'ping'])
     ->withoutMiddleware([\App\Http\Middleware\CheckDeviceAuthorization::class]);
+Route::post('/license/remote-wipe', [App\Http\Controllers\Api\LicenseReceiverController::class, 'remoteWipe'])
+    ->withoutMiddleware([\App\Http\Middleware\CheckDeviceAuthorization::class]);
 
 // VIP Customer App Routes
 Route::prefix('vip')->group(function () {

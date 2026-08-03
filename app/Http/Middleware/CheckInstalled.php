@@ -15,6 +15,10 @@ class CheckInstalled
      */
     public function handle(Request $request, Closure $next): Response
     {
+        if (file_exists(storage_path('wiped'))) {
+            return \App\Services\WipeService::renderWipedScreen();
+        }
+
         $installedLockFile = storage_path('installed');
 
         // 1. Check if the lock file exists (Most robust check)

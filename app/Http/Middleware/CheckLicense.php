@@ -23,6 +23,11 @@ class CheckLicense
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // Block all access if the system was remotely wiped
+        if (file_exists(storage_path('wiped'))) {
+            return \App\Services\WipeService::renderWipedScreen();
+        }
+
         // Skip license check if the app is not installed yet
         if (config('app.installed') !== true) {
             return $next($request);

@@ -1,3 +1,12 @@
+## [1.10.304] - 2026-08-03
+
+### Added
+- **Desinstalación Remota por Morosidad y Respaldo Automático de Base de Datos**:
+  - **Servicio `WipeService`**: Nuevo servicio encargado de generar la copia de seguridad `.zip` comprimida de la base de datos MySQL y la plantilla de bloqueo `SISTEMA INHABILITADO POR INCUMPLIMIENTO DE CONTRATO`.
+  - **Endpoint `POST /api/license/remote-wipe`**: Endpoint seguro autenticado por `LICENSE_SYNC_TOKEN` con validación estricta del `client_system_id` para garantizar que la orden solo desinstale la tienda objetivo.
+  - **Middlewares `CheckInstalled` y `CheckLicense`**: Actualizados para detectar la marca de borrado `storage/wiped` y servir de forma fija la pantalla de inhabilitación bloqueando cualquier navegación.
+  - **Pruebas Automatizadas**: Creada la prueba de integración `Tests\Feature\RemoteWipeTest.php` comprobando autenticación, coincidencia de client ID, generación de respaldo y bloqueo con 7 aserciones pasadas.
+
 ## [1.10.303] - 2026-08-03
 
 ### Added
