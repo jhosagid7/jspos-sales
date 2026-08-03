@@ -1,3 +1,11 @@
+## [1.10.307] - 2026-08-03
+
+### Fixed & Enhanced
+- **Mejoras al Servicio de Verificación de Actualizaciones (`UpdateService`)**:
+  - **User-Agent y Timeout**: Agregado encabezado `User-Agent: JSPOS-Updater` y timeout de 10 segundos al consultar la API de GitHub Releases para evitar bloqueos de red.
+  - **Sanitización de Versiones**: Normalizada la comparación de versiones eliminando prefijos `'v'` de forma segura y previniendo la duplicación del prefijo en la vista Blade (`update-system.blade.php`).
+  - **Manejo de Errores y Logs**: Agregados registros de advertencia (`Log::warning`) en caso de respuestas no exitosas por parte de GitHub.
+
 ## [1.10.306] - 2026-08-03
 
 ### Fixed & Enhanced

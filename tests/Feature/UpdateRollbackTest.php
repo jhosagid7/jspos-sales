@@ -313,7 +313,9 @@ class UpdateRollbackTest extends TestCase
 
         // 1. Setup Spatie Roles/Permissions and User
         \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'settings.update']);
+        $superAdminRole = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Super Admin']);
         $adminUser = User::factory()->create();
+        $adminUser->assignRole($superAdminRole);
         $adminUser->givePermissionTo('settings.update');
 
         // 2. Setup Device Authorization for route test middleware

@@ -39,27 +39,30 @@ class UpdateService
         $url = "https://api.github.com/repos/{$this->owner}/{$this->repo}/releases/latest";
         
         try {
-            $response = Http::get($url);
+            $response = Http::withHeaders([
+                'User-Agent' => 'JSPOS-Updater'
+            ])->timeout(10)->get($url);
             
             if ($response->successful()) {
                 $data = $response->json();
                 $latestVersion = $data['tag_name'];
                 $currentVersion = $this->getCurrentVersion();
 
-                // Simple string comparison or version_compare
-                // Remove 'v' prefix if present for comparison
+                // Remove 'v' prefix for version comparison
                 $v1 = ltrim($latestVersion, 'v');
                 $v2 = ltrim($currentVersion, 'v');
 
                 if (version_compare($v1, $v2, '>')) {
                     return [
-                        'new_version' => $latestVersion,
+                        'new_version' => 'v' . $v1,
                         'current_version' => $currentVersion,
-                        'url' => $data['zipball_url'], // or assets
-                        'body' => $data['body'],
+                        'url' => $data['zipball_url'] ?? null,
+                        'body' => $data['body'] ?? '',
                         'has_update' => true
                     ];
                 }
+            } else {
+                Log::warning("GitHub update check returned status {$response->status()}: " . $response->body());
             }
         } catch (\Exception $e) {
             Log::error("Update check failed: " . $e->getMessage());

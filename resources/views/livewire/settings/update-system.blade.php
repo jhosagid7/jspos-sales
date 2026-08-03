@@ -25,7 +25,7 @@
                         @elseif($status === 'available')
                             <div class="alert alert-warning border-0 shadow-sm text-start p-4">
                                 <h4 class="alert-heading text-warning font-weight-bold"><i class="fas fa-gift me-2"></i> ¡Nueva Versión Disponible!</h4>
-                                <p class="mt-2">Versión: <strong class="text-dark">v{{ $newVersion }}</strong></p>
+                                <p class="mt-2">Versión: <strong class="text-dark">{{ $newVersion }}</strong></p>
                                 <hr>
                                 <div class="bg-light p-3 rounded" style="max-height: 200px; overflow-y: auto; border: 1px solid #e0e0e0;">
                                     {!! nl2br(e($releaseBody)) !!}
