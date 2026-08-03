@@ -47,8 +47,7 @@ Route::get('/', function () {
 // License Routes
 Route::get('/license/expired', [\App\Http\Controllers\LicenseController::class, 'expired'])->name('license.expired');
 Route::post('/license/activate', [\App\Http\Controllers\LicenseController::class, 'activate'])->name('license.activate');
-
-Route::post('/license/activate', [\App\Http\Controllers\LicenseController::class, 'activate'])->name('license.activate');
+Route::post('/license/sync', [\App\Http\Controllers\LicenseController::class, 'sync'])->name('license.sync');
 
 // Installation Routes
 Route::prefix('install')->name('install.')->group(function () {

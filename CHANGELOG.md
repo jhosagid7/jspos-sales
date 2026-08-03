@@ -1,3 +1,10 @@
+## [1.10.305] - 2026-08-03
+
+### Fixed & Improved
+- **Sincronización Automática en 1-Clic para Pantalla de Sistema Bloqueado**:
+  - **Sincronización Vía VPN**: Agregado el método `sync()` en `LicenseController.php` y el botón **⚡ Sincronizar Licencia por VPN** en la pantalla de `license.expired`.
+  - **Recuperación Tras Actualización**: Cuando una tienda cliente se actualiza y la tabla de licencias locales requiere actualizarse, con solo pulsar "Sincronizar Licencia" el sistema consulta al servidor `jspos-licencias` por VPN, obtiene la clave firmada activa y **desbloquea el sistema de inmediato** sin necesidad de copiar/pegar manualmente.
+
 ## [1.10.304] - 2026-08-03
 
 ### Added
