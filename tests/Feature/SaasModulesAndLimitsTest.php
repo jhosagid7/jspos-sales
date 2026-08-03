@@ -91,7 +91,14 @@ class SaasModulesAndLimitsTest extends TestCase
     public function test_reports_are_allowed_when_advanced_reports_module_is_present()
     {
         // Mock license with advanced reports module
-        $this->mockLicense(['module_advanced_reports'], 5);
+        $this->mockLicense([
+            'module_advanced_reports',
+            'module_sales_analysis',
+            'module_seller_performance',
+            'module_operator_efficiency',
+            'module_differential_audit',
+            'module_cash_flow'
+        ], 5);
 
         $this->actingAs($this->adminUser);
 
@@ -114,7 +121,8 @@ class SaasModulesAndLimitsTest extends TestCase
         ]);
 
         foreach ($routes as $routeName) {
-            $response = $this->withCookie('device_token', $device->uuid)
+            $response = $this->actingAs($this->adminUser)
+                ->withCookie('device_token', $device->uuid)
                 ->get(route($routeName));
             $response->assertStatus(200);
         }

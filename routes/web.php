@@ -60,6 +60,8 @@ Route::prefix('install')->name('install.')->group(function () {
     Route::post('/step3', [\App\Http\Controllers\InstallController::class, 'runMigrations'])->name('runMigrations');
     Route::get('/step4', [\App\Http\Controllers\InstallController::class, 'step4'])->name('step4');
     Route::post('/step4', [\App\Http\Controllers\InstallController::class, 'activateLicense'])->name('activateLicense');
+    Route::post('/step4/connect', [\App\Http\Controllers\InstallController::class, 'connectLicenseServer'])->name('connectLicenseServer');
+    Route::post('/step4/check-status', [\App\Http\Controllers\InstallController::class, 'checkLicenseStatus'])->name('checkLicenseStatus');
     Route::get('/step5', [\App\Http\Controllers\InstallController::class, 'step5'])->name('step5');
     Route::post('/step5', [\App\Http\Controllers\InstallController::class, 'createAdmin'])->name('createAdmin');
     Route::get('/finish', [\App\Http\Controllers\InstallController::class, 'finish'])->name('finish');

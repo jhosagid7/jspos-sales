@@ -47,4 +47,17 @@ class LicenseReceiverController extends Controller
             return response()->json(['error' => 'Error interno procesando la licencia.'], 500);
         }
     }
+
+    public function ping()
+    {
+        $licenseData = $this->licenseService->checkLicense();
+
+        return response()->json([
+            'status' => 'online',
+            'client_id' => $this->licenseService->getClientId(),
+            'has_license' => isset($licenseData['status']) && $licenseData['status'] === 'active',
+            'expires_at' => $licenseData['expires_at'] ?? null,
+            'installed' => file_exists(storage_path('installed')),
+        ]);
+    }
 }

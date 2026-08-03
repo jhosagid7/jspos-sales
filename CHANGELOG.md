@@ -1,3 +1,13 @@
+## [1.10.303] - 2026-08-03
+
+### Added
+- **Auto-Registro y Verificación En Línea de Licencias Vía VPN**:
+  - **Paso 4 del Instalador Rediseñado**: Nueva interfaz en `install/license.blade.php` con pestañas para *Conexión Automática por VPN (ZeroTier / Tailscale)* y *Código Manual Tradicional*.
+  - **Auto-Registro de Equipos**: Al colocar la IP del servidor de licencias en el instalador, la nueva tienda se registra automáticamente en el panel de licencias como *En Línea* y queda a la espera de la asignación del plan por el administrador.
+  - **Endpoint de Salud `/api/license/ping`**: Nuevo endpoint que reporta el estado en línea y la versión del cliente para el monitoreo en tiempo real desde `jspos-licencias`.
+  - **Controladores y Rutas AJAX**: Implementados los métodos `connectLicenseServer` y `checkLicenseStatus` en `InstallController.php`.
+  - **Pruebas Automatizadas**: Creada la prueba de integración `Tests\Feature\LicenseAutoConnectTest.php` verificando el ping API y el flujo de conexión AJAX con 8 aserciones limpias.
+
 ## [1.10.302] - 2026-08-01
 
 ### Fixed

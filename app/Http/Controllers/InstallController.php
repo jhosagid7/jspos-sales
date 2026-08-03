@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\LicenseService;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
 
 class InstallController extends Controller
 {
@@ -155,6 +156,102 @@ class InstallController extends Controller
     {
         $clientId = $this->licenseService->getClientId();
         return view('install.license', compact('clientId'));
+    }
+
+    public function connectLicenseServer(Request $request)
+    {
+        $request->validate([
+            'server_ip' => 'required|string',
+            'client_name' => 'required|string',
+        ]);
+
+        $clientId = $this->licenseService->getClientId();
+        $serverIp = trim($request->server_ip);
+
+        try {
+            $url = "http://{$serverIp}/api/clients/register";
+            $response = Http::timeout(5)->post($url, [
+                'client_system_id' => $clientId,
+                'name' => $request->client_name,
+                'vpn_ip' => $request->client_vpn_ip ?: null,
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                
+                // Save server IP to session
+                session(['license_server_ip' => $serverIp]);
+
+                if (!empty($data['has_license']) && !empty($data['license_key'])) {
+                    $activated = $this->licenseService->activateLicense($data['license_key']);
+                    if ($activated) {
+                        return response()->json([
+                            'status' => 'activated',
+                            'message' => '¡Licencia detectada y activada automáticamente!',
+                            'redirect' => route('install.step5')
+                        ]);
+                    }
+                }
+
+                return response()->json([
+                    'status' => 'registered',
+                    'message' => '¡Equipo registrado en línea exitosamente! El administrador ya lo ve en su panel. Presione "Consultar Aprobación" cuando le hayan otorgado la licencia.',
+                    'client_id' => $clientId
+                ]);
+            }
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'El servidor devolvió un error: ' . ($response->json('message') ?? 'Respuesta no válida')
+            ], 400);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No se pudo establecer conexión con http://' . $serverIp . '. Verifique que la IP de ZeroTier/Tailscale esté activa.'
+            ], 500);
+        }
+    }
+
+    public function checkLicenseStatus(Request $request)
+    {
+        $serverIp = $request->input('server_ip') ?: session('license_server_ip');
+        if (!$serverIp) {
+            return response()->json(['status' => 'error', 'message' => 'IP del servidor no configurada.'], 400);
+        }
+
+        $clientId = $this->licenseService->getClientId();
+
+        try {
+            $url = "http://{$serverIp}/api/clients/check-status";
+            $response = Http::timeout(5)->post($url, [
+                'client_system_id' => $clientId,
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                if (!empty($data['has_license']) && !empty($data['license_key'])) {
+                    $activated = $this->licenseService->activateLicense($data['license_key']);
+                    if ($activated) {
+                        return response()->json([
+                            'status' => 'activated',
+                            'message' => '¡Licencia aprobada y activada exitosamente!',
+                            'redirect' => route('install.step5')
+                        ]);
+                    }
+                }
+
+                return response()->json([
+                    'status' => 'pending',
+                    'message' => 'Aún en espera de que el administrador apruebe y asigne la licencia en el panel.'
+                ]);
+            }
+
+            return response()->json(['status' => 'error', 'message' => 'No se pudo obtener respuesta del servidor.'], 400);
+
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => 'Error de conexión con el servidor de licencias.'], 500);
+        }
     }
 
     public function activateLicense(Request $request)
