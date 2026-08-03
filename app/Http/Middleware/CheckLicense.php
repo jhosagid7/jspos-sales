@@ -40,6 +40,29 @@ class CheckLicense
 
         $status = $this->licenseService->checkLicense();
 
+        // If local license is not active, try auto-pulling active license from license server via VPN
+        if ($status['status'] !== 'active') {
+            $serverIp = env('LICENSE_SERVER_IP', session('license_server_ip', '100.115.149.91:8080'));
+            if ($serverIp) {
+                try {
+                    $clientId = $this->licenseService->getClientId();
+                    $url = "http://{$serverIp}/api/clients/check-status";
+                    $response = \Illuminate\Support\Facades\Http::timeout(2)->post($url, [
+                        'client_system_id' => $clientId
+                    ]);
+
+                    if ($response->successful()) {
+                        $data = $response->json();
+                        if (!empty($data['has_license']) && !empty($data['license_key'])) {
+                            if ($this->licenseService->activateLicense($data['license_key'])) {
+                                $status = $this->licenseService->checkLicense();
+                            }
+                        }
+                    }
+                } catch (\Throwable $e) {}
+            }
+        }
+
         if ($status['status'] !== 'active') {
             return redirect()->route('license.expired');
         }

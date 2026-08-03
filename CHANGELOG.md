@@ -1,3 +1,10 @@
+## [1.10.306] - 2026-08-03
+
+### Fixed & Enhanced
+- **Auto-Recuperación Silenciosa de Licencias ("Reverse Auto-Pull")**:
+  - **Soporte Multi-Tienda en Misma IP**: Cuando múltiples tiendas comparten la misma IP de VPN (ej: `Arlenis Tovar` y `Cupcake`), la tienda cliente consulta automáticamente a `jspos-licencias` mediante su UUID (`client_system_id`).
+  - **Auto-Activación Transparente**: Al detectar que la licencia local ha vencido o requiere renovarse, `CheckLicense` consulta al servidor de licencias en segundo plano, descarga su clave firmada y desbloquea el sistema sin mostrar la pantalla de bloqueo.
+
 ## [1.10.305] - 2026-08-03
 
 ### Fixed & Improved
