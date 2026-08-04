@@ -133,10 +133,10 @@
     <table class="table">
         <thead>
             <tr>
-                @if($columns['sku']) <th style="width: 60px;">SKU</th> @endif
-                @if($columns['name']) <th>NOMBRE PRODUCTO</th> @endif
-                @if($columns['category']) <th style="width: 80px;">CATEGORÍA</th> @endif
-                @if($columns['supplier']) <th style="width: 80px;">PROVEEDOR</th> @endif
+                @if(!empty($columns['sku'])) <th style="width: 60px;">SKU</th> @endif
+                @if(!empty($columns['name'])) <th>NOMBRE PRODUCTO</th> @endif
+                @if(!empty($columns['category'])) <th style="width: 80px;">CATEGORÍA</th> @endif
+                @if(!empty($columns['supplier'])) <th style="width: 80px;">PROVEEDOR</th> @endif
                 
                 {{-- Warehouse Columns --}}
                 @foreach($warehouses as $wh)
@@ -147,21 +147,21 @@
                     <th style="width: 50px; background-color: #e8f5e9; border-color: #81c784;" class="text-center">{{ count($warehouses) > 1 ? 'TOTAL' : 'STOCK' }}</th>
                 @endif
 
-                @if($columns['physical_inventory']) <th style="width: 60px;" class="text-center">FISICO</th> @endif
-                @if($columns['cost']) <th style="width: 60px;" class="text-right">COSTO</th> @endif
-                @if($columns['price']) <th style="width: 60px;" class="text-right">PRECIO</th> @endif
-                @if($columns['utility_percent']) <th style="width: 50px;" class="text-center">UT. %</th> @endif
-                @if($columns['valuation_cost']) <th style="width: 70px;" class="text-right">VAL. COSTO</th> @endif
-                @if($columns['valuation_price']) <th style="width: 70px;" class="text-right">VAL. VENTA</th> @endif
+                @if(!empty($columns['physical_inventory'])) <th style="width: 60px;" class="text-center">FISICO</th> @endif
+                @if(!empty($columns['cost'])) <th style="width: 60px;" class="text-right">COSTO</th> @endif
+                @if(!empty($columns['price'])) <th style="width: 60px;" class="text-right">PRECIO</th> @endif
+                @if(!empty($columns['utility_percent'])) <th style="width: 50px;" class="text-center">UT. %</th> @endif
+                @if(!empty($columns['valuation_cost'])) <th style="width: 70px;" class="text-right">VAL. COSTO</th> @endif
+                @if(!empty($columns['valuation_price'])) <th style="width: 70px;" class="text-right">VAL. VENTA</th> @endif
             </tr>
         </thead>
         <tbody>
             @foreach ($products as $product)
                 <tr>
-                    @if($columns['sku']) <td>{{ $product->sku }}</td> @endif
-                    @if($columns['name']) <td>{{ strtoupper($product->name) }}</td> @endif
-                    @if($columns['category']) <td>{{ strtoupper($product->category->name ?? 'N/A') }}</td> @endif
-                    @if($columns['supplier']) <td>{{ strtoupper($product->supplier->name ?? 'N/A') }}</td> @endif
+                    @if(!empty($columns['sku'])) <td>{{ $product->sku }}</td> @endif
+                    @if(!empty($columns['name'])) <td>{{ strtoupper($product->name) }}</td> @endif
+                    @if(!empty($columns['category'])) <td>{{ strtoupper($product->category->name ?? 'N/A') }}</td> @endif
+                    @if(!empty($columns['supplier'])) <td>{{ strtoupper($product->supplier->name ?? 'N/A') }}</td> @endif
                     
                     {{-- Warehouse Values --}}
                     @php $rowTotal = 0; @endphp
@@ -178,20 +178,20 @@
                         <td class="text-center font-bold">{{ number_format($displayStock, 0) }}</td>
                     @endif
 
-                    @if($columns['physical_inventory']) 
+                    @if(!empty($columns['physical_inventory'])) 
                         <td class="text-center">
                             <div style="border: 0.5pt solid #999; height: 12px; width: 40px; margin: 0 auto;"></div>
                         </td> 
                     @endif
-                    @if($columns['cost']) <td class="text-right">{{ number_format($product->cost, 2) }}</td> @endif
-                    @if($columns['price']) <td class="text-right">{{ number_format($product->price, 2) }}</td> @endif
-                    @if($columns['utility_percent']) 
+                    @if(!empty($columns['cost'])) <td class="text-right">{{ number_format($product->cost, 2) }}</td> @endif
+                    @if(!empty($columns['price'])) <td class="text-right">{{ number_format($product->price, 2) }}</td> @endif
+                    @if(!empty($columns['utility_percent'])) 
                         <td class="text-center">
                             {{ $product->cost > 0 ? number_format((($product->price - $product->cost) / $product->cost) * 100, 2) . '%' : '0%' }}
                         </td> 
                     @endif
-                    @if($columns['valuation_cost']) <td class="text-right">{{ number_format($displayStock * $product->cost, 2) }}</td> @endif
-                    @if($columns['valuation_price']) <td class="text-right font-bold">{{ number_format($displayStock * $product->price, 2) }}</td> @endif
+                    @if(!empty($columns['valuation_cost'])) <td class="text-right">{{ number_format($displayStock * $product->cost, 2) }}</td> @endif
+                    @if(!empty($columns['valuation_price'])) <td class="text-right font-bold">{{ number_format($displayStock * $product->price, 2) }}</td> @endif
                 </tr>
             @endforeach
         </tbody>
@@ -216,13 +216,13 @@
 
     <div class="summary-box">
         <table class="summary-table">
-            @if($columns['valuation_cost'])
+            @if(!empty($columns['valuation_cost']))
             <tr>
                 <td class="summary-label">TOTAL VALUACIÓN (COSTO):</td>
                 <td class="summary-value">${{ number_format($sumValuationCost, 2) }}</td>
             </tr>
             @endif
-            @if($columns['valuation_price'])
+            @if(!empty($columns['valuation_price']))
             <tr>
                 <td class="summary-label">TOTAL VALUACIÓN (VENTA):</td>
                 <td class="summary-value">${{ number_format($sumValuationPrice, 2) }}</td>
@@ -237,25 +237,25 @@
 
     <table class="footer-signatures" style="width: 100%; border-collapse: collapse;">
         <tr>
-            @if($signatures['elaborado'])
+            @if(!empty($signatures['elaborado']))
                 <td style="width: 25%; text-align: center; vertical-align: bottom;">
                     <div class="signature-line"></div>
                     <div style="font-size: 7.5pt; font-weight: bold;">ELABORADO POR</div>
                 </td>
             @endif
-            @if($signatures['autorizado'])
+            @if(!empty($signatures['autorizado']))
                 <td style="width: 25%; text-align: center; vertical-align: bottom;">
                     <div class="signature-line"></div>
                     <div style="font-size: 7.5pt; font-weight: bold;">AUTORIZADO POR</div>
                 </td>
             @endif
-            @if($signatures['gerente'])
+            @if(!empty($signatures['gerente']))
                 <td style="width: 25%; text-align: center; vertical-align: bottom;">
                     <div class="signature-line"></div>
                     <div style="font-size: 7.5pt; font-weight: bold;">GERENCIA</div>
                 </td>
             @endif
-            @if($signatures['auditoria'])
+            @if(!empty($signatures['auditoria']))
                 <td style="width: 25%; text-align: center; vertical-align: bottom;">
                     <div class="signature-line"></div>
                     <div style="font-size: 7.5pt; font-weight: bold;">AUDITORÍA / ALMACÉN</div>

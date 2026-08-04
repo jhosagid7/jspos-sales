@@ -1534,8 +1534,31 @@ class ReportController extends Controller
     {
         $supplier_id = $request->get('supplier_id');
         $category_id = $request->get('category_id');
-        $columns = json_decode($request->get('columns'), true) ?? [];
-        $signatures = json_decode($request->get('signatures'), true) ?? [];
+        
+        $defaultColumns = [
+            'sku' => true,
+            'name' => true,
+            'category' => true,
+            'supplier' => true,
+            'cost' => true,
+            'price' => true,
+            'utility_percent' => true,
+            'valuation_cost' => true,
+            'valuation_price' => true,
+            'physical_inventory' => false
+        ];
+        $inputColumns = json_decode($request->get('columns'), true);
+        $columns = is_array($inputColumns) && !empty($inputColumns) ? array_merge($defaultColumns, $inputColumns) : $defaultColumns;
+
+        $defaultSignatures = [
+            'elaborado' => false,
+            'autorizado' => false,
+            'gerente' => false,
+            'auditoria' => false
+        ];
+        $inputSignatures = json_decode($request->get('signatures'), true);
+        $signatures = is_array($inputSignatures) && !empty($inputSignatures) ? array_merge($defaultSignatures, $inputSignatures) : $defaultSignatures;
+
         $search = $request->get('search');
         $selected_ids = $request->get('selected_ids') ? explode(',', $request->get('selected_ids')) : [];
         $selected_warehouses = json_decode($request->get('warehouses'), true) ?? [];

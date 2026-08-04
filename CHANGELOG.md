@@ -1,3 +1,12 @@
+## [1.10.319] - 2026-08-04
+
+### Fixed & Audited
+- **Auditoría Global de Reportes PDF y Corrección de PDF de Inventario**:
+  - Realizada auditoría automatizada en 20 tipos de reportes PDF del sistema.
+  - Corregido fallo de `Undefined array key "sku"` / `"elaborado"` en la generación del PDF del Reporte de Inventario (`inventoryPdf` en `ReportController.php` e `inventory-report-pdf.blade.php`).
+  - Añadidas columnas y firmas por defecto en el controlador e implementadas comprobaciones seguras (`!empty()`) en la plantilla Blade.
+  - Añadida suite de pruebas automatizadas `AllPdfReportsTest` que verifica que todos los PDF del sistema abren e imprimen sin errores 500.
+
 ## [1.10.318] - 2026-08-04
 
 ### Fixed
