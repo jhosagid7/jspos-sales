@@ -1,3 +1,11 @@
+## [1.10.308] - 2026-08-04
+
+### Fixed
+- **Corregido Error 500 al Exportar PDF en Tesorería y Auditoría Bancaria**:
+  - **Causa Raíz**: La ruta `reports.bank.treasury.pdf` apuntaba al método `bankTreasuryPdf` en `ReportController.php`, pero dicho método no existía en el controlador, lo que provocaba un error `500 Server Error` en el iframe modal de vista previa al presionar el botón "Exportar PDF".
+  - **Solución**: Se implementó el método `bankTreasuryPdf` en `ReportController.php` conectando la plantilla `reports.bank-treasury-pdf` y procesando el filtrado por banco, rangos de fecha y pestañas (Cortes Diarios, Egresos, Transferencias y Movimientos Combinados).
+  - **Pruebas**: Creada la prueba de integración `test_bank_treasury_pdf_report_generates_successfully` en `Tests\Feature\BankTreasuryTest.php` comprobando con 16 aserciones que el PDF se genera limpiamente con código HTTP 200.
+
 ## [1.10.307] - 2026-08-03
 
 ### Fixed & Enhanced

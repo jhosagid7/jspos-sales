@@ -152,4 +152,34 @@ class BankTreasuryTest extends TestCase
         $this->assertEquals(1300.00, $closure->closing_balance);
         $this->assertEquals('closed', $closure->status);
     }
+
+    public function test_bank_treasury_pdf_report_generates_successfully()
+    {
+        \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'treasury.index']);
+        $superAdminRole = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Super Admin']);
+        $this->user->assignRole($superAdminRole);
+        $this->user->givePermissionTo('treasury.index');
+
+        config(['tenant.modules' => ['module_treasury']]);
+
+        \App\Models\DeviceAuthorization::create([
+            'uuid' => 'test-device-uuid',
+            'name' => 'Test Device',
+            'ip_address' => '127.0.0.1',
+            'user_agent' => 'Symfony',
+            'status' => 'approved',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->withCookie('device_token', 'test-device-uuid')
+            ->get(route('reports.bank.treasury.pdf', [
+                'bank_id' => 'all',
+                'date_from' => Carbon::today()->format('Y-m-d'),
+                'date_to' => Carbon::today()->format('Y-m-d'),
+                'type' => 'dashboard',
+            ]));
+
+        $response->assertStatus(200);
+        $response->assertHeader('Content-Type', 'application/pdf');
+    }
 }

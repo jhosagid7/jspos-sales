@@ -3988,5 +3988,195 @@ class ReportController extends Controller
 
         return $pdf->stream($filename);
     }
+
+    public function bankTreasuryPdf(Request $request)
+    {
+        $bankId = $request->input('bank_id', 'all');
+        $dateFrom = $request->input('date_from', Carbon::today()->format('Y-m-d'));
+        $dateTo = $request->input('date_to', Carbon::today()->format('Y-m-d'));
+        $type = $request->input('type', 'dashboard');
+
+        $currencies = \App\Models\Currency::all();
+        $primaryCurrency = $currencies->where('is_primary', 1)->first() ?? $currencies->first();
+        $primaryCode = $primaryCurrency ? $primaryCurrency->code : 'USD';
+
+        if ($bankId === 'all') {
+            $analysis = \App\Services\BankTreasuryService::getGlobalExpenseAnalysis($dateFrom, $dateTo);
+            $bankName = "Todas las Cuentas Bancarias";
+            $currencyCode = $primaryCode;
+            $bankIds = \App\Models\Bank::tracked()->pluck('id')->toArray();
+        } else {
+            $bankIdInt = (int) $bankId;
+            $analysis = \App\Services\BankTreasuryService::getExpenseAnalysis($bankIdInt, $dateFrom, $dateTo);
+            $bank = \App\Models\Bank::find($bankIdInt);
+            $bankName = $bank ? $bank->name : "Cuenta Seleccionada";
+            $currencyCode = $bank ? $bank->currency_code : 'USD';
+            $bankIds = [$bankIdInt];
+        }
+
+        $movements = collect();
+
+        if ($type === 'closures') {
+            $q = \App\Models\BankDailyClosure::with(['bank', 'closedBy']);
+            if ($bankId !== 'all') {
+                $q->where('bank_id', (int)$bankId);
+            }
+            $closures = $q->whereBetween('closure_date', [$dateFrom, $dateTo])
+                ->orderBy('closure_date', 'desc')
+                ->get();
+
+            $movements = $closures->map(function ($cls) {
+                $cls->bank_name = $cls->bank ? $cls->bank->name : 'Banco';
+                $cls->currency_code = $cls->bank ? $cls->bank->currency_code : 'USD';
+                $cls->user_name = $cls->closedBy ? $cls->closedBy->name : 'Cierre Automático';
+                return $cls;
+            });
+        } elseif ($type === 'expenses') {
+            $q = \App\Models\BankExpense::with(['bank', 'category']);
+            if ($bankId !== 'all') {
+                $q->where('bank_id', (int)$bankId);
+            }
+            $expenses = $q->whereBetween('expense_date', [$dateFrom, $dateTo])
+                ->orderBy('expense_date', 'desc')
+                ->get();
+
+            $movements = $expenses->map(function ($e) {
+                return (object)[
+                    'id' => $e->id,
+                    'date' => $e->expense_date,
+                    'bank_name' => $e->bank ? $e->bank->name : 'Banco',
+                    'currency_code' => $e->bank ? $e->bank->currency_code : 'USD',
+                    'type' => 'GASTO',
+                    'category_name' => $e->category ? $e->category->name : 'Varios',
+                    'beneficiary' => $e->beneficiary,
+                    'reference' => $e->reference,
+                    'amount' => $e->amount,
+                ];
+            });
+        } elseif ($type === 'transfers') {
+            $q = \App\Models\BankTransfer::with(['fromBank', 'toBank']);
+            if ($bankId !== 'all') {
+                $bankIdInt = (int)$bankId;
+                $q->where(function($query) use ($bankIdInt) {
+                    $query->where('from_bank_id', $bankIdInt)
+                          ->orWhere('to_bank_id', $bankIdInt);
+                });
+            }
+            $transfers = $q->whereBetween('transfer_date', [$dateFrom, $dateTo])
+                ->orderBy('transfer_date', 'desc')
+                ->get();
+
+            $movements = $transfers->map(function ($t) use ($bankId) {
+                $isOut = ($bankId !== 'all' && (int)$bankId === (int)$t->from_bank_id);
+                return (object)[
+                    'id' => $t->id,
+                    'date' => $t->transfer_date,
+                    'bank_name' => $isOut ? ($t->fromBank ? $t->fromBank->name : 'Banco') : ($t->toBank ? $t->toBank->name : 'Banco'),
+                    'currency_code' => $isOut ? ($t->fromBank ? $t->fromBank->currency_code : 'USD') : ($t->toBank ? $t->toBank->currency_code : 'USD'),
+                    'type' => $isOut ? 'TRANSFER_OUT' : 'TRANSFER_IN',
+                    'category_name' => null,
+                    'beneficiary' => $isOut ? ($t->toBank ? $t->toBank->name : 'Destino') : ($t->fromBank ? $t->fromBank->name : 'Origen'),
+                    'reference' => $t->reference,
+                    'amount' => $isOut ? $t->amount_from : $t->amount_to,
+                ];
+            });
+        } else {
+            if (!empty($bankIds)) {
+                $incomes = \App\Models\BankRecord::with('bank')
+                    ->whereIn('bank_id', $bankIds)
+                    ->whereBetween('payment_date', [$dateFrom, $dateTo])
+                    ->get()
+                    ->map(function ($inc) {
+                        return (object)[
+                            'id' => $inc->id,
+                            'date' => $inc->payment_date,
+                            'bank_name' => $inc->bank ? $inc->bank->name : 'Banco',
+                            'currency_code' => $inc->bank ? $inc->bank->currency_code : 'USD',
+                            'type' => 'INGRESO',
+                            'category_name' => 'Ingreso de Cobro',
+                            'beneficiary' => null,
+                            'reference' => $inc->reference,
+                            'amount' => $inc->amount,
+                        ];
+                    });
+
+                $expenses = \App\Models\BankExpense::with(['bank', 'category'])
+                    ->whereIn('bank_id', $bankIds)
+                    ->whereBetween('expense_date', [$dateFrom, $dateTo])
+                    ->get()
+                    ->map(function ($e) {
+                        return (object)[
+                            'id' => $e->id,
+                            'date' => $e->expense_date,
+                            'bank_name' => $e->bank ? $e->bank->name : 'Banco',
+                            'currency_code' => $e->bank ? $e->bank->currency_code : 'USD',
+                            'type' => 'GASTO',
+                            'category_name' => $e->category ? $e->category->name : 'Gasto',
+                            'beneficiary' => $e->beneficiary,
+                            'reference' => $e->reference,
+                            'amount' => $e->amount,
+                        ];
+                    });
+
+                $transfersIn = \App\Models\BankTransfer::with(['fromBank', 'toBank'])
+                    ->whereIn('to_bank_id', $bankIds)
+                    ->whereBetween('transfer_date', [$dateFrom, $dateTo])
+                    ->get()
+                    ->map(function ($t) {
+                        return (object)[
+                            'id' => $t->id,
+                            'date' => $t->transfer_date,
+                            'bank_name' => $t->toBank ? $t->toBank->name : 'Banco',
+                            'currency_code' => $t->toBank ? $t->toBank->currency_code : 'USD',
+                            'type' => 'TRANSFER_IN',
+                            'category_name' => null,
+                            'beneficiary' => $t->fromBank ? $t->fromBank->name : 'Origen',
+                            'reference' => $t->reference,
+                            'amount' => $t->amount_to,
+                        ];
+                    });
+
+                $transfersOut = \App\Models\BankTransfer::with(['fromBank', 'toBank'])
+                    ->whereIn('from_bank_id', $bankIds)
+                    ->whereBetween('transfer_date', [$dateFrom, $dateTo])
+                    ->get()
+                    ->map(function ($t) {
+                        return (object)[
+                            'id' => $t->id,
+                            'date' => $t->transfer_date,
+                            'bank_name' => $t->fromBank ? $t->fromBank->name : 'Banco',
+                            'currency_code' => $t->fromBank ? $t->fromBank->currency_code : 'USD',
+                            'type' => 'TRANSFER_OUT',
+                            'category_name' => null,
+                            'beneficiary' => $t->toBank ? $t->toBank->name : 'Destino',
+                            'reference' => $t->reference,
+                            'amount' => $t->amount_from,
+                        ];
+                    });
+
+                $movements = collect()
+                    ->concat($incomes)
+                    ->concat($expenses)
+                    ->concat($transfersIn)
+                    ->concat($transfersOut)
+                    ->sortByDesc('date')
+                    ->values();
+            }
+        }
+
+        $config = \App\Models\Configuration::first();
+        $user = auth()->user();
+        $date = Carbon::now()->format('d/m/Y');
+        $time = Carbon::now()->format('h:i A');
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.bank-treasury-pdf', compact(
+            'config', 'user', 'date', 'time', 'bankName', 'currencyCode',
+            'dateFrom', 'dateTo', 'type', 'analysis', 'movements'
+        ))->setPaper('a4', 'portrait');
+
+        $filename = 'Reporte_Tesoreria_' . Carbon::parse($dateFrom)->format('Ymd') . '_' . Carbon::parse($dateTo)->format('Ymd') . '.pdf';
+
+        return $pdf->stream($filename);
+    }
 }
 
