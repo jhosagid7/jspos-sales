@@ -595,6 +595,26 @@ class AccountsReceivableReport extends Component
                 $sheetId = $this->getOrCreateCollectionSheet();
                 $sheet = \App\Models\CollectionSheet::find($sheetId);
 
+                $payWay = $payment['method'] == 'bank' ? 'deposit' : $payment['method'];
+
+                // Prevent accidental duplicate payment creation (e.g. double submission within 60s)
+                $existingPayment = Payment::where(function($q) use ($saleId, $debitNoteId) {
+                        if ($saleId) $q->where('sale_id', $saleId);
+                        if ($debitNoteId) $q->orWhere('debit_note_id', $debitNoteId);
+                    })
+                    ->where('pay_way', $payWay)
+                    ->where('amount', floatval($amount))
+                    ->where('currency', $currencyCode)
+                    ->when($zelleRecordId, fn($q) => $q->where('zelle_record_id', $zelleRecordId))
+                    ->when(isset($payment['reference']) && !empty($payment['reference']), fn($q) => $q->where('deposit_number', $payment['reference']))
+                    ->where('created_at', '>=', \Carbon\Carbon::now()->subSeconds(60))
+                    ->first();
+
+                if ($existingPayment) {
+                    Log::warning("Duplicate payment prevented in AccountsReceivableReport", ['sale_id' => $saleId, 'debit_note_id' => $debitNoteId, 'amount' => $amount]);
+                    continue;
+                }
+
                 $pay = Payment::create([
                     'user_id' => Auth()->user()->id,
                     'sale_id' => $saleId ?: null,
@@ -603,7 +623,7 @@ class AccountsReceivableReport extends Component
                     'currency' => $currencyCode,
                     'exchange_rate' => $exchangeRate,
                     'primary_exchange_rate' => $primaryCurrency->exchange_rate,
-                    'pay_way' => $payment['method'] == 'bank' ? 'deposit' : $payment['method'],
+                    'pay_way' => $payWay,
                     'type' => 'pay',
                     'status' => $status, // Add status
                     'bank' => $payment['bank_name'] ?? null,

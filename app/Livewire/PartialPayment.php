@@ -419,6 +419,23 @@ class PartialPayment extends Component
 
                 $collectionSheetId = $this->getOrCreateCollectionSheet();
 
+                $payWay = $payment['method'] == 'bank' ? 'deposit' : $payment['method'];
+
+                // Prevent accidental duplicate payment creation (e.g. double submission within 60s)
+                $existingPayment = Payment::where('sale_id', $this->sale_selected_id)
+                    ->where('pay_way', $payWay)
+                    ->where('amount', floatval($amount))
+                    ->where('currency', $currencyCode)
+                    ->when($zelleRecordId, fn($q) => $q->where('zelle_record_id', $zelleRecordId))
+                    ->when(isset($payment['reference']) && !empty($payment['reference']), fn($q) => $q->where('deposit_number', $payment['reference']))
+                    ->where('created_at', '>=', \Carbon\Carbon::now()->subSeconds(60))
+                    ->first();
+
+                if ($existingPayment) {
+                    Log::warning("Duplicate payment prevented in PartialPayment", ['sale_id' => $this->sale_selected_id, 'amount' => $amount]);
+                    continue;
+                }
+
                 // Create Payment Record
                 $pay = Payment::create([
                     'user_id' => Auth()->user()->id,
@@ -427,7 +444,7 @@ class PartialPayment extends Component
                     'currency' => $currencyCode,
                     'exchange_rate' => $exchangeRate,
                     'primary_exchange_rate' => $primaryCurrency->exchange_rate,
-                    'pay_way' => $payment['method'] == 'bank' ? 'deposit' : $payment['method'],
+                    'pay_way' => $payWay,
                     'type' => 'pay', 
                     'status' => $status, // 'approved' or 'pending'
                     'bank' => $payment['bank_name'] ?? null,

@@ -1,3 +1,9 @@
+## [1.10.321] - 2026-08-04
+
+### Fixed & Improved
+- **Prevención de Abonos/Pagos Duplicados**:
+  - Implementada validación en backend (`PartialPayment.php` y `AccountsReceivableReport.php`) que previene el registro accidental de pagos idénticos (mismo monto, referencia y cliente) en menos de 60 segundos por doble clic o reenvío de formulario.
+
 ## [1.10.320] - 2026-08-04
 
 ### Improved
