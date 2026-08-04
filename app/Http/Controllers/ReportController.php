@@ -4165,6 +4165,22 @@ class ReportController extends Controller
         }
 
         $totalsByCurrency = [];
+        $runningBalances = [];
+        // Sort movements ascending by date to compute progressive running balance (DEBE, HABER, SALDO)
+        $sortedAsc = $movements->sortBy('date')->values();
+        foreach ($sortedAsc as $m) {
+            $cCode = $m->currency_code ?? 'USD';
+            if (!isset($runningBalances[$cCode])) {
+                $runningBalances[$cCode] = 0.0;
+            }
+            if ($m->type === 'INGRESO' || $m->type === 'TRANSFER_IN') {
+                $runningBalances[$cCode] += (float) $m->amount;
+            } elseif ($m->type === 'GASTO' || $m->type === 'TRANSFER_OUT') {
+                $runningBalances[$cCode] -= (float) $m->amount;
+            }
+            $m->running_balance = $runningBalances[$cCode];
+        }
+
         foreach ($movements as $m) {
             if (isset($m->currency_code)) {
                 $cCode = $m->currency_code;

@@ -1,3 +1,13 @@
+## [1.10.312] - 2026-08-04
+
+### Enhanced
+- **Estructura Contable Tradicional Bancaria (DEBE, HABER y SALDO)**:
+  - Reemplazada la columna única `MONTO` por el formato estándar de extracto bancario contable:
+    - **DEBE (+)**: Columna exclusiva para depósitos e ingresos recibidos (en verde).
+    - **HABER (-)**: Columna exclusiva para egresos, gastos y retiros (en rojo).
+    - **SALDO (=)**: Columna de balance acumulado progresivo por cuenta y moneda.
+  - Aplicado tanto en la tabla interactiva de movimientos como en el reporte oficial en PDF.
+
 ## [1.10.311] - 2026-08-04
 
 ### Fixed

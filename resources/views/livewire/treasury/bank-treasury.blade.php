@@ -680,7 +680,8 @@
                                                 <th>Tipo</th>
                                                 <th>Detalle / Categoría</th>
                                                 <th>Referencia</th>
-                                                <th class="text-right">Monto</th>
+                                                <th class="text-right text-success">DEBE (+)</th>
+                                                <th class="text-right text-danger">HABER (-)</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -710,14 +711,24 @@
                                                         @endif
                                                     </td>
                                                     <td><code class="text-primary">{{ $m->reference ?: 'N/A' }}</code></td>
-                                                    <td class="text-right font-weight-bold @if($m->type === 'INGRESO' || $m->type === 'TRANSFER_IN') text-success @else text-danger @endif">
-                                                        @if($m->type === 'INGRESO' || $m->type === 'TRANSFER_IN') + @else - @endif
-                                                        ${{ number_format($m->amount, 2) }}
+                                                    <td class="text-right font-weight-bold text-success">
+                                                        @if($m->type === 'INGRESO' || $m->type === 'TRANSFER_IN')
+                                                            +${{ number_format($m->amount, 2) }}
+                                                        @else
+                                                            -
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-right font-weight-bold text-danger">
+                                                        @if($m->type === 'GASTO' || $m->type === 'TRANSFER_OUT')
+                                                            -${{ number_format($m->amount, 2) }}
+                                                        @else
+                                                            -
+                                                        @endif
                                                     </td>
                                                 </tr>
                                             @empty
                                                 <tr>
-                                                    <td colspan="6" class="text-center p-4 text-muted">No se encontraron movimientos en el rango seleccionado.</td>
+                                                    <td colspan="7" class="text-center p-4 text-muted">No se encontraron movimientos en el rango seleccionado.</td>
                                                 </tr>
                                             @endforelse
                                         </tbody>

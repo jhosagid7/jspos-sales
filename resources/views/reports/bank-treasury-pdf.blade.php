@@ -257,12 +257,14 @@
         <table class="data-table">
             <thead>
                 <tr>
-                    <th style="width: 12%;">Fecha</th>
-                    <th style="width: 15%;">Banco</th>
-                    <th style="width: 15%;">Tipo</th>
+                    <th style="width: 10%;">Fecha</th>
+                    <th style="width: 13%;">Banco</th>
+                    <th style="width: 11%;">Tipo</th>
                     <th>Detalles / Beneficiario</th>
-                    <th style="width: 15%;">Referencia</th>
-                    <th class="text-right" style="width: 18%;">Monto</th>
+                    <th style="width: 11%;">Referencia</th>
+                    <th class="text-right text-success" style="width: 14%;">DEBE (+)</th>
+                    <th class="text-right text-danger" style="width: 14%;">HABER (-)</th>
+                    <th class="text-right text-primary" style="width: 15%;">SALDO (=)</th>
                 </tr>
             </thead>
             <tbody>
@@ -293,16 +295,27 @@
                             @endif
                         </td>
                         <td>{{ $m->reference ?? '-' }}</td>
-                        <td class="text-right @if($m->type === 'GASTO' || $m->type === 'TRANSFER_OUT') text-danger @else text-success @endif">
-                            <strong>
-                                @if($m->type === 'GASTO' || $m->type === 'TRANSFER_OUT') - @else + @endif
-                                ${{ number_format($m->amount, 2) }} {{ $m->currency_code }}
-                            </strong>
+                        <td class="text-right text-success">
+                            @if($m->type === 'INGRESO' || $m->type === 'TRANSFER_IN')
+                                <strong>+${{ number_format($m->amount, 2) }}</strong>
+                            @else
+                                -
+                            @endif
+                        </td>
+                        <td class="text-right text-danger">
+                            @if($m->type === 'GASTO' || $m->type === 'TRANSFER_OUT')
+                                <strong>-${{ number_format($m->amount, 2) }}</strong>
+                            @else
+                                -
+                            @endif
+                        </td>
+                        <td class="text-right font-weight-bold @if(($m->running_balance ?? 0) >= 0) text-success @else text-danger @endif">
+                            {{ ($m->running_balance ?? 0) >= 0 ? '+' : '' }}${{ number_format($m->running_balance ?? $m->amount, 2) }} {{ $m->currency_code }}
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="text-center">No hay movimientos registrados en el rango de fechas.</td>
+                        <td colspan="8" class="text-center">No hay movimientos registrados en el rango de fechas.</td>
                     </tr>
                 @endforelse
             </tbody>
@@ -310,17 +323,18 @@
             <tfoot>
                 @foreach($totalsByCurrency as $curr => $t)
                     <tr style="background-color: #EBF3FA; font-weight: bold; border-top: 2px solid #1F4E79;">
-                        <td colspan="3" class="text-right" style="color: #1F4E79;">
-                            TOTALES ({{ $curr }}):
+                        <td colspan="4" class="text-right" style="color: #1F4E79;">
+                            TOTALES CONSOLIDADOS ({{ $curr }}):
                         </td>
-                        <td class="text-left text-success">
-                            Ingresos: +{{ number_format($t['income'], 2) }} {{ $curr }}
+                        <td class="text-right" style="color: #1F4E79;">TOT.</td>
+                        <td class="text-right text-success">
+                            +{{ number_format($t['income'], 2) }} {{ $curr }}
                         </td>
-                        <td class="text-left text-danger">
-                            Egresos: -{{ number_format($t['expenses'], 2) }} {{ $curr }}
+                        <td class="text-right text-danger">
+                            -{{ number_format($t['expenses'], 2) }} {{ $curr }}
                         </td>
                         <td class="text-right @if($t['net'] >= 0) text-success @else text-danger @endif">
-                            Neto: {{ $t['net'] >= 0 ? '+' : '' }}{{ number_format($t['net'], 2) }} {{ $curr }}
+                            {{ $t['net'] >= 0 ? '+' : '' }}{{ number_format($t['net'], 2) }} {{ $curr }}
                         </td>
                     </tr>
                 @endforeach
