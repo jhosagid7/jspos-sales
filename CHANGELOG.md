@@ -1,3 +1,13 @@
+## [1.10.317] - 2026-08-04
+
+### Fixed & Improved
+- **Notificaciones de Levantamiento de Mercancía y Auditoría de Bolsas (Doble PDF)**:
+  - Al registrar la **Planilla de Levantamiento de Mercancía** desde la app móvil o web, se envía notificación inmediata (Email + WhatsApp) al operador que levantó el lote y a la planta.
+  - Al **aprobar el cargo desde administración**, la notificación por correo adjunta **ambos archivos PDF comparativos**:
+    1) `planilla_ORIGINAL_lote_X.pdf`: Levantamiento inicial sin modificaciones (marca de agua *ORIGINAL*).
+    2) `planilla_APROBADA_lote_X.pdf`: Levantamiento procesado e ingresado a inventario (marca de agua *PROCESADO/APROBADO*).
+  - Notificación de auditoría por WhatsApp enviada automáticamente a los administradores configurados.
+
 ## [1.10.316] - 2026-08-04
 
 ### Added

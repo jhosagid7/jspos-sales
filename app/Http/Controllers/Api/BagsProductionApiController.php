@@ -159,6 +159,60 @@ class BagsProductionApiController extends Controller
                     \Illuminate\Support\Facades\Mail::to($recipient)
                         ->queue(new \App\Mail\ProductionReportMail($subject, $body, $pdfContent, $fileName));
                 }
+
+                // Send WhatsApp notification to operator phone and configured shift users/groups
+                try {
+                    $whatsappService = app(\App\Services\WhatsappService::class);
+                    $operatorPhone = auth()->user()->phone ?? null;
+                    $waShiftUsers = $config->whatsapp_bags_shift_users ?? [];
+                    $waShiftGroups = $config->whatsapp_bags_shift_groups ?? [];
+
+                    $date = Carbon::parse($production->production_date)->format('d/m/Y');
+                    $userName = auth()->user()->name ?? 'Operador';
+                    $businessName = $config->business_name ?? 'Fábrica de Bolsas';
+
+                    $resumenRows = [];
+                    $totalQty = 0;
+                    $totalWeight = 0;
+                    foreach ($production->details as $d) {
+                        $pName = $d->product->name ?? 'Producto';
+                        $resumenRows[] = "• {$pName}: " . number_format($d->quantity, 2) . " un. / " . number_format($d->weight, 2) . " Kg (Op: {$d->operator_name})";
+                        $totalQty += $d->quantity;
+                        $totalWeight += $d->weight;
+                    }
+                    $resumen = implode("\n", $resumenRows);
+
+                    $waMessage = "*COPIA DE LEVANTAMIENTO ORIGINAL - FÁBRICA DE BOLSAS*\n\n"
+                        . "• *Lote de Producción:* #{$production->id}\n"
+                        . "• *Fecha:* {$date}\n"
+                        . "• *Registrado por:* {$userName}\n"
+                        . "• *Empresa:* {$businessName}\n"
+                        . "• *Cantidad Total:* " . number_format($totalQty, 2) . " unidades\n"
+                        . "• *Peso Total:* " . number_format($totalWeight, 2) . " Kg\n\n"
+                        . "*DETALLE DE PRODUCTOS:*\n{$resumen}\n\n"
+                        . "⚠️ *Comprobante Original* tal como fue levantado desde la app móvil.";
+
+                    if (!empty($operatorPhone)) {
+                        $whatsappService->sendMessage($operatorPhone, $waMessage);
+                    }
+
+                    if (!empty($waShiftUsers)) {
+                        $shiftUsers = \App\Models\User::whereIn('id', $waShiftUsers)->whereNotNull('phone')->where('phone', '!=', '')->get();
+                        foreach ($shiftUsers as $u) {
+                            if ($u->phone !== $operatorPhone) {
+                                $whatsappService->sendMessage($u->phone, $waMessage);
+                            }
+                        }
+                    }
+
+                    if (!empty($waShiftGroups)) {
+                        foreach ($waShiftGroups as $gId) {
+                            $whatsappService->sendMessageToGroup($gId, $waMessage);
+                        }
+                    }
+                } catch (\Exception $waEx) {
+                    \Illuminate\Support\Facades\Log::warning("WhatsApp receipt failed for production #{$production->id}: " . $waEx->getMessage());
+                }
             } catch (\Exception $mailEx) {
                 \Illuminate\Support\Facades\Log::warning("Receipt email failed for production #{$production->id}: " . $mailEx->getMessage());
             }
