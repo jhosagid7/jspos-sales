@@ -1,3 +1,11 @@
+## [1.10.309] - 2026-08-04
+
+### Enhanced
+- **Rediseño del Reporte PDF de Tesorería a Formato Extracto / Estado de Cuenta Bancario**:
+  - **Tabla de Resumen de Flujo Financiero**: Se incorporó en la parte superior el resumen ejecutivo con el total de **Ingresos / Depósitos (+)**, **Egresos / Gastos (-)** y el **Flujo Neto del Período (=)** agrupado por divisa (VED, USD, COP, etc.).
+  - **Fila de Totales en Pie de Tabla (`tfoot`)**: Se añadió al final de la tabla de movimientos el desglose de sumatorias destacadas por moneda con totales de entradas, salidas y resultado neto.
+  - **Mejora de Formato Bancario**: Presentación con estilo de estado de cuenta tradicional de los bancos facilitando la conciliación y auditoría rápida para gerentes y contadores.
+
 ## [1.10.308] - 2026-08-04
 
 ### Fixed

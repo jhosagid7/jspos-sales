@@ -4164,6 +4164,31 @@ class ReportController extends Controller
             }
         }
 
+        $totalsByCurrency = [];
+        foreach ($movements as $m) {
+            if (isset($m->currency_code)) {
+                $cCode = $m->currency_code;
+                $amount = (float) $m->amount;
+                if (!isset($totalsByCurrency[$cCode])) {
+                    $totalsByCurrency[$cCode] = [
+                        'income' => 0.0,
+                        'expenses' => 0.0,
+                        'net' => 0.0,
+                        'count_income' => 0,
+                        'count_expenses' => 0,
+                    ];
+                }
+                if ($m->type === 'INGRESO' || $m->type === 'TRANSFER_IN') {
+                    $totalsByCurrency[$cCode]['income'] += $amount;
+                    $totalsByCurrency[$cCode]['count_income']++;
+                } elseif ($m->type === 'GASTO' || $m->type === 'TRANSFER_OUT') {
+                    $totalsByCurrency[$cCode]['expenses'] += $amount;
+                    $totalsByCurrency[$cCode]['count_expenses']++;
+                }
+                $totalsByCurrency[$cCode]['net'] = $totalsByCurrency[$cCode]['income'] - $totalsByCurrency[$cCode]['expenses'];
+            }
+        }
+
         $config = \App\Models\Configuration::first();
         $user = auth()->user();
         $date = Carbon::now()->format('d/m/Y');
@@ -4171,7 +4196,7 @@ class ReportController extends Controller
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.bank-treasury-pdf', compact(
             'config', 'user', 'date', 'time', 'bankName', 'currencyCode',
-            'dateFrom', 'dateTo', 'type', 'analysis', 'movements'
+            'dateFrom', 'dateTo', 'type', 'analysis', 'movements', 'totalsByCurrency'
         ))->setPaper('a4', 'portrait');
 
         $filename = 'Reporte_Tesoreria_' . Carbon::parse($dateFrom)->format('Ymd') . '_' . Carbon::parse($dateTo)->format('Ymd') . '.pdf';

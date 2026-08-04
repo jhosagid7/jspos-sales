@@ -169,36 +169,47 @@
     </div>
 
     @if($type !== 'closures')
-        <!-- KPIs (Solo para Reporte Consolidado y Egresos) -->
-        <div class="kpi-container">
-            <table style="width: 100%; border-collapse: collapse;">
+        <!-- Resumen Financiero por Moneda (Estilo Estado de Cuenta Bancario) -->
+        <div class="section-title">Resumen de Flujo Financiero y Estado de Cuenta</div>
+        <table class="data-table">
+            <thead>
                 <tr>
-                    <td class="kpi-card" style="width: 30%;">
-                        <div class="kpi-label">Total Egresos</div>
-                        <div class="kpi-value">${{ number_format($analysis['total_amount'], 2) }} {{ $currencyCode }}</div>
-                    </td>
-                    <td style="width: 5%;"></td>
-                    <td class="kpi-card" style="border-left: 3px solid #28a745; width: 30%;">
-                        <div class="kpi-label">Gastos Esenciales</div>
-                        <div class="kpi-value">${{ number_format($analysis['essential_total'], 2) }} {{ $currencyCode }}</div>
-                        <div style="font-size: 7px; color: #666; margin-top: 2px;">
-                            {{ $analysis['total_amount'] > 0 ? round(($analysis['essential_total'] / $analysis['total_amount']) * 100, 1) : 0 }}% del total
-                        </div>
-                    </td>
-                    <td style="width: 5%;"></td>
-                    <td class="kpi-card" style="border-left: 3px solid #dc3545; width: 30%;">
-                        <div class="kpi-label">Gastos Discrecionales</div>
-                        <div class="kpi-value">${{ number_format($analysis['discretionary_total'], 2) }} {{ $currencyCode }}</div>
-                        <div style="font-size: 7px; color: #666; margin-top: 2px;">
-                            {{ $analysis['total_amount'] > 0 ? round(($analysis['discretionary_total'] / $analysis['total_amount']) * 100, 1) : 0 }}% del total
-                        </div>
-                    </td>
+                    <th>Moneda</th>
+                    <th class="text-center">Operaciones</th>
+                    <th class="text-right">Total Ingresos / Depósitos (+)</th>
+                    <th class="text-right">Total Egresos / Gastos (-)</th>
+                    <th class="text-right">Flujo Neto del Período (=)</th>
                 </tr>
-            </table>
-        </div>
+            </thead>
+            <tbody>
+                @forelse($totalsByCurrency as $curr => $t)
+                    <tr>
+                        <td><strong>{{ $curr }}</strong></td>
+                        <td class="text-center">
+                            <span class="badge badge-success">{{ $t['count_income'] }} Ingr.</span>
+                            <span class="badge badge-danger">{{ $t['count_expenses'] }} Egr.</span>
+                        </td>
+                        <td class="text-right text-success font-weight-bold">
+                            +{{ number_format($t['income'], 2) }} {{ $curr }}
+                        </td>
+                        <td class="text-right text-danger font-weight-bold">
+                            -{{ number_format($t['expenses'], 2) }} {{ $curr }}
+                        </td>
+                        <td class="text-right font-weight-bold @if($t['net'] >= 0) text-success @else text-danger @endif">
+                            {{ $t['net'] >= 0 ? '+' : '' }}{{ number_format($t['net'], 2) }} {{ $curr }}
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">No se registran movimientos financieros en el período seleccionado.</td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
 
         @if($type === 'dashboard' || $type === 'expenses')
             <!-- Categories Analysis -->
+            @if(isset($analysis['categories']) && count($analysis['categories']) > 0)
             <div class="section-title">Distribución por Categoría de Gasto</div>
             <table class="data-table">
                 <thead>
@@ -230,6 +241,7 @@
                     @endforelse
                 </tbody>
             </table>
+            @endif
         @endif
 
         <!-- Detailed Movements -->
@@ -250,7 +262,7 @@
                     <th style="width: 15%;">Tipo</th>
                     <th>Detalles / Beneficiario</th>
                     <th style="width: 15%;">Referencia</th>
-                    <th class="text-right" style="width: 15%;">Monto</th>
+                    <th class="text-right" style="width: 18%;">Monto</th>
                 </tr>
             </thead>
             <tbody>
@@ -294,6 +306,26 @@
                     </tr>
                 @endforelse
             </tbody>
+            @if(count($movements) > 0)
+            <tfoot>
+                @foreach($totalsByCurrency as $curr => $t)
+                    <tr style="background-color: #EBF3FA; font-weight: bold; border-top: 2px solid #1F4E79;">
+                        <td colspan="3" class="text-right" style="color: #1F4E79;">
+                            TOTALES ({{ $curr }}):
+                        </td>
+                        <td class="text-left text-success">
+                            Ingresos: +{{ number_format($t['income'], 2) }} {{ $curr }}
+                        </td>
+                        <td class="text-left text-danger">
+                            Egresos: -{{ number_format($t['expenses'], 2) }} {{ $curr }}
+                        </td>
+                        <td class="text-right @if($t['net'] >= 0) text-success @else text-danger @endif">
+                            Neto: {{ $t['net'] >= 0 ? '+' : '' }}{{ number_format($t['net'], 2) }} {{ $curr }}
+                        </td>
+                    </tr>
+                @endforeach
+            </tfoot>
+            @endif
         </table>
     @else
         <!-- TAB: CORTES DIARIOS -->
