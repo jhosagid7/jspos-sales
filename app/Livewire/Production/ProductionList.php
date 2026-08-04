@@ -206,10 +206,37 @@ class ProductionList extends Component
             $fileName = 'produccion_' . $production->id . '.pdf';
 
             // 4. Send Email
-            \Illuminate\Support\Facades\Mail::to($config->production_email_recipients)
-                ->queue(new \App\Mail\ProductionReportMail($subject, $body, $pdfContent, $fileName));
+            if (!empty($config->production_email_recipients)) {
+                \Illuminate\Support\Facades\Mail::to($config->production_email_recipients)
+                    ->queue(new \App\Mail\ProductionReportMail($subject, $body, $pdfContent, $fileName));
+            }
 
-            $this->dispatch('noty', msg: 'Correo enviado correctamente');
+            // 5. Send WhatsApp Notifications
+            try {
+                $whatsappService = app(\App\Services\WhatsappService::class);
+                $waUsers = $config->whatsapp_bags_shift_users ?? [];
+                $waGroups = $config->whatsapp_bags_shift_groups ?? [];
+                
+                if (!empty($waUsers) || !empty($waGroups)) {
+                    $waMessage = "*REPORTE DE PRODUCCIÓN - FÁBRICA DE BOLSAS*\n\n" . strip_tags(str_replace('<br>', "\n", $body));
+                    
+                    if (!empty($waUsers)) {
+                        $users = \App\Models\User::whereIn('id', $waUsers)->whereNotNull('phone')->where('phone', '!=', '')->get();
+                        foreach ($users as $u) {
+                            $whatsappService->sendMessage($u->phone, $waMessage);
+                        }
+                    }
+                    if (!empty($waGroups)) {
+                        foreach ($waGroups as $gId) {
+                            $whatsappService->sendMessageToGroup($gId, $waMessage);
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Error sending WhatsApp for bags shift: ' . $e->getMessage());
+            }
+
+            $this->dispatch('noty', msg: 'Reporte enviado correctamente');
 
         } catch (\Exception $e) {
             $this->dispatch('noty', msg: 'Error al enviar correo: ' . $e->getMessage(), type: 'error');

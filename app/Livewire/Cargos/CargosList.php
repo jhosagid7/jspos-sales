@@ -400,17 +400,42 @@ class CargosList extends Component
                 $adminSubject = "AUDITORÍA: Planilla Original vs. Aprobada - Lote(s) #{$prodIdsStr} - {$date}";
                 
                 $adminBody = "Estimada Administración,\n\nSe ha completado el procesamiento y aprobación del cargo para los siguientes lotes de producción de la Fábrica de Bolsas:\n\n• Lotes de Producción: #{$prodIdsStr}\n• Fecha de Aprobación: {$date}\n• Aprobado Por: {$user}\n• Empresa: {$businessName}\n\nSe adjuntan a este correo las planillas correspondientes en dos versiones para fines de control y auditoría:\n1. **Planilla Original**: Tal como fue registrada inicialmente por el operador desde la aplicación móvil.\n2. **Planilla Aprobada**: Refleja las cantidades finales que fueron aprobadas e ingresadas al inventario.\n\nPor favor, conserve estos archivos para sus registros contables y control de pérdidas.\n\nAtentamente,\nDepartamento de Control de Calidad y Manufactura\n{$businessName}";
-                $adminBody = nl2br($adminBody);
+                $adminBodyHtml = nl2br($adminBody);
 
                 \Illuminate\Support\Facades\Mail::to($config->bags_admin_email_recipients)
-                    ->queue(new \App\Mail\BagsProductionConsolidatedMail($adminSubject, $adminBody, $adminPdfs));
+                    ->queue(new \App\Mail\BagsProductionConsolidatedMail($adminSubject, $adminBodyHtml, $adminPdfs));
             }
 
-            $this->dispatch('noty', msg: 'Correo consolidado enviado correctamente.');
+            // 3. Send WhatsApp Notifications for Bags Admin
+            try {
+                $whatsappService = app(\App\Services\WhatsappService::class);
+                $waAdminUsers = $config->whatsapp_bags_admin_users ?? [];
+                $waAdminGroups = $config->whatsapp_bags_admin_groups ?? [];
+                
+                if (!empty($waAdminUsers) || !empty($waAdminGroups)) {
+                    $waAdminMessage = "*AUDITORÍA DE PRODUCCIÓN - FÁBRICA DE BOLSAS*\n\n" . $adminBody;
+                    
+                    if (!empty($waAdminUsers)) {
+                        $users = \App\Models\User::whereIn('id', $waAdminUsers)->whereNotNull('phone')->where('phone', '!=', '')->get();
+                        foreach ($users as $u) {
+                            $whatsappService->sendMessage($u->phone, $waAdminMessage);
+                        }
+                    }
+                    if (!empty($waAdminGroups)) {
+                        foreach ($waAdminGroups as $gId) {
+                            $whatsappService->sendMessageToGroup($gId, $waAdminMessage);
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Error sending WhatsApp for bags admin: ' . $e->getMessage());
+            }
+
+            $this->dispatch('noty', msg: 'Notificaciones enviadas correctamente.');
             
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error("Failed to send bags consolidated report email: " . $e->getMessage());
-            $this->dispatch('noty', msg: 'Error al enviar correo consolidado: ' . $e->getMessage(), type: 'error');
+            $this->dispatch('noty', msg: 'Error al enviar notificaciones: ' . $e->getMessage(), type: 'error');
         }
     }
 

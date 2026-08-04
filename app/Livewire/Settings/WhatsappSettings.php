@@ -31,12 +31,16 @@ class WhatsappSettings extends Component
     public $selectedWeeklyReportGroups = [];
     public $selectedSopladosShiftGroups = [];
     public $selectedSopladosWeeklyGroups = [];
+    public $selectedBagsShiftGroups = [];
+    public $selectedBagsAdminGroups = [];
 
     public $emailRateRecipients = '';
     public $emailClosureRecipients = '';
     public $emailWeeklyReportRecipients = '';
     public $emailSopladosWeeklyRecipients = '';
     public $emailCreditAuthRecipients = '';
+    public $emailBagsShiftRecipients = '';
+    public $emailBagsAdminRecipients = '';
 
     public $selectedRateUsers = [];
     public $selectedClosureUsers = [];
@@ -44,6 +48,8 @@ class WhatsappSettings extends Component
     public $selectedSopladosShiftUsers = [];
     public $selectedSopladosWeeklyUsers = [];
     public $selectedCreditAuthUsers = [];
+    public $selectedBagsShiftUsers = [];
+    public $selectedBagsAdminUsers = [];
 
     public $searchRateQuery = '';
     public $searchClosureQuery = '';
@@ -51,6 +57,8 @@ class WhatsappSettings extends Component
     public $searchSopladosShiftQuery = '';
     public $searchSopladosWeeklyQuery = '';
     public $searchCreditAuthQuery = '';
+    public $searchBagsShiftQuery = '';
+    public $searchBagsAdminQuery = '';
 
     public $rateUsersResults = [];
     public $closureUsersResults = [];
@@ -58,6 +66,8 @@ class WhatsappSettings extends Component
     public $sopladosShiftUsersResults = [];
     public $sopladosWeeklyUsersResults = [];
     public $creditAuthUsersResults = [];
+    public $bagsShiftUsersResults = [];
+    public $bagsAdminUsersResults = [];
 
     // Weekly scheduling config
     public $weeklyReportSendDay = 6;
@@ -71,12 +81,16 @@ class WhatsappSettings extends Component
         $this->selectedWeeklyReportGroups = $config->whatsapp_weekly_report_groups ?? [];
         $this->selectedSopladosShiftGroups = $config->whatsapp_soplados_shift_groups ?? [];
         $this->selectedSopladosWeeklyGroups = $config->whatsapp_soplados_weekly_groups ?? [];
+        $this->selectedBagsShiftGroups = $config->whatsapp_bags_shift_groups ?? [];
+        $this->selectedBagsAdminGroups = $config->whatsapp_bags_admin_groups ?? [];
 
         $this->emailRateRecipients = implode(', ', $config->email_rate_recipients ?? []);
         $this->emailClosureRecipients = implode(', ', $config->email_closure_recipients ?? []);
         $this->emailWeeklyReportRecipients = implode(', ', $config->email_weekly_report_recipients ?? []);
         $this->emailSopladosWeeklyRecipients = implode(', ', $config->email_soplados_weekly_recipients ?? []);
         $this->emailCreditAuthRecipients = implode(', ', $config->email_credit_auth_recipients ?? []);
+        $this->emailBagsShiftRecipients = implode(', ', $config->production_email_recipients ?? []);
+        $this->emailBagsAdminRecipients = implode(', ', $config->bags_admin_email_recipients ?? []);
 
         $this->selectedRateUsers = $config->whatsapp_rate_users ?? [];
         $this->selectedClosureUsers = $config->whatsapp_closure_users ?? [];
@@ -84,6 +98,8 @@ class WhatsappSettings extends Component
         $this->selectedSopladosShiftUsers = $config->whatsapp_soplados_shift_users ?? [];
         $this->selectedSopladosWeeklyUsers = $config->whatsapp_soplados_weekly_users ?? [];
         $this->selectedCreditAuthUsers = $config->whatsapp_credit_auth_users ?? [];
+        $this->selectedBagsShiftUsers = $config->whatsapp_bags_shift_users ?? [];
+        $this->selectedBagsAdminUsers = $config->whatsapp_bags_admin_users ?? [];
 
         $this->weeklyReportSendDay = $config->weekly_report_send_day ?? 6;
         $this->weeklyReportSendHour = $config->weekly_report_send_hour ?? '10:00';
@@ -186,6 +202,18 @@ class WhatsappSettings extends Component
             } else {
                 $this->selectedSopladosWeeklyGroups[] = $groupId;
             }
+        } elseif ($actionType === 'bags_shift') {
+            if (in_array($groupId, $this->selectedBagsShiftGroups)) {
+                $this->selectedBagsShiftGroups = array_values(array_diff($this->selectedBagsShiftGroups, [$groupId]));
+            } else {
+                $this->selectedBagsShiftGroups[] = $groupId;
+            }
+        } elseif ($actionType === 'bags_admin') {
+            if (in_array($groupId, $this->selectedBagsAdminGroups)) {
+                $this->selectedBagsAdminGroups = array_values(array_diff($this->selectedBagsAdminGroups, [$groupId]));
+            } else {
+                $this->selectedBagsAdminGroups[] = $groupId;
+            }
         }
     }
 
@@ -253,6 +281,8 @@ class WhatsappSettings extends Component
             $weeklyEmails = array_values(array_filter(array_map('trim', explode(',', $this->emailWeeklyReportRecipients))));
             $sopladosWeeklyEmails = array_values(array_filter(array_map('trim', explode(',', $this->emailSopladosWeeklyRecipients))));
             $creditAuthEmails = array_values(array_filter(array_map('trim', explode(',', $this->emailCreditAuthRecipients))));
+            $bagsShiftEmails = array_values(array_filter(array_map('trim', explode(',', $this->emailBagsShiftRecipients))));
+            $bagsAdminEmails = array_values(array_filter(array_map('trim', explode(',', $this->emailBagsAdminRecipients))));
 
             $config->update([
                 'whatsapp_rate_groups' => $this->selectedRateGroups,
@@ -268,6 +298,12 @@ class WhatsappSettings extends Component
                 'whatsapp_soplados_shift_users' => $this->selectedSopladosShiftUsers,
                 'whatsapp_soplados_weekly_groups' => $this->selectedSopladosWeeklyGroups,
                 'whatsapp_soplados_weekly_users' => $this->selectedSopladosWeeklyUsers,
+                'whatsapp_bags_shift_groups' => $this->selectedBagsShiftGroups,
+                'whatsapp_bags_shift_users' => $this->selectedBagsShiftUsers,
+                'whatsapp_bags_admin_groups' => $this->selectedBagsAdminGroups,
+                'whatsapp_bags_admin_users' => $this->selectedBagsAdminUsers,
+                'production_email_recipients' => $bagsShiftEmails,
+                'bags_admin_email_recipients' => $bagsAdminEmails,
                 'email_soplados_weekly_recipients' => $sopladosWeeklyEmails,
                 'email_credit_auth_recipients' => $creditAuthEmails,
                 'whatsapp_credit_auth_users' => $this->selectedCreditAuthUsers,
@@ -363,7 +399,40 @@ class WhatsappSettings extends Component
             ->toArray();
     }
 
+    public function updatedSearchBagsShiftQuery()
+    {
+        if (strlen($this->searchBagsShiftQuery) < 2) {
+            $this->bagsShiftUsersResults = [];
+            return;
+        }
+        $this->bagsShiftUsersResults = \App\Models\User::where('name', 'like', '%' . $this->searchBagsShiftQuery . '%')
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->limit(5)
+            ->get(['id', 'name', 'phone'])
+            ->toArray();
+    }
+
+    public function updatedSearchBagsAdminQuery()
+    {
+        if (strlen($this->searchBagsAdminQuery) < 2) {
+            $this->bagsAdminUsersResults = [];
+            return;
+        }
+        $this->bagsAdminUsersResults = \App\Models\User::where('name', 'like', '%' . $this->searchBagsAdminQuery . '%')
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->limit(5)
+            ->get(['id', 'name', 'phone'])
+            ->toArray();
+    }
+
     public function selectUser($userId, $type)
+    {
+        return $this->addUser($userId, $type);
+    }
+
+    public function addUser($userId, $type)
     {
         if ($type === 'rate') {
             if (!in_array($userId, $this->selectedRateUsers)) {
@@ -401,6 +470,18 @@ class WhatsappSettings extends Component
             }
             $this->searchCreditAuthQuery = '';
             $this->creditAuthUsersResults = [];
+        } elseif ($type === 'bags_shift') {
+            if (!in_array($userId, $this->selectedBagsShiftUsers)) {
+                $this->selectedBagsShiftUsers[] = $userId;
+            }
+            $this->searchBagsShiftQuery = '';
+            $this->bagsShiftUsersResults = [];
+        } elseif ($type === 'bags_admin') {
+            if (!in_array($userId, $this->selectedBagsAdminUsers)) {
+                $this->selectedBagsAdminUsers[] = $userId;
+            }
+            $this->searchBagsAdminQuery = '';
+            $this->bagsAdminUsersResults = [];
         }
     }
 
@@ -418,6 +499,10 @@ class WhatsappSettings extends Component
             $this->selectedSopladosWeeklyUsers = array_values(array_diff($this->selectedSopladosWeeklyUsers, [$userId]));
         } elseif ($type === 'credit_auth') {
             $this->selectedCreditAuthUsers = array_values(array_diff($this->selectedCreditAuthUsers, [$userId]));
+        } elseif ($type === 'bags_shift') {
+            $this->selectedBagsShiftUsers = array_values(array_diff($this->selectedBagsShiftUsers, [$userId]));
+        } elseif ($type === 'bags_admin') {
+            $this->selectedBagsAdminUsers = array_values(array_diff($this->selectedBagsAdminUsers, [$userId]));
         }
     }
 
@@ -429,6 +514,8 @@ class WhatsappSettings extends Component
         $sopladosShiftUsers = \App\Models\User::whereIn('id', $this->selectedSopladosShiftUsers)->get(['id', 'name', 'phone']);
         $sopladosWeeklyUsers = \App\Models\User::whereIn('id', $this->selectedSopladosWeeklyUsers)->get(['id', 'name', 'phone']);
         $creditAuthUsers = \App\Models\User::whereIn('id', $this->selectedCreditAuthUsers)->get(['id', 'name', 'phone']);
+        $bagsShiftUsers = \App\Models\User::whereIn('id', $this->selectedBagsShiftUsers)->get(['id', 'name', 'phone']);
+        $bagsAdminUsers = \App\Models\User::whereIn('id', $this->selectedBagsAdminUsers)->get(['id', 'name', 'phone']);
 
         return view('livewire.settings.whatsapp-settings', [
             'selectedRateUsersList' => $rateUsers,
@@ -437,6 +524,8 @@ class WhatsappSettings extends Component
             'selectedSopladosShiftUsersList' => $sopladosShiftUsers,
             'selectedSopladosWeeklyUsersList' => $sopladosWeeklyUsers,
             'selectedCreditAuthUsersList' => $creditAuthUsers,
+            'selectedBagsShiftUsersList' => $bagsShiftUsers,
+            'selectedBagsAdminUsersList' => $bagsAdminUsers,
         ]);
     }
 }

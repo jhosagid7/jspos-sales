@@ -1,3 +1,13 @@
+## [1.10.316] - 2026-08-04
+
+### Added
+- **Centralización de Notificaciones para la Fábrica de Bolsas (Email & WhatsApp)**:
+  - Incorporadas dos nuevas secciones en el **Centro de Gestión de Notificaciones**:
+    1. **🛍️ Fábrica de Bolsas (Cierre de Turno / Producción)**: Gestión de correos electrónicos y usuarios/grupos de WhatsApp a quienes llega la notificación del lote de producción.
+    2. **🏢 Fábrica de Bolsas (Administración / Aprobados)**: Gestión de correos de auditoría y usuarios/grupos de WhatsApp para la aprobación de la planilla y entrada de inventario.
+  - Sincronización automática bidireccional entre la plantilla en **Ajustes > Producción** y el menú de **Gestión de Notificaciones**.
+  - Despacho automatizado por WhatsApp a los operadores/administradores seleccionados al cerrar turno o aprobar la planilla.
+
 ## [1.10.315] - 2026-08-04
 
 ### Fixed

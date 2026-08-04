@@ -645,6 +645,86 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                <!-- FÁBRICA DE BOLSAS (TURNO / PRODUCCIÓN) -->
+                                <div class="col-md-4 border-end">
+                                    <h6 class="text-primary mb-3"><i class="fas fa-shopping-bag text-success me-1"></i> Fábrica de Bolsas (Cierre de Turno / Producción)</h6>
+                                    
+                                    <div class="form-group mb-3">
+                                        <label class="fw-bold text-dark"><i class="fas fa-envelope text-success me-1"></i> Correos Electrónicos</label>
+                                        <textarea wire:model="emailBagsShiftRecipients" class="form-control border-success" rows="3" placeholder="ejemplo1@correo.com, ejemplo2@correo.com"></textarea>
+                                        <small class="text-muted">Separados por comas (se sincroniza con Ajustes > Producción).</small>
+                                    </div>
+
+                                    <div class="form-group mb-3 position-relative" x-data="{ open: false }">
+                                        <label class="fw-bold text-dark"><i class="fab fa-whatsapp text-success me-1"></i> Usuarios de WhatsApp</label>
+                                        <input type="text" 
+                                               wire:model.live="searchBagsShiftQuery" 
+                                               class="form-control border-success" 
+                                               placeholder="Buscar usuario..."
+                                               @focus="open = true"
+                                               @click.away="open = false">
+                                        
+                                        @if(!empty($bagsShiftUsersResults))
+                                            <ul class="list-group position-absolute w-100 shadow" style="z-index: 1000; max-height: 200px; overflow-y: auto;" x-show="open">
+                                                @foreach($bagsShiftUsersResults as $result)
+                                                    <li class="list-group-item list-group-item-action py-2" style="cursor: pointer;" wire:click="selectUser({{ $result['id'] }}, 'bags_shift')" @click="open = false">
+                                                        <strong>{{ $result['name'] }}</strong> <span class="text-muted">({{ $result['phone'] }})</span>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        @endif
+
+                                        <div class="mt-2 d-flex flex-wrap gap-1">
+                                            @foreach($selectedBagsShiftUsersList as $user)
+                                                <span class="badge bg-success p-2 d-inline-flex align-items-center text-white">
+                                                    {{ $user->name }}
+                                                    <button type="button" wire:click="removeUser({{ $user->id }}, 'bags_shift')" class="btn-close btn-close-white ms-2" style="font-size: 0.65rem;" aria-label="Remove"></button>
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- FÁBRICA DE BOLSAS (ADMINISTRACIÓN) -->
+                                <div class="col-md-4">
+                                    <h6 class="text-primary mb-3"><i class="fas fa-building text-success me-1"></i> Fábrica de Bolsas (Administración / Aprobados)</h6>
+                                    
+                                    <div class="form-group mb-3">
+                                        <label class="fw-bold text-dark"><i class="fas fa-envelope text-success me-1"></i> Correos Electrónicos</label>
+                                        <textarea wire:model="emailBagsAdminRecipients" class="form-control border-success" rows="3" placeholder="ejemplo1@correo.com, ejemplo2@correo.com"></textarea>
+                                        <small class="text-muted">Separados por comas (se sincroniza con Ajustes > Producción).</small>
+                                    </div>
+
+                                    <div class="form-group mb-3 position-relative" x-data="{ open: false }">
+                                        <label class="fw-bold text-dark"><i class="fab fa-whatsapp text-success me-1"></i> Usuarios de WhatsApp</label>
+                                        <input type="text" 
+                                               wire:model.live="searchBagsAdminQuery" 
+                                               class="form-control border-success" 
+                                               placeholder="Buscar usuario..."
+                                               @focus="open = true"
+                                               @click.away="open = false">
+                                        
+                                        @if(!empty($bagsAdminUsersResults))
+                                            <ul class="list-group position-absolute w-100 shadow" style="z-index: 1000; max-height: 200px; overflow-y: auto;" x-show="open">
+                                                @foreach($bagsAdminUsersResults as $result)
+                                                    <li class="list-group-item list-group-item-action py-2" style="cursor: pointer;" wire:click="selectUser({{ $result['id'] }}, 'bags_admin')" @click="open = false">
+                                                        <strong>{{ $result['name'] }}</strong> <span class="text-muted">({{ $result['phone'] }})</span>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        @endif
+
+                                        <div class="mt-2 d-flex flex-wrap gap-1">
+                                            @foreach($selectedBagsAdminUsersList as $user)
+                                                <span class="badge bg-success p-2 d-inline-flex align-items-center text-white">
+                                                    {{ $user->name }}
+                                                    <button type="button" wire:click="removeUser({{ $user->id }}, 'bags_admin')" class="btn-close btn-close-white ms-2" style="font-size: 0.65rem;" aria-label="Remove"></button>
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                         </div>
