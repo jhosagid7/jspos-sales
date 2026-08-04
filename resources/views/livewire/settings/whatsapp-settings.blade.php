@@ -646,9 +646,9 @@
                                     </div>
                                 </div>
 
-                                <!-- FÁBRICA DE BOLSAS (TURNO / PRODUCCIÓN) -->
+                                <!-- FÁBRICA DE BOLSAS (LEVANTAMIENTO ORIGINAL / OPERADOR) -->
                                 <div class="col-md-4 border-end">
-                                    <h6 class="text-primary mb-3"><i class="fas fa-shopping-bag text-success me-1"></i> Fábrica de Bolsas (Cierre de Turno / Producción)</h6>
+                                    <h6 class="text-primary mb-3"><i class="fas fa-shopping-bag text-success me-1"></i> Fábrica de Bolsas (Levantamiento de Mercancía / Operador)</h6>
                                     
                                     <div class="form-group mb-3">
                                         <label class="fw-bold text-dark"><i class="fas fa-envelope text-success me-1"></i> Correos Electrónicos</label>

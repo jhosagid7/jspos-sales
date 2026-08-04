@@ -1,3 +1,9 @@
+## [1.10.320] - 2026-08-04
+
+### Improved
+- **Clarificación de Etiqueta de Notificaciones en Fábrica de Bolsas**:
+  - Renombrada la sección de configuración de notificaciones de `Fábrica de Bolsas (Cierre de Turno / Producción)` a `Fábrica de Bolsas (Levantamiento de Mercancía / Operador)` para reflejar adecuadamente la emisión del levantamiento original desde la app móvil.
+
 ## [1.10.319] - 2026-08-04
 
 ### Fixed & Audited
