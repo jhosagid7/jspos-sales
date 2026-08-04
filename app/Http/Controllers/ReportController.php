@@ -4205,6 +4205,14 @@ class ReportController extends Controller
             }
         }
 
+        $dailyClosure = null;
+        if ($bankId !== 'all') {
+            $dailyClosure = \App\Models\BankDailyClosure::with(['closedBy', 'openedBy'])
+                ->where('bank_id', (int)$bankId)
+                ->whereDate('closure_date', $dateFrom)
+                ->first();
+        }
+
         $config = \App\Models\Configuration::first();
         $user = auth()->user();
         $date = Carbon::now()->format('d/m/Y');
@@ -4212,7 +4220,7 @@ class ReportController extends Controller
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.bank-treasury-pdf', compact(
             'config', 'user', 'date', 'time', 'bankName', 'currencyCode',
-            'dateFrom', 'dateTo', 'type', 'analysis', 'movements', 'totalsByCurrency'
+            'dateFrom', 'dateTo', 'type', 'analysis', 'movements', 'totalsByCurrency', 'dailyClosure'
         ))->setPaper('a4', 'portrait');
 
         $filename = 'Reporte_Tesoreria_' . Carbon::parse($dateFrom)->format('Ymd') . '_' . Carbon::parse($dateTo)->format('Ymd') . '.pdf';

@@ -1,3 +1,10 @@
+## [1.10.313] - 2026-08-04
+
+### Added
+- **Botón PDF de Transacciones Diarias por Corte**:
+  - Incorporado botón directo **`[PDF]`** en la columna **Acciones** de la tabla de **Cortes Diarios**.
+  - Permite visualizar e imprimir al instante el reporte en PDF de todas las transacciones de esa jornada bancaria específica (incluyendo desglose de **DEBE**, **HABER**, **SALDO**, auditoría de arqueo y firmas).
+
 ## [1.10.312] - 2026-08-04
 
 ### Enhanced

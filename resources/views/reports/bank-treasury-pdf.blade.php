@@ -169,6 +169,65 @@
     </div>
 
     @if($type !== 'closures')
+        @if(isset($dailyClosure) && $dailyClosure)
+            <!-- Auditoría de Cierre y Arqueo Bancario del Día -->
+            <div class="section-title">Auditoría y Arqueo Bancario de la Jornada ({{ \Carbon\Carbon::parse($dailyClosure->closure_date)->format('d/m/Y') }})</div>
+            <table class="data-table" style="margin-bottom: 15px;">
+                <thead>
+                    <tr style="background-color: #1F4E79; color: #fff;">
+                        <th>Concepto Auditoría</th>
+                        <th class="text-right">Monto Teórico (Sistema)</th>
+                        <th class="text-right">Monto Declarado (Operador)</th>
+                        <th class="text-center">Resultado / Diferencial</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Saldo de Apertura (Mañana)</strong></td>
+                        <td class="text-right">${{ number_format($dailyClosure->opening_balance, 2) }} {{ $currencyCode }}</td>
+                        <td class="text-right">
+                            @if($dailyClosure->manual_opening_balance !== null)
+                                ${{ number_format($dailyClosure->manual_opening_balance, 2) }} {{ $currencyCode }}
+                            @else
+                                <span class="text-muted">Sin registro manual</span>
+                            @endif
+                        </td>
+                        <td class="text-center">
+                            @if($dailyClosure->manual_opening_balance !== null)
+                                {{ $dailyClosure->opening_difference >= 0 ? '+' : '' }}${{ number_format($dailyClosure->opening_difference, 2) }}
+                            @else
+                                -
+                            @endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Saldo de Cierre (Tarde/Noche)</strong></td>
+                        <td class="text-right font-weight-bold">${{ number_format($dailyClosure->closing_balance, 2) }} {{ $currencyCode }}</td>
+                        <td class="text-right font-weight-bold">
+                            @if($dailyClosure->manual_closing_balance !== null)
+                                ${{ number_format($dailyClosure->manual_closing_balance, 2) }} {{ $currencyCode }}
+                            @else
+                                <span class="text-muted">Cierre Automático</span>
+                            @endif
+                        </td>
+                        <td class="text-center">
+                            @if($dailyClosure->manual_closing_balance !== null)
+                                @if(abs($dailyClosure->closing_difference) < 0.01)
+                                    <span class="badge badge-success">CUADRE PERFECTO (OK)</span>
+                                @elseif($dailyClosure->closing_difference > 0)
+                                    <span class="badge badge-warning">+${{ number_format($dailyClosure->closing_difference, 2) }} (Sobrante)</span>
+                                @else
+                                    <span class="badge badge-danger">-${{ number_format(abs($dailyClosure->closing_difference), 2) }} (Faltante)</span>
+                                @endif
+                            @else
+                                <span class="badge badge-secondary">AUTOMÁTICO</span>
+                            @endif
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        @endif
+
         <!-- Resumen Financiero por Moneda (Estilo Estado de Cuenta Bancario) -->
         <div class="section-title">Resumen de Flujo Financiero y Estado de Cuenta</div>
         <table class="data-table">

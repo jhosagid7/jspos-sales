@@ -934,8 +934,11 @@
                                                 @endif
                                             </td>
                                             <td class="text-center">
+                                                 <a href="{{ route('reports.bank.treasury.pdf', ['bank_id' => $cls->bank_id, 'date_from' => $cls->closure_date->format('Y-m-d'), 'date_to' => $cls->closure_date->format('Y-m-d'), 'type' => 'dashboard']) }}" target="_blank" class="btn btn-danger btn-xs px-2 py-1 mr-1 shadow-sm font-weight-bold" title="Ver / Imprimir Reporte PDF de Movimientos del Día">
+                                                     <i class="fas fa-file-pdf"></i> PDF
+                                                 </a>
                                                 @can('treasury.config')
-                                                    <button wire:click="deleteClosure({{ $cls->id }})" wire:confirm="¿Estás seguro de eliminar este corte diario? Saldo actual se mantendrá pero el historial del corte se borrará." class="btn btn-danger btn-xs p-1" title="Eliminar corte diario">
+                                                    <button wire:click="deleteClosure({{ $cls->id }})" wire:confirm="¿Estás seguro de eliminar este corte diario? Saldo actual se mantendrá pero el historial del corte se borrará." class="btn btn-outline-danger btn-xs p-1" title="Eliminar corte diario">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 @else
