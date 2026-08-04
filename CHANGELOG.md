@@ -1,3 +1,10 @@
+## [1.10.318] - 2026-08-04
+
+### Fixed
+- **Error 500 en PDF de Reporte de Desempeño de Vendedores**:
+  - Corregido `ErrorException: Undefined variable $invoiceStatus` y `$invoiceLimit` al generar el PDF del Reporte de Desempeño y Cartera de Vendedores (`sellersPerformancePdf` en `ReportController.php`).
+  - Incorporadas las variables de configuración en la llamada a la vista `reports.sellers-performance-pdf` y añadidas validaciones de seguridad para ventas sin cliente o con relaciones nulas.
+
 ## [1.10.317] - 2026-08-04
 
 ### Fixed & Improved

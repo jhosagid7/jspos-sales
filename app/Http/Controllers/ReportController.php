@@ -3467,6 +3467,8 @@ class ReportController extends Controller
         $dateFromStr = $request->get('dateFrom');
         $dateToStr = $request->get('dateTo');
         $metric = $request->get('metric', 'amount');
+        $invoiceStatus = $request->get('invoiceStatus', 'all');
+        $invoiceLimit = $request->get('invoiceLimit', '100');
 
         $dateFrom = $dateFromStr ? \Carbon\Carbon::parse($dateFromStr)->startOfDay() : null;
         $dateTo = $dateToStr ? \Carbon\Carbon::parse($dateToStr)->endOfDay() : null;
@@ -3496,7 +3498,7 @@ class ReportController extends Controller
             $oficinaId = $oficinaUser ? $oficinaUser->id : null;
 
             $sellerSales = $sales->filter(function($sale) use ($seller, $oficinaId) {
-                $sId = $sale->customer->seller_id ?? null;
+                $sId = ($sale->customer && isset($sale->customer->seller_id)) ? $sale->customer->seller_id : null;
                 return $sId == $seller->id || (is_null($sId) && $seller->id == $oficinaId);
             });
             
@@ -3506,7 +3508,7 @@ class ReportController extends Controller
             $netSales = $grossSales - $commissions;
             $marginPercent = $grossSales > 0 ? ($netSales / $grossSales) * 100 : 0;
             
-            $activeCustomers = $sellerSales->pluck('customer_id')->unique()->count();
+            $activeCustomers = $sellerSales->pluck('customer_id')->filter()->unique()->count();
 
             $pendingDebt = 0;
             $overdueDebt = 0;
@@ -3517,7 +3519,7 @@ class ReportController extends Controller
                 if ($debt > 0) {
                     $pendingDebt += $debt;
                     
-                    $daysOverdue = $sale->days_overdue;
+                    $daysOverdue = isset($sale->days_overdue) ? $sale->days_overdue : 0;
                     if ($daysOverdue > 0) {
                         $overdueDebt += $debt;
                         $weightedOverdueSum += ($daysOverdue * $debt);
@@ -3588,6 +3590,8 @@ class ReportController extends Controller
             'detailedSales' => $detailedSales,
             'metric' => $metric,
             'periodType' => $periodType,
+            'invoiceStatus' => $invoiceStatus,
+            'invoiceLimit' => $invoiceLimit,
             'config' => $config,
             'user' => $user,
             'date' => $date,
