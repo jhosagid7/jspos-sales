@@ -1,3 +1,10 @@
+## [1.10.311] - 2026-08-04
+
+### Fixed
+- **Carga Completa de Bancos Activos en Modales de Tesorería**:
+  - Corregido el selector desplegable de bancos en los modales de **Registrar Otro Ingreso**, **Registrar Gasto**, **Transferencias entre Bancos**, **Apertura de Banco** y **Corte Diario**.
+  - Ahora todas las cuentas bancarias activas del sistema (ej: *Banco de Venezuela, Zelle, Banco Provincial, Mercantil, etc.*) cargan automáticamente en las opciones de selección independientemente del parámetro de auditoría inicial.
+
 ## [1.10.310] - 2026-08-04
 
 ### Added

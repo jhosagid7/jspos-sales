@@ -196,8 +196,11 @@ class BankTreasury extends Component
 
     public function render()
     {
-        $trackedBanks = Bank::tracked()->where('state', 1)->get();
         $allBanks = Bank::where('state', 1)->get();
+        $trackedBanks = Bank::tracked()->where('state', 1)->get();
+        if ($trackedBanks->isEmpty()) {
+            $trackedBanks = $allBanks;
+        }
         $categories = BankExpenseCategory::where('is_active', true)->orderBy('sort')->get();
 
         // Summary cards
@@ -341,6 +344,15 @@ class BankTreasury extends Component
         return $combined;
     }
 
+    private function getActiveBanks()
+    {
+        $tracked = Bank::tracked()->where('state', 1)->get();
+        if ($tracked->isNotEmpty()) {
+            return $tracked;
+        }
+        return Bank::where('state', 1)->get();
+    }
+
     // Modal Control
     public function openExpenseModal()
     {
@@ -348,9 +360,9 @@ class BankTreasury extends Component
         $this->reset(['expenseId', 'expense_bank_id', 'expense_category_id', 'expense_amount', 'expense_description', 'expense_reference', 'expense_beneficiary', 'expense_receipt', 'expense_is_recurring']);
         $this->expense_date = Carbon::today()->format('Y-m-d');
         
-        $trackedBanks = Bank::tracked()->get();
-        if ($trackedBanks->isNotEmpty()) {
-            $this->expense_bank_id = $trackedBanks->first()->id;
+        $banks = $this->getActiveBanks();
+        if ($banks->isNotEmpty()) {
+            $this->expense_bank_id = $banks->first()->id;
         }
         
         $categories = BankExpenseCategory::where('is_active', true)->orderBy('sort')->get();
@@ -423,10 +435,12 @@ class BankTreasury extends Component
         $this->reset(['transfer_from_bank_id', 'transfer_to_bank_id', 'transfer_amount_from', 'transfer_amount_to', 'transfer_exchange_rate', 'transfer_reference', 'transfer_notes']);
         $this->transfer_date = Carbon::today()->format('Y-m-d');
         
-        $trackedBanks = Bank::tracked()->get();
-        if ($trackedBanks->count() >= 2) {
-            $this->transfer_from_bank_id = $trackedBanks->first()->id;
-            $this->transfer_to_bank_id = $trackedBanks->skip(1)->first()->id;
+        $banks = $this->getActiveBanks();
+        if ($banks->count() >= 2) {
+            $this->transfer_from_bank_id = $banks->first()->id;
+            $this->transfer_to_bank_id = $banks->skip(1)->first()->id;
+        } elseif ($banks->isNotEmpty()) {
+            $this->transfer_from_bank_id = $banks->first()->id;
         }
 
         $this->showTransferModal = true;
@@ -488,9 +502,9 @@ class BankTreasury extends Component
         $this->other_income_date = Carbon::today()->format('Y-m-d');
         $this->other_income_category = 'Aporte de Capital';
 
-        $trackedBanks = Bank::tracked()->get();
-        if ($trackedBanks->isNotEmpty()) {
-            $this->other_income_bank_id = $trackedBanks->first()->id;
+        $banks = $this->getActiveBanks();
+        if ($banks->isNotEmpty()) {
+            $this->other_income_bank_id = $banks->first()->id;
         }
 
         $this->showOtherIncomeModal = true;
@@ -536,9 +550,9 @@ class BankTreasury extends Component
         $this->reset(['opening_bank_id', 'opening_manual_balance', 'opening_proof_image']);
         $this->opening_date = Carbon::today()->format('Y-m-d');
 
-        $trackedBanks = Bank::tracked()->get();
-        if ($trackedBanks->isNotEmpty()) {
-            $this->opening_bank_id = $trackedBanks->first()->id;
+        $banks = $this->getActiveBanks();
+        if ($banks->isNotEmpty()) {
+            $this->opening_bank_id = $banks->first()->id;
         }
 
         $this->showOpeningModal = true;
@@ -578,9 +592,9 @@ class BankTreasury extends Component
         $this->reset(['closure_bank_id', 'closure_notes', 'closure_manual_balance', 'closure_proof_image']);
         $this->closure_date = Carbon::today()->format('Y-m-d');
 
-        $trackedBanks = Bank::tracked()->get();
-        if ($trackedBanks->isNotEmpty()) {
-            $this->closure_bank_id = $trackedBanks->first()->id;
+        $banks = $this->getActiveBanks();
+        if ($banks->isNotEmpty()) {
+            $this->closure_bank_id = $banks->first()->id;
         }
 
         $this->showClosureModal = true;

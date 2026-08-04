@@ -13,7 +13,7 @@
                         <div class="form-group">
                             <label class="font-weight-bold">Banco Emisor</label>
                             <select wire:model="expense_bank_id" class="form-control">
-                                @foreach($trackedBanks as $bank)
+                                @foreach($allBanks as $bank)
                                     <option value="{{ $bank->id }}">{{ $bank->name }} ({{ $bank->currency_code }})</option>
                                 @endforeach
                             </select>
@@ -106,7 +106,7 @@
                                 <div class="form-group">
                                     <label class="font-weight-bold">Origen (Debitase)</label>
                                     <select wire:model.live="transfer_from_bank_id" class="form-control">
-                                        @foreach($trackedBanks as $bank)
+                                        @foreach($allBanks as $bank)
                                             <option value="{{ $bank->id }}">{{ $bank->name }} ({{ $bank->currency_code }})</option>
                                         @endforeach
                                     </select>
@@ -117,7 +117,7 @@
                                 <div class="form-group">
                                     <label class="font-weight-bold">Destino (Acreditase)</label>
                                     <select wire:model.live="transfer_to_bank_id" class="form-control">
-                                        @foreach($trackedBanks as $bank)
+                                        @foreach($allBanks as $bank)
                                             <option value="{{ $bank->id }}">{{ $bank->name }} ({{ $bank->currency_code }})</option>
                                         @endforeach
                                     </select>
@@ -194,7 +194,7 @@
                         <div class="form-group">
                             <label class="font-weight-bold">Banco Receptor</label>
                             <select wire:model="other_income_bank_id" class="form-control">
-                                @foreach($trackedBanks as $bank)
+                                @foreach($allBanks as $bank)
                                     <option value="{{ $bank->id }}">{{ $bank->name }} ({{ $bank->currency_code }})</option>
                                 @endforeach
                             </select>
@@ -271,7 +271,7 @@
                         <div class="form-group">
                             <label class="font-weight-bold">Cuenta Bancaria</label>
                             <select wire:model="opening_bank_id" class="form-control">
-                                @foreach($trackedBanks as $bank)
+                                @foreach($allBanks as $bank)
                                     <option value="{{ $bank->id }}">{{ $bank->name }} ({{ $bank->currency_code }})</option>
                                 @endforeach
                             </select>
@@ -319,7 +319,7 @@
                         <div class="form-group">
                             <label class="font-weight-bold">Banco a Cerrar</label>
                             <select wire:model="closure_bank_id" class="form-control">
-                                @foreach($trackedBanks as $bank)
+                                @foreach($allBanks as $bank)
                                     <option value="{{ $bank->id }}">{{ $bank->name }} ({{ $bank->currency_code }})</option>
                                 @endforeach
                             </select>
