@@ -181,12 +181,137 @@
         </div>
     </div>
 
-    <!-- Modal: Realizar Corte Diario -->
+    <!-- Modal: Registrar Otro Ingreso Bancario -->
+    <div class="modal fade @if($showOtherIncomeModal) show d-block @endif" tabindex="-1" role="dialog" style="background: rgba(0,0,0,0.5); overflow-y: auto;">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-success text-white rounded-top">
+                    <h5 class="modal-title text-white"><i class="fas fa-plus-circle"></i> Registrar Otro Ingreso Bancario</h5>
+                    <button type="button" class="close text-white" wire:click="$set('showOtherIncomeModal', false)">&times;</button>
+                </div>
+                <form wire:submit.prevent="saveOtherIncome">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label class="font-weight-bold">Banco Receptor</label>
+                            <select wire:model="other_income_bank_id" class="form-control">
+                                @foreach($trackedBanks as $bank)
+                                    <option value="{{ $bank->id }}">{{ $bank->name }} ({{ $bank->currency_code }})</option>
+                                @endforeach
+                            </select>
+                            @error('other_income_bank_id') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label class="font-weight-bold">Concepto / Categoría de Ingreso</label>
+                            <select wire:model="other_income_category" class="form-control">
+                                <option value="Aporte de Capital">Aporte de Capital / Inyección</option>
+                                <option value="Rendimiento Bancario">Rendimiento / Intereses Bancarios</option>
+                                <option value="Devolución de Proveedor">Devolución / Reembolso de Proveedor</option>
+                                <option value="Préstamo Bancario">Préstamo / Crédito Bancario</option>
+                                <option value="Transferencia de Tercero">Transferencia / Abono de Tercero</option>
+                                <option value="Otro Ingreso">Otro Ingreso Diversos</option>
+                            </select>
+                            @error('other_income_category') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="font-weight-bold">Monto a Ingresar</label>
+                                    <input type="number" step="0.01" wire:model="other_income_amount" class="form-control" placeholder="0.00">
+                                    @error('other_income_amount') <span class="text-danger small">{{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="font-weight-bold">Fecha del Ingreso</label>
+                                    <input type="date" wire:model="other_income_date" class="form-control">
+                                    @error('other_income_date') <span class="text-danger small">{{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="font-weight-bold">Referencia / Nro Transf.</label>
+                            <input type="text" wire:model="other_income_reference" class="form-control" placeholder="Nro de depósito o referencia...">
+                            @error('other_income_reference') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label class="font-weight-bold">Descripción / Actividad a la que Pertenece</label>
+                            <textarea wire:model="other_income_description" class="form-control" rows="2" placeholder="Detalle a qué pertenece o corresponde este ingreso..."></textarea>
+                            @error('other_income_description') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label class="font-weight-bold">Comprobante / Captura (Opcional)</label>
+                            <input type="file" wire:model="other_income_receipt" class="form-control-file">
+                            @error('other_income_receipt') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light rounded-bottom">
+                        <button type="button" class="btn btn-secondary btn-sm" wire:click="$set('showOtherIncomeModal', false)">Cancelar</button>
+                        <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-check-circle"></i> Guardar Ingreso</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Apertura de Jornada Bancaria -->
+    <div class="modal fade @if($showOpeningModal) show d-block @endif" tabindex="-1" role="dialog" style="background: rgba(0,0,0,0.5); overflow-y: auto;">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-warning text-dark rounded-top">
+                    <h5 class="modal-title font-weight-bold text-dark"><i class="fas fa-sun"></i> Apertura de Jornada Bancaria (Mañana)</h5>
+                    <button type="button" class="close text-dark" wire:click="$set('showOpeningModal', false)">&times;</button>
+                </div>
+                <form wire:submit.prevent="saveOpening">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label class="font-weight-bold">Cuenta Bancaria</label>
+                            <select wire:model="opening_bank_id" class="form-control">
+                                @foreach($trackedBanks as $bank)
+                                    <option value="{{ $bank->id }}">{{ $bank->name }} ({{ $bank->currency_code }})</option>
+                                @endforeach
+                            </select>
+                            @error('opening_bank_id') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label class="font-weight-bold">Fecha de Apertura</label>
+                            <input type="date" wire:model="opening_date" class="form-control">
+                            @error('opening_date') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label class="font-weight-bold">Monto Inicial en Banco Real (Ingresado por Operador)</label>
+                            <input type="number" step="0.01" wire:model="opening_manual_balance" class="form-control" placeholder="0.00">
+                            <small class="form-text text-muted">Ingresa el saldo exacto que muestra el portal del banco al iniciar la jornada en la mañana.</small>
+                            @error('opening_manual_balance') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label class="font-weight-bold">Captura de Pantalla del Banco (Opcional)</label>
+                            <input type="file" wire:model="opening_proof_image" class="form-control-file">
+                            @error('opening_proof_image') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light rounded-bottom">
+                        <button type="button" class="btn btn-secondary btn-sm" wire:click="$set('showOpeningModal', false)">Cancelar</button>
+                        <button type="submit" class="btn btn-warning btn-sm font-weight-bold text-dark"><i class="fas fa-sun"></i> Registrar Apertura</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Realizar Corte Diario Auditado -->
     <div class="modal fade @if($showClosureModal) show d-block @endif" tabindex="-1" role="dialog" style="background: rgba(0,0,0,0.5); overflow-y: auto;">
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content border-0 shadow-lg">
                 <div class="modal-header bg-dark text-white rounded-top">
-                    <h5 class="modal-title text-white"><i class="fas fa-lock"></i> Generar Corte de Caja Diario</h5>
+                    <h5 class="modal-title text-white"><i class="fas fa-moon"></i> Realizar Corte Diario Bancario (Tarde/Noche)</h5>
                     <button type="button" class="close text-white" wire:click="$set('showClosureModal', false)">&times;</button>
                 </div>
                 <form wire:submit.prevent="saveClosure">
@@ -208,14 +333,28 @@
                         </div>
 
                         <div class="form-group">
+                            <label class="font-weight-bold">Monto de Cierre Real en Banco (Operador) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" wire:model="closure_manual_balance" class="form-control" placeholder="0.00">
+                            <small class="form-text text-muted">Ingresa el saldo final que muestra el portal del banco al terminar el día.</small>
+                            @error('closure_manual_balance') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label class="font-weight-bold text-danger">Captura / Comprobante del Banco (Obligatorio) <span class="text-danger">*</span></label>
+                            <input type="file" wire:model="closure_proof_image" class="form-control-file">
+                            <small class="form-text text-muted">Sube una foto o captura de pantalla del estado de cuenta del banco al momento del cierre.</small>
+                            @error('closure_proof_image') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="form-group">
                             <label class="font-weight-bold">Observaciones / Notas del Cierre</label>
-                            <textarea wire:model="closure_notes" class="form-control" rows="3" placeholder="Ingresa detalles como descuadres encontrados, arqueo físico vs saldo sistema, etc."></textarea>
+                            <textarea wire:model="closure_notes" class="form-control" rows="2" placeholder="Ingresa detalles como descuadres encontrados, comentarios del operador, etc."></textarea>
                             @error('closure_notes') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
                     </div>
                     <div class="modal-footer bg-light rounded-bottom">
                         <button type="button" class="btn btn-secondary btn-sm" wire:click="$set('showClosureModal', false)">Cancelar</button>
-                        <button type="submit" class="btn btn-dark btn-sm"><i class="fas fa-lock-open"></i> Ejecutar Cierre</button>
+                        <button type="submit" class="btn btn-dark btn-sm"><i class="fas fa-lock"></i> Ejecutar Corte Auditado</button>
                     </div>
                 </form>
             </div>
@@ -234,6 +373,9 @@
                     </div>
                     <div class="d-flex flex-wrap" style="gap: 8px;">
                         @can('treasury.expenses')
+                            <button wire:click="openOtherIncomeModal" class="btn btn-success btn-sm rounded shadow-sm">
+                                <i class="fas fa-plus-circle"></i> Otro Ingreso
+                            </button>
                             <button wire:click="openExpenseModal" class="btn btn-danger btn-sm rounded shadow-sm">
                                 <i class="fas fa-minus-circle"></i> Registrar Gasto
                             </button>
@@ -242,8 +384,11 @@
                             </button>
                         @endcan
                         @can('treasury.closure')
+                            <button wire:click="openOpeningModal" class="btn btn-warning btn-sm text-dark font-weight-bold rounded shadow-sm">
+                                <i class="fas fa-sun"></i> Apertura de Banco
+                            </button>
                             <button wire:click="openClosureModal" class="btn btn-dark btn-sm rounded shadow-sm">
-                                <i class="fas fa-lock"></i> Hacer Corte Diario
+                                <i class="fas fa-moon"></i> Corte Diario
                             </button>
                         @endcan
                     </div>
@@ -716,12 +861,13 @@
                                     <tr>
                                         <th>Fecha Corte</th>
                                         <th>Banco</th>
-                                        <th class="text-right">Saldo Apertura</th>
-                                        <th class="text-right">Total Ingresos (Transf.)</th>
-                                        <th class="text-right">Total Gastos (Transf.)</th>
-                                        <th class="text-right">Saldo Cierre</th>
+                                        <th class="text-right">Apertura (Sist / Real)</th>
+                                        <th class="text-right">Total Ingresos</th>
+                                        <th class="text-right">Total Gastos</th>
+                                        <th class="text-right">Cierre (Sist / Real)</th>
+                                        <th class="text-center">Comprobante Banco</th>
+                                        <th class="text-center">Arqueo (Diferencia)</th>
                                         <th>Ejecutado por</th>
-                                        <th>Notas</th>
                                         <th class="text-center">Acciones</th>
                                     </tr>
                                 </thead>
@@ -730,12 +876,52 @@
                                         <tr>
                                             <td><strong>{{ $cls->closure_date->format('d/m/Y') }}</strong></td>
                                             <td>{{ $cls->bank->name }}</td>
-                                            <td class="text-right">${{ number_format($cls->opening_balance, 2) }}</td>
+                                            <td class="text-right">
+                                                <div>Sist: ${{ number_format($cls->opening_balance, 2) }}</div>
+                                                @if($cls->manual_opening_balance !== null)
+                                                    <small class="text-info font-weight-bold">Real: ${{ number_format($cls->manual_opening_balance, 2) }}</small>
+                                                @endif
+                                            </td>
                                             <td class="text-right text-success">+${{ number_format($cls->total_income, 2) }} ({{ $cls->total_income_count }})</td>
                                             <td class="text-right text-danger">-${{ number_format($cls->total_expenses, 2) }} ({{ $cls->total_expenses_count }})</td>
-                                            <td class="text-right font-weight-bold text-info">${{ number_format($cls->closing_balance, 2) }}</td>
-                                            <td>{{ $cls->closedBy ? $cls->closedBy->name : 'Cierre Automático' }}</td>
-                                            <td>{{ $cls->notes ?: 'N/A' }}</td>
+                                            <td class="text-right">
+                                                <div class="font-weight-bold text-dark">Sist: ${{ number_format($cls->closing_balance, 2) }}</div>
+                                                @if($cls->manual_closing_balance !== null)
+                                                    <small class="text-primary font-weight-bold">Real: ${{ number_format($cls->manual_closing_balance, 2) }}</small>
+                                                @endif
+                                            </td>
+                                            <td class="text-center">
+                                                @if($cls->closing_proof_image)
+                                                    <a href="{{ asset('storage/' . $cls->closing_proof_image) }}" target="_blank" class="btn btn-outline-info btn-xs p-1" title="Ver captura del banco">
+                                                        <i class="fas fa-image"></i> Ver Capture
+                                                    </a>
+                                                @else
+                                                    <span class="text-muted small">Sin imagen</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-center">
+                                                @if($cls->manual_closing_balance !== null)
+                                                    @if(abs($cls->closing_difference) < 0.01)
+                                                        <span class="badge badge-success"><i class="fas fa-check-circle"></i> Cuadre OK</span>
+                                                    @elseif($cls->closing_difference > 0)
+                                                        <span class="badge badge-warning" title="Sobrante en banco real de +${{ number_format($cls->closing_difference, 2) }}">
+                                                            <i class="fas fa-arrow-up"></i> +${{ number_format($cls->closing_difference, 2) }} (Sobrante)
+                                                        </span>
+                                                    @else
+                                                        <span class="badge badge-danger" title="Faltante en banco real de -${{ number_format(abs($cls->closing_difference), 2) }}">
+                                                            <i class="fas fa-arrow-down"></i> -${{ number_format(abs($cls->closing_difference), 2) }} (Faltante)
+                                                        </span>
+                                                    @endif
+                                                @else
+                                                    <span class="badge badge-light text-muted">Auto (Sistema)</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <div>{{ $cls->closedBy ? $cls->closedBy->name : 'Sistema (Auto)' }}</div>
+                                                @if($cls->notes)
+                                                    <small class="text-muted d-block">{{ $cls->notes }}</small>
+                                                @endif
+                                            </td>
                                             <td class="text-center">
                                                 @can('treasury.config')
                                                     <button wire:click="deleteClosure({{ $cls->id }})" wire:confirm="¿Estás seguro de eliminar este corte diario? Saldo actual se mantendrá pero el historial del corte se borrará." class="btn btn-danger btn-xs p-1" title="Eliminar corte diario">
@@ -748,7 +934,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="9" class="text-center p-4 text-muted">No hay cortes diarios registrados en este período.</td>
+                                            <td colspan="10" class="text-center p-4 text-muted">No hay cortes diarios registrados en este período.</td>
                                         </tr>
                                     @endforelse
                                 </tbody>

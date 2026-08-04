@@ -1,3 +1,17 @@
+## [1.10.310] - 2026-08-04
+
+### Added
+- **Módulo de Registro Manual de "Otros Ingresos Bancarios"**:
+  - Incorporado botón y modal de **"+ Otro Ingreso"** para registrar aportes de capital, rendimientos bancarios, devoluciones de proveedores, préstamos o abonos de terceros no vinculados a ventas directas.
+  - Selección de categoría de ingreso, número de referencia, descripción de la actividad y comprobante adjunto.
+  - Actualización automática del saldo conciliado de la cuenta bancaria.
+
+- **Sistema de Apertura y Corte Diario Auditado (Sistema vs Operador)**:
+  - **Apertura de Jornada Bancaria (Mañana)**: Modal donde el operador declara el saldo con el que amaneció la cuenta en el portal del banco (`manual_opening_balance`) y comprobante opcional.
+  - **Corte Diario Auditado (Tarde/Noche)**: Modal de Cierre donde el operador ingresa el saldo final del banco real y **sube obligatoriamente la captura de pantalla del estado de cuenta bancario** (`closing_proof_image`).
+  - **Arqueo y Conciliación Bancaria**: Cálculo automático del diferencial entre el saldo Teórico (Sistema) y el saldo Real (Operador), clasificando descuadres como Sobrante o Faltante.
+  - **Reporte PDF de Auditoría Diario**: Desglose con comparativa Teórica vs Real, visualizador de capturas adjuntas y cuadro oficial de firmas de responsabilidad (*Operador vs Supervisor*).
+
 ## [1.10.309] - 2026-08-04
 
 ### Enhanced

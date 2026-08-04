@@ -20,7 +20,10 @@ class BankRecord extends Model
         'debit_note_id',
         'payment_id',
         'status', 
-        'remaining_balance'
+        'remaining_balance',
+        'income_type',
+        'income_category',
+        'created_by'
     ];
 
     protected $casts = [
@@ -32,6 +35,11 @@ class BankRecord extends Model
     public function bank()
     {
         return $this->belongsTo(Bank::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     public function payments()

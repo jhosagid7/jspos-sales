@@ -60,6 +60,25 @@ class BankTreasury extends Component
     public $closure_bank_id;
     public $closure_date;
     public $closure_notes;
+    public $closure_manual_balance;
+    public $closure_proof_image;
+
+    // New Other Income Form Properties
+    public $showOtherIncomeModal = false;
+    public $other_income_bank_id;
+    public $other_income_amount;
+    public $other_income_date;
+    public $other_income_category = 'Aporte de Capital';
+    public $other_income_description;
+    public $other_income_reference;
+    public $other_income_receipt;
+
+    // Opening Form Properties
+    public $showOpeningModal = false;
+    public $opening_bank_id;
+    public $opening_date;
+    public $opening_manual_balance;
+    public $opening_proof_image;
 
     // AI Interpretation & PDF
     public $showInterpretationModal = false;
@@ -462,10 +481,101 @@ class BankTreasury extends Component
         }
     }
 
+    public function openOtherIncomeModal()
+    {
+        $this->resetValidation();
+        $this->reset(['other_income_bank_id', 'other_income_amount', 'other_income_description', 'other_income_reference', 'other_income_receipt']);
+        $this->other_income_date = Carbon::today()->format('Y-m-d');
+        $this->other_income_category = 'Aporte de Capital';
+
+        $trackedBanks = Bank::tracked()->get();
+        if ($trackedBanks->isNotEmpty()) {
+            $this->other_income_bank_id = $trackedBanks->first()->id;
+        }
+
+        $this->showOtherIncomeModal = true;
+    }
+
+    public function saveOtherIncome()
+    {
+        $this->validate([
+            'other_income_bank_id' => 'required|exists:banks,id',
+            'other_income_amount' => 'required|numeric|min:0.01',
+            'other_income_date' => 'required|date|before_or_equal:today',
+            'other_income_category' => 'required|string|max:255',
+            'other_income_description' => 'nullable|string',
+            'other_income_reference' => 'nullable|string|max:255',
+            'other_income_receipt' => 'nullable|image|max:2048',
+        ]);
+
+        $receiptPath = null;
+        if ($this->other_income_receipt) {
+            $receiptPath = $this->other_income_receipt->store('other_income_receipts', 'public');
+        }
+
+        BankTreasuryService::recordOtherIncome(
+            $this->other_income_bank_id,
+            $this->other_income_date,
+            (float) $this->other_income_amount,
+            $this->other_income_category,
+            $this->other_income_description,
+            $this->other_income_reference,
+            $receiptPath,
+            auth()->id()
+        );
+
+        $this->showOtherIncomeModal = false;
+        $this->loadChartData();
+        $this->dispatch('chart-updated');
+        $this->dispatch('noty', msg: 'Otro ingreso bancario registrado exitosamente.');
+    }
+
+    public function openOpeningModal()
+    {
+        $this->resetValidation();
+        $this->reset(['opening_bank_id', 'opening_manual_balance', 'opening_proof_image']);
+        $this->opening_date = Carbon::today()->format('Y-m-d');
+
+        $trackedBanks = Bank::tracked()->get();
+        if ($trackedBanks->isNotEmpty()) {
+            $this->opening_bank_id = $trackedBanks->first()->id;
+        }
+
+        $this->showOpeningModal = true;
+    }
+
+    public function saveOpening()
+    {
+        $this->validate([
+            'opening_bank_id' => 'required|exists:banks,id',
+            'opening_date' => 'required|date|before_or_equal:today',
+            'opening_manual_balance' => 'required|numeric|min:0',
+            'opening_proof_image' => 'nullable|image|max:2048',
+        ]);
+
+        $proofPath = null;
+        if ($this->opening_proof_image) {
+            $proofPath = $this->opening_proof_image->store('bank_opening_proofs', 'public');
+        }
+
+        BankTreasuryService::performOpening(
+            $this->opening_bank_id,
+            $this->opening_date,
+            (float) $this->opening_manual_balance,
+            $proofPath,
+            auth()->id()
+        );
+
+        $this->showOpeningModal = false;
+        $this->loadChartData();
+        $this->dispatch('chart-updated');
+        $this->dispatch('noty', msg: 'Apertura de jornada bancaria registrada con éxito.');
+    }
+
     public function openClosureModal()
     {
         $this->resetValidation();
-        $this->reset(['closure_bank_id', 'closure_notes']);
+        $this->reset(['closure_bank_id', 'closure_notes', 'closure_manual_balance', 'closure_proof_image']);
         $this->closure_date = Carbon::today()->format('Y-m-d');
 
         $trackedBanks = Bank::tracked()->get();
@@ -481,20 +591,29 @@ class BankTreasury extends Component
         $this->validate([
             'closure_bank_id' => 'required|exists:banks,id',
             'closure_date' => 'required|date|before_or_equal:today',
+            'closure_manual_balance' => 'required|numeric|min:0',
+            'closure_proof_image' => 'required|image|max:2048', // OBLIGATORIO para el operador
             'closure_notes' => 'nullable|string',
         ]);
+
+        $proofPath = null;
+        if ($this->closure_proof_image) {
+            $proofPath = $this->closure_proof_image->store('bank_closure_proofs', 'public');
+        }
 
         BankTreasuryService::performDailyClosure(
             $this->closure_bank_id,
             $this->closure_date,
             auth()->id() ?? 1,
-            $this->closure_notes
+            $this->closure_notes,
+            (float) $this->closure_manual_balance,
+            $proofPath
         );
 
         $this->showClosureModal = false;
         $this->loadChartData();
         $this->dispatch('chart-updated');
-        $this->dispatch('noty', msg: 'Corte de banco realizado con éxito.');
+        $this->dispatch('noty', msg: 'Corte diario bancario realizado y auditado con éxito.');
     }
 
     public function deleteClosure(int $id)

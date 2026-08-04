@@ -98,15 +98,14 @@ class BankTreasuryService
     }
 
     /**
-     * Performs daily closure for a bank on a specific date.
+     * Performs daily opening for a bank on a specific date.
      */
-    public static function performDailyClosure(int $bankId, string $date, ?int $userId = null, ?string $notes = null): BankDailyClosure
+    public static function performOpening(int $bankId, string $date, ?float $manualOpeningBalance = null, ?string $openingProofImage = null, ?int $userId = null): BankDailyClosure
     {
         $bank = Bank::find($bankId);
         $parsedDate = Carbon::parse($date)->format('Y-m-d');
         $prevDate = Carbon::parse($date)->subDay()->format('Y-m-d');
 
-        // Opening balance is either the previous day's closing balance, or recalculated if none exists
         $prevClosure = BankDailyClosure::where('bank_id', $bankId)
             ->whereDate('closure_date', $prevDate)
             ->first();
@@ -114,19 +113,99 @@ class BankTreasuryService
         if ($prevClosure) {
             $openingBalance = (float) $prevClosure->closing_balance;
         } else {
-            // Find the closest previous closure
             $lastClosure = BankDailyClosure::where('bank_id', $bankId)
                 ->whereDate('closure_date', '<', $parsedDate)
                 ->orderBy('closure_date', 'desc')
                 ->first();
 
-            if ($lastClosure) {
-                $openingBalance = (float) $lastClosure->closing_balance;
-                
-                // Recalculate intermediate days if they exist (optional, but let's assume last closing balance is correct)
+            $openingBalance = $lastClosure ? (float) $lastClosure->closing_balance : (float) $bank->initial_balance;
+        }
+
+        $openingDiff = ($manualOpeningBalance !== null) ? ($manualOpeningBalance - $openingBalance) : 0.00;
+
+        $data = [
+            'opening_balance' => $openingBalance,
+            'manual_opening_balance' => $manualOpeningBalance,
+            'opening_difference' => $openingDiff,
+            'opened_at' => now(),
+            'opened_by' => $userId,
+            'status' => 'open',
+        ];
+
+        if ($openingProofImage) {
+            $data['opening_proof_image'] = $openingProofImage;
+        }
+
+        $closure = BankDailyClosure::updateOrCreate(
+            ['bank_id' => $bankId, 'closure_date' => $parsedDate],
+            $data
+        );
+
+        return $closure;
+    }
+
+    /**
+     * Records Other Income for a bank account (manual income).
+     */
+    public static function recordOtherIncome(int $bankId, string $date, float $amount, string $category, ?string $description = null, ?string $reference = null, ?string $imagePath = null, ?int $userId = null): BankRecord
+    {
+        $parsedDate = Carbon::parse($date)->format('Y-m-d');
+
+        $record = BankRecord::create([
+            'bank_id' => $bankId,
+            'payment_date' => $parsedDate,
+            'amount' => $amount,
+            'reference' => $reference,
+            'image_path' => $imagePath,
+            'note' => $description,
+            'income_type' => 'other',
+            'income_category' => $category,
+            'created_by' => $userId,
+            'status' => 'confirmed',
+            'remaining_balance' => 0.00,
+        ]);
+
+        self::recalculateBalance($bankId);
+
+        return $record;
+    }
+
+    /**
+     * Performs daily closure for a bank on a specific date.
+     */
+    public static function performDailyClosure(int $bankId, string $date, ?int $userId = null, ?string $notes = null, ?float $manualClosingBalance = null, ?string $closingProofImage = null): BankDailyClosure
+    {
+        $bank = Bank::find($bankId);
+        $parsedDate = Carbon::parse($date)->format('Y-m-d');
+        $prevDate = Carbon::parse($date)->subDay()->format('Y-m-d');
+
+        $existingClosure = BankDailyClosure::where('bank_id', $bankId)
+            ->whereDate('closure_date', $parsedDate)
+            ->first();
+
+        if ($existingClosure && $existingClosure->opening_balance !== null) {
+            $openingBalance = (float) $existingClosure->opening_balance;
+            $manualOpeningBalance = $existingClosure->manual_opening_balance;
+            $openingProofImage = $existingClosure->opening_proof_image;
+            $openingDiff = (float) $existingClosure->opening_difference;
+        } else {
+            $prevClosure = BankDailyClosure::where('bank_id', $bankId)
+                ->whereDate('closure_date', $prevDate)
+                ->first();
+
+            if ($prevClosure) {
+                $openingBalance = (float) $prevClosure->closing_balance;
             } else {
-                $openingBalance = (float) $bank->initial_balance;
+                $lastClosure = BankDailyClosure::where('bank_id', $bankId)
+                    ->whereDate('closure_date', '<', $parsedDate)
+                    ->orderBy('closure_date', 'desc')
+                    ->first();
+
+                $openingBalance = $lastClosure ? (float) $lastClosure->closing_balance : (float) $bank->initial_balance;
             }
+            $manualOpeningBalance = null;
+            $openingProofImage = null;
+            $openingDiff = 0.00;
         }
 
         $incomeRecordsCount = BankRecord::where('bank_id', $bankId)->whereDate('payment_date', $parsedDate)->count();
@@ -140,16 +219,23 @@ class BankTreasuryService
         $totalExpenses = self::getExpensesForBank($bankId, $parsedDate);
 
         $closingBalance = $openingBalance + $totalIncome - $totalExpenses;
+        $closingDiff = ($manualClosingBalance !== null) ? ($manualClosingBalance - $closingBalance) : 0.00;
 
         $closure = BankDailyClosure::updateOrCreate(
             ['bank_id' => $bankId, 'closure_date' => $parsedDate],
             [
                 'opening_balance' => $openingBalance,
+                'manual_opening_balance' => $manualOpeningBalance,
+                'opening_proof_image' => $openingProofImage,
+                'opening_difference' => $openingDiff,
                 'total_income' => $totalIncome,
                 'total_income_count' => $totalIncomeCount,
                 'total_expenses' => $totalExpenses,
                 'total_expenses_count' => $totalExpensesCount,
                 'closing_balance' => $closingBalance,
+                'manual_closing_balance' => $manualClosingBalance,
+                'closing_proof_image' => $closingProofImage ?: ($existingClosure ? $existingClosure->closing_proof_image : null),
+                'closing_difference' => $closingDiff,
                 'status' => 'closed',
                 'closed_at' => now(),
                 'closed_by' => $userId,
@@ -157,7 +243,6 @@ class BankTreasuryService
             ]
         );
 
-        // Update the current balance of the bank
         self::recalculateBalance($bankId);
 
         return $closure;

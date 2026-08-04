@@ -329,17 +329,17 @@
         </table>
     @else
         <!-- TAB: CORTES DIARIOS -->
-        <div class="section-title">Historial de Cortes Diarios Realizados</div>
+        <div class="section-title">Historial de Cortes Diarios y Arqueo Auditado</div>
         <table class="data-table">
             <thead>
                 <tr>
                     <th>Fecha Corte</th>
                     <th>Banco</th>
-                    <th class="text-right">Saldo Apertura</th>
-                    <th class="text-right">Total Ingresos</th>
-                    <th class="text-right">Total Egresos</th>
-                    <th class="text-right">Saldo Cierre</th>
-                    <th>Cerrado Por</th>
+                    <th class="text-right">Apertura (Sist / Real)</th>
+                    <th class="text-right">Ingresos / Gastos</th>
+                    <th class="text-right">Cierre (Sist / Real)</th>
+                    <th class="text-center">Diferencial Arqueo</th>
+                    <th>Ejecutado Por</th>
                     <th>Notas</th>
                 </tr>
             </thead>
@@ -348,10 +348,35 @@
                     <tr>
                         <td><strong>{{ \Carbon\Carbon::parse($cls->closure_date)->format('d/m/Y') }}</strong></td>
                         <td>{{ $cls->bank_name }}</td>
-                        <td class="text-right">${{ number_format($cls->opening_balance, 2) }} {{ $cls->currency_code }}</td>
-                        <td class="text-right text-success">+${{ number_format($cls->total_income, 2) }} ({{ $cls->total_income_count }})</td>
-                        <td class="text-right text-danger">-${{ number_format($cls->total_expenses, 2) }} ({{ $cls->total_expenses_count }})</td>
-                        <td class="text-right font-weight-bold text-primary">${{ number_format($cls->closing_balance, 2) }} {{ $cls->currency_code }}</td>
+                        <td class="text-right">
+                            <div>Sist: ${{ number_format($cls->opening_balance, 2) }} {{ $cls->currency_code }}</div>
+                            @if(isset($cls->manual_opening_balance) && $cls->manual_opening_balance !== null)
+                                <div style="font-weight: bold; color: #17a2b8;">Real: ${{ number_format($cls->manual_opening_balance, 2) }}</div>
+                            @endif
+                        </td>
+                        <td class="text-right">
+                            <span class="text-success">+${{ number_format($cls->total_income, 2) }}</span> / 
+                            <span class="text-danger">-${{ number_format($cls->total_expenses, 2) }}</span>
+                        </td>
+                        <td class="text-right font-weight-bold">
+                            <div>Sist: ${{ number_format($cls->closing_balance, 2) }} {{ $cls->currency_code }}</div>
+                            @if(isset($cls->manual_closing_balance) && $cls->manual_closing_balance !== null)
+                                <div style="font-weight: bold; color: #007bff;">Real: ${{ number_format($cls->manual_closing_balance, 2) }}</div>
+                            @endif
+                        </td>
+                        <td class="text-center">
+                            @if(isset($cls->manual_closing_balance) && $cls->manual_closing_balance !== null)
+                                @if(abs($cls->closing_difference) < 0.01)
+                                    <span class="badge badge-success">CUADRE OK</span>
+                                @elseif($cls->closing_difference > 0)
+                                    <span class="badge badge-warning">+${{ number_format($cls->closing_difference, 2) }} (Sobrante)</span>
+                                @else
+                                    <span class="badge badge-danger">-${{ number_format(abs($cls->closing_difference), 2) }} (Faltante)</span>
+                                @endif
+                            @else
+                                <span class="badge badge-secondary">AUTOMÁTICO</span>
+                            @endif
+                        </td>
                         <td>{{ $cls->user_name ?? 'Cierre Automático' }}</td>
                         <td>{{ $cls->notes ?: '-' }}</td>
                     </tr>
@@ -361,6 +386,21 @@
                     </tr>
                 @endforelse
             </tbody>
+        </table>
+
+        <!-- Signatures Table -->
+        <table style="width: 100%; margin-top: 50px; border-collapse: collapse;">
+            <tr>
+                <td style="width: 45%; text-align: center; border-top: 1px solid #000; padding-top: 5px;">
+                    <strong>Firma del Operador de Banco</strong><br>
+                    <span style="font-size: 8px; color: #666;">Responsable de Arqueo y Cierre Diario</span>
+                </td>
+                <td style="width: 10%;"></td>
+                <td style="width: 45%; text-align: center; border-top: 1px solid #000; padding-top: 5px;">
+                    <strong>Firma del Auditor / Supervisor</strong><br>
+                    <span style="font-size: 8px; color: #666;">Verificación de Conciliación y Estado de Cuenta</span>
+                </td>
+            </tr>
         </table>
     @endif
 
