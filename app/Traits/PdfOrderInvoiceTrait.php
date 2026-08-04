@@ -452,7 +452,7 @@ trait PdfOrderInvoiceTrait
     //     }
     // }
 
-    private function getOrderInvoiceFooterData(Order $order)
+    public function getOrderInvoiceFooterData(Order $order)
     {
         // Resolve Values
         // Customer & Seller Config
@@ -465,9 +465,24 @@ trait PdfOrderInvoiceTrait
 
         // Resolved percentages
         $freightPercent = $order->resolved_freight_percent;
+        if ($freightPercent == 0 && $customerConfig && floatval($customerConfig->freight_percent) > 0) {
+            $freightPercent = floatval($customerConfig->freight_percent);
+        }
+
         $commPercent = $order->resolved_commission_percent;
+        if ($commPercent == 0 && $customerConfig && floatval($customerConfig->commission_percent) > 0) {
+            $commPercent = floatval($customerConfig->commission_percent);
+        }
+
         $diffPercent = $order->resolved_exchange_diff_percent;
+        if ($diffPercent == 0 && $customerConfig && floatval($customerConfig->exchange_diff_percent) > 0) {
+            $diffPercent = floatval($customerConfig->exchange_diff_percent);
+        }
+
         $markupPercent = $order->resolved_base_markup_percent;
+        if ($markupPercent == 0 && $customerConfig && floatval($customerConfig->base_markup_percent) > 0) {
+            $markupPercent = floatval($customerConfig->base_markup_percent);
+        }
 
         // USD Discount
         $creditConfig = CreditConfigService::getCreditConfig($customer, $seller);

@@ -1,3 +1,10 @@
+## [1.10.315] - 2026-08-04
+
+### Fixed
+- **Código de Control de Flete y Recargo en PDF de Órdenes de Pedido**:
+  - Corregida la resolución del porcentaje de **Flete** (ej: `F6` para 6%) y **Recargo** (ej: `RC4` para 4%) en la cadena de código de auditoría imprimible del PDF de la orden de pedido (`getOrderInvoiceFooterData` en `PdfOrderInvoiceTrait.php` y `Order.php`).
+  - Ahora toma los valores reales configurados en la ficha comercial del cliente cuando la orden no posee un valor explícito de anulación.
+
 ## [1.10.314] - 2026-08-04
 
 ### Fixed

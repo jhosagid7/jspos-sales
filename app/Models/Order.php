@@ -74,8 +74,8 @@ class Order extends Model
 
     public function getResolvedCommissionPercentAttribute()
     {
-        if (!$this->apply_commissions) {
-            return 0.00;
+        if (isset($this->attributes['applied_commission_percent']) && $this->attributes['applied_commission_percent'] !== null) {
+            return floatval($this->attributes['applied_commission_percent']);
         }
         $customer = $this->customer;
         $customerConfig = $customer ? $customer->latestCustomerConfig : null;
@@ -84,8 +84,8 @@ class Order extends Model
 
     public function getResolvedFreightPercentAttribute()
     {
-        if (!$this->apply_freight) {
-            return 0.00;
+        if (isset($this->attributes['applied_freight_percent']) && $this->attributes['applied_freight_percent'] !== null) {
+            return floatval($this->attributes['applied_freight_percent']);
         }
         $customer = $this->customer;
         $customerConfig = $customer ? $customer->latestCustomerConfig : null;
@@ -94,8 +94,8 @@ class Order extends Model
 
     public function getResolvedExchangeDiffPercentAttribute()
     {
-        if (!$this->apply_commissions) {
-            return 0.00;
+        if (isset($this->attributes['applied_exchange_diff_percent']) && $this->attributes['applied_exchange_diff_percent'] !== null) {
+            return floatval($this->attributes['applied_exchange_diff_percent']);
         }
         $customer = $this->customer;
         $customerConfig = $customer ? $customer->latestCustomerConfig : null;
@@ -104,7 +104,7 @@ class Order extends Model
 
     public function getResolvedBaseMarkupPercentAttribute()
     {
-        if (isset($this->attributes['applied_base_markup_percent'])) {
+        if (isset($this->attributes['applied_base_markup_percent']) && $this->attributes['applied_base_markup_percent'] !== null) {
             return floatval($this->attributes['applied_base_markup_percent']);
         }
         $customer = $this->customer;
