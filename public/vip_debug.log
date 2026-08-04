@@ -346,3 +346,5 @@ L
 2026-08-01 17:29:42 | RESPONSE (200): [{"id":2,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl
 2026-08-04 09:49:41 | [GET] PATH: api/vip/products | IP: 192.168.194.58 | USER: NULL
 2026-08-04 09:49:43 | RESPONSE (200): [{"id":1,"name":"BANDEJAS A1 EUROPLAST X500UND","sku":"BP03A1E","price":12.94,"stock":89,"reserved_s
+2026-08-04 14:22:05 | [GET] PATH: api/vip/products | IP: 127.0.0.1 | USER: 6 - VIP Customer
+2026-08-04 14:22:05 | RESPONSE (200): [{"id":5,"name":"Test Product","sku":"TEST-001","price":16.53,"stock":0,"reserved_stock":0,"availabl

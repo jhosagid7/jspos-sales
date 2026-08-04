@@ -1,3 +1,10 @@
+## [1.10.314] - 2026-08-04
+
+### Fixed
+- **Error 500 en Impresión de Nota de Crédito / Devoluciones**:
+  - Corregido `TypeError: Argument #1 ($title) must be of type string, null given` en `generateCreditNotePdf` (`PdfInvoiceTrait.php:1243`).
+  - Añadida validación de nulos y nombres por defecto (`custom_name`, `product->name`, `product->sku`, `customer`, `user`) en la generación de comprobantes y notas de crédito en PDF para devoluciones con productos eliminados o ajustes de deuda.
+
 ## [1.10.313] - 2026-08-04
 
 ### Added

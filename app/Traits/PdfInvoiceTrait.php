@@ -1218,32 +1218,40 @@ trait PdfInvoiceTrait
                 'CC/NIT'           => $config->taxpayer_id,
                 'address'       => $config->address,
                 'city'           => $config->city,
-                'phone'         => $sale->customer->phone,
+                'phone'         => $sale && $sale->customer ? $sale->customer->phone : '',
 
                 'custom_fields' => [
-                    'email'         => $sale->customer->email,
-                    'operador'        => $sale->user->name,
+                    'email'         => $sale && $sale->customer ? $sale->customer->email : '',
+                    'operador'        => $sale && $sale->user ? $sale->user->name : 'Sistema',
                 ],
             ]);
 
             $customer = new Party([
-                'name'          => $sale->customer->name,
+                'name'          => $sale && $sale->customer ? $sale->customer->name : 'Cliente General',
                 'custom_fields' => [
-                    'CC/NIT'           => $sale->customer->taxpayer_id,
-                    'address'       => $sale->customer->address,
-                    'city'           => $sale->customer->city,
-                    'phone'         => $sale->customer->phone,
-                    'email'         => $sale->customer->email,
+                    'CC/NIT'           => $sale && $sale->customer ? $sale->customer->taxpayer_id : '',
+                    'address'       => $sale && $sale->customer ? $sale->customer->address : '',
+                    'city'           => $sale && $sale->customer ? $sale->customer->city : '',
+                    'phone'         => $sale && $sale->customer ? $sale->customer->phone : '',
+                    'email'         => $sale && $sale->customer ? $sale->customer->email : '',
                 ],
             ]);
 
             $items = [];
             foreach ($saleReturn->details as $detail) {
                 if ($detail->quantity_returned > 0) {
-                    $items[] = InvoiceItem::make($detail->custom_name)
-                        ->reference($detail->product->sku ? $detail->product->sku : '')
-                        ->pricePerUnit($detail->unit_price)
-                        ->quantity($detail->quantity_returned);
+                    $title = $detail->custom_name 
+                        ?? ($detail->product ? $detail->product->name : null) 
+                        ?? 'Producto Devuelto';
+
+                    $sku = ($detail->product && $detail->product->sku) 
+                        ? (string)$detail->product->sku 
+                        : '';
+
+                    $items[] = InvoiceItem::make((string)$title)
+                        ->reference($sku)
+                        ->pricePerUnit((float)$detail->unit_price)
+                        ->quantity((float)$detail->quantity_returned);
                 }
             }
 
@@ -1251,7 +1259,7 @@ trait PdfInvoiceTrait
             if (empty($items)) {
                 $items[] = InvoiceItem::make('AJUSTE DE SALDO / NOTA DE CRÉDITO')
                     ->reference('ADJUST')
-                    ->pricePerUnit($saleReturn->total_returned)
+                    ->pricePerUnit((float)$saleReturn->total_returned)
                     ->quantity(1);
             }
 
