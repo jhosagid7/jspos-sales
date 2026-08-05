@@ -79,7 +79,7 @@ class AllPdfReportsTest extends TestCase
             'address' => 'Central',
         ]);
 
-        $category = Category::create(['name' => 'General']);
+        $category = Category::firstOrCreate(['name' => 'General']);
 
         $product = Product::create([
             'name' => 'Test Product',

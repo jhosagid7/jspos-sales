@@ -5558,8 +5558,11 @@ class Sales extends Component
         }
 
         if ($sentCount > 0) {
+            $this->pendingCreditAuthId = true;
+            $this->creditAuthPin = '';
             $this->dispatch('noty', msg: 'Solicitud enviada a los supervisores con PIN único. Esperando PIN.', type: 'success');
         } else {
+            $this->pendingCreditAuthId = null;
             $this->dispatch('noty', msg: 'No se encontraron destinatarios de autorización configurados.', type: 'warning');
         }
     }
@@ -5606,6 +5609,7 @@ class Sales extends Component
             ->update(['status' => 'expired']);
 
         $this->creditAuthApproved = true;
+        $this->pendingCreditAuthId = null;
         $this->showCreditAuthModal = false;
         $this->dispatch('close-credit-auth-modal');
         $this->dispatch('noty', msg: "Autorizado por: {$supervisorName}", type: 'success');

@@ -1,3 +1,10 @@
+## [1.10.355] - 2026-08-05
+
+### Fixed
+- **Corregida visualización de la casilla del PIN al solicitar autorización de crédito**:
+  - `Sales.php`: `requestCreditAuthorization()` ahora establece `$this->pendingCreditAuthId = true;` y limpia `$this->creditAuthPin` al enviar la solicitud de autorización a supervisores.
+  - Esto permite que la ventana modal transforme inmediatamente el botón "Solicitar Autorización" en el formulario para ingresar y validar el PIN de 6 caracteres.
+
 ## [1.10.354] - 2026-08-05
 
 ### Fixed
