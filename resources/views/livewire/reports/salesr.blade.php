@@ -690,21 +690,32 @@
                             <div class="d-flex flex-column gap-4">
                                 @foreach($saleHistory as $index => $log)
                                     <div class="card border-0 shadow-sm rounded-lg overflow-hidden mb-3">
-                                        <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center">
-                                            <div>
-                                                <span class="badge bg-primary me-2">Edición #{{ count($saleHistory) - $index }}</span>
-                                                <strong class="text-dark me-3">
-                                                    <i class="far fa-calendar-alt me-1 text-muted"></i> {{ \Carbon\Carbon::parse($log['created_at'])->format('d/m/Y h:i A') }}
-                                                </strong>
-                                                <span class="badge bg-secondary p-2">
-                                                    <i class="far fa-user me-1"></i> {{ $log['user_name'] }}
-                                                </span>
-                                            </div>
-                                            @if(!empty($log['reason']))
-                                                <div class="text-muted small mt-1 mt-md-0">
-                                                    <i class="fas fa-comment-alt me-1"></i> Motivo: <em>{{ $log['reason'] }}</em>
+                                        <div class="card-header bg-white py-3 border-bottom">
+                                            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                                                <div>
+                                                    <span class="badge bg-primary me-2">Edición #{{ count($saleHistory) - $index }}</span>
+                                                    <strong class="text-dark me-3">
+                                                        <i class="far fa-calendar-alt me-1 text-muted"></i> {{ \Carbon\Carbon::parse($log['created_at'])->format('d/m/Y h:i A') }}
+                                                    </strong>
                                                 </div>
-                                            @endif
+                                                @if(!empty($log['reason']))
+                                                    <div class="text-muted small mt-1 mt-md-0">
+                                                        <i class="fas fa-comment-alt me-1"></i> Motivo: <em>{{ $log['reason'] }}</em>
+                                                    </div>
+                                                @endif
+                                            </div>
+
+                                            <div class="row w-100 mt-2 pt-2 border-top small text-muted">
+                                                <div class="col-md-4">
+                                                    <i class="fas fa-file-invoice text-info me-1"></i> <strong>Facturado por (Creador):</strong> <span class="text-dark font-weight-bold">{{ $log['creator_name'] }}</span>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <i class="fas fa-user-tag text-warning me-1"></i> <strong>Vendedor Asignado:</strong> <span class="text-dark font-weight-bold">{{ $log['new_seller_name'] }}</span>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <i class="fas fa-user-edit text-danger me-1"></i> <strong>Editado por (Operador):</strong> <span class="text-dark font-weight-bold">{{ $log['user_name'] }}</span>
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <div class="card-body p-4">
@@ -836,6 +847,8 @@
                                                                         <div class="p-2 mb-3 bg-light border rounded small">
                                                                             <span class="d-block font-weight-bold text-dark border-bottom pb-1 mb-1"><i class="fas fa-cogs me-1 text-muted"></i> Configuración Anterior:</span>
                                                                             <div class="d-flex flex-wrap gap-2 text-dark">
+                                                                                <span>🧑‍💻 Facturó: <strong>{{ $log['old_config']['facturado_por'] }}</strong></span> |
+                                                                                <span>👤 Vendedor: <strong>{{ $log['old_config']['vendedor'] }}</strong></span> |
                                                                                 <span>🚚 Flete: <strong>{{ $log['old_config']['flete'] }}</strong></span> |
                                                                                 <span>💼 Comisión: <strong>{{ $log['old_config']['comision'] }}</strong></span> |
                                                                                 <span>📈 Recargo: <strong>{{ $log['old_config']['recargo'] }}</strong></span> |
@@ -889,6 +902,8 @@
                                                                         <div class="p-2 mb-3 bg-light border rounded small">
                                                                             <span class="d-block font-weight-bold text-dark border-bottom pb-1 mb-1"><i class="fas fa-cogs me-1 text-primary"></i> Configuración Nueva:</span>
                                                                             <div class="d-flex flex-wrap gap-2 text-dark">
+                                                                                <span>🧑‍💻 Facturó: <strong>{{ $log['new_config']['facturado_por'] }}</strong></span> |
+                                                                                <span>👤 Vendedor: <strong>{{ $log['new_config']['vendedor'] }}</strong></span> |
                                                                                 <span>🚚 Flete: <strong>{{ $log['new_config']['flete'] }}</strong></span> |
                                                                                 <span>💼 Comisión: <strong>{{ $log['new_config']['comision'] }}</strong></span> |
                                                                                 <span>📈 Recargo: <strong>{{ $log['new_config']['recargo'] }}</strong></span> |

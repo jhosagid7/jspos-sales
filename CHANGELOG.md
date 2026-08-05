@@ -1,3 +1,12 @@
+## [1.10.326] - 2026-08-05
+
+### Added & Improved
+- **Visualización de Roles de Usuario en Auditoría de Facturas**:
+  - Incorporado desglose explícito de los 3 roles de personas involucradas en cada factura:
+    1. **Facturado por (Creador)**: Operador que registró la factura inicialmente en el POS.
+    2. **Vendedor Asignado**: Vendedor comisionista asignado a la venta o al cliente.
+    3. **Editado por (Operador)**: Usuario autorizado que realizó la modificación.
+
 ## [1.10.325] - 2026-08-05
 
 ### Fixed

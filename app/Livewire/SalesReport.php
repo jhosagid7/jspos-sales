@@ -516,22 +516,32 @@ class SalesReport extends Component
                 ];
             }
 
-            // 6. Vendedor
-            $oldSellerId = $oldData['seller_id'] ?? $oldData['customer']['seller_id'] ?? null;
-            $newSellerId = $newData['seller_id'] ?? $newData['customer']['seller_id'] ?? null;
+            // Resolve Operador que realizó la factura (Creador original)
+            $creatorId = $oldData['user_id'] ?? $newData['user_id'] ?? $sale->user_id ?? null;
+            $creator = $creatorId ? \App\Models\User::find($creatorId) : null;
+            $creatorName = $creator ? $creator->name : 'No registrado';
+
+            // Resolve Vendedores Asignados
+            $oldSellerId = $oldData['seller_id'] ?? $oldData['customer']['seller_id'] ?? $sale->seller_id ?? null;
+            $newSellerId = $newData['seller_id'] ?? $newData['customer']['seller_id'] ?? $sale->seller_id ?? null;
+            $oldSeller = $oldSellerId ? \App\Models\User::find($oldSellerId) : null;
+            $newSeller = $newSellerId ? \App\Models\User::find($newSellerId) : null;
+            $oldSellerName = $oldSeller ? $oldSeller->name : 'Sin Vendedor';
+            $newSellerName = $newSeller ? $newSeller->name : 'Sin Vendedor';
+
             if ($oldSellerId && $newSellerId && $oldSellerId != $newSellerId) {
-                $oldSeller = \App\Models\User::find($oldSellerId);
-                $newSeller = \App\Models\User::find($newSellerId);
                 $configChanges[] = [
                     'label' => 'Vendedor Asignado',
-                    'old' => $oldSeller ? $oldSeller->name : "ID #{$oldSellerId}",
-                    'new' => $newSeller ? $newSeller->name : "ID #{$newSellerId}",
+                    'old' => $oldSellerName,
+                    'new' => $newSellerName,
                     'icon' => 'far fa-user'
                 ];
             }
 
             // Extract snapshots of configuration for side-by-side comparison
             $oldConfigSnapshot = [
+                'facturado_por' => $creatorName,
+                'vendedor' => $oldSellerName,
                 'flete' => isset($oldData['applied_freight_percent']) ? number_format((float)$oldData['applied_freight_percent'], 2) . '%' : '0%',
                 'comision' => isset($oldData['applied_commission_percent']) ? number_format((float)$oldData['applied_commission_percent'], 2) . '%' : '0%',
                 'recargo' => isset($oldData['applied_base_markup_percent']) ? number_format((float)$oldData['applied_base_markup_percent'], 2) . '%' : '0%',
@@ -540,6 +550,8 @@ class SalesReport extends Component
             ];
 
             $newConfigSnapshot = [
+                'facturado_por' => $creatorName,
+                'vendedor' => $newSellerName,
                 'flete' => isset($newData['applied_freight_percent']) ? number_format((float)$newData['applied_freight_percent'], 2) . '%' : '0%',
                 'comision' => isset($newData['applied_commission_percent']) ? number_format((float)$newData['applied_commission_percent'], 2) . '%' : '0%',
                 'recargo' => isset($newData['applied_base_markup_percent']) ? number_format((float)$newData['applied_base_markup_percent'], 2) . '%' : '0%',
@@ -553,6 +565,9 @@ class SalesReport extends Component
                 'id' => $log->id,
                 'created_at' => $log->created_at,
                 'user_name' => $log->user->name ?? 'Usuario',
+                'creator_name' => $creatorName,
+                'old_seller_name' => $oldSellerName,
+                'new_seller_name' => $newSellerName,
                 'reason' => $log->reason ?? 'Edición de venta autorizada',
                 'old_total' => $oldTotal,
                 'new_total' => $newTotal,
