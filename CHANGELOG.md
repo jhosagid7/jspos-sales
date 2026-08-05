@@ -1,3 +1,9 @@
+## [1.10.325] - 2026-08-05
+
+### Fixed
+- **Corrección de Sintaxis Blade en Reporte de Ventas**:
+  - Corregido el cierre de directiva `@endif` en la plantilla de auditoría `salesr.blade.php`.
+
 ## [1.10.324] - 2026-08-05
 
 ### Added & Improved

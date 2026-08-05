@@ -781,6 +781,8 @@
                                                             @endforeach
                                                         </ul>
                                                     </div>
+                                                @endif
+
                                                 @if(!empty($log['config_changes']))
                                                     <div class="mb-2">
                                                         <strong class="text-primary small d-block mb-1"><i class="fas fa-sliders-h me-1"></i> Cambios en Configuración / Condiciones de Factura:</strong>
