@@ -1,3 +1,10 @@
+## [1.10.324] - 2026-08-05
+
+### Added & Improved
+- **Auditoría de Cambios de Configuración de la Factura**:
+  - Incorporada detección y visualización automática de cambios en la configuración y condiciones de la factura: Flete (%), Comisión (%), Recargo Base (%), Diferencial Cambiario (%), Días de Crédito y Vendedor Asignado.
+  - Añadido bloque de resumen de parámetros de configuración previa vs nueva en el desglose comparativo.
+
 ## [1.10.323] - 2026-08-05
 
 ### Fixed & Improved

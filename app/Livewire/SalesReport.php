@@ -453,6 +453,100 @@ class SalesReport extends Component
                 }
             }
 
+            // Compare Invoice Configuration (Flete, Comisión, Recargo, Diferencial, Vendedor, Crédito)
+            $configChanges = [];
+
+            // 1. Flete %
+            $oldFreight = isset($oldData['applied_freight_percent']) ? (float)$oldData['applied_freight_percent'] : null;
+            $newFreight = isset($newData['applied_freight_percent']) ? (float)$newData['applied_freight_percent'] : null;
+            if ($oldFreight !== null && $newFreight !== null && abs($oldFreight - $newFreight) > 0.01) {
+                $configChanges[] = [
+                    'label' => 'Flete %',
+                    'old' => number_format($oldFreight, 2) . '%',
+                    'new' => number_format($newFreight, 2) . '%',
+                    'icon' => 'fas fa-truck'
+                ];
+            }
+
+            // 2. Comisión %
+            $oldComm = isset($oldData['applied_commission_percent']) ? (float)$oldData['applied_commission_percent'] : null;
+            $newComm = isset($newData['applied_commission_percent']) ? (float)$newData['applied_commission_percent'] : null;
+            if ($oldComm !== null && $newComm !== null && abs($oldComm - $newComm) > 0.01) {
+                $configChanges[] = [
+                    'label' => 'Comisión Vendedor %',
+                    'old' => number_format($oldComm, 2) . '%',
+                    'new' => number_format($newComm, 2) . '%',
+                    'icon' => 'fas fa-percentage'
+                ];
+            }
+
+            // 3. Recargo Base %
+            $oldMarkup = isset($oldData['applied_base_markup_percent']) ? (float)$oldData['applied_base_markup_percent'] : null;
+            $newMarkup = isset($newData['applied_base_markup_percent']) ? (float)$newData['applied_base_markup_percent'] : null;
+            if ($oldMarkup !== null && $newMarkup !== null && abs($oldMarkup - $newMarkup) > 0.01) {
+                $configChanges[] = [
+                    'label' => 'Recargo Base %',
+                    'old' => number_format($oldMarkup, 2) . '%',
+                    'new' => number_format($newMarkup, 2) . '%',
+                    'icon' => 'fas fa-chart-line'
+                ];
+            }
+
+            // 4. Diferencial Cambiario %
+            $oldDiff = isset($oldData['applied_exchange_diff_percent']) ? (float)$oldData['applied_exchange_diff_percent'] : null;
+            $newDiff = isset($newData['applied_exchange_diff_percent']) ? (float)$newData['applied_exchange_diff_percent'] : null;
+            if ($oldDiff !== null && $newDiff !== null && abs($oldDiff - $newDiff) > 0.01) {
+                $configChanges[] = [
+                    'label' => 'Diferencial Cambiario %',
+                    'old' => number_format($oldDiff, 2) . '%',
+                    'new' => number_format($newDiff, 2) . '%',
+                    'icon' => 'fas fa-exchange-alt'
+                ];
+            }
+
+            // 5. Días de Crédito
+            $oldCreditDays = isset($oldData['credit_days']) ? (int)$oldData['credit_days'] : null;
+            $newCreditDays = isset($newData['credit_days']) ? (int)$newData['credit_days'] : null;
+            if ($oldCreditDays !== null && $newCreditDays !== null && $oldCreditDays !== $newCreditDays) {
+                $configChanges[] = [
+                    'label' => 'Días de Crédito',
+                    'old' => "{$oldCreditDays} días",
+                    'new' => "{$newCreditDays} días",
+                    'icon' => 'far fa-calendar-alt'
+                ];
+            }
+
+            // 6. Vendedor
+            $oldSellerId = $oldData['seller_id'] ?? $oldData['customer']['seller_id'] ?? null;
+            $newSellerId = $newData['seller_id'] ?? $newData['customer']['seller_id'] ?? null;
+            if ($oldSellerId && $newSellerId && $oldSellerId != $newSellerId) {
+                $oldSeller = \App\Models\User::find($oldSellerId);
+                $newSeller = \App\Models\User::find($newSellerId);
+                $configChanges[] = [
+                    'label' => 'Vendedor Asignado',
+                    'old' => $oldSeller ? $oldSeller->name : "ID #{$oldSellerId}",
+                    'new' => $newSeller ? $newSeller->name : "ID #{$newSellerId}",
+                    'icon' => 'far fa-user'
+                ];
+            }
+
+            // Extract snapshots of configuration for side-by-side comparison
+            $oldConfigSnapshot = [
+                'flete' => isset($oldData['applied_freight_percent']) ? number_format((float)$oldData['applied_freight_percent'], 2) . '%' : '0%',
+                'comision' => isset($oldData['applied_commission_percent']) ? number_format((float)$oldData['applied_commission_percent'], 2) . '%' : '0%',
+                'recargo' => isset($oldData['applied_base_markup_percent']) ? number_format((float)$oldData['applied_base_markup_percent'], 2) . '%' : '0%',
+                'diferencial' => isset($oldData['applied_exchange_diff_percent']) ? number_format((float)$oldData['applied_exchange_diff_percent'], 2) . '%' : '0%',
+                'credit_days' => isset($oldData['credit_days']) ? (int)$oldData['credit_days'] . ' días' : '0 días',
+            ];
+
+            $newConfigSnapshot = [
+                'flete' => isset($newData['applied_freight_percent']) ? number_format((float)$newData['applied_freight_percent'], 2) . '%' : '0%',
+                'comision' => isset($newData['applied_commission_percent']) ? number_format((float)$newData['applied_commission_percent'], 2) . '%' : '0%',
+                'recargo' => isset($newData['applied_base_markup_percent']) ? number_format((float)$newData['applied_base_markup_percent'], 2) . '%' : '0%',
+                'diferencial' => isset($newData['applied_exchange_diff_percent']) ? number_format((float)$newData['applied_exchange_diff_percent'], 2) . '%' : '0%',
+                'credit_days' => isset($newData['credit_days']) ? (int)$newData['credit_days'] . ' días' : '0 días',
+            ];
+
             $diffTotal = $newTotal - $oldTotal;
 
             $processedHistory[] = [
@@ -467,6 +561,9 @@ class SalesReport extends Component
                 'removed' => $removed,
                 'modified' => $modified,
                 'unchanged' => $unchanged,
+                'config_changes' => $configChanges,
+                'old_config' => $oldConfigSnapshot,
+                'new_config' => $newConfigSnapshot,
                 'old_details' => $oldDetails->toArray(),
                 'new_details' => $newDetails->toArray(),
                 'has_new_details' => $newDetails->isNotEmpty(),

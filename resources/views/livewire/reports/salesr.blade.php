@@ -781,15 +781,27 @@
                                                             @endforeach
                                                         </ul>
                                                     </div>
+                                                @if(!empty($log['config_changes']))
+                                                    <div class="mb-2">
+                                                        <strong class="text-primary small d-block mb-1"><i class="fas fa-sliders-h me-1"></i> Cambios en Configuración / Condiciones de Factura:</strong>
+                                                        <ul class="list-group list-group-flush border rounded mb-2">
+                                                            @foreach($log['config_changes'] as $cfg)
+                                                                <li class="list-group-item list-group-item-info py-2 d-flex justify-content-between align-items-center">
+                                                                    <span><i class="{{ $cfg['icon'] }} me-1 text-primary"></i> <strong>{{ $cfg['label'] }}</strong></span>
+                                                                    <span>Antes: <strong>{{ $cfg['old'] }}</strong> ➔ Ahora: <strong>{{ $cfg['new'] }}</strong></span>
+                                                                </li>
+                                                            @endforeach
+                                                        </ul>
+                                                    </div>
                                                 @endif
 
                                                 @if(!empty($log['is_legacy_log']))
                                                     <div class="alert alert-warning border-0 small py-2 mb-3">
                                                         <i class="fas fa-exclamation-triangle me-1"></i> <strong>Registro de Edición Previo:</strong> Esta modificación fue realizada antes de la actualización de auditoría. El total cambió de <strong>${{ number_format($log['old_total'], 2) }}</strong> a <strong>${{ number_format($log['new_total'], 2) }}</strong>. A continuación se muestran los ítems originales registrados antes del cambio.
                                                     </div>
-                                                @elseif(empty($log['added']) && empty($log['removed']) && empty($log['modified']))
+                                                @elseif(empty($log['added']) && empty($log['removed']) && empty($log['modified']) && empty($log['config_changes']))
                                                     <div class="p-2 bg-light rounded text-muted small italic mb-3">
-                                                        <i class="fas fa-info-circle me-1"></i> Los productos principales no sufrieron modificaciones directas (posible cambio en datos generales de la venta, cliente o transporte).
+                                                        <i class="fas fa-info-circle me-1"></i> Los productos principales no sufrieron modificaciones directas (posible cambio en datos generales de la venta o cliente).
                                                     </div>
                                                 @endif
                                             </div>
@@ -817,6 +829,20 @@
                                                                     <div class="bg-secondary text-white p-2 rounded mb-2 font-weight-bold text-center">
                                                                         ESTADO ANTERIOR (Antes de Editar)
                                                                     </div>
+
+                                                                    @if(!empty($log['old_config']))
+                                                                        <div class="p-2 mb-3 bg-light border rounded small">
+                                                                            <span class="d-block font-weight-bold text-dark border-bottom pb-1 mb-1"><i class="fas fa-cogs me-1 text-muted"></i> Configuración Anterior:</span>
+                                                                            <div class="d-flex flex-wrap gap-2 text-dark">
+                                                                                <span>🚚 Flete: <strong>{{ $log['old_config']['flete'] }}</strong></span> |
+                                                                                <span>💼 Comisión: <strong>{{ $log['old_config']['comision'] }}</strong></span> |
+                                                                                <span>📈 Recargo: <strong>{{ $log['old_config']['recargo'] }}</strong></span> |
+                                                                                <span>💱 Dif: <strong>{{ $log['old_config']['diferencial'] }}</strong></span> |
+                                                                                <span>📅 Crédito: <strong>{{ $log['old_config']['credit_days'] }}</strong></span>
+                                                                            </div>
+                                                                        </div>
+                                                                    @endif
+
                                                                     @if(!empty($log['old_details']))
                                                                         <div class="table-responsive">
                                                                             <table class="table table-sm table-hover text-start">
@@ -856,6 +882,20 @@
                                                                     <div class="bg-primary text-white p-2 rounded mb-2 font-weight-bold text-center">
                                                                         ESTADO ACTUAL (Después de Editar)
                                                                     </div>
+
+                                                                    @if(!empty($log['new_config']))
+                                                                        <div class="p-2 mb-3 bg-light border rounded small">
+                                                                            <span class="d-block font-weight-bold text-dark border-bottom pb-1 mb-1"><i class="fas fa-cogs me-1 text-primary"></i> Configuración Nueva:</span>
+                                                                            <div class="d-flex flex-wrap gap-2 text-dark">
+                                                                                <span>🚚 Flete: <strong>{{ $log['new_config']['flete'] }}</strong></span> |
+                                                                                <span>💼 Comisión: <strong>{{ $log['new_config']['comision'] }}</strong></span> |
+                                                                                <span>📈 Recargo: <strong>{{ $log['new_config']['recargo'] }}</strong></span> |
+                                                                                <span>💱 Dif: <strong>{{ $log['new_config']['diferencial'] }}</strong></span> |
+                                                                                <span>📅 Crédito: <strong>{{ $log['new_config']['credit_days'] }}</strong></span>
+                                                                            </div>
+                                                                        </div>
+                                                                    @endif
+
                                                                     @if(!empty($log['new_details']))
                                                                         <div class="table-responsive">
                                                                             <table class="table table-sm table-hover text-start">
