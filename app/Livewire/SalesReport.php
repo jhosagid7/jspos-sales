@@ -439,8 +439,15 @@ class SalesReport extends Component
             $oldTotal = (float)($oldData['total_usd'] ?? $oldData['total'] ?? 0);
             $newTotal = (float)($newData['total_usd'] ?? $newData['total'] ?? 0);
 
-            // If legacy log had empty newDetails, fallback newTotal if zero
+            // Handle Legacy Logs (created before v1.10.322 where newDetails was empty)
+            $isLegacyLog = false;
             if ($newDetails->isEmpty() && $oldDetails->isNotEmpty()) {
+                $isLegacyLog = true;
+                // For legacy logs, newDetails was not saved in DB, so do not mark old items as 'removed'
+                $removed = [];
+                $added = [];
+                $modified = [];
+
                 if ($newTotal <= 0) {
                     $newTotal = (float)($sale->total_usd ?? $sale->total ?? 0);
                 }
@@ -463,6 +470,7 @@ class SalesReport extends Component
                 'old_details' => $oldDetails->toArray(),
                 'new_details' => $newDetails->toArray(),
                 'has_new_details' => $newDetails->isNotEmpty(),
+                'is_legacy_log' => $isLegacyLog,
             ];
         }
 

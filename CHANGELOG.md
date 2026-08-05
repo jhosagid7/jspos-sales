@@ -1,3 +1,11 @@
+## [1.10.323] - 2026-08-05
+
+### Fixed & Improved
+- **Compatibilidad de Despliegue de Comparativa (Bootstrap 4/5)**:
+  - Corregido el botón `Ver Comparativa Completa Detallada (Antes vs Después)` agregando los atributos `data-toggle="collapse"` y `data-target` compatibles con Bootstrap 4 para que al hacer clic se despliegue de inmediato la tabla comparativa lado a lado.
+- **Tratamiento de Logs Históricos Anteriores**:
+  - Para modificaciones realizadas antes del release v1.10.322 (donde los productos del estado posterior no se guardaban en la base de datos), el sistema ahora detecta el registro histórico y evita clasificarlos erróneamente como "productos sacados", aclarando la variación de monto registrada.
+
 ## [1.10.322] - 2026-08-05
 
 ### Fixed & Improved

@@ -783,8 +783,12 @@
                                                     </div>
                                                 @endif
 
-                                                @if(empty($log['added']) && empty($log['removed']) && empty($log['modified']))
-                                                    <div class="p-2 bg-light rounded text-muted small italic">
+                                                @if(!empty($log['is_legacy_log']))
+                                                    <div class="alert alert-warning border-0 small py-2 mb-3">
+                                                        <i class="fas fa-exclamation-triangle me-1"></i> <strong>Registro de Edición Previo:</strong> Esta modificación fue realizada antes de la actualización de auditoría. El total cambió de <strong>${{ number_format($log['old_total'], 2) }}</strong> a <strong>${{ number_format($log['new_total'], 2) }}</strong>. A continuación se muestran los ítems originales registrados antes del cambio.
+                                                    </div>
+                                                @elseif(empty($log['added']) && empty($log['removed']) && empty($log['modified']))
+                                                    <div class="p-2 bg-light rounded text-muted small italic mb-3">
                                                         <i class="fas fa-info-circle me-1"></i> Los productos principales no sufrieron modificaciones directas (posible cambio en datos generales de la venta, cliente o transporte).
                                                     </div>
                                                 @endif
@@ -794,11 +798,18 @@
                                             <div class="accordion" id="accordionLog{{ $log['id'] }}">
                                                 <div class="accordion-item border rounded">
                                                     <h2 class="accordion-header" id="heading{{ $log['id'] }}">
-                                                        <button class="accordion-button collapsed py-2 text-primary font-weight-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ $log['id'] }}" aria-expanded="false" aria-controls="collapse{{ $log['id'] }}">
+                                                        <button class="accordion-button py-2 text-primary font-weight-bold w-100 text-start border-0 bg-light" 
+                                                                type="button" 
+                                                                data-toggle="collapse" 
+                                                                data-target="#collapse{{ $log['id'] }}" 
+                                                                data-bs-toggle="collapse" 
+                                                                data-bs-target="#collapse{{ $log['id'] }}" 
+                                                                aria-expanded="false" 
+                                                                aria-controls="collapse{{ $log['id'] }}">
                                                             <i class="fas fa-columns me-2"></i> Ver Comparativa Completa Detallada (Antes vs Después)
                                                         </button>
                                                     </h2>
-                                                    <div id="collapse{{ $log['id'] }}" class="accordion-collapse collapse" aria-labelledby="heading{{ $log['id'] }}" data-bs-parent="#accordionLog{{ $log['id'] }}">
+                                                    <div id="collapse{{ $log['id'] }}" class="accordion-collapse collapse" aria-labelledby="heading{{ $log['id'] }}">
                                                         <div class="accordion-body p-3">
                                                             <div class="row">
                                                                 <!-- Estado Anterior -->
