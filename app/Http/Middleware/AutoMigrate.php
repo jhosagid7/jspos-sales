@@ -52,16 +52,10 @@ class AutoMigrate
                             }
                         }
                         
-                        // Run migrations automatically
-                        Artisan::call('migrate', ['--force' => true]);
+                        // Run migrations automatically via UpdateService
+                        app(\App\Services\UpdateService::class)->runMigrations();
                         
                         \Illuminate\Support\Facades\Log::info("AutoMigrate - Migration complete");
-                        
-                        // Mark as migrated for this version by creating the flag file
-                        File::put($flagFile, "Migrated on: " . now()->toDateTimeString());
-                        
-                        // Optional: Clear view/config cache after migration
-                        Artisan::call('optimize:clear');
                     }
                 }
             } catch (\Throwable $th) {

@@ -54,8 +54,6 @@ class MasterDataSeeder extends Seeder
             ]);
         }
 
-        if (Category::count() === 0) {
-            Category::create(['name' => 'General']);
-        }
+        Category::firstOrCreate(['name' => 'General']);
     }
 }

@@ -1,3 +1,11 @@
+## [1.10.352] - 2026-08-05
+
+### Fixed
+- **Ejecución Automática de Migraciones al Instalar Actualizaciones**:
+  - `UpdateService::installUpdate()` ahora ejecuta las migraciones de base de datos (`runMigrations()`) y los seeders de permisos inmediatamente al descomprimir y copiar la actualización.
+  - `UpdateService::runMigrations()` genera automáticamente el archivo indicador de `AutoMigrate` (`storage/framework/migrated_{version}.log`), garantizando que al actualizar el sistema los clientes NUNCA vean la pantalla de "Actualización de Base de Datos Requerida".
+  - Se actualizó el middleware `AutoMigrate` para delegar la ejecución a `UpdateService::runMigrations()`, asegurando consistencia entre actualización manual y automática.
+
 ## [1.10.351] - 2026-08-05
 
 ### Fixed

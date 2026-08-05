@@ -231,6 +231,13 @@ class UpdateService
                 File::put(base_path('version.txt'), $newVersion);
             }
 
+            // Auto-run DB migrations & seeders automatically during installation
+            try {
+                $this->runMigrations();
+            } catch (\Exception $e) {
+                Log::error("Updater: Automatic migration during install failed: " . $e->getMessage());
+            }
+
             File::deleteDirectory($extractPath);
             File::delete($tempPath);
             
@@ -316,6 +323,16 @@ class UpdateService
                 });
             }
         }
+
+        // Create the AutoMigrate flag file so AutoMigrate middleware recognizes completion for this version
+        $versionFile = base_path('version.txt');
+        if (File::exists($versionFile)) {
+            $currentVersion = trim(File::get($versionFile));
+            $flagFile = storage_path('framework/migrated_' . str_replace('.', '_', $currentVersion) . '.log');
+            File::put($flagFile, 'Migrated on: ' . now()->toDateTimeString());
+        }
+
+        Artisan::call('optimize:clear');
 
         return true;
     }
