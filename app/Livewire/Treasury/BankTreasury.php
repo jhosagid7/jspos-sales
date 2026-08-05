@@ -238,9 +238,9 @@ class BankTreasury extends Component
             'TRANSFERENCIA / ABONO DE TERCERO',
             'OTRO INGRESO DIVERSOS',
         ];
-        $dbIncomeCategories = BankRecord::where('type', 'income')
-            ->whereNotNull('description')
-            ->pluck('description')
+        $dbIncomeCategories = BankRecord::where('income_type', 'other')
+            ->whereNotNull('income_category')
+            ->pluck('income_category')
             ->map(fn($d) => mb_strtoupper(trim($d)))
             ->filter()
             ->toArray();

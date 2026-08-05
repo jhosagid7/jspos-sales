@@ -1,3 +1,10 @@
+## [1.10.354] - 2026-08-05
+
+### Fixed
+- **Corregida Consulta SQL Errónea en Tesorería (`BankTreasury.php`)**:
+  - Se corrigió el nombre de columnas en la consulta de categorías de ingreso de `BankRecord`. Anteriormente consultaba `type` y `description` (que no existen en la tabla `bank_records`), causando un `QueryException (1054 Unknown column 'description')` que activaba la pantalla de actualización requerida.
+  - La consulta ahora utiliza correctamente las columnas `income_type` e `income_category`.
+
 ## [1.10.353] - 2026-08-05
 
 ### Fixed
