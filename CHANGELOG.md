@@ -1,3 +1,11 @@
+## [1.10.351] - 2026-08-05
+
+### Fixed
+- **Corregida Pantalla de "Actualización de Base de Datos Requerida" en Bucle**:
+  - El botón "Actualizar Base de Datos Ahora" ahora ejecuta el proceso completo de migración (`UpdateService::runMigrations()` con seeders) en lugar de solo `migrate --force`.
+  - Se crea correctamente el flag file de `AutoMigrate` para que el middleware no vuelva a mostrar la pantalla de actualización después de migrar exitosamente.
+  - Se agrega log de errores en caso de fallo para diagnóstico.
+
 ## [1.10.350] - 2026-08-05
 
 ### Added

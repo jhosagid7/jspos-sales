@@ -311,10 +311,21 @@ Route::get('/access-denied', function () {
 Route::prefix('system')->name('system.')->group(function () {
     Route::get('/upgrade-db', function () {
         try {
-            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            $updater = app(\App\Services\UpdateService::class);
+            $updater->runMigrations();
+
+            // Create the AutoMigrate flag file so middleware doesn't re-trigger
+            $versionFile = base_path('version.txt');
+            if (\Illuminate\Support\Facades\File::exists($versionFile)) {
+                $currentVersion = trim(\Illuminate\Support\Facades\File::get($versionFile));
+                $flagFile = storage_path('framework/migrated_' . str_replace('.', '_', $currentVersion) . '.log');
+                \Illuminate\Support\Facades\File::put($flagFile, 'Migrated on: ' . now()->toDateTimeString());
+            }
+
             \Illuminate\Support\Facades\Artisan::call('optimize:clear');
             return redirect('/dashboard')->with('success', 'Base de datos actualizada correctamente.');
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('upgrade-db failed: ' . $e->getMessage());
             return back()->with('error', 'Error al actualizar: ' . $e->getMessage());
         }
     })->name('upgrade-db');
