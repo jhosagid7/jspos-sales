@@ -1,3 +1,9 @@
+## [1.10.327] - 2026-08-05
+
+### Fixed
+- **Resolución de Vendedor en Auditoría Histórica**:
+  - Corregido el mecanismo de respaldo (fallback) al consultar vendedores en registros de edición antiguos. Se evita mostrar "Sin Vendedor" si el vendedor no sufrió cambios o si pertenece al usuario por defecto `OFICINA`.
+
 ## [1.10.326] - 2026-08-05
 
 ### Added & Improved

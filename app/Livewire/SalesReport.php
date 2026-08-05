@@ -522,14 +522,22 @@ class SalesReport extends Component
             $creatorName = $creator ? $creator->name : 'No registrado';
 
             // Resolve Vendedores Asignados
-            $oldSellerId = $oldData['seller_id'] ?? $oldData['customer']['seller_id'] ?? $sale->seller_id ?? null;
-            $newSellerId = $newData['seller_id'] ?? $newData['customer']['seller_id'] ?? $sale->seller_id ?? null;
+            $customerSellerId = $sale->customer->seller_id ?? null;
+            $oldSellerId = $oldData['seller_id'] ?? $oldData['customer']['seller_id'] ?? $customerSellerId;
+            $newSellerId = $newData['seller_id'] ?? $newData['customer']['seller_id'] ?? $oldSellerId ?? $customerSellerId;
+
             $oldSeller = $oldSellerId ? \App\Models\User::find($oldSellerId) : null;
             $newSeller = $newSellerId ? \App\Models\User::find($newSellerId) : null;
-            $oldSellerName = $oldSeller ? $oldSeller->name : 'Sin Vendedor';
-            $newSellerName = $newSeller ? $newSeller->name : 'Sin Vendedor';
 
-            if ($oldSellerId && $newSellerId && $oldSellerId != $newSellerId) {
+            $defaultOfficeSeller = null;
+            if (!$oldSeller || !$newSeller) {
+                $defaultOfficeSeller = \App\Models\User::where('name', 'OFICINA')->first();
+            }
+
+            $oldSellerName = $oldSeller ? $oldSeller->name : ($defaultOfficeSeller ? $defaultOfficeSeller->name : 'OFICINA');
+            $newSellerName = $newSeller ? $newSeller->name : $oldSellerName;
+
+            if ($oldSellerId && $newSellerId && $oldSellerId != $newSellerId && $oldSellerName !== $newSellerName) {
                 $configChanges[] = [
                     'label' => 'Vendedor Asignado',
                     'old' => $oldSellerName,
