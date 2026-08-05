@@ -22,13 +22,24 @@
 
                         <div class="form-group">
                             <label class="font-weight-bold">Categoría de Gasto</label>
-                            <select wire:model="expense_category_id" class="form-control">
+                            <select wire:model.live="expense_category_id" class="form-control">
+                                <option value="">-- SELECCIONE CATEGORÍA DE GASTO --</option>
                                 @foreach($categories as $cat)
-                                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                    <option value="{{ $cat->id }}">{{ mb_strtoupper($cat->name) }}</option>
                                 @endforeach
+                                <option value="NEW" class="font-weight-bold text-primary">➕ OTRO (CREAR NUEVA CATEGORÍA)</option>
                             </select>
                             @error('expense_category_id') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
+
+                        @if($expense_category_id === 'NEW')
+                            <div class="form-group border p-2 rounded bg-light">
+                                <label class="font-weight-bold text-primary"><i class="fas fa-folder-plus"></i> Nombre de la Nueva Categoría de Gasto</label>
+                                <input type="text" wire:model="new_expense_category_name" class="form-control text-uppercase" placeholder="EJ: FLETES ESPECIALES, DONACIONES..." style="text-transform: uppercase;">
+                                <small class="form-text text-muted">Se convertirá automáticamente a MAYÚSCULAS para mantener el formato único.</small>
+                                @error('new_expense_category_name') <span class="text-danger small d-block">{{ $message }}</span> @enderror
+                            </div>
+                        @endif
 
                         <div class="row">
                             <div class="col-md-6">
@@ -203,16 +214,24 @@
 
                         <div class="form-group">
                             <label class="font-weight-bold">Concepto / Categoría de Ingreso</label>
-                            <select wire:model="other_income_category" class="form-control">
-                                <option value="Aporte de Capital">Aporte de Capital / Inyección</option>
-                                <option value="Rendimiento Bancario">Rendimiento / Intereses Bancarios</option>
-                                <option value="Devolución de Proveedor">Devolución / Reembolso de Proveedor</option>
-                                <option value="Préstamo Bancario">Préstamo / Crédito Bancario</option>
-                                <option value="Transferencia de Tercero">Transferencia / Abono de Tercero</option>
-                                <option value="Otro Ingreso">Otro Ingreso Diversos</option>
+                            <select wire:model.live="other_income_category" class="form-control">
+                                <option value="">-- SELECCIONE TIPO DE INGRESO --</option>
+                                @foreach($incomeCategories as $incCat)
+                                    <option value="{{ $incCat }}">{{ mb_strtoupper($incCat) }}</option>
+                                @endforeach
+                                <option value="NEW" class="font-weight-bold text-success">➕ OTRO (CREAR NUEVO TIPO DE INGRESO)</option>
                             </select>
                             @error('other_income_category') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
+
+                        @if($other_income_category === 'NEW')
+                            <div class="form-group border p-2 rounded bg-light">
+                                <label class="font-weight-bold text-success"><i class="fas fa-plus-circle"></i> Nombre del Nuevo Tipo de Ingreso</label>
+                                <input type="text" wire:model="new_income_category_name" class="form-control text-uppercase" placeholder="EJ: SUBSIDIO, INYECCIÓN DE SOCIOS..." style="text-transform: uppercase;">
+                                <small class="form-text text-muted">Se convertirá automáticamente a MAYÚSCULAS para mantener el formato único.</small>
+                                @error('new_income_category_name') <span class="text-danger small d-block">{{ $message }}</span> @enderror
+                            </div>
+                        @endif
 
                         <div class="row">
                             <div class="col-md-6">

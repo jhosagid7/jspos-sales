@@ -1,3 +1,12 @@
+## [1.10.350] - 2026-08-05
+
+### Added
+- **Categorías de Gasto y de Ingreso Dinámicas en Tesorería Bancaria**:
+  - Corregida la carga de categorías de gasto (aparecían vacías). Se implementó auto-seed de 10 categorías predeterminadas si la tabla está vacía.
+  - Al seleccionar "➕ OTRO (CREAR NUEVA CATEGORÍA)" en el modal de Gasto, aparece un campo de texto para escribir el nombre de la nueva categoría. Se convierte automáticamente a MAYÚSCULAS y no se permiten duplicados.
+  - Mismo comportamiento para el modal de Ingreso: al seleccionar "➕ OTRO (CREAR NUEVO TIPO DE INGRESO)", aparece un campo para crear un nuevo concepto de ingreso en MAYÚSCULAS.
+  - Todas las categorías existentes se muestran en formato MAYÚSCULAS uniforme.
+
 ## [1.10.349] - 2026-08-05
 
 ### Improved

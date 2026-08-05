@@ -36,6 +36,7 @@ class BankTreasury extends Component
     public $expenseId = null; // For edit if needed
     public $expense_bank_id;
     public $expense_category_id;
+    public $new_expense_category_name = '';
     public $expense_amount;
     public $expense_date;
     public $expense_description;
@@ -68,7 +69,8 @@ class BankTreasury extends Component
     public $other_income_bank_id;
     public $other_income_amount;
     public $other_income_date;
-    public $other_income_category = 'Aporte de Capital';
+    public $other_income_category = '';
+    public $new_income_category_name = '';
     public $other_income_description;
     public $other_income_reference;
     public $other_income_receipt;
@@ -201,7 +203,48 @@ class BankTreasury extends Component
         if ($trackedBanks->isEmpty()) {
             $trackedBanks = $allBanks;
         }
+
+        // Auto-seed default expense categories if empty
+        if (BankExpenseCategory::count() === 0) {
+            $defaults = [
+                ['name' => 'NÓMINA / SUELDOS', 'icon' => 'fa-users', 'color' => '#4e73df', 'is_essential' => true, 'sort' => 1],
+                ['name' => 'ALQUILER / ARRENDAMIENTO', 'icon' => 'fa-building', 'color' => '#1cc88a', 'is_essential' => true, 'sort' => 2],
+                ['name' => 'SERVICIOS PÚBLICOS (LUZ, AGUA, INTERNET)', 'icon' => 'fa-bolt', 'color' => '#36b9cc', 'is_essential' => true, 'sort' => 3],
+                ['name' => 'PROVEEDORES DE MERCANCÍA', 'icon' => 'fa-truck', 'color' => '#f6c23e', 'is_essential' => true, 'sort' => 4],
+                ['name' => 'IMPUESTOS / TASAS', 'icon' => 'fa-file-invoice-dollar', 'color' => '#e74a3b', 'is_essential' => true, 'sort' => 5],
+                ['name' => 'TRANSPORTE / FLETES', 'icon' => 'fa-shipping-fast', 'color' => '#858796', 'is_essential' => true, 'sort' => 6],
+                ['name' => 'MANTENIMIENTO / REPARACIONES', 'icon' => 'fa-wrench', 'color' => '#5a5c69', 'is_essential' => false, 'sort' => 7],
+                ['name' => 'PUBLICIDAD / MERCADEO', 'icon' => 'fa-ad', 'color' => '#fd7e14', 'is_essential' => false, 'sort' => 8],
+                ['name' => 'SUMINISTROS DE OFICINA', 'icon' => 'fa-paperclip', 'color' => '#6f42c1', 'is_essential' => false, 'sort' => 9],
+                ['name' => 'GASTOS VARIOS / OTROS', 'icon' => 'fa-shopping-cart', 'color' => '#e83e8c', 'is_essential' => false, 'sort' => 10],
+            ];
+            foreach ($defaults as $d) {
+                BankExpenseCategory::create($d);
+            }
+        }
+
         $categories = BankExpenseCategory::where('is_active', true)->orderBy('sort')->get();
+        // Uppercase all category names
+        $categories->each(function($c) {
+            $c->name = mb_strtoupper($c->name);
+        });
+
+        // Unique Income categories
+        $defaultIncomeCategories = [
+            'APORTE DE CAPITAL / INYECCIÓN',
+            'RENDIMIENTO / INTERESES BANCARIOS',
+            'DEVOLUCIÓN / REEMBOLSO DE PROVEEDOR',
+            'PRÉSTAMO / CRÉDITO BANCARIO',
+            'TRANSFERENCIA / ABONO DE TERCERO',
+            'OTRO INGRESO DIVERSOS',
+        ];
+        $dbIncomeCategories = BankRecord::where('type', 'income')
+            ->whereNotNull('description')
+            ->pluck('description')
+            ->map(fn($d) => mb_strtoupper(trim($d)))
+            ->filter()
+            ->toArray();
+        $incomeCategories = array_values(array_unique(array_merge($defaultIncomeCategories, $dbIncomeCategories)));
 
         // Summary cards
         $balances = [];
@@ -281,6 +324,7 @@ class BankTreasury extends Component
             'trackedBanks' => $trackedBanks,
             'allBanks' => $allBanks,
             'categories' => $categories,
+            'incomeCategories' => $incomeCategories,
             'balances' => $balances,
             'totalInPrimary' => $totalInPrimary,
             'primaryCode' => $primaryCode,
@@ -357,7 +401,7 @@ class BankTreasury extends Component
     public function openExpenseModal()
     {
         $this->resetValidation();
-        $this->reset(['expenseId', 'expense_bank_id', 'expense_category_id', 'expense_amount', 'expense_description', 'expense_reference', 'expense_beneficiary', 'expense_receipt', 'expense_is_recurring']);
+        $this->reset(['expenseId', 'expense_bank_id', 'expense_category_id', 'new_expense_category_name', 'expense_amount', 'expense_description', 'expense_reference', 'expense_beneficiary', 'expense_receipt', 'expense_is_recurring']);
         $this->expense_date = Carbon::today()->format('Y-m-d');
         
         $banks = $this->getActiveBanks();
@@ -368,6 +412,8 @@ class BankTreasury extends Component
         $categories = BankExpenseCategory::where('is_active', true)->orderBy('sort')->get();
         if ($categories->isNotEmpty()) {
             $this->expense_category_id = $categories->first()->id;
+        } else {
+            $this->expense_category_id = '';
         }
 
         $this->showExpenseModal = true;
@@ -375,6 +421,31 @@ class BankTreasury extends Component
 
     public function saveExpense()
     {
+        if ($this->expense_category_id === 'NEW') {
+            $this->validate([
+                'new_expense_category_name' => 'required|string|min:2|max:255',
+            ], [
+                'new_expense_category_name.required' => 'Escriba el nombre de la nueva categoría de gasto.',
+                'new_expense_category_name.min' => 'El nombre debe tener al menos 2 caracteres.',
+            ]);
+
+            $nameUpper = mb_strtoupper(trim($this->new_expense_category_name));
+
+            $cat = BankExpenseCategory::whereRaw('LOWER(name) = ?', [mb_strtolower($nameUpper)])->first();
+            if (!$cat) {
+                $maxSort = BankExpenseCategory::max('sort') ?? 0;
+                $cat = BankExpenseCategory::create([
+                    'name' => $nameUpper,
+                    'icon' => 'fa-folder-plus',
+                    'color' => '#858796',
+                    'is_essential' => false,
+                    'sort' => $maxSort + 1,
+                    'is_active' => true,
+                ]);
+            }
+            $this->expense_category_id = $cat->id;
+        }
+
         $this->validate([
             'expense_bank_id' => 'required|exists:banks,id',
             'expense_category_id' => 'required|exists:bank_expense_categories,id',
@@ -498,9 +569,9 @@ class BankTreasury extends Component
     public function openOtherIncomeModal()
     {
         $this->resetValidation();
-        $this->reset(['other_income_bank_id', 'other_income_amount', 'other_income_description', 'other_income_reference', 'other_income_receipt']);
+        $this->reset(['other_income_bank_id', 'other_income_amount', 'new_income_category_name', 'other_income_description', 'other_income_reference', 'other_income_receipt']);
         $this->other_income_date = Carbon::today()->format('Y-m-d');
-        $this->other_income_category = 'Aporte de Capital';
+        $this->other_income_category = 'APORTE DE CAPITAL / INYECCIÓN';
 
         $banks = $this->getActiveBanks();
         if ($banks->isNotEmpty()) {
@@ -512,6 +583,17 @@ class BankTreasury extends Component
 
     public function saveOtherIncome()
     {
+        if ($this->other_income_category === 'NEW') {
+            $this->validate([
+                'new_income_category_name' => 'required|string|min:2|max:255',
+            ], [
+                'new_income_category_name.required' => 'Escriba el nombre del nuevo tipo de ingreso.',
+                'new_income_category_name.min' => 'El nombre debe tener al menos 2 caracteres.',
+            ]);
+
+            $this->other_income_category = mb_strtoupper(trim($this->new_income_category_name));
+        }
+
         $this->validate([
             'other_income_bank_id' => 'required|exists:banks,id',
             'other_income_amount' => 'required|numeric|min:0.01',
@@ -531,7 +613,7 @@ class BankTreasury extends Component
             $this->other_income_bank_id,
             $this->other_income_date,
             (float) $this->other_income_amount,
-            $this->other_income_category,
+            mb_strtoupper(trim($this->other_income_category)),
             $this->other_income_description,
             $this->other_income_reference,
             $receiptPath,
