@@ -326,7 +326,7 @@ Route::prefix('system')->name('system.')->group(function () {
             return redirect('/dashboard')->with('success', 'Base de datos actualizada correctamente.');
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('upgrade-db failed: ' . $e->getMessage());
-            return back()->with('error', 'Error al actualizar: ' . $e->getMessage());
+            return redirect('/dashboard')->with('error', 'La migración finalizó con advertencias: ' . $e->getMessage());
         }
     })->name('upgrade-db');
 });

@@ -1,3 +1,10 @@
+## [1.10.353] - 2026-08-05
+
+### Fixed
+- **Auto-Reparación de Base de Datos ante Excepciones de Tablas/Columnas Faltantes**:
+  - `Handler.php` ahora intercepta automáticamente excepciones `QueryException` (códigos 42S02/42S22) y ejecuta la migración/reparación de esquema inmediatamente en caliente sin mostrar la tarjeta roja de actualización al usuario.
+  - La ruta `/system/upgrade-db` ahora redirige de forma segura al `/dashboard` en caso de error/advertencia para evitar bucles de redirección.
+
 ## [1.10.352] - 2026-08-05
 
 ### Fixed

@@ -32,6 +32,18 @@ class Handler extends ExceptionHandler
             // SQLSTATE[42S22]: Column not found
             if ($e->getCode() === '42S02' || $e->getCode() === '42S22') {
                 if (!$request->is('system/*')) { // Prevent infinite loops if the error page itself has DB issues
+                    if (!session()->has('attempted_db_repair')) {
+                        session()->put('attempted_db_repair', true);
+                        try {
+                            \Illuminate\Support\Facades\Log::info("Handler: Attempting automatic database migration for missing table/column...");
+                            app(\App\Services\UpdateService::class)->runMigrations();
+                            \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+                            return redirect($request->fullUrl());
+                        } catch (\Throwable $migrationError) {
+                            \Illuminate\Support\Facades\Log::error("Self-repair migration failed: " . $migrationError->getMessage());
+                        }
+                    }
+                    session()->forget('attempted_db_repair');
                     return response()->view('errors.db-update-required', [], 500);
                 }
             }
