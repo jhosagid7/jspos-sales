@@ -39,6 +39,8 @@ class WhatsappSettings extends Component
     public $emailWeeklyReportRecipients = '';
     public $emailSopladosWeeklyRecipients = '';
     public $emailCreditAuthRecipients = '';
+    public $emailEditAuthRecipients = '';
+    public $emailDeleteAuthRecipients = '';
     public $emailBagsShiftRecipients = '';
     public $emailBagsAdminRecipients = '';
 
@@ -48,6 +50,8 @@ class WhatsappSettings extends Component
     public $selectedSopladosShiftUsers = [];
     public $selectedSopladosWeeklyUsers = [];
     public $selectedCreditAuthUsers = [];
+    public $selectedEditAuthUsers = [];
+    public $selectedDeleteAuthUsers = [];
     public $selectedBagsShiftUsers = [];
     public $selectedBagsAdminUsers = [];
 
@@ -57,6 +61,8 @@ class WhatsappSettings extends Component
     public $searchSopladosShiftQuery = '';
     public $searchSopladosWeeklyQuery = '';
     public $searchCreditAuthQuery = '';
+    public $searchEditAuthQuery = '';
+    public $searchDeleteAuthQuery = '';
     public $searchBagsShiftQuery = '';
     public $searchBagsAdminQuery = '';
 
@@ -66,6 +72,8 @@ class WhatsappSettings extends Component
     public $sopladosShiftUsersResults = [];
     public $sopladosWeeklyUsersResults = [];
     public $creditAuthUsersResults = [];
+    public $editAuthUsersResults = [];
+    public $deleteAuthUsersResults = [];
     public $bagsShiftUsersResults = [];
     public $bagsAdminUsersResults = [];
 
@@ -89,6 +97,8 @@ class WhatsappSettings extends Component
         $this->emailWeeklyReportRecipients = implode(', ', $config->email_weekly_report_recipients ?? []);
         $this->emailSopladosWeeklyRecipients = implode(', ', $config->email_soplados_weekly_recipients ?? []);
         $this->emailCreditAuthRecipients = implode(', ', $config->email_credit_auth_recipients ?? []);
+        $this->emailEditAuthRecipients = implode(', ', $config->email_edit_auth_recipients ?? []);
+        $this->emailDeleteAuthRecipients = implode(', ', $config->email_delete_auth_recipients ?? []);
         $this->emailBagsShiftRecipients = implode(', ', $config->production_email_recipients ?? []);
         $this->emailBagsAdminRecipients = implode(', ', $config->bags_admin_email_recipients ?? []);
 
@@ -98,6 +108,8 @@ class WhatsappSettings extends Component
         $this->selectedSopladosShiftUsers = $config->whatsapp_soplados_shift_users ?? [];
         $this->selectedSopladosWeeklyUsers = $config->whatsapp_soplados_weekly_users ?? [];
         $this->selectedCreditAuthUsers = $config->whatsapp_credit_auth_users ?? [];
+        $this->selectedEditAuthUsers = $config->whatsapp_edit_auth_users ?? [];
+        $this->selectedDeleteAuthUsers = $config->whatsapp_delete_auth_users ?? [];
         $this->selectedBagsShiftUsers = $config->whatsapp_bags_shift_users ?? [];
         $this->selectedBagsAdminUsers = $config->whatsapp_bags_admin_users ?? [];
 
@@ -281,6 +293,8 @@ class WhatsappSettings extends Component
             $weeklyEmails = array_values(array_filter(array_map('trim', explode(',', $this->emailWeeklyReportRecipients))));
             $sopladosWeeklyEmails = array_values(array_filter(array_map('trim', explode(',', $this->emailSopladosWeeklyRecipients))));
             $creditAuthEmails = array_values(array_filter(array_map('trim', explode(',', $this->emailCreditAuthRecipients))));
+            $editAuthEmails = array_values(array_filter(array_map('trim', explode(',', $this->emailEditAuthRecipients))));
+            $deleteAuthEmails = array_values(array_filter(array_map('trim', explode(',', $this->emailDeleteAuthRecipients))));
             $bagsShiftEmails = array_values(array_filter(array_map('trim', explode(',', $this->emailBagsShiftRecipients))));
             $bagsAdminEmails = array_values(array_filter(array_map('trim', explode(',', $this->emailBagsAdminRecipients))));
 
@@ -307,6 +321,10 @@ class WhatsappSettings extends Component
                 'email_soplados_weekly_recipients' => $sopladosWeeklyEmails,
                 'email_credit_auth_recipients' => $creditAuthEmails,
                 'whatsapp_credit_auth_users' => $this->selectedCreditAuthUsers,
+                'email_edit_auth_recipients' => $editAuthEmails,
+                'whatsapp_edit_auth_users' => $this->selectedEditAuthUsers,
+                'email_delete_auth_recipients' => $deleteAuthEmails,
+                'whatsapp_delete_auth_users' => $this->selectedDeleteAuthUsers,
                 'weekly_report_send_day' => (int) $this->weeklyReportSendDay,
                 'weekly_report_send_hour' => trim($this->weeklyReportSendHour),
             ]);
@@ -399,6 +417,34 @@ class WhatsappSettings extends Component
             ->toArray();
     }
 
+    public function updatedSearchEditAuthQuery()
+    {
+        if (strlen($this->searchEditAuthQuery) < 2) {
+            $this->editAuthUsersResults = [];
+            return;
+        }
+        $this->editAuthUsersResults = \App\Models\User::where('name', 'like', '%' . $this->searchEditAuthQuery . '%')
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->limit(5)
+            ->get(['id', 'name', 'phone'])
+            ->toArray();
+    }
+
+    public function updatedSearchDeleteAuthQuery()
+    {
+        if (strlen($this->searchDeleteAuthQuery) < 2) {
+            $this->deleteAuthUsersResults = [];
+            return;
+        }
+        $this->deleteAuthUsersResults = \App\Models\User::where('name', 'like', '%' . $this->searchDeleteAuthQuery . '%')
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->limit(5)
+            ->get(['id', 'name', 'phone'])
+            ->toArray();
+    }
+
     public function updatedSearchBagsShiftQuery()
     {
         if (strlen($this->searchBagsShiftQuery) < 2) {
@@ -470,6 +516,18 @@ class WhatsappSettings extends Component
             }
             $this->searchCreditAuthQuery = '';
             $this->creditAuthUsersResults = [];
+        } elseif ($type === 'edit_auth') {
+            if (!in_array($userId, $this->selectedEditAuthUsers)) {
+                $this->selectedEditAuthUsers[] = $userId;
+            }
+            $this->searchEditAuthQuery = '';
+            $this->editAuthUsersResults = [];
+        } elseif ($type === 'delete_auth') {
+            if (!in_array($userId, $this->selectedDeleteAuthUsers)) {
+                $this->selectedDeleteAuthUsers[] = $userId;
+            }
+            $this->searchDeleteAuthQuery = '';
+            $this->deleteAuthUsersResults = [];
         } elseif ($type === 'bags_shift') {
             if (!in_array($userId, $this->selectedBagsShiftUsers)) {
                 $this->selectedBagsShiftUsers[] = $userId;
@@ -499,6 +557,10 @@ class WhatsappSettings extends Component
             $this->selectedSopladosWeeklyUsers = array_values(array_diff($this->selectedSopladosWeeklyUsers, [$userId]));
         } elseif ($type === 'credit_auth') {
             $this->selectedCreditAuthUsers = array_values(array_diff($this->selectedCreditAuthUsers, [$userId]));
+        } elseif ($type === 'edit_auth') {
+            $this->selectedEditAuthUsers = array_values(array_diff($this->selectedEditAuthUsers, [$userId]));
+        } elseif ($type === 'delete_auth') {
+            $this->selectedDeleteAuthUsers = array_values(array_diff($this->selectedDeleteAuthUsers, [$userId]));
         } elseif ($type === 'bags_shift') {
             $this->selectedBagsShiftUsers = array_values(array_diff($this->selectedBagsShiftUsers, [$userId]));
         } elseif ($type === 'bags_admin') {
@@ -514,6 +576,8 @@ class WhatsappSettings extends Component
         $sopladosShiftUsers = \App\Models\User::whereIn('id', $this->selectedSopladosShiftUsers)->get(['id', 'name', 'phone']);
         $sopladosWeeklyUsers = \App\Models\User::whereIn('id', $this->selectedSopladosWeeklyUsers)->get(['id', 'name', 'phone']);
         $creditAuthUsers = \App\Models\User::whereIn('id', $this->selectedCreditAuthUsers)->get(['id', 'name', 'phone']);
+        $editAuthUsers = \App\Models\User::whereIn('id', $this->selectedEditAuthUsers)->get(['id', 'name', 'phone']);
+        $deleteAuthUsers = \App\Models\User::whereIn('id', $this->selectedDeleteAuthUsers)->get(['id', 'name', 'phone']);
         $bagsShiftUsers = \App\Models\User::whereIn('id', $this->selectedBagsShiftUsers)->get(['id', 'name', 'phone']);
         $bagsAdminUsers = \App\Models\User::whereIn('id', $this->selectedBagsAdminUsers)->get(['id', 'name', 'phone']);
 
@@ -524,6 +588,8 @@ class WhatsappSettings extends Component
             'selectedSopladosShiftUsersList' => $sopladosShiftUsers,
             'selectedSopladosWeeklyUsersList' => $sopladosWeeklyUsers,
             'selectedCreditAuthUsersList' => $creditAuthUsers,
+            'selectedEditAuthUsersList' => $editAuthUsers,
+            'selectedDeleteAuthUsersList' => $deleteAuthUsers,
             'selectedBagsShiftUsersList' => $bagsShiftUsers,
             'selectedBagsAdminUsersList' => $bagsAdminUsers,
         ]);

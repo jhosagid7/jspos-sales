@@ -368,10 +368,27 @@ class SalesReport extends Component
         $this->dispatch('show-detail-note');
     }
 
-    public function getSaleHistory(Sale $sale)
+    public $saleDeletionInfo = [];
+
+    public function getSaleHistory($saleId)
     {
+        $sale = $saleId instanceof Sale ? $saleId : Sale::with(['deletionApprovedBy', 'deletionRequestedBy'])->find($saleId);
+
+        if (!$sale) {
+            return;
+        }
+
         $this->sale_id = $sale->id;
-        $logs = $sale->history()->with('user')->orderBy('created_at', 'desc')->get();
+
+        $this->saleDeletionInfo = [
+            'is_deleted' => !empty($sale->deleted_at) || in_array(strtolower($sale->status), ['voided', 'cancelled', 'returned']),
+            'deletion_reason' => $sale->deletion_reason,
+            'deleted_at' => $sale->deleted_at,
+            'deleter_name' => $sale->deletionRequestedBy ? $sale->deletionRequestedBy->name : null,
+            'deletion_authorizer_name' => $sale->deletionApprovedBy ? $sale->deletionApprovedBy->name : null,
+        ];
+
+        $logs = $sale->history()->with(['user', 'authorizedBy'])->orderBy('created_at', 'desc')->get();
         
         $processedHistory = [];
 
@@ -546,10 +563,14 @@ class SalesReport extends Component
                 ];
             }
 
+            // Resolve Supervisor que autorizó (4to Actor)
+            $authorizerName = $log->authorizedBy ? $log->authorizedBy->name : null;
+
             // Extract snapshots of configuration for side-by-side comparison
             $oldConfigSnapshot = [
                 'facturado_por' => $creatorName,
                 'vendedor' => $oldSellerName,
+                'acuerdo_pago' => $oldData['payment_agreement'] ?? $sale->payment_agreement ?? 'USD/BCV',
                 'flete' => isset($oldData['applied_freight_percent']) ? number_format((float)$oldData['applied_freight_percent'], 2) . '%' : '0%',
                 'comision' => isset($oldData['applied_commission_percent']) ? number_format((float)$oldData['applied_commission_percent'], 2) . '%' : '0%',
                 'recargo' => isset($oldData['applied_base_markup_percent']) ? number_format((float)$oldData['applied_base_markup_percent'], 2) . '%' : '0%',
@@ -560,6 +581,7 @@ class SalesReport extends Component
             $newConfigSnapshot = [
                 'facturado_por' => $creatorName,
                 'vendedor' => $newSellerName,
+                'acuerdo_pago' => $newData['payment_agreement'] ?? $oldData['payment_agreement'] ?? $sale->payment_agreement ?? 'USD/BCV',
                 'flete' => isset($newData['applied_freight_percent']) ? number_format((float)$newData['applied_freight_percent'], 2) . '%' : '0%',
                 'comision' => isset($newData['applied_commission_percent']) ? number_format((float)$newData['applied_commission_percent'], 2) . '%' : '0%',
                 'recargo' => isset($newData['applied_base_markup_percent']) ? number_format((float)$newData['applied_base_markup_percent'], 2) . '%' : '0%',
@@ -573,6 +595,7 @@ class SalesReport extends Component
                 'id' => $log->id,
                 'created_at' => $log->created_at,
                 'user_name' => $log->user->name ?? 'Usuario',
+                'authorizer_name' => $authorizerName,
                 'creator_name' => $creatorName,
                 'old_seller_name' => $oldSellerName,
                 'new_seller_name' => $newSellerName,
@@ -657,29 +680,37 @@ class SalesReport extends Component
             $user = auth()->user();
             $sale = Sale::findOrFail($saleId);
 
-            // Check if user has permission to approve/force delete
-            if ($user->can('sales.approve_deletion')) {
-                // Check if reason is provided OR already exists in a request
-                if (empty($reason) && empty($sale->deletion_reason)) {
-                    $this->dispatch('noty', msg: 'Debes ingresar un motivo para la eliminación');
-                    return;
-                }
+            if (empty($reason) && empty($sale->deletion_reason)) {
+                $this->dispatch('noty', msg: 'Debes ingresar un motivo para la eliminación');
+                return;
+            }
 
-                // APPROVE / DELETE FLOW
-                DB::beginTransaction();
+            $this->executeSaleDeletion($sale, $reason ?: $sale->deletion_reason, $user->id);
+            $this->dispatch('noty', msg: 'Venta eliminada correctamente');
 
-                // Log approval if it was a request, or just self-deletion
-                $sale->update([
-                    'status' => 'returned',
-                    'deleted_at' => Carbon::now(),
-                    'deletion_approved_by' => $user->id,
-                    'deletion_approved_at' => Carbon::now(),
-                    'deletion_reason' => $reason ?: $sale->deletion_reason, // Use provided reason or keep existing request reason
-                    'deletion_requested_at' => null, // CLEAR REQUEST STATE
-                    'deletion_requested_by' => null,
-                ]);
+        } catch (\Exception $th) {
+            $this->dispatch('noty', msg: "Error al eliminar la venta \n {$th->getMessage()}");
+        }
+    }
 
-                foreach ($sale->details as $detail) {
+    public function executeSaleDeletion($sale, $reason, $authorizedById = null)
+    {
+        DB::beginTransaction();
+        try {
+            $user = auth()->user();
+            $authorizerId = $authorizedById ?: ($user ? $user->id : null);
+
+            $sale->update([
+                'status' => 'returned',
+                'deleted_at' => Carbon::now(),
+                'deletion_approved_by' => $authorizerId,
+                'deletion_approved_at' => Carbon::now(),
+                'deletion_reason' => $reason,
+                'deletion_requested_at' => null,
+                'deletion_requested_by' => null,
+            ]);
+
+            foreach ($sale->details as $detail) {
                     $product = $detail->product;
                     if (!$product) continue;
 
@@ -786,40 +817,9 @@ class SalesReport extends Component
 
                 DB::commit();
 
-                $this->dispatch('noty', msg: 'Venta eliminada correctamente');
-
-            } else {
-                // REQUEST FLOW
-                if (empty($reason)) {
-                    $this->dispatch('noty', msg: 'Debes ingresar un motivo para solicitar la eliminación');
-                    return;
-                }
-
-                $sale->update([
-                    'deletion_requested_at' => Carbon::now(),
-                    'deletion_reason' => $reason,
-                    'deletion_requested_by' => $user->id
-                ]);
-
-                // Notify Supervisors
-                try {
-                    $supervisors = User::permission('sales.approve_deletion')->get();
-                    foreach ($supervisors as $supervisor) {
-                        \Illuminate\Support\Facades\Mail::to($supervisor->email)->queue(new \App\Mail\SaleDeletionRequested($sale, $user));
-                    }
-                } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::error('Error enviando correo de solicitud de eliminación: ' . $e->getMessage());
-                }
-
-                $this->dispatch('noty', msg: 'Solicitud enviada al supervisor');
-            }
-
-            return;
-
         } catch (\Exception $th) {
             DB::rollBack();
-            $this->dispatch('noty', msg: "Error al intentar procesar la solicitud \n {$th->getMessage()}");
-            return;
+            throw $th;
         }
     }
 
@@ -859,21 +859,92 @@ class SalesReport extends Component
         $this->dispatch('hide-driver-modal');
     }
 
-    public function editSale($saleId)
+    public $authModalVisible = false;
+    public $authAction = ''; // 'sale_edit' or 'sale_delete'
+    public $authSaleId = null;
+    public $authReason = '';
+    public $authPin = '';
+    public $authStep = 'reason'; // 'reason' or 'pin'
+    public $authTargetInvoiceNumber = '';
+    public $authTargetCustomer = '';
+    public $authTargetTotal = '';
+
+    public function openAuthModal($action, $saleId)
     {
         $sale = Sale::findOrFail($saleId);
-        $user = auth()->user();
 
-        $canEditAnytime = $user->can('sales.edit_anytime');
-        $canEditTemp = $user->can('sales.edit_temporary') && $sale->is_within_edit_window;
-
-        if (!$canEditAnytime && !$canEditTemp) {
-            $this->dispatch('noty', msg: 'No tienes permiso para editar esta venta o el tiempo límite ha expirado.');
+        if (!empty($sale->deleted_at) || in_array(strtolower($sale->status), ['returned', 'cancelled'])) {
+            $this->dispatch('noty', msg: 'Las facturas anuladas o eliminadas no se pueden modificar.', type: 'error');
             return;
         }
 
-        session(['editing_sale_id' => $saleId]);
-        return redirect()->route('sales');
+        $this->authAction = $action === 'edit' ? 'sale_edit' : 'sale_delete';
+        $this->authSaleId = $saleId;
+        $this->authTargetInvoiceNumber = $sale->invoice_number ?: $sale->id;
+        $this->authTargetCustomer = $sale->customer ? $sale->customer->name : 'Cliente General';
+        $this->authTargetTotal = number_format($sale->total_usd > 0 ? $sale->total_usd : $sale->total, 2);
+        $this->authReason = '';
+        $this->authPin = '';
+        $this->authStep = 'reason';
+        $this->authModalVisible = true;
+        $this->dispatch('show-auth-modal');
+    }
+
+    public function sendAuthPin()
+    {
+        $actionName = $this->authAction === 'sale_edit' ? 'edición' : 'anulación';
+
+        $this->validate([
+            'authReason' => 'required|string|min:5',
+        ], [
+            'authReason.required' => "El motivo de la {$actionName} es OBLIGATORIO.",
+            'authReason.min' => "El motivo de la {$actionName} debe contener al menos 5 caracteres explicativos.",
+        ]);
+
+        if (!$this->authSaleId) return;
+
+        $sale = Sale::findOrFail($this->authSaleId);
+        $sentCount = \App\Services\AuthorizationService::requestAuthorization($this->authAction, $sale, $this->authReason);
+
+        $this->authStep = 'pin';
+        $this->dispatch('noty', msg: "Motivo registrado. PIN de autorización enviado a los supervisores. Ingrese el PIN recibido.", type: 'success');
+    }
+
+    public function confirmAuthPin()
+    {
+        $result = \App\Services\AuthorizationService::validatePin($this->authPin, $this->authAction, $this->authSaleId);
+
+        if (!$result['success']) {
+            $this->dispatch('noty', msg: $result['message'], type: 'error');
+            return;
+        }
+
+        $supervisor = $result['supervisor'];
+        $sale = Sale::findOrFail($this->authSaleId);
+
+        if ($this->authAction === 'sale_edit') {
+            session([
+                'editing_sale_id' => $sale->id,
+                'edit_authorized_by' => $supervisor ? $supervisor->id : null,
+                'edit_reason' => $this->authReason
+            ]);
+
+            $this->dispatch('noty', msg: 'Edición autorizada por ' . ($supervisor ? $supervisor->name : 'Supervisor') . '. Redirigiendo al POS...', type: 'success');
+            $this->authModalVisible = false;
+            $this->dispatch('hide-auth-modal');
+            return redirect()->route('sales');
+
+        } elseif ($this->authAction === 'sale_delete') {
+            $this->executeSaleDeletion($sale, $this->authReason, $supervisor ? $supervisor->id : null);
+            $this->dispatch('noty', msg: 'Factura #' . $this->authTargetInvoiceNumber . ' anulada exitosamente con autorización de ' . ($supervisor ? $supervisor->name : 'Supervisor'), type: 'success');
+            $this->authModalVisible = false;
+            $this->dispatch('hide-auth-modal');
+        }
+    }
+
+    public function editSale($saleId)
+    {
+        return $this->openAuthModal('edit', $saleId);
     }
 
     public function openPdfPreview()

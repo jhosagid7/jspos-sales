@@ -568,8 +568,8 @@
                                                 {{-- NORMAL STATE --}}
                                                 <button {{ $sale->status == 'returned' ? 'disabled' : '' }}
                                                     class="border-0 btn btn-outline-dark btn-xs"
-                                                    onclick="ConfirmDelete({{ $sale->id }})" title="Eliminar">
-                                                    <i class="fas fa-trash"></i>
+                                                    wire:click.prevent="openAuthModal('delete', {{ $sale->id }})" title="Anular/Eliminar Factura">
+                                                    <i class="fas fa-trash text-danger"></i>
                                                 </button>
                                             @endif
 
@@ -600,12 +600,13 @@
                                             </button>
 
                                             @php
-                                                $canEditAnytime = auth()->user()->can('sales.edit_anytime');
+                                                $canEditAnytime = auth()->user()->can('sales.edit_anytime') || auth()->user()->hasRole('Super Admin') || auth()->user()->is_admin;
                                                 $canEditTemp = auth()->user()->can('sales.edit_temporary') && $sale->is_within_edit_window;
+                                                $isSaleReturnedOrDeleted = strtolower($sale->status) === 'returned' || strtolower($sale->status) === 'cancelled' || $sale->deleted_at !== null;
                                             @endphp
 
-                                            @if($canEditAnytime || $canEditTemp)
-                                                <button wire:click.prevent="editSale({{ $sale->id }})"
+                                            @if(($canEditAnytime || $canEditTemp) && !$isSaleReturnedOrDeleted)
+                                                <button wire:click.prevent="openAuthModal('edit', {{ $sale->id }})"
                                                     class="border-0 btn btn-outline-dark btn-xs" title="Editar Factura">
                                                     <i class="fas fa-pencil-alt text-warning"></i>
                                                 </button>
@@ -672,6 +673,31 @@
                     </div>
                     <div class="modal-body p-4" style="background-color: #f8f9fa;">
 
+                        @if(!empty($saleDeletionInfo['is_deleted']))
+                            <div class="alert alert-danger border-0 shadow-sm p-3 mb-4 rounded">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-ban fa-2x me-3 text-danger"></i>
+                                    <div>
+                                        <h6 class="font-weight-bold mb-1 text-danger">ESTA FACTURA FUE ANULADA / ELIMINADA</h6>
+                                        <div class="small text-dark">
+                                            @if(!empty($saleDeletionInfo['deleter_name']))
+                                                • <strong>Eliminada por (Operador):</strong> {{ $saleDeletionInfo['deleter_name'] }}<br>
+                                            @endif
+                                            @if(!empty($saleDeletionInfo['deletion_authorizer_name']))
+                                                • <strong>🔑 Autorizado por (Supervisor):</strong> <span class="badge bg-danger text-white">{{ $saleDeletionInfo['deletion_authorizer_name'] }}</span><br>
+                                            @endif
+                                            @if(!empty($saleDeletionInfo['deleted_at']))
+                                                • <strong>Fecha de Anulación:</strong> {{ \Carbon\Carbon::parse($saleDeletionInfo['deleted_at'])->format('d/m/Y h:i A') }}<br>
+                                            @endif
+                                            @if(!empty($saleDeletionInfo['deletion_reason']))
+                                                • <strong>Motivo de Anulación:</strong> <em>{{ $saleDeletionInfo['deletion_reason'] }}</em>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
                         <div class="alert alert-info border-0 shadow-sm mb-4">
                             <div class="d-flex align-items-center">
                                 <i class="fas fa-info-circle fa-2x text-info me-3"></i>
@@ -691,7 +717,7 @@
                                 @foreach($saleHistory as $index => $log)
                                     <div class="card border-0 shadow-sm rounded-lg overflow-hidden mb-3">
                                         <div class="card-header bg-white py-3 border-bottom">
-                                            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                                            <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
                                                 <div>
                                                     <span class="badge bg-primary me-2">Edición #{{ count($saleHistory) - $index }}</span>
                                                     <strong class="text-dark me-3">
@@ -705,15 +731,23 @@
                                                 @endif
                                             </div>
 
-                                            <div class="row w-100 mt-2 pt-2 border-top small text-muted">
-                                                <div class="col-md-4">
-                                                    <i class="fas fa-file-invoice text-info me-1"></i> <strong>Facturado por (Creador):</strong> <span class="text-dark font-weight-bold">{{ $log['creator_name'] }}</span>
+                                            <div class="row w-100 pt-2 border-top small text-muted">
+                                                <div class="col-md-3">
+                                                    <i class="fas fa-file-invoice text-info me-1"></i> <strong>Facturado por:</strong><br><span class="text-dark font-weight-bold">{{ $log['creator_name'] }}</span>
                                                 </div>
-                                                <div class="col-md-4">
-                                                    <i class="fas fa-user-tag text-warning me-1"></i> <strong>Vendedor Asignado:</strong> <span class="text-dark font-weight-bold">{{ $log['new_seller_name'] }}</span>
+                                                <div class="col-md-3">
+                                                    <i class="fas fa-user-tag text-warning me-1"></i> <strong>Vendedor:</strong><br><span class="text-dark font-weight-bold">{{ $log['new_seller_name'] }}</span>
                                                 </div>
-                                                <div class="col-md-4">
-                                                    <i class="fas fa-user-edit text-danger me-1"></i> <strong>Editado por (Operador):</strong> <span class="text-dark font-weight-bold">{{ $log['user_name'] }}</span>
+                                                <div class="col-md-3">
+                                                    <i class="fas fa-user-edit text-danger me-1"></i> <strong>Editado por:</strong><br><span class="text-dark font-weight-bold">{{ $log['user_name'] }}</span>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <i class="fas fa-key text-success me-1"></i> <strong>Autorizado por:</strong><br>
+                                                    @if(!empty($log['authorizer_name']))
+                                                        <span class="badge bg-success text-white"><i class="fas fa-user-shield me-1"></i>{{ $log['authorizer_name'] }}</span>
+                                                    @else
+                                                        <span class="text-muted italic">Sin PIN / Directo</span>
+                                                    @endif
                                                 </div>
                                             </div>
                                         </div>
@@ -849,6 +883,7 @@
                                                                             <div class="d-flex flex-wrap gap-2 text-dark">
                                                                                 <span>🧑‍💻 Facturó: <strong>{{ $log['old_config']['facturado_por'] }}</strong></span> |
                                                                                 <span>👤 Vendedor: <strong>{{ $log['old_config']['vendedor'] }}</strong></span> |
+                                                                                <span>🤝 Acuerdo: <strong>{{ $log['old_config']['acuerdo_pago'] ?? 'USD/BCV' }}</strong></span> |
                                                                                 <span>🚚 Flete: <strong>{{ $log['old_config']['flete'] }}</strong></span> |
                                                                                 <span>💼 Comisión: <strong>{{ $log['old_config']['comision'] }}</strong></span> |
                                                                                 <span>📈 Recargo: <strong>{{ $log['old_config']['recargo'] }}</strong></span> |
@@ -904,6 +939,7 @@
                                                                             <div class="d-flex flex-wrap gap-2 text-dark">
                                                                                 <span>🧑‍💻 Facturó: <strong>{{ $log['new_config']['facturado_por'] }}</strong></span> |
                                                                                 <span>👤 Vendedor: <strong>{{ $log['new_config']['vendedor'] }}</strong></span> |
+                                                                                <span>🤝 Acuerdo: <strong>{{ $log['new_config']['acuerdo_pago'] ?? 'USD/BCV' }}</strong></span> |
                                                                                 <span>🚚 Flete: <strong>{{ $log['new_config']['flete'] }}</strong></span> |
                                                                                 <span>💼 Comisión: <strong>{{ $log['new_config']['comision'] }}</strong></span> |
                                                                                 <span>📈 Recargo: <strong>{{ $log['new_config']['recargo'] }}</strong></span> |
@@ -1001,8 +1037,7 @@
                 </div>
             </div>
         </div>
-    </div>
-    
+
     <style>
         .swal-text {
             background-color: #FEFAE3;
@@ -1069,16 +1104,8 @@
                     render: {
                         option: function(item, escape) {
                             var doc = item.taxpayer_id ? ' - ' + escape(item.taxpayer_id) : '';
-                            return `<div class="py-1 d-flex">
-            <div>
-                <div class="mb-0">
-                    <span class="h5 text-info">
-                        <b class="text-dark">${ escape(item.id) }
-                    </span>
-                    <span class="text-warning">| ${ escape(item.name.toUpperCase()) }${doc}</span>
-                </div>
-            </div>
-        </div>`;
+                            var endDiv = '<' + '/div>';
+                            return '<div class="py-1 d-flex"><div><div class="mb-0"><span class="h5 text-info"><b class="text-dark">' + escape(item.id) + '</b></span><span class="text-warning">| ' + escape(item.name.toUpperCase()) + doc + '</span>' + endDiv + endDiv + endDiv;
                         },
                     },
                 });
@@ -1196,7 +1223,14 @@
                     if (active && data.child) active.innerText = data.child;
                     if (rest && data.rest) rest.innerText = data.rest;
                 }
-            })
+            });
+
+            Livewire.on('show-auth-modal', () => {
+                $('#authModal').modal('show');
+            });
+            Livewire.on('hide-auth-modal', () => {
+                $('#authModal').modal('hide');
+            });
         })
     </script>
 
@@ -1228,4 +1262,90 @@
         </div>
     </div>
     @endif
+
+    <!-- MODAL AUTORIZACIÓN PIN (EDICIÓN Y ANULACIÓN DE FACTURA) -->
+    <div wire:ignore.self class="modal fade" id="authModal" tabindex="-1" role="dialog" aria-labelledby="authModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content shadow-lg border-0">
+                <div class="modal-header {{ $authAction === 'sale_edit' ? 'bg-warning text-dark' : 'bg-danger text-white' }}">
+                    <h5 class="modal-title font-weight-bold" id="authModalLabel">
+                        @if($authAction === 'sale_edit')
+                            <i class="fas fa-edit me-2"></i> Autorización para Editar Factura #{{ $authTargetInvoiceNumber }}
+                        @else
+                            <i class="fas fa-trash-alt me-2"></i> Autorización para Anular Factura #{{ $authTargetInvoiceNumber }}
+                        @endif
+                    </h5>
+                    <button type="button" class="close {{ $authAction === 'sale_edit' ? 'text-dark' : 'text-white' }}" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="card mb-3 bg-light border-0">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Cliente:</span>
+                                <span class="font-weight-bold text-dark">{{ $authTargetCustomer }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Monto Factura:</span>
+                                <span class="font-weight-bold text-success">${{ $authTargetTotal }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if($authStep === 'reason')
+                        <!-- PASO 1: MOTIVO OBLIGATORIO -->
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold text-dark">
+                                <i class="fas fa-comment-dots text-primary me-1"></i> Motivo de {{ $authAction === 'sale_edit' ? 'Edición' : 'Anulación' }} <span class="text-danger">* (Obligatorio)</span>
+                            </label>
+                            <textarea wire:model.defer="authReason" class="form-control @error('authReason') is-invalid @enderror" rows="3" placeholder="Escriba obligatoriamente el motivo explicativo por el cual va a {{ $authAction === 'sale_edit' ? 'editar' : 'anular' }} esta factura..."></textarea>
+                            @error('authReason')
+                                <span class="invalid-feedback font-weight-bold d-block">{{ $message }}</span>
+                            @enderror
+                        </div>
+
+                        <div class="alert alert-info py-2 px-3 small mb-3">
+                            <i class="fas fa-info-circle me-1"></i> Se enviará una solicitud con PIN único a los supervisores por Correo y WhatsApp adjuntando este motivo.
+                        </div>
+
+                        <button type="button" wire:click="sendAuthPin" class="btn {{ $authAction === 'sale_edit' ? 'btn-warning text-dark' : 'btn-danger' }} btn-block font-weight-bold py-2 shadow-sm" wire:loading.attr="disabled">
+                            <span wire:loading.remove wire:target="sendAuthPin">
+                                <i class="fas fa-paper-plane me-2"></i> Solicitar PIN a Supervisores
+                            </span>
+                            <span wire:loading wire:target="sendAuthPin">
+                                <i class="fas fa-spinner fa-spin me-2"></i> Enviando solicitudes...
+                            </span>
+                        </button>
+                    @else
+                        <!-- PASO 2: INGRESAR PIN RECIBIDO -->
+                        <div class="alert alert-success py-2 px-3 mb-3 small">
+                            <i class="fas fa-check-circle me-1"></i> Motivo registrado. Ingrese el PIN de autorización enviado a los supervisores.
+                        </div>
+
+                        <div class="form-group mb-3 text-center">
+                            <label class="font-weight-bold text-dark d-block mb-2">
+                                <i class="fas fa-key text-warning me-1"></i> PIN de Autorización (6 Caracteres)
+                            </label>
+                            <input type="text" wire:model.defer="authPin" class="form-control form-control-lg text-center font-weight-bold text-uppercase" style="font-size: 1.6rem; letter-spacing: 5px;" placeholder="XXXXXX" maxlength="8">
+                        </div>
+
+                        <div class="d-flex justify-content-between gap-2 mt-4">
+                            <button type="button" wire:click="$set('authStep', 'reason')" class="btn btn-outline-secondary font-weight-bold">
+                                <i class="fas fa-arrow-left me-1"></i> Cambiar Motivo
+                            </button>
+                            <button type="button" wire:click="confirmAuthPin" class="btn btn-success font-weight-bold px-4" wire:loading.attr="disabled">
+                                <span wire:loading.remove wire:target="confirmAuthPin">
+                                    <i class="fas fa-shield-alt me-1"></i> Validar PIN y {{ $authAction === 'sale_edit' ? 'Proceder a Editar' : 'Anular' }}
+                                </span>
+                                <span wire:loading wire:target="confirmAuthPin">
+                                    <i class="fas fa-spinner fa-spin me-1"></i> Validando...
+                                </span>
+                            </button>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

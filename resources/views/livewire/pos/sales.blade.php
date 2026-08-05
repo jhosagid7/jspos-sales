@@ -472,9 +472,22 @@
                     @can('payments.methods')
                         <hr>
                         @if($editing_sale_id)
-                            <div class="alert alert-warning p-2 mb-3 shadow-sm border-warning text-center">
-                                <h6 class="font-weight-bold mb-1 text-dark"><i class="fas fa-save mr-1"></i> MODO EDICIÓN ACTIVO</h6>
-                                <p class="small mb-0 text-dark">Al guardar se actualizará la factura #{{ $editing_sale_id }}</p>
+                            <div class="alert alert-warning p-3 mb-3 shadow-sm border-warning text-center rounded">
+                                <h6 class="font-weight-bold mb-1 text-dark"><i class="fas fa-lock me-1"></i> MODO EDICIÓN ACTIVO (#{{ $editing_sale_id }})</h6>
+                                <p class="small mb-2 text-dark font-weight-bold">Para guardar los cambios definitivos de la factura editada, presione el botón amarillo a continuación:</p>
+                                
+                                <button type="button" wire:click="saveEditSale" class="btn btn-warning btn-lg font-weight-bold text-dark w-100 shadow-sm mb-2" wire:loading.attr="disabled">
+                                    <span wire:loading.remove wire:target="saveEditSale">
+                                        <i class="fas fa-check-circle me-2"></i> Guardar Cambios de Factura #{{ $editing_sale_id }}
+                                    </span>
+                                    <span wire:loading wire:target="saveEditSale">
+                                        <i class="fas fa-spinner fa-spin me-2"></i> Guardando cambios...
+                                    </span>
+                                </button>
+
+                                <button type="button" wire:click="cancelEditSale" class="btn btn-sm btn-outline-danger font-weight-bold">
+                                    <i class="fas fa-times me-1"></i> Cancelar Edición y Salir
+                                </button>
                             </div>
                         @else
                             <h6 class="text-center font-weight-bold mb-3">Método de Pago</h6>

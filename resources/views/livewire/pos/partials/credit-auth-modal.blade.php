@@ -31,30 +31,10 @@
                         <p class="small text-muted mb-3">Se ha enviado un PIN de 6 caracteres a los supervisores por correo/WhatsApp.</p>
                         
                         <div class="form-group mb-0">
-                            <label class="form-label font-weight-bold">Ingrese el PIN de Autorización</label>
-                            <input type="text" wire:model.defer="creditAuthPin" class="form-control form-control-lg text-center font-weight-bold ls-2 mb-3" placeholder="Ej: A1B2C3" maxlength="6" style="letter-spacing: 0.5rem; text-transform: uppercase;">
-                            @error('creditAuthPin') <span class="text-danger small">{{ $message }}</span> @enderror
-                        </div>
-
-                        @php
-                            $config = \App\Models\Configuration::first();
-                            $supervisorIds = $config->whatsapp_credit_auth_users ?? [];
-                            $supervisors = \App\Models\User::whereIn('id', $supervisorIds)->get();
-                            if ($supervisors->isEmpty()) {
-                                $supervisors = \App\Models\User::whereHas('roles', function($q) {
-                                    $q->whereIn('name', ['Admin', 'Supervisor']);
-                                })->get();
-                            }
-                        @endphp
-                        <div class="form-group mb-0 text-start">
-                            <label class="form-label font-weight-bold">¿Qué supervisor te autorizó?</label>
-                            <select wire:model.defer="creditAuthSupervisorId" class="form-select form-control">
-                                <option value="">Seleccione el supervisor...</option>
-                                @foreach($supervisors as $supervisor)
-                                    <option value="{{ $supervisor->id }}">{{ $supervisor->name }}</option>
-                                @endforeach
-                            </select>
-                            @error('creditAuthSupervisorId') <span class="text-danger small">{{ $message }}</span> @enderror
+                            <label class="form-label font-weight-bold">Ingrese el PIN de Autorización Recibido</label>
+                            <input type="text" wire:model.defer="creditAuthPin" class="form-control form-control-lg text-center font-weight-bold ls-2 mb-2" placeholder="Ej: A1B2C3" maxlength="6" style="letter-spacing: 0.5rem; text-transform: uppercase;">
+                            <small class="text-muted d-block mb-2"><i class="fas fa-info-circle me-1"></i> El sistema identificará automáticamente al supervisor que emitió este PIN.</small>
+                            @error('creditAuthPin') <span class="text-danger small d-block mb-2">{{ $message }}</span> @enderror
                         </div>
                     </div>
 

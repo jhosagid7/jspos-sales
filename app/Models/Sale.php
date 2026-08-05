@@ -241,6 +241,16 @@ class Sale extends Model
         return $this->belongsTo(User::class, 'deletion_approved_by');
     }
 
+    public function deletionRequestedBy()
+    {
+        return $this->belongsTo(User::class, 'deletion_requested_by');
+    }
+
+    public function deletionApprovedBy()
+    {
+        return $this->belongsTo(User::class, 'deletion_approved_by');
+    }
+
     public function deliveryLocations()
     {
         return $this->hasMany(DeliveryLocation::class);

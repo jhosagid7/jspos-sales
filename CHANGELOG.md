@@ -1,3 +1,157 @@
+## [1.10.349] - 2026-08-05
+
+### Improved
+- **Generación de PINs Únicos Individuales por Supervisor**:
+  - Implementada la generación de **PINs numéricos únicos de 6 dígitos** generados de forma individual para cada supervisor receptor (Email / WhatsApp) en solicitudes de **Crédito, Edición de Facturas y Anulación de Facturas**.
+  - Corregida la resolución del supervisor autorizador al validar el PIN, garantizando que el sistema identifique exactamente al supervisor que recibió y utilizó su PIN individual en los registros de auditoría e historiales.
+
+## [1.10.348] - 2026-08-05
+
+### Fixed
+- **Corregida Cancelación de Edición de Factura en POS**:
+  - Reemplazada la llamada a `resetCart()` (que causaba `BadMethodCallException`) por `$this->clear()`, permitiendo cancelar el modo de edición de forma limpia y restaurar la pantalla.
+
+## [1.10.347] - 2026-08-05
+
+### Fixed
+- **Corregida Ejecución del Método de Guardado al Editar Factura**:
+  - Cambiada la llamada en `saveEditSale()` para invocar el método principal de procesamiento de ventas `$this->Store($cashRegisterService)` (en lugar del método auxiliar `save()` que solo actualizaba la sesión de carrito sin guardar en la BD).
+  - Removida la restricción de validación de efectivo en ventas a crédito/contado durante el modo de edición de factura, asegurando que se guarden los cambios de productos (Servilleta) y se cree la **Edición #3** en el historial.
+
+## [1.10.346] - 2026-08-05
+
+### Fixed
+- **Corregida Fuente de Productos del Carrito al Guardar Venta/Edición**:
+  - Cambiada la lectura del carrito al guardar para priorizar la propiedad del componente `$this->cart` sobre `session('cart')`. Esto soluciona la falla donde al editar una factura la sesión contenía 0 ítems o ítems desactualizados, asegurando que se guarden los nuevos productos (p. ej. Servilleta) y se emita la Edición #3 en el historial con la notificación `"FACTURA #XXXX EDITADA CON ÉXITO"`.
+
+## [1.10.345] - 2026-08-05
+
+### Fixed
+- **Corregida Limpieza de Sesión al Cargar Edición en POS**:
+  - Limpiada la variable de sesión `editing_sale_id` inmediatamente al ingresar al POS en `mount()`. Esto evita que Livewire re-ejecute `loadSaleToEdit()` en cada búsqueda o selección de producto, permitiendo agregar productos al carrito y guardar los cambios normalmente.
+
+## [1.10.344] - 2026-08-05
+
+### Improved
+- **Mensaje de Notificación de Edición de Factura**:
+  - Cambiada la notificación al guardar una edición de `"VENTA REGISTRADA CON ÉXITO"` a **`"FACTURA #XXXX EDITADA CON ÉXITO"`**.
+  - Garantizada la creación infalible del registro `SaleHistoryLog` incluso en escenarios de re-renderizado o des-serialización de datos originales.
+
+## [1.10.343] - 2026-08-05
+
+### Fixed
+- **Corregida Persistencia de Autorización y Log de Edición en POS**:
+  - Garantizada la preservación del estado `$creditAuthApproved = true` y del supervisor autorizador al cargar la venta en el POS.
+  - Asegurada la grabación efectiva del nuevo registro de auditoría (`SaleHistoryLog`) con la comparativa real al presionar **`Guardar Cambios de Factura`** (Edición #3).
+
+## [1.10.342] - 2026-08-05
+
+### Fixed
+- **Sincronización de Auditoría al Guardar Cambios de Edición**:
+  - Removido el registro prematuro de `SaleHistoryLog` que ocurría al validar el PIN antes de editar en el POS.
+  - Asegurada la creación del registro de auditoría únicamente cuando el usuario presiona **`Guardar Cambios de Factura`** en el POS, capturando exactamente los productos agregados/eliminados (`old_data` vs `new_data`).
+  - Añadido el campo **`🤝 Acuerdo: USD/BCV`** a las fichas comparativas de configuración en el historial de ediciones.
+
+## [1.10.341] - 2026-08-05
+
+### Improved
+- **Clarificación de Instrucciones en Banner de Edición POS**:
+  - Actualizado el texto e íconos del banner amarillo en `sales.blade.php` para indicar claramente que debe presionarse el botón amarillo **`Guardar Cambios de Factura #XXXX`** para concluir la edición (sin confundir con Guardar Orden).
+
+## [1.10.340] - 2026-08-05
+
+### Fixed
+- **Corregido Nombre de Relación `details` en Modelo `Sale`**:
+  - Cambiada la llamada `$sale->load('saleDetails')` a `$sale->load(['details.product'])` en `SalesReport.php`, corrigiendo la excepción `BadMethodCallException: Call to undefined relationship [saleDetails] on model [App\Models\Sale]`.
+
+## [1.10.339] - 2026-08-05
+
+### Fixed
+- **Corregida Creación de Registro `SaleHistoryLog` en Confirmación de PIN**:
+  - Ajustados los parámetros al modelo y esquema de base de datos (`old_data`, `new_data`, `reason`, `authorized_by_id`, `user_id`, `sale_id`), eliminando la excepción `1364 Field 'old_data' doesn't have a default value`.
+
+## [1.10.338] - 2026-08-05
+
+### Fixed
+- **Corregida Columna `status` en Tabla `credit_authorizations`**:
+  - Modificado el tipo de datos de la columna `status` de `ENUM('pending', 'used', 'expired')` a `VARCHAR(30)` mediante migración para admitir el estado `'approved'`, solucionando la advertencia/excepción MySQL 1265 (Data truncated for column 'status').
+
+## [1.10.337] - 2026-08-05
+
+### Fixed
+- **Solución Definitiva a `MultipleRootElementsDetectedException` en `salesr.blade.php`**:
+  - Escapadas las etiquetas literales `</div>` dentro del string JavaScript de renderizado de TomSelect (`'<' + '/div>'`).
+  - Corregido el cierre redundante de divs en el loop del historial de modificaciones (`$saleHistory`). Esto evita que el parser de `DOMDocument` de PHP confunda código JavaScript con etiquetas de cierre HTML y resuelve el error de Livewire 3 al 100%.
+
+## [1.10.336] - 2026-08-05
+
+### Fixed
+- **Corregida Estructura HTML de Nodo Raíz Único en `salesr.blade.php`**:
+  - Eliminado el `<div>` sobrante del modal de chofer y consolidados los escuchadores JavaScript de modales dentro del bloque principal, solucionando definitivamente la excepción `MultipleRootElementsDetectedException`.
+
+## [1.10.335] - 2026-08-05
+
+### Fixed
+- **Compatibilidad Livewire 3 en `salesr.blade.php`**:
+  - Envuelta la etiqueta `<script>` en las directivas `@script` ... `@endscript` para prevenir la excepción `MultipleRootElementsDetectedException`.
+
+## [1.10.334] - 2026-08-05
+
+### Added & Improved
+- **Autorización Previa Obligatoria con Motivo y PIN para Editar o Eliminar Facturas**:
+  - Al hacer clic en ✏️ **"Editar Factura"** o 🗑️ **"Anular/Eliminar Factura"**, el sistema despliega inmediatamente un modal en el reporte de ventas.
+  - **Motivo Obligatorio**: Requiere que el operador escriba obligatoriamente la justificación/motivo de la edición o anulación.
+  - **Envío de PIN a Supervisores**: Al solicitar el PIN, el sistema envía un PIN único diferente a los supervisores por Correo y WhatsApp junto con el operador, número de factura, cliente, monto y el motivo explicativo.
+  - **Bloqueo hasta Validación**: El sistema únicamente redirige al POS (modo edición) o anula la factura cuando se valida con éxito el PIN ingresado.
+
+## [1.10.333] - 2026-08-05
+
+### Fixed
+- **Añadidas Relaciones Eloquent `deletionApprovedBy` y `deletionRequestedBy` en Modelo Sale**:
+  - Solucionada la excepción `RelationNotFoundException` al consultar el historial de auditoría de facturas eliminadas/anuladas.
+
+## [1.10.332] - 2026-08-05
+
+### Added & Improved
+- **Botón Explícito de Guardado y Solicitud de PIN para Edición de Facturas**:
+  - Incorporado en la caja/POS el botón **`🔑 Guardar Cambios de Factura #[ID]`** dentro del panel de Modo Edición Activo.
+  - Al presionar este botón, el sistema dispara automáticamente la solicitud de PIN de edición de factura a los supervisores configurados y despliega el modal de validación de PIN.
+
+## [1.10.331] - 2026-08-05
+
+### Fixed
+- **Corrección de Método de Consulta en Venta (editSale & getSaleHistory)**:
+  - Corregida la llamada a `withTrashed()` en `Sale` reemplazándola por verificación directa de `deleted_at` y `status`, solucionando la excepción `BadMethodCallException`.
+
+## [1.10.330] - 2026-08-05
+
+### Fixed & Improved
+- **Permisos de Edición para Super Admin**:
+  - Asegurado que los usuarios con rol `Super Admin` o administradores puedan presionar el botón ✏️ **"Editar Factura"** en el reporte de ventas sin bloqueos.
+  - Bloqueada la edición en facturas anuladas o eliminadas para mantener integridad del sistema.
+- **Claridad del Modo Edición en el POS**:
+  - Actualizado el panel **Modo Edición Activo** en el POS para indicar explícitamente cómo solicitar el PIN de autorización y finalizar la edición (haciendo clic en **Guardar Orden** / **Método de Pago**).
+  - Añadido botón visible **"❌ Cancelar Edición y Salir"** para descartar cambios en cualquier momento.
+
+## [1.10.329] - 2026-08-05
+
+### Added & Improved
+- **Bloques Independientes de Configuración de Autorizaciones POS**:
+  - Separada la configuración de destinatarios (Correos y Usuarios de WhatsApp) en 3 bloques independientes dentro de **Ajustes > Notificaciones / WhatsApp**:
+    1. **Autorizaciones de Crédito (POS)**
+    2. **Autorización de Edición de Facturas**
+    3. **Autorización de Anulación / Eliminación de Facturas**
+  - Si los destinatarios de Edición o Eliminación se dejan vacíos, el sistema utiliza inteligentemente a los supervisores de Crédito como alternativa de respaldo.
+
+## [1.10.328] - 2026-08-05
+
+### Added & Improved
+- **Sistema de Autorizaciones por PIN Único por Supervisor y Auditoría Completa de Facturas**:
+  - **PIN Único por Destinatario**: Al solicitar autorización (Crédito, Edición o Eliminación), el sistema ahora genera un PIN de 6 caracteres individualizado para cada supervisor/administrador configurado (por correo electrónico y WhatsApp).
+  - **Identificación Automática de Supervisor**: Eliminada la selección manual de supervisor en el modal. Al ingresar el PIN en la caja, el sistema reconoce automáticamente a qué supervisor pertenecía ese PIN y le atribuye la aprobación.
+  - **4to Actor en la Auditoría (`🔑 Autorizado por`)**: El historial de auditoría de ventas ahora desglosa los 4 actores clave (Creador original, Vendedor asignado, Operador que editó/eliminó y Supervisor que otorgó la autorización por PIN).
+  - **Auditoría de Facturas Eliminadas**: Habilitada la visualización del historial completo de auditoría y motivo de anulación para facturas eliminadas/anuladas.
+
 ## [1.10.327] - 2026-08-05
 
 ### Fixed

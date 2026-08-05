@@ -1093,8 +1093,15 @@ class Sales extends Component
 
         // Verificar si se está editando una venta
         if (session()->has('editing_sale_id')) {
+            if (session()->has('edit_authorized_by')) {
+                $this->lastAuthorizedBySupervisorId = session('edit_authorized_by');
+                $this->creditAuthApproved = true;
+            }
+            if (session()->has('edit_reason')) {
+                $this->editReason = session('edit_reason');
+            }
             $this->loadSaleToEdit(session('editing_sale_id'));
-            session()->forget('editing_sale_id'); // Solo una vez por entrada
+            session()->forget(['editing_sale_id', 'edit_authorized_by', 'edit_reason']);
         }
     }
     
@@ -3026,6 +3033,32 @@ class Sales extends Component
         $this->dispatch('refresh');
     }
 
+    public function cancelEditSale()
+    {
+        $this->clear();
+        $this->dispatch('noty', msg: 'Modo edición cancelado.', type: 'info');
+    }
+
+    public function saveEditSale(CashRegisterService $cashRegisterService)
+    {
+        if (!$this->editing_sale_id) {
+            return;
+        }
+
+        $type = $this->originalPaymentType ?: 1;
+        if (!empty($this->payments)) {
+            $hasCredit = collect($this->payments)->contains(function($p) {
+                return in_array(strtoupper($p['method'] ?? ''), ['CREDITO', 'CREDIT']);
+            });
+            if ($hasCredit) {
+                $type = 2;
+            }
+        }
+
+        $this->payType = $type;
+        $this->Store($cashRegisterService);
+    }
+
     public function saveEdit(CashRegisterService $cashRegisterService)
     {
         if (!$this->editing_sale_id) {
@@ -3679,6 +3712,11 @@ class Sales extends Component
         // dd(get_object_vars($this));
         $type = $this->payType;
 
+        // Sincronizar el carrito del componente Livewire con la sesión
+        if (!empty($this->cart)) {
+            session(['cart' => $this->cart]);
+        }
+
         //type:  1 = efectivo, 2 = crédito, 3 = depósito
         if (floatval($this->totalCart) <= 0) {
             $this->dispatch('noty', msg: 'AGREGA PRODUCTOS AL CARRITO');
@@ -3690,7 +3728,7 @@ class Sales extends Component
         }
 
         // Validar stock final de cada producto en el carrito antes de procesar la venta
-        $cartToCheck = collect(session("cart", $this->cart));
+        $cartToCheck = !empty($this->cart) ? collect($this->cart) : collect(session("cart", []));
         foreach ($cartToCheck as $item) {
             $productToCheck = Product::find($item['pid']);
             if ($productToCheck && $productToCheck->manage_stock == 1) {
@@ -3756,7 +3794,7 @@ class Sales extends Component
         });
         if ($this->selectedPaymentMethod !== 'credit' && $hasVedPayment) {
             // Calculate base USD amount of the sale (excluding the differential surcharge)
-            $cart = collect(session("cart", $this->cart));
+            $cart = !empty($this->cart) ? collect($this->cart) : collect(session("cart", []));
             $baseAmountCart = $cart->sum(function($item) {
                 $price = $item['base_price'] ?? $item['price1'] ?? 0;
                 return floatval($price) * floatval($item['qty']);
@@ -3814,6 +3852,15 @@ class Sales extends Component
                 $this->dispatch('noty', msg: "VENTA BLOQUEADA: El pago recibido en Bolívares no cubre el valor real de la venta debido a una tasa incorrecta o diferencial insuficiente.");
                 return;
             }
+        }
+
+        // VALIDAR AUTORIZACIÓN DE EDICIÓN DE FACTURA SI ESTÁ EN MODO EDICIÓN
+        if ($this->editing_sale_id && !$this->creditAuthApproved && !auth()->user()->hasRole('Super Admin')) {
+            $this->showCreditAuthModal = true;
+            $this->creditAuthStatusMessage = "Se requiere PIN de autorización de supervisor para guardar la edición de la Factura #" . $this->editing_sale_id;
+            $this->requestCreditAuthorization('sale_edit', $this->editing_sale_id);
+            $this->dispatch('open-credit-auth-modal');
+            return;
         }
 
         $hasCreditPayment = collect($this->payments)->contains(function($p) {
@@ -3877,7 +3924,7 @@ class Sales extends Component
 
 
 
-        if ($type == 1) {
+        if ($type == 1 && !$this->editing_sale_id) {
 
             if (!$this->validateCash()) {
                 $this->dispatch('noty', msg: 'EL MONTO PAGADO ES MENOR AL TOTAL DE LA VENTA');
@@ -4116,7 +4163,7 @@ class Sales extends Component
             // ---------------------------------------------
 
             // Calculate base_amount from cart details
-            $cart = collect(session("cart"));
+            $cart = !empty($this->cart) ? collect($this->cart) : collect(session("cart", []));
             $baseAmountCart = $cart->sum(function($item) {
                 $price = $item['base_price'] ?? $item['price1'] ?? 0;
                 return floatval($price) * floatval($item['qty']);
@@ -4186,8 +4233,8 @@ class Sales extends Component
                 $sale = Sale::create($saleData);
             }
 
-            // get cart session
-            $cart = collect(session("cart"));
+            // get cart session or Livewire component cart
+            $cart = !empty($this->cart) ? collect($this->cart) : collect(session("cart", []));
 
             // insert sale detail
             // Prepared variables for closure
@@ -4585,18 +4632,32 @@ class Sales extends Component
             }
 
             // Registrar Log de Auditoría si la venta fue editada
-            if ($this->editing_sale_id && $sale && !empty($this->original_sale_data)) {
+            $isEditing = !empty($this->editing_sale_id);
+
+            if ($isEditing && $sale) {
                 try {
+                    $oldDataArray = !empty($this->original_sale_data) 
+                        ? json_decode($this->original_sale_data, true) 
+                        : $sale->toArray();
+
+                    $newDataArray = $sale->fresh(['details.product', 'customer'])->toArray();
+
+                    $authorizerId = $this->lastAuthorizedBySupervisorId ?: session('edit_authorized_by');
+                    $reasonText = $this->editReason ?: session('edit_reason') ?: 'Edición de venta autorizada';
+
                     SaleHistoryLog::create([
                         'sale_id' => $sale->id,
                         'user_id' => auth()->id(),
-                        'old_data' => json_decode($this->original_sale_data, true),
-                        'new_data' => $sale->fresh(['details.product', 'customer'])->toArray(),
-                        'reason' => 'Edición de venta autorizada'
+                        'authorized_by_id' => $authorizerId,
+                        'old_data' => $oldDataArray,
+                        'new_data' => $newDataArray,
+                        'reason' => $reasonText
                     ]);
                 } catch (\Exception $e) {
                     Log::error("Error registrando SaleHistoryLog: " . $e->getMessage());
                 }
+
+                session()->forget(['editing_sale_id', 'edit_authorized_by', 'edit_reason']);
             }
 
             DB::commit();
@@ -4617,7 +4678,11 @@ class Sales extends Component
             // Limpiar la variable de sesión
             session()->forget('payments');
 
-            $this->dispatch('noty', msg: 'VENTA REGISTRADA CON ÉXITO');
+            if ($isEditing) {
+                $this->dispatch('noty', msg: "FACTURA #{$invoiceNumber} EDITADA CON ÉXITO", type: 'success');
+            } else {
+                $this->dispatch('noty', msg: 'VENTA REGISTRADA CON ÉXITO');
+            }
 
             $this->dispatch('close-modalPay', element: $type == 3 ? 'modalDeposit' : ($type == 4 ? 'modalNequi' : 'modalCash'));
             $this->resetExcept(
@@ -4685,7 +4750,7 @@ class Sales extends Component
 
             $decimals = ConfigurationService::getDecimalPlaces();
 
-            $cart = collect(session("cart"));
+            $cart = !empty($this->cart) ? collect($this->cart) : collect(session("cart", []));
             $baseAmountCart = $cart->sum(function($item) {
                 $price = $item['base_price'] ?? $item['price1'] ?? 0;
                 return floatval($price) * floatval($item['qty']);
@@ -4747,7 +4812,7 @@ class Sales extends Component
                     
                     // Load old state for diff calculation
                     $oldDetails = OrderDetail::with('product')->where('order_id', $order->id)->get();
-                    $cart = collect(session("cart"));
+                    $cart = !empty($this->cart) ? collect($this->cart) : collect(session("cart", []));
                     
                     $changes = [];
                     $oldItemsMap = $oldDetails->keyBy('product_id');
@@ -4861,8 +4926,8 @@ class Sales extends Component
                     'payment_agreement' => $agreementToSave,
                 ]);
 
-                // Obtiene el carrito de la sesión
-                $cart = collect(session("cart"));
+                // Obtiene el carrito de la sesión o del componente
+                $cart = !empty($this->cart) ? collect($this->cart) : collect(session("cart", []));
 
                 // Inserta los detalles de la venta
                 $details = $cart->map(function ($item) use ($order, $decimals) {
@@ -5367,24 +5432,16 @@ class Sales extends Component
         $this->details = [];
     }
 
-    public function requestCreditAuthorization()
+    public $lastAuthorizedBySupervisorId = null;
+    public $editReason = null;
+
+    public function requestCreditAuthorization($actionType = 'credit', $saleId = null)
     {
-        if (!$this->customer) {
+        if (!$this->customer && $actionType === 'credit') {
             return;
         }
 
-        $pin = strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 6)); // Generar PIN de 6 caracteres
-        
-        $auth = \App\Models\CreditAuthorization::create([
-            'customer_id' => $this->customer['id'],
-            'requested_by_id' => auth()->id(),
-            'pin_code' => $pin,
-            'status' => 'pending',
-            'amount_requested' => $this->totalCart,
-            'expires_at' => now()->addMinutes(15),
-        ]);
-
-        $this->pendingCreditAuthId = $auth->id;
+        $config = \App\Models\Configuration::first();
 
         $overdueDetails = "";
         if (!empty($this->customer['outstanding_invoices'])) {
@@ -5406,47 +5463,105 @@ class Sales extends Component
             }
         }
 
-        // Enviar notificaciones
-        $config = \App\Models\Configuration::first();
-        $message = "*SOLICITUD DE AUTORIZACIÓN DE CRÉDITO*\n\n" .
-                   "*Vendedor:* " . auth()->user()->name . "\n" .
-                   "*Cliente:* " . $this->customer['name'] . "\n" .
-                   "*Monto Solicitado:* $" . number_format($this->totalCart, 2) . "\n\n" .
-                   "*Motivo:* " . $this->creditAuthStatusMessage . "\n" .
-                   $overdueDetails . "\n" .
-                   "*PIN DE AUTORIZACIÓN:* " . $pin . "\n" .
-                   "(Válido por 15 minutos)";
+        $actionTitle = $actionType === 'sale_edit' ? 'EDICIÓN DE FACTURA' : ($actionType === 'sale_delete' ? 'ELIMINACIÓN DE FACTURA' : 'AUTORIZACIÓN DE CRÉDITO');
+        $customerName = $this->customer['name'] ?? 'Cliente';
 
-        // Enviar por correo
-        if (!empty($config->email_credit_auth_recipients)) {
-            foreach ($config->email_credit_auth_recipients as $email) {
+        $baseMessage = "*SOLICITUD DE {$actionTitle}*\n\n" .
+                       "*Operador:* " . auth()->user()->name . "\n" .
+                       "*Cliente:* " . $customerName . "\n" .
+                       "*Monto:* $" . number_format($this->totalCart, 2) . "\n\n" .
+                       "*Motivo:* " . ($this->creditAuthStatusMessage ?: 'Operación requiere autorización') . "\n" .
+                       $overdueDetails;
+
+        $emailRecipients = [];
+        $whatsappUserIds = [];
+
+        if ($actionType === 'sale_edit') {
+            $emailRecipients = !empty($config->email_edit_auth_recipients) ? $config->email_edit_auth_recipients : ($config->email_credit_auth_recipients ?? []);
+            $whatsappUserIds = !empty($config->whatsapp_edit_auth_users) ? $config->whatsapp_edit_auth_users : ($config->whatsapp_credit_auth_users ?? []);
+        } elseif ($actionType === 'sale_delete') {
+            $emailRecipients = !empty($config->email_delete_auth_recipients) ? $config->email_delete_auth_recipients : ($config->email_credit_auth_recipients ?? []);
+            $whatsappUserIds = !empty($config->whatsapp_delete_auth_users) ? $config->whatsapp_delete_auth_users : ($config->whatsapp_credit_auth_users ?? []);
+        } else {
+            $emailRecipients = $config->email_credit_auth_recipients ?? [];
+            $whatsappUserIds = $config->whatsapp_credit_auth_users ?? [];
+        }
+
+        $sentCount = 0;
+
+        // Enviar por correo a cada destinatario con su PIN Único Individual
+        if (!empty($emailRecipients)) {
+            foreach ($emailRecipients as $email) {
+                $cleanEmail = trim($email);
+                if (empty($cleanEmail)) continue;
+
+                $user = \App\Models\User::whereRaw('LOWER(email) = ?', [strtolower($cleanEmail)])->first();
+                $pin = \App\Services\AuthorizationService::generateUniquePin();
+
+                \App\Models\CreditAuthorization::create([
+                    'customer_id' => $this->customer['id'] ?? null,
+                    'requested_by_id' => auth()->id(),
+                    'approved_by_id' => $user ? $user->id : null,
+                    'pin_code' => $pin,
+                    'status' => 'pending',
+                    'action_type' => $actionType,
+                    'recipient_email' => $cleanEmail,
+                    'amount_requested' => $this->totalCart,
+                    'sale_id' => $saleId,
+                    'expires_at' => now()->addMinutes(15),
+                ]);
+
+                $personalMessage = $baseMessage . "\n*TU PIN DE AUTORIZACIÓN ÚNICO:* *" . $pin . "*\n(Válido por 15 minutos)";
+
                 try {
-                    \Illuminate\Support\Facades\Mail::raw($message, function($msg) use ($email, $pin) {
-                        $msg->to(trim($email))->subject('Autorización de Crédito POS - PIN: ' . $pin);
+                    \Illuminate\Support\Facades\Mail::raw($personalMessage, function($msg) use ($cleanEmail, $pin, $actionTitle) {
+                        $msg->to($cleanEmail)->subject("{$actionTitle} POS - PIN: " . $pin);
                     });
+                    $sentCount++;
                 } catch (\Exception $e) {
-                    \Log::error("Error enviando email auth credito: " . $e->getMessage());
+                    \Log::error("Error enviando email auth: " . $e->getMessage());
                 }
             }
         }
 
-        // Enviar por WhatsApp
-        if (!empty($config->whatsapp_credit_auth_users)) {
+        // Enviar por WhatsApp a cada usuario con su PIN Único Individual
+        if (!empty($whatsappUserIds)) {
             $whatsappService = app(\App\Services\WhatsappService::class);
             if ($whatsappService->checkStatus()) {
-                $users = \App\Models\User::whereIn('id', $config->whatsapp_credit_auth_users)->get();
+                $users = \App\Models\User::whereIn('id', $whatsappUserIds)->get();
                 foreach ($users as $u) {
                     if ($u->phone) {
                         $phone = preg_replace('/[^0-9]/', '', $u->phone);
                         if (strlen($phone) >= 10) {
-                            $whatsappService->sendMessage($phone, $message);
+                            $pin = \App\Services\AuthorizationService::generateUniquePin();
+
+                            \App\Models\CreditAuthorization::create([
+                                'customer_id' => $this->customer['id'] ?? null,
+                                'requested_by_id' => auth()->id(),
+                                'approved_by_id' => $u->id,
+                                'pin_code' => $pin,
+                                'status' => 'pending',
+                                'action_type' => $actionType,
+                                'recipient_phone' => $phone,
+                                'amount_requested' => $this->totalCart,
+                                'sale_id' => $saleId,
+                                'expires_at' => now()->addMinutes(15),
+                            ]);
+
+                            $personalMessage = $baseMessage . "\n*TU PIN DE AUTORIZACIÓN ÚNICO:* *" . $pin . "*\n(Válido por 15 minutos)";
+                            $whatsappService->sendMessage($phone, $personalMessage);
+                            $sentCount++;
                         }
                     }
                 }
             }
         }
 
-        $this->dispatch('noty', msg: 'Solicitud enviada a los supervisores. Esperando PIN.', type: 'success');
+        if ($sentCount > 0) {
+            $this->dispatch('noty', msg: 'Solicitud enviada a los supervisores con PIN único. Esperando PIN.', type: 'success');
+        } else {
+            $this->dispatch('noty', msg: 'No se encontraron destinatarios de autorización configurados.', type: 'warning');
+        }
     }
 
     public $creditAuthSupervisorId;
@@ -5455,41 +5570,47 @@ class Sales extends Component
     {
         $this->validate([
             'creditAuthPin' => 'required|string',
-            'creditAuthSupervisorId' => 'required',
         ], [
-            'creditAuthSupervisorId.required' => 'Debe seleccionar el supervisor que autorizó.',
+            'creditAuthPin.required' => 'Debe ingresar el PIN de autorización.',
         ]);
 
-        if (!$this->pendingCreditAuthId) {
-            $this->dispatch('noty', msg: 'No hay solicitud pendiente.', type: 'error');
+        $inputPin = strtoupper(trim($this->creditAuthPin));
+
+        $auth = \App\Models\CreditAuthorization::where('pin_code', $inputPin)
+            ->where('status', 'pending')
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if (!$auth) {
+            $this->dispatch('noty', msg: 'El PIN ingresado es incorrecto o ha expirado.', type: 'error');
             return;
         }
 
-        $auth = \App\Models\CreditAuthorization::find($this->pendingCreditAuthId);
+        // Supervisor identificado automáticamente por el PIN
+        $supervisor = $auth->approvedBy ? $auth->approvedBy : ($auth->recipient_email ? \App\Models\User::where('email', $auth->recipient_email)->first() : null);
+        $supervisorId = $supervisor ? $supervisor->id : null;
+        $supervisorName = $supervisor ? $supervisor->name : 'Supervisor Autorizado';
 
-        if (!$auth || $auth->status !== 'pending' || $auth->isExpired()) {
-            if ($auth && $auth->isExpired() && $auth->status === 'pending') {
-                $auth->update(['status' => 'expired']);
-            }
-            $this->dispatch('noty', msg: 'El PIN ha expirado o no es válido.', type: 'error');
-            return;
-        }
+        $this->lastAuthorizedBySupervisorId = $supervisorId;
 
-        if (strtoupper(trim($this->creditAuthPin)) === strtoupper($auth->pin_code)) {
-            // Aprobado
-            $this->creditAuthApproved = true;
-            $this->showCreditAuthModal = false;
-            $auth->update([
-                'status' => 'used',
-                'approved_by_id' => $this->creditAuthSupervisorId,
-            ]);
-            $this->dispatch('close-credit-auth-modal');
-            $this->dispatch('noty', msg: 'Crédito Autorizado Correctamente', type: 'success');
-            
-            // Re-ejecutar pago
-            $this->addPayment();
-        } else {
-            $this->dispatch('noty', msg: 'PIN Incorrecto', type: 'error');
-        }
+        // Marcar este PIN como usado
+        $auth->update([
+            'status' => 'used',
+            'approved_by_id' => $supervisorId,
+        ]);
+
+        // Expirar los otros PINs de la misma solicitud
+        \App\Models\CreditAuthorization::where('action_type', $auth->action_type)
+            ->where('status', 'pending')
+            ->where('requested_by_id', auth()->id())
+            ->update(['status' => 'expired']);
+
+        $this->creditAuthApproved = true;
+        $this->showCreditAuthModal = false;
+        $this->dispatch('close-credit-auth-modal');
+        $this->dispatch('noty', msg: "Autorizado por: {$supervisorName}", type: 'success');
+
+        // Re-ejecutar pago
+        $this->addPayment();
     }
 }

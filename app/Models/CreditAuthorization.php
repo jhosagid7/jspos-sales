@@ -16,6 +16,9 @@ class CreditAuthorization extends Model
         'approved_by_id',
         'pin_code',
         'status', // 'pending', 'used', 'expired'
+        'action_type', // 'credit', 'sale_edit', 'sale_delete'
+        'recipient_email',
+        'recipient_phone',
         'amount_requested',
         'sale_id',
         'expires_at',

@@ -12,6 +12,7 @@ class SaleHistoryLog extends Model
     protected $fillable = [
         'sale_id',
         'user_id',
+        'authorized_by_id',
         'old_data',
         'new_data',
         'reason',
@@ -30,5 +31,10 @@ class SaleHistoryLog extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function authorizedBy()
+    {
+        return $this->belongsTo(User::class, 'authorized_by_id');
     }
 }
