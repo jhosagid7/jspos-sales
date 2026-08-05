@@ -1662,7 +1662,7 @@ class Sales extends Component
     public function loadSaleToEdit($saleId)
     {
         try {
-            $sale = Sale::with(['details', 'paymentDetails.zelleRecord', 'paymentDetails.bankRecord', 'changeDetails', 'customer'])->find($saleId);
+            $sale = Sale::with(['details.product', 'paymentDetails.zelleRecord', 'paymentDetails.bankRecord', 'changeDetails', 'customer'])->find($saleId);
             
             if (!$sale) {
                 $this->dispatch('noty', msg: 'VENTA #' . $saleId . ' NO ENCONTRADA');
@@ -4182,15 +4182,6 @@ class Sales extends Component
 
             if ($this->editing_sale_id && $sale) {
                 $sale->update($saleData);
-                
-                // Registar Log de Auditoría
-                SaleHistoryLog::create([
-                    'sale_id' => $sale->id,
-                    'user_id' => auth()->id(),
-                    'old_data' => json_decode($this->original_sale_data, true),
-                    'new_data' => $sale->load(['details.product'])->toArray(),
-                    'reason' => 'Edición de venta autorizada'
-                ]);
             } else {
                 $sale = Sale::create($saleData);
             }
@@ -4591,6 +4582,21 @@ class Sales extends Component
                     $auth->update(['sale_id' => $sale->id]);
                 }
                 $this->pendingCreditAuthId = null; // reset for next sale
+            }
+
+            // Registrar Log de Auditoría si la venta fue editada
+            if ($this->editing_sale_id && $sale && !empty($this->original_sale_data)) {
+                try {
+                    SaleHistoryLog::create([
+                        'sale_id' => $sale->id,
+                        'user_id' => auth()->id(),
+                        'old_data' => json_decode($this->original_sale_data, true),
+                        'new_data' => $sale->fresh(['details.product', 'customer'])->toArray(),
+                        'reason' => 'Edición de venta autorizada'
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error("Error registrando SaleHistoryLog: " . $e->getMessage());
+                }
             }
 
             DB::commit();

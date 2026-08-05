@@ -370,8 +370,140 @@ class SalesReport extends Component
 
     public function getSaleHistory(Sale $sale)
     {
-        $this->saleHistory = $sale->history()->with('user')->get()->toArray();
+        $this->sale_id = $sale->id;
+        $logs = $sale->history()->with('user')->orderBy('created_at', 'desc')->get();
+        
+        $processedHistory = [];
+
+        foreach ($logs as $log) {
+            $oldData = $log->old_data ?? [];
+            $newData = $log->new_data ?? [];
+
+            // Format details and resolve product names dynamically
+            $oldDetails = $this->formatHistoryDetails($oldData['details'] ?? []);
+            $newDetails = $this->formatHistoryDetails($newData['details'] ?? []);
+
+            // Compute Smart Diff (Added, Removed, Modified, Unchanged)
+            $added = [];
+            $removed = [];
+            $modified = [];
+            $unchanged = [];
+
+            // Match new items against old items
+            foreach ($newDetails as $newItem) {
+                $pid = $newItem['product_id'];
+                $oldItem = $pid ? $oldDetails->firstWhere('product_id', $pid) : null;
+
+                if (!$oldItem) {
+                    $oldItem = $oldDetails->firstWhere('product_name', $newItem['product_name']);
+                }
+
+                if ($oldItem) {
+                    $oldQty = (float)$oldItem['quantity'];
+                    $newQty = (float)$newItem['quantity'];
+                    $oldPrice = (float)$oldItem['sale_price'];
+                    $newPrice = (float)$newItem['sale_price'];
+
+                    if (abs($oldQty - $newQty) > 0.0001 || abs($oldPrice - $newPrice) > 0.01) {
+                        $modified[] = [
+                            'name' => $newItem['product_name'],
+                            'old_qty' => $oldQty,
+                            'new_qty' => $newQty,
+                            'old_price' => $oldPrice,
+                            'new_price' => $newPrice,
+                            'old_total' => $oldItem['total'],
+                            'new_total' => $newItem['total'],
+                        ];
+                    } else {
+                        $unchanged[] = $newItem;
+                    }
+                } else {
+                    $added[] = $newItem;
+                }
+            }
+
+            // Check for items removed
+            foreach ($oldDetails as $oldItem) {
+                $pid = $oldItem['product_id'];
+                $newItem = $pid ? $newDetails->firstWhere('product_id', $pid) : null;
+
+                if (!$newItem) {
+                    $newItem = $newDetails->firstWhere('product_name', $oldItem['product_name']);
+                }
+
+                if (!$newItem) {
+                    $removed[] = $oldItem;
+                }
+            }
+
+            $oldTotal = (float)($oldData['total_usd'] ?? $oldData['total'] ?? 0);
+            $newTotal = (float)($newData['total_usd'] ?? $newData['total'] ?? 0);
+
+            // If legacy log had empty newDetails, fallback newTotal if zero
+            if ($newDetails->isEmpty() && $oldDetails->isNotEmpty()) {
+                if ($newTotal <= 0) {
+                    $newTotal = (float)($sale->total_usd ?? $sale->total ?? 0);
+                }
+            }
+
+            $diffTotal = $newTotal - $oldTotal;
+
+            $processedHistory[] = [
+                'id' => $log->id,
+                'created_at' => $log->created_at,
+                'user_name' => $log->user->name ?? 'Usuario',
+                'reason' => $log->reason ?? 'Edición de venta autorizada',
+                'old_total' => $oldTotal,
+                'new_total' => $newTotal,
+                'diff_total' => $diffTotal,
+                'added' => $added,
+                'removed' => $removed,
+                'modified' => $modified,
+                'unchanged' => $unchanged,
+                'old_details' => $oldDetails->toArray(),
+                'new_details' => $newDetails->toArray(),
+                'has_new_details' => $newDetails->isNotEmpty(),
+            ];
+        }
+
+        $this->saleHistory = $processedHistory;
         $this->dispatch('show-history');
+    }
+
+    private function formatHistoryDetails($detailsArray)
+    {
+        if (empty($detailsArray) || !is_array($detailsArray)) {
+            return collect();
+        }
+
+        return collect($detailsArray)->map(function ($d) {
+            $productId = $d['product_id'] ?? null;
+            $name = $d['product']['name'] ?? $d['product_name'] ?? null;
+
+            if (!$name || $name === 'Producto') {
+                if ($productId) {
+                    $product = \App\Models\Product::find($productId);
+                    if ($product) {
+                        $name = $product->name;
+                    }
+                }
+            }
+
+            if (!$name) {
+                $name = 'Producto ' . ($productId ? "#{$productId}" : '');
+            }
+
+            $qty = (float)($d['quantity'] ?? 0);
+            $price = (float)($d['sale_price'] ?? $d['price'] ?? 0);
+
+            return [
+                'product_id' => $productId,
+                'product_name' => trim($name),
+                'quantity' => $qty,
+                'sale_price' => $price,
+                'total' => $qty * $price,
+            ];
+        });
     }
 
 

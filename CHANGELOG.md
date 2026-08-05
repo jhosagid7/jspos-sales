@@ -1,3 +1,12 @@
+## [1.10.322] - 2026-08-05
+
+### Fixed & Improved
+- **Rediseño del Historial de Cambios de Ventas (Auditoría de Edición)**:
+  - **Resolución Dinámica de Nombres**: Corregido el problema donde aparecía la palabra genérica `"Producto"`; ahora el sistema resuelve y muestra los nombres reales de los productos tanto para logs históricos como nuevos.
+  - **Resumen Inteligente de Cambios (Smart Diff)**: Identificación clara y visual de productos agregados 🟢 (`+`), eliminados 🔴 (`-`) y modificados 🟡 (`✏️` en cantidad/precio).
+  - **Resumen Financiero Claro**: Muestra el **Monto Anterior**, **Monto Nuevo** y la **Diferencia Total** de la modificación con guía explicativa sobre la lectura de los estados.
+  - **Corrección en Registro de Auditoría (`Sales.php`)**: Corregido el momento de grabación de `SaleHistoryLog` para asegurar que capture el nuevo estado completo de la venta tras guardar los nuevos detalles de productos.
+
 ## [1.10.321] - 2026-08-04
 
 ### Fixed & Improved

@@ -663,90 +663,241 @@
         <!-- Modal Historial de Auditoría -->
         <div class="modal fade" id="modalHistory" tabindex="-1" role="dialog" wire:ignore.self>
             <div class="modal-dialog modal-xl" role="document">
-                <div class="modal-content">
-                    <div class="modal-header bg-info text-white">
-                        <h5 class="modal-title">Historial de Cambios - Venta #{{ $sale_id }}</h5>
-                        <button type="button" class="close text-white" data-bs-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header bg-primary text-white py-3">
+                        <h5 class="modal-title font-weight-bold">
+                            <i class="fas fa-history me-2"></i>Historial de Modificaciones - Venta #{{ $sale_id }}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
+                    <div class="modal-body p-4" style="background-color: #f8f9fa;">
+
+                        <div class="alert alert-info border-0 shadow-sm mb-4">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-info-circle fa-2x text-info me-3"></i>
+                                <div>
+                                    <h6 class="font-weight-bold mb-1">¿Cómo leer este historial de cambios?</h6>
+                                    <small class="text-dark">
+                                        • <strong>Estado Anterior:</strong> Refleja cómo estaba la factura exactamente <u>antes</u> de la modificación.<br>
+                                        • <strong>Estado Actual:</strong> Refleja cómo quedó guardada la factura <u>después</u> de la modificación.<br>
+                                        • A continuación verás el desglose inteligente de productos agregados <span class="badge bg-success">+</span>, eliminados <span class="badge bg-danger">-</span> o con cambio de precio/cantidad <span class="badge bg-warning text-dark">✏️</span>.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
                         @if(count($saleHistory) > 0)
-                            <div class="table-responsive">
-                                <table class="table table-bordered table-striped">
-                                    <thead class="bg-light">
-                                        <tr class="text-center">
-                                            <th>Fecha</th>
-                                            <th>Usuario</th>
-                                            <th>Detalle de la Modificación</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach($saleHistory as $log)
-                                            <tr>
-                                                <td class="text-center" style="width: 15%;">
-                                                    {{ \Carbon\Carbon::parse($log['created_at'])->format('d/m/Y H:i:s') }}
-                                                </td>
-                                                <td class="text-center" style="width: 15%;">
-                                                    <span class="badge badge-secondary">{{ $log['user']['name'] }}</span>
-                                                </td>
-                                                <td>
-                                                    @php
-                                                        $old = $log['old_data'];
-                                                        $new = $log['new_data'];
-                                                    @endphp
-                                                    
-                                                    <div class="row">
-                                                        <div class="col-md-6 border-right">
-                                                            <div class="bg-light p-2 mb-2"><strong>ESTADO ANTERIOR:</strong></div>
-                                                            <ul class="list-unstyled">
-                                                                @isset($old['details'])
-                                                                    @foreach($old['details'] as $d)
-                                                                        <li>
-                                                                            <i class="fas fa-minus-circle text-danger me-1"></i> 
-                                                                            {{ $d['quantity'] ?? '0' }}x {{ $d['product']['name'] ?? 'Producto' }} 
-                                                                            (${{ number_format($d['sale_price'] ?? 0, 2) }})
-                                                                        </li>
-                                                                    @endforeach
-                                                                    <li class="mt-2 text-primary">
-                                                                        <strong>Total: ${{ number_format($old['total_usd'] ?? $old['total'] ?? 0, 2) }}</strong>
-                                                                    </li>
-                                                                @endisset
-                                                            </ul>
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <div class="bg-light p-2 mb-2"><strong>ESTADO ACTUAL:</strong></div>
-                                                            <ul class="list-unstyled">
-                                                                @isset($new['details'])
-                                                                    @foreach($new['details'] as $d)
-                                                                        <li>
-                                                                            <i class="fas fa-plus-circle text-success me-1"></i> 
-                                                                            {{ $d['quantity'] ?? '0' }}x {{ $d['product']['name'] ?? 'Producto' }} 
-                                                                            (${{ number_format($d['sale_price'] ?? 0, 2) }})
-                                                                        </li>
-                                                                    @endforeach
-                                                                    <li class="mt-2 text-primary">
-                                                                        <strong>Total Actual: ${{ number_format($new['total_usd'] ?? $new['total'] ?? 0, 2) }}</strong>
-                                                                    </li>
-                                                                @endisset
-                                                            </ul>
+                            <div class="d-flex flex-column gap-4">
+                                @foreach($saleHistory as $index => $log)
+                                    <div class="card border-0 shadow-sm rounded-lg overflow-hidden mb-3">
+                                        <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center">
+                                            <div>
+                                                <span class="badge bg-primary me-2">Edición #{{ count($saleHistory) - $index }}</span>
+                                                <strong class="text-dark me-3">
+                                                    <i class="far fa-calendar-alt me-1 text-muted"></i> {{ \Carbon\Carbon::parse($log['created_at'])->format('d/m/Y h:i A') }}
+                                                </strong>
+                                                <span class="badge bg-secondary p-2">
+                                                    <i class="far fa-user me-1"></i> {{ $log['user_name'] }}
+                                                </span>
+                                            </div>
+                                            @if(!empty($log['reason']))
+                                                <div class="text-muted small mt-1 mt-md-0">
+                                                    <i class="fas fa-comment-alt me-1"></i> Motivo: <em>{{ $log['reason'] }}</em>
+                                                </div>
+                                            @endif
+                                        </div>
+
+                                        <div class="card-body p-4">
+                                            <!-- Resumen Financiero -->
+                                            <div class="row mb-4">
+                                                <div class="col-md-4 mb-2 mb-md-0">
+                                                    <div class="p-3 rounded bg-light border text-center">
+                                                        <span class="text-uppercase text-muted small font-weight-bold d-block">Monto Anterior (Antes)</span>
+                                                        <h5 class="font-weight-bold text-secondary mb-0">${{ number_format($log['old_total'], 2) }}</h5>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4 mb-2 mb-md-0">
+                                                    <div class="p-3 rounded bg-light border text-center">
+                                                        <span class="text-uppercase text-muted small font-weight-bold d-block">Monto Nuevo (Después)</span>
+                                                        <h5 class="font-weight-bold text-dark mb-0">${{ number_format($log['new_total'], 2) }}</h5>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="p-3 rounded border text-center {{ $log['diff_total'] > 0 ? 'bg-success-subtle border-success' : ($log['diff_total'] < 0 ? 'bg-danger-subtle border-danger' : 'bg-light') }}">
+                                                        <span class="text-uppercase text-muted small font-weight-bold d-block">Diferencia Total</span>
+                                                        <h5 class="font-weight-bold mb-0 {{ $log['diff_total'] > 0 ? 'text-success' : ($log['diff_total'] < 0 ? 'text-danger' : 'text-muted') }}">
+                                                            {{ $log['diff_total'] > 0 ? '+' : '' }}${{ number_format($log['diff_total'], 2) }}
+                                                        </h5>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Desglose de Cambios Reales (Smart Diff) -->
+                                            <div class="mb-4">
+                                                <h6 class="font-weight-bold text-dark mb-3">
+                                                    <i class="fas fa-tasks text-primary me-2"></i>Resumen Inteligente de Cambios en Productos:
+                                                </h6>
+
+                                                @if(!empty($log['added']))
+                                                    <div class="mb-2">
+                                                        <strong class="text-success small d-block mb-1"><i class="fas fa-plus-circle me-1"></i> Productos Agregados:</strong>
+                                                        <ul class="list-group list-group-flush border rounded mb-2">
+                                                            @foreach($log['added'] as $item)
+                                                                <li class="list-group-item list-group-item-success py-2 d-flex justify-content-between align-items-center">
+                                                                    <span><strong>+ {{ number_format($item['quantity'], 2) }}x</strong> {{ $item['product_name'] }}</span>
+                                                                    <span class="badge bg-success text-white">${{ number_format($item['sale_price'], 2) }} c/u (Total: ${{ number_format($item['total'], 2) }})</span>
+                                                                </li>
+                                                            @endforeach
+                                                        </ul>
+                                                    </div>
+                                                @endif
+
+                                                @if(!empty($log['removed']))
+                                                    <div class="mb-2">
+                                                        <strong class="text-danger small d-block mb-1"><i class="fas fa-minus-circle me-1"></i> Productos Eliminados / Sacados:</strong>
+                                                        <ul class="list-group list-group-flush border rounded mb-2">
+                                                            @foreach($log['removed'] as $item)
+                                                                <li class="list-group-item list-group-item-danger py-2 d-flex justify-content-between align-items-center">
+                                                                    <span><del><strong>- {{ number_format($item['quantity'], 2) }}x</strong> {{ $item['product_name'] }}</del></span>
+                                                                    <span class="badge bg-danger text-white">${{ number_format($item['sale_price'], 2) }} c/u</span>
+                                                                </li>
+                                                            @endforeach
+                                                        </ul>
+                                                    </div>
+                                                @endif
+
+                                                @if(!empty($log['modified']))
+                                                    <div class="mb-2">
+                                                        <strong class="text-warning text-dark small d-block mb-1"><i class="fas fa-edit me-1"></i> Productos Modificados (Cantidad / Precio):</strong>
+                                                        <ul class="list-group list-group-flush border rounded mb-2">
+                                                            @foreach($log['modified'] as $item)
+                                                                <li class="list-group-item list-group-item-warning py-2">
+                                                                    <strong>{{ $item['name'] }}</strong><br>
+                                                                    <span class="small text-dark">
+                                                                        • Cantidad: Antes <strong>{{ number_format($item['old_qty'], 2) }}x</strong> ➔ Ahora <strong>{{ number_format($item['new_qty'], 2) }}x</strong><br>
+                                                                        • Precio: Antes <strong>${{ number_format($item['old_price'], 2) }}</strong> ➔ Ahora <strong>${{ number_format($item['new_price'], 2) }}</strong>
+                                                                    </span>
+                                                                </li>
+                                                            @endforeach
+                                                        </ul>
+                                                    </div>
+                                                @endif
+
+                                                @if(empty($log['added']) && empty($log['removed']) && empty($log['modified']))
+                                                    <div class="p-2 bg-light rounded text-muted small italic">
+                                                        <i class="fas fa-info-circle me-1"></i> Los productos principales no sufrieron modificaciones directas (posible cambio en datos generales de la venta, cliente o transporte).
+                                                    </div>
+                                                @endif
+                                            </div>
+
+                                            <!-- Comparativa Completa Lado a Lado -->
+                                            <div class="accordion" id="accordionLog{{ $log['id'] }}">
+                                                <div class="accordion-item border rounded">
+                                                    <h2 class="accordion-header" id="heading{{ $log['id'] }}">
+                                                        <button class="accordion-button collapsed py-2 text-primary font-weight-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ $log['id'] }}" aria-expanded="false" aria-controls="collapse{{ $log['id'] }}">
+                                                            <i class="fas fa-columns me-2"></i> Ver Comparativa Completa Detallada (Antes vs Después)
+                                                        </button>
+                                                    </h2>
+                                                    <div id="collapse{{ $log['id'] }}" class="accordion-collapse collapse" aria-labelledby="heading{{ $log['id'] }}" data-bs-parent="#accordionLog{{ $log['id'] }}">
+                                                        <div class="accordion-body p-3">
+                                                            <div class="row">
+                                                                <!-- Estado Anterior -->
+                                                                <div class="col-md-6 border-end">
+                                                                    <div class="bg-secondary text-white p-2 rounded mb-2 font-weight-bold text-center">
+                                                                        ESTADO ANTERIOR (Antes de Editar)
+                                                                    </div>
+                                                                    @if(!empty($log['old_details']))
+                                                                        <div class="table-responsive">
+                                                                            <table class="table table-sm table-hover text-start">
+                                                                                <thead>
+                                                                                    <tr>
+                                                                                        <th>Cant.</th>
+                                                                                        <th>Producto</th>
+                                                                                        <th class="text-end">Precio</th>
+                                                                                        <th class="text-end">Total</th>
+                                                                                    </tr>
+                                                                                </thead>
+                                                                                <tbody>
+                                                                                    @foreach($log['old_details'] as $item)
+                                                                                        <tr>
+                                                                                            <td>{{ number_format($item['quantity'], 2) }}</td>
+                                                                                            <td>{{ $item['product_name'] }}</td>
+                                                                                            <td class="text-end">${{ number_format($item['sale_price'], 2) }}</td>
+                                                                                            <td class="text-end">${{ number_format($item['total'], 2) }}</td>
+                                                                                        </tr>
+                                                                                    @endforeach
+                                                                                </tbody>
+                                                                                <tfoot>
+                                                                                    <tr class="fw-bold bg-light">
+                                                                                        <td colspan="3" class="text-end">Total Anterior:</td>
+                                                                                        <td class="text-end">${{ number_format($log['old_total'], 2) }}</td>
+                                                                                    </tr>
+                                                                                </tfoot>
+                                                                            </table>
+                                                                        </div>
+                                                                    @else
+                                                                        <p class="text-muted small text-center my-3">Sin registros anteriores</p>
+                                                                    @endif
+                                                                </div>
+
+                                                                <!-- Estado Actual -->
+                                                                <div class="col-md-6">
+                                                                    <div class="bg-primary text-white p-2 rounded mb-2 font-weight-bold text-center">
+                                                                        ESTADO ACTUAL (Después de Editar)
+                                                                    </div>
+                                                                    @if(!empty($log['new_details']))
+                                                                        <div class="table-responsive">
+                                                                            <table class="table table-sm table-hover text-start">
+                                                                                <thead>
+                                                                                    <tr>
+                                                                                        <th>Cant.</th>
+                                                                                        <th>Producto</th>
+                                                                                        <th class="text-end">Precio</th>
+                                                                                        <th class="text-end">Total</th>
+                                                                                    </tr>
+                                                                                </thead>
+                                                                                <tbody>
+                                                                                    @foreach($log['new_details'] as $item)
+                                                                                        <tr>
+                                                                                            <td>{{ number_format($item['quantity'], 2) }}</td>
+                                                                                            <td>{{ $item['product_name'] }}</td>
+                                                                                            <td class="text-end">${{ number_format($item['sale_price'], 2) }}</td>
+                                                                                            <td class="text-end">${{ number_format($item['total'], 2) }}</td>
+                                                                                        </tr>
+                                                                                    @endforeach
+                                                                                </tbody>
+                                                                                <tfoot>
+                                                                                    <tr class="fw-bold bg-light">
+                                                                                        <td colspan="3" class="text-end">Total Actual:</td>
+                                                                                        <td class="text-end">${{ number_format($log['new_total'], 2) }}</td>
+                                                                                    </tr>
+                                                                                </tfoot>
+                                                                            </table>
+                                                                        </div>
+                                                                    @else
+                                                                        <p class="text-muted small text-center my-3">Sin productos guardados en el estado posterior</p>
+                                                                    @endif
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                @endforeach
                             </div>
                         @else
-                            <div class="text-center py-5">
+                            <div class="text-center py-5 bg-white rounded shadow-sm">
                                 <i class="fas fa-history fa-4x text-muted mb-3"></i>
-                                <p class="text-muted">No se han registrado ediciones para esta venta aún.</p>
+                                <h5 class="text-dark font-weight-bold">Sin Modificaciones</h5>
+                                <p class="text-muted">No se han registrado modificaciones para esta venta.</p>
                             </div>
                         @endif
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <div class="modal-footer bg-white">
+                        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Cerrar</button>
                     </div>
                 </div>
             </div>
