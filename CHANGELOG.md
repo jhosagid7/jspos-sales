@@ -1,3 +1,9 @@
+## [1.10.364] - 2026-08-06
+
+### Changed
+- **Ajuste de Borde Fino (1.5px) en Etiquetas QR**:
+  - `pdf/labels_qr.blade.php`: Reducido el grosor del contorno a `1.5px solid #000000` para brindar un acabado fino, estilizado y limpio, manteniendo la perfecta distribución de 18 etiquetas (3x6) en 1 sola hoja Carta.
+
 ## [1.10.363] - 2026-08-06
 
 ### Fixed
