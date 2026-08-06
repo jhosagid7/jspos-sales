@@ -1,3 +1,9 @@
+## [1.10.365] - 2026-08-06
+
+### Changed
+- **Ajustes de Diseño en Etiquetas QR segun preferencias del usuario**:
+  - `pdf/labels_qr.blade.php`: Actualizadas dimensiones a recuadro de `4.2cm` con borde negro de `2px`, logo en marca de agua de `130px` y fuente del título de producto a `18px Extra Negrita`.
+
 ## [1.10.364] - 2026-08-06
 
 ### Changed
