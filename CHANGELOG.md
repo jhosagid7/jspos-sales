@@ -1,3 +1,9 @@
+## [1.10.361] - 2026-08-06
+
+### Fixed
+- **Ajuste de Altura para 6 Filas en Hoja Carta (DomPDF)**:
+  - `pdf/labels_qr.blade.php`: Ajustada la altura del recuadro a `3.85cm` y margen del documento a `0.1cm` para garantizar que las 6 filas completas (18 etiquetas por hoja) encajen perfectamente en 1 sola hoja Carta sin desbordamiento generado por los bordes.
+
 ## [1.10.360] - 2026-08-06
 
 ### Changed
