@@ -1,3 +1,11 @@
+## [1.10.359] - 2026-08-06
+
+### Added
+- **Logo de Empresa en Marca de Agua y Nombre Destacado en Etiquetas QR**:
+  - `LabelController.php`: Codificación de la imagen del logo de la empresa (`Configuration->logo` o logo predeterminado) en formato Base64 para incrustar en el PDF.
+  - `pdf/labels_qr.blade.php`: Añadido logo centrado como marca de agua sutil (`130px × 130px`, opacidad `0.15`) en el fondo de cada etiqueta.
+  - Incrementado el tamaño de la fuente del nombre del producto a **18px Extra Negrita** (`font-weight: 900`) asegurando máxima legibilidad sobre la marca de agua.
+
 ## [1.10.358] - 2026-08-06
 
 ### Changed

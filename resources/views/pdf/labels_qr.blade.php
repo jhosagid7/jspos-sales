@@ -38,11 +38,23 @@
             overflow: hidden;
             background-color: #ffffff;
         }
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 130px;
+            height: 130px;
+            margin-top: -65px;
+            margin-left: -65px;
+            opacity: 0.15;
+            z-index: 1;
+            object-fit: contain;
+        }
         .product-name {
-            font-size: 15px;
-            font-weight: bold;
+            font-size: 18px;
+            font-weight: 900;
             text-align: center;
-            height: 1.7cm;
+            height: 1.8cm;
             overflow: hidden;
             display: flex;
             align-items: center;
@@ -53,6 +65,8 @@
             width: 100%;
             word-break: break-word;
             text-transform: uppercase;
+            position: relative;
+            z-index: 2;
         }
         .bottom-section {
             width: 100%;
@@ -60,12 +74,15 @@
             bottom: 3px;
             left: 3px;
             right: 3px;
+            position: absolute;
+            z-index: 2;
         }
         .info-column {
             float: left;
             width: 62%;
             font-size: 11px;
             line-height: 1.4;
+            font-weight: bold;
         }
         .info-line {
             margin-bottom: 4px;
@@ -79,6 +96,8 @@
         .qr-img {
             width: 1.3cm;
             height: 1.3cm;
+            background-color: #ffffff;
+            padding: 1px;
         }
         .qr-text {
             font-size: 8px;
@@ -112,6 +131,10 @@
                         @if(isset($allLabels[$index]))
                             @php $item = $allLabels[$index]; @endphp
                             <div class="label-box">
+                                @if(!empty($logoBase64))
+                                    <img src="{{ $logoBase64 }}" class="watermark" alt="Watermark Logo" />
+                                @endif
+
                                 <div class="product-name">
                                     {{ Str::limit($item['name'], 70) }}
                                 </div>
