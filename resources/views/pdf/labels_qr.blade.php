@@ -5,7 +5,7 @@
     <title>Etiquetas Grandes con Código QR</title>
     <style>
         @page {
-            margin: 0.1cm;
+            margin: 0.2cm;
             size: letter;
         }
         body {
@@ -17,7 +17,6 @@
             width: 100%;
             display: table;
             border-collapse: collapse;
-            table-layout: fixed;
         }
         .row {
             display: table-row;
@@ -25,15 +24,15 @@
         .label-cell {
             display: table-cell;
             width: 33.33%;
-            padding: 1px 0px;
+            padding: 1px;
             vertical-align: top;
         }
         .label-box {
-            width: 6.5cm;
-            height: 3.85cm;
-            border: 3.5px solid #000000;
+            width: 6.6cm;
+            height: 4.2cm;
+            border: 4px solid #000000;
             margin: 0 auto;
-            padding: 2px 4px;
+            padding: 3px;
             box-sizing: border-box;
             position: relative;
             overflow: hidden;
@@ -43,19 +42,19 @@
             position: absolute;
             top: 50%;
             left: 50%;
-            width: 110px;
-            height: 110px;
-            margin-top: -55px;
-            margin-left: -55px;
+            width: 130px;
+            height: 130px;
+            margin-top: -65px;
+            margin-left: -65px;
             opacity: 0.15;
             z-index: 1;
             object-fit: contain;
         }
         .product-name {
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 900;
             text-align: center;
-            height: 1.5cm;
+            height: 1.8cm;
             overflow: hidden;
             display: flex;
             align-items: center;
@@ -72,20 +71,21 @@
         .bottom-section {
             width: 100%;
             position: absolute;
-            bottom: 2px;
-            left: 4px;
-            right: 4px;
+            bottom: 3px;
+            left: 3px;
+            right: 3px;
+            position: absolute;
             z-index: 2;
         }
         .info-column {
             float: left;
             width: 62%;
-            font-size: 10.5px;
-            line-height: 1.35;
+            font-size: 11px;
+            line-height: 1.4;
             font-weight: bold;
         }
         .info-line {
-            margin-bottom: 3px;
+            margin-bottom: 4px;
             white-space: nowrap;
         }
         .qr-column {
@@ -94,13 +94,13 @@
             text-align: center;
         }
         .qr-img {
-            width: 1.25cm;
-            height: 1.25cm;
+            width: 1.3cm;
+            height: 1.3cm;
             background-color: #ffffff;
             padding: 1px;
         }
         .qr-text {
-            font-size: 7.5px;
+            font-size: 8px;
             font-weight: bold;
             margin-top: 1px;
         }

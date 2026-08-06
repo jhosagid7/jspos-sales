@@ -1,3 +1,9 @@
+## [1.10.362] - 2026-08-06
+
+### Reverted
+- **Revertido Formato de Etiquetas QR al Diseño de la Versión v1.10.360**:
+  - Restablecida la plantilla `pdf/labels_qr.blade.php` a las dimensiones y proporciones exactas de la versión `v1.10.360` (borde de `4px`, altura `4.2cm`, título de producto `18px Extra Negrita` y logo de empresa centrado en marca de agua de `130px`).
+
 ## [1.10.361] - 2026-08-06
 
 ### Fixed
