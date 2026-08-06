@@ -29,27 +29,27 @@
         }
         .label-box {
             width: 6.6cm;
-            height: 6.0cm;
-            border: 3px solid black;
+            height: 5.0cm;
+            border: 2px solid black;
             margin: 0 auto;
-            padding: 6px;
+            padding: 4px;
             box-sizing: border-box;
             position: relative;
             overflow: hidden;
             background-color: #ffffff;
         }
         .product-name {
-            font-size: 20px;
+            font-size: 17px;
             font-weight: bold;
             text-align: center;
-            height: 2.5cm;
+            height: 2.1cm;
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
-            line-height: 1.15;
-            margin-bottom: 6px;
-            margin-top: 2px;
+            line-height: 1.1;
+            margin-bottom: 4px;
+            margin-top: 1px;
             width: 100%;
             word-break: break-word;
             text-transform: uppercase;
@@ -57,18 +57,18 @@
         .bottom-section {
             width: 100%;
             position: absolute;
-            bottom: 6px;
-            left: 6px;
-            right: 6px;
+            bottom: 4px;
+            left: 4px;
+            right: 4px;
         }
         .info-column {
             float: left;
             width: 62%;
-            font-size: 13px;
-            line-height: 1.6;
+            font-size: 12px;
+            line-height: 1.5;
         }
         .info-line {
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             white-space: nowrap;
         }
         .qr-column {
@@ -77,13 +77,13 @@
             text-align: center;
         }
         .qr-img {
-            width: 1.8cm;
-            height: 1.8cm;
+            width: 1.5cm;
+            height: 1.5cm;
         }
         .qr-text {
             font-size: 8px;
             font-weight: bold;
-            margin-top: 2px;
+            margin-top: 1px;
         }
         .clear {
             clear: both;

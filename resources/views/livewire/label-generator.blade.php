@@ -67,8 +67,8 @@
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" wire:model.live="labelTemplate" value="large_qr" id="templateLargeQr">
                                             <label class="form-check-label font-weight-bold text-dark" for="templateLargeQr">
-                                                <i class="fas fa-qrcode text-success me-1"></i> Grande (Código QR - 3x4)
-                                                <small class="d-block text-muted">12 etiquetas por hoja con nombre de producto más grande, datos de operador/fecha visibles y Código QR 2D.</small>
+                                                <i class="fas fa-qrcode text-success me-1"></i> Grande (Código QR - 3x5)
+                                                <small class="d-block text-muted">15 etiquetas por hoja con nombre de producto grande, datos de operador/fecha bien visibles y Código QR 2D.</small>
                                             </label>
                                         </div>
                                     </div>

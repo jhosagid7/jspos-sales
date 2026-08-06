@@ -1,3 +1,9 @@
+## [1.10.357] - 2026-08-06
+
+### Changed
+- **Ajuste de Formato de Etiqueta Grande QR a 3x5 (15 etiquetas por hoja)**:
+  - Optimizado el alto de las etiquetas a `5.0cm` y la tipografía para aprovechar mejor el papel imprimiendo **15 etiquetas por hoja Carta** (3 columnas x 5 filas) manteniendo el nombre de producto grande, líneas de operador/fecha bien visibles y el Código QR 2D.
+
 ## [1.10.356] - 2026-08-06
 
 ### Added

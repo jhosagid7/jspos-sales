@@ -70,7 +70,7 @@ class LabelGeneratorTest extends TestCase
             ->assertSee('Generador de Etiquetas')
             ->assertSee('Diseño de Salida')
             ->assertSee('Estándar (Código de Barras - 4x7)')
-            ->assertSee('Grande (Código QR - 3x4)');
+            ->assertSee('Grande (Código QR - 3x5)');
     }
 
     public function test_can_select_products_and_generate_standard_barcode_pdf()
