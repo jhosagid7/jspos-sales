@@ -5,7 +5,7 @@
     <title>Etiquetas Grandes con Código QR</title>
     <style>
         @page {
-            margin: 0.3cm;
+            margin: 0.2cm;
             size: letter;
         }
         body {
@@ -24,31 +24,31 @@
         .label-cell {
             display: table-cell;
             width: 33.33%;
-            padding: 2px;
+            padding: 1px;
             vertical-align: top;
         }
         .label-box {
             width: 6.6cm;
-            height: 5.0cm;
+            height: 4.2cm;
             border: 2px solid black;
             margin: 0 auto;
-            padding: 4px;
+            padding: 3px;
             box-sizing: border-box;
             position: relative;
             overflow: hidden;
             background-color: #ffffff;
         }
         .product-name {
-            font-size: 17px;
+            font-size: 15px;
             font-weight: bold;
             text-align: center;
-            height: 2.1cm;
+            height: 1.7cm;
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
             line-height: 1.1;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
             margin-top: 1px;
             width: 100%;
             word-break: break-word;
@@ -57,18 +57,18 @@
         .bottom-section {
             width: 100%;
             position: absolute;
-            bottom: 4px;
-            left: 4px;
-            right: 4px;
+            bottom: 3px;
+            left: 3px;
+            right: 3px;
         }
         .info-column {
             float: left;
             width: 62%;
-            font-size: 12px;
-            line-height: 1.5;
+            font-size: 11px;
+            line-height: 1.4;
         }
         .info-line {
-            margin-bottom: 6px;
+            margin-bottom: 4px;
             white-space: nowrap;
         }
         .qr-column {
@@ -77,8 +77,8 @@
             text-align: center;
         }
         .qr-img {
-            width: 1.5cm;
-            height: 1.5cm;
+            width: 1.3cm;
+            height: 1.3cm;
         }
         .qr-text {
             font-size: 8px;
