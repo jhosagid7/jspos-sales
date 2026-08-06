@@ -1,3 +1,11 @@
+## [1.10.356] - 2026-08-06
+
+### Added
+- **Diseño Seleccionable en Generador de Etiquetas (Estándar vs. Grande con Código QR)**:
+  - **Selector de Formato**: En el Generador de Etiquetas (`livewire/label-generator.blade.php`), ahora se puede elegir entre el diseño "Estándar (Código de Barras 1D - 4x7)" y el nuevo diseño "Grande (Código QR 2D - 3x4)".
+  - **Nuevo Formato Grande con Código QR**: Nueva plantilla PDF (`pdf.labels_qr.blade.php`) de 12 etiquetas por hoja (3 columnas x 4 filas), con el nombre del producto en tamaño grande destacado, espacio amplio para datos de *Operador* y *Fecha*, y un Código QR 2D compacto generado con `DNS2D`.
+  - **Pruebas Automatizadas**: Creado `tests/Feature/LabelGeneratorTest.php` para validar la selección de formatos y la generación limpia de PDF en ambos modelos.
+
 ## [1.10.355] - 2026-08-05
 
 ### Fixed

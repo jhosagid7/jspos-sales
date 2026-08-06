@@ -14,6 +14,7 @@ class LabelGenerator extends Component
 
     public $search = '';
     public $selectedProducts = []; // [id => ['name' => '...', 'qty' => 1]]
+    public $labelTemplate = 'standard'; // 'standard' or 'large_qr'
 
     public function render()
     {
@@ -72,7 +73,10 @@ class LabelGenerator extends Component
         // Logic to redirect to PDF generation route with selected data
         // We can pass IDs and quantities via query string or session
         // Session is cleaner for larger datasets
-        session(['label_products' => $this->selectedProducts]);
+        session([
+            'label_products' => $this->selectedProducts,
+            'label_template' => $this->labelTemplate
+        ]);
         
         $this->dispatch('open-new-tab', route('labels.pdf'));
     }

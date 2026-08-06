@@ -48,6 +48,34 @@
 
                     <!-- Selected Products Section -->
                     <div class="col-md-6">
+                        <div class="card mb-3 border border-info bg-light">
+                            <div class="card-body p-3">
+                                <label class="form-label font-weight-bold mb-2 text-dark">
+                                    <i class="fas fa-sliders-h me-1 text-info"></i> Diseño de Salida (Formato de Etiqueta):
+                                </label>
+                                <div class="row">
+                                    <div class="col-md-12 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" wire:model.live="labelTemplate" value="standard" id="templateStandard">
+                                            <label class="form-check-label font-weight-bold text-dark" for="templateStandard">
+                                                <i class="fas fa-barcode text-primary me-1"></i> Estándar (Código de Barras - 4x7)
+                                                <small class="d-block text-muted">28 etiquetas por hoja con Código de Barras 1D tradicional.</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" wire:model.live="labelTemplate" value="large_qr" id="templateLargeQr">
+                                            <label class="form-check-label font-weight-bold text-dark" for="templateLargeQr">
+                                                <i class="fas fa-qrcode text-success me-1"></i> Grande (Código QR - 3x4)
+                                                <small class="d-block text-muted">12 etiquetas por hoja con nombre de producto más grande, datos de operador/fecha visibles y Código QR 2D.</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <h5 class="mb-3">Productos Seleccionados</h5>
                         @if(count($selectedProducts) > 0)
                         <div class="table-responsive">

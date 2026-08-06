@@ -15,7 +15,10 @@ class LabelController extends Controller
             return redirect()->route('labels.index');
         }
 
-        $pdf = Pdf::loadView('pdf.labels', compact('products'));
+        $template = session('label_template', 'standard');
+        $view = $template === 'large_qr' ? 'pdf.labels_qr' : 'pdf.labels';
+
+        $pdf = Pdf::loadView($view, compact('products'));
         $pdf->setPaper('letter', 'portrait');
         
         return $pdf->stream('etiquetas.pdf');
