@@ -5,7 +5,7 @@
     <title>Etiquetas Grandes con Código QR</title>
     <style>
         @page {
-            margin: 0.2cm;
+            margin: 0.1cm;
             size: letter;
         }
         body {
@@ -17,6 +17,7 @@
             width: 100%;
             display: table;
             border-collapse: collapse;
+            table-layout: fixed;
         }
         .row {
             display: table-row;
@@ -24,15 +25,15 @@
         .label-cell {
             display: table-cell;
             width: 33.33%;
-            padding: 1px;
+            padding: 0.5px;
             vertical-align: top;
         }
         .label-box {
             width: 6.6cm;
-            height: 4.2cm;
-            border: 4px solid #000000;
+            height: 4.05cm;
+            border: 3px solid #000000;
             margin: 0 auto;
-            padding: 3px;
+            padding: 2px 3px;
             box-sizing: border-box;
             position: relative;
             overflow: hidden;
@@ -42,19 +43,19 @@
             position: absolute;
             top: 50%;
             left: 50%;
-            width: 130px;
-            height: 130px;
-            margin-top: -65px;
-            margin-left: -65px;
+            width: 125px;
+            height: 125px;
+            margin-top: -62px;
+            margin-left: -62px;
             opacity: 0.15;
             z-index: 1;
             object-fit: contain;
         }
         .product-name {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 900;
             text-align: center;
-            height: 1.8cm;
+            height: 1.7cm;
             overflow: hidden;
             display: flex;
             align-items: center;
@@ -71,10 +72,9 @@
         .bottom-section {
             width: 100%;
             position: absolute;
-            bottom: 3px;
+            bottom: 2px;
             left: 3px;
             right: 3px;
-            position: absolute;
             z-index: 2;
         }
         .info-column {

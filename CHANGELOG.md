@@ -1,3 +1,9 @@
+## [1.10.363] - 2026-08-06
+
+### Fixed
+- **Ajuste de Altura a 4.05cm para 18 Etiquetas de 1 Sola Hoja (3x6)**:
+  - `pdf/labels_qr.blade.php`: Ajustada la altura a `4.05cm` y márgenes a `0.1cm` garantizando que las 18 etiquetas completas (3 columnas × 6 filas) entren al 100% en 1 sola hoja Carta sin desbordar ni separar la última fila hacia la hoja 2.
+
 ## [1.10.362] - 2026-08-06
 
 ### Reverted
