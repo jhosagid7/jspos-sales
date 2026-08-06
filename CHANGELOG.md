@@ -1,3 +1,9 @@
+## [1.10.360] - 2026-08-06
+
+### Changed
+- **Aumento de Grosor en el Contorno de Etiquetas QR**:
+  - `pdf/labels_qr.blade.php`: Incrementado el grosor del borde del recuadro de la etiqueta a `4px solid #000000` con cálculo interno (`box-sizing: border-box`), haciendo que el marco sea más visible y definido sin desplazar los márgenes ni alterar la distribución de la hoja.
+
 ## [1.10.359] - 2026-08-06
 
 ### Added

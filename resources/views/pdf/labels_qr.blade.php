@@ -30,7 +30,7 @@
         .label-box {
             width: 6.6cm;
             height: 4.2cm;
-            border: 2px solid black;
+            border: 4px solid #000000;
             margin: 0 auto;
             padding: 3px;
             box-sizing: border-box;
