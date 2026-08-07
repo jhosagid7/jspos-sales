@@ -1,3 +1,9 @@
+## [1.10.374] - 2026-08-07
+
+### Fixed
+- **Optimización del Reporte de Comisiones por Metas**:
+  - `GoalCommissionReport.php`: Filtrado estricto para mostrar **únicamente** a los vendedores que tengan metas activas asignadas. Se eliminan las tarjetas/filas vacías de usuarios sin metas.
+
 ## [1.10.373] - 2026-08-07
 
 ### Fixed

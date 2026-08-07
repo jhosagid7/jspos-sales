@@ -20,7 +20,13 @@ class GoalCommissionReport extends Component
 
     public function render()
     {
-        $sellersQuery = User::eligibleSellers();
+        $baseQuery = function() {
+            return User::whereHas('commissionGoals', function($q) {
+                $q->where('is_active', true);
+            })->distinct()->orderBy('name');
+        };
+
+        $sellersQuery = $baseQuery();
         if ($this->sellerId !== 'all' && !empty($this->sellerId)) {
             $sellersQuery->where('id', $this->sellerId);
         }
@@ -33,18 +39,20 @@ class GoalCommissionReport extends Component
 
         foreach ($sellers as $seller) {
             $eval = GoalCommissionService::evaluateAllGoalsForUser($seller, $this->referenceDate);
-            $evaluations[] = $eval;
-            $totalCommissionEarned += $eval['total_earned'];
+            if (count($eval['goals']) > 0) {
+                $evaluations[] = $eval;
+                $totalCommissionEarned += $eval['total_earned'];
 
-            foreach ($eval['goals'] as $goalEval) {
-                $totalGoalsEvaluated++;
-                if ($goalEval['achieved']) {
-                    $totalGoalsAchieved++;
+                foreach ($eval['goals'] as $goalEval) {
+                    $totalGoalsEvaluated++;
+                    if ($goalEval['achieved']) {
+                        $totalGoalsAchieved++;
+                    }
                 }
             }
         }
 
-        $allSellers = User::eligibleSellers()->get();
+        $allSellers = $baseQuery()->get();
 
         return view('livewire.reports.goal-commission-report', [
             'evaluations' => $evaluations,
