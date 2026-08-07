@@ -38,9 +38,10 @@
 
                     <hr class="my-3">
 
-                    <!-- Imprimir -->
-                    <button type="button" onclick="window.print()" class="btn btn-outline-primary btn-sm w-100">
-                        <i class="fas fa-print me-1"></i> Imprimir Reporte
+                    <!-- Generar PDF -->
+                    <button type="button" wire:click="exportPdf" wire:loading.attr="disabled" class="btn btn-outline-danger btn-sm w-100 font-weight-bold">
+                        <span wire:loading.remove wire:target="exportPdf"><i class="fas fa-file-pdf me-1"></i> Descargar Reporte PDF</span>
+                        <span wire:loading wire:target="exportPdf"><i class="fas fa-spinner fa-spin me-1"></i> Generando PDF...</span>
                     </button>
                 </div>
             </div>

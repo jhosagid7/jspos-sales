@@ -1,3 +1,10 @@
+## [1.10.376] - 2026-08-07
+
+### Added
+- **Exportación en PDF PDF Corporativo para Reporte de Comisiones por Metas**:
+  - `goal-commission-report-pdf.blade.php`: Creada la plantilla PDF formal alineada al diseño corporativo de JSPOS Sales (Encabezado institucional con logo, RUC/NIT, tabla de métricas KPI y detalle completo por vendedor).
+  - `GoalCommissionReport.php`: Agregado el método `exportPdf()` para la generación y descarga en stream de PDF mediante DomPDF.
+
 ## [1.10.375] - 2026-08-07
 
 ### Refactored
