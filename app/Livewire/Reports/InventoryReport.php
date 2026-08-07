@@ -26,7 +26,7 @@ class InventoryReport extends Component
     public $category_id = 'all';
     public $product_type = 'products'; // products, raw_materials, all
     
-    // ConfiguraciÃ³n de columnas
+    // Configuración de columnas
     public $columns = [
         'sku' => true,
         'name' => true,
@@ -41,7 +41,7 @@ class InventoryReport extends Component
         'valuation_price' => false
     ];
 
-    // ConfiguraciÃ³n de firmas
+    // Configuración de firmas
     public $signatures = [
         'elaborado' => true,
         'autorizado' => false,
@@ -54,11 +54,11 @@ class InventoryReport extends Component
     public $showPdfModal = false;
     public $pdfUrl = '';
 
-    // Filtros de DepÃ³sito
+    // Filtros de Depósito
     public $selected_warehouses = [];
     public $show_total_stock = true;
 
-    // SelecciÃ³n de productos para imprimir
+    // Selección de productos para imprimir
     public $selected_products = [];
     public $selectAll = false;
     public $show_only_selected = false;

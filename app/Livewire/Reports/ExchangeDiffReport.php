@@ -62,31 +62,31 @@ class ExchangeDiffReport extends Component
         $diffAbs = abs($diff);
         $netResultAbs = abs($netResult);
 
-        $statusTitle = "AnÃ¡lisis Cambiario de Caja General";
+        $statusTitle = "Análisis Cambiario de Caja General";
         if ($this->customer_id) {
             $customer = \App\Models\Customer::find($this->customer_id);
             if ($customer) {
-                $statusTitle = "AnÃ¡lisis Cambiario del Cliente: " . $customer->name;
+                $statusTitle = "Análisis Cambiario del Cliente: " . $customer->name;
             }
         }
 
         // Determine status and messages
         if ($diff < -0.01) {
-            $leakageText = "Se ha detectado una <strong>fuga cambiaria de $" . number_format($diffAbs, 2) . " USD</strong> en el perÃ­odo seleccionado. Esto ocurre porque la tasa a la que se registraron los cobros en BolÃ­vares es inferior a la tasa real de reposiciÃ³n del mercado (tasa Binance).";
+            $leakageText = "Se ha detectado una <strong>fuga cambiaria de $" . number_format($diffAbs, 2) . " USD</strong> en el período seleccionado. Esto ocurre porque la tasa a la que se registraron los cobros en Bolívares es inferior a la tasa real de reposición del mercado (tasa Binance).";
             $leakageAlert = "danger";
         } else {
-            $leakageText = "No se registran pÃ©rdidas por diferencial cambiario directo ($" . number_format($diff, 2) . " USD). Las tasas aplicadas en los cobros se mantuvieron alineadas o por encima del mercado de reposiciÃ³n.";
+            $leakageText = "No se registran pérdidas por diferencial cambiario directo ($" . number_format($diff, 2) . " USD). Las tasas aplicadas en los cobros se mantuvieron alineadas o por encima del mercado de reposición.";
             $leakageAlert = "success";
         }
 
         if ($netResult < 0) {
-            $surchargeEvaluation = "<strong>Insuficiencia de CojÃ­n</strong>: El recargo por diferencial facturado ($" . number_format($surcharges, 2) . " USD) <strong>no logrÃ³ cubrir</strong> la fuga cambiaria. La empresa presenta una pÃ©rdida neta real de <strong>$" . number_format($netResultAbs, 2) . " USD</strong>.";
+            $surchargeEvaluation = "<strong>Insuficiencia de Cojín</strong>: El recargo por diferencial facturado ($" . number_format($surcharges, 2) . " USD) <strong>no logró cubrir</strong> la fuga cambiaria. La empresa presenta una pérdida neta real de <strong>$" . number_format($netResultAbs, 2) . " USD</strong>.";
             $surchargeAlert = "danger";
-            $surchargeTip = "Se sugiere evaluar un incremento en el porcentaje de recargo por diferencial cambiario para los clientes con acuerdos BCV (actualmente cobrando menos del costo real de reposiciÃ³n), o incentivar el cobro directo en DÃ³lares/Zelle.";
+            $surchargeTip = "Se sugiere evaluar un incremento en el porcentaje de recargo por diferencial cambiario para los clientes con acuerdos BCV (actualmente cobrando menos del costo real de reposición), o incentivar el cobro directo en Dólares/Zelle.";
         } else {
-            $surchargeEvaluation = "<strong>CojÃ­n Eficiente</strong>: El recargo por diferencial facturado ($" . number_format($surcharges, 2) . " USD) <strong>logrÃ³ cubrir exitosamente</strong> la fuga cambiaria, generando un beneficio neto de devaluaciÃ³n de <strong>$" . number_format($netResult, 2) . " USD</strong>.";
+            $surchargeEvaluation = "<strong>Cojín Eficiente</strong>: El recargo por diferencial facturado ($" . number_format($surcharges, 2) . " USD) <strong>logró cubrir exitosamente</strong> la fuga cambiaria, generando un beneficio neto de devaluación de <strong>$" . number_format($netResult, 2) . " USD</strong>.";
             $surchargeAlert = "success";
-            $surchargeTip = "La estrategia actual de recargo y tasas de cobro estÃ¡ protegiendo adecuadamente el valor real del inventario frente a la devaluaciÃ³n.";
+            $surchargeTip = "La estrategia actual de recargo y tasas de cobro está protegiendo adecuadamente el valor real del inventario frente a la devaluación.";
         }
 
         // Top 3 customer/invoice leaks
@@ -138,16 +138,16 @@ class ExchangeDiffReport extends Component
         return '
         <div class="exchange-analysis">
             <h4 class="text-primary font-weight-bold mb-3"><i class="fas fa-balance-scale mr-2"></i> ' . $statusTitle . '</h4>
-            <p class="text-muted">Este anÃ¡lisis diagnostica la eficiencia cambiaria de los cobros recibidos en BolÃ­vares y el impacto de la devaluaciÃ³n sobre las cuentas por cobrar:</p>
+            <p class="text-muted">Este análisis diagnostica la eficiencia cambiaria de los cobros recibidos en Bolívares y el impacto de la devaluación sobre las cuentas por cobrar:</p>
             
             <div class="row mt-4">
                 <div class="col-sm-12 col-md-6 mb-3">
                     <div class="card bg-light border-0 shadow-none p-3 h-100">
                         <h6 class="font-weight-bold text-dark"><i class="fas fa-chart-line text-info mr-1"></i> Flujo Cambiario General</h6>
                         <ul class="list-unstyled mt-2" style="line-height: 1.8;">
-                            <li>â€¢ <strong>Monto Facturado (USD):</strong> $' . number_format($invoiced, 2) . '</li>
-                            <li>â€¢ <strong>Abonos Descontados (USD):</strong> $' . number_format($credited, 2) . '</li>
-                            <li>â€¢ <strong>Valor Real Ingresado (USD):</strong> $' . number_format($real, 2) . '</li>
+                            <li>• <strong>Monto Facturado (USD):</strong> $' . number_format($invoiced, 2) . '</li>
+                            <li>• <strong>Abonos Descontados (USD):</strong> $' . number_format($credited, 2) . '</li>
+                            <li>• <strong>Valor Real Ingresado (USD):</strong> $' . number_format($real, 2) . '</li>
                         </ul>
                     </div>
                 </div>
@@ -155,9 +155,9 @@ class ExchangeDiffReport extends Component
                     <div class="card bg-light border-0 shadow-none p-3 h-100">
                         <h6 class="font-weight-bold text-dark"><i class="fas fa-shield-alt text-warning mr-1"></i> Cobertura y Recargos</h6>
                         <ul class="list-unstyled mt-2" style="line-height: 1.8;">
-                            <li>â€¢ <strong>Diferencial Neto de Tasa:</strong> <span class="' . ($diff < 0 ? 'text-danger' : 'text-success') . ' font-weight-bold">$' . number_format($diff, 2) . ' USD</span></li>
-                            <li>â€¢ <strong>CojÃ­n de Recargo Facturado:</strong> <span class="text-warning font-weight-bold">+$' . number_format($surcharges, 2) . ' USD</span></li>
-                            <li>â€¢ <strong>Resultado Cambiario Neto:</strong> <span class="' . ($netResult < 0 ? 'text-danger' : 'text-success') . ' font-weight-bold">$' . number_format($netResult, 2) . ' USD</span></li>
+                            <li>• <strong>Diferencial Neto de Tasa:</strong> <span class="' . ($diff < 0 ? 'text-danger' : 'text-success') . ' font-weight-bold">$' . number_format($diff, 2) . ' USD</span></li>
+                            <li>• <strong>Cojín de Recargo Facturado:</strong> <span class="text-warning font-weight-bold">+$' . number_format($surcharges, 2) . ' USD</span></li>
+                            <li>• <strong>Resultado Cambiario Neto:</strong> <span class="' . ($netResult < 0 ? 'text-danger' : 'text-success') . ' font-weight-bold">$' . number_format($netResult, 2) . ' USD</span></li>
                         </ul>
                     </div>
                 </div>
@@ -169,7 +169,7 @@ class ExchangeDiffReport extends Component
             </div>
 
             <div class="alert alert-' . $surchargeAlert . ' mt-3 p-3">
-                <h6 class="alert-heading font-weight-bold mb-1"><i class="fas fa-shield-alt mr-1"></i> Eficacia de la Cobertura (CojÃ­n)</h6>
+                <h6 class="alert-heading font-weight-bold mb-1"><i class="fas fa-shield-alt mr-1"></i> Eficacia de la Cobertura (Cojín)</h6>
                 <p class="mb-0 f-12">' . $surchargeEvaluation . '</p>
             </div>
 
@@ -177,7 +177,7 @@ class ExchangeDiffReport extends Component
 
             <div class="card border-warning mt-4 bg-warning-light" style="background-color: #fff9e6; border: 1px solid #ffeeba;">
                 <div class="card-body p-3">
-                    <h6 class="font-weight-bold text-warning mb-2" style="color: #856404 !important;"><i class="fas fa-lightbulb"></i> Acciones de OptimizaciÃ³n Financiera</h6>
+                    <h6 class="font-weight-bold text-warning mb-2" style="color: #856404 !important;"><i class="fas fa-lightbulb"></i> Acciones de Optimización Financiera</h6>
                     <p class="mb-0 f-12" style="color: #856404 !important;">' . $surchargeTip . '</p>
                 </div>
             </div>
@@ -186,7 +186,7 @@ class ExchangeDiffReport extends Component
 
     public function mount()
     {
-        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'AuditorÃ­a de Diferencial Cambiario']);
+        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'Auditoría de Diferencial Cambiario']);
         
         // Default to current month
         $this->dateFrom = Carbon::now()->startOfMonth()->format('Y-m-d');
@@ -458,7 +458,7 @@ class ExchangeDiffReport extends Component
                     'data' => $diffDataset
                 ],
                 [
-                    'name' => 'CojÃ­n de Diferencial Facturado',
+                    'name' => 'Cojín de Diferencial Facturado',
                     'data' => $surchargeDataset
                 ]
             ]
@@ -506,10 +506,10 @@ class ExchangeDiffReport extends Component
             if ($p->payment_agreement === 'BCV' || $surchargePortion > 0) {
                 if ($netDiff < -0.01) {
                     $status = 'red';
-                    $msg = 'Fuga Real (CojÃ­n Insuficiente)';
+                    $msg = 'Fuga Real (Cojín Insuficiente)';
                 } else {
                     $status = 'green';
-                    $msg = 'CojÃ­n Eficiente';
+                    $msg = 'Cojín Eficiente';
                 }
             } else {
                 if ($diff < -0.01) {
@@ -517,7 +517,7 @@ class ExchangeDiffReport extends Component
                     $msg = 'Fuga de Capital';
                 } elseif (abs($payRate - $binanceRate) > 0.01) {
                     $status = 'orange';
-                    $msg = 'DesviaciÃ³n de Tasa';
+                    $msg = 'Desviación de Tasa';
                 }
             }
 
@@ -610,10 +610,10 @@ class ExchangeDiffReport extends Component
                 if ($p->payment_agreement === 'BCV' || $surchargePortion > 0) {
                     if ($netDiff < -0.01) {
                         $status = 'red';
-                        $msg = 'Fuga Real (CojÃ­n Insuficiente)';
+                        $msg = 'Fuga Real (Cojín Insuficiente)';
                     } else {
                         $status = 'green';
-                        $msg = 'CojÃ­n Eficiente';
+                        $msg = 'Cojín Eficiente';
                     }
                 } else {
                     if ($diff < -0.01) {
@@ -621,7 +621,7 @@ class ExchangeDiffReport extends Component
                         $msg = 'Fuga de Capital';
                     } elseif (abs($payRate - $binanceRate) > 0.01) {
                         $status = 'orange';
-                        $msg = 'DesviaciÃ³n de Tasa';
+                        $msg = 'Desviación de Tasa';
                     }
                 }
 

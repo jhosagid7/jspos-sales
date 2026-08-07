@@ -1,3 +1,9 @@
+## [1.10.381] - 2026-08-07
+
+### Fixed
+- **Corrección de Codificación de Caracteres UTF-8 (Acentos y Caracteres Especiales)**:
+  - Corregidas las secuencias con doble codificación UTF-8 / ISO-8859-1 (como `DiagnÃ³stico`, `AnÃ¡lisis`, `proyecciÃ³n`, `recuperaciÃ³n`) en los componentes de reporte (`CashFlowForecastReport`, `ExchangeDiffReport`, `InventoryReport`, `StrategicDashboard`, `BillingOperatorsReport`, `ProductMovementsReport`, `SalesAnalysisReport`, `SellersPerformanceReport`, etc.), restaurando la visualización impecable de tildes y caracteres en español.
+
 ## [1.10.380] - 2026-08-07
 
 ### Added

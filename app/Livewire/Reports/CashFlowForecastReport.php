@@ -73,7 +73,7 @@ class CashFlowForecastReport extends Component
 
     public function mount()
     {
-        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'ProyecciÃ³n de Flujo y Cobranza']);
+        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'Proyección de Flujo y Cobranza']);
 
         // Default to current month
         $this->dateFrom = Carbon::now()->startOfMonth()->format('Y-m-d');
@@ -209,26 +209,26 @@ class CashFlowForecastReport extends Component
                 $status = 'vencido';
                 if ($daysDiff <= 7) {
                     $bucket = 'vencido_1_7';
-                    $statusText = 'Vencido 1-7 dÃ­as';
+                    $statusText = 'Vencido 1-7 días';
                 } elseif ($daysDiff <= 15) {
                     $bucket = 'vencido_8_15';
-                    $statusText = 'Vencido 8-15 dÃ­as';
+                    $statusText = 'Vencido 8-15 días';
                 } else {
                     $bucket = 'vencido_critico';
-                    $statusText = 'Vencido >15 dÃ­as';
+                    $statusText = 'Vencido >15 días';
                 }
             } else {
                 $status = 'corriente';
                 $daysRemaining = abs($daysDiff);
                 if ($daysRemaining <= 7) {
                     $bucket = 'corriente_1_7';
-                    $statusText = 'Por Vencer 1-7 dÃ­as';
+                    $statusText = 'Por Vencer 1-7 días';
                 } elseif ($daysRemaining <= 14) {
                     $bucket = 'corriente_8_14';
-                    $statusText = 'Por Vencer 8-14 dÃ­as';
+                    $statusText = 'Por Vencer 8-14 días';
                 } else {
                     $bucket = 'corriente_largo';
-                    $statusText = 'Por Vencer >14 dÃ­as';
+                    $statusText = 'Por Vencer >14 días';
                 }
             }
 
@@ -506,15 +506,15 @@ class CashFlowForecastReport extends Component
 
         $ceiClass = 'success';
         $ceiStatus = 'Excelente';
-        $ceiTip = 'La cobranza estÃ¡ al dÃ­a y el capital fluye adecuadamente hacia la caja.';
+        $ceiTip = 'La cobranza está al día y el capital fluye adecuadamente hacia la caja.';
         if ($cei < 70) {
             $ceiClass = 'danger';
-            $ceiStatus = 'CrÃ­tico';
-            $ceiTip = 'Riesgo alto de iliquidez. Gran parte del capital a crÃ©dito estÃ¡ estancado en cartera vencida. Se sugiere pausar nuevos crÃ©ditos o despachos.';
+            $ceiStatus = 'Crítico';
+            $ceiTip = 'Riesgo alto de iliquidez. Gran parte del capital a crédito está estancado en cartera vencida. Se sugiere pausar nuevos créditos o despachos.';
         } elseif ($cei < 85) {
             $ceiClass = 'warning';
-            $ceiStatus = 'Aceptable con DesviaciÃ³n';
-            $ceiTip = 'La recuperaciÃ³n es regular. Hay facturas vencidas acumulÃ¡ndose que requieren seguimiento inmediato.';
+            $ceiStatus = 'Aceptable con Desviación';
+            $ceiTip = 'La recuperación es regular. Hay facturas vencidas acumulándose que requieren seguimiento inmediato.';
         }
 
         // Recommendations based on DSO and Buckets
@@ -523,51 +523,51 @@ class CashFlowForecastReport extends Component
 
         return '
         <div class="cash-flow-analysis">
-            <h4 class="text-primary font-weight-bold mb-3"><i class="fas fa-chart-line mr-2"></i> DiagnÃ³stico de Flujo de Caja y Cobranza</h4>
-            <p class="text-muted">AnÃ¡lisis detallado de la recuperaciÃ³n de deudas y la proyecciÃ³n de ingresos por ventas a crÃ©dito para la toma de decisiones:</p>
+            <h4 class="text-primary font-weight-bold mb-3"><i class="fas fa-chart-line mr-2"></i> Diagnóstico de Flujo de Caja y Cobranza</h4>
+            <p class="text-muted">Análisis detallado de la recuperación de deudas y la proyección de ingresos por ventas a crédito para la toma de decisiones:</p>
             
             <div class="row mt-4">
                 <div class="col-sm-12 col-md-6 mb-3">
                     <div class="card bg-light border-0 shadow-none p-3 h-100">
-                        <h6 class="font-weight-bold text-dark"><i class="fas fa-wallet text-info mr-1"></i> Cartera de CrÃ©dito Actual</h6>
+                        <h6 class="font-weight-bold text-dark"><i class="fas fa-wallet text-info mr-1"></i> Cartera de Crédito Actual</h6>
                         <ul class="list-unstyled mt-2" style="line-height: 1.8;">
-                            <li>â€¢ <strong>Deuda Total en Calle:</strong> $' . number_format($metrics['totalDebt'], 2) . ' USD</li>
-                            <li>â€¢ <strong>Deuda Corriente (Al dÃ­a):</strong> $' . number_format($currentDebt, 2) . ' USD</li>
-                            <li>â€¢ <strong>Deuda Vencida (Atraso):</strong> <span class="text-danger font-weight-bold">$' . number_format($overdueDebt, 2) . ' USD</span></li>
+                            <li>• <strong>Deuda Total en Calle:</strong> $' . number_format($metrics['totalDebt'], 2) . ' USD</li>
+                            <li>• <strong>Deuda Corriente (Al día):</strong> $' . number_format($currentDebt, 2) . ' USD</li>
+                            <li>• <strong>Deuda Vencida (Atraso):</strong> <span class="text-danger font-weight-bold">$' . number_format($overdueDebt, 2) . ' USD</span></li>
                         </ul>
                     </div>
                 </div>
                 <div class="col-sm-12 col-md-6 mb-3">
                     <div class="card bg-light border-0 shadow-none p-3 h-100">
-                        <h6 class="font-weight-bold text-dark"><i class="fas fa-hand-holding-usd text-success mr-1"></i> DesempeÃ±o del Rango</h6>
+                        <h6 class="font-weight-bold text-dark"><i class="fas fa-hand-holding-usd text-success mr-1"></i> Desempeño del Rango</h6>
                         <ul class="list-unstyled mt-2" style="line-height: 1.8;">
-                            <li>â€¢ <strong>Cobrado Realizado:</strong> $' . number_format($totalCollected, 2) . ' USD</li>
-                            <li>â€¢ <strong>Eficiencia de Cobranza (CEI):</strong> <span class="badge badge-' . $ceiClass . '">' . number_format($cei, 2) . '% (' . $ceiStatus . ')</span></li>
-                            <li>â€¢ <strong>Atraso Promedio (DSO):</strong> <span class="text-danger font-weight-bold">' . number_format($dso, 1) . ' dÃ­as</span></li>
+                            <li>• <strong>Cobrado Realizado:</strong> $' . number_format($totalCollected, 2) . ' USD</li>
+                            <li>• <strong>Eficiencia de Cobranza (CEI):</strong> <span class="badge badge-' . $ceiClass . '">' . number_format($cei, 2) . '% (' . $ceiStatus . ')</span></li>
+                            <li>• <strong>Atraso Promedio (DSO):</strong> <span class="text-danger font-weight-bold">' . number_format($dso, 1) . ' días</span></li>
                         </ul>
                     </div>
                 </div>
             </div>
 
             <div class="alert alert-' . $ceiClass . ' mt-3 p-3">
-                <h6 class="alert-heading font-weight-bold mb-1"><i class="fas fa-info-circle mr-1"></i> EvaluaciÃ³n del Ãndice CEI</h6>
+                <h6 class="alert-heading font-weight-bold mb-1"><i class="fas fa-info-circle mr-1"></i> Evaluación del Índice CEI</h6>
                 <p class="mb-0 f-12">' . $ceiTip . '</p>
             </div>
 
             <div class="mt-4">
-                <h6 class="font-weight-bold text-dark"><i class="fas fa-clock mr-1"></i> ProyecciÃ³n de Flujo a Corto Plazo (0-7 dÃ­as):</h6>
+                <h6 class="font-weight-bold text-dark"><i class="fas fa-clock mr-1"></i> Proyección de Flujo a Corto Plazo (0-7 días):</h6>
                 <p class="text-muted f-12 mb-2">Monto estimado a ingresar esta semana por vencimientos corrientes: <strong>$' . number_format($shortTermFlow, 2) . ' USD</strong>.</p>
                 
-                <h6 class="font-weight-bold text-dark mt-3"><i class="fas fa-exclamation-triangle text-danger mr-1"></i> ConcentraciÃ³n de Cartera CrÃ­tica (>15 dÃ­as vencida):</h6>
-                <p class="text-muted f-12 mb-0">Deuda vencida de cobro difÃ­cil que supera los 15 dÃ­as de atraso: <strong class="text-danger">$' . number_format($criticalOverdue, 2) . ' USD</strong>.</p>
+                <h6 class="font-weight-bold text-dark mt-3"><i class="fas fa-exclamation-triangle text-danger mr-1"></i> Concentración de Cartera Crítica (>15 días vencida):</h6>
+                <p class="text-muted f-12 mb-0">Deuda vencida de cobro difícil que supera los 15 días de atraso: <strong class="text-danger">$' . number_format($criticalOverdue, 2) . ' USD</strong>.</p>
             </div>
 
             <div class="card border-warning mt-4 bg-warning-light" style="background-color: #fff9e6; border: 1px solid #ffeeba;">
                 <div class="card-body p-3">
                     <h6 class="font-weight-bold text-warning mb-2" style="color: #856404 !important;"><i class="fas fa-lightbulb"></i> Acciones de Cobranza Recomendadas</h6>
                     <ul class="mb-0 f-12 text-warning-dark" style="color: #856404 !important; padding-left: 20px;">
-                        ' . ($cei < 85 ? '<li>Activar gestiones de cobro inmediatas sobre clientes con deudas mayores a 7 dÃ­as.</li>' : '') . '
-                        ' . ($criticalOverdue > 0 ? '<li>Pausar despachos o suspender lÃ­nea de crÃ©dito a los clientes que figuran en el bucket de "Vencido CrÃ­tico".</li>' : '') . '
+                        ' . ($cei < 85 ? '<li>Activar gestiones de cobro inmediatas sobre clientes con deudas mayores a 7 días.</li>' : '') . '
+                        ' . ($criticalOverdue > 0 ? '<li>Pausar despachos o suspender línea de crédito a los clientes que figuran en el bucket de "Vencido Crítico".</li>' : '') . '
                         <li>Incentivar descuentos por pronto pago para acelerar la velocidad del efectivo.</li>
                     </ul>
                 </div>

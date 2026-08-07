@@ -32,7 +32,7 @@ class BillingOperatorsReport extends Component
         
         $chartData = $this->getChartData();
         $this->dispatch('updateChart', labels: $chartData['labels'], datasets: $chartData['datasets']);
-        $this->dispatch('noty', msg: 'ANÃLISIS DE OPERADORES ACTUALIZADO');
+        $this->dispatch('noty', msg: 'ANÁLISIS DE OPERADORES ACTUALIZADO');
     }
 
     public function updated($propertyName)
@@ -65,7 +65,7 @@ class BillingOperatorsReport extends Component
 
     /**
      * Precision quality score formula:
-     * Score = max(0, 100 - (((Facturas Anuladas * 1.5) + Facturas Modificadas + (Facturas con DevoluciÃ³n * 1.2)) / Total Facturas * 100))
+     * Score = max(0, 100 - (((Facturas Anuladas * 1.5) + Facturas Modificadas + (Facturas con Devolución * 1.2)) / Total Facturas * 100))
      */
     public static function calculatePrecisionScore($total, $voided, $modified, $returned)
     {

@@ -23,7 +23,7 @@ class SellersPerformanceReport extends Component
 
     public function mount()
     {
-        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'DesempeÃ±o de Vendedores']);
+        session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'Desempeño de Vendedores']);
         $this->dateFrom = Carbon::now()->startOfYear()->format('Y-m-d');
         $this->dateTo = Carbon::now()->format('Y-m-d');
     }
@@ -34,7 +34,7 @@ class SellersPerformanceReport extends Component
         
         $chartData = $this->getChartData();
         $this->dispatch('updateChart', labels: $chartData['labels'], datasets: $chartData['datasets']);
-        $this->dispatch('noty', msg: 'ANÃLISIS DE VENDEDORES ACTUALIZADO');
+        $this->dispatch('noty', msg: 'ANÁLISIS DE VENDEDORES ACTUALIZADO');
     }
 
     public function updated($propertyName)
