@@ -245,6 +245,26 @@
                                          @error('defaultLabelTemplate') <span class="text-danger">{{ $message }}</span> @enderror
                                      </div>
 
+                                     <div class="col-sm-12 col-md-6">
+                                         <label class="form-label">MODO DE ASIGNACIÓN DE VENDEDOR EN VENTAS</label>
+                                         <select wire:model="sellerAssignmentMode" class="form-control">
+                                             <option value="customer_assigned">Vendedor Asignado al Cliente (Automático / Estándar)</option>
+                                             <option value="manual_select">Selección Manual de Vendedor en Caja (Arbitraria)</option>
+                                             <option value="both">Híbrido (Preseleccionar Vendedor del Cliente pero permitir cambio)</option>
+                                         </select>
+                                         @error('sellerAssignmentMode') <span class="text-danger">{{ $message }}</span> @enderror
+                                     </div>
+
+                                     <div class="col-sm-12 col-md-6">
+                                         <label class="form-label">MODELO DE CÁLCULO DE COMISIONES</label>
+                                         <select wire:model="commissionCalculationMode" class="form-control">
+                                             <option value="percentage_threshold">Comisión Porcentual Individual por Venta (Estándar)</option>
+                                             <option value="tiered_goals">Comisiones por Metas Acumuladas de Ventas (Niveles/Premios)</option>
+                                             <option value="both">Permitir Ambos Modelos de Comisión</option>
+                                         </select>
+                                         @error('commissionCalculationMode') <span class="text-danger">{{ $message }}</span> @enderror
+                                     </div>
+
                                     <div class="col-sm-12 col-md-12">
                                         <div class="form-check form-switch pl-0">
                                             <div class="custom-control custom-switch">
@@ -361,6 +381,8 @@
                                         </button>
                                     </div>
                                 </form>
+
+                                @livewire('settings.commission-goals-manager')
                             </div>
                         </div>
 

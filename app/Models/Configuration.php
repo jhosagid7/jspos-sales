@@ -15,6 +15,8 @@ class Configuration extends Model
         'plan_type',
         'addon_modules',
         'business_name',
+        'seller_assignment_mode',
+        'commission_calculation_mode',
         'default_label_template',
         'address',
         'city',

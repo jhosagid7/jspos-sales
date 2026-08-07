@@ -334,6 +334,20 @@
                         @endif
                         @endmodule
 
+                        @if(in_array($sysConfig->seller_assignment_mode ?? 'customer_assigned', ['manual_select', 'both']))
+                        <div class="input-group mb-2" title="Seleccionar Vendedor Asignado a esta Factura">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-user-tie"></i></span>
+                            </div>
+                            <select wire:model="seller_id" class="form-control">
+                                <option value="">-- Seleccionar Vendedor --</option>
+                                @foreach(\App\Models\User::eligibleSellers()->get() as $seller)
+                                    <option value="{{ $seller->id }}">{{ $seller->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        @endif
+
                         <div class="input-group" wire:ignore>
                             <input class="form-control" type="text" id="inputCustomer" placeholder="Buscar Cliente (Shift + C)">
                             <div class="input-group-append">

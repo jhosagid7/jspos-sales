@@ -177,6 +177,26 @@ class User extends Authenticatable
             ->distinct();
     }
 
+    public function commissionGoals()
+    {
+        return $this->belongsToMany(CommissionGoal::class, 'user_commission_goals')->withTimestamps();
+    }
+
+    public function scopeEligibleSellers($query)
+    {
+        return $query->where(function($q) {
+            $q->whereHas('commissionGoals', function($subQ) {
+                $subQ->where('is_active', true);
+            })
+            ->orWhereHas('roles', function($rq) {
+                $rq->whereIn('name', ['Vendedor Foraneo', 'Vendedor foraneo', 'Vendedor', 'vendedor']);
+            })
+            ->orWhere('users.name', 'OFICINA')
+            ->orWhere('users.email', 'oficina@gmail.com');
+        })
+        ->distinct();
+    }
+
     /**
      * Scope to get all users considered "Drivers" based on permissions.
      */

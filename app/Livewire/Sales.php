@@ -52,6 +52,7 @@ class Sales extends Component
 
     public $config, $customer, $iva = 0;
     public $sellerConfig = null; // Store active seller config
+    public $seller_id = null; // Arbitrary assigned seller for this sale
     public $customerConfig = null; // Store active customer config
     public $creditConfig = []; // Store customer credit configuration (Cliente > Vendedor > Global)
     //register customer
@@ -4224,6 +4225,7 @@ class Sales extends Component
                 'seller_tier_2_days' => $tier2Days,
                 'seller_tier_2_percent' => $tier2Percent,
                 'driver_id' => $this->driver_id,
+                'seller_id' => $this->seller_id ?: ($this->customer['seller_id'] ?? null),
                 'payment_agreement' => $agreementToSave,
             ];
 

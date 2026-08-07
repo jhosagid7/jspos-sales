@@ -1,3 +1,13 @@
+## [1.10.371] - 2026-08-07
+
+### Added
+- **Sistema Flexible de Asignación de Vendedores y Comisiones por Metas Acumuladas (SaaS)**:
+  - **Asignación Arbitraria de Vendedores en Ventas**: Conmutador en Configuración para seleccionar la modalidad de asignación de vendedor en caja (`customer_assigned`, `manual_select`, `both`). Añadido selector `<select>` dinámico en el POS filtrado automáticamente por usuarios elegibles.
+  - **Periodicidad Configurable por Meta**: Catálogo de metas de ventas con frecuecia configurable (`diaria`, `semanal`, `quincenal`, `mensual`, `trimestral`, `anual`).
+  - **Asignación de Metas a Usuarios**: Matriz interactiva de casillas en Configuración para asignar metas a cualquier usuario.
+  - **Cortes Automáticos y Reporte de Comisiones por Metas**: Nuevo servicio `GoalCommissionService` y reporte interactivo `GoalCommissionReport` en `/reports/goal-commissions` para evaluar las ventas acumuladas por período y calcular los premios/comisiones alcanzados.
+  - **Cero Regresión**: Totalmente compatible con la lógica preexistente de comisiones porcentuales y vendedores asignados a clientes.
+
 ## [1.10.370] - 2026-08-07
 
 ### Added

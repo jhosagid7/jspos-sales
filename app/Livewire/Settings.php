@@ -13,6 +13,8 @@ class Settings extends Component
     public $setting_id = 0, $businessName, $phone, $taxpayerId, $vat, $printerName, $website, $leyend, $creditDays = 15, $address, $city, $creditPurchaseDays, $confirmationCode, $decimals;
     public $checkStockReservation, $salesViewMode, $salesEditTimeout, $salesShowRateBadge, $autoSelectDefaultCustomer;
     public $defaultLabelTemplate = 'standard';
+    public $sellerAssignmentMode = 'customer_assigned';
+    public $commissionCalculationMode = 'percentage_threshold';
     public $salesShowCommissions, $salesShowFreight, $salesShowBreakdownFreight, $salesShowWarehouse, $salesShowDriver;
     public $globalCommission1Threshold, $globalCommission1Percentage, $globalCommission2Threshold, $globalCommission2Percentage;
     public $globalAllowCredit, $globalCreditDays, $globalCreditLimit, $globalUsdPaymentDiscount, $globalUsdPaymentDiscountTag;
@@ -104,6 +106,8 @@ class Settings extends Component
             $this->checkStockReservation = (bool) $config->check_stock_reservation;
             $this->autoSelectDefaultCustomer = (bool) $config->auto_select_default_customer;
             $this->defaultLabelTemplate = $config->default_label_template ?? 'standard';
+            $this->sellerAssignmentMode = $config->seller_assignment_mode ?? 'customer_assigned';
+            $this->commissionCalculationMode = $config->commission_calculation_mode ?? 'percentage_threshold';
             $this->salesViewMode = $config->sales_view_mode;
             $this->salesShowRateBadge = (bool) ($config->sales_show_rate_badge ?? true);
             $this->salesShowCommissions = (bool) $config->sales_show_commissions;
@@ -335,6 +339,8 @@ class Settings extends Component
                 'check_stock_reservation' => $this->checkStockReservation ? 1 : 0,
                 'auto_select_default_customer' => $this->autoSelectDefaultCustomer ? 1 : 0,
                 'default_label_template' => $this->defaultLabelTemplate,
+                'seller_assignment_mode' => $this->sellerAssignmentMode,
+                'commission_calculation_mode' => $this->commissionCalculationMode,
                 'sales_view_mode' => $this->salesViewMode,
                 'sales_show_rate_badge' => $this->salesShowRateBadge,
                 'sales_show_commissions' => $this->salesShowCommissions,
