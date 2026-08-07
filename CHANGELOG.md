@@ -1,3 +1,10 @@
+## [1.10.377] - 2026-08-07
+
+### Added
+- **Modal de Vista Previa PDF Interactivo en Pantalla**:
+  - `GoalCommissionReport.php`: Agregados los métodos `openPdfPreview()` y `closePdfPreview()` para renderizar la previsualización del PDF en modal flotante interactivo.
+  - `goal-commission-report.blade.php`: Incorporados los dos botones estándar en paralelo (**Vista Previa** con ícono de ojo y **PDF** con descarga directa) y la ventana emergente modal con visor `<iframe>` embebido.
+
 ## [1.10.376] - 2026-08-07
 
 ### Added

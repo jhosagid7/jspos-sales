@@ -38,11 +38,18 @@
 
                     <hr class="my-3">
 
-                    <!-- Generar PDF -->
-                    <button type="button" wire:click="exportPdf" wire:loading.attr="disabled" class="btn btn-outline-danger btn-sm w-100 font-weight-bold">
-                        <span wire:loading.remove wire:target="exportPdf"><i class="fas fa-file-pdf me-1"></i> Descargar Reporte PDF</span>
-                        <span wire:loading wire:target="exportPdf"><i class="fas fa-spinner fa-spin me-1"></i> Generando PDF...</span>
-                    </button>
+                    <!-- Botones PDF (Vista Previa y Descarga) -->
+                    <div class="d-flex gap-2">
+                        <button type="button" wire:click="openPdfPreview" wire:loading.attr="disabled" class="btn btn-outline-info btn-sm flex-fill font-weight-bold">
+                            <span wire:loading.remove wire:target="openPdfPreview"><i class="fas fa-eye me-1"></i> Vista Previa</span>
+                            <span wire:loading wire:target="openPdfPreview"><i class="fas fa-spinner fa-spin me-1"></i> Cargando...</span>
+                        </button>
+
+                        <button type="button" wire:click="exportPdf" wire:loading.attr="disabled" class="btn btn-outline-danger btn-sm flex-fill font-weight-bold">
+                            <span wire:loading.remove wire:target="exportPdf"><i class="fas fa-file-pdf me-1"></i> PDF</span>
+                            <span wire:loading wire:target="exportPdf"><i class="fas fa-spinner fa-spin me-1"></i> PDF...</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -174,4 +181,30 @@
             @endforelse
         </div>
     </div>
+
+    <!-- Modal Visor PDF (Estilo Estándar del Sistema) -->
+    @if ($showPdfModal)
+        <div class="modal fade show" tabindex="-1" role="dialog" style="display: block; background: rgba(0,0,0,0.5); z-index: 1050;">
+            <div class="modal-dialog modal-xl" role="document" style="max-width: 90%; height: 90vh; margin: 30px auto;">
+                <div class="modal-content" style="height: 100%;">
+                    <div class="modal-header bg-dark p-2 text-white d-flex justify-content-between align-items-center">
+                        <h5 class="modal-title text-white mb-0">
+                            <i class="fas fa-file-pdf text-danger me-2"></i> Vista Previa — Reporte de Comisiones por Metas
+                        </h5>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-light me-2" wire:click="exportPdf">
+                                <i class="fa fa-download me-1"></i> Descargar PDF
+                            </button>
+                            <button type="button" class="close text-white" wire:click.prevent="closePdfPreview" aria-label="Close" style="outline: none; background: transparent; border: none;">
+                                <span aria-hidden="true" style="font-size: 24px; color: white;">&times;</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="modal-body p-0" style="height: calc(100% - 55px); overflow: hidden;">
+                        <iframe src="{{ $pdfUrl }}" style="width: 100%; height: 100%; border: none;"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>
