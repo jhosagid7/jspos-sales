@@ -1,3 +1,10 @@
+## [1.10.368] - 2026-08-07
+
+### Fixed
+- **Optimización del Proceso de Carga y Validación de Archivos ZIP en Livewire**:
+  - `UpdateSystem.php`: Eliminada la regla estricta `mimes:zip` de Laravel (la cual rechazaba la carga en Windows por diferencias de MIME tipo `application/x-zip-compressed`) reemplazándola por validación de extensión real `.zip`.
+  - `update-system.blade.php`: Añadido indicador de progreso visual en tiempo real (`wire:model.live` y `wire:loading`) al seleccionar el archivo `.zip` para evitar clics prematuros antes de completar la subida.
+
 ## [1.10.367] - 2026-08-07
 
 ### Fixed

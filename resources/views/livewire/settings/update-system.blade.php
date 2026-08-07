@@ -85,11 +85,14 @@
                             <form wire:submit.prevent="processManualZip">
                                 <div class="row align-items-center">
                                     <div class="col-md-8 mb-2">
-                                        <input type="file" wire:model="manualZip" class="form-control" accept=".zip">
+                                        <input type="file" wire:model.live="manualZip" class="form-control" accept=".zip">
+                                        <div wire:loading wire:target="manualZip" class="text-primary small mt-1 font-weight-bold">
+                                            <i class="fas fa-spinner fa-spin me-1"></i> Cargando paquete ZIP al servidor... por favor espere.
+                                        </div>
                                         @error('manualZip') <span class="text-danger small d-block mt-1">{{ $message }}</span> @enderror
                                     </div>
                                     <div class="col-md-4 mb-2">
-                                        <button type="submit" class="btn btn-secondary px-4 w-100" wire:loading.attr="disabled" @if(!$manualZip) disabled @endif>
+                                        <button type="submit" class="btn btn-secondary px-4 w-100" wire:loading.attr="disabled" wire:target="manualZip, processManualZip" @if(!$manualZip) disabled @endif>
                                             <i class="fas fa-upload me-2"></i> Instalar ZIP Manual
                                         </button>
                                     </div>

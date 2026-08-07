@@ -96,13 +96,18 @@ class UpdateSystem extends Component
     public function processManualZip(UpdateService $updater)
     {
         $this->validate([
-            'manualZip' => 'required|file|mimes:zip|max:204800', // max 200MB
+            'manualZip' => 'required|file|max:204800', // max 200MB
         ], [
             'manualZip.required' => 'Debe seleccionar un archivo ZIP de actualización.',
             'manualZip.file' => 'El archivo cargado no es válido.',
-            'manualZip.mimes' => 'El archivo debe ser un paquete comprimido en formato .ZIP.',
             'manualZip.max' => 'El archivo comprimido supera el tamaño máximo permitido (200 MB).',
         ]);
+
+        $extension = strtolower($this->manualZip->getClientOriginalExtension());
+        if ($extension !== 'zip') {
+            $this->addError('manualZip', 'El archivo debe tener extensión .zip');
+            return;
+        }
 
         $this->status = 'updating';
         $this->progress = 10;
