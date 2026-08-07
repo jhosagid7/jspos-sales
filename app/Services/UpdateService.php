@@ -37,40 +37,80 @@ class UpdateService
     public function checkUpdate()
     {
         $url = "https://api.github.com/repos/{$this->owner}/{$this->repo}/releases/latest";
-        
+        $currentVersion = $this->getCurrentVersion();
+        $v2 = ltrim($currentVersion, 'v');
+        $errorMessage = null;
+
         try {
             $response = Http::withHeaders([
                 'User-Agent' => 'JSPOS-Updater'
-            ])->timeout(10)->get($url);
+            ])->timeout(25)->get($url);
             
             if ($response->successful()) {
                 $data = $response->json();
-                $latestVersion = $data['tag_name'];
-                $currentVersion = $this->getCurrentVersion();
-
-                // Remove 'v' prefix for version comparison
+                $latestVersion = $data['tag_name'] ?? '';
                 $v1 = ltrim($latestVersion, 'v');
-                $v2 = ltrim($currentVersion, 'v');
 
                 if (version_compare($v1, $v2, '>')) {
                     return [
                         'new_version' => 'v' . $v1,
                         'current_version' => $currentVersion,
-                        'url' => $data['zipball_url'] ?? null,
+                        'url' => $data['zipball_url'] ?? "https://github.com/{$this->owner}/{$this->repo}/archive/refs/tags/{$latestVersion}.zip",
                         'body' => $data['body'] ?? '',
                         'has_update' => true
                     ];
                 }
+                
+                return [
+                    'has_update' => false,
+                    'current_version' => $currentVersion
+                ];
             } else {
-                Log::warning("GitHub update check returned status {$response->status()}: " . $response->body());
+                Log::warning("GitHub releases check returned status {$response->status()}: " . $response->body());
+                $errorMessage = "Respuesta de GitHub (" . $response->status() . "): " . ($response->status() === 403 ? 'Límite de consultas excedido en esta red IP' : 'No se pudo consultar el servidor de versiones');
             }
         } catch (\Exception $e) {
-            Log::error("Update check failed: " . $e->getMessage());
+            Log::error("Update check via releases failed: " . $e->getMessage());
+            $errorMessage = "Error de conexión: " . $e->getMessage();
+        }
+
+        // Fallback: Check tags endpoint if releases endpoint was rate-limited or failed
+        try {
+            $tagsUrl = "https://api.github.com/repos/{$this->owner}/{$this->repo}/tags";
+            $tagsResponse = Http::withHeaders([
+                'User-Agent' => 'JSPOS-Updater'
+            ])->timeout(25)->get($tagsUrl);
+
+            if ($tagsResponse->successful()) {
+                $tags = $tagsResponse->json();
+                if (is_array($tags) && count($tags) > 0) {
+                    $latestTag = $tags[0]['name'] ?? '';
+                    $v1 = ltrim($latestTag, 'v');
+
+                    if (version_compare($v1, $v2, '>')) {
+                        return [
+                            'new_version' => 'v' . $v1,
+                            'current_version' => $currentVersion,
+                            'url' => "https://github.com/{$this->owner}/{$this->repo}/archive/refs/tags/{$latestTag}.zip",
+                            'body' => 'Nueva versión detectada desde repositorio oficial de etiquetas.',
+                            'has_update' => true
+                        ];
+                    }
+                    
+                    return [
+                        'has_update' => false,
+                        'current_version' => $currentVersion
+                    ];
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error("Update check via tags failed: " . $e->getMessage());
         }
 
         return [
             'has_update' => false,
-            'current_version' => $this->getCurrentVersion()
+            'current_version' => $currentVersion,
+            'error' => $errorMessage ?? 'No se pudo conectar con el servidor de actualizaciones. Por favor verifique su conexión a internet.'
         ];
     }
 

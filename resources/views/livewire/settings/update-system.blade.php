@@ -70,6 +70,35 @@
                         @endif
                     </div>
 
+                    <!-- Manual ZIP Upload Section -->
+                    @if(!in_array($status, ['updating']))
+                    <div class="card mt-3 shadow-sm border-0">
+                        <div class="card-header bg-light border-0 py-3">
+                            <h5 class="card-title m-0 text-dark font-weight-bold">
+                                <i class="fas fa-file-archive me-2 text-secondary"></i> Actualización Manual mediante Archivo (.ZIP)
+                            </h5>
+                        </div>
+                        <div class="card-body text-start">
+                            <p class="text-muted small mb-3">
+                                Útil cuando el internet del cliente es muy lento o no puede conectar a GitHub: Selecciona el archivo de actualización <strong>.zip</strong> (desde USB o disco local) para instalarlo de forma instantánea.
+                            </p>
+                            <form wire:submit.prevent="processManualZip">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8 mb-2">
+                                        <input type="file" wire:model="manualZip" class="form-control" accept=".zip">
+                                        @error('manualZip') <span class="text-danger small d-block mt-1">{{ $message }}</span> @enderror
+                                    </div>
+                                    <div class="col-md-4 mb-2">
+                                        <button type="submit" class="btn btn-secondary px-4 w-100" wire:loading.attr="disabled" @if(!$manualZip) disabled @endif>
+                                            <i class="fas fa-upload me-2"></i> Instalar ZIP Manual
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    @endif
+
                     @if($currentReleaseNotes && !in_array($status, ['updating']))
                     <div class="card mt-4 shadow-sm border-0">
                         <div class="card-header bg-light border-0 py-3">

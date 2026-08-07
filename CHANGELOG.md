@@ -1,3 +1,11 @@
+## [1.10.366] - 2026-08-07
+
+### Fixed & Added
+- **Mejoras en Verificación de Actualizaciones e Instalación Manual por ZIP (Modo Offline/Conexión Lenta)**:
+  - `UpdateService.php`: Incrementado el tiempo de espera HTTP a 25 segundos y agregado soporte de contingencia a la API de etiquetas (`/tags`) de GitHub si la API de releases excede el límite de peticiones (403 Rate Limit).
+  - `UpdateService.php`: En caso de fallo de red, se devuelve el mensaje de error explícito para informar al usuario en lugar de responder engañosamente que "el sistema está actualizado".
+  - `UpdateSystem.php` & `update-system.blade.php`: Añadida la opción para **Instalar Actualización Manual desde Archivo .ZIP**, permitiendo actualizar cualquier cliente desde una memoria USB o disco local de forma instantánea sin requerir internet.
+
 ## [1.10.365] - 2026-08-06
 
 ### Changed

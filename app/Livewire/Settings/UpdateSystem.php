@@ -4,9 +4,13 @@ namespace App\Livewire\Settings;
 
 use Livewire\Component;
 use App\Services\UpdateService;
+use Livewire\WithFileUploads;
+use Illuminate\Support\Facades\File;
 
 class UpdateSystem extends Component
 {
+    use WithFileUploads;
+
     public $currentVersion;
     public $newVersion;
     public $hasUpdate = false;
@@ -19,6 +23,7 @@ class UpdateSystem extends Component
     public $rollbacks = [];
     public $selectedBackupFolder = '';
     public $logLines = '';
+    public $manualZip;
 
     public function mount(UpdateService $updater)
     {
@@ -71,7 +76,7 @@ class UpdateSystem extends Component
         
         $result = $updater->checkUpdate();
         
-        if ($result['has_update']) {
+        if (!empty($result['has_update'])) {
             $this->hasUpdate = true;
             $this->newVersion = $result['new_version'];
             $this->updateUrl = $result['url'];
@@ -79,7 +84,44 @@ class UpdateSystem extends Component
             $this->status = 'available';
         } else {
             $this->hasUpdate = false;
-            $this->status = 'up_to_date';
+            if (!empty($result['error'])) {
+                $this->status = 'error';
+                $this->addError('update', $result['error']);
+            } else {
+                $this->status = 'up_to_date';
+            }
+        }
+    }
+
+    public function processManualZip(UpdateService $updater)
+    {
+        $this->validate([
+            'manualZip' => 'required|file|mimes:zip|max:102400', // max 100MB
+        ]);
+
+        $this->status = 'updating';
+        $this->progress = 10;
+        $this->progressStatus = 'Procesando archivo ZIP cargado manualmente...';
+
+        try {
+            $tempPath = storage_path('app/temp_update.zip');
+            File::copy($this->manualZip->getRealPath(), $tempPath);
+            session(['latest_downloaded_update_zip' => $tempPath]);
+
+            $updater->createRollbackBackup($this->currentVersion);
+            $this->progress = 40;
+            $this->progressStatus = 'Instalando actualización...';
+
+            $updater->installUpdate();
+            $this->progress = 80;
+            $this->progressStatus = 'Ejecutando migraciones y limpiando...';
+
+            $updater->runMigrations();
+            $updater->cleanup();
+
+            $this->finish();
+        } catch (\Exception $e) {
+            $this->handleError($e);
         }
     }
 
