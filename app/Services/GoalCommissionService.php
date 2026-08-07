@@ -10,9 +10,9 @@ use Carbon\Carbon;
 class GoalCommissionService
 {
     /**
-     * Obtiene el rango de fechas [inicio, fin] según la periodicidad.
+     * Obtiene el rango de fechas [inicio, fin] según la periodicidad y días de corte.
      */
-    public static function getDateRangeForPeriodicity(string $periodicity, $referenceDate = null): array
+    public static function getDateRangeForPeriodicity(string $periodicity, $referenceDate = null, $goal = null): array
     {
         $date = $referenceDate ? Carbon::parse($referenceDate) : Carbon::now();
         
@@ -23,10 +23,46 @@ class GoalCommissionService
                     'end' => $date->copy()->endOfDay(),
                 ];
             case 'semanal':
-                return [
-                    'start' => $date->copy()->startOfWeek(Carbon::MONDAY),
-                    'end' => $date->copy()->endOfWeek(Carbon::SUNDAY),
+                $startDayStr = strtolower($goal->start_day_of_week ?? 'lunes');
+                $endDayStr = strtolower($goal->end_day_of_week ?? 'domingo');
+
+                $dayMap = [
+                    'lunes' => Carbon::MONDAY,
+                    'martes' => Carbon::TUESDAY,
+                    'miercoles' => Carbon::WEDNESDAY,
+                    'miércoles' => Carbon::WEDNESDAY,
+                    'jueves' => Carbon::THURSDAY,
+                    'viernes' => Carbon::FRIDAY,
+                    'sabado' => Carbon::SATURDAY,
+                    'sábado' => Carbon::SATURDAY,
+                    'domingo' => Carbon::SUNDAY,
                 ];
+
+                $dayIndex = [
+                    'lunes' => 1,
+                    'martes' => 2,
+                    'miercoles' => 3,
+                    'miércoles' => 3,
+                    'jueves' => 4,
+                    'viernes' => 5,
+                    'sabado' => 6,
+                    'sábado' => 6,
+                    'domingo' => 7,
+                ];
+
+                $startConst = $dayMap[$startDayStr] ?? Carbon::MONDAY;
+                $start = $date->copy()->startOfWeek($startConst);
+
+                $startIndex = $dayIndex[$startDayStr] ?? 1;
+                $endIndex = $dayIndex[$endDayStr] ?? 7;
+
+                $daysToAdd = ($endIndex - $startIndex + 7) % 7;
+                if ($daysToAdd === 0 && $startDayStr !== $endDayStr) {
+                    $daysToAdd = 6;
+                }
+
+                $end = $start->copy()->addDays($daysToAdd)->endOfDay();
+                return ['start' => $start, 'end' => $end];
             case 'quincenal':
                 if ($date->day <= 15) {
                     $start = $date->copy()->startOfMonth();
@@ -83,7 +119,7 @@ class GoalCommissionService
      */
     public static function evaluateGoalForUser(User $user, CommissionGoal $goal, $referenceDate = null): array
     {
-        $range = self::getDateRangeForPeriodicity($goal->periodicity, $referenceDate);
+        $range = self::getDateRangeForPeriodicity($goal->periodicity, $referenceDate, $goal);
         $totalSales = self::getSellerTotalSales($user->id, $range['start'], $range['end']);
         
         $achieved = $totalSales >= $goal->target_amount;

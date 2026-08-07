@@ -16,6 +16,8 @@ class CommissionGoal extends Model
         'target_amount',
         'reward_amount',
         'periodicity',
+        'start_day_of_week',
+        'end_day_of_week',
         'is_active',
         'sort_order',
     ];

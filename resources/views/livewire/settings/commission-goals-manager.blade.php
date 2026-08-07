@@ -43,7 +43,7 @@
 
                         <div class="col-md-2">
                             <label class="form-label small font-weight-bold">Frecuencia / Corte <span class="text-danger">*</span></label>
-                            <select wire:model="periodicity" class="form-control form-control-sm">
+                            <select wire:model.live="periodicity" class="form-control form-control-sm">
                                 <option value="diaria">Diaria</option>
                                 <option value="semanal">Semanal</option>
                                 <option value="quincenal">Quincenal</option>
@@ -53,6 +53,34 @@
                             </select>
                             @error('periodicity') <span class="text-danger small d-block">{{ $message }}</span> @enderror
                         </div>
+
+                        @if($periodicity === 'semanal')
+                            <div class="col-md-2">
+                                <label class="form-label small font-weight-bold">Inicio de Semana</label>
+                                <select wire:model="start_day_of_week" class="form-control form-control-sm text-capitalize">
+                                    <option value="lunes">Lunes</option>
+                                    <option value="martes">Martes</option>
+                                    <option value="miercoles">Miércoles</option>
+                                    <option value="jueves">Jueves</option>
+                                    <option value="viernes">Viernes</option>
+                                    <option value="sabado">Sábado</option>
+                                    <option value="domingo">Domingo</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-2">
+                                <label class="form-label small font-weight-bold">Cierre de Semana</label>
+                                <select wire:model="end_day_of_week" class="form-control form-control-sm text-capitalize">
+                                    <option value="domingo">Domingo</option>
+                                    <option value="viernes">Viernes</option>
+                                    <option value="sabado">Sábado</option>
+                                    <option value="lunes">Lunes</option>
+                                    <option value="martes">Martes</option>
+                                    <option value="miercoles">Miércoles</option>
+                                    <option value="jueves">Jueves</option>
+                                </select>
+                            </div>
+                        @endif
 
                         <div class="col-md-3 text-end">
                             <button type="submit" class="btn btn-sm btn-success px-3">
@@ -89,6 +117,9 @@
                                 <td><span class="badge bg-success font-weight-bold">$ {{ number_format($goal->reward_amount, 2) }}</span></td>
                                 <td>
                                     <span class="badge bg-primary text-uppercase">{{ $goal->periodicity }}</span>
+                                    @if($goal->periodicity === 'semanal')
+                                        <small class="d-block text-muted text-capitalize">({{ $goal->start_day_of_week ?? 'lunes' }} a {{ $goal->end_day_of_week ?? 'domingo' }})</small>
+                                    @endif
                                 </td>
                                 <td>
                                     <button wire:click="toggleGoalActive({{ $goal->id }})" class="btn btn-sm {{ $goal->is_active ? 'btn-success' : 'btn-secondary' }} py-0 px-2">

@@ -1,3 +1,11 @@
+## [1.10.372] - 2026-08-07
+
+### Added
+- **Configuración Personalizada de Días de Inicio y Cierre para Metas Semanales**:
+  - `commission_goals`: Nuevas columnas `start_day_of_week` y `end_day_of_week` en la tabla de metas.
+  - `CommissionGoalsManager`: Al seleccionar frecuencia **Semanal**, el formulario despliega dos selectores para definir los días exactos de inicio y cierre de semana (Ej: *Lunes a Viernes*, *Lunes a Sábado*, *Lunes a Domingo*).
+  - `GoalCommissionService`: Los cortes semanales automáticos adaptan dinámicamente la ventana de evaluación de ventas al rango de días configurado en la meta.
+
 ## [1.10.371] - 2026-08-07
 
 ### Added

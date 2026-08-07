@@ -16,6 +16,8 @@ class CommissionGoalsManager extends Component
     public $target_amount = '';
     public $reward_amount = '';
     public $periodicity = 'semanal';
+    public $start_day_of_week = 'lunes';
+    public $end_day_of_week = 'domingo';
     public $is_active = true;
     public $sort_order = 0;
     public $isEditing = false;
@@ -28,6 +30,8 @@ class CommissionGoalsManager extends Component
         'target_amount' => 'required|numeric|min:0.01',
         'reward_amount' => 'required|numeric|min:0.01',
         'periodicity' => 'required|in:diaria,semanal,quincenal,mensual,trimestral,anual',
+        'start_day_of_week' => 'nullable|string',
+        'end_day_of_week' => 'nullable|string',
         'is_active' => 'boolean',
         'sort_order' => 'nullable|integer',
     ];
@@ -61,8 +65,10 @@ class CommissionGoalsManager extends Component
 
     public function resetForm()
     {
-        $this->reset(['goalId', 'name', 'target_amount', 'reward_amount', 'periodicity', 'is_active', 'sort_order', 'isEditing']);
+        $this->reset(['goalId', 'name', 'target_amount', 'reward_amount', 'periodicity', 'start_day_of_week', 'end_day_of_week', 'is_active', 'sort_order', 'isEditing']);
         $this->periodicity = 'semanal';
+        $this->start_day_of_week = 'lunes';
+        $this->end_day_of_week = 'domingo';
         $this->is_active = true;
         $this->resetErrorBag();
     }
@@ -78,6 +84,8 @@ class CommissionGoalsManager extends Component
                 'target_amount' => floatval($this->target_amount),
                 'reward_amount' => floatval($this->reward_amount),
                 'periodicity' => $this->periodicity,
+                'start_day_of_week' => $this->start_day_of_week ?? 'lunes',
+                'end_day_of_week' => $this->end_day_of_week ?? 'domingo',
                 'is_active' => $this->is_active ? 1 : 0,
                 'sort_order' => intval($this->sort_order),
             ]
@@ -96,6 +104,8 @@ class CommissionGoalsManager extends Component
         $this->target_amount = $goal->target_amount;
         $this->reward_amount = $goal->reward_amount;
         $this->periodicity = $goal->periodicity;
+        $this->start_day_of_week = $goal->start_day_of_week ?? 'lunes';
+        $this->end_day_of_week = $goal->end_day_of_week ?? 'domingo';
         $this->is_active = $goal->is_active;
         $this->sort_order = $goal->sort_order;
         $this->isEditing = true;

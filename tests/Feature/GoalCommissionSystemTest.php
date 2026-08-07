@@ -112,6 +112,25 @@ class GoalCommissionSystemTest extends TestCase
         $this->assertEquals('2026-08-09 23:59:59', $weekly['end']->format('Y-m-d H:i:s')); // Sunday
     }
 
+    public function test_custom_weekly_start_and_end_days()
+    {
+        $refDate = Carbon::parse('2026-08-07'); // A Friday
+
+        $goalFridayEnd = CommissionGoal::create([
+            'name' => 'Meta Lunes a Viernes',
+            'target_amount' => 100.00,
+            'reward_amount' => 10.00,
+            'periodicity' => 'semanal',
+            'start_day_of_week' => 'lunes',
+            'end_day_of_week' => 'viernes',
+            'is_active' => true,
+        ]);
+
+        $range = GoalCommissionService::getDateRangeForPeriodicity('semanal', $refDate, $goalFridayEnd);
+        $this->assertEquals('2026-08-03 00:00:00', $range['start']->format('Y-m-d H:i:s')); // Monday
+        $this->assertEquals('2026-08-07 23:59:59', $range['end']->format('Y-m-d H:i:s')); // Friday
+    }
+
     public function test_evaluates_goal_rewards_accurately()
     {
         $goal = CommissionGoal::create([
