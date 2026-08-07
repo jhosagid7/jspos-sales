@@ -1,3 +1,10 @@
+## [1.10.367] - 2026-08-07
+
+### Fixed
+- **Ampliación del Límite de Carga de Archivos ZIP Manuales a 200 MB**:
+  - `config/livewire.php`: Actualizada la regla de subida de archivos temporales de Livewire a `max:204800` (200 MB), corrigiendo el error *"The manualZip field must not be greater than 12288 kilobytes"*.
+  - `UpdateSystem.php`: Añadidos mensajes de validación personalizados en español para la subida de archivos ZIP de actualización.
+
 ## [1.10.366] - 2026-08-07
 
 ### Fixed & Added
