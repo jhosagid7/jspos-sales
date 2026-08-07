@@ -1,3 +1,9 @@
+## [1.10.375] - 2026-08-07
+
+### Refactored
+- **Rediseño Visual del Reporte de Comisiones por Metas**:
+  - Reestructurada la interfaz gráfica de `goal-commission-report.blade.php` para alinearse estrictamente al diseño visual nativo del sistema JSPOS Sales (Estructura de 2 columnas AdminLTE: barra lateral de filtros en la izquierda `col-md-3` y panel de métricas KPI y tablas de resultados estilizadas a la derecha `col-md-9`).
+
 ## [1.10.374] - 2026-08-07
 
 ### Fixed

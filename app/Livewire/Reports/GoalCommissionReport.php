@@ -18,6 +18,16 @@ class GoalCommissionReport extends Component
         $this->referenceDate = Carbon::now()->format('Y-m-d');
     }
 
+    public function setToday()
+    {
+        $this->referenceDate = Carbon::now()->format('Y-m-d');
+    }
+
+    public function setYesterday()
+    {
+        $this->referenceDate = Carbon::now()->subDay()->format('Y-m-d');
+    }
+
     public function render()
     {
         $baseQuery = function() {
