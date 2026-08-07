@@ -1,3 +1,9 @@
+## [1.10.379] - 2026-08-07
+
+### Added
+- **Guía del Instalador Web Interactivo de JSPOS Sales**:
+  - `GUIA_INSTALADOR_WEB.md`: Creado manual detallado que explica el funcionamiento paso a paso del asistente web (`/install`), cubriendo la auditoría de entorno en el Paso 1, configuración automática de base de datos MySQL en el Paso 2, migraciones y seeders maestros en el Paso 3, activación de licencia en el Paso 4, creación del usuario Administrador en el Paso 5 y la descarga del acceso directo ejecutable para el escritorio.
+
 ## [1.10.378] - 2026-08-07
 
 ### Added
