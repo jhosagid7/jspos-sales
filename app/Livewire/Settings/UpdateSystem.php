@@ -109,27 +109,16 @@ class UpdateSystem extends Component
             return;
         }
 
-        $this->status = 'updating';
-        $this->progress = 10;
-        $this->progressStatus = 'Procesando archivo ZIP cargado manualmente...';
-
         try {
             $tempPath = storage_path('app/temp_update.zip');
             File::copy($this->manualZip->getRealPath(), $tempPath);
             session(['latest_downloaded_update_zip' => $tempPath]);
 
-            $updater->createRollbackBackup($this->currentVersion);
-            $this->progress = 40;
-            $this->progressStatus = 'Instalando actualización...';
+            $this->status = 'updating';
+            $this->progress = 5;
+            $this->progressStatus = 'Iniciando respaldo de seguridad...';
 
-            $updater->installUpdate();
-            $this->progress = 80;
-            $this->progressStatus = 'Ejecutando migraciones y limpiando...';
-
-            $updater->runMigrations();
-            $updater->cleanup();
-
-            $this->finish();
+            $this->dispatch('run-backup');
         } catch (\Exception $e) {
             $this->handleError($e);
         }
@@ -149,13 +138,18 @@ class UpdateSystem extends Component
 
     public function runBackup(UpdateService $updater)
     {
-        $this->progressStatus = 'Creando copia de seguridad...';
-        $this->progress = 10;
+        $this->progressStatus = 'Creando copia de seguridad de la versión v' . $this->currentVersion . '...';
+        $this->progress = 15;
         
         try {
             $updater->createRollbackBackup($this->currentVersion);
             $this->rollbacks = $updater->getAvailableRollbacks(); // Reload rollbacks list
-            $this->dispatch('run-download');
+
+            if (session()->has('latest_downloaded_update_zip') && File::exists(session('latest_downloaded_update_zip'))) {
+                $this->dispatch('run-install');
+            } else {
+                $this->dispatch('run-download');
+            }
         } catch (\Exception $e) {
             $this->handleError($e);
         }

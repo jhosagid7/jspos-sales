@@ -1,3 +1,10 @@
+## [1.10.369] - 2026-08-07
+
+### Fixed
+- **Animación y Barra de Progreso en Tiempo Real para la Instalación ZIP Manual**:
+  - `UpdateSystem.php`: Reestructurado el flujo de actualización por ZIP manual para usar el motor por pasos en tiempo real (`run-backup` -> `run-install` -> `run-migrate` -> `run-cleanup`).
+  - Ahora se muestra la barra de progreso azul animada con los porcentajes exactos (5% -> 15% -> 60% -> 80% -> 100%) y los estados descriptivos mientras se crea el respaldo, descomprime el ZIP y actualiza la BD.
+
 ## [1.10.368] - 2026-08-07
 
 ### Fixed
