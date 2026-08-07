@@ -1,3 +1,9 @@
+## [1.10.380] - 2026-08-07
+
+### Added
+- **Integración de Accesos de Auditoría de Actividad y Aprobaciones de Supervisión al Menú**:
+  - `sidebar.blade.php`: Agregados los accesos directos de **Auditoría de Actividad** (`reports.audit`) y **Aprobaciones de Supervisión** (`consultation.approvals`) en la sección de **REPORTES** para facilitar la inspección centralizada de permisos y modificaciones otorgadas.
+
 ## [1.10.379] - 2026-08-07
 
 ### Added

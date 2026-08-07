@@ -719,6 +719,22 @@
                                       </a>
                                   </li>
                                   @endmodule
+                                  @can('reports.audit')
+                                  <li class="nav-item">
+                                      <a href="{{ route('reports.audit') }}" class="nav-link {{ Request::is('reports/audit*') ? 'active' : '' }}">
+                                          <i class="far fa-dot-circle nav-icon"></i>
+                                          <p>Auditoría de Actividad</p>
+                                      </a>
+                                  </li>
+                                  @endcan
+                                  @can('payments.approve_custom_rate')
+                                  <li class="nav-item">
+                                      <a href="{{ route('consultation.approvals') }}" class="nav-link {{ Request::is('consultation/approvals*') ? 'active' : '' }}">
+                                          <i class="far fa-dot-circle nav-icon"></i>
+                                          <p>Aprobaciones de Supervisión</p>
+                                      </a>
+                                  </li>
+                                  @endcan
                                   @module('module_cash_flow')
                                   <li class="nav-item">
                                       <a href="{{ route('reports.cash.flow.forecast') }}" class="nav-link {{ Request::is('reports/cash-flow-forecast*') ? 'active' : '' }}">
