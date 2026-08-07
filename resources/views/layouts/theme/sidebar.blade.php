@@ -689,6 +689,12 @@
                                       </a>
                                   </li>
                                   @endmodule
+                                  <li class="nav-item">
+                                      <a href="{{ route('reports.goal.commissions') }}" class="nav-link {{ Request::is('reports/goal-commissions*') ? 'active' : '' }}">
+                                          <i class="far fa-dot-circle nav-icon"></i>
+                                          <p>Comisiones por Metas</p>
+                                      </a>
+                                  </li>
                                   @module('module_seller_grouped')
                                   <li class="nav-item">
                                       <a href="{{ route('reports.seller_grouped') }}" class="nav-link {{ Request::is('reports/seller-grouped*') ? 'active' : '' }}">

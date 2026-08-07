@@ -184,6 +184,15 @@ class User extends Authenticatable
 
     public function scopeEligibleSellers($query)
     {
+        $config = \App\Models\Configuration::first();
+        $calcMode = $config->commission_calculation_mode ?? 'percentage_threshold';
+
+        if ($calcMode === 'tiered_goals') {
+            return $query->whereHas('commissionGoals', function($subQ) {
+                $subQ->where('is_active', true);
+            })->distinct();
+        }
+
         return $query->where(function($q) {
             $q->whereHas('commissionGoals', function($subQ) {
                 $subQ->where('is_active', true);

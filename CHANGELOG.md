@@ -1,3 +1,17 @@
+## [1.10.373] - 2026-08-07
+
+### Fixed
+- **Filtrado Estricto de Vendedores en Caja según Modelo de Comisión**:
+  - `User.php`: Al estar seleccionado el modo **Comisiones por Metas Acumuladas de Ventas** (`tiered_goals`), el selector de vendedor en la caja/POS muestra **únicamente** a aquellos usuarios que tienen metas de ventas activas asignadas con casilla marcada en la matriz de asignación.
+  - En los modos estándar o dual se mantienen los vendedores por rol y asignados.
+
+## [1.10.373] - 2026-08-07
+
+### Fixed
+- **Filtrado de Vendedores y Enlace Directo a Comisiones por Metas**:
+  - `User.php`: Al seleccionar el modelo **Comisiones por Metas Acumuladas de Ventas** (`tiered_goals`), el selector desplegable en la caja/POS muestra **únicamente** a los usuarios que tienen metas activas asignadas.
+  - `sidebar.blade.php`: Añadido el enlace directo al **Reporte de Comisiones por Metas** (`/reports/goal-commissions`) en el menú lateral bajo la sección de **Reportes**.
+
 ## [1.10.372] - 2026-08-07
 
 ### Added

@@ -88,13 +88,17 @@ class GoalCommissionSystemTest extends TestCase
         // nonSellerUser gets assigned a goal
         $this->nonSellerUser->commissionGoals()->attach($goal->id);
 
-        $eligibleIds = User::eligibleSellers()->pluck('id')->toArray();
+        // When mode is tiered_goals: strictly users with active assigned goals
+        Configuration::first()->update(['commission_calculation_mode' => 'tiered_goals']);
+        $tieredEligibleIds = User::eligibleSellers()->pluck('id')->toArray();
+        $this->assertContains($this->nonSellerUser->id, $tieredEligibleIds);
+        $this->assertNotContains($this->sellerUser->id, $tieredEligibleIds);
 
-        // sellerUser has Vendedor role -> eligible
-        $this->assertContains($this->sellerUser->id, $eligibleIds);
-
-        // nonSellerUser has active assigned goal -> eligible
-        $this->assertContains($this->nonSellerUser->id, $eligibleIds);
+        // When mode is percentage_threshold or both: includes role sellers and goal users
+        Configuration::first()->update(['commission_calculation_mode' => 'percentage_threshold']);
+        $bothEligibleIds = User::eligibleSellers()->pluck('id')->toArray();
+        $this->assertContains($this->sellerUser->id, $bothEligibleIds);
+        $this->assertContains($this->nonSellerUser->id, $bothEligibleIds);
     }
 
     public function test_date_range_for_periodicities()
