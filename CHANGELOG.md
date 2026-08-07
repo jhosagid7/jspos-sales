@@ -1,3 +1,10 @@
+## [1.10.378] - 2026-08-07
+
+### Added
+- **Guías de Instalación Exhaustivas en la Raíz del Proyecto**:
+  - `GUIA_INSTALACION_ZIP.md`: Manual paso a paso para el despliegue manual mediante descompresión de archivo comprimido `.zip` (Requisitos, Laragon, MySQL, `.env`, `DB_DUMP_PATH`, comandos Artisan, licencias Base64, respaldos automatizados con Google Drive y servicios NSSM).
+  - `GUIA_INSTALACION_GIT.md`: Manual paso a paso para la instalación profesional mediante clonación del repositorio oficial Git (`git clone`, Composer, NPM, migraciones, licencias, respaldos y comandos de actualización continua).
+
 ## [1.10.377] - 2026-08-07
 
 ### Added
