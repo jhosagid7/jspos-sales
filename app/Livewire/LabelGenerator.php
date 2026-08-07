@@ -16,6 +16,14 @@ class LabelGenerator extends Component
     public $selectedProducts = []; // [id => ['name' => '...', 'qty' => 1]]
     public $labelTemplate = 'standard'; // 'standard' or 'large_qr'
 
+    public function mount()
+    {
+        $config = \App\Models\Configuration::first();
+        if ($config && !empty($config->default_label_template)) {
+            $this->labelTemplate = $config->default_label_template;
+        }
+    }
+
     public function render()
     {
         $products = [];

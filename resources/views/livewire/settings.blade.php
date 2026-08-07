@@ -236,6 +236,15 @@
                                          @error('sequentialCutOffDate') <span class="text-danger">{{ $message }}</span> @enderror
                                      </div>
 
+                                     <div class="col-sm-12 col-md-6">
+                                         <label class="form-label">PLANTILLA DE ETIQUETAS POR DEFECTO</label>
+                                         <select wire:model="defaultLabelTemplate" class="form-control">
+                                             <option value="standard">Plantilla Estándar (Código de Barras - 4x7)</option>
+                                             <option value="large_qr">Plantilla Grande (Código QR - 3x6)</option>
+                                         </select>
+                                         @error('defaultLabelTemplate') <span class="text-danger">{{ $message }}</span> @enderror
+                                     </div>
+
                                     <div class="col-sm-12 col-md-12">
                                         <div class="form-check form-switch pl-0">
                                             <div class="custom-control custom-switch">

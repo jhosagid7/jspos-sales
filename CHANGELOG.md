@@ -1,3 +1,11 @@
+## [1.10.370] - 2026-08-07
+
+### Added
+- **Configuración de Plantilla de Etiquetas por Defecto**:
+  - `configurations`: Nueva columna `default_label_template` en la base de datos para almacenar el diseño preferido de etiquetas (Código de Barras Estándar o Código QR Grande).
+  - `Settings.php` & `settings.blade.php`: Añadido selector en el panel de **Configuración General** para elegir la plantilla predeterminada del sistema.
+  - `LabelGenerator.php`: Al ingresar al generador de etiquetas, se carga automáticamente la plantilla configurada por defecto, permitiendo al usuario cambiarla manualmente si lo desea en cualquier momento.
+
 ## [1.10.369] - 2026-08-07
 
 ### Fixed

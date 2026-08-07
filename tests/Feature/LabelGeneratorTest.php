@@ -116,4 +116,15 @@ class LabelGeneratorTest extends TestCase
         $response->assertStatus(200);
         $response->assertHeader('content-type', 'application/pdf');
     }
+
+    public function test_label_generator_uses_configured_default_template()
+    {
+        $this->actingAs($this->user);
+
+        $config = \App\Models\Configuration::first();
+        $config->update(['default_label_template' => 'large_qr']);
+
+        Livewire::test(LabelGenerator::class)
+            ->assertSet('labelTemplate', 'large_qr');
+    }
 }

@@ -15,6 +15,7 @@ class Configuration extends Model
         'plan_type',
         'addon_modules',
         'business_name',
+        'default_label_template',
         'address',
         'city',
         'phone',
