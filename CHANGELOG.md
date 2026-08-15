@@ -1,3 +1,9 @@
+## [1.10.382] - 2026-08-15
+
+### Fixed
+- **Corrección de Envío de Correos de Reporte de Producción de Bolsas (Error de Serialización UTF-8 en Queue)**:
+  - `ProductionReportMail.php` y `BagsProductionConsolidatedMail.php`: Corregido error `Unable to JSON encode payload. Error (5): Malformed UTF-8 characters, possibly incorrectly encoded` al encolar correos con archivos PDF binarios adjuntos. Se implementó la codificación a Base64 en el constructor y decodificación en `attachments()`, permitiendo una serialización JSON 100% limpia sin alterar el contenido binario del reporte en PDF.
+
 ## [1.10.381] - 2026-08-07
 
 ### Fixed
