@@ -25,7 +25,7 @@ class ProductionReportMail extends Mailable
     {
         $this->subjectLine = $subject;
         $this->bodyContent = $body;
-        $this->pdfContent = $pdfContent;
+        $this->pdfContent = $pdfContent ? base64_encode($pdfContent) : null;
         $this->fileName = $fileName;
     }
 
@@ -56,8 +56,14 @@ class ProductionReportMail extends Mailable
      */
     public function attachments(): array
     {
+        if (empty($this->pdfContent)) {
+            return [];
+        }
+
+        $binaryData = base64_decode($this->pdfContent);
+
         return [
-            \Illuminate\Mail\Mailables\Attachment::fromData(fn () => $this->pdfContent, $this->fileName)
+            \Illuminate\Mail\Mailables\Attachment::fromData(fn () => $binaryData, $this->fileName)
                 ->withMime('application/pdf'),
         ];
     }

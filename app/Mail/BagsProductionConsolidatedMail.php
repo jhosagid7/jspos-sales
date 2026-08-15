@@ -23,7 +23,13 @@ class BagsProductionConsolidatedMail extends Mailable
     {
         $this->subjectLine = $subject;
         $this->bodyContent = $body;
-        $this->pdfs = $pdfs;
+        $this->pdfs = array_map(function ($pdf) {
+            $rawContent = $pdf['content'] ?? '';
+            return [
+                'content' => $rawContent ? base64_encode($rawContent) : '',
+                'name' => $pdf['name'] ?? 'document.pdf',
+            ];
+        }, $pdfs);
     }
 
     /**
@@ -54,8 +60,9 @@ class BagsProductionConsolidatedMail extends Mailable
         $attachments = [];
 
         foreach ($this->pdfs as $pdf) {
+            $binaryData = base64_decode($pdf['content'] ?? '');
             $attachments[] = \Illuminate\Mail\Mailables\Attachment::fromData(
-                fn () => $pdf['content'],
+                fn () => $binaryData,
                 $pdf['name']
             )->withMime('application/pdf');
         }
