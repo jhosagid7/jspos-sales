@@ -1,3 +1,12 @@
+## [1.10.384] - 2026-08-15
+
+### Fixed
+- **Automatización del Instalador, Importación de Productos y Módulo de Categorías**:
+  - `installer/installer.iss` & `installer/setup.ps1`: Suprimido reinicio forzado del instalador, configurado auto-inicio de Laragon minimizado, forzado de extensión `zip` en `php.ini` y enlace `public/storage` por Windows Junction Point (`mklink /J`).
+  - `Categories.php`: Corregida la evaluación de reglas de validación en Livewire, borrado seguro de imágenes de categorías con `Storage::disk('public')` y manejo correcto de excepciones de validación.
+  - `ProductImport.php` & `product-import.blade.php`: Corregida la importación de productos desde Excel/CSV con mapeo por índice numérico de columna, normalización de tildes/espacios, conversión de precios/costos en formato español con comas y sincronización de stock con el almacén principal (`product_warehouse`).
+  - `UpdateService.php`: Agregada la creación y reparación automática de enlace `public/storage` durante el proceso de actualización del sistema para clientes existentes.
+
 ## [1.10.383] - 2026-08-15
 
 ### Added

@@ -5,6 +5,17 @@ use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
+// Autocuaración de .env si el archivo no existe o falta APP_KEY durante primer inicio
+if (!file_exists(__DIR__.'/../.env') && file_exists(__DIR__.'/../.env.example')) {
+    @copy(__DIR__.'/../.env.example', __DIR__.'/../.env');
+    $envContent = @file_get_contents(__DIR__.'/../.env');
+    if ($envContent && (strpos($envContent, 'APP_KEY=') === false || preg_match('/APP_KEY=\s*$/m', $envContent))) {
+        $key = 'base64:'.base64_encode(random_bytes(32));
+        $envContent = preg_replace('/(?m)^APP_KEY=.*/', "APP_KEY={$key}", $envContent);
+        @file_put_contents(__DIR__.'/../.env', $envContent);
+    }
+}
+
 /*
 |--------------------------------------------------------------------------
 | Check If The Application Is Under Maintenance

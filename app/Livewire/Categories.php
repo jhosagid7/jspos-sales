@@ -2,27 +2,22 @@
 
 namespace App\Livewire;
 
-
 use App\Models\Image;
 use Livewire\Component;
 use App\Models\Category;
 use Livewire\Attributes\On;
-
 use Livewire\WithPagination;
 use Livewire\WithFileUploads;
-
-
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Storage;
 
 class Categories extends Component
 {
     use WithPagination;
     use WithFileUploads;
 
-
-
     public Category $category;
-    public $category_id, $upload, $savedImg, $editing, $search, $records, $pagination = 5;
-
+    public $category_id, $upload, $savedImg, $editing = false, $search, $records, $pagination = 10;
 
     // Properties for inline department creation
     public $btnCreateDept = false;
@@ -32,11 +27,11 @@ class Categories extends Component
     public function rules()
     {
         $rules = [
-            'category.name' => "required|min:2|max:50|unique:categories,name" . ($this->category->id ? ",{$this->category->id}" : "")
+            'category.name' => 'required|min:2|max:50|unique:categories,name' . ($this->category->id ? ",{$this->category->id}" : "")
         ];
 
         if (in_array('module_departments', config('tenant.modules', []))) {
-            $rules['category.department_id'] = "required|exists:departments,id";
+            $rules['category.department_id'] = 'required|exists:departments,id';
         }
 
         return $rules;
@@ -78,7 +73,6 @@ class Categories extends Component
         $this->dispatch('noty', msg: 'DEPARTAMENTO CREADO Y SELECCIONADO');
     }
 
-
     public function mount()
     {
         $this->category = new Category();
@@ -86,8 +80,6 @@ class Categories extends Component
 
         session(['map' => '', 'child' => '', 'rest' => '', 'pos' => 'Categorías']);
     }
-
-
 
     public function render()
     {
@@ -101,30 +93,27 @@ class Categories extends Component
         $this->search = trim($searchText);
     }
 
-
     public function loadCategories()
     {
         if (!empty($this->search)) {
-
             $this->resetPage();
-
             $query = Category::where('name', 'like', "%{$this->search}%")
                 ->orderBy('name', 'asc');
         } else {
-            $query =  Category::orderBy('name', 'asc');
+            $query = Category::orderBy('name', 'asc');
         }
 
         $this->records = $query->count();
-
         return $query->paginate($this->pagination);
     }
-
 
     public function Add()
     {
         $this->resetValidation();
-        $this->resetExcept('category');
         $this->category = new Category();
+        $this->upload = null;
+        $this->savedImg = null;
+        $this->editing = false;
         $this->dispatch('init-new');
     }
 
@@ -141,64 +130,56 @@ class Categories extends Component
     {
         $this->resetValidation();
         $this->category = new Category();
+        $this->upload = null;
+        $this->savedImg = null;
         $this->editing = false;
         $this->search = null;
         $this->dispatch('init-new');
     }
 
-
-
     public function Store()
     {
         try {
+            $rules = $this->rules();
+            $this->validate($rules, $this->messages);
 
-            $this->rules['category.name'] = $this->category->id > 0 ? "required|min:2|max:50|unique:categories,name,{$this->category->id}" : 'required|min:2|max:50|unique:categories,name';
-
-            $this->validate($this->rules, $this->messages);
-
-            // retrieve previous image
             $tempImg = null;
             if ($this->category->id > 0) {
                 $tempImg = $this->category->image;
             }
 
-            // save model
+            $isNew = !($this->category->id > 0);
             $this->category->save();
 
-
             if (!empty($this->upload)) {
-
-                if ($tempImg != null && file_exists('storage/categories/' . $tempImg->file)) {
-                    unlink('storage/categories/' . $tempImg);
+                if ($tempImg != null && !empty($tempImg->file)) {
+                    Storage::disk('public')->delete('categories/' . $tempImg->file);
+                    $this->category->image()->delete();
                 }
 
-                // delete relationship image from db
-                $this->category->image()->delete();
-
-
-
-                // generate random file name
-                $fileName = uniqid() . '_.' . $this->upload->extension();
+                $fileName = uniqid() . '.' . $this->upload->extension();
                 $this->upload->storeAs('public/categories', $fileName);
 
-                // save image record
                 $img = Image::create([
                     'model_id' => $this->category->id,
                     'model_type' => 'App\Models\Category',
                     'file' => $fileName
                 ]);
 
-                // save relationship
                 $this->category->image()->save($img);
             }
 
-
-            $this->dispatch('noty', msg: 'CATEGORIA GUARADA CORRECTAMENTE');
-            $this->resetExcept('category');
+            $this->dispatch('noty', msg: $isNew ? 'CATEGORIA CREADA CORRECTAMENTE' : 'CATEGORIA ACTUALIZADA CORRECTAMENTE');
+            
+            $this->resetValidation();
             $this->category = new Category();
-            //
+            $this->upload = null;
+            $this->savedImg = null;
+            $this->editing = false;
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Exception $th) {
-            $this->dispatch('error', msg: "Error al intentar crear la categoría \n {$th->getMessage()} ");
+            $this->dispatch('error', msg: "Error al intentar guardar la categoría: {$th->getMessage()}");
         }
     }
 
@@ -208,29 +189,17 @@ class Categories extends Component
         try {
             $category = Category::with('image')->find($id);
             if ($category) {
-                // delete all images in drive
-                if (isset($category->image)) {
-
-                    $tempImg = $category->image;
-                    if ($tempImg != null && file_exists('storage/categories/' . $tempImg->file)) {
-                        unlink('storage/categories/' . $tempImg->file);
-                    }
-
-                    // delete relationship image from db
+                if (isset($category->image) && !empty($category->image->file)) {
+                    Storage::disk('public')->delete('categories/' . $category->image->file);
                     $category->image()->delete();
                 }
 
-
-                // delete record from db
                 $category->delete();
-
                 $this->resetPage();
-
-
                 $this->dispatch('noty', msg: 'CATEGORIA ELIMINADA');
             }
         } catch (\Exception $th) {
-            $this->dispatch('noty', msg: "Error al intentar eliminar la categoría \n  {$th->getMessage()} ");
+            $this->dispatch('noty', msg: "Error al intentar eliminar la categoría: {$th->getMessage()}");
         }
     }
 }

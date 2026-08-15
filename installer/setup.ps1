@@ -24,8 +24,37 @@ if (-not (Test-Path $laragonDir)) {
 }
 
 if (Test-Path "$laragonDir\bin") {
-    $laragonBinPaths = Get-ChildItem -Path "$laragonDir\bin" -Recurse -Directory -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
-    $env:PATH = ($laragonBinPaths -join ';') + ';' + $env:PATH
+    $laragonBinPaths = @(
+        (Get-ChildItem -Path "$laragonDir\bin\php" -Directory -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName),
+        (Get-ChildItem -Path "$laragonDir\bin\mysql\*\bin" -Directory -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName),
+        (Get-ChildItem -Path "$laragonDir\bin\apache\*\bin" -Directory -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName),
+        "$laragonDir\bin\composer"
+    ) | Where-Object { Test-Path $_ }
+    if ($laragonBinPaths) {
+        $env:PATH = ($laragonBinPaths -join ';') + ';' + $env:PATH
+    }
+}
+
+# Habilitar extensiones esenciales en php.ini (zip, gd, fileinfo, pdo_mysql, mbstring, etc.)
+if (Test-Path "$laragonDir\bin\php") {
+    $phpIniFiles = Get-ChildItem -Path "$laragonDir\bin\php" -Filter "php.ini" -Recurse -ErrorAction SilentlyContinue
+    foreach ($iniFile in $phpIniFiles) {
+        try {
+            $iniText = Get-Content $iniFile.FullName -Raw
+            $extensions = @('zip', 'gd', 'fileinfo', 'pdo_mysql', 'mbstring', 'openssl', 'curl', 'pdo_sqlite', 'sqlite3', 'exif', 'intl')
+            foreach ($ext in $extensions) {
+                # 1. Descomentar si existe con punto y coma (;extension=zip o ; extension = zip)
+                $iniText = $iniText -replace "(?m)^\s*;\s*extension\s*=\s*$ext\b.*$", "extension=$ext"
+                $iniText = $iniText -replace "(?m)^\s*;\s*extension\s*=\s*php_$ext\.dll\b.*$", "extension=php_$ext.dll"
+                
+                # 2. Si no existe la linea activa "extension=zip" ni "extension=php_zip.dll", agregarla
+                if ($iniText -notmatch "(?m)^\s*extension\s*=\s*(php_)?$ext(\.dll)?\b") {
+                    $iniText += "`nextension=$ext`n"
+                }
+            }
+            Set-Content -Path $iniFile.FullName -Value $iniText -NoNewline
+        } catch {}
+    }
 }
 
 Write-Host "Configurando proyecto: $folderName"
@@ -41,35 +70,20 @@ if (-not (Test-Path $envFile) -and (Test-Path $envExample)) {
 
 # 2. Eliminar storage/installed y storage/app/client_id.txt si existen para que genere un ID unico de cliente por instalacion
 $installedFile = "$ProjectDir\storage\installed"
-if (Test-Path $installedFile) {
-    Remove-Item -Force $installedFile
-}
-
+if (Test-Path $installedFile) { Remove-Item $installedFile -Force }
 $clientIdFile = "$ProjectDir\storage\app\client_id.txt"
-if (Test-Path $clientIdFile) {
-    Remove-Item -Force $clientIdFile
-}
+if (Test-Path $clientIdFile) { Remove-Item $clientIdFile -Force }
 
-# 3. Crear directorios de almacenamiento limpios
-$storageDirs = @(
-    "$ProjectDir\storage\app\public",
-    "$ProjectDir\storage\app\backups",
-    "$ProjectDir\storage\framework\cache",
-    "$ProjectDir\storage\framework\sessions",
-    "$ProjectDir\storage\framework\views",
-    "$ProjectDir\storage\logs",
-    "$ProjectDir\whatsapp-api\sessions"
-)
-foreach ($dir in $storageDirs) {
-    if (-not (Test-Path $dir)) {
-        New-Item -ItemType Directory -Path $dir -Force | Out-Null
-    }
-}
+# 3. Recrear el enlace simbolico de almacenes de medios (public\storage -> storage\app\public) mediante Junction Point nativo de Windows
+$targetStorage = "$ProjectDir\storage\app\public"
+$publicStorage = "$ProjectDir\public\storage"
+if (-not (Test-Path $targetStorage)) { New-Item -ItemType Directory -Path $targetStorage -Force | Out-Null }
+cmd /c "if exist `"$publicStorage`" ( rmdir /s /q `"$publicStorage`" )"
+cmd /c "mklink /J `"$publicStorage`" `"$targetStorage`""
 
-# 4. Ajustar .env dinamicamente y generar APP_KEY
+# 4. Modificar .env con la URL e identificadores del cliente
 if (Test-Path $envFile) {
     $content = Get-Content $envFile -Raw
-    $content = $content -replace '(?m)^APP_ENV=.*', "APP_ENV=production"
     $content = $content -replace '(?m)^APP_DEBUG=.*', "APP_DEBUG=false"
     $content = $content -replace '(?m)^APP_URL=.*', "APP_URL=$appUrl"
     $content = $content -replace '(?m)^DB_DATABASE=.*', "DB_DATABASE=$cleanDb"
@@ -240,4 +254,34 @@ if (Test-Path $httpdPath) {
 }
 
 Start-Process -FilePath "ipconfig" -ArgumentList "/flushdns" -WindowStyle Hidden -Wait
+
+# 9. Configurar Laragon para iniciar al arrancar Windows (Minimizado) e Iniciar Laragon de inmediato
+$laragonExe = "$laragonDir\laragon.exe"
+if (Test-Path $laragonExe) {
+    $usrDir = "$laragonDir\usr"
+    if (-not (Test-Path $usrDir)) { New-Item -ItemType Directory -Path $usrDir -Force | Out-Null }
+    $laragonIni = "$usrDir\laragon.ini"
+    
+    if (Test-Path $laragonIni) {
+        $iniContent = Get-Content $laragonIni -Raw
+        if ($iniContent -match '(?m)^RunAtStartup=') { $iniContent = $iniContent -replace '(?m)^RunAtStartup=.*', 'RunAtStartup=-1' } else { $iniContent += "`nRunAtStartup=-1" }
+        if ($iniContent -match '(?m)^MinimizeWhenRun=') { $iniContent = $iniContent -replace '(?m)^MinimizeWhenRun=.*', 'MinimizeWhenRun=-1' } else { $iniContent += "`nMinimizeWhenRun=-1" }
+        if ($iniContent -match '(?m)^AutoStart=') { $iniContent = $iniContent -replace '(?m)^AutoStart=.*', 'AutoStart=-1' } else { $iniContent += "`nAutoStart=-1" }
+        if ($iniContent -match '(?m)^AutoVirtualHosts=') { $iniContent = $iniContent -replace '(?m)^AutoVirtualHosts=.*', 'AutoVirtualHosts=-1' } else { $iniContent += "`nAutoVirtualHosts=-1" }
+        Set-Content -Path $laragonIni -Value $iniContent -NoNewline
+    } else {
+        $defaultIni = "[preferences]`nRunAtStartup=-1`nAutoVirtualHosts=-1`nMinimizeWhenRun=-1`nAutoStart=-1`n"
+        Set-Content -Path $laragonIni -Value $defaultIni -NoNewline
+    }
+
+    try {
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "Laragon" -Value """$laragonExe""" -ErrorAction SilentlyContinue
+    } catch {}
+
+    $laragonProc = Get-Process -Name "laragon" -ErrorAction SilentlyContinue
+    if (-not $laragonProc) {
+        Start-Process -FilePath $laragonExe -WindowStyle Minimized
+    }
+}
+
 Write-Host "Post-instalacion completada exitosamente para $folderName."

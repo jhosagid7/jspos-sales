@@ -338,6 +338,46 @@ class UpdateService
         Artisan::call('db:seed', ['--class' => 'SopladosProductionTargetSeeder', '--force' => true]);
         Artisan::call('db:seed', ['--class' => 'SopladosSecondQualityLinkerSeeder', '--force' => true]);
 
+        // Self-healing Storage Link (Windows Junction Point & Unix Symlink)
+        try {
+            $publicStorage = public_path('storage');
+            $targetStorage = storage_path('app/public');
+
+            if (!File::exists($targetStorage)) {
+                File::makeDirectory($targetStorage, 0755, true, true);
+            }
+
+            $needRecreate = false;
+            if (!file_exists($publicStorage)) {
+                $needRecreate = true;
+            } elseif (is_link($publicStorage)) {
+                $linkTarget = @readlink($publicStorage);
+                if (!$linkTarget || !file_exists($linkTarget)) {
+                    $needRecreate = true;
+                }
+            } elseif (is_dir($publicStorage)) {
+                $files = @scandir($publicStorage);
+                $files = is_array($files) ? array_diff($files, ['.', '..']) : [];
+                if (empty($files)) {
+                    $needRecreate = true;
+                }
+            }
+
+            if ($needRecreate) {
+                if (str_starts_with(PHP_OS, 'WIN')) {
+                    @exec('cmd /c "rmdir /S /Q "' . $publicStorage . '""');
+                    @exec('cmd /c "del /F /Q "' . $publicStorage . '""');
+                    @exec('cmd /c "mklink /J "' . $publicStorage . '" "' . $targetStorage . '""');
+                } else {
+                    @unlink($publicStorage);
+                    @symlink($targetStorage, $publicStorage);
+                }
+                Log::info("Updater: Storage link automatically verified and created.");
+            }
+        } catch (\Throwable $th) {
+            Log::warning("Updater: Automatic storage link verification failed: " . $th->getMessage());
+        }
+
         // Fix: Manual repair for warehouse_id in order_details if they are null
         \App\Models\OrderDetail::whereNull('warehouse_id')->update(['warehouse_id' => 1]);
 

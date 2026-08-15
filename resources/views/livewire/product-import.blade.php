@@ -88,8 +88,8 @@
                                     <td>
                                         <select wire:model="mapping.{{ $field }}" class="form-control @if(isset($mapping[$field])) is-valid @endif">
                                             <option value="">-- Ignorar este campo --</option>
-                                            @foreach($headers as $header)
-                                                <option value="{{ $header }}">{{ $header }}</option>
+                                            @foreach($headers as $colIdx => $header)
+                                                <option value="{{ $colIdx }}">{{ $header }} (Columna {{ $colIdx + 1 }})</option>
                                             @endforeach
                                         </select>
                                     </td>

@@ -12,6 +12,10 @@ cd /d "%PROYECTO_DIR%"
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%PROYECTO_DIR%\installer\setup.ps1" -ProjectDir "%PROYECTO_DIR%"
 
+if exist "%PROYECTO_DIR%\installer\open_browser.bat" (
+    call "%PROYECTO_DIR%\installer\open_browser.bat"
+)
+
 echo.
 echo ===================================================
 echo ¡POST-INSTALACION COMPLETADA CON EXITO!
