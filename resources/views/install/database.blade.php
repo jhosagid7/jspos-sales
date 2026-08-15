@@ -16,7 +16,7 @@
             </div>
             <div class="col-md-6 mb-3">
                 <label class="form-label">Base de Datos</label>
-                <input type="text" name="db_database" class="form-control" placeholder="nombre_bd" required>
+                <input type="text" name="db_database" class="form-control" value="{{ env('DB_DATABASE', 'jspos') }}" placeholder="nombre_bd" required>
             </div>
             <div class="col-md-6 mb-3">
                 <label class="form-label">Usuario</label>

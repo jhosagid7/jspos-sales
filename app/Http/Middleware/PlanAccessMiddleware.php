@@ -17,6 +17,11 @@ class PlanAccessMiddleware
      */
     public function handle(Request $request, Closure $next, $type, $requirement): Response
     {
+        // Super Admin bypass: accede a todos los planes y add-ons
+        if (auth()->check() && auth()->user()->hasRole('Super Admin')) {
+            return $next($request);
+        }
+
         try {
             $config = \App\Services\ConfigurationService::getConfig();
             

@@ -44,14 +44,16 @@ return new class extends Migration
         });
 
         // 4. Add seller_assignment_mode & commission_calculation_mode to configurations table
-        Schema::table('configurations', function (Blueprint $table) {
-            if (!Schema::hasColumn('configurations', 'seller_assignment_mode')) {
-                $table->string('seller_assignment_mode', 30)->default('customer_assigned')->after('business_name');
-            }
-            if (!Schema::hasColumn('configurations', 'commission_calculation_mode')) {
-                $table->string('commission_calculation_mode', 30)->default('percentage_threshold')->after('seller_assignment_mode');
-            }
-        });
+        if (Schema::hasTable('configurations')) {
+            Schema::table('configurations', function (Blueprint $table) {
+                if (!Schema::hasColumn('configurations', 'seller_assignment_mode')) {
+                    $table->string('seller_assignment_mode', 30)->default('customer_assigned')->after('business_name');
+                }
+                if (!Schema::hasColumn('configurations', 'commission_calculation_mode')) {
+                    $table->string('commission_calculation_mode', 30)->default('percentage_threshold')->after('seller_assignment_mode');
+                }
+            });
+        }
     }
 
     /**

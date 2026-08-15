@@ -11,7 +11,7 @@
                 <i class="fab fa-windows me-2"></i> Crear Acceso Directo
             </a>
 
-            <a href="{{ url('/') }}" class="btn btn-primary btn-lg px-5">
+            <a href="{{ request()->root() }}/" class="btn btn-primary btn-lg px-5">
                 Ir al Sistema <i class="fas fa-arrow-right ms-2"></i>
             </a>
         </div>

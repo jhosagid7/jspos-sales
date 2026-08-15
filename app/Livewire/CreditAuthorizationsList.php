@@ -39,7 +39,20 @@ class CreditAuthorizationsList extends Component
         }
 
         if (!empty($this->status)) {
-            $query->where('status', $this->status);
+            if ($this->status === 'pending') {
+                $query->where('status', 'pending')
+                      ->where('expires_at', '>', now());
+            } elseif ($this->status === 'expired') {
+                $query->where(function($q) {
+                    $q->where('status', 'expired')
+                      ->orWhere(function($q2) {
+                          $q2->where('status', 'pending')
+                             ->where('expires_at', '<=', now());
+                      });
+                });
+            } else {
+                $query->where('status', $this->status);
+            }
         }
 
         $authorizations = $query->paginate(15);

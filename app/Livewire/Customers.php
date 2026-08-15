@@ -71,10 +71,13 @@ class Customers extends Component
     {
         $this->customer = new Customer();
         $this->customer->seller_id = 0;
-        $this->customer->whatsapp_notify_sales = true;
-        $this->customer->whatsapp_notify_payments = true;
-        $this->customer->email_notify_sales = true;
-        $this->customer->email_notify_payments = true;
+        // Defaults de notificaciones solo si los módulos están activos
+        $configSvc = \App\Services\ConfigurationService::getConfig();
+        $hasWhatsapp = ($configSvc && method_exists($configSvc, 'hasAddon')) ? $configSvc->hasAddon('module_whatsapp') : false;
+        $this->customer->whatsapp_notify_sales = $hasWhatsapp;
+        $this->customer->whatsapp_notify_payments = $hasWhatsapp;
+        $this->customer->email_notify_sales = $hasWhatsapp;
+        $this->customer->email_notify_payments = $hasWhatsapp;
         $this->customer->wa_dispatch_mode = 'auto';
         $this->customer->email_dispatch_mode = 'auto';
         $this->commission_percent = 0;
@@ -92,7 +95,10 @@ class Customers extends Component
 
     public function render()
     {
-        $this->sellers = \App\Models\User::sellers()->get();
+        // Solo cargar vendedores si el módulo de comisiones está activo
+        $config = \App\Services\ConfigurationService::getConfig();
+        $hasCommissions = ($config && method_exists($config, 'hasAddon')) ? $config->hasAddon('module_commissions') : false;
+        $this->sellers = $hasCommissions ? \App\Models\User::sellers()->get() : collect();
         
         return view('livewire.customers.customers', [
             'customers' => $this->loadCustomers()
@@ -141,10 +147,13 @@ class Customers extends Component
         $this->resetExcept('customer');
         $this->customer = new Customer();
         $this->customer->seller_id = 0;
-        $this->customer->whatsapp_notify_sales = true;
-        $this->customer->whatsapp_notify_payments = true;
-        $this->customer->email_notify_sales = true;
-        $this->customer->email_notify_payments = true;
+        // Defaults de notificaciones solo si los módulos están activos
+        $configSvc = \App\Services\ConfigurationService::getConfig();
+        $hasWhatsapp = ($configSvc && method_exists($configSvc, 'hasAddon')) ? $configSvc->hasAddon('module_whatsapp') : false;
+        $this->customer->whatsapp_notify_sales = $hasWhatsapp;
+        $this->customer->whatsapp_notify_payments = $hasWhatsapp;
+        $this->customer->email_notify_sales = $hasWhatsapp;
+        $this->customer->email_notify_payments = $hasWhatsapp;
         $this->customer->wa_dispatch_mode = 'auto';
         $this->customer->email_dispatch_mode = 'auto';
         $this->tab = 1; // Reset to first tab
@@ -241,11 +250,16 @@ class Customers extends Component
 
         $this->validate($this->rules, $this->messages);
 
-        // Assign default seller if not selected
-        if (!$this->customer->seller_id || $this->customer->seller_id == 0) {
-            $defaultSeller = \App\Models\User::where('name', 'OFICINA')->first();
+        // Assign default seller if not selected or invalid
+        if (empty($this->customer->seller_id) || $this->customer->seller_id == 0 || $this->customer->seller_id === '' || !\App\Models\User::where('id', $this->customer->seller_id)->exists()) {
+            $defaultSeller = \App\Models\User::where('name', 'OFICINA')->first()
+                ?? auth()->user()
+                ?? \App\Models\User::first();
+
             if ($defaultSeller) {
                 $this->customer->seller_id = $defaultSeller->id;
+            } else {
+                $this->customer->seller_id = null;
             }
         }
 

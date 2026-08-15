@@ -155,7 +155,27 @@ class InstallController extends Controller
     public function step4()
     {
         $clientId = $this->licenseService->getClientId();
-        return view('install.license', compact('clientId'));
+        
+        $host = request()->getHost();
+        $port = env('ASSIGNED_PORT') ?: request()->getPort();
+        
+        $defaultVpnIp = '';
+        if ($host && $host !== 'localhost' && $host !== '127.0.0.1' && !str_contains($host, '.test')) {
+            $defaultVpnIp = $host;
+        } else {
+            $detectedIp = gethostbyname(gethostname());
+            if ($detectedIp && $detectedIp !== '127.0.0.1') {
+                $defaultVpnIp = $detectedIp;
+            }
+        }
+
+        if ($defaultVpnIp && $port && $port != 80 && $port != 443 && !str_contains($defaultVpnIp, ':')) {
+            $defaultVpnIp .= ':' . $port;
+        }
+
+        $defaultServerIp = session('license_server_ip', env('LICENSE_SERVER_IP', '100.115.149.91:8080'));
+
+        return view('install.license', compact('clientId', 'defaultVpnIp', 'defaultServerIp'));
     }
 
     public function connectLicenseServer(Request $request)
@@ -167,6 +187,8 @@ class InstallController extends Controller
 
         $clientId = $this->licenseService->getClientId();
         $serverIp = trim($request->server_ip);
+        $serverIp = preg_replace('#^https?://#i', '', $serverIp);
+        $serverIp = rtrim($serverIp, '/');
 
         try {
             $url = "http://{$serverIp}/api/clients/register";
@@ -187,7 +209,7 @@ class InstallController extends Controller
                     if ($activated) {
                         return response()->json([
                             'status' => 'activated',
-                            'message' => '¡Licencia detectada y activada automáticamente!',
+                            'message' => $data['message'] ?? '¡Licencia detectada y activada automáticamente!',
                             'redirect' => route('install.step5')
                         ]);
                     }
@@ -195,20 +217,27 @@ class InstallController extends Controller
 
                 return response()->json([
                     'status' => 'registered',
-                    'message' => '¡Equipo registrado en línea exitosamente! El administrador ya lo ve en su panel. Presione "Consultar Aprobación" cuando le hayan otorgado la licencia.',
+                    'message' => $data['message'] ?? '¡Equipo registrado en línea exitosamente! El administrador ya lo ve en su panel.',
                     'client_id' => $clientId
                 ]);
             }
 
+            $json = $response->json();
+            $errMsg = is_array($json) ? ($json['message'] ?? $json['error'] ?? $json['msg'] ?? null) : null;
+            if (!$errMsg) {
+                $body = $response->body();
+                $errMsg = !empty($body) ? trim(substr(strip_tags($body), 0, 150)) : ('HTTP Status Code ' . $response->status());
+            }
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'El servidor devolvió un error: ' . ($response->json('message') ?? 'Respuesta no válida')
+                'message' => 'El servidor de licencias devolvió un error: ' . $errMsg
             ], 400);
 
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'No se pudo establecer conexión con http://' . $serverIp . '. Verifique que la IP de ZeroTier/Tailscale esté activa.'
+                'message' => 'No se pudo establecer conexión con http://' . $serverIp . ': ' . $e->getMessage()
             ], 500);
         }
     }
@@ -219,6 +248,8 @@ class InstallController extends Controller
         if (!$serverIp) {
             return response()->json(['status' => 'error', 'message' => 'IP del servidor no configurada.'], 400);
         }
+        $serverIp = preg_replace('#^https?://#i', '', $serverIp);
+        $serverIp = rtrim($serverIp, '/');
 
         $clientId = $this->licenseService->getClientId();
 
@@ -243,11 +274,15 @@ class InstallController extends Controller
 
                 return response()->json([
                     'status' => 'pending',
-                    'message' => 'Aún en espera de que el administrador apruebe y asigne la licencia en el panel.'
+                    'message' => $data['message'] ?? 'Aún en espera de que el administrador apruebe y asigne la licencia en el panel.'
                 ]);
             }
 
-            return response()->json(['status' => 'error', 'message' => 'No se pudo obtener respuesta del servidor.'], 400);
+            $json = $response->json();
+            $errMsg = is_array($json) ? ($json['message'] ?? $json['error'] ?? $json['msg'] ?? null) : null;
+
+            return response()->json(['status' => 'error', 'message' => 'Servidor: ' . ($errMsg ?? 'Código ' . $response->status())], 400);
+
 
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => 'Error de conexión con el servidor de licencias.'], 500);
@@ -274,9 +309,17 @@ class InstallController extends Controller
     public function createAdmin(Request $request)
     {
         $request->validate([
-            'name' => 'required',
+            'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|confirmed|min:8',
+        ], [
+            'name.required' => 'El nombre del administrador es obligatorio.',
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.email' => 'El correo electrónico debe ser una dirección válida.',
+            'email.unique' => 'Este correo electrónico ya está registrado en el sistema.',
+            'password.required' => 'La contraseña es obligatoria.',
+            'password.confirmed' => 'La confirmación de la contraseña no coincide.',
+            'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
         ]);
 
         // Determine Role

@@ -30,7 +30,7 @@ class CreditConfigService
             if ($seller) {
                 $discountRules = self::getDiscountRules('seller', $seller->id);
             }
-            if ($discountRules->isEmpty()) {
+            if ($discountRules->isEmpty() && $globalConfig) {
                 $discountRules = self::getDiscountRules('global', $globalConfig->id);
             }
         }
@@ -45,8 +45,8 @@ class CreditConfigService
                 $usdPaymentDiscount = $seller->seller_usd_payment_discount;
                 $usdPaymentDiscountTag = $seller->seller_usd_payment_discount_tag;
             } else {
-                $usdPaymentDiscount = $globalConfig->global_usd_payment_discount;
-                $usdPaymentDiscountTag = $globalConfig->global_usd_payment_discount_tag;
+                $usdPaymentDiscount = $globalConfig?->global_usd_payment_discount;
+                $usdPaymentDiscountTag = $globalConfig?->global_usd_payment_discount_tag;
             }
         }
 
@@ -58,7 +58,7 @@ class CreditConfigService
         } elseif ($seller && $seller->seller_allow_credit !== null) {
             $baseAllowCredit = $seller->seller_allow_credit;
         } else {
-            $baseAllowCredit = $globalConfig->global_allow_credit ?? true;
+            $baseAllowCredit = $globalConfig?->global_allow_credit ?? true;
         }
         
         // Resolve normal credit days
@@ -68,7 +68,7 @@ class CreditConfigService
         } elseif ($seller && $seller->seller_credit_days !== null && $seller->seller_credit_days > 0) {
             $resolvedCreditDays = $seller->seller_credit_days;
         } else {
-            $resolvedCreditDays = $globalConfig->global_credit_days ?? 30;
+            $resolvedCreditDays = $globalConfig?->global_credit_days ?? 30;
         }
 
         // Bloqueo para clientes con facturas vencidas
@@ -119,10 +119,10 @@ class CreditConfigService
 
         // C. Configuración Global
         return [
-            'allow_credit' => (bool)($globalConfig->global_allow_credit ?? true),
+            'allow_credit' => (bool)($globalConfig?->global_allow_credit ?? true),
             'base_allow_credit' => (bool)$baseAllowCredit,
-            'credit_days' => $globalConfig->global_credit_days ?? 30,
-            'credit_limit' => $globalConfig->global_credit_limit,
+            'credit_days' => $globalConfig?->global_credit_days ?? 30,
+            'credit_limit' => $globalConfig?->global_credit_limit,
             'usd_payment_discount' => $usdPaymentDiscount, 
             'usd_payment_discount_tag' => $usdPaymentDiscountTag,
             'discount_rules' => $discountRules, 

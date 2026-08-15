@@ -54,3 +54,11 @@ google-drive-key.json
 
 # WhatsApp uploads
 /whatsapp-api/uploads/
+
+# Scratch folder
+/scratch/
+
+# Installer Binaries
+/installer/output/
+/installer/tools/*.exe
+*.exe

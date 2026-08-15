@@ -55,16 +55,17 @@
                                     <span class="badge bg-light text-dark border p-2" style="font-family: monospace; letter-spacing: 2px;">{{ $auth->pin_code }}</span>
                                 </td>
                                 <td>
-                                    @if($auth->status === 'used')
+                                    @if($auth->status === 'used' || $auth->status === 'approved')
                                         <span class="badge bg-success">Usado</span>
                                         @if($auth->sale_id)
                                             <div class="small text-muted mt-1 font-weight-bold">Factura #{{ $auth->sale_id }}</div>
                                         @endif
-                                    @elseif($auth->status === 'expired')
+                                    @elseif($auth->status === 'expired' || ($auth->status === 'pending' && $auth->isExpired()))
                                         <span class="badge bg-danger">Expirado</span>
+                                        <div class="small text-muted mt-1">Expiró: {{ $auth->expires_at ? $auth->expires_at->format('d/m/Y h:i A') : 'N/A' }}</div>
                                     @else
                                         <span class="badge bg-warning text-dark">Pendiente</span>
-                                        <div class="small text-muted mt-1">Expira: {{ $auth->expires_at->format('h:i A') }}</div>
+                                        <div class="small text-muted mt-1">Expira: {{ $auth->expires_at ? $auth->expires_at->format('h:i A') : 'N/A' }}</div>
                                     @endif
                                 </td>
                                 <td>

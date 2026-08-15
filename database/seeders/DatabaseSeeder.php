@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class, // New dedicated permission seeder
             RoleSeeder::class,
             UserSeeder::class,
+            SellerSeeder::class, // Crea usuario OFICINA (vendedor por defecto para Plan Básico)
             CategorySeeder::class,
             SupplierSeeder::class,
             CustomerSeeder::class,

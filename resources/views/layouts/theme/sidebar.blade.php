@@ -114,12 +114,14 @@
                                 <p>Ventas (POS)</p>
                             </a>
                         </li>
+                        @module('module_credits')
                         <li class="nav-item">
                             <a href="{{ route('credit.authorizations') }}" class="nav-link {{ Request::is('credit-authorizations') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Historial Auth. Crédito</p>
                             </a>
                         </li>
+                        @endmodule
                         @endcan
 
                         @module('module_purchases')
@@ -174,6 +176,7 @@
                 @endunlessrole
 
                 {{-- MÓDULO 2: LOGÍSTICA Y DESPACHO --}}
+                @module('module_delivery')
                 @if($isDriver || $canSeeLogistics)
                 <li class="nav-item">
                     <a href="#" class="nav-link">
@@ -190,7 +193,6 @@
                                 <p>{{ $isDriver ? 'MI RUTA' : 'Logística / Rutas' }}</p>
                             </a>
                         </li>
-                        @module('module_delivery')
                         @can('distribution.map')
                         <li class="nav-item">
                             <a href="{{ route('delivery.map') }}" class="nav-link {{ Request::is('delivery/map') ? 'active' : '' }}">
@@ -207,10 +209,10 @@
                             </a>
                         </li>
                         @endcan
-                        @endmodule
                     </ul>
                 </li>
                 @endif
+                @endmodule
 
                 {{-- MÓDULO 3: INVENTARIO Y PRODUCCIÓN --}}
                 @unlessrole('Driver')
@@ -318,6 +320,7 @@
                 @endunlessrole
 
                 {{-- MÓDULO: FÁBRICA SOPLADOS (BOTELLONES) --}}
+                @module('module_soplados')
                 @unlessrole('Driver')
                 <li class="nav-item {{ Request::is('production-report*') || Request::is('soplados/*') ? 'menu-open' : '' }}">
                     <a href="#" class="nav-link {{ Request::is('production-report*') || Request::is('soplados/*') ? 'active' : '' }}">
@@ -361,10 +364,11 @@
                     </ul>
                 </li>
                 @endunlessrole
+                @endmodule
 
                 {{-- MÓDULO: FÁBRICA BOLSAS --}}
+                @module('module_bolsas')
                 @unlessrole('Driver')
-                @module('module_production')
                 @can('production.index')
                 <li class="nav-item {{ Request::is('production*') ? 'menu-open' : '' }}">
                     <a href="#" class="nav-link {{ Request::is('production*') ? 'active' : '' }}">
@@ -384,8 +388,8 @@
                     </ul>
                 </li>
                 @endcan
-                @endmodule
                 @endunlessrole
+                @endmodule
 
                 {{-- MÓDULO 4: FINANZAS Y AUDITORÍA --}}
                 @unlessrole('Driver')
@@ -442,6 +446,7 @@
                                 </p>
                             </a>
                             <ul class="nav nav-treeview">
+                                @module('module_credits')
                                 @can('reports.financial')
                                 <li class="nav-item">
                                     <a href="{{ route('reports.accounts.receivable') }}" class="nav-link {{ Route::is('reports.accounts.receivable*') ? 'active' : '' }}">
@@ -458,6 +463,7 @@
                                     </a>
                                 </li>
                                 @endcan
+                                @endmodule
                                 @can('reports.sales')
                                 <li class="nav-item">
                                     <a href="{{ route('reports.returns') }}" class="nav-link {{ Request::is('reports/returns*') ? 'active' : '' }}">
@@ -635,12 +641,14 @@
                                           <p>Ventas Diarias</p>
                                       </a>
                                   </li>
+                                  @module('module_credits')
                                   <li class="nav-item">
                                       <a href="{{ route('reports.payment.relationship') }}" class="nav-link {{ Route::is('reports.payment.relationship*') ? 'active' : '' }}">
                                           <i class="far fa-dot-circle nav-icon"></i>
                                           <p>Relación de Cobros</p>
                                       </a>
                                   </li>
+                                  @endmodule
                                   @module('module_weekly_income')
                                   <li class="nav-item">
                                       <a href="{{ route('reports.weekly.income') }}" class="nav-link {{ Request::is('reports/weekly-income*') ? 'active' : '' }}">
@@ -689,12 +697,14 @@
                                       </a>
                                   </li>
                                   @endmodule
+                                  @module('module_commissions')
                                   <li class="nav-item">
                                       <a href="{{ route('reports.goal.commissions') }}" class="nav-link {{ Request::is('reports/goal-commissions*') ? 'active' : '' }}">
                                           <i class="far fa-dot-circle nav-icon"></i>
                                           <p>Comisiones por Metas</p>
                                       </a>
                                   </li>
+                                  @endmodule
                                   @module('module_seller_grouped')
                                   <li class="nav-item">
                                       <a href="{{ route('reports.seller_grouped') }}" class="nav-link {{ Request::is('reports/seller-grouped*') ? 'active' : '' }}">

@@ -10,6 +10,11 @@ class CheckModule
 {
     public function handle(Request $request, Closure $next, $module): Response
     {
+        // Super Admin bypass: accede a todos los módulos sin importar el plan
+        if (auth()->check() && auth()->user()->hasRole('Super Admin')) {
+            return $next($request);
+        }
+
         $modules = config('tenant.modules', []);
         
         if (!in_array($module, $modules)) {

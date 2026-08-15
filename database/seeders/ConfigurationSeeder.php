@@ -13,6 +13,7 @@ class ConfigurationSeeder extends Seeder
     public function run(): void
     {
         Configuration::create([
+            'plan_type' => 'basic',
             'business_name' => 'IT COMPANY',
             'address' => 'VENEZUELA',
             'phone' => '5555555',

@@ -85,9 +85,26 @@
                 <div class="step {{ request()->routeIs('install.step5') ? 'active' : 'completed' }}">5</div>
             </div>
 
+            @if($errors->any())
+                <div class="alert alert-danger">
+                    <h6 class="fw-bold mb-2"><i class="fas fa-exclamation-triangle me-1"></i> Por favor corrija los siguientes errores:</h6>
+                    <ul class="mb-0 ps-3">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             @if(session('error'))
                 <div class="alert alert-danger">
-                    {{ session('error') }}
+                    <i class="fas fa-exclamation-circle me-1"></i> {{ session('error') }}
+                </div>
+            @endif
+
+            @if(session('success'))
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-1"></i> {{ session('success') }}
                 </div>
             @endif
 

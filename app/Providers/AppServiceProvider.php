@@ -25,8 +25,15 @@ class AppServiceProvider extends ServiceProvider
     {
         \Illuminate\Support\Facades\View::composer('layouts.theme.header', \App\View\Composers\HeaderComposer::class);
 
-        // Registro de directiva Blade para Módulos SaaS (Antiguo / Complementario)
+        // Registro de directiva Blade para Módulos SaaS
         \Illuminate\Support\Facades\Blade::if('module', function ($moduleName) {
+            // Super Admin bypass: ve todos los módulos sin importar el plan
+            try {
+                if (auth()->check() && auth()->user()->hasRole('Super Admin')) {
+                    return true;
+                }
+            } catch (\Throwable $e) {}
+
             try {
                 $config = \App\Services\ConfigurationService::getConfig();
                 if ($config && method_exists($config, 'hasAddon')) {
@@ -41,6 +48,13 @@ class AppServiceProvider extends ServiceProvider
 
         // Registro de directiva Blade para Planes de Suscripción
         \Illuminate\Support\Facades\Blade::if('plan', function ($planName) {
+            // Super Admin bypass: cumple cualquier plan requerido
+            try {
+                if (auth()->check() && auth()->user()->hasRole('Super Admin')) {
+                    return true;
+                }
+            } catch (\Throwable $e) {}
+
             try {
                 $config = \App\Services\ConfigurationService::getConfig();
                 if ($config && method_exists($config, 'hasPlan')) {
@@ -52,6 +66,13 @@ class AppServiceProvider extends ServiceProvider
 
         // Registro de directiva Blade para Add-ons a la carta
         \Illuminate\Support\Facades\Blade::if('addon', function ($addonName) {
+            // Super Admin bypass: ve todos los add-ons
+            try {
+                if (auth()->check() && auth()->user()->hasRole('Super Admin')) {
+                    return true;
+                }
+            } catch (\Throwable $e) {}
+
             try {
                 $config = \App\Services\ConfigurationService::getConfig();
                 if ($config && method_exists($config, 'hasAddon')) {

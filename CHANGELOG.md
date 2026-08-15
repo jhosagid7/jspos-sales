@@ -1,3 +1,11 @@
+## [1.10.383] - 2026-08-15
+
+### Added
+- **Revisión de Consistencia de Planes y Validación del Instalador**:
+  - `PlanConsistencyTest.php` & `config/plans.php`: Agregada configuración centralizada y pruebas de coherencia para módulos y límites en planes SaaS.
+  - `InstallController.php` & `GUIA_COMPILACION_INSTALADOR.md`: Mejorada la experiencia de instalación y validación del formulario de datos administrativos.
+  - `CreditAuthorizationsList.php` & `CustomerSellerIdFallbackTest.php`: Robustecidas las autorizaciones de crédito y asignaciones de vendedor.
+
 ## [1.10.382] - 2026-08-15
 
 ### Fixed

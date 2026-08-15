@@ -11,7 +11,7 @@ class GenerateLicense extends Command
      *
      * @var string
      */
-    protected $signature = 'license:generate {client_id} {days=30} {--plan=BASIC} {--add=} {--devices=1}';
+    protected $signature = 'license:generate {client_id} {days=30} {--plan=BASIC} {--add=} {--remove=} {--devices=}';
 
     /**
      * The console command description.
@@ -31,27 +31,24 @@ class GenerateLicense extends Command
 
         $plan = strtoupper($this->option('plan'));
         $addModules = $this->option('add') ? explode(',', $this->option('add')) : [];
+        $removeModules = $this->option('remove') ? explode(',', $this->option('remove')) : [];
 
-        // Define Module Tiers
-        $basicModules = [
-            // El núcleo no se puede apagar, estos son extras.
-        ];
-        $proModules = array_merge($basicModules, [
-            'module_credits', 'module_purchases', 'module_advanced_payments', 
-            'module_multi_warehouse', 'module_advanced_products', 'module_labels',
-            'module_advanced_reports', 'module_roles'
-        ]);
-        $premiumModules = array_merge($proModules, [
-            'module_whatsapp', 'module_commissions', 'module_production', 'module_delivery',
-            'module_updates', 'module_backups'
-        ]);
+        // Leer definiciones desde config/plans.php (fuente única de verdad)
+        $tiers = config('plans.tiers', []);
+        $dependencies = config('plans.dependencies', []);
+        $allAvailable = array_keys(config('plans.available_modules', []));
 
-        $modules = [];
-        if ($plan === 'PREMIUM') $modules = $premiumModules;
-        elseif ($plan === 'PRO') $modules = $proModules;
-        else $modules = $basicModules;
+        // Obtener módulos base del plan seleccionado
+        $planKey = strtolower($plan);
+        $tier = $tiers[$planKey] ?? $tiers['basic'] ?? ['modules' => [], 'max_devices' => 1];
+        
+        if ($tier['modules'] === 'all') {
+            $modules = $allAvailable;
+        } else {
+            $modules = $tier['modules'] ?? [];
+        }
 
-        // Add á la carte modules
+        // Agregar módulos à la carte
         foreach ($addModules as $mod) {
             $mod = trim($mod);
             if (!empty($mod) && !in_array($mod, $modules)) {
@@ -59,19 +56,53 @@ class GenerateLicense extends Command
             }
         }
 
-        // Dependency Validation
-        if (in_array('module_production', $modules) && !in_array('module_multi_warehouse', $modules)) {
-            $this->error("Error: module_production requiere module_multi_warehouse para funcionar.");
-            return 1;
+        // Quitar módulos explícitamente removidos
+        foreach ($removeModules as $mod) {
+            $mod = trim($mod);
+            if (!empty($mod)) {
+                $modules = array_values(array_filter($modules, fn($m) => $m !== $mod));
+            }
         }
 
-        $maxDevices = (int) $this->option('devices');
+        // Auto-resolver dependencias
+        $addedDeps = [];
+        $changed = true;
+        while ($changed) {
+            $changed = false;
+            foreach ($modules as $mod) {
+                if (isset($dependencies[$mod])) {
+                    foreach ($dependencies[$mod] as $dep) {
+                        if (!in_array($dep, $modules)) {
+                            $modules[] = $dep;
+                            $addedDeps[] = "$dep (requerido por $mod)";
+                            $changed = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Verificar que no se haya removido una dependencia requerida
+        foreach ($removeModules as $mod) {
+            $mod = trim($mod);
+            foreach ($dependencies as $dependent => $deps) {
+                if (in_array($mod, $deps) && in_array($dependent, $modules)) {
+                    $this->error("Error: No se puede quitar '$mod' porque es requerido por '$dependent'.");
+                    return 1;
+                }
+            }
+        }
+
+        // Determinar max_devices (prioridad: flag > plan default)
+        $maxDevices = $this->option('devices')
+            ? (int) $this->option('devices')
+            : ($tier['max_devices'] ?? 1);
 
         $data = [
             'client_id' => $clientId,
             'expires_at' => $expiresAt,
             'type' => $plan,
-            'modules' => $modules,
+            'modules' => array_values(array_unique($modules)),
             'max_devices' => $maxDevices
         ];
 
@@ -101,7 +132,19 @@ class GenerateLicense extends Command
 
         $this->info("License generated successfully!");
         $this->line("Client ID: $clientId");
+        $this->line("Plan: $plan");
         $this->line("Expires: $expiresAt");
+        $this->line("Max Devices: $maxDevices");
+        $this->line("Modules (" . count($data['modules']) . "): " . implode(', ', $data['modules']));
+
+        if (!empty($addedDeps)) {
+            $this->newLine();
+            $this->warn("Dependencias agregadas automáticamente:");
+            foreach ($addedDeps as $dep) {
+                $this->line("  → $dep");
+            }
+        }
+
         $this->newLine();
         $this->comment($finalKey);
         $this->newLine();

@@ -28,7 +28,7 @@
                         @csrf
                         <div class="mb-3">
                             <label class="form-label fw-bold">IP del Servidor de Licencias (ZeroTier / Tailscale):</label>
-                            <input type="text" id="server_ip" class="form-control" placeholder="Ej. 100.115.248.9" required>
+                            <input type="text" id="server_ip" class="form-control" value="{{ $defaultServerIp ?? '100.115.149.91:8080' }}" placeholder="Ej. 100.115.149.91:8080" required>
                         </div>
 
                         <div class="mb-3">
@@ -38,7 +38,7 @@
 
                         <div class="mb-3">
                             <label class="form-label text-muted small">IP VPN de este Equipo (Opcional):</label>
-                            <input type="text" id="client_vpn_ip" class="form-control form-control-sm" placeholder="Dejar en blanco si no se conoce">
+                            <input type="text" id="client_vpn_ip" class="form-control form-control-sm" value="{{ $defaultVpnIp ?? '' }}" placeholder="Ej. 100.115.149.91 o 100.115.149.91:8081">
                         </div>
 
                         <div class="d-flex justify-content-between items-center mt-3">

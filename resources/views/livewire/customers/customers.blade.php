@@ -56,7 +56,9 @@
                                     <th width="20%">Ciudad</th>
                                     <th width="25%">Teléfono</th>
                                     <th width="25%">CC/Nit</th>
+                                    @module('module_commissions')
                                     <th width="15%">Vendedor</th>
+                                    @endmodule
                                     <th width="10%">Billetera</th>
                                     
                                     <th class="text-center">Actions</th>
@@ -67,6 +69,7 @@
                                     <tr>
                                         <td> 
                                             <div class="fw-bold">{{ $item->name }}</div>
+                                            @module('module_credits')
                                             @php
                                                 $creditConfig = \App\Services\CreditConfigService::getCreditConfig($item, $item->seller);
                                                 $isMoroso = \App\Services\CreditConfigService::hasUnpaidOverdueInvoices($item);
@@ -106,12 +109,15 @@
                                                     </span>
                                                 @endif
                                             </div>
+                                            @endmodule
                                         </td>
                                         <td>{{ $item->address }}</td>
                                         <td>{{ $item->city }}</td>
                                         <td>{{ $item->phone }}</td>
                                         <td>{{ $item->taxpayerId }}</td>
+                                        @module('module_commissions')
                                         <td>{{ $item->seller ? $item->seller->name : 'N/A' }}</td>
+                                        @endmodule
                                         <td class="text-center fw-bold {{ $item->wallet_balance > 0 ? 'text-success' : '' }}">
                                             ${{ number_format($item->wallet_balance, 2) }}
                                         </td>
