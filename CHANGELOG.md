@@ -1,3 +1,9 @@
+## [1.10.385] - 2026-08-15
+
+### Fixed
+- **Bypass de Límite de Consultas API de GitHub (Error 403 Rate Limit)**:
+  - `UpdateService.php`: Implementado respaldo secundario (*fallback*) transparente hacia la CDN sin límite de peticiones (`raw.githubusercontent.com`), permitiendo la detección y descarga continua de actualizaciones sin verse bloqueado por el límite de 60 consultas/hora por IP pública en la API de GitHub.
+
 ## [1.10.384] - 2026-08-15
 
 ### Fixed

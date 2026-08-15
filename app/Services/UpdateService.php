@@ -36,15 +36,20 @@ class UpdateService
 
     public function checkUpdate()
     {
-        $url = "https://api.github.com/repos/{$this->owner}/{$this->repo}/releases/latest";
         $currentVersion = $this->getCurrentVersion();
         $v2 = ltrim($currentVersion, 'v');
         $errorMessage = null;
 
+        $headers = ['User-Agent' => 'JSPOS-Updater'];
+        $token = env('GITHUB_TOKEN') ?: config('services.github.token');
+        if (!empty($token)) {
+            $headers['Authorization'] = 'Bearer ' . $token;
+        }
+
+        // 1. Try releases endpoint
         try {
-            $response = Http::withHeaders([
-                'User-Agent' => 'JSPOS-Updater'
-            ])->timeout(25)->get($url);
+            $url = "https://api.github.com/repos/{$this->owner}/{$this->repo}/releases/latest";
+            $response = Http::withHeaders($headers)->timeout(15)->get($url);
             
             if ($response->successful()) {
                 $data = $response->json();
@@ -55,7 +60,7 @@ class UpdateService
                     return [
                         'new_version' => 'v' . $v1,
                         'current_version' => $currentVersion,
-                        'url' => $data['zipball_url'] ?? "https://github.com/{$this->owner}/{$this->repo}/archive/refs/tags/{$latestVersion}.zip",
+                        'url' => $data['zipball_url'] ?? "https://github.com/{$this->owner}/{$this->repo}/archive/refs/tags/v{$v1}.zip",
                         'body' => $data['body'] ?? '',
                         'has_update' => true
                     ];
@@ -74,12 +79,10 @@ class UpdateService
             $errorMessage = "Error de conexión: " . $e->getMessage();
         }
 
-        // Fallback: Check tags endpoint if releases endpoint was rate-limited or failed
+        // 2. Try tags endpoint
         try {
             $tagsUrl = "https://api.github.com/repos/{$this->owner}/{$this->repo}/tags";
-            $tagsResponse = Http::withHeaders([
-                'User-Agent' => 'JSPOS-Updater'
-            ])->timeout(25)->get($tagsUrl);
+            $tagsResponse = Http::withHeaders($headers)->timeout(15)->get($tagsUrl);
 
             if ($tagsResponse->successful()) {
                 $tags = $tagsResponse->json();
@@ -91,7 +94,7 @@ class UpdateService
                         return [
                             'new_version' => 'v' . $v1,
                             'current_version' => $currentVersion,
-                            'url' => "https://github.com/{$this->owner}/{$this->repo}/archive/refs/tags/{$latestTag}.zip",
+                            'url' => "https://github.com/{$this->owner}/{$this->repo}/archive/refs/tags/v{$v1}.zip",
                             'body' => 'Nueva versión detectada desde repositorio oficial de etiquetas.',
                             'has_update' => true
                         ];
@@ -105,6 +108,54 @@ class UpdateService
             }
         } catch (\Exception $e) {
             Log::error("Update check via tags failed: " . $e->getMessage());
+        }
+
+        // 3. Fallback 3: Unlimited CDN Raw Check (Bypasses GitHub REST API 403 Rate Limits)
+        try {
+            foreach (['develop', 'main', 'master'] as $branch) {
+                $rawVersionUrl = "https://raw.githubusercontent.com/{$this->owner}/{$this->repo}/{$branch}/version.txt";
+                $rawResponse = Http::withHeaders(['User-Agent' => 'JSPOS-Updater'])->timeout(15)->get($rawVersionUrl);
+
+                if ($rawResponse->successful()) {
+                    $remoteVersion = trim($rawResponse->body());
+                    $v1 = ltrim($remoteVersion, 'v');
+
+                    if (!empty($v1) && version_compare($v1, $v2, '>')) {
+                        $changelogBody = 'Nueva versión detectada mediante servidor CDN oficial.';
+                        try {
+                            $rawChangelogUrl = "https://raw.githubusercontent.com/{$this->owner}/{$this->repo}/{$branch}/CHANGELOG.md";
+                            $changelogResponse = Http::timeout(10)->get($rawChangelogUrl);
+                            if ($changelogResponse->successful()) {
+                                $content = $changelogResponse->body();
+                                $searchVersion = str_replace('v', '', $v1);
+                                if (preg_match('/## \[' . preg_quote($searchVersion, '/') . '\][^\n]*\n(.*?)(?=\n## \[|\z)/s', $content, $matches)) {
+                                    $changelogBody = trim($matches[1]);
+                                }
+                            }
+                        } catch (\Exception $e) {
+                            // Ignore changelog fetch error
+                        }
+
+                        $tag = 'v' . $v1;
+                        return [
+                            'new_version' => $tag,
+                            'current_version' => $currentVersion,
+                            'url' => "https://github.com/{$this->owner}/{$this->repo}/archive/refs/tags/{$tag}.zip",
+                            'body' => $changelogBody,
+                            'has_update' => true
+                        ];
+                    }
+
+                    if (!empty($v1) && version_compare($v1, $v2, '<=')) {
+                        return [
+                            'has_update' => false,
+                            'current_version' => $currentVersion
+                        ];
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error("Update check via raw CDN failed: " . $e->getMessage());
         }
 
         return [
