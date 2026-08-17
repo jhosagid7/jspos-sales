@@ -71,8 +71,21 @@
 
             <div class="usdt-image-container">
                 <div class="title" style="text-align: left;">Comprobante de Pago Cargado</div>
-                @if($record->image_path && file_exists(storage_path('app/public/' . $record->image_path)))
-                    <img src="{{ storage_path('app/public/' . $record->image_path) }}" class="usdt-image" alt="Comprobante USDT">
+                @php
+                    $fullPath = null;
+                    if (!empty($record->image_path)) {
+                        if (file_exists(public_path('storage/' . $record->image_path))) {
+                            $fullPath = public_path('storage/' . $record->image_path);
+                        } elseif (file_exists(storage_path('app/public/' . $record->image_path))) {
+                            $fullPath = storage_path('app/public/' . $record->image_path);
+                        } elseif (file_exists($record->image_path)) {
+                            $fullPath = $record->image_path;
+                        }
+                    }
+                @endphp
+
+                @if($fullPath)
+                    <img src="{{ $fullPath }}" class="usdt-image" alt="Comprobante USDT">
                 @else
                     <div class="no-image">No hay imagen adjunta para este comprobante USDT</div>
                 @endif

@@ -542,6 +542,7 @@
                                                             <div class="small">
                                                                 @php
                                                                     $rec = $payment->usdt_record ?? $payment->zelle_record;
+                                                                    $imgPath = ($rec && !empty($rec->image_path)) ? $rec->image_path : ($payment->zelle_image ?? null);
                                                                 @endphp
                                                                 @if($rec)
                                                                     <div><b>Emisor:</b> {{ $rec->sender_name }}</div>
@@ -549,23 +550,17 @@
                                                                     @if($rec->reference)
                                                                         <div><b>Ref:</b> {{ $rec->reference }}</div>
                                                                     @endif
-                                                                    @if(!empty($rec->image_path))
-                                                                        <div class="mt-1">
-                                                                            <a href="{{ asset('storage/' . $rec->image_path) }}" target="_blank" class="text-success fw-bold">
-                                                                                <i class="fas fa-image"></i> Ver Comprobante
-                                                                            </a>
-                                                                        </div>
-                                                                    @endif
-                                                                @elseif(isset($payment->issuer_name) || isset($payment->zelle_image))
+                                                                @elseif(isset($payment->issuer_name))
                                                                     @if($payment->issuer_name) <div><b>Emisor:</b> {{ $payment->issuer_name }}</div> @endif
                                                                     @if($payment->payment_date) <div><b>Fecha Pago:</b> {{ \Carbon\Carbon::parse($payment->payment_date)->format('d/m/Y') }}</div> @endif
-                                                                    @if($payment->zelle_image)
-                                                                        <div class="mt-1">
-                                                                            <a href="{{ asset('storage/' . $payment->zelle_image) }}" target="_blank" class="text-success fw-bold">
-                                                                                <i class="fas fa-image"></i> Ver Comprobante
-                                                                            </a>
-                                                                        </div>
-                                                                    @endif
+                                                                @endif
+
+                                                                @if(!empty($imgPath))
+                                                                    <div class="mt-1">
+                                                                        <a href="{{ asset('storage/' . $imgPath) }}" target="_blank" class="text-primary fw-bold">
+                                                                            <i class="fas fa-image"></i> Ver Comprobante
+                                                                        </a>
+                                                                    </div>
                                                                 @endif
                                                             </div>
                                                         @endif

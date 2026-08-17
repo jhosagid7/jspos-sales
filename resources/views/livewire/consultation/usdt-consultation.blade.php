@@ -137,4 +137,15 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('livewire:initialized', () => {
+            Livewire.on('show-details-modal', () => {
+                $('#usdtDetailsModal').modal('show');
+            });
+            Livewire.on('hide-details-modal', () => {
+                $('#usdtDetailsModal').modal('hide');
+            });
+        });
+    </script>
 </div>
