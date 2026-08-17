@@ -947,7 +947,7 @@ class ReportController extends Controller
         });
 
         $saleIds = $sales->pluck('id');
-        $paymentDetails = SalePaymentDetail::with(['zelleRecord', 'bankRecord'])->whereIn('sale_id', $saleIds)->get();
+        $paymentDetails = SalePaymentDetail::with(['zelleRecord', 'usdtRecord', 'bankRecord'])->whereIn('sale_id', $saleIds)->get();
         
         $totalNCUSD = \App\Models\SaleReturn::whereBetween('created_at', [$dFrom, $dTo])
             ->where('status', 'approved')
@@ -983,13 +983,13 @@ class ReportController extends Controller
         $sheets = \App\Models\CollectionSheet::whereBetween('opened_at', [$dFrom, $dTo])->get();
         $sheetIds = $sheets->pluck('id');
 
-        $payments = Payment::with(['zelleRecord', 'bankRecord'])
+        $payments = Payment::with(['zelleRecord', 'usdtRecord', 'bankRecord'])
             ->whereIn('collection_sheet_id', $sheetIds)
             ->when($user_id != 0, function ($qry) use ($user_id) {
                 $qry->where('user_id', $user_id);
             })
             ->where('status', 'approved')
-            ->select('id', 'pay_way', 'amount', 'bank', 'currency', 'exchange_rate', 'primary_exchange_rate', 'zelle_record_id', 'bank_record_id')
+            ->select('id', 'pay_way', 'amount', 'bank', 'currency', 'exchange_rate', 'primary_exchange_rate', 'zelle_record_id', 'usdt_record_id', 'bank_record_id')
             ->get();
 
         $totalPayments = $payments->sum(function($payment) use ($primaryRate) {
@@ -1490,7 +1490,7 @@ class ReportController extends Controller
 
     private function aggregateSalesByCurrency($sales, $paymentDetails, $currencies)
     {
-        $aggregated = ['cash' => [], 'nequi' => [], 'deposit' => [], 'zelle' => [], 'wallet' => []];
+        $aggregated = ['cash' => [], 'nequi' => [], 'deposit' => [], 'zelle' => [], 'usdt' => [], 'wallet' => []];
         $primaryCurrency = $currencies->firstWhere('is_primary', 1);
         $primaryCode = $primaryCurrency ? $primaryCurrency->code : 'COP';
         $paymentsBySale = $paymentDetails->groupBy('sale_id');
@@ -1506,6 +1506,7 @@ class ReportController extends Controller
                         'nequi' => 'nequi', 
                         'bank' => 'deposit', 
                         'zelle' => 'zelle', 
+                        'usdt' => 'usdt', 
                         'wallet' => 'wallet',
                         default => 'cash' 
                     };
@@ -1518,6 +1519,10 @@ class ReportController extends Controller
                          $sender = 'Desconocido';
                          if ($paymentDetail->zelleRecord) { $sender = $paymentDetail->zelleRecord->sender_name . ' (Ref: ' . $paymentDetail->zelleRecord->reference . ')'; }
                          $aggregated['zelle'][$sender] = ($aggregated['zelle'][$sender] ?? 0) + $paymentDetail->amount;
+                    } elseif ($category == 'usdt') {
+                         $sender = 'Desconocido';
+                         if ($paymentDetail->usdtRecord) { $sender = $paymentDetail->usdtRecord->sender_name . ' (Ref: ' . $paymentDetail->usdtRecord->reference . ')'; }
+                         $aggregated['usdt'][$sender] = ($aggregated['usdt'][$sender] ?? 0) + $paymentDetail->amount;
                     } else {
                         $aggregated[$category][$currency] = ($aggregated[$category][$currency] ?? 0) + $paymentDetail->amount;
                     }
@@ -1534,7 +1539,7 @@ class ReportController extends Controller
 
     private function aggregatePaymentsByCurrency($payments, $currencies)
     {
-        $aggregated = ['cash' => [], 'nequi' => [], 'deposit' => [], 'zelle' => []];
+        $aggregated = ['cash' => [], 'nequi' => [], 'deposit' => [], 'zelle' => [], 'usdt' => []];
         $primaryCurrency = $currencies->firstWhere('is_primary', 1);
         $primaryCode = $primaryCurrency ? $primaryCurrency->code : 'COP';
 
@@ -1549,6 +1554,10 @@ class ReportController extends Controller
                  $sender = 'Desconocido';
                  if ($payment->zelleRecord) { $sender = $payment->zelleRecord->sender_name . ' (Ref: ' . $payment->zelleRecord->reference . ')'; }
                  $aggregated['zelle'][$sender] = ($aggregated['zelle'][$sender] ?? 0) + $payment->amount;
+            } elseif ($payWay == 'usdt') {
+                 $sender = 'Desconocido';
+                 if ($payment->usdtRecord) { $sender = $payment->usdtRecord->sender_name . ' (Ref: ' . $payment->usdtRecord->reference . ')'; }
+                 $aggregated['usdt'][$sender] = ($aggregated['usdt'][$sender] ?? 0) + $payment->amount;
             } else {
                 $aggregated[$payWay][$currency] = ($aggregated[$payWay][$currency] ?? 0) + $payment->amount;
             }
