@@ -1,3 +1,13 @@
+## [1.10.386] - 2026-08-17
+
+### Added
+- **Soporte Completo para Métodos de Pago USDT BINANCE en Web, Reportes, Tickets y App VIP Móvil**:
+  - `CurrencyHelper.php`: Creada la función auxiliar `getUsdtLabel()` para formatear dinámicamente el nombre de la cuenta USDT con su ID o número de cuenta de Binance Pay configurado (ej. `USDT BINANCE (ID: 1259627706)`).
+  - `ReportController.php`, `DailySalesReport.php`, `PaymentRelationshipReport.php`: Incorporado el desglose y agrupación de ventas al contado y pagos a crédito en USDT BINANCE.
+  - `PrintTrait.php` & `cash-count-pdf.blade.php`: Actualizada la impresión del ticket térmico y el reporte PDF de Corte de Caja con los subtotales e ID de la cuenta Binance.
+  - `Api/PaymentController.php` & `Api/Vip/PaymentController.php`: Habilitada la recepción de abonos en USDT a través de la API REST con vinculación automática de comprobantes a `UsdtRecord`.
+  - `mobile_vip_app/lib/main.dart`: Actualizado el formulario de pagos de la aplicación móvil de Clientes VIP para permitir la selección de USDT BINANCE, validación de referencias y carga de capturas de pantalla.
+
 ## [1.10.385] - 2026-08-15
 
 ### Fixed
