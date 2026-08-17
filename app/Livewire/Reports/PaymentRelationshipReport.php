@@ -316,7 +316,7 @@ class PaymentRelationshipReport extends Component
                     $totalsByCategory[$key] = $amtUSD;
                 }
             } else {
-                $bankName = $p->bank ? strtoupper($p->bank) : ($p->pay_way == 'zelle' ? 'ZELLE' : null);
+                $bankName = $p->bank ? strtoupper($p->bank) : ($p->pay_way == 'zelle' ? 'ZELLE' : ($p->pay_way == 'usdt' ? 'USDT BINANCE' : null));
                 if ($bankName && isset($totalsByCategory[$bankName])) {
                     $totalsByCategory[$bankName] += $amtUSD;
                 } elseif ($bankName) {
@@ -500,6 +500,7 @@ class PaymentRelationshipReport extends Component
             $bankPayments = $payments->filter(function($p) use ($bank) {
                 $match = ($p->pay_way == 'bank' || $p->pay_way == 'deposit') && $p->bank == $bank->name;
                 if (stripos($bank->name, 'zelle') !== false && $p->pay_way == 'zelle') $match = true;
+                if ((stripos($bank->name, 'usdt') !== false || stripos($bank->name, 'binance') !== false || stripos($bank->name, 'cripto') !== false) && $p->pay_way == 'usdt') $match = true;
                 return $match;
             });
 

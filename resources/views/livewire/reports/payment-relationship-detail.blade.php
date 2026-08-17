@@ -157,6 +157,9 @@
                                             if (stripos($bank->name, 'zelle') !== false) {
                                                 $bankTotal += $salePayments->where('pay_way', 'zelle')->sum('amount');
                                             }
+                                            if (stripos($bank->name, 'usdt') !== false || stripos($bank->name, 'binance') !== false || stripos($bank->name, 'cripto') !== false) {
+                                                $bankTotal += $salePayments->where('pay_way', 'usdt')->sum('amount');
+                                            }
                                         @endphp
                                         <td>{{ number_format($bankTotal, 2) }}</td>
                                     @endforeach
@@ -196,6 +199,7 @@
                                     <td class="font-weight-bold">{{ number_format($payments->filter(function($p) use ($bank) {
                                         $match = ($p->pay_way == 'bank' || $p->pay_way == 'deposit') && $p->bank == $bank->name;
                                         if (stripos($bank->name, 'zelle') !== false && $p->pay_way == 'zelle') $match = true;
+                                        if ((stripos($bank->name, 'usdt') !== false || stripos($bank->name, 'binance') !== false || stripos($bank->name, 'cripto') !== false) && $p->pay_way == 'usdt') $match = true;
                                         return $match;
                                     })->sum('amount'), 2) }}</td>
                                 @endforeach

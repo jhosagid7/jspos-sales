@@ -147,6 +147,11 @@
                                                     $zellePayments = $sheet->payments->where('pay_way', 'zelle')->sum('amount');
                                                     $bankTotal += $zellePayments;
                                                 }
+                                                // Special Case: If this bank is "USDT", also include payments with pay_way = 'usdt'
+                                                if (stripos($bank->name, 'usdt') !== false || stripos($bank->name, 'binance') !== false || stripos($bank->name, 'cripto') !== false) {
+                                                    $usdtPayments = $sheet->payments->where('pay_way', 'usdt')->sum('amount');
+                                                    $bankTotal += $usdtPayments;
+                                                }
                                             @endphp
                                             <td><h6>{{ number_format($bankTotal, 2) }}</h6></td>
                                         @endforeach

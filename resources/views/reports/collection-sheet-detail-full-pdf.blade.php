@@ -222,6 +222,9 @@
                                 if (stripos($bank->name, 'zelle') !== false) {
                                     $bankTotal += $salePayments->where('pay_way', 'zelle')->sum('amount');
                                 }
+                                if (stripos($bank->name, 'usdt') !== false || stripos($bank->name, 'binance') !== false || stripos($bank->name, 'cripto') !== false) {
+                                    $bankTotal += $salePayments->where('pay_way', 'usdt')->sum('amount');
+                                }
                             @endphp
                             <td class="text-right">{{ number_format($bankTotal, 2) }}</td>
                         @endforeach
@@ -249,7 +252,7 @@
                     <!-- Details Row -->
                     @php
                         $hasDetails = $salePayments->contains(function($p) {
-                            return in_array($p->pay_way, ['zelle', 'bank', 'deposit']);
+                            return in_array($p->pay_way, ['zelle', 'usdt', 'bank', 'deposit']);
                         });
                     @endphp
                     
@@ -258,8 +261,11 @@
                             <td colspan="{{ $colSpan }}">
                                 <strong>Detalles de Pagos:</strong><br>
                                 @foreach($salePayments as $p)
-                                    @if($p->pay_way == 'zelle')
-                                        - Zelle: {{ optional($p->zelleRecord)->sender_name ?? 'N/A' }} | Ref: {{ optional($p->zelleRecord)->reference ?? 'N/A' }} | Fecha: {{ optional($p->zelleRecord)->zelle_date ?? 'N/A' }} | Monto: ${{ number_format($p->amount, 2) }}<br>
+                                    @if($p->pay_way == 'zelle' || $p->pay_way == 'usdt')
+                                        @php
+                                            $rec = $p->usdtRecord ?? $p->zelleRecord;
+                                        @endphp
+                                        - {{ $p->pay_way == 'usdt' ? 'USDT BINANCE' : 'Zelle' }}: {{ optional($rec)->sender_name ?? 'N/A' }} | Ref: {{ optional($rec)->reference ?? 'N/A' }} | Fecha: {{ optional($rec)->usdt_date ?? optional($rec)->zelle_date ?? 'N/A' }} | Monto: ${{ number_format($p->amount, 2) }}<br>
                                     @elseif($p->pay_way == 'bank' || $p->pay_way == 'deposit')
                                         - Banco: {{ $p->bank }} | Cta: {{ $p->account_number }} | Ref: {{ $p->deposit_number }} | Fecha: {{ $p->payment_date }} | Monto: {{ number_format($p->amount, 2) }}<br>
                                     @endif
@@ -283,6 +289,7 @@
                         <td class="text-right"><strong>{{ number_format($payments->filter(function($p) use ($bank) {
                             $match = ($p->pay_way == 'bank' || $p->pay_way == 'deposit') && $p->bank == $bank->name;
                             if (stripos($bank->name, 'zelle') !== false && $p->pay_way == 'zelle') $match = true;
+                            if ((stripos($bank->name, 'usdt') !== false || stripos($bank->name, 'binance') !== false || stripos($bank->name, 'cripto') !== false) && $p->pay_way == 'usdt') $match = true;
                             return $match;
                         })->sum('amount'), 2) }}</strong></td>
                     @endforeach
