@@ -108,7 +108,11 @@ La IA debe leer este archivo para entender cómo trabajar en este proyecto espec
 ## 9. Aplicación Móvil (Flutter)
 ### 9.1. Entorno de Compilación (CRÍTICO)
 - **Ruta SDK Flutter**: `C:\src\flutter` (Ejecutable: `C:\src\flutter\bin\flutter.bat`).
-- **Directorio del Proyecto**: `mobile_app/`, `mobile_vip_app/` y `mobile_soplados_app/`.
+- **Directorio de los Proyectos Móviles en la Raíz**:
+  - `mobile_app/` -> Aplicación Móvil para Vendedores y Cajeros (POS Vendedor).
+  - `mobile_vip_app/` -> Aplicación Móvil para Clientes VIP (Autoservicio y Pagos Cliente).
+  - `mobile_bolsas_app/` -> Aplicación Móvil de Manufactura (Planta Bolsas).
+  - `mobile_soplados_app/` -> Aplicación Móvil de Manufactura (Planta Soplados).
 - **Protocolo de Compilación y Release**:
     1.  **Versión**: Incrementar el `version` en `pubspec.yaml` (tanto el nombre `x.x.x` como el build number `+N`).
     2.  **Limpieza/Dependencias**: Ejecutar `flutter pub get`.
@@ -125,6 +129,6 @@ Cualquier modificación en la interfaz móvil DEBE seguir estos lineamientos par
 - **Colores**: Evitar colores planos básicos. Usar gradientes armónicos (ej. `Color(0xFF1A237E)` a `Color(0xFF0D47A1)`).
 - **Componentes**: 
     - Bordes redondeados pronunciados (mínimo `borderRadius: BorderRadius.circular(20)`).
-    - Sombras suaves (`BoxShadow` con opacidad baja).
+    - Sombras suaves (`BoxShadow` with opacidad baja).
     - Iconografía moderna y consistente.
 - **Interactividad**: Implementar micro-animaciones o feedbacks visuales (SnackBars informativos, loaders personalizados).
