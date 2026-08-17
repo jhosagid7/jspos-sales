@@ -187,7 +187,8 @@ class Sales extends Component
         if($value) {
             $bank = collect($this->banks)->firstWhere('id', $value);
             if($bank) {
-                if(stripos($bank->name, 'zelle') !== false) {
+                $bName = strtolower($bank->name);
+                if (str_contains($bName, 'zelle') || str_contains($bName, 'usdt') || str_contains($bName, 'binance') || str_contains($bName, 'cripto')) {
                     $this->isZelleSelected = true;
                 }
                 if($bank->currency_code === 'VED' || $bank->currency_code === 'VES') {
@@ -643,9 +644,13 @@ class Sales extends Component
             return;
         }
 
+        if (empty($this->zelleDate)) {
+            $this->zelleDate = date('Y-m-d');
+        }
+
         $this->validate([
             'zelleAmount' => 'required|numeric|min:0.01',
-            'zelleDate' => 'required|date',
+            'zelleDate' => 'nullable|date',
             'zelleSender' => 'required|string',
             'zelleReference' => 'nullable|string',
             'zelleImage' => 'required|image|max:2048', // Validate image
@@ -693,8 +698,13 @@ class Sales extends Component
         // If amountToUse is in USD (which it should be for Zelle context), convert to Primary.
         $amountInPrimaryCurrency = $amountToUse * $primaryCurrency->exchange_rate;
 
+        $bankObj = collect($this->banks)->firstWhere('id', $this->bankId);
+        $bankNameLower = $bankObj ? strtolower($bankObj->name) : '';
+        $isUsdtBank = (str_contains($bankNameLower, 'usdt') || str_contains($bankNameLower, 'binance') || str_contains($bankNameLower, 'cripto'));
+        $paymentMethodType = $isUsdtBank ? 'usdt' : 'zelle';
+
         $this->payments[] = [
-            'method' => 'zelle',
+            'method' => $paymentMethodType,
             'amount' => $amountToUse,
             'currency' => 'USD',
             'symbol' => '$',

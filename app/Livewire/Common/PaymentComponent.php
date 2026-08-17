@@ -527,7 +527,8 @@ class PaymentComponent extends Component
         if($value) {
             $bank = $this->banks->find($value);
             if ($bank) {
-                if (stripos($bank->name, 'zelle') !== false) {
+                $bName = strtolower($bank->name);
+                if (str_contains($bName, 'zelle') || str_contains($bName, 'usdt') || str_contains($bName, 'binance') || str_contains($bName, 'cripto')) {
                     $this->isZelleSelected = true;
                 }
                 if ($bank->currency_code === 'VED' || $bank->currency_code === 'VES') {
@@ -613,9 +614,12 @@ class PaymentComponent extends Component
 
         if ($this->paymentMethod == 'bank') {
             if ($this->isZelleSelected) {
-                 $this->validate([
+                if (empty($this->zelleDate)) {
+                    $this->zelleDate = \Carbon\Carbon::now()->format('Y-m-d');
+                }
+                $this->validate([
                     'zelleSender' => 'required',
-                    'zelleDate' => 'required|date|before_or_equal:today',
+                    'zelleDate' => 'nullable|date|before_or_equal:today',
                     'zelleAmount' => 'required|numeric|min:0.01',
                     'zelleImage' => 'required|image|max:2048', 
                 ]);
@@ -711,10 +715,11 @@ class PaymentComponent extends Component
              if ($this->customExchangeRate > 0) {
                  $exchangeRate = $this->customExchangeRate;
              }
-        }
+        $isUsdtBank = (str_contains(strtolower($bankName), 'usdt') || str_contains(strtolower($bankName), 'binance') || str_contains(strtolower($bankName), 'cripto'));
+        $paymentMethodType = $isUsdtBank ? 'usdt' : ($this->isZelleSelected ? 'zelle' : $this->paymentMethod);
 
         $newPayment = [
-            'method' => $this->isZelleSelected ? 'zelle' : $this->paymentMethod,
+            'method' => $paymentMethodType,
             'amount' => $this->amount, // Amount Used
             'currency' => $currencyCode,
             'symbol' => $symbol,

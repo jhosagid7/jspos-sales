@@ -93,4 +93,13 @@ class UsdtPaymentMethodTest extends TestCase
         $this->assertEquals('JohnDoeBinance', $payment->usdtRecord->sender_name);
         $this->assertEquals('TXID_TEST_99', $payment->usdtRecord->reference);
     }
+
+    public function test_usdt_consultation_page_renders_successfully()
+    {
+        config(['tenant.modules' => ['module_usdt']]);
+        $user = \App\Models\User::factory()->create();
+        $response = $this->actingAs($user)->get(route('consultation.usdt'));
+        $response->assertStatus(200);
+        $response->assertSee('Consulta y Auditoría de Pagos USDT');
+    }
 }

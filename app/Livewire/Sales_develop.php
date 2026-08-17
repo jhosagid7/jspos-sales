@@ -126,7 +126,8 @@ class Sales extends Component
         if($value) {
             $bank = collect($this->banks)->firstWhere('id', $value);
             if($bank) {
-                if(stripos($bank->name, 'zelle') !== false) {
+                $bName = strtolower($bank->name);
+                if (str_contains($bName, 'zelle') || str_contains($bName, 'usdt') || str_contains($bName, 'binance') || str_contains($bName, 'cripto')) {
                     $this->isZelleSelected = true;
                 }
                 if($bank->currency_code === 'VED' || $bank->currency_code === 'VES') {

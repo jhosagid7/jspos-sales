@@ -27,7 +27,7 @@ class UsdtConsultation extends Component
         $this->dateTo = Carbon::now()->endOfMonth()->format('Y-m-d');
         
         // Check permission if system permissions exist, or check module_usdt
-        if (auth()->check() && auth()->user()->hasPermissionTo('usdt_index', 'web')) {
+        if (auth()->check() && auth()->user()->can('usdt_index')) {
             // Permission checked
         }
     }
