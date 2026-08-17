@@ -228,6 +228,9 @@
                                             } elseif ($payWay == 'zelle') {
                                                 $methodName = 'Zelle';
                                                 $badgeColor = 'dark';
+                                            } elseif ($payWay == 'usdt') {
+                                                $methodName = 'USDT BINANCE';
+                                                $badgeColor = 'success';
                                             } elseif ($payWay == 'credit_note') {
                                                 $methodName = 'Nota de Crédito';
                                                 $badgeColor = 'warning';
@@ -359,25 +362,29 @@
                                                             @endif
                                                         </div>
                                                     @endif
-                                                @elseif ($payWay == 'zelle')
-                                                    @if ($pay->zelleRecord)
+                                                @elseif ($payWay == 'zelle' || $payWay == 'usdt')
+                                                    @php
+                                                        $rec = $pay->usdtRecord ?? $pay->zelleRecord;
+                                                        $imgPath = ($rec && !empty($rec->image_path)) ? $rec->image_path : ($pay->zelle_image ?? null);
+                                                    @endphp
+                                                    @if ($rec)
                                                         <div class="small text-left">
-                                                            <div><b>Emisor:</b> {{ $pay->zelleRecord->sender_name }}</div>
-                                                            <div><b>Fecha:</b> {{ \Carbon\Carbon::parse($pay->zelleRecord->zelle_date)->format('d/m/Y') }}</div>
-                                                            <div><b>Monto Orig.:</b> ${{ number_format($pay->zelleRecord->amount, 2) }}</div>
-                                                            <div><b>Saldo Rest.:</b> ${{ number_format($pay->zelleRecord->remaining_balance, 2) }}</div>
-                                                            @if($pay->zelleRecord->reference)
-                                                                <div><b>Ref:</b> {{ $pay->zelleRecord->reference }}</div>
+                                                            <div><b>Emisor:</b> {{ $rec->sender_name }}</div>
+                                                            <div><b>Fecha:</b> {{ \Carbon\Carbon::parse($rec->usdt_date ?? $rec->zelle_date)->format('d/m/Y') }}</div>
+                                                            <div><b>Monto Orig.:</b> ${{ number_format($rec->amount, 2) }}</div>
+                                                            <div><b>Saldo Rest.:</b> ${{ number_format($rec->remaining_balance, 2) }}</div>
+                                                            @if($rec->reference)
+                                                                <div><b>Ref:</b> {{ $rec->reference }}</div>
                                                             @endif
                                                             <div class="mt-1">
-                                                                <span class="badge badge-{{ $pay->zelleRecord->remaining_balance <= 0.01 ? 'secondary' : 'success' }}">
-                                                                    {{ $pay->zelleRecord->remaining_balance <= 0.01 ? 'Agotado' : 'Disponible' }}
+                                                                <span class="badge badge-{{ $rec->remaining_balance <= 0.01 ? 'secondary' : 'success' }}">
+                                                                    {{ $rec->remaining_balance <= 0.01 ? 'Agotado' : 'Disponible' }}
                                                                 </span>
                                                             </div>
-                                                            @if($pay->zelleRecord->image_path)
+                                                            @if(!empty($imgPath))
                                                                 <div class="mt-1">
                                                                     @can('payments.view_proof')
-                                                                    <a href="{{ asset('storage/' . $pay->zelleRecord->image_path) }}" target="_blank" class="text-primary">
+                                                                    <a href="{{ asset('storage/' . $imgPath) }}" target="_blank" class="text-primary fw-bold">
                                                                         <i class="fas fa-image"></i> Ver Comprobante
                                                                     </a>
                                                                     @endcan
@@ -391,11 +398,11 @@
                                                             @if($pay->deposit_number || $pay->reference_number) 
                                                                 <div><b>Ref:</b> {{ $pay->reference_number ?? $pay->deposit_number }}</div> 
                                                             @endif
-                                                            @if($pay->zelle_image)
+                                                            @if(!empty($imgPath))
                                                                 <div class="mt-1">
                                                                     @can('payments.view_proof')
-                                                                    <a href="{{ asset('storage/' . $pay->zelle_image) }}" target="_blank" class="text-primary">
-                                                                        <i class="fas fa-image"></i> Ver Comprobante (Móvil)
+                                                                    <a href="{{ asset('storage/' . $imgPath) }}" target="_blank" class="text-primary fw-bold">
+                                                                        <i class="fas fa-image"></i> Ver Comprobante
                                                                     </a>
                                                                     @endcan
                                                                 </div>

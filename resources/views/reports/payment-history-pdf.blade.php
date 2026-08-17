@@ -102,10 +102,11 @@
                     // Prepare Detail Strings
                     $details = [];
                     
-                    if ($payment->pay_way == 'zelle' && $payment->zelleRecord) {
-                        $details[] = "<b>Emisor:</b> " . $payment->zelleRecord->sender_name;
-                        $details[] = "<b>Fecha:</b> " . \Carbon\Carbon::parse($payment->zelleRecord->zelle_date)->format('d/m/Y');
-                        $details[] = "<b>Ref:</b> " . ($payment->zelleRecord->reference ?? 'NA');
+                    if (($payment->pay_way == 'zelle' || $payment->pay_way == 'usdt') && ($payment->usdtRecord || $payment->zelleRecord)) {
+                        $rec = $payment->usdtRecord ?? $payment->zelleRecord;
+                        $details[] = "<b>Emisor:</b> " . $rec->sender_name;
+                        $details[] = "<b>Fecha:</b> " . \Carbon\Carbon::parse($rec->usdt_date ?? $rec->zelle_date)->format('d/m/Y');
+                        $details[] = "<b>Ref:</b> " . ($rec->reference ?? 'NA');
                     } elseif ($payment->pay_way == 'deposit' || $payment->pay_way == 'bank') {
                          if ($payment->bankRecord) {
                              $bankName = $payment->bankRecord->bank->name ?? 'Banco';
@@ -131,7 +132,7 @@
                 <tr class="{{ ($payment->status === 'cancelled' || $payment->status === 'voided') ? 'voided' : '' }}">
                     <td>{{ \Carbon\Carbon::parse($payment->created_at)->format('d/m/Y') }}</td>
                     <td>
-                        <strong>{{ ucfirst($payment->pay_way == 'cash' ? 'Efectivo' : ($payment->pay_way == 'deposit' ? 'Banco' : $payment->pay_way)) }}</strong>
+                        <strong>{{ strtoupper($payment->pay_way == 'cash' ? 'EFECTIVO' : ($payment->pay_way == 'deposit' ? 'BANCO' : ($payment->pay_way == 'usdt' ? 'USDT BINANCE' : $payment->pay_way))) }}</strong>
                     </td>
                     <td style="text-align: left; font-size: 10px; color: #7f8c8d;">
                         @foreach($details as $line)
