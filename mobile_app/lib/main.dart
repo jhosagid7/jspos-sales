@@ -2481,7 +2481,14 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
            }
            if (_banks.isNotEmpty) {
              _selectedBank = _banks.first;
-             _selectedMethod = _selectedBank['name'].toString().toLowerCase().contains('zelle') ? 'zelle' : 'bank';
+             String bName = _selectedBank['name'].toString().toLowerCase();
+             if (bName.contains('zelle')) {
+               _selectedMethod = 'zelle';
+             } else if (bName.contains('usdt') || bName.contains('binance') || bName.contains('cripto')) {
+               _selectedMethod = 'usdt';
+             } else {
+               _selectedMethod = 'bank';
+             }
              final bankCurrency = _currencies.firstWhere((c) => c['code'] == _selectedBank['currency_code'], orElse: () => null);
              if (bankCurrency != null) _selectedCurrency = bankCurrency;
            }
@@ -2580,7 +2587,7 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
     }
 
     bool isUSD = _selectedCurrency == null || _selectedCurrency['code'] == 'USD';
-    bool isZelle = _selectedMethod == 'zelle';
+    bool isZelle = _selectedMethod == 'zelle' || _selectedMethod == 'usdt';
 
     if (_payType == 'bank' && _selectedBank == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Seleccione un banco o plataforma"), backgroundColor: Colors.red));
@@ -2706,7 +2713,14 @@ class _UploadPaymentFormState extends State<UploadPaymentForm> {
                   items: _banks.map((b) => DropdownMenuItem(value: b, child: Text("${b['name']} (${b['currency_code'] ?? 'USD'})", style: const TextStyle(fontWeight: FontWeight.bold)))).toList(),
                   onChanged: (dynamic v) => setState(() {
                     _selectedBank = v;
-                    _selectedMethod = v['name'].toString().toLowerCase().contains('zelle') ? 'zelle' : 'bank';
+                    String bName = v['name'].toString().toLowerCase();
+                    if (bName.contains('zelle')) {
+                      _selectedMethod = 'zelle';
+                    } else if (bName.contains('usdt') || bName.contains('binance') || bName.contains('cripto')) {
+                      _selectedMethod = 'usdt';
+                    } else {
+                      _selectedMethod = 'bank';
+                    }
                     
                     final bankCurrency = _currencies.firstWhere((c) => c['code'] == v['currency_code'], orElse: () => null);
                     if (bankCurrency != null) {
