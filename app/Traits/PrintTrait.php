@@ -552,7 +552,8 @@ trait PrintTrait
                 }
                 // USDT Binance
                 if (!empty($salesByCurrency['usdt'])) {
-                    $printer->text("USDT BINANCE:\n");
+                    $usdtLabel = \App\Helpers\CurrencyHelper::getUsdtLabel();
+                    $printer->text(strtoupper($usdtLabel) . ":\n");
                     foreach ($salesByCurrency['usdt'] as $sender => $amount) {
                          $printer->text("  " . substr($sender, 0, 18) . ": " . number_format($amount, 2) . "\n");
                     }
@@ -598,7 +599,8 @@ trait PrintTrait
                 }
                 // USDT Binance
                 if (!empty($paymentsByCurrency['usdt'])) {
-                    $printer->text("USDT BINANCE:\n");
+                    $usdtLabel = \App\Helpers\CurrencyHelper::getUsdtLabel();
+                    $printer->text(strtoupper($usdtLabel) . ":\n");
                     foreach ($paymentsByCurrency['usdt'] as $sender => $amount) {
                          $printer->text("  " . substr($sender, 0, 18) . ": " . number_format($amount, 2) . "\n");
                     }
@@ -661,7 +663,8 @@ trait PrintTrait
                 $usdtTotal = 0;
                 $usdtTotal += array_sum($salesByCurrency['usdt'] ?? []);
                 $usdtTotal += array_sum($paymentsByCurrency['usdt'] ?? []);
-                $printer->text("TOTAL USDT BINANCE: $" . number_format($usdtTotal, 2) . "\n\n");
+                $usdtLabel = \App\Helpers\CurrencyHelper::getUsdtLabel();
+                $printer->text("TOTAL " . strtoupper($usdtLabel) . ": $" . number_format($usdtTotal, 2) . "\n\n");
 
                 // --- SECTION 4: BILLETERA / CUSTODIA ---
                 if ($walletAdded > 0 || $walletUsed > 0) {

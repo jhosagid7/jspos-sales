@@ -96,6 +96,42 @@ class CurrencyHelper
     }
 
     /**
+     * Obtener etiqueta formateada para USDT BINANCE incluyendo ID si está configurado en bancos
+     */
+    public static function getUsdtLabel($bankName = null)
+    {
+        try {
+            $query = \App\Models\Bank::where(function($q) {
+                $q->where('name', 'like', '%usdt%')
+                  ->orWhere('name', 'like', '%binance%')
+                  ->orWhere('name', 'like', '%cripto%');
+            });
+
+            if (!empty($bankName)) {
+                $normalizedInput = preg_replace('/[^a-zA-Z0-9]/', '', strtolower(trim($bankName)));
+                $banks = $query->get();
+                $matched = $banks->first(function($b) use ($normalizedInput) {
+                    return preg_replace('/[^a-zA-Z0-9]/', '', strtolower(trim($b->name))) === $normalizedInput;
+                });
+                if ($matched) {
+                    $name = strtoupper($matched->name);
+                    return !empty($matched->account_number) ? "{$name} (ID: {$matched->account_number})" : $name;
+                }
+            }
+
+            $first = $query->first();
+            if ($first) {
+                $name = strtoupper($first->name);
+                return !empty($first->account_number) ? "{$name} (ID: {$first->account_number})" : $name;
+            }
+        } catch (\Exception $e) {
+            // Fallback en caso de error
+        }
+
+        return 'USDT BINANCE';
+    }
+
+    /**
      * Limpiar caché de moneda principal
      */
     public static function clearCache()

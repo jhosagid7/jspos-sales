@@ -100,10 +100,11 @@
             @endif
 
             {{-- USDT --}}
+            @php $usdtLabel = \App\Helpers\CurrencyHelper::getUsdtLabel(); @endphp
             @if(!empty($salesByCurrency['usdt']))
                 @foreach($salesByCurrency['usdt'] as $sender => $amt)
                     <tr>
-                        <td>USDT BINANCE: <span class="badge">{{ substr($sender, 0, 30) }}</span></td>
+                        <td>{{ $usdtLabel }}: <span class="badge">{{ substr($sender, 0, 30) }}</span></td>
                         <td class="text-right">{{ number_format($amt, 4) }} USD</td>
                         <td class="text-right">{{ $symbol }} {{ number_format($convertToPrimary($amt, 'USD'), 4) }}</td>
                     </tr>
@@ -179,7 +180,7 @@
             @if(!empty($paymentsByCurrency['usdt']))
                 @foreach($paymentsByCurrency['usdt'] as $sender => $amt)
                     <tr>
-                        <td>USDT BINANCE: <span class="badge">{{ substr($sender, 0, 30) }}</span></td>
+                        <td>{{ $usdtLabel }}: <span class="badge">{{ substr($sender, 0, 30) }}</span></td>
                         <td class="text-right">{{ number_format($amt, 4) }} USD</td>
                         <td class="text-right">{{ $symbol }} {{ number_format($convertToPrimary($amt, 'USD'), 4) }}</td>
                     </tr>
@@ -267,13 +268,13 @@
                 @foreach($totalUsdtDetails as $sender => $amt)
                     @php $primaryAmt = $convertToPrimary($amt, 'USD'); $totalUsdtFull += $primaryAmt; @endphp
                     <tr>
-                        <td>TOTAL USDT BINANCE: {{ $sender }}</td>
+                        <td>TOTAL {{ $usdtLabel }}: {{ $sender }}</td>
                         <td class="text-right">{{ number_format($amt, 4) }} USD</td>
                         <td class="text-right">{{ $symbol }} {{ number_format($primaryAmt, 4) }}</td>
                     </tr>
                 @endforeach
                 <tr class="total-row" style="background-color: #f1f1f1;">
-                    <td colspan="2" class="text-right">SUBTOTAL USDT BINANCE:</td>
+                    <td colspan="2" class="text-right">SUBTOTAL {{ strtoupper($usdtLabel) }}:</td>
                     <td class="text-right">{{ $symbol }} {{ number_format($totalUsdtFull, 4) }}</td>
                 </tr>
                 @endif

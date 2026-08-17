@@ -217,11 +217,12 @@
                                         </div>
 
                                         {{-- USDT Binance --}}
+                                        @php $usdtLabel = \App\Helpers\CurrencyHelper::getUsdtLabel(); @endphp
                                         <div class="col-md-3 mb-3">
                                             <div class="card h-100 border-success">
                                                 <div class="card-header bg-light-success p-2">
                                                     <h6 class="mb-0 text-success">
-                                                        <i class="icofont icofont-coins"></i> USDT BINANCE
+                                                        <i class="icofont icofont-coins"></i> {{ $usdtLabel }}
                                                     </h6>
                                                 </div>
                                                 <div class="card-body p-2">
@@ -363,7 +364,7 @@
                                             <div class="card h-100 border-warning">
                                                 <div class="card-header bg-light-warning p-2">
                                                     <h6 class="mb-0 text-warning">
-                                                        <i class="icofont icofont-coins"></i> USDT BINANCE
+                                                        <i class="icofont icofont-coins"></i> {{ $usdtLabel }}
                                                     </h6>
                                                 </div>
                                                 <div class="card-body p-2">
@@ -471,7 +472,7 @@
                                         </div>
                                         <div class="col-md-3">
                                             <div class="text-center p-3 bg-light rounded h-100">
-                                                <h6 class="text-muted mb-2">Total en USDT BINANCE</h6>
+                                                <h6 class="text-muted mb-2">Total en {{ $usdtLabel }}</h6>
                                                 @if (!empty($totalUsdtDetails))
                                                     @foreach ($totalUsdtDetails as $sender => $amount)
                                                         <div class="d-flex justify-content-between px-3">
@@ -488,7 +489,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                    </div>
+                                </div>
 
                     {{-- Wallet Breakdown (if applicable) --}}
                     @if($totalWalletAddedToday > 0 || $totalWalletUsedToday > 0)

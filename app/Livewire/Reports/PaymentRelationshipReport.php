@@ -316,7 +316,7 @@ class PaymentRelationshipReport extends Component
                     $totalsByCategory[$key] = $amtUSD;
                 }
             } else {
-                $bankName = $p->bank ? strtoupper($p->bank) : ($p->pay_way == 'zelle' ? 'ZELLE' : ($p->pay_way == 'usdt' ? 'USDT BINANCE' : null));
+                $bankName = $p->bank ? strtoupper($p->bank) : ($p->pay_way == 'zelle' ? 'ZELLE' : ($p->pay_way == 'usdt' ? \App\Helpers\CurrencyHelper::getUsdtLabel($p->bank) : null));
                 if ($bankName && isset($totalsByCategory[$bankName])) {
                     $totalsByCategory[$bankName] += $amtUSD;
                 } elseif ($bankName) {
