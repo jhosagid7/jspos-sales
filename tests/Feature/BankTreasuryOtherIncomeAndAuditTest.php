@@ -102,4 +102,38 @@ class BankTreasuryOtherIncomeAndAuditTest extends TestCase
         $this->assertEquals(1550.00, (float) $closure->manual_closing_balance);
         $this->assertEquals(50.00, (float) $closure->closing_difference);
     }
+
+    public function test_opening_only_sets_opened_by_and_leaves_manual_closing_null(): void
+    {
+        $user = User::factory()->create();
+        $bank = Bank::create([
+            'name' => 'Provincial VED',
+            'account_holder' => 'Carlos López',
+            'account_number' => '01080000000000000003',
+            'cedula' => 'V-99999999',
+            'phone' => '04120000000',
+            'account_type' => 'Corriente',
+            'currency_code' => 'VED',
+            'initial_balance' => 2000.00,
+            'current_balance' => 2000.00,
+            'is_tracked' => true,
+            'is_active' => true,
+        ]);
+
+        $today = now()->format('Y-m-d');
+
+        $opening = BankTreasuryService::performOpening(
+            $bank->id,
+            $today,
+            1694928.28,
+            null,
+            $user->id
+        );
+
+        $this->assertEquals('open', $opening->status);
+        $this->assertEquals(1694928.28, (float) $opening->manual_opening_balance);
+        $this->assertNull($opening->manual_closing_balance);
+        $this->assertNull($opening->closed_by);
+        $this->assertEquals($user->id, $opening->opened_by);
+    }
 }

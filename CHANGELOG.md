@@ -1,3 +1,10 @@
+## [1.10.387] - 2026-08-17
+
+### Fixed
+- **Atribución de Operador y Clarificación de Estado en Cortes Diarios de Tesorería**:
+  - `BankTreasury.php` & `bank-treasury.blade.php`: Agregada carga impaciente (*eager loading*) de la relación `openedBy` en la consulta de cortes diarios. Mejorada la interfaz gráfica de la tabla para diferenciar cuando un operador registró la **Apertura de Jornada** pero aún falta realizar el **Corte Diario** (cierre), mostrando el indicador de usuario `(Apertura cargada)`, distintivo `Pendiente Cierre`, mensaje explicativo `(Pendiente cierre real)` y acceso directo a la captura de pantalla de apertura, evitando que se etiquete erróneamente como `Sistema (Auto)`.
+  - `BankTreasuryOtherIncomeAndAuditTest.php`: Incorporada prueba unitaria `test_opening_only_sets_opened_by_and_leaves_manual_closing_null` para certificar la consistencia del estado `open` y la correcta atribución de usuario.
+
 ## [1.10.386] - 2026-08-17
 
 ### Added

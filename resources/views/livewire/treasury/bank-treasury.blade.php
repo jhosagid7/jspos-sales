@@ -918,12 +918,18 @@
                                                 <div class="font-weight-bold text-dark">Sist: ${{ number_format($cls->closing_balance, 2) }}</div>
                                                 @if($cls->manual_closing_balance !== null)
                                                     <small class="text-primary font-weight-bold">Real: ${{ number_format($cls->manual_closing_balance, 2) }}</small>
+                                                @elseif($cls->manual_opening_balance !== null || $cls->status === 'open')
+                                                    <small class="text-muted font-italic d-block">(Pendiente cierre real)</small>
                                                 @endif
                                             </td>
                                             <td class="text-center">
                                                 @if($cls->closing_proof_image)
-                                                    <a href="{{ asset('storage/' . $cls->closing_proof_image) }}" target="_blank" class="btn btn-outline-info btn-xs p-1" title="Ver captura del banco">
+                                                    <a href="{{ asset('storage/' . $cls->closing_proof_image) }}" target="_blank" class="btn btn-outline-info btn-xs p-1" title="Ver captura del banco al cierre">
                                                         <i class="fas fa-image"></i> Ver Capture
+                                                    </a>
+                                                @elseif($cls->opening_proof_image)
+                                                    <a href="{{ asset('storage/' . $cls->opening_proof_image) }}" target="_blank" class="btn btn-outline-warning btn-xs p-1 text-dark" title="Ver captura del banco a la apertura">
+                                                        <i class="fas fa-image"></i> Capture Apertura
                                                     </a>
                                                 @else
                                                     <span class="text-muted small">Sin imagen</span>
@@ -942,12 +948,21 @@
                                                             <i class="fas fa-arrow-down"></i> -${{ number_format(abs($cls->closing_difference), 2) }} (Faltante)
                                                         </span>
                                                     @endif
+                                                @elseif($cls->status === 'open' || $cls->manual_opening_balance !== null)
+                                                    <span class="badge badge-warning text-dark" title="El operador registró la apertura pero aún falta realizar el corte diario"><i class="fas fa-clock"></i> Pendiente Cierre</span>
                                                 @else
                                                     <span class="badge badge-light text-muted">Auto (Sistema)</span>
                                                 @endif
                                             </td>
                                             <td>
-                                                <div>{{ $cls->closedBy ? $cls->closedBy->name : 'Sistema (Auto)' }}</div>
+                                                @if($cls->closedBy)
+                                                    <div>{{ $cls->closedBy->name }}</div>
+                                                @elseif($cls->openedBy)
+                                                    <div>{{ $cls->openedBy->name }}</div>
+                                                    <small class="text-info font-weight-bold d-block">(Apertura cargada)</small>
+                                                @else
+                                                    <div>Sistema (Auto)</div>
+                                                @endif
                                                 @if($cls->notes)
                                                     <small class="text-muted d-block">{{ $cls->notes }}</small>
                                                 @endif

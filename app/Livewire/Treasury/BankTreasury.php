@@ -305,7 +305,7 @@ class BankTreasury extends Component
                 ->orderBy('transfer_date', 'desc')
                 ->paginate(15);
         } elseif ($this->activeTab === 'closures') {
-            $q = BankDailyClosure::with(['bank', 'closedBy']);
+            $q = BankDailyClosure::with(['bank', 'closedBy', 'openedBy']);
             if ($this->selectedBankId !== 'all') {
                 $q->where('bank_id', $this->selectedBankId);
             }
