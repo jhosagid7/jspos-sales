@@ -715,6 +715,8 @@ class PaymentComponent extends Component
              if ($this->customExchangeRate > 0) {
                  $exchangeRate = $this->customExchangeRate;
              }
+        }
+
         $isUsdtBank = (str_contains(strtolower($bankName), 'usdt') || str_contains(strtolower($bankName), 'binance') || str_contains(strtolower($bankName), 'cripto'));
         $paymentMethodType = $isUsdtBank ? 'usdt' : ($this->isZelleSelected ? 'zelle' : $this->paymentMethod);
 

@@ -8,7 +8,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class CheckModule
 {
-    public function handle(Request $request, Closure $next, $module): Response
+    public function handle(Request $request, Closure $next, $module)
     {
         // Super Admin bypass: accede a todos los módulos sin importar el plan
         if (auth()->check() && auth()->user()->hasRole('Super Admin')) {
