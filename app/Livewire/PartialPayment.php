@@ -427,6 +427,8 @@ class PartialPayment extends Component
                      }
                 }
 
+                $collectionSheetId = $this->getOrCreateCollectionSheet();
+
                 $payWay = $payment['method'] == 'bank' ? 'deposit' : $payment['method'];
 
                 // Prevent accidental duplicate payment creation (e.g. double submission within 60s)
