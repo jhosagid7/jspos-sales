@@ -59,6 +59,48 @@ class PaymentConsultationController extends Controller
         return $pdf->stream('Reporte_Zelle_' . $record->reference . '.pdf');
     }
 
+    public function generateFilteredUsdtPdf(Request $request)
+    {
+        $query = \App\Models\UsdtRecord::query()->with([
+            'payments.user',
+            'payments.sale.customer',
+            'payments.sale.user',
+            'salePaymentDetails.sale.customer'
+        ]);
+
+        if ($request->search) {
+            $query->where(function($q) use ($request) {
+                $q->where('reference', 'like', '%' . $request->search . '%')
+                  ->orWhere('sender_name', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        if ($request->date_from) {
+            $query->whereDate('usdt_date', '>=', $request->date_from);
+        }
+
+        if ($request->date_to) {
+            $query->whereDate('usdt_date', '<=', $request->date_to);
+        }
+
+        if ($request->status) {
+            $query->where('status', $request->status);
+        }
+
+        $records = $query->orderBy('usdt_date', 'desc')->get();
+
+        $pdf = PDF::loadView('reports.usdt-filtered-payments-pdf', compact('records'));
+        return $pdf->stream('Reporte_Capturas_USDT_Filtradas.pdf');
+    }
+
+    public function generateUsdtPdf($id)
+    {
+        $record = \App\Models\UsdtRecord::with(['payments.user', 'payments.sale.customer', 'payments.sale.user'])->findOrFail($id);
+
+        $pdf = PDF::loadView('reports.usdt-payment-pdf', compact('record'));
+        return $pdf->stream('Reporte_USDT_' . $record->reference . '.pdf');
+    }
+
     public function generateBankPdf($id)
     {
         if (!auth()->user()->can('bank_print_pdf')) {

@@ -12,7 +12,7 @@ class Payment extends Model
     protected $fillable = [
         'user_id', 'sale_id', 'debit_note_id', 'amount', 'currency', 'exchange_rate', 'primary_exchange_rate', 
         'pay_way', 'type', 'bank', 'account_number', 'deposit_number', 'phone_number', 
-        'payment_date', 'zelle_record_id', 'bank_record_id', 'collection_sheet_id',
+        'payment_date', 'zelle_record_id', 'usdt_record_id', 'bank_record_id', 'collection_sheet_id',
         'discount_applied', 'discount_percentage', 'discount_reason', 'discount_tag', 'payment_days', 'rule_type',
         'status',
         'rejection_reason',
@@ -47,6 +47,11 @@ class Payment extends Model
     public function zelleRecord()
     {
         return $this->belongsTo(ZelleRecord::class);
+    }
+
+    public function usdtRecord()
+    {
+        return $this->belongsTo(UsdtRecord::class);
     }
 
     public function bankRecord()

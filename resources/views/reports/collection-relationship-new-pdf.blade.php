@@ -224,6 +224,9 @@
                         if ($p->pay_way == 'zelle' && $p->zelleRecord) {
                             $vDate = \Carbon\Carbon::parse($p->zelleRecord->zelle_date ?? $p->payment_date ?? $p->created_at)->format('d/m/Y');
                             $description .= " (Sender: {$p->zelleRecord->sender_name}, Ref: {$p->zelleRecord->reference}, F. Voucher: {$vDate})";
+                        } elseif ($p->pay_way == 'usdt' && $p->usdtRecord) {
+                            $vDate = \Carbon\Carbon::parse($p->usdtRecord->usdt_date ?? $p->payment_date ?? $p->created_at)->format('d/m/Y');
+                            $description .= " (USDT Sender: {$p->usdtRecord->sender_name}, TxID: {$p->usdtRecord->reference}, F. Voucher: {$vDate})";
                         } elseif (($p->pay_way == 'bank' || $p->pay_way == 'deposit') && $p->bank) {
                             $vDate = \Carbon\Carbon::parse($p->bankRecord->payment_date ?? $p->payment_date ?? $p->created_at)->format('d/m/Y');
                             $description .= " ({$p->bank}, Ref: {$p->deposit_number}, F. Voucher: {$vDate})";

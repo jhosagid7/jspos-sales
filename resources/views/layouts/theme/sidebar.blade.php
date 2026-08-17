@@ -512,6 +512,14 @@
                                     </a>
                                 </li>
                                 @endcan
+                                @module('module_usdt')
+                                <li class="nav-item">
+                                    <a href="{{ route('consultation.usdt') }}" class="nav-link {{ Request::is('consultation/usdt*') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon text-success"></i>
+                                        <p>Pagos USDT ($)</p>
+                                    </a>
+                                </li>
+                                @endmodule
                                 @can('bank_index')
                                 <li class="nav-item">
                                     <a href="{{ route('consultation.bank') }}" class="nav-link {{ Request::is('consultation/bank*') ? 'active' : '' }}">

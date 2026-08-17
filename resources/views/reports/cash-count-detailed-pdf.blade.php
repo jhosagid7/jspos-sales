@@ -310,6 +310,50 @@
             </table>
         @endif
 
+        <!-- USDT UNIFICADO -->
+        @if(!empty($digitalPayments['unified']['usdt']))
+            <div class="section-header">Conciliación Global de USDT ($)</div>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th width="12%">F. Voucher</th>
+                        <th width="18%">Billetera / Emisor</th>
+                        <th width="14%">TxID Referencia</th>
+                        <th width="12%">Factura</th>
+                        <th width="18%">Cliente</th>
+                        <th width="13%" class="text-right">Monto USDT</th>
+                        <th width="13%" class="text-right">Monto Usado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @php 
+                        $subtotalUsdtCurr = 0; 
+                        $subtotalUsdtPrimary = 0;
+                    @endphp
+                    @foreach($digitalPayments['unified']['usdt'] as $item)
+                        @php
+                            $subtotalUsdtCurr += $item['amount'];
+                            $subtotalUsdtPrimary += $item['equiv_usd'] * $convertToPrimary(1, 'USD');
+                        @endphp
+                        <tr>
+                            <td>{{ $item['date'] }}</td>
+                            <td class="fw-bold">{{ strtoupper($item['zelle_sender'] ?? $item['sender_name'] ?? 'USDT') }}</td>
+                            <td>{{ $item['ref'] }}</td>
+                            <td class="fw-bold">{{ $item['invoice'] }}</td>
+                            <td class="fw-bold">{{ strtoupper($item['customer']) }}</td>
+                            <td class="text-right fw-bold">${{ number_format($item['zelle_total'] ?? $item['amount'], 2) }}</td>
+                            <td class="text-right fw-bold">${{ number_format($item['amount'], 2) }}</td>
+                        </tr>
+                    @endforeach
+                    <tr class="total-row">
+                        <td colspan="5" class="text-right">TOTAL CONCILIADO USDT (USD):</td>
+                        <td class="text-right">${{ number_format($subtotalUsdtCurr, 2) }}</td>
+                        <td class="text-right">{{ $symbol }} {{ number_format($subtotalUsdtPrimary, 4) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        @endif
+
     @else
         
         <!-- MODO SEPARADO -->

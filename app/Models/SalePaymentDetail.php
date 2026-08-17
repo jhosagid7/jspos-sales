@@ -21,6 +21,7 @@ class SalePaymentDetail extends Model
         'exchange_rate',
         'amount_in_primary_currency',
         'zelle_record_id',
+        'usdt_record_id',
         'bank_record_id'
     ];
 
@@ -38,6 +39,11 @@ class SalePaymentDetail extends Model
     public function zelleRecord()
     {
         return $this->belongsTo(ZelleRecord::class);
+    }
+
+    public function usdtRecord()
+    {
+        return $this->belongsTo(UsdtRecord::class);
     }
 
     public function bankRecord()
