@@ -42,7 +42,7 @@ class CheckLicense
 
         // If local license is not active, try auto-pulling active license from license server via VPN
         if ($status['status'] !== 'active') {
-            $serverIp = env('LICENSE_SERVER_IP', session('license_server_ip', '100.115.149.91:8080'));
+            $serverIp = $this->licenseService->getLicenseServerIp();
             if ($serverIp) {
                 try {
                     $clientId = $this->licenseService->getClientId();

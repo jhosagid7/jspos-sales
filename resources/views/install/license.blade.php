@@ -28,7 +28,7 @@
                         @csrf
                         <div class="mb-3">
                             <label class="form-label fw-bold">IP del Servidor de Licencias (ZeroTier / Tailscale):</label>
-                            <input type="text" id="server_ip" class="form-control" value="{{ $defaultServerIp ?? '100.115.149.91:8080' }}" placeholder="Ej. 100.115.149.91:8080" required>
+                            <input type="text" id="server_ip" class="form-control" value="{{ $defaultServerIp }}" placeholder="Ej. 100.x.x.x:8080 o mi-servidor.com" required>
                         </div>
 
                         <div class="mb-3">

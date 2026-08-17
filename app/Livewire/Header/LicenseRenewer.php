@@ -139,4 +139,52 @@ class LicenseRenewer extends Component
             $this->dispatch('noty', msg: 'Error al enviar la solicitud. Verifique su conexión.');
         }
     }
+
+    public function syncOnline()
+    {
+        try {
+            $service = app(LicenseService::class);
+            $serverIp = $service->getLicenseServerIp();
+
+            if (!$serverIp) {
+                $this->addError('licenseKey', 'Servidor de licencias no configurado.');
+                return;
+            }
+
+            $clientId = $service->getClientId();
+            $response = \Illuminate\Support\Facades\Http::timeout(5)->post("http://{$serverIp}/api/clients/check-status", [
+                'client_system_id' => $clientId
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                if (!empty($data['has_license']) && !empty($data['license_key'])) {
+                    if ($service->activateLicense($data['license_key'])) {
+                        $service->saveLicenseServerIp($serverIp);
+
+                        $status = $service->checkLicense();
+                        $this->daysRemaining = $status['days_remaining'];
+                        $this->licenseType = $status['type'] ?? 'NO ACTIVA';
+
+                        $latestLicense = \App\Models\License::latest('id')->first();
+                        $this->clientName = $latestLicense ? $latestLicense->client_name : '';
+
+                        $this->dispatch('noty', msg: '¡Licencia sincronizada en línea exitosamente!');
+                        $this->dispatch('reload-page');
+                        return;
+                    }
+                }
+
+                $this->addError('licenseKey', $data['message'] ?? 'El servidor aún no tiene una clave activa asignada para este ID.');
+                return;
+            }
+
+            $this->addError('licenseKey', 'No se pudo obtener respuesta del servidor de licencias.');
+
+        } catch (\Exception $e) {
+            Log::error("License Online Sync Error: " . $e->getMessage());
+            $this->addError('licenseKey', 'Error de conexión: ' . $e->getMessage());
+        }
+    }
 }
+

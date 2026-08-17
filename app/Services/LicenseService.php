@@ -160,4 +160,44 @@ class LicenseService
             'max_devices' => $maxDevices
         ];
     }
+
+    /**
+     * Get configured license server IP/host.
+     */
+    public function getLicenseServerIp()
+    {
+        $ip = session('license_server_ip') ?: env('LICENSE_SERVER_IP');
+        if ($ip) {
+            $ip = preg_replace('#^https?://#i', '', trim($ip));
+            return rtrim($ip, '/');
+        }
+        return '';
+    }
+
+    /**
+     * Save license server IP dynamically to session and .env file if available.
+     */
+    public function saveLicenseServerIp($ip)
+    {
+        $ip = preg_replace('#^https?://#i', '', trim($ip));
+        $ip = rtrim($ip, '/');
+        if (empty($ip)) {
+            return;
+        }
+
+        session(['license_server_ip' => $ip]);
+        config(['app.license_server_ip' => $ip]);
+
+        $envPath = base_path('.env');
+        if (file_exists($envPath) && is_writable($envPath)) {
+            $envContent = file_get_contents($envPath);
+            if (str_contains($envContent, 'LICENSE_SERVER_IP=')) {
+                $envContent = preg_replace('/^LICENSE_SERVER_IP=.*$/m', "LICENSE_SERVER_IP={$ip}", $envContent);
+            } else {
+                $envContent .= "\nLICENSE_SERVER_IP={$ip}\n";
+            }
+            @file_put_contents($envPath, $envContent);
+        }
+    }
 }
+

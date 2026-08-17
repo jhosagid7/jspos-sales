@@ -173,7 +173,7 @@ class InstallController extends Controller
             $defaultVpnIp .= ':' . $port;
         }
 
-        $defaultServerIp = session('license_server_ip', env('LICENSE_SERVER_IP', '100.115.149.91:8080'));
+        $defaultServerIp = $this->licenseService->getLicenseServerIp();
 
         return view('install.license', compact('clientId', 'defaultVpnIp', 'defaultServerIp'));
     }

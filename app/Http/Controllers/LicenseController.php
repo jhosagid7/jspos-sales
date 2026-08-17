@@ -18,7 +18,7 @@ class LicenseController extends Controller
     public function expired()
     {
         $clientId = $this->licenseService->getClientId();
-        $serverIp = env('LICENSE_SERVER_IP', session('license_server_ip', '100.74.104.82'));
+        $serverIp = old('server_ip', $this->licenseService->getLicenseServerIp());
 
         if ($serverIp) {
             try {
@@ -30,6 +30,7 @@ class LicenseController extends Controller
                     $data = $response->json();
                     if (!empty($data['has_license']) && !empty($data['license_key'])) {
                         if ($this->licenseService->activateLicense($data['license_key'])) {
+                            $this->licenseService->saveLicenseServerIp($serverIp);
                             return redirect('/')->with('success', '¡Licencia sincronizada y activada automáticamente!');
                         }
                     }
@@ -42,11 +43,14 @@ class LicenseController extends Controller
 
     public function sync(Request $request)
     {
-        $serverIp = $request->input('server_ip') ?: env('LICENSE_SERVER_IP', session('license_server_ip', '100.74.104.82'));
+        $rawIp = $request->input('server_ip') ?: $this->licenseService->getLicenseServerIp();
 
-        if (!$serverIp) {
-            return back()->with('error', 'Por favor ingrese la IP del servidor de licencias.');
+        if (!$rawIp) {
+            return back()->withInput()->with('error', 'Por favor ingrese la IP del servidor de licencias.');
         }
+
+        $serverIp = preg_replace('#^https?://#i', '', trim($rawIp));
+        $serverIp = rtrim($serverIp, '/');
 
         $clientId = $this->licenseService->getClientId();
 
@@ -55,22 +59,45 @@ class LicenseController extends Controller
                 'client_system_id' => $clientId
             ]);
 
+            $data = $response->json();
+
+            // Save IP if server responded with valid JSON
+            if (is_array($data)) {
+                $this->licenseService->saveLicenseServerIp($serverIp);
+            }
+
             if ($response->successful()) {
-                $data = $response->json();
                 if (!empty($data['has_license']) && !empty($data['license_key'])) {
                     if ($this->licenseService->activateLicense($data['license_key'])) {
-                        session(['license_server_ip' => $serverIp]);
                         return redirect('/')->with('success', '¡Licencia sincronizada y activada exitosamente!');
                     }
                 }
 
-                return back()->with('error', 'El servidor respondió pero aún no tiene una licencia activa asignada para este ID.');
+                return back()->withInput()->with('error', $data['message'] ?? 'El servidor respondió pero aún no tiene una licencia activa asignada para este ID.');
             }
 
-            return back()->with('error', 'No se pudo obtener respuesta del servidor de licencias.');
+            // If client is not registered on the license server, attempt auto-registration
+            if ($response->status() === 404 && is_array($data) && str_contains(strtolower($data['message'] ?? ''), 'no registrado')) {
+                $regResponse = \Illuminate\Support\Facades\Http::timeout(5)->post("http://{$serverIp}/api/clients/register", [
+                    'client_system_id' => $clientId,
+                    'name' => config('app.name', 'JSPOS Client') . ' (' . gethostname() . ')',
+                    'vpn_ip' => $serverIp,
+                ]);
+
+                if ($regResponse->successful()) {
+                    $regData = $regResponse->json();
+                    $this->licenseService->saveLicenseServerIp($serverIp);
+                    return back()->withInput()->with('success', $regData['message'] ?? '¡Equipo registrado exitosamente en el servidor de licencias! El administrador ya lo ve en su panel.');
+                }
+            }
+
+            $errMsg = is_array($data) ? ($data['message'] ?? $data['error'] ?? null) : null;
+            $detail = $errMsg ?: "Respuesta de error del servidor (HTTP {$response->status()}).";
+
+            return back()->withInput()->with('error', "Servidor http://{$serverIp}: {$detail}");
 
         } catch (\Exception $e) {
-            return back()->with('error', 'No se pudo conectar a http://' . $serverIp . ': ' . $e->getMessage());
+            return back()->withInput()->with('error', 'No se pudo conectar a http://' . $serverIp . ': ' . $e->getMessage());
         }
     }
 

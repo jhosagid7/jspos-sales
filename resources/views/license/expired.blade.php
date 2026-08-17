@@ -66,7 +66,7 @@
                 <form action="{{ route('license.sync') }}" method="POST">
                     @csrf
                     <div class="input-group mb-2">
-                        <input type="text" name="server_ip" class="form-control form-control-sm" value="{{ $serverIp ?? '100.74.104.82' }}" placeholder="IP Servidor Licencias">
+                        <input type="text" name="server_ip" class="form-control form-control-sm" value="{{ old('server_ip', $serverIp) }}" placeholder="Ej. 100.115.149.91:8080 o dominio">
                         <button type="submit" class="btn btn-sm btn-primary">Sincronizar Licencia</button>
                     </div>
                     <small class="text-muted d-block text-start" style="font-size: 11px;">

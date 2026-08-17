@@ -57,13 +57,19 @@
                     </div>
                 </div>
                 <div class="modal-footer d-flex justify-content-between">
-                    <button type="button" class="btn btn-outline-secondary" wire:click="requestRenewal" wire:loading.attr="disabled">
-                        <i class="fas fa-envelope"></i> Solicitar Renovación
+                    <button type="button" class="btn btn-outline-info" wire:click="syncOnline" wire:loading.attr="disabled" title="Consultar y descargar la licencia activa del servidor de licencias">
+                        <span wire:loading.remove wire:target="syncOnline"><i class="fas fa-sync-alt"></i> Sincronizar por VPN</span>
+                        <span wire:loading wire:target="syncOnline"><i class="fas fa-spinner fa-spin"></i> Conectando...</span>
                     </button>
-                    <button type="button" class="btn btn-primary" wire:click="renew" wire:loading.attr="disabled">
-                        <span wire:loading.remove wire:target="renew">Activar Licencia</span>
-                        <span wire:loading wire:target="renew">Verificando...</span>
-                    </button>
+                    <div>
+                        <button type="button" class="btn btn-outline-secondary" wire:click="requestRenewal" wire:loading.attr="disabled">
+                            <i class="fas fa-envelope"></i> Solicitar
+                        </button>
+                        <button type="button" class="btn btn-primary ml-1" wire:click="renew" wire:loading.attr="disabled">
+                            <span wire:loading.remove wire:target="renew">Activar Licencia</span>
+                            <span wire:loading wire:target="renew">Verificando...</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
