@@ -12,11 +12,11 @@
         .title { font-size: 13px; font-weight: bold; margin-top: 10px; margin-bottom: 10px; background-color: #f2f2f2; padding: 5px 10px; border-left: 3px solid #3B3F5C; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
         th, td { border: 1px solid #ddd; padding: 5px 8px; text-align: left; }
-        th { background-color: #f9f9f9; font-weight: bold; width: 35%; }
+        th { background-color: #f9f9f9; font-weight: bold; width: 40%; }
         .text-right { text-align: right; }
-        .usdt-image-container { text-align: center; margin-top: 15px; }
-        .usdt-image { max-width: 90%; max-height: 480px; border: 1px solid #ddd; border-radius: 4px; padding: 5px; box-shadow: 1px 1px 5px rgba(0,0,0,0.1); }
-        .no-image { text-align: center; padding: 40px; border: 1px dashed #ccc; border-radius: 4px; background-color: #fafafa; font-size: 12px; color: #777; margin-top: 15px; }
+        .usdt-image-container { text-align: center; margin-top: 5px; }
+        .usdt-image { max-width: 95%; max-height: 480px; border: 1px solid #ddd; border-radius: 4px; padding: 5px; box-shadow: 1px 1px 5px rgba(0,0,0,0.1); }
+        .no-image { text-align: center; padding: 40px; border: 1px dashed #ccc; border-radius: 4px; background-color: #fafafa; font-size: 12px; color: #777; margin-top: 5px; }
         .grid-container { width: 100%; }
         .col-left { width: 48%; float: left; }
         .col-right { width: 48%; float: right; }
@@ -60,35 +60,79 @@
                         <tr>
                             <th>Estado</th>
                             <td>
-                                @if($record->status == 'unused') Sin Usar
-                                @elseif($record->status == 'partial') Parcial
-                                @else Usado @endif
+                                <span style="font-weight: bold; color: {{ $record->status == 'unused' ? '#28a745' : ($record->status == 'partial' ? '#fd7e14' : '#6c757d') }}">
+                                    {{ $record->status == 'unused' ? 'Sin Usar' : ($record->status == 'partial' ? 'Parcial' : 'Usado') }}
+                                </span>
                             </td>
                         </tr>
                     </table>
+
+                    <div class="title">Facturas Pagadas / Usos</div>
+                    @if(($record->payments && $record->payments->count() > 0) || ($record->salePaymentDetails && $record->salePaymentDetails->count() > 0))
+                        <table style="font-size: 10px;">
+                            <thead>
+                                <tr style="background-color: #f2f2f2;">
+                                    <th style="width: 25%;">Fecha</th>
+                                    <th style="width: 25%;">Factura</th>
+                                    <th style="width: 30%;">Cliente</th>
+                                    <th style="width: 20%;" class="text-right">Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if($record->payments)
+                                    @foreach($record->payments as $payment)
+                                        <tr>
+                                            <td>{{ $payment->created_at->format('d/m/Y') }}</td>
+                                            <td>{{ $payment->sale->invoice_number ?? 'Abono' }}</td>
+                                            <td>{{ $payment->sale->customer->name ?? 'N/A' }} <small style="color:#777;">(Abono)</small></td>
+                                            <td class="text-right">${{ number_format($payment->amount, 2) }}</td>
+                                        </tr>
+                                    @endforeach
+                                @endif
+                                @if($record->salePaymentDetails)
+                                    @foreach($record->salePaymentDetails as $paymentDetail)
+                                        <tr>
+                                            <td>{{ $paymentDetail->created_at->format('d/m/Y') }}</td>
+                                            <td>{{ $paymentDetail->sale->invoice_number ?? 'Contado' }}</td>
+                                            <td>{{ $paymentDetail->sale->customer->name ?? 'Consumidor' }} <small style="color:#28a745;">(Contado)</small></td>
+                                            <td class="text-right">${{ number_format($paymentDetail->amount, 2) }}</td>
+                                        </tr>
+                                    @endforeach
+                                @endif
+                            </tbody>
+                        </table>
+                    @else
+                        <div style="text-align: center; padding: 15px; border: 1px solid #eee; color: #777;">
+                            Este pago aún no ha sido asignado a ninguna venta o abono.
+                        </div>
+                    @endif
                 </div>
-            </div>
 
-            <div class="usdt-image-container">
-                <div class="title" style="text-align: left;">Comprobante de Pago Cargado</div>
-                @php
-                    $fullPath = null;
-                    if (!empty($record->image_path)) {
-                        if (file_exists(public_path('storage/' . $record->image_path))) {
-                            $fullPath = public_path('storage/' . $record->image_path);
-                        } elseif (file_exists(storage_path('app/public/' . $record->image_path))) {
-                            $fullPath = storage_path('app/public/' . $record->image_path);
-                        } elseif (file_exists($record->image_path)) {
-                            $fullPath = $record->image_path;
+                <div class="col-right">
+                    <div class="title" style="text-align: center;">Comprobante de Pago Subido:</div>
+                    @php
+                        $fullPath = null;
+                        if (!empty($record->image_path)) {
+                            if (file_exists(public_path('storage/' . $record->image_path))) {
+                                $fullPath = public_path('storage/' . $record->image_path);
+                            } elseif (file_exists(storage_path('app/public/' . $record->image_path))) {
+                                $fullPath = storage_path('app/public/' . $record->image_path);
+                            } elseif (file_exists($record->image_path)) {
+                                $fullPath = $record->image_path;
+                            }
                         }
-                    }
-                @endphp
+                    @endphp
 
-                @if($fullPath)
-                    <img src="{{ $fullPath }}" class="usdt-image" alt="Comprobante USDT">
-                @else
-                    <div class="no-image">No hay imagen adjunta para este comprobante USDT</div>
-                @endif
+                    @if($fullPath)
+                        <div class="usdt-image-container">
+                            <img src="{{ $fullPath }}" class="usdt-image" alt="Comprobante USDT">
+                        </div>
+                    @else
+                        <div class="no-image">
+                            No hay imagen adjunta para este comprobante USDT
+                        </div>
+                    @endif
+                </div>
             </div>
         </div>
     @empty
