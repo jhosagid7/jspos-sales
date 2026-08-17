@@ -474,41 +474,54 @@ class PaymentComponent extends Component
     
     public function checkZelleStatus()
     {
-        if ($this->zelleSender && $this->zelleDate && $this->zelleAmount) {
+        $bankObj = $this->bankId ? $this->banks->find($this->bankId) : null;
+        $bankNameLower = $bankObj ? strtolower($bankObj->name) : '';
+        $isUsdt = (str_contains($bankNameLower, 'usdt') || str_contains($bankNameLower, 'binance') || str_contains($bankNameLower, 'cripto'));
+        $label = $isUsdt ? 'USDT' : 'Zelle';
+        $zDate = $this->zelleDate ?: date('Y-m-d');
+
+        if ($this->zelleSender && $this->zelleAmount) {
             
             // 1. Check for Session Duplicates (Already in list)
-            $isDuplicateInSession = collect($this->payments)->contains(function ($payment) {
-                return $payment['method'] === 'zelle' &&
-                       $payment['zelle_sender'] === $this->zelleSender &&
-                       $payment['zelle_date'] === $this->zelleDate &&
-                       floatval($payment['zelle_amount']) === floatval($this->zelleAmount);
+            $isDuplicateInSession = collect($this->payments)->contains(function ($payment) use ($zDate) {
+                return in_array($payment['method'], ['zelle', 'usdt']) &&
+                       ($payment['zelle_sender'] ?? '') === $this->zelleSender &&
+                       ($payment['zelle_date'] ?? '') === $zDate &&
+                       floatval($payment['zelle_amount'] ?? 0) === floatval($this->zelleAmount);
             });
 
             if ($isDuplicateInSession) {
-                $this->zelleStatusMessage = "Este Zelle ya está en la lista de pagos. Si desea cambiar el monto, elimine el anterior y agréguelo nuevamente.";
+                $this->zelleStatusMessage = "Este {$label} ya está en la lista de pagos. Si desea cambiar el monto, elimine el anterior y agréguelo nuevamente.";
                 $this->zelleStatusType = 'warning'; // Orange: Session Duplicate
                 $this->zelleRemainingBalance = null;
                 return;
             }
 
             // 2. Check Database
-            $zelleRecord = ZelleRecord::where('sender_name', $this->zelleSender)
-                ->where('zelle_date', $this->zelleDate)
-                ->where('amount', $this->zelleAmount)
-                ->first();
+            if ($isUsdt) {
+                $record = \App\Models\UsdtRecord::where('sender_name', $this->zelleSender)
+                    ->where('usdt_date', $zDate)
+                    ->where('amount', $this->zelleAmount)
+                    ->first();
+            } else {
+                $record = ZelleRecord::where('sender_name', $this->zelleSender)
+                    ->where('zelle_date', $zDate)
+                    ->where('amount', $this->zelleAmount)
+                    ->first();
+            }
 
-            if ($zelleRecord) {
-                if ($zelleRecord->remaining_balance <= 0.01) {
-                    $this->zelleStatusMessage = "Este Zelle ya fue utilizado completamente.";
+            if ($record) {
+                if ($record->remaining_balance <= 0.01) {
+                    $this->zelleStatusMessage = "Este {$label} ya fue utilizado completamente.";
                     $this->zelleStatusType = 'danger'; // Red: DB Exhausted
                     $this->zelleRemainingBalance = 0;
                 } else {
-                    $this->zelleStatusMessage = "Zelle encontrado. Saldo restante: $" . number_format($zelleRecord->remaining_balance, 2);
+                    $this->zelleStatusMessage = "{$label} encontrado. Saldo restante: $" . number_format($record->remaining_balance, 2);
                     $this->zelleStatusType = 'success'; // Green: Available Balance
-                    $this->zelleRemainingBalance = $zelleRecord->remaining_balance;
+                    $this->zelleRemainingBalance = $record->remaining_balance;
                 }
             } else {
-                $this->zelleStatusMessage = "Nuevo Zelle (No registrado en BD).";
+                $this->zelleStatusMessage = "Nuevo {$label} (No registrado en BD).";
                 $this->zelleStatusType = 'success'; // Green: New
                 $this->zelleRemainingBalance = $this->zelleAmount;
             }

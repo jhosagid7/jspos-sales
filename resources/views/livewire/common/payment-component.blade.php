@@ -493,7 +493,7 @@
                                                 </div>
 
                                                 <div class="col-md-6">
-                                                    <label class="form-label">Fecha <span class="text-danger">*</span></label>
+                                                    <label class="form-label">Fecha (Opcional)</label>
                                                     <div class="input-group">
                                                         <span class="input-group-text">
                                                             <i class="fas fa-calendar"></i>
@@ -540,7 +540,14 @@
                                                 </div>
             
                                                 <div class="col-12">
-                                                    <button class="btn btn-purple w-100" style="background-color: #6f42c1; color: white;" wire:click="addPayment">Agregar Pago Zelle</button>
+                                                    @php
+                                                        $selectedBankObj = $bankId ? $banks->find($bankId) : null;
+                                                        $selectedBankNameLower = $selectedBankObj ? strtolower($selectedBankObj->name) : '';
+                                                        $isUsdtSelected = (str_contains($selectedBankNameLower, 'usdt') || str_contains($selectedBankNameLower, 'binance') || str_contains($selectedBankNameLower, 'cripto'));
+                                                    @endphp
+                                                    <button class="btn btn-purple w-100" style="background-color: #6f42c1; color: white;" wire:click="addPayment">
+                                                        {{ $isUsdtSelected ? 'Agregar Pago USDT' : 'Agregar Pago Zelle' }}
+                                                    </button>
                                                 </div>
 
                                             @elseif($isVedBankSelected)
@@ -965,14 +972,20 @@
                                                 @foreach($payments as $index => $p)
                                                     <tr>
                                                         <td>
-                                                            <span class="badge {{ $p['method'] == 'credit_note' ? 'bg-warning text-dark' : ($p['method'] == 'wallet' ? 'bg-warning' : 'bg-secondary') }}">
-                                                                {{ $p['method'] == 'credit_note' ? 'AJUSTE / NC' : ($p['method'] == 'wallet' ? 'BILLETERA' : strtoupper($p['method'])) }}
+                                                            <span class="badge {{ $p['method'] == 'credit_note' ? 'bg-warning text-dark' : ($p['method'] == 'wallet' ? 'bg-warning' : ($p['method'] == 'usdt' ? 'bg-success' : 'bg-secondary')) }}">
+                                                                {{ $p['method'] == 'credit_note' ? 'AJUSTE / NC' : ($p['method'] == 'wallet' ? 'BILLETERA' : ($p['method'] == 'usdt' ? 'USDT ($)' : strtoupper($p['method']))) }}
                                                             </span>
                                                             @if($p['method'] == 'bank') <br><small>{{ $p['bank_name'] }}</small> @endif
                                                             @if($p['method'] == 'zelle') 
                                                                 <br><small>Zelle: {{ $p['zelle_sender'] }}</small>
                                                                 @if(isset($p['zelle_file_url']) && $p['zelle_file_url'])
                                                                     <br><a href="{{ $p['zelle_file_url'] }}" target="_blank"><i class="fa fa-image"></i> Ver</a>
+                                                                @endif
+                                                            @endif
+                                                            @if($p['method'] == 'usdt') 
+                                                                <br><small>USDT: {{ $p['zelle_sender'] }}</small>
+                                                                @if(isset($p['zelle_file_url']) && $p['zelle_file_url'])
+                                                                    <br><a href="{{ $p['zelle_file_url'] }}" target="_blank"><i class="fa fa-image"></i> Ver Comprobante</a>
                                                                 @endif
                                                             @endif
                                                             @if($p['method'] == 'credit_note')

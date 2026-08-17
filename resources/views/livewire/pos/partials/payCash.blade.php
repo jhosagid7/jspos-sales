@@ -351,7 +351,7 @@
                                                 </div>
 
                                                 <div class="col-md-6">
-                                                    <label class="form-label">Fecha <span class="text-danger">*</span></label>
+                                                    <label class="form-label">Fecha (Opcional)</label>
                                                     <div class="input-group">
                                                         <span class="input-group-text">
                                                             <i class="fas fa-calendar"></i>
@@ -398,7 +398,14 @@
                                                 </div>
             
                                                 <div class="col-12">
-                                                    <button class="btn btn-purple w-100" style="background-color: #6f42c1; color: white;" wire:click="addZellePayment">Agregar Pago Zelle</button>
+                                                    @php
+                                                        $selectedBankObj = collect($banks)->firstWhere('id', $bankId);
+                                                        $selectedBankNameLower = $selectedBankObj ? strtolower($selectedBankObj->name) : '';
+                                                        $isUsdtSelected = (str_contains($selectedBankNameLower, 'usdt') || str_contains($selectedBankNameLower, 'binance') || str_contains($selectedBankNameLower, 'cripto'));
+                                                    @endphp
+                                                    <button class="btn btn-purple w-100" style="background-color: #6f42c1; color: white;" wire:click="addZellePayment">
+                                                        {{ $isUsdtSelected ? 'Agregar Pago USDT' : 'Agregar Pago Zelle' }}
+                                                    </button>
                                                 </div>
                                             @else
                                                 @if($isVedBankSelected)
@@ -573,6 +580,14 @@
                                                                 @elseif($payment['method'] === 'zelle')
                                                                     <span class="badge bg-info text-white" style="background-color: #6f42c1 !important;">
                                                                         <i class="fa fa-mobile-alt"></i> Zelle
+                                                                    </span>
+                                                                    <br><small class="text-muted">{{ $payment['zelle_sender'] ?? 'N/A' }}</small>
+                                                                    @if(isset($payment['zelle_file_url']) && $payment['zelle_file_url'])
+                                                                        <br><a href="{{ $payment['zelle_file_url'] }}" target="_blank"><i class="fa fa-image"></i> Ver</a>
+                                                                    @endif
+                                                                @elseif($payment['method'] === 'usdt')
+                                                                    <span class="badge bg-success text-white" style="background-color: #28a745 !important;">
+                                                                        <i class="fa fa-coins"></i> USDT ($)
                                                                     </span>
                                                                     <br><small class="text-muted">{{ $payment['zelle_sender'] ?? 'N/A' }}</small>
                                                                     @if(isset($payment['zelle_file_url']) && $payment['zelle_file_url'])
