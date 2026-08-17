@@ -32,6 +32,7 @@ class CashCount extends Component
     public $totalCashDetails = [];
     public $totalBankDetails = [];
     public $totalZelleDetails = [];
+    public $totalUsdtDetails = [];
     public $showPdfModal = false;
     public $pdfUrl = '';
     public $showDetailedReport = false;
@@ -259,6 +260,7 @@ class CashCount extends Component
             'nequi' => [],
             'deposit' => [],
             'zelle' => [],
+            'usdt' => [],
         ];
 
         // Get primary currency for default
@@ -269,7 +271,7 @@ class CashCount extends Component
         $saleIds = $sales->pluck('id')->toArray();
 
         // Query payment details for these sales
-        $paymentDetails = SalePaymentDetail::with(['zelleRecord', 'bankRecord'])->whereIn('sale_id', $saleIds)->get();
+        $paymentDetails = SalePaymentDetail::with(['zelleRecord', 'usdtRecord', 'bankRecord'])->whereIn('sale_id', $saleIds)->get();
 
         // Group payment details by sale to determine payment method
         $paymentsBySale = $paymentDetails->groupBy('sale_id');
@@ -291,6 +293,7 @@ class CashCount extends Component
                         'nequi'  => 'nequi',
                         'bank'   => 'deposit',
                         'zelle'  => 'zelle',
+                        'usdt'   => 'usdt',
                         'wallet' => 'wallet', // Skip or handle separately
                         default => 'cash'
                     };
@@ -315,6 +318,15 @@ class CashCount extends Component
                              $aggregated['zelle'][$sender] = 0;
                          }
                          $aggregated['zelle'][$sender] += $paymentDetail->amount;
+                    } elseif ($category == 'usdt') {
+                         $sender = 'Desconocido';
+                         if ($paymentDetail->usdtRecord) {
+                             $sender = $paymentDetail->usdtRecord->sender_name . ' (Ref: ' . $paymentDetail->usdtRecord->reference . ')';
+                         }
+                         if (!isset($aggregated['usdt'][$sender])) {
+                             $aggregated['usdt'][$sender] = 0;
+                         }
+                         $aggregated['usdt'][$sender] += $paymentDetail->amount;
                     } else {
                         // Standard grouping by Currency
                         if (!isset($aggregated[$category][$currency])) {
@@ -375,6 +387,7 @@ class CashCount extends Component
             'nequi' => [],
             'deposit' => [],
             'zelle' => [],
+            'usdt' => [],
         ];
 
         // Get primary currency for default
@@ -407,6 +420,15 @@ class CashCount extends Component
                      $aggregated['zelle'][$sender] = 0;
                  }
                  $aggregated['zelle'][$sender] += $payment->amount;
+            } elseif ($payWay == 'usdt') {
+                  $sender = 'Desconocido (ID: ' . ($payment->usdt_record_id ?? 'N/A') . ')';
+                  if ($payment->usdtRecord) {
+                      $sender = $payment->usdtRecord->sender_name . ' (Ref: ' . $payment->usdtRecord->reference . ')';
+                  }
+                 if (!isset($aggregated['usdt'][$sender])) {
+                     $aggregated['usdt'][$sender] = 0;
+                 }
+                 $aggregated['usdt'][$sender] += $payment->amount;
             } else {
                 // Standard grouping
                 if (!isset($aggregated[$payWay][$currency])) {
@@ -511,6 +533,25 @@ class CashCount extends Component
                     $this->totalZelleDetails[$sender] = 0;
                 }
                 $this->totalZelleDetails[$sender] += $amount;
+            }
+        }
+
+        // 4. Total USDT Breakdown
+        $this->totalUsdtDetails = [];
+        if (isset($this->salesByCurrency['usdt'])) {
+            foreach ($this->salesByCurrency['usdt'] as $sender => $amount) {
+                if (!isset($this->totalUsdtDetails[$sender])) {
+                    $this->totalUsdtDetails[$sender] = 0;
+                }
+                $this->totalUsdtDetails[$sender] += $amount;
+            }
+        }
+        if (isset($this->paymentsByCurrency['usdt'])) {
+             foreach ($this->paymentsByCurrency['usdt'] as $sender => $amount) {
+                if (!isset($this->totalUsdtDetails[$sender])) {
+                    $this->totalUsdtDetails[$sender] = 0;
+                }
+                $this->totalUsdtDetails[$sender] += $amount;
             }
         }
     }

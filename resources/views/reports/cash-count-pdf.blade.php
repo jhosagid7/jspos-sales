@@ -99,6 +99,17 @@
                 @endforeach
             @endif
 
+            {{-- USDT --}}
+            @if(!empty($salesByCurrency['usdt']))
+                @foreach($salesByCurrency['usdt'] as $sender => $amt)
+                    <tr>
+                        <td>USDT BINANCE: <span class="badge">{{ substr($sender, 0, 30) }}</span></td>
+                        <td class="text-right">{{ number_format($amt, 4) }} USD</td>
+                        <td class="text-right">{{ $symbol }} {{ number_format($convertToPrimary($amt, 'USD'), 4) }}</td>
+                    </tr>
+                @endforeach
+            @endif
+
             <tr class="total-row">
                 <td colspan="2" class="text-right">TOTAL VENTAS RECIBIDAS (NETO):</td>
                 <td class="text-right">{{ $symbol }} {{ number_format($salesTotal - $credit, 4) }}</td>
@@ -165,7 +176,17 @@
                 @endforeach
             @endif
 
-            @if(empty($paymentsByCurrency['cash']) && empty($paymentsByCurrency['deposit']) && empty($paymentsByCurrency['zelle']))
+            @if(!empty($paymentsByCurrency['usdt']))
+                @foreach($paymentsByCurrency['usdt'] as $sender => $amt)
+                    <tr>
+                        <td>USDT BINANCE: <span class="badge">{{ substr($sender, 0, 30) }}</span></td>
+                        <td class="text-right">{{ number_format($amt, 4) }} USD</td>
+                        <td class="text-right">{{ $symbol }} {{ number_format($convertToPrimary($amt, 'USD'), 4) }}</td>
+                    </tr>
+                @endforeach
+            @endif
+
+            @if(empty($paymentsByCurrency['cash']) && empty($paymentsByCurrency['deposit']) && empty($paymentsByCurrency['zelle']) && empty($paymentsByCurrency['usdt']))
                 <tr>
                     <td colspan="3" style="text-align: center; color: #999;">Sin movimientos de pagos</td>
                 </tr>
@@ -238,6 +259,24 @@
                     <td colspan="2" class="text-right">SUBTOTAL ZELLE:</td>
                     <td class="text-right">{{ $symbol }} {{ number_format($totalZelleFull, 4) }}</td>
                 </tr>
+
+                {{-- Total USDT BINANCE --}}
+                @if(isset($totalUsdtDetails) && count($totalUsdtDetails) > 0)
+                <tr><td colspan="3" style="padding-top: 15px;"></td></tr>
+                @php $totalUsdtFull = 0; @endphp
+                @foreach($totalUsdtDetails as $sender => $amt)
+                    @php $primaryAmt = $convertToPrimary($amt, 'USD'); $totalUsdtFull += $primaryAmt; @endphp
+                    <tr>
+                        <td>TOTAL USDT BINANCE: {{ $sender }}</td>
+                        <td class="text-right">{{ number_format($amt, 4) }} USD</td>
+                        <td class="text-right">{{ $symbol }} {{ number_format($primaryAmt, 4) }}</td>
+                    </tr>
+                @endforeach
+                <tr class="total-row" style="background-color: #f1f1f1;">
+                    <td colspan="2" class="text-right">SUBTOTAL USDT BINANCE:</td>
+                    <td class="text-right">{{ $symbol }} {{ number_format($totalUsdtFull, 4) }}</td>
+                </tr>
+                @endif
 
                 {{-- Total Wallet / Custody --}}
 

@@ -194,7 +194,7 @@
                                         </div>
 
                                         {{-- Zelle --}}
-                                        <div class="col-md-4 mb-3">
+                                        <div class="col-md-3 mb-3">
                                             <div class="card h-100 border-primary">
                                                 <div class="card-header bg-light-primary p-2">
                                                     <h6 class="mb-0 text-primary">
@@ -204,6 +204,29 @@
                                                 <div class="card-body p-2">
                                                     @if (!empty($salesByCurrency['zelle']))
                                                         @foreach ($salesByCurrency['zelle'] as $sender => $amount)
+                                                            <div class="d-flex justify-content-between border-bottom pb-1 mb-1">
+                                                                <span class="text-muted small text-truncate" style="max-width: 65%;" title="{{ $sender }}">{{ $sender }}</span>
+                                                                <span class="fw-bold text-end" style="min-width: 30%;">${{ number_format($amount, 2) }}</span>
+                                                            </div>
+                                                        @endforeach
+                                                    @else
+                                                        <p class="text-muted mb-0 text-center">Sin movimientos</p>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {{-- USDT Binance --}}
+                                        <div class="col-md-3 mb-3">
+                                            <div class="card h-100 border-success">
+                                                <div class="card-header bg-light-success p-2">
+                                                    <h6 class="mb-0 text-success">
+                                                        <i class="icofont icofont-coins"></i> USDT BINANCE
+                                                    </h6>
+                                                </div>
+                                                <div class="card-body p-2">
+                                                    @if (!empty($salesByCurrency['usdt']))
+                                                        @foreach ($salesByCurrency['usdt'] as $sender => $amount)
                                                             <div class="d-flex justify-content-between border-bottom pb-1 mb-1">
                                                                 <span class="text-muted small text-truncate" style="max-width: 65%;" title="{{ $sender }}">{{ $sender }}</span>
                                                                 <span class="fw-bold text-end" style="min-width: 30%;">${{ number_format($amount, 2) }}</span>
@@ -245,7 +268,7 @@
                                 <div class="card-body">
                                     <div class="row">
                                         {{-- Efectivo --}}
-                                        <div class="col-md-4 mb-3">
+                                        <div class="col-md-3 mb-3">
                                             <div class="card h-100 border-warning">
                                                 <div class="card-header bg-light-warning p-2">
                                                     <h6 class="mb-0 text-warning">
@@ -276,7 +299,7 @@
                                         </div>
 
                                         {{-- Banco --}}
-                                        <div class="col-md-4 mb-3">
+                                        <div class="col-md-3 mb-3">
                                             <div class="card h-100 border-warning">
                                                 <div class="card-header bg-light-warning p-2">
                                                     <h6 class="mb-0 text-warning">
@@ -313,7 +336,7 @@
                                         </div>
 
                                         {{-- Zelle --}}
-                                        <div class="col-md-4 mb-3">
+                                        <div class="col-md-3 mb-3">
                                             <div class="card h-100 border-warning">
                                                 <div class="card-header bg-light-warning p-2">
                                                     <h6 class="mb-0 text-warning">
@@ -323,6 +346,29 @@
                                                 <div class="card-body p-2">
                                                     @if (!empty($paymentsByCurrency['zelle']))
                                                         @foreach ($paymentsByCurrency['zelle'] as $sender => $amount)
+                                                            <div class="d-flex justify-content-between border-bottom pb-1 mb-1">
+                                                                <span class="text-muted small text-truncate" style="max-width: 65%;" title="{{ $sender }}">{{ $sender }}</span>
+                                                                <span class="fw-bold text-end" style="min-width: 30%;">${{ number_format($amount, 2) }}</span>
+                                                            </div>
+                                                        @endforeach
+                                                    @else
+                                                        <p class="text-muted mb-0 text-center">Sin movimientos</p>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {{-- USDT Binance --}}
+                                        <div class="col-md-3 mb-3">
+                                            <div class="card h-100 border-warning">
+                                                <div class="card-header bg-light-warning p-2">
+                                                    <h6 class="mb-0 text-warning">
+                                                        <i class="icofont icofont-coins"></i> USDT BINANCE
+                                                    </h6>
+                                                </div>
+                                                <div class="card-body p-2">
+                                                    @if (!empty($paymentsByCurrency['usdt']))
+                                                        @foreach ($paymentsByCurrency['usdt'] as $sender => $amount)
                                                             <div class="d-flex justify-content-between border-bottom pb-1 mb-1">
                                                                 <span class="text-muted small text-truncate" style="max-width: 65%;" title="{{ $sender }}">{{ $sender }}</span>
                                                                 <span class="fw-bold text-end" style="min-width: 30%;">${{ number_format($amount, 2) }}</span>
@@ -358,7 +404,7 @@
                                 </div>
                                 <div class="card-body">
                                     <div class="row">
-                                        <div class="col-md-4">
+                                        <div class="col-md-3">
                                             <div class="text-center p-3 bg-light rounded h-100">
                                                 <h6 class="text-muted mb-2">Total en Efectivo</h6>
                                                 @if (!empty($totalCashDetails))
@@ -381,7 +427,7 @@
                                                 @endif
                                             </div>
                                         </div>
-                                        <div class="col-md-4">
+                                        <div class="col-md-3">
                                             <div class="text-center p-3 bg-light rounded h-100">
                                                 <h6 class="text-muted mb-2">Total en Banco</h6>
                                                 @if (!empty($totalBankDetails))
@@ -405,7 +451,7 @@
                                                 @endif
                                             </div>
                                         </div>
-                                        <div class="col-md-4">
+                                        <div class="col-md-3">
                                             <div class="text-center p-3 bg-light rounded h-100">
                                                 <h6 class="text-muted mb-2">Total en Zelle</h6>
                                                 @if (!empty($totalZelleDetails))
@@ -423,6 +469,25 @@
                                                 @endif
                                             </div>
                                         </div>
+                                        <div class="col-md-3">
+                                            <div class="text-center p-3 bg-light rounded h-100">
+                                                <h6 class="text-muted mb-2">Total en USDT BINANCE</h6>
+                                                @if (!empty($totalUsdtDetails))
+                                                    @foreach ($totalUsdtDetails as $sender => $amount)
+                                                        <div class="d-flex justify-content-between px-3">
+                                                            <span class="text-muted small text-truncate" style="max-width: 60%;" title="{{ $sender }}">{{ $sender }}</span>
+                                                            <span class="text-success fw-bold small">${{ number_format($amount, 2) }}</span>
+                                                        </div>
+                                                    @endforeach
+                                                    <div class="border-top mt-2 pt-1">
+                                                        <h5 class="text-success mb-0">${{ number_format(array_sum($totalUsdtDetails), 2) }}</h5>
+                                                    </div>
+                                                @else
+                                                    <h4 class="text-success mb-0">{{ $symbol }}0.00</h4>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
                                     </div>
 
                     {{-- Wallet Breakdown (if applicable) --}}

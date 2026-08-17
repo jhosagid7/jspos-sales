@@ -1045,6 +1045,18 @@ class ReportController extends Controller
             }
         }
 
+        $totalUsdtDetails = [];
+        if (isset($salesByCurrency['usdt'])) {
+            foreach ($salesByCurrency['usdt'] as $sender => $amount) {
+                $totalUsdtDetails[$sender] = ($totalUsdtDetails[$sender] ?? 0) + $amount;
+            }
+        }
+        if (isset($paymentsByCurrency['usdt'])) {
+            foreach ($paymentsByCurrency['usdt'] as $sender => $amount) {
+                $totalUsdtDetails[$sender] = ($totalUsdtDetails[$sender] ?? 0) + $amount;
+            }
+        }
+
         // To keep it simple and consistent with DailySalesReport:
         $totalsByCategory = [];
         foreach($currencies as $c) { $totalsByCategory["EFECTIVO " . strtoupper($c->code)] = 0; }
@@ -1086,13 +1098,15 @@ class ReportController extends Controller
             $salesSubtotal += $this->convertToPrimaryLocal($v, $currCode, $currencies, $primaryRate);
         }
 
-        // Bank and Zelle subtotals
+        // Bank, Zelle, and USDT subtotals
         $bankSubtotalUSD = 0;
         foreach($totalBankDetails as $bn => $currs) foreach($currs as $curr => $amt) $bankSubtotalUSD += $this->convertToPrimaryLocal($amt, $curr, $currencies, $primaryRate);
         $zelleSubtotalUSD = 0;
-        foreach($totalZelleDetails as $s => $a) $zelleSubtotalUSD += $a; 
+        foreach($totalZelleDetails as $s => $a) $zelleSubtotalUSD += $a;
+        $usdtSubtotalUSD = 0;
+        foreach($totalUsdtDetails as $s => $a) $usdtSubtotalUSD += $a;
 
-        $salesSubtotal += $bankSubtotalUSD + $zelleSubtotalUSD;
+        $salesSubtotal += $bankSubtotalUSD + $zelleSubtotalUSD + $usdtSubtotalUSD;
 
         if ($totalWalletAddedToday > 0.0001) {
             $totalsByCategory['BILLETERA (CUSTODIA HOY)'] = $totalWalletAddedToday;
@@ -1129,6 +1143,7 @@ class ReportController extends Controller
             'totalCashDetails' => $totalCashDetails,
             'totalBankDetails' => $totalBankDetails,
             'totalZelleDetails' => $totalZelleDetails,
+            'totalUsdtDetails' => $totalUsdtDetails,
             'totalsByCategory' => $totalsByCategory,
             'totalWalletAddedToday' => $totalWalletAddedToday,
             'totalWalletUsedToday' => $totalWalletUsedUSD,
@@ -1175,7 +1190,7 @@ class ReportController extends Controller
         $saleIds = $sales->pluck('id');
 
         // Get detailed payments for daily sales
-        $salePaymentDetails = SalePaymentDetail::with(['sale', 'sale.customer', 'zelleRecord', 'bankRecord'])
+        $salePaymentDetails = SalePaymentDetail::with(['sale', 'sale.customer', 'zelleRecord', 'usdtRecord', 'bankRecord'])
             ->whereIn('sale_id', $saleIds)
             ->whereBetween('created_at', [$dFrom, $dTo])
             ->get();
@@ -1184,7 +1199,7 @@ class ReportController extends Controller
         $sheetIds = $sheets->pluck('id');
 
         // 2. Query credit payments
-        $creditPayments = Payment::with(['sale.customer', 'zelleRecord', 'bankRecord'])
+        $creditPayments = Payment::with(['sale.customer', 'zelleRecord', 'usdtRecord', 'bankRecord'])
             ->whereIn('collection_sheet_id', $sheetIds)
             ->when($user_id != 0, function ($qry) use ($user_id) {
                 $qry->where('user_id', $user_id);
@@ -1196,6 +1211,9 @@ class ReportController extends Controller
         $getVoucherDate = function($payment, $method) {
             if ($method === 'zelle' && $payment->zelleRecord) {
                 return Carbon::parse($payment->zelleRecord->zelle_date ?? $payment->payment_date ?? $payment->created_at)->format('d/m/Y');
+            }
+            if ($method === 'usdt' && $payment->usdtRecord) {
+                return Carbon::parse($payment->usdtRecord->usdt_date ?? $payment->payment_date ?? $payment->created_at)->format('d/m/Y');
             }
             if (($method === 'bank' || $method === 'deposit') && $payment->bankRecord) {
                 return Carbon::parse($payment->bankRecord->payment_date ?? $payment->payment_date ?? $payment->created_at)->format('d/m/Y');
@@ -1286,16 +1304,16 @@ class ReportController extends Controller
             }
         }
 
-        // Structure Detailed Digital Payments (Bancos / Zelle)
+        // Structure Detailed Digital Payments (Bancos / Zelle / USDT)
         $digitalPayments = [
-            'sales' => ['bank' => [], 'zelle' => []],
-            'credits' => ['bank' => [], 'zelle' => []],
-            'unified' => ['bank' => [], 'zelle' => []]
+            'sales' => ['bank' => [], 'zelle' => [], 'usdt' => []],
+            'credits' => ['bank' => [], 'zelle' => [], 'usdt' => []],
+            'unified' => ['bank' => [], 'zelle' => [], 'usdt' => []]
         ];
 
         // Process Sales Digital Payments
-        foreach($salePaymentDetails->whereIn('payment_method', ['bank', 'deposit', 'zelle']) as $pd) {
-            $method = $pd->payment_method === 'zelle' ? 'zelle' : 'bank';
+        foreach($salePaymentDetails->whereIn('payment_method', ['bank', 'deposit', 'zelle', 'usdt']) as $pd) {
+            $method = $pd->payment_method === 'zelle' ? 'zelle' : ($pd->payment_method === 'usdt' ? 'usdt' : 'bank');
             $bankName = $pd->bank_name ?? 'Banco / Otros';
             $curr = $pd->currency_code;
             $voucherDate = $getVoucherDate($pd, $pd->payment_method);
@@ -1305,31 +1323,34 @@ class ReportController extends Controller
 
             $item = [
                 'date' => $voucherDate,
-                'raw_date' => $pd->zelleRecord->zelle_date ?? $pd->bankRecord->payment_date ?? $pd->created_at,
+                'raw_date' => $pd->zelleRecord->zelle_date ?? $pd->usdtRecord->usdt_date ?? $pd->bankRecord->payment_date ?? $pd->created_at,
                 'origin' => 'VENTA',
-                'ref' => $pd->reference_number ?? ($pd->zelleRecord->reference ?? 'N/A'),
+                'ref' => $pd->reference_number ?? ($pd->zelleRecord->reference ?? $pd->usdtRecord->reference ?? 'N/A'),
                 'invoice' => $pd->sale->invoice_number ?? $pd->sale->id,
                 'customer' => $pd->sale->customer->name ?? 'Consumidor Final',
                 'type' => 'Pago Venta',
                 'amount' => $pd->amount,
                 'currency' => $curr,
                 'equiv_usd' => $pd->amount / ($pd->exchange_rate > 0 ? $pd->exchange_rate : 1),
-                'zelle_sender' => $pd->zelleRecord->sender_name ?? 'N/A',
-                'zelle_total' => $pd->zelleRecord->amount ?? $pd->amount
+                'zelle_sender' => $pd->zelleRecord->sender_name ?? $pd->usdtRecord->sender_name ?? 'N/A',
+                'zelle_total' => $pd->zelleRecord->amount ?? $pd->usdtRecord->amount ?? $pd->amount
             ];
 
             if ($method === 'bank') {
                 $digitalPayments['sales']['bank'][$bankKey][$curr][] = $item;
                 $digitalPayments['unified']['bank'][$bankKey][$curr][] = $item;
-            } else {
+            } elseif ($method === 'zelle') {
                 $digitalPayments['sales']['zelle'][] = $item;
                 $digitalPayments['unified']['zelle'][] = $item;
+            } else {
+                $digitalPayments['sales']['usdt'][] = $item;
+                $digitalPayments['unified']['usdt'][] = $item;
             }
         }
 
         // Process Credit Digital Payments
-        foreach($creditPayments->whereIn('pay_way', ['bank', 'deposit', 'zelle']) as $p) {
-            $method = $p->pay_way === 'zelle' ? 'zelle' : 'bank';
+        foreach($creditPayments->whereIn('pay_way', ['bank', 'deposit', 'zelle', 'usdt']) as $p) {
+            $method = $p->pay_way === 'zelle' ? 'zelle' : ($p->pay_way === 'usdt' ? 'usdt' : 'bank');
             $bankName = $p->bank ?? 'Banco / Otros';
             $curr = $p->currency ?? $primaryCode;
             $voucherDate = $getVoucherDate($p, $p->pay_way);
@@ -1340,25 +1361,28 @@ class ReportController extends Controller
 
             $item = [
                 'date' => $voucherDate,
-                'raw_date' => $p->zelleRecord->zelle_date ?? $p->bankRecord->payment_date ?? $p->created_at,
+                'raw_date' => $p->zelleRecord->zelle_date ?? $p->usdtRecord->usdt_date ?? $p->bankRecord->payment_date ?? $p->created_at,
                 'origin' => 'CRÉDITO',
-                'ref' => $p->deposit_number ?? ($p->zelleRecord->reference ?? 'N/A'),
+                'ref' => $p->deposit_number ?? ($p->zelleRecord->reference ?? $p->usdtRecord->reference ?? 'N/A'),
                 'invoice' => $p->sale->invoice_number ?? $p->sale->id ?? 'N/A',
                 'customer' => $p->sale->customer->name ?? 'Cliente Crédito',
                 'type' => $payStatus,
                 'amount' => $p->amount,
                 'currency' => $curr,
                 'equiv_usd' => $p->amount / ($p->exchange_rate > 0 ? $p->exchange_rate : 1),
-                'zelle_sender' => $p->zelleRecord->sender_name ?? 'N/A',
-                'zelle_total' => $p->zelleRecord->amount ?? $p->amount
+                'zelle_sender' => $p->zelleRecord->sender_name ?? $p->usdtRecord->sender_name ?? 'N/A',
+                'zelle_total' => $p->zelleRecord->amount ?? $p->usdtRecord->amount ?? $p->amount
             ];
 
             if ($method === 'bank') {
                 $digitalPayments['credits']['bank'][$bankKey][$curr][] = $item;
                 $digitalPayments['unified']['bank'][$bankKey][$curr][] = $item;
-            } else {
+            } elseif ($method === 'zelle') {
                 $digitalPayments['credits']['zelle'][] = $item;
                 $digitalPayments['unified']['zelle'][] = $item;
+            } else {
+                $digitalPayments['credits']['usdt'][] = $item;
+                $digitalPayments['unified']['usdt'][] = $item;
             }
         }
 
