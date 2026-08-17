@@ -407,9 +407,10 @@ class PartialPayment extends Component
 
                 // Handle Bank Record (Abonos)
                 $bankRecordId = null;
+                $createdBankRecord = null;
                 if ($payment['method'] == 'bank' && !empty($payment['bank_reference'])) {
                      try {
-                        $bankRecord = \App\Models\BankRecord::create([
+                        $createdBankRecord = \App\Models\BankRecord::create([
                             'bank_id' => $payment['bank_id'],
                             'amount' => $payment['amount'],
                             'reference' => $payment['bank_reference'],
@@ -421,7 +422,7 @@ class PartialPayment extends Component
                             'customer_id' => $sale->customer_id,
                             'sale_id' => $sale->id,
                         ]);
-                        $bankRecordId = $bankRecord->id;
+                        $bankRecordId = $createdBankRecord->id;
                      } catch (\Exception $e) {
                           // Log error but continue
                      }
