@@ -104,10 +104,10 @@ class PaymentController extends Controller
     {
         $request->validate([
             'sale_id' => 'required|exists:sales,id',
-            'method' => 'required|in:cash,bank,zelle',
+            'method' => 'required|in:cash,bank,zelle,usdt',
             'amount' => 'required|numeric|min:0.01',
             'currency' => 'required|string',
-            'bank_id' => 'required_if:method,bank|exists:banks,id',
+            'bank_id' => 'required_if:method,bank|required_if:method,usdt|nullable|exists:banks,id',
             'reference' => 'required_unless:method,cash',
             'payment_date' => 'required|date',
             'image' => 'nullable|image|max:2048',
@@ -139,13 +139,30 @@ class PaymentController extends Controller
             // Image handling (using same logic as PaymentComponent)
             $imagePath = null;
             if ($request->hasFile('image')) {
-                $folder = ($request->method === 'zelle') ? 'zelle_receipts' : 'bank_receipts';
+                $folder = ($request->method === 'usdt') ? 'usdt_receipts' : (($request->method === 'zelle') ? 'zelle_receipts' : 'bank_receipts');
                 $imagePath = $request->file('image')->store($folder, 'public');
             }
 
             // Standardize pay_way naming for DB
             $payWay = $request->method;
             if ($payWay === 'bank') $payWay = 'deposit';
+
+            $usdtRecordId = null;
+            if ($request->method === 'usdt') {
+                $usdtRecord = \App\Models\UsdtRecord::create([
+                    'sender_name' => $request->issuer_name ?? $user->name,
+                    'usdt_date' => $request->payment_date ?? date('Y-m-d'),
+                    'amount' => $request->amount,
+                    'reference' => $request->reference,
+                    'image_path' => $imagePath,
+                    'status' => 'used',
+                    'remaining_balance' => 0,
+                    'customer_id' => $sale->customer_id,
+                    'sale_id' => $sale->id,
+                    'invoice_total' => $sale->total
+                ]);
+                $usdtRecordId = $usdtRecord->id;
+            }
 
             $payment = Payment::create([
                 'user_id' => Auth::id(),
@@ -157,12 +174,13 @@ class PaymentController extends Controller
                 'pay_way' => $payWay,
                 'type' => 'pay',
                 'status' => 'pending',
-                'bank' => $request->bank_id ? Bank::find($request->bank_id)->name : null,
+                'bank' => $request->bank_id ? Bank::find($request->bank_id)->name : 'USDT BINANCE',
                 'deposit_number' => $request->reference,
                 'payment_date' => $request->payment_date ?? now(),
-                'issuer_name' => $request->issuer_name,
-                'zelle_image' => ($request->method === 'zelle') ? $imagePath : null,
+                'issuer_name' => $request->issuer_name ?? $user->name,
+                'zelle_image' => ($request->method === 'zelle' || $request->method === 'usdt') ? $imagePath : null,
                 'bank_image' => ($request->method === 'bank') ? $imagePath : null,
+                'usdt_record_id' => $usdtRecordId,
             ]);
 
             DB::commit();
