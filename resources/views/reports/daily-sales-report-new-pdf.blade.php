@@ -392,7 +392,7 @@
                             @endif
 
                             @foreach($sale->paymentDetails as $payment)
-                                @if(in_array($payment->payment_method, ['bank', 'zelle', 'deposit']))
+                                @if(in_array($payment->payment_method, ['bank', 'zelle', 'usdt', 'deposit']))
                                      @php
                                          $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
                                          $usdEquiv = $payment->amount / $rate;
@@ -400,12 +400,17 @@
                                          // Resolver fecha del voucher
                                          if ($payment->payment_method == 'zelle') {
                                              $vDate = \Carbon\Carbon::parse($payment->zelleRecord->zelle_date ?? $payment->created_at)->format('d/m/Y');
+                                             $methodLabel = 'Zelle';
+                                         } elseif ($payment->payment_method == 'usdt') {
+                                             $vDate = \Carbon\Carbon::parse($payment->usdtRecord->usdt_date ?? $payment->created_at)->format('d/m/Y');
+                                             $methodLabel = 'USDT BINANCE';
                                          } else {
                                              $vDate = \Carbon\Carbon::parse($payment->bankRecord->payment_date ?? $payment->created_at)->format('d/m/Y');
+                                             $methodLabel = $payment->bank_name ?? 'Banco';
                                          }
                                      @endphp
                                      <div class="pay-info" style="display: block; border-left: 2px solid #ddd; padding-left: 3px; margin-top: 1px;">
-                                         {{ $payment->payment_method == 'zelle' ? 'Zelle' : ($payment->bank_name ?? 'Banco') }}: {{ $payment->reference_number }} [F. Voucher: {{ $vDate }}]
+                                         {{ $methodLabel }}: {{ $payment->reference_number }} [F. Voucher: {{ $vDate }}]
                                          <span style="color: #888;">(Tasa: {{ number_format($payment->exchange_rate, 4) }})</span> 
                                          <span style="font-weight: bold;">[${{ number_format($usdEquiv, 4) }}]</span>
                                          @if($payment->exchange_rate > 1)

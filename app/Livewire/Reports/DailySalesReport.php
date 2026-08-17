@@ -387,6 +387,8 @@ class DailySalesReport extends Component
                         $totalsByCategory[$bankName] = ($totalsByCategory[$bankName] ?? 0) + $amtUSD;
                     } elseif ($payment->payment_method == 'zelle') {
                         $totalsByCategory['ZELLE'] = ($totalsByCategory['ZELLE'] ?? 0) + $amtUSD;
+                    } elseif ($payment->payment_method == 'usdt') {
+                        $totalsByCategory['USDT BINANCE'] = ($totalsByCategory['USDT BINANCE'] ?? 0) + $amtUSD;
                     } else {
                         $key = "EFECTIVO " . strtoupper($payment->currency_code);
                         $totalsByCategory[$key] = ($totalsByCategory[$key] ?? 0) + $amtUSD;

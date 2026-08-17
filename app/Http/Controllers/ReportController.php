@@ -320,6 +320,8 @@ class ReportController extends Controller
                         $totalsByCategory[$bankName] = ($totalsByCategory[$bankName] ?? 0) + $amtUSD;
                     } elseif ($payment->payment_method == 'zelle') {
                         $totalsByCategory['ZELLE'] = ($totalsByCategory['ZELLE'] ?? 0) + $amtUSD;
+                    } elseif ($payment->payment_method == 'usdt') {
+                        $totalsByCategory['USDT BINANCE'] = ($totalsByCategory['USDT BINANCE'] ?? 0) + $amtUSD;
                     } else {
                         $key = "EFECTIVO " . $pCurr;
                         $totalsByCategory[$key] = ($totalsByCategory[$key] ?? 0) + $amtUSD;
