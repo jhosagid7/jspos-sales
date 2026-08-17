@@ -523,8 +523,9 @@ class AccountsReceivableReport extends Component
                     continue;
                 }
                 
-                // Handle Zelle Record
+                // Handle Zelle / USDT Record
                 $zelleRecordId = null;
+                $usdtRecordId = null;
                 if ($payment['method'] == 'zelle') {
                     // Check if Zelle record exists
                     $zelleRecord = \App\Models\ZelleRecord::where('sender_name', $payment['zelle_sender'])
@@ -563,6 +564,45 @@ class AccountsReceivableReport extends Component
                         ]);
                         
                         $zelleRecordId = $zelleRecord->id;
+                    }
+                }
+
+                if ($payment['method'] == 'usdt') {
+                    $usdtDate = $payment['zelle_date'] ?? date('Y-m-d');
+                    $usdtRecord = \App\Models\UsdtRecord::where('sender_name', $payment['zelle_sender'])
+                        ->where('usdt_date', $usdtDate)
+                        ->where('amount', $payment['zelle_amount'])
+                        ->first();
+
+                    $amountUsed = $payment['amount'];
+
+                    if ($usdtRecord) {
+                        $usdtRecord->remaining_balance -= $amountUsed;
+                        if ($usdtRecord->remaining_balance < 0) $usdtRecord->remaining_balance = 0;
+                        
+                        $usdtRecord->status = $usdtRecord->remaining_balance <= 0.01 ? 'used' : 'partial';
+                        $usdtRecord->save();
+                        
+                        $usdtRecordId = $usdtRecord->id;
+                    } else {
+                        $remaining = $payment['zelle_amount'] - $amountUsed;
+                        
+                        $usdtRecord = \App\Models\UsdtRecord::create([
+                            'sender_name' => $payment['zelle_sender'],
+                            'usdt_date' => $usdtDate,
+                            'amount' => $payment['zelle_amount'],
+                            'reference' => $payment['reference'] ?? null,
+                            'image_path' => $payment['zelle_image'] ?? null,
+                            'status' => $remaining <= 0.01 ? 'used' : 'partial',
+                            'remaining_balance' => max(0, $remaining),
+                            'customer_id' => $customerId,
+                            'sale_id' => $sale ? $sale->id : null,
+                            'debit_note_id' => $debitNote ? $debitNote->id : null,
+                            'invoice_total' => $sale ? $sale->total : $amountUsed,
+                            'payment_type' => $sale ? ($amountUsed >= ($sale->total - 0.01) ? 'full' : 'partial') : 'full'
+                        ]);
+                        
+                        $usdtRecordId = $usdtRecord->id;
                     }
                 }
 
@@ -606,6 +646,7 @@ class AccountsReceivableReport extends Component
                     ->where('amount', floatval($amount))
                     ->where('currency', $currencyCode)
                     ->when($zelleRecordId, fn($q) => $q->where('zelle_record_id', $zelleRecordId))
+                    ->when($usdtRecordId, fn($q) => $q->where('usdt_record_id', $usdtRecordId))
                     ->when(isset($payment['reference']) && !empty($payment['reference']), fn($q) => $q->where('deposit_number', $payment['reference']))
                     ->where('created_at', '>=', \Carbon\Carbon::now()->subSeconds(60))
                     ->first();
@@ -632,6 +673,7 @@ class AccountsReceivableReport extends Component
                     'phone_number' => $payment['phone'] ?? null,
                     'payment_date' => $payment['payment_date'] ?? $payment['bank_date'] ?? $payment['zelle_date'] ?? \Carbon\Carbon::now(),
                     'zelle_record_id' => $zelleRecordId,
+                    'usdt_record_id' => $usdtRecordId,
                     'bank_record_id' => $bankRecordId, // Linked Bank Record
                     'collection_sheet_id' => $sheet->id,
                     // Track Discount/Surcharge

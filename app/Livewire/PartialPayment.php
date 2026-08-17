@@ -323,9 +323,9 @@ class PartialPayment extends Component
                     ]);
                     continue;
                 }
-                
-                // Handle Zelle Record - Logic is SAME for Uploaded or Direct
+                              // Handle Zelle / USDT Record - Logic is SAME for Uploaded or Direct
                 $zelleRecordId = null;
+                $usdtRecordId = null;
                 if ($payment['method'] == 'zelle') {
                     // ... Zelle Logic (Same as before) ...
                     $zelleRecord = \App\Models\ZelleRecord::where('sender_name', $payment['zelle_sender'])
@@ -358,6 +358,40 @@ class PartialPayment extends Component
                         ]);
                         $zelleRecordId = $zelleRecord->id;
                     }
+                }
+
+                if ($payment['method'] == 'usdt') {
+                    $usdtDate = $payment['zelle_date'] ?? date('Y-m-d');
+                    $usdtRecord = \App\Models\UsdtRecord::where('sender_name', $payment['zelle_sender'])
+                        ->where('usdt_date', $usdtDate)
+                        ->where('amount', $payment['zelle_amount'])
+                        ->first();
+
+                    $amountUsed = $payment['amount'];
+
+                    if ($usdtRecord) {
+                        $usdtRecord->remaining_balance -= $amountUsed;
+                        if ($usdtRecord->remaining_balance < 0) $usdtRecord->remaining_balance = 0;
+                        $usdtRecord->status = $usdtRecord->remaining_balance <= 0.01 ? 'used' : 'partial';
+                        $usdtRecord->save();
+                        $usdtRecordId = $usdtRecord->id;
+                    } else {
+                        $remaining = $payment['zelle_amount'] - $amountUsed;
+                        $usdtRecord = \App\Models\UsdtRecord::create([
+                            'sender_name' => $payment['zelle_sender'],
+                            'usdt_date' => $usdtDate,
+                            'amount' => $payment['zelle_amount'],
+                            'reference' => $payment['reference'] ?? null,
+                            'image_path' => $payment['zelle_image'] ?? null,
+                            'status' => $remaining <= 0.01 ? 'used' : 'partial',
+                            'remaining_balance' => max(0, $remaining),
+                            'customer_id' => $sale->customer_id,
+                            'sale_id' => $sale->id,
+                            'invoice_total' => $sale->total,
+                            'payment_type' => $amountUsed >= ($sale->total - 0.01) ? 'full' : 'partial'
+                        ]);
+                        $usdtRecordId = $usdtRecord->id;
+                    }
                 } 
 
                 if ($payment['method'] === 'wallet') {
@@ -371,53 +405,27 @@ class PartialPayment extends Component
                     }
                 }
 
+                // Handle Bank Record (Abonos)
                 $bankRecordId = null;
-                $createdBankRecord = null;
-
-                // Create or Link BankRecord 
                 if ($payment['method'] == 'bank' && !empty($payment['bank_reference'])) {
                      try {
-                        $bankGlobalAmount = $payment['bank_global_amount'] ?? $payment['amount']; // Fallback to used amount if not provided
-                        $amountUsed = $payment['amount'];
-                        
-                        // Check if exists (Logic similar to Zelle)
-                        $bankRecord = \App\Models\BankRecord::where('bank_id', $payment['bank_id'])
-                            ->where('reference', $payment['bank_reference'])
-                            ->where('amount', $bankGlobalAmount)
-                            ->first();
-
-                        if ($bankRecord) {
-                            $bankRecord->remaining_balance -= $amountUsed;
-                            if ($bankRecord->remaining_balance < 0) $bankRecord->remaining_balance = 0;
-                            $bankRecord->status = $bankRecord->remaining_balance <= 0.01 ? 'used' : 'partial';
-                            $bankRecord->customer_id = $sale->customer_id; // Update customer? Maybe last customer used it.
-                            $bankRecord->save();
-                            $createdBankRecord = $bankRecord;
-                            $bankRecordId = $bankRecord->id;
-                        } else {
-                            $remaining = $bankGlobalAmount - $amountUsed;
-                            
-                            $createdBankRecord = \App\Models\BankRecord::create([
-                                'bank_id' => $payment['bank_id'],
-                                'amount' => $bankGlobalAmount, // Save TOTAL amount
-                                'reference' => $payment['bank_reference'],
-                                'payment_date' => $payment['bank_date'] ?? now(),
-                                'image_path' => $payment['bank_image'] ?? null,
-                                'note' => $payment['bank_note'] ?? null,
-                                'status' => $remaining <= 0.01 ? 'used' : 'partial',
-                                'remaining_balance' => max(0, $remaining),
-                                'customer_id' => $sale->customer_id,
-                                'sale_id' => $sale->id,
-                            ]);
-                            $bankRecordId = $createdBankRecord->id;
-                        }
-
+                        $bankRecord = \App\Models\BankRecord::create([
+                            'bank_id' => $payment['bank_id'],
+                            'amount' => $payment['amount'],
+                            'reference' => $payment['bank_reference'],
+                            'payment_date' => $payment['bank_date'] ?? now(),
+                            'image_path' => $payment['bank_image'] ?? null,
+                            'note' => $payment['bank_note'] ?? null,
+                            'status' => 'used',
+                            'remaining_balance' => 0,
+                            'customer_id' => $sale->customer_id,
+                            'sale_id' => $sale->id,
+                        ]);
+                        $bankRecordId = $bankRecord->id;
                      } catch (\Exception $e) {
-                          Log::error("Error creating/linking BankRecord: " . $e->getMessage());
+                          // Log error but continue
                      }
                 }
-
-                $collectionSheetId = $this->getOrCreateCollectionSheet();
 
                 $payWay = $payment['method'] == 'bank' ? 'deposit' : $payment['method'];
 
@@ -427,6 +435,7 @@ class PartialPayment extends Component
                     ->where('amount', floatval($amount))
                     ->where('currency', $currencyCode)
                     ->when($zelleRecordId, fn($q) => $q->where('zelle_record_id', $zelleRecordId))
+                    ->when($usdtRecordId, fn($q) => $q->where('usdt_record_id', $usdtRecordId))
                     ->when(isset($payment['reference']) && !empty($payment['reference']), fn($q) => $q->where('deposit_number', $payment['reference']))
                     ->where('created_at', '>=', \Carbon\Carbon::now()->subSeconds(60))
                     ->first();
@@ -453,6 +462,7 @@ class PartialPayment extends Component
                     'phone_number' => $payment['phone'] ?? null,
                     'payment_date' => $payment['payment_date'] ?? $payment['bank_date'] ?? $payment['zelle_date'] ?? \Carbon\Carbon::now(),
                     'zelle_record_id' => $zelleRecordId,
+                    'usdt_record_id' => $usdtRecordId,
                     'bank_record_id' => $bankRecordId,
                     'discount_applied' => $payment['discount_amount'] ?? 0,
                     'discount_percentage' => $payment['discount_percentage'] ?? 0,

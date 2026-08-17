@@ -272,6 +272,7 @@
                                         'reference' => $detail->reference_number ?? ($detail->bankRecord ? $detail->bankRecord->reference : null),
                                         'account' => $detail->account_number,
                                         'zelle_record' => $detail->zelleRecord,
+                                        'usdt_record' => $detail->usdtRecord,
                                         'bank_record' => $detail->bankRecord // Link BankRecord
                                     ]);
                                 }
@@ -311,7 +312,8 @@
                                     $method = match($pay->pay_way) {
                                         'deposit' => 'bank',
                                         'zelle' => 'zelle',
-                                        default => 'cash'
+                                        'usdt' => 'usdt',
+                                        default => $pay->pay_way ?? 'cash'
                                     };
 
                                     $paymentObj = (object)[
@@ -328,6 +330,7 @@
                                         'reference' => $pay->deposit_number ?? $pay->reference ?? ($pay->bankRecord ? $pay->bankRecord->reference : null),
                                         'account' => $pay->account_number,
                                         'zelle_record' => $pay->zelleRecord,
+                                        'usdt_record' => $pay->usdtRecord,
                                         'bank_record' => $pay->bankRecord, // Link BankRecord
                                         // Discount info
                                         'discount_amount' => $pay->discount_applied,
@@ -406,7 +409,7 @@
                                                         @endif
 
                                                         @php
-                                                            $directImage = ($pending->method == 'zelle' ? ($pending->zelle_image ?? null) : ($pending->bank_image ?? null));
+                                                            $directImage = (in_array($pending->method, ['zelle', 'usdt']) ? ($pending->zelle_image ?? null) : ($pending->bank_image ?? null));
                                                         @endphp
 
                                                         @if($directImage)
@@ -415,6 +418,8 @@
                                                              <a href="{{ asset('storage/' . $pending->bank_record->image_path) }}" target="_blank" class="text-danger small"><i class="fa fa-image"></i> Ver Comprobante</a>
                                                         @elseif($pending->zelle_record && $pending->zelle_record->image_path)
                                                              <a href="{{ asset('storage/' . $pending->zelle_record->image_path) }}" target="_blank" class="text-danger small"><i class="fa fa-image"></i> Ver Comprobante</a>
+                                                        @elseif($pending->usdt_record && $pending->usdt_record->image_path)
+                                                             <a href="{{ asset('storage/' . $pending->usdt_record->image_path) }}" target="_blank" class="text-danger small"><i class="fa fa-image"></i> Ver Comprobante</a>
                                                         @endif
                                                     </td>
                                                     <td>
@@ -460,6 +465,8 @@
                                                         $methodName = $payment->bank_name;
                                                     } elseif ($payment->method == 'zelle') {
                                                         $methodName = 'Zelle';
+                                                    } elseif ($payment->method == 'usdt') {
+                                                        $methodName = 'USDT BINANCE';
                                                     } else {
                                                         $methodName = 'Efectivo';
                                                     }
@@ -475,6 +482,7 @@
                                                     $badgeColor = match($payment->method) {
                                                         'bank' => 'info',
                                                         'zelle' => 'dark',
+                                                        'usdt' => 'success',
                                                         default => 'success'
                                                     };
                                                 @endphp
@@ -530,17 +538,20 @@
                                                                     @endif
                                                                 @endif
                                                             </small>
-                                                        @elseif ($payment->method == 'zelle')
+                                                        @elseif ($payment->method == 'zelle' || $payment->method == 'usdt')
                                                             <div class="small">
-                                                                @if($payment->zelle_record)
-                                                                    <div><b>Emisor:</b> {{ $payment->zelle_record->sender_name }}</div>
-                                                                    <div><b>Fecha:</b> {{ \Carbon\Carbon::parse($payment->zelle_record->zelle_date)->format('d/m/Y') }}</div>
-                                                                    @if($payment->zelle_record->reference)
-                                                                        <div><b>Ref:</b> {{ $payment->zelle_record->reference }}</div>
+                                                                @php
+                                                                    $rec = $payment->usdt_record ?? $payment->zelle_record;
+                                                                @endphp
+                                                                @if($rec)
+                                                                    <div><b>Emisor:</b> {{ $rec->sender_name }}</div>
+                                                                    <div><b>Fecha:</b> {{ \Carbon\Carbon::parse($rec->usdt_date ?? $rec->zelle_date)->format('d/m/Y') }}</div>
+                                                                    @if($rec->reference)
+                                                                        <div><b>Ref:</b> {{ $rec->reference }}</div>
                                                                     @endif
-                                                                    @if(!empty($payment->zelle_record->image_path))
+                                                                    @if(!empty($rec->image_path))
                                                                         <div class="mt-1">
-                                                                            <a href="{{ asset('storage/' . $payment->zelle_record->image_path) }}" target="_blank" class="text-primary">
+                                                                            <a href="{{ asset('storage/' . $rec->image_path) }}" target="_blank" class="text-success fw-bold">
                                                                                 <i class="fas fa-image"></i> Ver Comprobante
                                                                             </a>
                                                                         </div>
@@ -550,7 +561,7 @@
                                                                     @if($payment->payment_date) <div><b>Fecha Pago:</b> {{ \Carbon\Carbon::parse($payment->payment_date)->format('d/m/Y') }}</div> @endif
                                                                     @if($payment->zelle_image)
                                                                         <div class="mt-1">
-                                                                            <a href="{{ asset('storage/' . $payment->zelle_image) }}" target="_blank" class="text-primary">
+                                                                            <a href="{{ asset('storage/' . $payment->zelle_image) }}" target="_blank" class="text-success fw-bold">
                                                                                 <i class="fas fa-image"></i> Ver Comprobante
                                                                             </a>
                                                                         </div>

@@ -4426,6 +4426,7 @@ class Sales extends Component
                         continue;
                     }
                     $zelleRecordId = null;
+                    $usdtRecordId = null;
 
                     Log::info("Processing payment in Sales", ['method' => $payment['method'], 'has_zelle_sender' => isset($payment['zelle_sender'])]);
 
@@ -4470,6 +4471,47 @@ class Sales extends Component
                         }
                         
                         Log::info("Zelle Record processed", ['id' => $zelleRecordId, 'created_new' => !$zelleRecord->wasRecentlyCreated]);
+                    }
+
+                    if ($payment['method'] == 'usdt') {
+                        Log::info("USDT payment detected in Sales", $payment);
+                        $usdtDate = $payment['zelle_date'] ?? date('Y-m-d');
+                        $usdtRecord = \App\Models\UsdtRecord::where('sender_name', $payment['zelle_sender'])
+                            ->where('usdt_date', $usdtDate)
+                            ->where('amount', $payment['zelle_amount'])
+                            ->first();
+
+                        $amountUsed = $payment['amount'];
+
+                        if ($usdtRecord) {
+                            $usdtRecord->remaining_balance -= $amountUsed;
+                            if ($usdtRecord->remaining_balance < 0) $usdtRecord->remaining_balance = 0;
+                            
+                            $usdtRecord->status = $usdtRecord->remaining_balance <= 0.01 ? 'used' : 'partial';
+                            $usdtRecord->save();
+                            
+                            $usdtRecordId = $usdtRecord->id;
+                        } else {
+                            $remaining = $payment['zelle_amount'] - $amountUsed;
+                            
+                            $usdtRecord = \App\Models\UsdtRecord::create([
+                                'sender_name' => $payment['zelle_sender'],
+                                'usdt_date' => $usdtDate,
+                                'amount' => $payment['zelle_amount'],
+                                'reference' => $payment['reference'] ?? null,
+                                'image_path' => $payment['zelle_image'] ?? null,
+                                'status' => $remaining <= 0.01 ? 'used' : 'partial',
+                                'remaining_balance' => max(0, $remaining),
+                                'customer_id' => $sale->customer_id,
+                                'sale_id' => $sale->id,
+                                'invoice_total' => $sale->total,
+                                'payment_type' => $amountUsed >= ($sale->total - 0.01) ? 'full' : 'partial'
+                            ]);
+                            
+                            $usdtRecordId = $usdtRecord->id;
+                        }
+                        
+                        Log::info("USDT Record processed", ['id' => $usdtRecordId, 'created_new' => !$usdtRecord->wasRecentlyCreated]);
                     }
                     
                     if ($payment['method'] == 'bank') {
@@ -4539,6 +4581,7 @@ class Sales extends Component
                         'reference_number' => $payment['reference'] ?? $payment['bank_reference'] ?? $payment['deposit_number'] ?? null,
                         'phone_number' => $payment['phone_number'] ?? null,
                         'zelle_record_id' => $zelleRecordId,
+                        'usdt_record_id' => $usdtRecordId,
                         'bank_record_id' => $bankRecordId ?? null // Link BankRecord
                     ]);
                 }
