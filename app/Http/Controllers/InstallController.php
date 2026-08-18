@@ -187,30 +187,70 @@ class InstallController extends Controller
         $ips = [];
         $portSuffix = ($port && $port != 80 && $port != 443) ? ":{$port}" : '';
 
+        $rawIps = gethostbynamel(gethostname()) ?: [];
+
+        $interfaceMap = [];
         if (str_starts_with(PHP_OS, 'WIN')) {
-            @exec('powershell -Command "Get-NetIPAddress -AddressFamily IPv4 | Select-Object InterfaceAlias, IPAddress | ConvertTo-Json"', $output);
-            $json = implode("\n", (array) $output);
+            @exec('powershell -Command "Get-NetIPAddress -AddressFamily IPv4 | Select-Object InterfaceAlias, IPAddress | ConvertTo-Json"', $psOutput);
+            $json = implode("\n", (array) $psOutput);
             $data = json_decode($json, true);
             if (is_array($data)) {
                 if (isset($data['InterfaceAlias'])) {
                     $data = [$data];
                 }
                 foreach ($data as $item) {
-                    $alias = strtolower($item['InterfaceAlias'] ?? '');
+                    $alias = $item['InterfaceAlias'] ?? '';
                     $ip = $item['IPAddress'] ?? '';
-                    if ($ip && $ip !== '127.0.0.1' && !str_starts_with($ip, '169.254.')) {
-                        $fullIp = $ip . $portSuffix;
-                        if (str_contains($alias, 'tailscale') || str_starts_with($ip, '100.')) {
-                            $ips['Tailscale'] = $fullIp;
-                        } elseif (str_contains($alias, 'zerotier')) {
-                            $ips['ZeroTier'] = $fullIp;
-                        } elseif (str_contains($alias, 'wi-fi') || str_contains($alias, 'ethernet')) {
-                            $ips['Red Local (LAN)'] = $fullIp;
+                    if ($ip) {
+                        $interfaceMap[$ip] = $alias;
+                    }
+                }
+            }
+
+            if (empty($interfaceMap)) {
+                @exec('ipconfig', $ipconfigOut);
+                $currentAdapter = '';
+                foreach ((array)$ipconfigOut as $line) {
+                    if (preg_match('/^(Adaptador|Ethernet adapter|Wireless LAN adapter)\s+(.*):/i', $line, $m)) {
+                        $currentAdapter = trim($m[2]);
+                    } elseif (preg_match('/IPv4.*:\s*([0-9\.]+)/i', $line, $m)) {
+                        $ip = trim($m[1]);
+                        if ($ip) {
+                            $interfaceMap[$ip] = $currentAdapter ?: 'Red';
                         }
                     }
                 }
             }
         }
+
+        $allIps = array_unique(array_merge($rawIps, array_keys($interfaceMap)));
+
+        foreach ($allIps as $ip) {
+            if (!$ip || $ip === '127.0.0.1' || str_starts_with($ip, '169.254.')) {
+                continue;
+            }
+
+            $alias = strtolower($interfaceMap[$ip] ?? '');
+            $fullIp = $ip . $portSuffix;
+
+            if (str_contains($alias, 'tailscale') || str_starts_with($ip, '100.')) {
+                $label = 'Tailscale VPN';
+            } elseif (str_contains($alias, 'zerotier')) {
+                $label = 'ZeroTier VPN';
+            } elseif (str_contains($alias, 'wi-fi') || str_contains($alias, 'ethernet') || str_starts_with($ip, '192.168.') || str_starts_with($ip, '10.')) {
+                $label = 'Red Local (LAN)';
+            } else {
+                $label = 'IP ' . $ip;
+            }
+
+            $key = $label;
+            if (isset($ips[$key])) {
+                $key .= " ({$ip})";
+            }
+
+            $ips[$key] = $fullIp;
+        }
+
         return $ips;
     }
 

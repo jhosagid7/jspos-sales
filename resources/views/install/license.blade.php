@@ -37,16 +37,35 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label text-muted small">IP VPN de este Equipo (Opcional):</label>
-                            <input type="text" id="client_vpn_ip" class="form-control form-control-sm" value="{{ $defaultVpnIp ?? '' }}" placeholder="Ej. 100.115.149.91 o 100.115.149.91:8081">
+                            <label class="form-label text-muted small font-weight-bold">IP VPN de este Equipo (Opcional):</label>
+                            <div class="input-group input-group-sm mb-1">
+                                <input type="text" id="client_vpn_ip" class="form-control form-control-sm" value="{{ $defaultVpnIp ?? '' }}" placeholder="Ej. 100.115.149.91 o 100.115.149.91:8081">
+                                @if(!empty($vpnIps) && count($vpnIps) > 1)
+                                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-list me-1"></i> Seleccionar VPN
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow">
+                                        @foreach($vpnIps as $label => $ip)
+                                            <li>
+                                                <a class="dropdown-item small py-2" href="#" onclick="document.getElementById('client_vpn_ip').value = '{{ $ip }}'; return false;">
+                                                    <i class="fas fa-network-wired text-primary me-2"></i><strong>{{ $label }}:</strong> {{ $ip }}
+                                                </a>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                @endif
+                            </div>
+
                             @if(!empty($vpnIps))
-                                <div class="mt-2">
-                                    <span class="text-muted small d-block mb-1"><i class="fas fa-network-wired me-1"></i> Seleccionar IP VPN detectada en este equipo:</span>
-                                    @foreach($vpnIps as $label => $ip)
-                                        <button type="button" class="btn btn-outline-primary btn-sm py-1 px-2 rounded-pill me-1 text-nowrap mb-1" onclick="document.getElementById('client_vpn_ip').value = '{{ $ip }}'">
-                                            <strong>{{ $label }}:</strong> {{ $ip }}
-                                        </button>
-                                    @endforeach
+                                <div class="mt-2 bg-light p-2 rounded border">
+                                    <span class="text-muted small d-block mb-1 font-weight-bold"><i class="fas fa-network-wired text-primary me-1"></i> IPs VPN / Redes detectadas en este equipo (Haz clic para elegir):</span>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        @foreach($vpnIps as $label => $ip)
+                                            <button type="button" class="btn btn-sm {{ str_contains(strtolower($label), 'zerotier') ? 'btn-outline-warning text-dark' : (str_contains(strtolower($label), 'tailscale') ? 'btn-outline-info text-dark' : 'btn-outline-secondary') }} py-1 px-2 me-1 text-nowrap mb-1" onclick="document.getElementById('client_vpn_ip').value = '{{ $ip }}'">
+                                                <i class="fas fa-plug me-1"></i><strong>{{ $label }}:</strong> {{ $ip }}
+                                            </button>
+                                        @endforeach
+                                    </div>
                                 </div>
                             @endif
                         </div>
