@@ -10,6 +10,10 @@ class LicenseDynamicConfigTest extends TestCase
 {
     public function test_expired_license_view_does_not_contain_hardcoded_legacy_ip()
     {
+        Http::fake([
+            '*' => Http::response([], 500),
+        ]);
+
         $response = $this->get('/license/expired');
 
         $response->assertStatus(200);

@@ -163,9 +163,14 @@ class InstallController extends Controller
         if ($host && $host !== 'localhost' && $host !== '127.0.0.1' && !str_contains($host, '.test')) {
             $defaultVpnIp = $host;
         } else {
-            $detectedIp = gethostbyname(gethostname());
-            if ($detectedIp && $detectedIp !== '127.0.0.1') {
-                $defaultVpnIp = $detectedIp;
+            $vpnIp = $this->detectLocalVpnIp();
+            if ($vpnIp) {
+                $defaultVpnIp = $vpnIp;
+            } else {
+                $detectedIp = gethostbyname(gethostname());
+                if ($detectedIp && $detectedIp !== '127.0.0.1') {
+                    $defaultVpnIp = $detectedIp;
+                }
             }
         }
 
@@ -176,6 +181,36 @@ class InstallController extends Controller
         $defaultServerIp = $this->licenseService->getLicenseServerIp();
 
         return view('install.license', compact('clientId', 'defaultVpnIp', 'defaultServerIp'));
+    }
+
+    private function detectLocalVpnIp()
+    {
+        if (str_starts_with(PHP_OS, 'WIN')) {
+            @exec('powershell -Command "Get-NetIPAddress -AddressFamily IPv4 | Select-Object InterfaceAlias, IPAddress | ConvertTo-Json"', $output);
+            $json = implode("\n", (array) $output);
+            $data = json_decode($json, true);
+            if (is_array($data)) {
+                if (isset($data['InterfaceAlias'])) {
+                    $data = [$data];
+                }
+                $tailscaleIp = null;
+                $zeroTierIp = null;
+
+                foreach ($data as $item) {
+                    $alias = strtolower($item['InterfaceAlias'] ?? '');
+                    $ip = $item['IPAddress'] ?? '';
+                    if ($ip && $ip !== '127.0.0.1' && !str_starts_with($ip, '169.254.')) {
+                        if (str_contains($alias, 'tailscale') || str_starts_with($ip, '100.')) {
+                            $tailscaleIp = $ip;
+                        } elseif (str_contains($alias, 'zerotier')) {
+                            $zeroTierIp = $ip;
+                        }
+                    }
+                }
+                return $tailscaleIp ?: $zeroTierIp;
+            }
+        }
+        return null;
     }
 
     public function connectLicenseServer(Request $request)

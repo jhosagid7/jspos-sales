@@ -176,7 +176,7 @@ class LicenseService
             $ip = preg_replace('#^https?://#i', '', trim($ip));
             return rtrim($ip, '/');
         }
-        return '';
+        return '100.115.149.91:8080';
     }
 
     /**
