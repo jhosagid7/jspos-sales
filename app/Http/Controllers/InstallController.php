@@ -159,18 +159,17 @@ class InstallController extends Controller
         $host = request()->getHost();
         $port = env('ASSIGNED_PORT') ?: request()->getPort();
         
+        $vpnIps = $this->detectAllLocalIps($port);
+        
         $defaultVpnIp = '';
         if ($host && $host !== 'localhost' && $host !== '127.0.0.1' && !str_contains($host, '.test')) {
             $defaultVpnIp = $host;
+        } elseif (!empty($vpnIps)) {
+            $defaultVpnIp = reset($vpnIps);
         } else {
-            $vpnIp = $this->detectLocalVpnIp();
-            if ($vpnIp) {
-                $defaultVpnIp = $vpnIp;
-            } else {
-                $detectedIp = gethostbyname(gethostname());
-                if ($detectedIp && $detectedIp !== '127.0.0.1') {
-                    $defaultVpnIp = $detectedIp;
-                }
+            $detectedIp = gethostbyname(gethostname());
+            if ($detectedIp && $detectedIp !== '127.0.0.1') {
+                $defaultVpnIp = $detectedIp;
             }
         }
 
@@ -180,11 +179,14 @@ class InstallController extends Controller
 
         $defaultServerIp = $this->licenseService->getLicenseServerIp();
 
-        return view('install.license', compact('clientId', 'defaultVpnIp', 'defaultServerIp'));
+        return view('install.license', compact('clientId', 'defaultVpnIp', 'defaultServerIp', 'vpnIps'));
     }
 
-    private function detectLocalVpnIp()
+    private function detectAllLocalIps($port = null)
     {
+        $ips = [];
+        $portSuffix = ($port && $port != 80 && $port != 443) ? ":{$port}" : '';
+
         if (str_starts_with(PHP_OS, 'WIN')) {
             @exec('powershell -Command "Get-NetIPAddress -AddressFamily IPv4 | Select-Object InterfaceAlias, IPAddress | ConvertTo-Json"', $output);
             $json = implode("\n", (array) $output);
@@ -193,24 +195,23 @@ class InstallController extends Controller
                 if (isset($data['InterfaceAlias'])) {
                     $data = [$data];
                 }
-                $tailscaleIp = null;
-                $zeroTierIp = null;
-
                 foreach ($data as $item) {
                     $alias = strtolower($item['InterfaceAlias'] ?? '');
                     $ip = $item['IPAddress'] ?? '';
                     if ($ip && $ip !== '127.0.0.1' && !str_starts_with($ip, '169.254.')) {
+                        $fullIp = $ip . $portSuffix;
                         if (str_contains($alias, 'tailscale') || str_starts_with($ip, '100.')) {
-                            $tailscaleIp = $ip;
+                            $ips['Tailscale'] = $fullIp;
                         } elseif (str_contains($alias, 'zerotier')) {
-                            $zeroTierIp = $ip;
+                            $ips['ZeroTier'] = $fullIp;
+                        } elseif (str_contains($alias, 'wi-fi') || str_contains($alias, 'ethernet')) {
+                            $ips['Red Local (LAN)'] = $fullIp;
                         }
                     }
                 }
-                return $tailscaleIp ?: $zeroTierIp;
             }
         }
-        return null;
+        return $ips;
     }
 
     public function connectLicenseServer(Request $request)

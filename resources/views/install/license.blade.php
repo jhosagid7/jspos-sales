@@ -39,6 +39,16 @@
                         <div class="mb-3">
                             <label class="form-label text-muted small">IP VPN de este Equipo (Opcional):</label>
                             <input type="text" id="client_vpn_ip" class="form-control form-control-sm" value="{{ $defaultVpnIp ?? '' }}" placeholder="Ej. 100.115.149.91 o 100.115.149.91:8081">
+                            @if(!empty($vpnIps))
+                                <div class="mt-2">
+                                    <span class="text-muted small d-block mb-1"><i class="fas fa-network-wired me-1"></i> Seleccionar IP VPN detectada en este equipo:</span>
+                                    @foreach($vpnIps as $label => $ip)
+                                        <button type="button" class="btn btn-outline-primary btn-sm py-1 px-2 rounded-pill me-1 text-nowrap mb-1" onclick="document.getElementById('client_vpn_ip').value = '{{ $ip }}'">
+                                            <strong>{{ $label }}:</strong> {{ $ip }}
+                                        </button>
+                                    @endforeach
+                                </div>
+                            @endif
                         </div>
 
                         <div class="d-flex justify-content-between items-center mt-3">
