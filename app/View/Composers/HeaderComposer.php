@@ -37,36 +37,73 @@ class HeaderComposer
 
         $noty_sales = collect();
         $noty_purchases = collect();
+        $user = auth()->user();
 
-        if ($creditDays > 0) {
-            $noty_sales = Sale::where('type', 'credit')
-                ->where('status', 'pending')
-                ->where('created_at', '<', Carbon::now()->subDays($creditDays))
-                ->with('customer')
-                ->orderBy('id', 'asc')
-                ->get()
-                ->transform(function($sale) {
-                    if ($sale->customer) {
-                        $sale->customer->name = $this->cleanString($sale->customer->name);
-                    }
-                    return $sale;
-                });
+        // Overdue Sales Notifications
+        $salesQuery = Sale::where('sales.type', 'credit')
+            ->where('sales.status', 'pending')
+            ->leftJoin('customers', 'sales.customer_id', '=', 'customers.id')
+            ->whereNull('customers.deleted_at')
+            ->whereRaw("
+                DATEDIFF(
+                    NOW(), 
+                    DATE_ADD(
+                        COALESCE(sales.delivered_at, sales.created_at), 
+                        INTERVAL COALESCE(
+                            NULLIF(sales.credit_days, 0), 
+                            NULLIF(customers.credit_days, 0), 
+                            {$creditDays}
+                        ) DAY
+                    )
+                ) >= 0
+            ")
+            ->select('sales.*')
+            ->with(['customer', 'payments', 'paymentDetails', 'returns'])
+            ->orderBy('sales.id', 'asc');
+
+        if ($user && !$user->can('sales.view_all') && !$user->can('reports.accounts_receivable.view_all')) {
+            $salesQuery->where('customers.seller_id', $user->id);
         }
 
-        if ($creditPurchaseDays > 0) {
-            $noty_purchases = Purchase::where('type', 'credit')
-                ->where('status', 'pending')
-                ->where('created_at', '<', Carbon::now()->subDays($creditPurchaseDays))
-                ->with('supplier')
-                ->orderBy('id', 'asc')
-                ->get()
-                ->transform(function($purchase) {
-                    if ($purchase->supplier) {
-                        $purchase->supplier->name = $this->cleanString($purchase->supplier->name);
-                    }
-                    return $purchase;
-                });
-        }
+        $noty_sales = $salesQuery->get()
+            ->filter(function($sale) {
+                return $sale->debt > 0;
+            })
+            ->transform(function($sale) {
+                if ($sale->customer) {
+                    $sale->customer->name = $this->cleanString($sale->customer->name);
+                }
+                return $sale;
+            });
+
+        // Overdue Purchases Notifications
+        $purchasesQuery = Purchase::where('purchases.type', 'credit')
+            ->where('purchases.status', 'pending')
+            ->leftJoin('suppliers', 'purchases.supplier_id', '=', 'suppliers.id')
+            ->whereNull('suppliers.deleted_at')
+            ->whereRaw("
+                DATEDIFF(
+                    NOW(), 
+                    DATE_ADD(
+                        purchases.created_at, 
+                        INTERVAL {$creditPurchaseDays} DAY
+                    )
+                ) >= 0
+            ")
+            ->select('purchases.*')
+            ->with(['supplier', 'payments'])
+            ->orderBy('purchases.id', 'asc');
+
+        $noty_purchases = $purchasesQuery->get()
+            ->filter(function($purchase) {
+                return $purchase->debt > 0;
+            })
+            ->transform(function($purchase) {
+                if ($purchase->supplier) {
+                    $purchase->supplier->name = $this->cleanString($purchase->supplier->name);
+                }
+                return $purchase;
+            });
 
         $view->with('noty_sales', $noty_sales);
         $view->with('noty_purchases', $noty_purchases);

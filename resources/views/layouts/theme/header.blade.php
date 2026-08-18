@@ -93,7 +93,7 @@
                             <div class="media-body">
                                 <h3 class="dropdown-item-title font-weight-bold">
                                     {{ $npurchase->supplier?->name ?? 'Proveedor Desconocido' }}
-                                    <span class="float-right text-sm text-danger"><i class="fas fa-clock"></i> {{ app('fun')->overdue($npurchase->created_at, now()) - $credit_purchase_days }}d</span>
+                                    <span class="float-right text-sm text-danger"><i class="fas fa-clock"></i> {{ ($npurchase->days_overdue ?? (app('fun')->overdue($npurchase->created_at, now()) - $credit_purchase_days)) }}d</span>
                                 </h3>
                                 <p class="text-sm">Compra #{{ $npurchase->id }}</p>
                                 <p class="text-sm text-muted"><i class="fas fa-money-bill-wave mr-1"></i> Deuda: ${{ number_format($npurchase->debt, 2) }}</p>
@@ -128,9 +128,9 @@
                             <div class="media-body">
                                 <h3 class="dropdown-item-title font-weight-bold">
                                     {{ $nsale->customer?->name ?? 'Cliente Desconocido' }}
-                                    <span class="float-right text-sm text-danger"><i class="fas fa-clock"></i> {{ app('fun')->overdue($nsale->created_at, now()) - $credit_days }}d</span>
+                                    <span class="float-right text-sm text-danger"><i class="fas fa-clock"></i> {{ $nsale->days_overdue > 0 ? $nsale->days_overdue.'d' : 'Hoy' }}</span>
                                 </h3>
-                                <p class="text-sm">Venta #{{ $nsale->id }}</p>
+                                <p class="text-sm">Venta #{{ $nsale->id }} {{ $nsale->invoice_number ? '('.$nsale->invoice_number.')' : '' }}</p>
                                 <p class="text-sm text-muted"><i class="fas fa-hand-holding-usd mr-1"></i> Deuda: ${{ number_format($nsale->debt, 2) }}</p>
                             </div>
                         </div>
