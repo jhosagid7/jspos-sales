@@ -18,9 +18,9 @@ if exist "%SCRIPT_DIR%setup.ps1" (
 )
 
 if exist "%SCRIPT_DIR%open_browser.bat" (
-    call "%SCRIPT_DIR%open_browser.bat"
+    call "%SCRIPT_DIR%open_browser.bat" "%PROYECTO_DIR%"
 ) else if exist "%PROYECTO_DIR%\installer\open_browser.bat" (
-    call "%PROYECTO_DIR%\installer\open_browser.bat"
+    call "%PROYECTO_DIR%\installer\open_browser.bat" "%PROYECTO_DIR%"
 )
 
 echo.

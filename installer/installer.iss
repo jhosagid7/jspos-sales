@@ -31,7 +31,7 @@ RestartIfNeededByRun=no
 
 ; Salida del ejecutable compilado
 OutputDir=.\output
-OutputBaseFilename=Setup_JSPOS_Sales_v1.10
+OutputBaseFilename=Setup_JSPOS_Sales_v1.10.388
 SetupIconFile=..\public\favicon.ico
 UninstallDisplayIcon={app}\public\favicon.ico
 Compression=lzma2/ultra64

@@ -1,6 +1,9 @@
 @echo off
 setlocal enabledelayedexpansion
-for %%I in ("%~dp0..") do set "FOLDER_NAME=%%~nxI"
+
+set "PROY_PATH=C:\laragon\www\jspos-sales"
+if not "%~1"=="" set "PROY_PATH=%~1"
+for %%I in ("%PROY_PATH%") do set "FOLDER_NAME=%%~nxI"
 
 echo Limpiando cache DNS de Windows...
 ipconfig /flushdns >nul 2>&1
