@@ -70,10 +70,20 @@ class LicenseService
             }
 
             // 6. Save to Database
+            $clientDisplayName = null;
+            if (!empty($data['contact_name']) || !empty($data['contact_phone'])) {
+                $parts = [];
+                if (!empty($data['contact_name'])) $parts[] = $data['contact_name'];
+                if (!empty($data['contact_phone'])) $parts[] = $data['contact_phone'];
+                $clientDisplayName = implode(' • ', $parts);
+            } elseif (!empty($data['client_name'])) {
+                $clientDisplayName = $data['client_name'];
+            }
+
             License::create([
                 'license_key' => $licenseKey,
                 'client_id' => $data['client_id'],
-                'client_name' => $data['client_name'] ?? null,
+                'client_name' => $clientDisplayName,
                 'expires_at' => Carbon::parse($data['expires_at']),
             ]);
 
@@ -171,12 +181,16 @@ class LicenseService
      */
     public function getLicenseServerIp()
     {
-        $ip = session('license_server_ip') ?: env('LICENSE_SERVER_IP');
-        if ($ip) {
-            $ip = preg_replace('#^https?://#i', '', trim($ip));
-            return rtrim($ip, '/');
+        $ip = env('LICENSE_SERVER_IP') ?: session('license_server_ip') ?: 'licencias.jhonnypirela.dev';
+        $ip = preg_replace('#^https?://#i', '', trim($ip));
+        $ip = rtrim($ip, '/');
+
+        if (empty($ip) || str_starts_with($ip, '100.220.') || $ip === '100.220.10.5:9000') {
+            $ip = 'licencias.jhonnypirela.dev';
+            session(['license_server_ip' => $ip]);
         }
-        return '100.115.149.91:8080';
+
+        return $ip;
     }
 
     /**

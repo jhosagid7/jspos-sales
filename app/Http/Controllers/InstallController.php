@@ -267,7 +267,8 @@ class InstallController extends Controller
         $serverIp = rtrim($serverIp, '/');
 
         try {
-            $url = "http://{$serverIp}/api/clients/register";
+            $protocol = (str_contains($serverIp, '.dev') || str_contains($serverIp, '.com')) ? 'https://' : 'http://';
+            $url = "{$protocol}{$serverIp}/api/clients/register";
             $response = Http::timeout(5)->post($url, [
                 'client_system_id' => $clientId,
                 'name' => $request->client_name,
@@ -330,7 +331,8 @@ class InstallController extends Controller
         $clientId = $this->licenseService->getClientId();
 
         try {
-            $url = "http://{$serverIp}/api/clients/check-status";
+            $protocol = (str_contains($serverIp, '.dev') || str_contains($serverIp, '.com')) ? 'https://' : 'http://';
+            $url = "{$protocol}{$serverIp}/api/clients/check-status";
             $response = Http::timeout(5)->post($url, [
                 'client_system_id' => $clientId,
             ]);

@@ -51,6 +51,7 @@ class LicenseRenewer extends Component
 
     public function renew()
     {
+        $this->resetErrorBag();
         $this->validate([
             'licenseKey' => 'required|string',
         ]);
@@ -131,6 +132,21 @@ class LicenseRenewer extends Component
                 }
             }
 
+            // Register and notify central license server in real-time
+            try {
+                $service = app(LicenseService::class);
+                $serverIp = $service->getLicenseServerIp();
+                $protocol = (str_contains($serverIp, '.dev') || str_contains($serverIp, '.com')) ? 'https://' : 'http://';
+                $url = "{$protocol}{$serverIp}/api/clients/register";
+                \Illuminate\Support\Facades\Http::timeout(5)->post($url, [
+                    'client_system_id' => $clientId,
+                    'name' => $businessName,
+                    'contact_phone' => $config->phone ?? '',
+                ]);
+            } catch (\Exception $e) {
+                Log::error("API License Request Error: " . $e->getMessage());
+            }
+
             $this->dispatch('hide-license-modal');
             $this->dispatch('noty', msg: 'Solicitud enviada correctamente.');
 
@@ -142,6 +158,7 @@ class LicenseRenewer extends Component
 
     public function syncOnline()
     {
+        $this->resetErrorBag();
         try {
             $service = app(LicenseService::class);
             $serverIp = $service->getLicenseServerIp();
@@ -152,7 +169,10 @@ class LicenseRenewer extends Component
             }
 
             $clientId = $service->getClientId();
-            $response = \Illuminate\Support\Facades\Http::timeout(5)->post("http://{$serverIp}/api/clients/check-status", [
+            $protocol = (str_contains($serverIp, '.dev') || str_contains($serverIp, '.com')) ? 'https://' : 'http://';
+            $url = "{$protocol}{$serverIp}/api/clients/check-status";
+            
+            $response = \Illuminate\Support\Facades\Http::timeout(6)->post($url, [
                 'client_system_id' => $clientId
             ]);
 

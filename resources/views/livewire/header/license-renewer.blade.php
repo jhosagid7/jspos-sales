@@ -58,7 +58,7 @@
                 </div>
                 <div class="modal-footer d-flex justify-content-between">
                     <button type="button" class="btn btn-outline-info" wire:click="syncOnline" wire:loading.attr="disabled" title="Consultar y descargar la licencia activa del servidor de licencias">
-                        <span wire:loading.remove wire:target="syncOnline"><i class="fas fa-sync-alt"></i> Sincronizar por VPN</span>
+                        <span wire:loading.remove wire:target="syncOnline"><i class="fas fa-sync-alt"></i> Sincronizar en Línea</span>
                         <span wire:loading wire:target="syncOnline"><i class="fas fa-spinner fa-spin"></i> Conectando...</span>
                     </button>
                     <div>
