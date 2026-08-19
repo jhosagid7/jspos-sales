@@ -29,6 +29,8 @@ public/LPT1
 
 # Temporary maintenance scripts
 reset_system.php
+DATOS_SERVIDOR_Y_ECOSISTEMA.txt
+*.pem.backup
 
 # Agent configuration
 .agent/workflows/release_process.md
