@@ -1,3 +1,9 @@
+## [1.10.396] - 2026-08-19
+
+### Fixed
+- **Corrección Estética en Previsualización de Galería de Productos**:
+  - `form.blade.php`: Reemplazadas las anotaciones del motor de plantillas por un bloque nativo de capturas de excepciones en PHP (`<?php try { ... } catch ... ?>`), eliminando el texto literal `@try` y `@catch` alrededor de la miniatura de previsualización.
+
 ## [1.10.395] - 2026-08-19
 
 ### Fixed

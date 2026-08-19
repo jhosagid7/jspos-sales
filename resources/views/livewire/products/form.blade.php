@@ -387,16 +387,20 @@
                                         <div class="row g-2">
                                             @foreach ($form->gallery as $photo)
                                                 @if($photo && method_exists($photo, 'getRealPath') && !empty($photo->getRealPath()) && file_exists($photo->getRealPath()))
-                                                    @try
+                                                    <?php
+                                                        $previewUrl = null;
+                                                        try {
+                                                            $previewUrl = $photo->temporaryUrl();
+                                                        } catch (\Throwable $e) {}
+                                                    ?>
+                                                    @if($previewUrl)
                                                         <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-2">
                                                             <div class="border border-primary rounded p-1 text-center bg-white">
-                                                                <img src="{{ $photo->temporaryUrl() }}"
+                                                                <img src="{{ $previewUrl }}"
                                                                     class="img-fluid rounded" style="max-height: 80px; object-fit: cover;" alt="img">
                                                             </div>
                                                         </div>
-                                                    @catch (\Throwable $e)
-                                                        {{-- Ignore corrupted preview --}}
-                                                    @endtry
+                                                    @endif
                                                 @endif
                                             @endforeach
                                         </div>
