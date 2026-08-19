@@ -23,6 +23,29 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Auto-ensure public storage directories & symlink exist
+        try {
+            $publicStoragePath = storage_path('app/public');
+            $productsPath = storage_path('app/public/products');
+            $categoriesPath = storage_path('app/public/categories');
+            $livewireTmpPath = storage_path('app/livewire-tmp');
+
+            if (!file_exists($productsPath)) {
+                @mkdir($productsPath, 0777, true);
+            }
+            if (!file_exists($categoriesPath)) {
+                @mkdir($categoriesPath, 0777, true);
+            }
+            if (!file_exists($livewireTmpPath)) {
+                @mkdir($livewireTmpPath, 0777, true);
+            }
+
+            $symlink = public_path('storage');
+            if (!file_exists($symlink) && !is_link($symlink)) {
+                @app('files')->link($publicStoragePath, $symlink);
+            }
+        } catch (\Throwable $e) {}
+
         \Illuminate\Support\Facades\View::composer('layouts.theme.header', \App\View\Composers\HeaderComposer::class);
 
         // Registro de directiva Blade para Módulos SaaS

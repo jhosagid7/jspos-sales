@@ -346,17 +346,51 @@
                             @enderror --}}
 
                             <div class="mt-2">
-                                <div wire:loading wire:target="form.gallery">Cargando imágenes...</div>
-                                @if (!empty($form->gallery))
-                                    <div class="row">
-                                        @foreach ($form->gallery as $photo)
-                                            <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-3">
-                                                <div class="media">
-                                                    <img src="{{ $photo->temporaryUrl() }}"
-                                                        class="img-fluid rounded img-40" alt="img">
+                                <div wire:loading wire:target="form.gallery" class="text-primary small font-weight-bold mb-2">
+                                    <i class="fas fa-spinner fa-spin me-1"></i> Cargando imágenes...
+                                </div>
+
+                                {{-- Saved Images in DB --}}
+                                @if (!empty($form->saved_images))
+                                    <div class="mb-3">
+                                        <label class="form-label text-muted small font-weight-bold">Imágenes Guardadas:</label>
+                                        <div class="row g-2">
+                                            @foreach ($form->saved_images as $img)
+                                                <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-2 position-relative">
+                                                    <div class="border rounded p-1 text-center bg-light position-relative">
+                                                        <img src="{{ asset('storage/products/' . $img['file']) }}"
+                                                            class="img-fluid rounded" style="max-height: 80px; object-fit: cover;" alt="img">
+                                                        <button type="button" class="btn btn-danger btn-sm py-0 px-1 position-absolute top-0 end-0 m-1 shadow"
+                                                            wire:click="deleteSavedImage({{ $img['id'] }})" title="Eliminar imagen">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        @endforeach
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
+
+                                {{-- Newly Uploaded Temporary Images --}}
+                                @if (!empty($form->gallery))
+                                    <div class="mb-2">
+                                        <label class="form-label text-primary small font-weight-bold">Imágenes Nuevas Seleccionadas:</label>
+                                        <div class="row g-2">
+                                            @foreach ($form->gallery as $photo)
+                                                @if($photo && method_exists($photo, 'getRealPath') && !empty($photo->getRealPath()) && file_exists($photo->getRealPath()))
+                                                    @try
+                                                        <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-2">
+                                                            <div class="border border-primary rounded p-1 text-center bg-white">
+                                                                <img src="{{ $photo->temporaryUrl() }}"
+                                                                    class="img-fluid rounded" style="max-height: 80px; object-fit: cover;" alt="img">
+                                                            </div>
+                                                        </div>
+                                                    @catch (\Throwable $e)
+                                                        {{-- Ignore corrupted preview --}}
+                                                    @endtry
+                                                @endif
+                                            @endforeach
+                                        </div>
                                     </div>
                                 @endif
                             </div>

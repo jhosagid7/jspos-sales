@@ -147,6 +147,7 @@ class Products extends Component
             ];
         })->toArray();
         $this->form->price_group_id = $product->price_group_id;
+        $this->form->saved_images = $product->images->toArray();
 
         // Load suppliers
         $this->form->product_suppliers = $product->productSuppliers->map(function($ps) {
@@ -200,6 +201,11 @@ class Products extends Component
 
         session(['values' => $product->priceList->toArray()]);
         $this->dispatch('update-quill-content', content: $product->description);
+    }
+
+    public function deleteSavedImage($imageId)
+    {
+        $this->form->deleteSavedImage($imageId);
     }
 
 

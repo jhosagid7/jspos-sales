@@ -20,6 +20,7 @@ class PostProduct extends Form
     //#[Validate('unique:productos,name,' . $this->product_id, message: 'El título debe ser único')]
     public $name, $sku, $description, $type = 'physical', $status = 'available', $cost = 0, $price = 0, $manage_stock = 1, $stock_qty = 0, $low_stock = 0, $category_id = 0, $supplier_id = 0, $product_id = 0, $gallery, $production_target_id;
     public $max_stock = 0, $brand, $presentation, $is_pre_assembled = false, $additional_cost = 0, $stock_details = [], $tags = '', $allow_decimal = false;
+    public $saved_images = [];
     public $is_variable_quantity = false;
     public $show_in_sales = true;
     public $is_raw_material = false;
@@ -216,23 +217,27 @@ class PostProduct extends Form
 
 
 
-        //
         if (!empty($this->gallery)) {
+            \Illuminate\Support\Facades\Storage::disk('public')->makeDirectory('products');
 
-            // guardar imagenes nuevas
             foreach ($this->gallery as $photo) {
-                $fileName = uniqid() . '_.' . $photo->extension();
-                $photo->storeAs('public/products', $fileName);
+                if (!$photo || !method_exists($photo, 'getRealPath') || empty($photo->getRealPath()) || !file_exists($photo->getRealPath())) {
+                    continue;
+                }
 
-                // creamos relacion
-                $img = Image::create([
-                    'model_id' => $this->product_id,
-                    'model_type' => 'App\Models\Product',
-                    'file' => $fileName
-                ]);
+                try {
+                    $ext = strtolower($photo->getClientOriginalExtension() ?: $photo->extension() ?: 'jpg');
+                    $fileName = uniqid() . '_.' . $ext;
+                    $photo->storeAs('products', $fileName, 'public');
 
-                // guardar relacion
-                $product->images()->save($img);
+                    Image::create([
+                        'model_id' => $product->id,
+                        'model_type' => 'App\Models\Product',
+                        'file' => $fileName
+                    ]);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error("Error al guardar imagen de galería en creación de producto: " . $e->getMessage());
+                }
             }
         }
 
@@ -411,30 +416,27 @@ class PostProduct extends Form
 
 
         if (!empty($this->gallery)) {
-            // eliminar imagenes del disco
-            if ($this->product_id > 0) {
-                $product->images()->each(function ($img) {
-                    unlink('storage/products/' . $img->file);
-                });
+            \Illuminate\Support\Facades\Storage::disk('public')->makeDirectory('products');
 
-                // eliminar las relaciones
-                $product->images()->delete();
-            }
-
-            // guardar imagenes nuevas
+            // guardar imagenes nuevas (agregando a las existentes)
             foreach ($this->gallery as $photo) {
-                $fileName = uniqid() . '_.' . $photo->extension();
-                $photo->storeAs('public/products', $fileName);
+                if (!$photo || !method_exists($photo, 'getRealPath') || empty($photo->getRealPath()) || !file_exists($photo->getRealPath())) {
+                    continue;
+                }
 
-                // creamos relacion
-                $img = Image::create([
-                    'model_id' => $this->product_id,
-                    'model_type' => 'App\Models\Product',
-                    'file' => $fileName
-                ]);
+                try {
+                    $ext = strtolower($photo->getClientOriginalExtension() ?: $photo->extension() ?: 'jpg');
+                    $fileName = uniqid() . '_.' . $ext;
+                    $photo->storeAs('products', $fileName, 'public');
 
-                // guardar relacion
-                $product->images()->save($img);
+                    Image::create([
+                        'model_id' => $product->id,
+                        'model_type' => 'App\Models\Product',
+                        'file' => $fileName
+                    ]);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error("Error al actualizar imagen de galería de producto: " . $e->getMessage());
+                }
             }
         }
 
@@ -636,6 +638,17 @@ class PostProduct extends Form
                 ->toArray();
         } else {
             array_splice($this->pricing_tiers, $index, 1);
+        }
+    }
+
+    public function deleteSavedImage($imageId)
+    {
+        $image = Image::find($imageId);
+        if ($image && $image->model_type === 'App\Models\Product') {
+            @unlink(public_path('storage/products/' . $image->file));
+            \Illuminate\Support\Facades\Storage::disk('public')->delete('products/' . $image->file);
+            $image->delete();
+            $this->saved_images = array_values(array_filter($this->saved_images, fn($img) => $img['id'] != $imageId));
         }
     }
 }

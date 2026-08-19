@@ -1,3 +1,11 @@
+## [1.10.390] - 2026-08-19
+
+### Fixed
+- **Corrección en Carga de Imágenes de Productos, Galería en Formulario y Auto-Reparación de Enlace Simbólico de Almacenamiento**:
+  - `PostProduct.php`: Corregido error crítico donde `Image::create` asignaba `model_id = 0` en lugar del ID real del producto recién creado. Añadida verificación de archivos válidos (`getRealPath()`) en `store()` y `update()` evitando la excepción `ValueError: Path cannot be empty` cuando se seleccionan archivos inválidos o superiores al límite. Usado el disco explícito `public` para almacenamiento organizado.
+  - `AppServiceProvider.php`: Implementada auto-creación y verificación de carpetas de almacenamiento (`storage/app/public/products`, `categories`, `livewire-tmp`) y auto-reparación del enlace simbólico (`storage:link` -> `public/storage`) en el arranque de la aplicación para cualquier instalación de cliente.
+  - `form.blade.php` & `Products.php`: Añadida visualización de imágenes guardadas previamente en la base de datos con botón para eliminar imágenes individuales `(X)` y previsualización segura de nuevas imágenes seleccionadas.
+
 ## [1.10.389] - 2026-08-18
 
 ### Fixed
