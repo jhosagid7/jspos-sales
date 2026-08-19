@@ -1,3 +1,11 @@
+## [1.10.389] - 2026-08-18
+
+### Fixed
+- **Seguridad en Instalador, Limpieza de Archivos de Desarrollo y Auto-Detección de IP VPN**:
+  - `installer.iss`: Excluida estrictamente la clave privada (`private_key.pem`), scripts de generación de claves, herramientas de desarrollo, documentación `.md` y binarios APK del empaquetado del cliente. Configuradas las herramientas auxiliares de instalación para su auto-destrucción (`Flags: deleteafterinstall`) tras la instalación.
+  - `open_browser.bat` & `post_install.bat`: Corregido el paso de la ruta real del proyecto para resolver el dominio de la tienda evitando nombres de directorios temporales (`temp.test`).
+  - `LicenseService.php` & `LicenseRenewer.php`: Implementado el método `detectPrimaryIp()` para detectar y enviar automáticamente la IP de Tailscale (`100.x.x.x`) o red local durante la sincronización y solicitudes de licencias, activando el indicador en línea en el panel central.
+
 ## [1.10.388] - 2026-08-18
 
 ### Added
