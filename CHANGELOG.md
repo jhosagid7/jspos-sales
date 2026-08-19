@@ -1,3 +1,9 @@
+## [1.10.395] - 2026-08-19
+
+### Fixed
+- **Solución Definitiva por Copia Física Directa al Guardar Productos (`ValueError: Path cannot be empty`)**:
+  - `PostProduct.php`: Reemplazada la llamada a `$photo->storeAs()` por una copia física directa (`copy($realPath, $targetPath)`) verificando `file_exists($realPath)` y `filesize($realPath) > 0`. Esto elimina por completo cualquier fallo derivado de los flujos de lectura de temporales de Livewire o cierres de stream en Windows/Laravel.
+
 ## [1.10.394] - 2026-08-19
 
 ### Fixed

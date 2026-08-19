@@ -223,26 +223,46 @@ class PostProduct extends Form
 
         if (!empty($this->gallery)) {
             \Illuminate\Support\Facades\Storage::disk('public')->makeDirectory('products');
+            $productsDir = storage_path('app/public/products');
 
             foreach ($this->gallery as $photo) {
-                if (!$photo || !method_exists($photo, 'getRealPath') || empty($photo->getRealPath()) || !file_exists($photo->getRealPath())) {
+                if (!$photo) {
+                    continue;
+                }
+
+                $realPath = null;
+                if (is_object($photo) && method_exists($photo, 'getRealPath')) {
+                    $realPath = $photo->getRealPath();
+                } elseif (is_string($photo) && file_exists($photo)) {
+                    $realPath = $photo;
+                }
+
+                if (!$realPath || !file_exists($realPath) || filesize($realPath) === 0) {
                     continue;
                 }
 
                 try {
-                    $ext = strtolower($photo->getClientOriginalExtension() ?: $photo->extension() ?: 'jpg');
-                    $fileName = uniqid() . '_.' . $ext;
-                    $photo->storeAs('products', $fileName, 'public');
+                    $ext = 'jpg';
+                    if (is_object($photo) && method_exists($photo, 'getClientOriginalExtension')) {
+                        $ext = strtolower($photo->getClientOriginalExtension() ?: (method_exists($photo, 'extension') ? $photo->extension() : 'jpg'));
+                    }
 
-                    Image::create([
-                        'model_id' => $product->id,
-                        'model_type' => 'App\Models\Product',
-                        'file' => $fileName
-                    ]);
+                    $fileName = uniqid() . '_.' . $ext;
+                    $targetPath = $productsDir . DIRECTORY_SEPARATOR . $fileName;
+
+                    if (@copy($realPath, $targetPath)) {
+                        Image::create([
+                            'model_id' => $product->id,
+                            'model_type' => 'App\Models\Product',
+                            'file' => $fileName
+                        ]);
+                    }
                 } catch (\Throwable $e) {
                     \Illuminate\Support\Facades\Log::error("Error al guardar imagen de galería en creación de producto: " . $e->getMessage());
                 }
             }
+
+            $this->gallery = [];
         }
 
         //lista de precios
@@ -421,27 +441,46 @@ class PostProduct extends Form
 
         if (!empty($this->gallery)) {
             \Illuminate\Support\Facades\Storage::disk('public')->makeDirectory('products');
+            $productsDir = storage_path('app/public/products');
 
-            // guardar imagenes nuevas (agregando a las existentes)
             foreach ($this->gallery as $photo) {
-                if (!$photo || !method_exists($photo, 'getRealPath') || empty($photo->getRealPath()) || !file_exists($photo->getRealPath())) {
+                if (!$photo) {
+                    continue;
+                }
+
+                $realPath = null;
+                if (is_object($photo) && method_exists($photo, 'getRealPath')) {
+                    $realPath = $photo->getRealPath();
+                } elseif (is_string($photo) && file_exists($photo)) {
+                    $realPath = $photo;
+                }
+
+                if (!$realPath || !file_exists($realPath) || filesize($realPath) === 0) {
                     continue;
                 }
 
                 try {
-                    $ext = strtolower($photo->getClientOriginalExtension() ?: $photo->extension() ?: 'jpg');
-                    $fileName = uniqid() . '_.' . $ext;
-                    $photo->storeAs('products', $fileName, 'public');
+                    $ext = 'jpg';
+                    if (is_object($photo) && method_exists($photo, 'getClientOriginalExtension')) {
+                        $ext = strtolower($photo->getClientOriginalExtension() ?: (method_exists($photo, 'extension') ? $photo->extension() : 'jpg'));
+                    }
 
-                    Image::create([
-                        'model_id' => $product->id,
-                        'model_type' => 'App\Models\Product',
-                        'file' => $fileName
-                    ]);
+                    $fileName = uniqid() . '_.' . $ext;
+                    $targetPath = $productsDir . DIRECTORY_SEPARATOR . $fileName;
+
+                    if (@copy($realPath, $targetPath)) {
+                        Image::create([
+                            'model_id' => $product->id,
+                            'model_type' => 'App\Models\Product',
+                            'file' => $fileName
+                        ]);
+                    }
                 } catch (\Throwable $e) {
                     \Illuminate\Support\Facades\Log::error("Error al actualizar imagen de galería de producto: " . $e->getMessage());
                 }
             }
+
+            $this->gallery = [];
         }
 
         //lista de precios
