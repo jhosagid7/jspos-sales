@@ -218,5 +218,35 @@ class LicenseService
             @file_put_contents($envPath, $envContent);
         }
     }
+
+    /**
+     * Detect local or VPN IP to send to the license server.
+     */
+    public function detectPrimaryIp(): string
+    {
+        $port = $_SERVER['SERVER_PORT'] ?? '80';
+        $portSuffix = ($port != '80' && $port != '443') ? ':' . $port : '';
+        $found = [];
+
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            $output = @shell_exec('ipconfig 2>nul');
+            if ($output) {
+                $lines = explode("\n", $output);
+                foreach ($lines as $line) {
+                    if (preg_match('/IPv4.*:\s*([0-9\.]+)/i', $line, $m)) {
+                        $ip = trim($m[1]);
+                        if ($ip && $ip !== '127.0.0.1' && !str_starts_with($ip, '169.254.')) {
+                            if (str_starts_with($ip, '100.')) {
+                                return $ip . $portSuffix;
+                            }
+                            $found[] = $ip . $portSuffix;
+                        }
+                    }
+                }
+            }
+        }
+
+        return $found[0] ?? '';
+    }
 }
 

@@ -138,11 +138,16 @@ class LicenseRenewer extends Component
                 $serverIp = $service->getLicenseServerIp();
                 $protocol = (str_contains($serverIp, '.dev') || str_contains($serverIp, '.com')) ? 'https://' : 'http://';
                 $url = "{$protocol}{$serverIp}/api/clients/register";
-                \Illuminate\Support\Facades\Http::timeout(5)->post($url, [
+                $vpnIp = $service->detectPrimaryIp();
+                $reqPayload = [
                     'client_system_id' => $clientId,
                     'name' => $businessName,
                     'contact_phone' => $config->phone ?? '',
-                ]);
+                ];
+                if (!empty($vpnIp)) {
+                    $reqPayload['vpn_ip'] = $vpnIp;
+                }
+                \Illuminate\Support\Facades\Http::timeout(5)->post($url, $reqPayload);
             } catch (\Exception $e) {
                 Log::error("API License Request Error: " . $e->getMessage());
             }
@@ -172,9 +177,15 @@ class LicenseRenewer extends Component
             $protocol = (str_contains($serverIp, '.dev') || str_contains($serverIp, '.com')) ? 'https://' : 'http://';
             $url = "{$protocol}{$serverIp}/api/clients/check-status";
             
-            $response = \Illuminate\Support\Facades\Http::timeout(6)->post($url, [
+            $vpnIp = $service->detectPrimaryIp();
+            $checkPayload = [
                 'client_system_id' => $clientId
-            ]);
+            ];
+            if (!empty($vpnIp)) {
+                $checkPayload['vpn_ip'] = $vpnIp;
+            }
+
+            $response = \Illuminate\Support\Facades\Http::timeout(6)->post($url, $checkPayload);
 
             if ($response->successful()) {
                 $data = $response->json();
