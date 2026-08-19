@@ -1,3 +1,10 @@
+## [1.10.392] - 2026-08-19
+
+### Fixed
+- **Protección de Almacenamiento Temporal de Livewire y Habilitación de Validaciones de Galería**:
+  - `AppServiceProvider.php`: Redirigidos los temporales de subida de PHP (`upload_tmp_dir`) y el disco temporal de Livewire (`livewire.temporary_file_upload.disk`) directamente a `storage/app/public/livewire-tmp/`, eliminando fallos de `C:\Windows\Temp` o de límites de temporales en entornos Windows/Apache.
+  - `PostProduct.php` & `form.blade.php`: Incorporadas reglas de validación explícitas para imágenes de galería (máximo 10MB, formatos válidos) y visualización de mensajes de error de validación en la interfaz.
+
 ## [1.10.391] - 2026-08-19
 
 ### Fixed

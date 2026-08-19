@@ -99,7 +99,9 @@ class PostProduct extends Form
             'is_variable_price' => 'boolean',
             'pricing_tiers' => 'array',
             'pricing_tiers.*.min_qty' => 'required|numeric|min:0',
-            'pricing_tiers.*.price' => 'required|numeric|min:0'
+            'pricing_tiers.*.price' => 'required|numeric|min:0',
+            'gallery' => 'nullable|array',
+            'gallery.*' => 'nullable|image|max:10240'
         ];
         return $rules;
     }
@@ -125,6 +127,8 @@ class PostProduct extends Form
             'category_id.not_in' => 'Elige una categoría',
             'supplier_id.required' => 'Elige el proveedor',
             'supplier_id.not_in' => 'Elige un proveedor',
+            'gallery.*.image' => 'El archivo seleccionado debe ser una imagen válida (JPG, PNG, GIF, WEBP)',
+            'gallery.*.max' => 'La imagen no debe pesar más de 10 MB',
         ];
     }
 

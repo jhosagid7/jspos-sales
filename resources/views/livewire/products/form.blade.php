@@ -338,12 +338,15 @@
                                         <span class="note needsclick">SVG,PNG,JPG or GIF </span>
                                     </div>
                                 </form>
+                                <input type="file" class="form-control @error('form.gallery') is-invalid @enderror @error('form.gallery.*') is-invalid @enderror" wire:model="form.gallery"
+                                    accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" style="height:44px" multiple id="inputImg">
+                                @error('form.gallery')
+                                    <span class="text-danger small font-weight-bold d-block mt-1">{{ $message }}</span>
+                                @enderror
+                                @error('form.gallery.*')
+                                    <span class="text-danger small font-weight-bold d-block mt-1">{{ $message }}</span>
+                                @enderror
                             </div>
-                            <input type="file" class="form-control" wire:model="form.gallery"
-                                accept="image/x-png,image/jpeg" style="height:44px" multiple id="inputImg">
-                            {{-- @error('gallery.*')
-                            <span style="color: red;">{{ $message }}</span>
-                            @enderror --}}
 
                             <div class="mt-2">
                                 <div wire:loading wire:target="form.gallery" class="text-primary small font-weight-bold mb-2">
