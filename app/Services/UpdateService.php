@@ -179,11 +179,11 @@ class UpdateService
     {
         @set_time_limit(0);
         @ini_set('max_execution_time', 0);
-        $tempPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'temp_update_' . uniqid() . '.zip';
         $maxAttempts = 5; // Increased from 2 to 5 for production stability
         $lastException = null;
 
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            $tempPath = storage_path('app/temp_update_' . uniqid() . '.zip');
             try {
                 Log::info("Update download attempt {$attempt} of {$maxAttempts}: {$downloadUrl}");
                 
@@ -219,12 +219,12 @@ class UpdateService
                 
                 // Clean partial download before retry
                 if (File::exists($tempPath)) {
-                    File::delete($tempPath);
+                    @File::delete($tempPath);
                 }
 
                 if ($attempt < $maxAttempts) {
                     // Exponential backoff
-                    $sleepTime = $attempt * 5; 
+                    $sleepTime = $attempt * 3; 
                     sleep($sleepTime); 
                 }
             }

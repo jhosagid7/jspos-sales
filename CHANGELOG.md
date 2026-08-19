@@ -1,3 +1,9 @@
+## [1.10.391] - 2026-08-19
+
+### Fixed
+- **Solución a Error de Permiso Denegado (`C:\Windows\Temp`) en Descarga de Actualizaciones**:
+  - `UpdateService.php`: Modificada la descarga automática de actualizaciones para usar `storage_path('app/...')` dentro del proyecto en lugar de `sys_get_temp_dir()` (`C:\Windows\Temp`), evitando bloqueos de permisos en servidores Windows / Apache / IIS. Asignado un nombre único por intento para evitar colisiones o bloqueos de archivos en reintentos tras caídas temporales de red.
+
 ## [1.10.390] - 2026-08-19
 
 ### Fixed
