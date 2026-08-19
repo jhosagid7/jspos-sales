@@ -25,6 +25,10 @@ class AppServiceProvider extends ServiceProvider
     {
         // Auto-ensure public storage directories & symlink exist
         try {
+            @ini_set('upload_max_filesize', '64M');
+            @ini_set('post_max_size', '64M');
+            @ini_set('memory_limit', '512M');
+
             $publicStoragePath = storage_path('app/public');
             $productsPath = storage_path('app/public/products');
             $categoriesPath = storage_path('app/public/categories');
@@ -40,9 +44,8 @@ class AppServiceProvider extends ServiceProvider
                 @mkdir($livewireTmpPath, 0777, true);
             }
 
-            // Redirigir la carpeta temporal de PHP y Livewire al almacenamiento interno del proyecto
+            // Redirigir la carpeta temporal de PHP al almacenamiento interno del proyecto
             @ini_set('upload_tmp_dir', $livewireTmpPath);
-            config(['livewire.temporary_file_upload.disk' => 'public']);
 
             $symlink = public_path('storage');
             if (!file_exists($symlink) && !is_link($symlink)) {

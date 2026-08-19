@@ -341,10 +341,16 @@
                                 <input type="file" class="form-control @error('form.gallery') is-invalid @enderror @error('form.gallery.*') is-invalid @enderror" wire:model="form.gallery"
                                     accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" style="height:44px" multiple id="inputImg">
                                 @error('form.gallery')
-                                    <span class="text-danger small font-weight-bold d-block mt-1">{{ $message }}</span>
+                                    <span class="text-danger small font-weight-bold d-block mt-1">
+                                        <i class="fas fa-exclamation-circle me-1"></i>
+                                        {{ str_contains($message, 'failed to upload') ? 'No se pudo procesar la imagen. Verifica que sea una imagen válida y no supere los 64MB.' : $message }}
+                                    </span>
                                 @enderror
                                 @error('form.gallery.*')
-                                    <span class="text-danger small font-weight-bold d-block mt-1">{{ $message }}</span>
+                                    <span class="text-danger small font-weight-bold d-block mt-1">
+                                        <i class="fas fa-exclamation-circle me-1"></i>
+                                        {{ str_contains($message, 'failed to upload') ? 'No se pudo procesar la imagen. Verifica que sea una imagen válida y no supere los 64MB.' : $message }}
+                                    </span>
                                 @enderror
                             </div>
 

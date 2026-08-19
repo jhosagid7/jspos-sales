@@ -1,3 +1,10 @@
+## [1.10.393] - 2026-08-19
+
+### Fixed
+- **Aumento Dinámico de Límites de Subida de Archivos y Traducción de Errores de Galería**:
+  - `AppServiceProvider.php`: Elevados dinámicamente en tiempo de ejecución los límites de subida de PHP a `64M` (`upload_max_filesize` y `post_max_size`) y memoria a `512M`. Restaurado el disco temporal nativo de Livewire (`local`), eliminando el mensaje de error `The form.gallery failed to upload` generado por conflicto de firma/previsualización de discos.
+  - `form.blade.php`: Traducidos y formateados los mensajes de error de validación de archivos al español con iconos claros para el usuario final.
+
 ## [1.10.392] - 2026-08-19
 
 ### Fixed
