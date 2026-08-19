@@ -1,3 +1,12 @@
+## [1.10.388] - 2026-08-18
+
+### Added
+- **Integración con Servidor Cloud de Licencias (`licencias.jhonnypirela.dev`), Detección Multi-VPN y Claves RSA-4096**:
+  - `InstallController.php` & `install/license.blade.php`: Conexión directa y segura vía HTTPS con el servidor central de licencias en la nube (`https://licencias.jhonnypirela.dev`). Incorporado selector inteligente de IP VPN (Tailscale, ZeroTier y red local) en el Paso 4 del instalador para registro automático de clientes.
+  - `LicenseService.php` & `public_key.pem`: Sincronizada la clave pública de validación criptográfica RSA-4096 para firmas digitales en la nube. Añadido procesamiento dinámico de datos de contacto (`contact_name` y `contact_phone`) embebidos en el payload de la licencia.
+  - `LicenseRenewer.php` & `license-renewer.blade.php`: Actualizada la ventana modal de renovación en el POS para notificar registros al servidor central en tiempo real y mostrar claramente la persona de contacto y teléfono asignados.
+  - `installer.iss`: Empaquetado oficial del instalador 1-Click con soporte para el ecosistema cloud de licencias.
+
 ## [1.10.387] - 2026-08-17
 
 ### Fixed
