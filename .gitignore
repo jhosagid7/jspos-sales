@@ -60,7 +60,18 @@ google-drive-key.json
 # Scratch folder
 /scratch/
 
-# Installer Binaries
+# Installer Binaries and Tools
 /installer/output/
 /installer/tools/*.exe
+/installer/tools/*.msi
+
+# Developer Docs and Scratch Files
+CONTEXTO_IA.md
+directives
+fix_all
+fix_score
+scratch_*
+plan_modulos_saas.md
+GUIA_*.md
+INSTALLATION_GUIDE.md
 *.exe
