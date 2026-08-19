@@ -1,3 +1,9 @@
+## [1.10.394] - 2026-08-19
+
+### Fixed
+- **Auto-Sincronización de Dominio en Firmas Digitales de Subida de Livewire**:
+  - `AppServiceProvider.php`: Implementada auto-sincronización dinámica de `app.url` y `URL::forceRootUrl` con el dominio real de la petición HTTP (`HTTP_HOST`). Esto resuelve el fallo de validación de firma (`401 Unauthorized`) que causaba el error `The form.gallery failed to upload` cuando la tienda del cliente corre en un dominio propio (ej. `jspos-insprocari.test`).
+
 ## [1.10.393] - 2026-08-19
 
 ### Fixed

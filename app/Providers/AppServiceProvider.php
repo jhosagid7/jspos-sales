@@ -23,6 +23,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Auto-synchronize APP_URL & URL root with request host to prevent Livewire 401 signature mismatch
+        try {
+            if (!app()->runningInConsole() && isset($_SERVER['HTTP_HOST'])) {
+                $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+                $currentUrl = $scheme . '://' . $_SERVER['HTTP_HOST'];
+                config(['app.url' => $currentUrl]);
+                \Illuminate\Support\Facades\URL::forceRootUrl($currentUrl);
+            }
+        } catch (\Throwable $e) {}
+
         // Auto-ensure public storage directories & symlink exist
         try {
             @ini_set('upload_max_filesize', '64M');
