@@ -148,6 +148,7 @@ class Products extends Component
         })->toArray();
         $this->form->price_group_id = $product->price_group_id;
         $this->form->saved_images = $product->images->toArray();
+        $this->form->gallery = [];
 
         // Load suppliers
         $this->form->product_suppliers = $product->productSuppliers->map(function($ps) {

@@ -1,3 +1,10 @@
+## [1.10.398] - 2026-08-20
+
+### Fixed
+- **Sanitización Automática de Temporales y Reseteo Estricto de Galería**:
+  - `PostProduct.php`: Implementado el método `sanitizeGallery()` que filtra automáticamente de `$gallery` cualquier objeto `TemporaryUploadedFile` cuya referencia en el disco `livewire-tmp` ya haya sido consumida o eliminada.
+  - `Products.php`: Agregada la inicialización explícita `$this->form->gallery = []` en `Edit()` para evitar la acumulación o reutilización inadvertida de archivos temporales caducados al seleccionar imágenes previamente usadas o cambiar de producto.
+
 ## [1.10.397] - 2026-08-20
 
 ### Fixed

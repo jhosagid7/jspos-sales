@@ -103,7 +103,25 @@ class PostProduct extends Form
             'gallery' => 'nullable|array',
             'gallery.*' => 'nullable|image|max:10240'
         ];
+
+        $this->sanitizeGallery();
         return $rules;
+    }
+
+    public function sanitizeGallery()
+    {
+        if (!empty($this->gallery) && is_array($this->gallery)) {
+            $this->gallery = array_values(array_filter($this->gallery, function ($photo) {
+                if (!$photo) return false;
+                if (is_object($photo) && method_exists($photo, 'getRealPath')) {
+                    $path = $photo->getRealPath();
+                    return !empty($path) && file_exists($path) && filesize($path) > 0;
+                }
+                return false;
+            }));
+        } else {
+            $this->gallery = [];
+        }
     }
 
 
@@ -168,6 +186,7 @@ class PostProduct extends Form
             }
         }
         $this->cleanUnauthorizedFeatures();
+        $this->sanitizeGallery();
         $this->validate();
 
         // Validate Component Stock for Pre-assembled
@@ -382,6 +401,7 @@ class PostProduct extends Form
             }
         }
         $this->cleanUnauthorizedFeatures();
+        $this->sanitizeGallery();
         $this->validate();
         
         $product =  Product::find($this->product_id);
