@@ -1,3 +1,10 @@
+## [1.10.397] - 2026-08-20
+
+### Fixed
+- **Controlador a Prueba de Fallos para Subidas de Livewire y Configuración Global de Servidor (`public/.user.ini` y `.htaccess`)**:
+  - `LivewireUploadController.php`: Implementado controlador con interceptación y validación previa de archivos subidos. Si PHP descarta un archivo por superar límites o fallar permisos temporales, se captura limpiamente como `ValidationException` en lugar de lanzar la excepción no controlada 500 (`ValueError: Path cannot be empty at FilesystemAdapter.php:414`).
+  - `public/.user.ini` & `public/.htaccess`: Añadidas directivas de servidor PHP para `upload_max_filesize = 64M`, `post_max_size = 64M` y `memory_limit = 512M` aplicables en Laragon / Apache / FastCGI / Nginx.
+
 ## [1.10.396] - 2026-08-19
 
 ### Fixed

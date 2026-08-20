@@ -40,6 +40,11 @@ use Symfony\Component\HttpKernel\DataCollector\DataCollector;
 |
 */
 
+// Override Livewire upload route with bulletproof validation controller
+Route::post('/livewire/upload-file', [\App\Http\Controllers\LivewireUploadController::class, 'handle'])
+    ->middleware('web')
+    ->name('livewire.upload-file');
+
 Route::get('/', function () {
     return view('auth.login');
 });
