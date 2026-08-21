@@ -111,14 +111,26 @@ class PostProduct extends Form
     public function sanitizeGallery()
     {
         if (!empty($this->gallery) && is_array($this->gallery)) {
+            $initialCount = count($this->gallery);
             $this->gallery = array_values(array_filter($this->gallery, function ($photo) {
                 if (!$photo) return false;
-                if (is_object($photo) && method_exists($photo, 'getRealPath')) {
-                    $path = $photo->getRealPath();
+                if (is_object($photo)) {
+                    $path = (method_exists($photo, 'getRealPath') && $photo->getRealPath())
+                        ? $photo->getRealPath()
+                        : (method_exists($photo, 'getPathname') ? $photo->getPathname() : null);
+
                     return !empty($path) && file_exists($path) && filesize($path) > 0;
                 }
                 return false;
             }));
+
+            $finalCount = count($this->gallery);
+            if ($initialCount !== $finalCount) {
+                \Illuminate\Support\Facades\Log::info("[PostProduct::sanitizeGallery] Se purgaron temporales caducados de galería", [
+                    'inicial' => $initialCount,
+                    'final' => $finalCount
+                ]);
+            }
         } else {
             $this->gallery = [];
         }
@@ -243,20 +255,34 @@ class PostProduct extends Form
         if (!empty($this->gallery)) {
             \Illuminate\Support\Facades\Storage::disk('public')->makeDirectory('products');
             $productsDir = storage_path('app/public/products');
+            $totalGallery = count($this->gallery);
 
-            foreach ($this->gallery as $photo) {
+            \Illuminate\Support\Facades\Log::info("[PostProduct::store] Guardando galería para nuevo producto", [
+                'product_id' => $product->id,
+                'product_name' => $product->name,
+                'total_imagenes' => $totalGallery,
+            ]);
+
+            $savedCount = 0;
+            foreach ($this->gallery as $idx => $photo) {
                 if (!$photo) {
                     continue;
                 }
 
                 $realPath = null;
-                if (is_object($photo) && method_exists($photo, 'getRealPath')) {
-                    $realPath = $photo->getRealPath();
+                if (is_object($photo)) {
+                    $realPath = (method_exists($photo, 'getRealPath') && $photo->getRealPath())
+                        ? $photo->getRealPath()
+                        : (method_exists($photo, 'getPathname') ? $photo->getPathname() : null);
                 } elseif (is_string($photo) && file_exists($photo)) {
                     $realPath = $photo;
                 }
 
                 if (!$realPath || !file_exists($realPath) || filesize($realPath) === 0) {
+                    \Illuminate\Support\Facades\Log::warning("[PostProduct::store] Imagen [$idx] omitida por ruta inexistente o vacía", [
+                        'photo_class' => is_object($photo) ? get_class($photo) : gettype($photo),
+                        'realPath' => $realPath,
+                    ]);
                     continue;
                 }
 
@@ -270,16 +296,34 @@ class PostProduct extends Form
                     $targetPath = $productsDir . DIRECTORY_SEPARATOR . $fileName;
 
                     if (@copy($realPath, $targetPath)) {
-                        Image::create([
+                        $img = Image::create([
                             'model_id' => $product->id,
                             'model_type' => 'App\Models\Product',
                             'file' => $fileName
                         ]);
+
+                        $savedCount++;
+                        \Illuminate\Support\Facades\Log::info("[PostProduct::store] Imagen [$idx] guardada y vinculada exitosamente", [
+                            'image_id' => $img->id,
+                            'product_id' => $product->id,
+                            'archivo' => $fileName,
+                            'tamano_bytes' => file_exists($targetPath) ? filesize($targetPath) : 0,
+                        ]);
+                    } else {
+                        \Illuminate\Support\Facades\Log::error("[PostProduct::store] Falló copy() de imagen [$idx] de $realPath a $targetPath");
                     }
                 } catch (\Throwable $e) {
-                    \Illuminate\Support\Facades\Log::error("Error al guardar imagen de galería en creación de producto: " . $e->getMessage());
+                    \Illuminate\Support\Facades\Log::error("[PostProduct::store] Excepción al guardar imagen de galería [$idx]: " . $e->getMessage(), [
+                        'trace' => $e->getTraceAsString()
+                    ]);
                 }
             }
+
+            \Illuminate\Support\Facades\Log::info("[PostProduct::store] Finalizado guardado de galería", [
+                'product_id' => $product->id,
+                'imagenes_solicitadas' => $totalGallery,
+                'imagenes_guardadas' => $savedCount,
+            ]);
 
             $this->gallery = [];
         }
@@ -462,20 +506,34 @@ class PostProduct extends Form
         if (!empty($this->gallery)) {
             \Illuminate\Support\Facades\Storage::disk('public')->makeDirectory('products');
             $productsDir = storage_path('app/public/products');
+            $totalGallery = count($this->gallery);
 
-            foreach ($this->gallery as $photo) {
+            \Illuminate\Support\Facades\Log::info("[PostProduct::update] Guardando nuevas imágenes de galería para producto existente", [
+                'product_id' => $product->id,
+                'product_name' => $product->name,
+                'total_nuevas_imagenes' => $totalGallery,
+            ]);
+
+            $savedCount = 0;
+            foreach ($this->gallery as $idx => $photo) {
                 if (!$photo) {
                     continue;
                 }
 
                 $realPath = null;
-                if (is_object($photo) && method_exists($photo, 'getRealPath')) {
-                    $realPath = $photo->getRealPath();
+                if (is_object($photo)) {
+                    $realPath = (method_exists($photo, 'getRealPath') && $photo->getRealPath())
+                        ? $photo->getRealPath()
+                        : (method_exists($photo, 'getPathname') ? $photo->getPathname() : null);
                 } elseif (is_string($photo) && file_exists($photo)) {
                     $realPath = $photo;
                 }
 
                 if (!$realPath || !file_exists($realPath) || filesize($realPath) === 0) {
+                    \Illuminate\Support\Facades\Log::warning("[PostProduct::update] Imagen [$idx] omitida por ruta inexistente o vacía", [
+                        'photo_class' => is_object($photo) ? get_class($photo) : gettype($photo),
+                        'realPath' => $realPath,
+                    ]);
                     continue;
                 }
 
@@ -489,16 +547,34 @@ class PostProduct extends Form
                     $targetPath = $productsDir . DIRECTORY_SEPARATOR . $fileName;
 
                     if (@copy($realPath, $targetPath)) {
-                        Image::create([
+                        $img = Image::create([
                             'model_id' => $product->id,
                             'model_type' => 'App\Models\Product',
                             'file' => $fileName
                         ]);
+
+                        $savedCount++;
+                        \Illuminate\Support\Facades\Log::info("[PostProduct::update] Imagen [$idx] agregada y vinculada exitosamente", [
+                            'image_id' => $img->id,
+                            'product_id' => $product->id,
+                            'archivo' => $fileName,
+                            'tamano_bytes' => file_exists($targetPath) ? filesize($targetPath) : 0,
+                        ]);
+                    } else {
+                        \Illuminate\Support\Facades\Log::error("[PostProduct::update] Falló copy() de imagen [$idx] de $realPath a $targetPath");
                     }
                 } catch (\Throwable $e) {
-                    \Illuminate\Support\Facades\Log::error("Error al actualizar imagen de galería de producto: " . $e->getMessage());
+                    \Illuminate\Support\Facades\Log::error("[PostProduct::update] Excepción al actualizar imagen de galería [$idx]: " . $e->getMessage(), [
+                        'trace' => $e->getTraceAsString()
+                    ]);
                 }
             }
+
+            \Illuminate\Support\Facades\Log::info("[PostProduct::update] Finalizada actualización de galería", [
+                'product_id' => $product->id,
+                'nuevas_imagenes_solicitadas' => $totalGallery,
+                'nuevas_imagenes_guardadas' => $savedCount,
+            ]);
 
             $this->gallery = [];
         }
@@ -708,10 +784,18 @@ class PostProduct extends Form
     {
         $image = Image::find($imageId);
         if ($image && $image->model_type === 'App\Models\Product') {
-            @unlink(public_path('storage/products/' . $image->file));
-            \Illuminate\Support\Facades\Storage::disk('public')->delete('products/' . $image->file);
+            $fileName = $image->file;
+            $productId = $image->model_id;
+            @unlink(public_path('storage/products/' . $fileName));
+            \Illuminate\Support\Facades\Storage::disk('public')->delete('products/' . $fileName);
             $image->delete();
             $this->saved_images = array_values(array_filter($this->saved_images, fn($img) => $img['id'] != $imageId));
+
+            \Illuminate\Support\Facades\Log::info("[PostProduct::deleteSavedImage] Imagen eliminada correctamente", [
+                'image_id' => $imageId,
+                'product_id' => $productId,
+                'archivo' => $fileName
+            ]);
         }
     }
 }

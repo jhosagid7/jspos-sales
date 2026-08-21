@@ -1,3 +1,11 @@
+## [1.10.399] - 2026-08-21
+
+### Fixed
+- **Solución Definitiva a Subida de Imágenes de Productos y Trazabilidad Integral con Logs**:
+  - `LivewireUploadController.php`: Eliminada la comprobación rígida de rutas temporales de Windows que bloqueaba la subida con el mensaje `No se pudo leer la ruta temporal del archivo subido`. Implementada validación oficial basada en códigos de error PHP (`UPLOAD_ERR_OK`), detección de desbordamiento de `post_max_size`, mecanismo de respaldo por copia directa física y logs paso a paso (`[LivewireUpload]`) con registro de IP, host de conexión, nombre original de archivo, tamaño en bytes, tipo MIME y ruta temporal de almacenamiento.
+  - `PostProduct.php`: Incorporada trazabilidad y logs detallados en `store()`, `update()`, `sanitizeGallery()` y `deleteSavedImage()` registrando ID de producto, rutas temporales y definitivas en `storage/app/public/products/`, resultado de copias físicas y creación de registros en la tabla `images`.
+  - `AppServiceProvider.php`: Eliminada la directiva ineficaz `@ini_set('upload_tmp_dir', ...)` para evitar discrepancias de rutas en tiempo de ejecución en entornos Windows / Laragon / Apache.
+
 ## [1.10.398] - 2026-08-20
 
 ### Fixed

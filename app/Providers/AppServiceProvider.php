@@ -54,9 +54,6 @@ class AppServiceProvider extends ServiceProvider
                 @mkdir($livewireTmpPath, 0777, true);
             }
 
-            // Redirigir la carpeta temporal de PHP al almacenamiento interno del proyecto
-            @ini_set('upload_tmp_dir', $livewireTmpPath);
-
             $symlink = public_path('storage');
             if (!file_exists($symlink) && !is_link($symlink)) {
                 @app('files')->link($publicStoragePath, $symlink);
