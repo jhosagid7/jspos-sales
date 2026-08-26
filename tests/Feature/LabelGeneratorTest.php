@@ -127,4 +127,50 @@ class LabelGeneratorTest extends TestCase
         Livewire::test(LabelGenerator::class)
             ->assertSet('labelTemplate', 'large_qr');
     }
+
+    public function test_can_generate_large_quantity_of_labels_without_memory_exhaustion()
+    {
+        $this->actingAs($this->user);
+
+        // Create dummy logo image in public directory
+        if (!file_exists(public_path('logo'))) {
+            mkdir(public_path('logo'), 0777, true);
+        }
+        $dummyLogo = public_path('logo/logo.jpg');
+        if (!file_exists($dummyLogo)) {
+            // Create a small 100x100 white image
+            $img = imagecreatetruecolor(200, 200);
+            $white = imagecolorallocate($img, 255, 255, 255);
+            imagefill($img, 0, 0, $white);
+            imagejpeg($img, $dummyLogo);
+            imagedestroy($img);
+        }
+
+        $selectedProducts = [
+            $this->product->id => [
+                'id' => $this->product->id,
+                'name' => $this->product->name,
+                'barcode' => $this->product->sku,
+                'qty' => 500
+            ]
+        ];
+
+        // Test large QR template with 500 labels and logo
+        $responseQr = $this->withSession([
+            'label_products' => $selectedProducts,
+            'label_template' => 'large_qr'
+        ])->get(route('labels.pdf'));
+
+        $responseQr->assertStatus(200);
+        $responseQr->assertHeader('content-type', 'application/pdf');
+
+        // Test standard barcode template with 500 labels and logo
+        $responseStandard = $this->withSession([
+            'label_products' => $selectedProducts,
+            'label_template' => 'standard'
+        ])->get(route('labels.pdf'));
+
+        $responseStandard->assertStatus(200);
+        $responseStandard->assertHeader('content-type', 'application/pdf');
+    }
 }

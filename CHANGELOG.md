@@ -1,3 +1,11 @@
+## [1.10.400] - 2026-08-26
+
+### Fixed
+- **Optimización de Memoria y Rendimiento en Generación de Etiquetas PDF**:
+  - `LabelController.php`: Configurados límites de ejecución y memoria (`memory_limit = 1024M`, `set_time_limit = 300`) y resuelta la ruta física local del logo en disco (`$logoPath`) para evitar la repetición masiva de cadenas Base64 en el marcado HTML. Implementada caché de imágenes de código de barras/QR (`$barcodes`) por producto único para evitar la regeneración redundante de imágenes GD en bucles.
+  - `labels.blade.php` & `labels_qr.blade.php`: Actualizadas las vistas PDF para utilizar el logo directo desde disco y consumir la estructura de códigos de barras/QR pre-calculados, reduciendo drásticamente el payload HTML transmitido al parser de Dompdf.
+  - `LabelGeneratorTest.php`: Incorporada prueba de integración masiva para verificar la generación limpia de 500+ etiquetas sin agotar memoria.
+
 ## [1.10.399] - 2026-08-21
 
 ### Fixed

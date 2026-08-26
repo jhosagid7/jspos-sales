@@ -131,7 +131,9 @@
                         @if(isset($allLabels[$index]))
                             @php $item = $allLabels[$index]; @endphp
                             <div class="label-box">
-                                @if(!empty($logoBase64))
+                                @if(!empty($logoPath))
+                                    <img src="{{ $logoPath }}" class="watermark" alt="Watermark Logo" />
+                                @elseif(!empty($logoBase64))
                                     <img src="{{ $logoBase64 }}" class="watermark" alt="Watermark Logo" />
                                 @endif
 
@@ -150,9 +152,13 @@
                                     </div>
 
                                     <div class="qr-column">
-                                        @if(!empty($item['barcode']))
-                                            <img src="data:image/png;base64,{{ DNS2D::getBarcodePNG($item['barcode'], 'QRCODE') }}" alt="QR Code" class="qr-img" />
-                                            <div class="qr-text">{{ $item['barcode'] }}</div>
+                                        @php $bc = $item['barcode'] ?? ''; @endphp
+                                        @if(isset($barcodes[$bc]) && $barcodes[$bc])
+                                            <img src="data:image/png;base64,{{ $barcodes[$bc] }}" alt="QR Code" class="qr-img" />
+                                            <div class="qr-text">{{ $bc }}</div>
+                                        @elseif(!empty($bc))
+                                            <img src="data:image/png;base64,{{ DNS2D::getBarcodePNG($bc, 'QRCODE') }}" alt="QR Code" class="qr-img" />
+                                            <div class="qr-text">{{ $bc }}</div>
                                         @endif
                                     </div>
                                     <div class="clear"></div>

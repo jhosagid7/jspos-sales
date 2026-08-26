@@ -117,8 +117,13 @@
                                 </div>
 
                                 <div class="barcode-container">
-                                    <img src="data:image/png;base64,{{ DNS1D::getBarcodePNG($item['barcode'], 'C128') }}" alt="barcode" class="barcode-img" />
-                                    <div class="barcode-text">{{ $item['barcode'] }}</div>
+                                    @php $bc = $item['barcode'] ?? ''; @endphp
+                                    @if(isset($barcodes[$bc]) && $barcodes[$bc])
+                                        <img src="data:image/png;base64,{{ $barcodes[$bc] }}" alt="barcode" class="barcode-img" />
+                                    @elseif(!empty($bc))
+                                        <img src="data:image/png;base64,{{ DNS1D::getBarcodePNG($bc, 'C128') }}" alt="barcode" class="barcode-img" />
+                                    @endif
+                                    <div class="barcode-text">{{ $bc }}</div>
                                 </div>
                             </div>
                         @endif
