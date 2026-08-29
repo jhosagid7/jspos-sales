@@ -203,7 +203,7 @@
                             @if($isFirstRow)
                                 <td class="seller" rowspan="{{ $rowspan }}">{{ $sellerName }}</td>
                             @endif
-                            <td colspan="{{ 2 + ($showOriginalAmount ? 1 : 0) + ($showExchangeRate ? 1 : 0) + ($showUsdAmount ? 1 : 0) }}" style="background:#e8ecf1; font-weight:bold; font-size:9px;">▶ DEP: {{ $deptType }}</td>
+                            <td colspan="{{ 2 + ($showOriginalAmount ? 1 : 0) + ($showExchangeRate ? 1 : 0) + ($showUsdAmount ? 1 : 0) }}" style="background:#e8ecf1; font-weight:bold; font-size:9px;">&gt; DEP: {{ $deptType }}</td>
                         </tr>
                         @php $isFirstRow = false; @endphp
                         

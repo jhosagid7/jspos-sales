@@ -16,18 +16,32 @@ class SellerGroupedTicketPrintTest extends TestCase
                     (object)[
                         'method' => 'CASH',
                         'currency' => 'USD',
-                        'total_amount' => 6.39,
+                        'total_amount' => 20.00,
                         'avg_rate' => 1.0,
-                        'total_usd' => 6.39
+                        'total_usd' => 20.00
+                    ],
+                    (object)[
+                        'method' => 'PAGO MOVIL',
+                        'currency' => 'VES',
+                        'total_amount' => 1450.50,
+                        'avg_rate' => 72.525,
+                        'total_usd' => 20.00
                     ]
                 ]),
                 'GRAVADO' => collect([
                     (object)[
                         'method' => 'CASH',
                         'currency' => 'USD',
-                        'total_amount' => 20.00,
+                        'total_amount' => 15.00,
                         'avg_rate' => 1.0,
-                        'total_usd' => 20.00
+                        'total_usd' => 15.00
+                    ],
+                    (object)[
+                        'method' => 'TRANSFERENCIA',
+                        'currency' => 'VES',
+                        'total_amount' => 725.25,
+                        'avg_rate' => 72.525,
+                        'total_usd' => 10.00
                     ]
                 ])
             ])

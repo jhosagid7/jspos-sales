@@ -1286,23 +1286,26 @@ trait PrintTrait
                     }
 
                     foreach ($condensed as $deptKey => $items) {
-                        $printer->text("▶ RESUMEN " . ($deptKey !== 'GENERAL' ? "DEP: " . $deptKey : "GENERAL") . "\n");
+                        $printer->text("> RESUMEN " . ($deptKey !== 'GENERAL' ? "DEP: " . $deptKey : "GENERAL") . "\n");
                         $deptSubtotalUsd = 0;
                         foreach ($items as $item) {
                             $methodStr = strtoupper($item->method) . " (" . strtoupper($item->currency) . ")";
-                            $amountUsd = "$ " . number_format($item->total_usd, 2);
+                            $curr = strtoupper($item->currency);
+                            $symbol = ($curr === 'USD') ? '$ ' : (($curr === 'VES' || $curr === 'BS' || $curr === 'BS.') ? 'Bs. ' : $curr . ' ');
+                            $amountFormatted = $symbol . number_format($item->total_amount, 2);
+
                             if ($is58mm) {
-                                $line = sprintf("  %-20.20s %15s", $methodStr, $amountUsd);
+                                $line = sprintf("  %-20.20s %15s", $methodStr, $amountFormatted);
                             } else {
-                                $line = sprintf("  %-26.26s %16s", $methodStr, $amountUsd);
+                                $line = sprintf("  %-26.26s %16s", $methodStr, $amountFormatted);
                             }
                             $printer->text($line . "\n");
                             $deptSubtotalUsd += $item->total_usd;
                         }
                         $printer->text($bodySep . "\n");
                         $subLine = $is58mm
-                            ? sprintf("SUBTOTAL %-8.8s: %19s", $deptKey, "$ " . number_format($deptSubtotalUsd, 2))
-                            : sprintf("SUBTOTAL %-10.10s: %23s", $deptKey, "$ " . number_format($deptSubtotalUsd, 2));
+                            ? sprintf("SUBTOTAL %-7.7s (USD): %13s", $deptKey, "$ " . number_format($deptSubtotalUsd, 2))
+                            : sprintf("SUBTOTAL %-10.10s (USD): %17s", $deptKey, "$ " . number_format($deptSubtotalUsd, 2));
                         $printer->text($subLine . "\n\n");
                         $grandTotalUsd += $deptSubtotalUsd;
                     }
@@ -1316,16 +1319,18 @@ trait PrintTrait
 
                         if ($splitByDepartment) {
                             foreach ($payments as $deptType => $items) {
-                                $printer->text("▶ DEP: " . strtoupper($deptType) . "\n");
+                                $printer->text("> DEP: " . strtoupper($deptType) . "\n");
                                 $deptTotalUsd = 0;
                                 foreach ($items as $item) {
                                     $methodStr = strtoupper($item->method) . " (" . strtoupper($item->currency) . ")";
-                                    $amountUsd = "$ " . number_format($item->total_usd, 2);
+                                    $curr = strtoupper($item->currency);
+                                    $symbol = ($curr === 'USD') ? '$ ' : (($curr === 'VES' || $curr === 'BS' || $curr === 'BS.') ? 'Bs. ' : $curr . ' ');
+                                    $amountFormatted = $symbol . number_format($item->total_amount, 2);
                                     
                                     if ($is58mm) {
-                                        $line = sprintf("  %-20.20s %15s", $methodStr, $amountUsd);
+                                        $line = sprintf("  %-20.20s %15s", $methodStr, $amountFormatted);
                                     } else {
-                                        $line = sprintf("  %-26.26s %16s", $methodStr, $amountUsd);
+                                        $line = sprintf("  %-26.26s %16s", $methodStr, $amountFormatted);
                                     }
                                     $printer->text($line . "\n");
                                     $deptTotalUsd += $item->total_usd;
@@ -1336,11 +1341,14 @@ trait PrintTrait
                         } else {
                             foreach ($payments as $item) {
                                 $methodStr = strtoupper($item->method) . " (" . strtoupper($item->currency) . ")";
-                                $amountUsd = "$ " . number_format($item->total_usd, 2);
+                                $curr = strtoupper($item->currency);
+                                $symbol = ($curr === 'USD') ? '$ ' : (($curr === 'VES' || $curr === 'BS' || $curr === 'BS.') ? 'Bs. ' : $curr . ' ');
+                                $amountFormatted = $symbol . number_format($item->total_amount, 2);
+
                                 if ($is58mm) {
-                                    $line = sprintf("%-22.22s %15s", $methodStr, $amountUsd);
+                                    $line = sprintf("%-22.22s %15s", $methodStr, $amountFormatted);
                                 } else {
-                                    $line = sprintf("%-28.28s %16s", $methodStr, $amountUsd);
+                                    $line = sprintf("%-28.28s %16s", $methodStr, $amountFormatted);
                                 }
                                 $printer->text($line . "\n");
                                 $sellerTotalUsd += $item->total_usd;
@@ -1350,8 +1358,8 @@ trait PrintTrait
 
                         $grandTotalUsd += $sellerTotalUsd;
                         $subtotalLine = $is58mm 
-                            ? sprintf("SUBTOTAL OPERADOR: %19s", "$ " . number_format($sellerTotalUsd, 2))
-                            : sprintf("SUBTOTAL OPERADOR: %26s", "$ " . number_format($sellerTotalUsd, 2));
+                            ? sprintf("SUBTOTAL OPERADOR (USD): %13s", "$ " . number_format($sellerTotalUsd, 2))
+                            : sprintf("SUBTOTAL OPERADOR (USD): %20s", "$ " . number_format($sellerTotalUsd, 2));
                         $printer->text($subtotalLine . "\n\n");
                     }
                 }

@@ -1,3 +1,11 @@
+## [1.10.412] - 2026-08-29
+
+### Fixed
+- **Moneda Correcta ($ / Bs.) y Eliminación del Símbolo '¥' en Ticket de Cobranza**:
+  - Se eliminó el caracter UTF-8 `▶` que las impresoras térmicas ESC/POS interpretaban como `¥` (signo de Yen), sustituyéndolo por `>`.
+  - Ahora cada fila de pago refleja su moneda original real: `$ ` para pagos en Dólares y `Bs. ` para pagos en Bolívares (usando `total_amount`), evitando asignar el signo `$` a pagos en moneda nacional.
+  - Los subtotales y totales indican explícitamente `(USD)` para clarificar que corresponden a la conversión calculada a la tasa de cambio y no a una suma directa entre divisas diferentes.
+
 ## [1.10.411] - 2026-08-29
 
 ### Fixed
