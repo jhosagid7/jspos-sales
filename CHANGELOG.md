@@ -1,3 +1,10 @@
+## [1.10.413] - 2026-08-29
+
+### Fixed
+- **Soporte de Código de Moneda VED (Bolívares Digitales) en Ticket Térmico**:
+  - Se añadió `VED` (código ISO de Bolívares en base de datos) a la detección de monedas nacionales en `PrintTrait.php`.
+  - Ahora todas las ventas y transferencias en Bolívares (`VED`, `VES`, `BS`, `BS.`) se imprimen explícitamente con su símbolo `Bs. ` y su monto original en bolívares en el ticket.
+
 ## [1.10.412] - 2026-08-29
 
 ### Fixed

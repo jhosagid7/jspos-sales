@@ -1291,7 +1291,7 @@ trait PrintTrait
                         foreach ($items as $item) {
                             $methodStr = strtoupper($item->method) . " (" . strtoupper($item->currency) . ")";
                             $curr = strtoupper($item->currency);
-                            $symbol = ($curr === 'USD') ? '$ ' : (($curr === 'VES' || $curr === 'BS' || $curr === 'BS.') ? 'Bs. ' : $curr . ' ');
+                            $symbol = in_array($curr, ['VES', 'VED', 'BS', 'BS.', 'VEF']) ? 'Bs. ' : (($curr === 'USD') ? '$ ' : $curr . ' ');
                             $amountFormatted = $symbol . number_format($item->total_amount, 2);
 
                             if ($is58mm) {
@@ -1324,7 +1324,7 @@ trait PrintTrait
                                 foreach ($items as $item) {
                                     $methodStr = strtoupper($item->method) . " (" . strtoupper($item->currency) . ")";
                                     $curr = strtoupper($item->currency);
-                                    $symbol = ($curr === 'USD') ? '$ ' : (($curr === 'VES' || $curr === 'BS' || $curr === 'BS.') ? 'Bs. ' : $curr . ' ');
+                                    $symbol = in_array($curr, ['VES', 'VED', 'BS', 'BS.', 'VEF']) ? 'Bs. ' : (($curr === 'USD') ? '$ ' : $curr . ' ');
                                     $amountFormatted = $symbol . number_format($item->total_amount, 2);
                                     
                                     if ($is58mm) {
@@ -1342,7 +1342,7 @@ trait PrintTrait
                             foreach ($payments as $item) {
                                 $methodStr = strtoupper($item->method) . " (" . strtoupper($item->currency) . ")";
                                 $curr = strtoupper($item->currency);
-                                $symbol = ($curr === 'USD') ? '$ ' : (($curr === 'VES' || $curr === 'BS' || $curr === 'BS.') ? 'Bs. ' : $curr . ' ');
+                                $symbol = in_array($curr, ['VES', 'VED', 'BS', 'BS.', 'VEF']) ? 'Bs. ' : (($curr === 'USD') ? '$ ' : $curr . ' ');
                                 $amountFormatted = $symbol . number_format($item->total_amount, 2);
 
                                 if ($is58mm) {
