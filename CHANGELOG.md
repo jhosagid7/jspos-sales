@@ -1,3 +1,11 @@
+## [1.10.402] - 2026-08-29
+
+### Fixed
+- **Ruta Absoluta a PowerShell y Utilidades de Windows para Impresión Spooler**:
+  - `CustomWindowsPrintConnector.php`: Implementados los métodos `getPowerShellPath()` y `getSystemToolPath()` para localizar de manera infalible `powershell.exe`, `net.exe`, `nbtstat.exe` y `arp.exe` en `C:\Windows\System32\...` incluso en equipos donde el entorno de Apache/PHP no incluye el directorio de PowerShell en la variable `PATH`.
+  - **Detección Automática de Host Local (`gethostname`)**: Si la ruta configurada corresponde al nombre del equipo local (`DESKTOP-XXXX`), el conector lo reconoce como loopback (`127.0.0.1`) sin demoras de red.
+  - `PrinterHostResolverTest.php`: Incorporadas pruebas para validación de rutas del sistema y resolución de hostname local a loopback (100% PASS).
+
 ## [1.10.401] - 2026-08-29
 
 ### Added

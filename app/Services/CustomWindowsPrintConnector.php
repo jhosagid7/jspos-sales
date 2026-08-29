@@ -154,14 +154,16 @@ class CustomWindowsPrintConnector implements PrintConnector
         $targetHost = $this->isLocal ? null : self::resolveHostnameToIp($this->hostname);
         $printerName = $this->isLocal ? $this->printerName : ("\\\\" . ($targetHost ?: $this->hostname) . "\\" . $this->printerName);
 
+        $netExe = self::getSystemToolPath('net');
+
         // If network printer with credentials, authenticate SMB session prior to spooling/copying
         if (!$this->isLocal && $this->userName !== null) {
             $device = $printerName;
             $user = "/user:" . ($this->workgroup != null ? ($this->workgroup . "\\") : "") . $this->userName;
             if ($this->userPassword == null) {
-                $command = sprintf("net use %s %s", escapeshellarg($device), escapeshellarg($user));
+                $command = sprintf("%s use %s %s", $netExe, escapeshellarg($device), escapeshellarg($user));
             } else {
-                $command = sprintf("net use %s %s %s", escapeshellarg($device), escapeshellarg($user), escapeshellarg($this->userPassword));
+                $command = sprintf("%s use %s %s %s", $netExe, escapeshellarg($device), escapeshellarg($user), escapeshellarg($this->userPassword));
             }
             $this->runCommand($command, $outputStr, $errorStr);
         }
@@ -182,9 +184,9 @@ class CustomWindowsPrintConnector implements PrintConnector
             if ($this->userName !== null) {
                 $user = "/user:" . ($this->workgroup != null ? ($this->workgroup . "\\") : "") . $this->userName;
                 if ($this->userPassword == null) {
-                    $command = sprintf("net use %s %s", escapeshellarg($device), escapeshellarg($user));
+                    $command = sprintf("%s use %s %s", $netExe, escapeshellarg($device), escapeshellarg($user));
                 } else {
-                    $command = sprintf("net use %s %s %s", escapeshellarg($device), escapeshellarg($user), escapeshellarg($this->userPassword));
+                    $command = sprintf("%s use %s %s %s", $netExe, escapeshellarg($device), escapeshellarg($user), escapeshellarg($this->userPassword));
                 }
                 
                 $ret = $this->runCommand($command, $outputStr, $errorStr);
@@ -193,7 +195,7 @@ class CustomWindowsPrintConnector implements PrintConnector
                 }
             } else {
                 // Ensure net use connection is active for UNC share
-                $command = sprintf("net use %s", escapeshellarg($device));
+                $command = sprintf("%s use %s", $netExe, escapeshellarg($device));
                 $this->runCommand($command, $outputStr, $errorStr);
             }
             
@@ -220,7 +222,7 @@ class CustomWindowsPrintConnector implements PrintConnector
 
     /**
      * Resolve a hostname/computer name to an IP address dynamically.
-     * Supports IPv4, IPv6, localhost, DNS, mDNS (.local), Tailscale/JSVPN mesh, and NetBIOS/ARP.
+     * Supports IPv4, IPv6, localhost, self hostname, DNS, mDNS (.local), Tailscale/JSVPN mesh, and NetBIOS/ARP.
      */
     public static function resolveHostnameToIp($hostname)
     {
@@ -233,7 +235,7 @@ class CustomWindowsPrintConnector implements PrintConnector
             return $hostname;
         }
 
-        if (strtolower($hostname) === 'localhost') {
+        if (strtolower($hostname) === 'localhost' || strtolower($hostname) === strtolower(gethostname())) {
             return '127.0.0.1';
         }
 
@@ -271,13 +273,15 @@ class CustomWindowsPrintConnector implements PrintConnector
                 return $mTs[1];
             }
 
-            // Query NetBIOS for MAC address
-            $nbtOutput = @shell_exec("nbtstat -a " . escapeshellarg($hostname));
+            // Query NetBIOS for MAC address using absolute executable path
+            $nbtExe = self::getSystemToolPath('nbtstat');
+            $nbtOutput = @shell_exec($nbtExe . " -a " . escapeshellarg($hostname));
             if ($nbtOutput && preg_match('/MAC\s*=\s*([0-9a-fA-F\-]{17})/i', $nbtOutput, $m)) {
                 $mac = strtolower(str_replace(':', '-', trim($m[1])));
 
-                // Find candidate IPs in ARP table with this MAC
-                $arpOutput = @shell_exec("arp -a");
+                // Find candidate IPs in ARP table with this MAC using absolute executable path
+                $arpExe = self::getSystemToolPath('arp');
+                $arpOutput = @shell_exec($arpExe . " -a");
                 if ($arpOutput && preg_match_all('/([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})\s+' . preg_quote($mac, '/') . '/i', $arpOutput, $mArp)) {
                     $candidateIps = $mArp[1];
                     if (count($candidateIps) === 1) {
@@ -319,6 +323,50 @@ class CustomWindowsPrintConnector implements PrintConnector
                 \Illuminate\Support\Facades\Cache::put($key, $ip, now()->addMinutes(5));
             }
         } catch (\Throwable $e) {}
+    }
+
+    /**
+     * Get the absolute path to powershell.exe across all Windows installations.
+     */
+    public static function getPowerShellPath()
+    {
+        $winDir = getenv('WINDIR') ?: (getenv('SystemRoot') ?: 'C:\Windows');
+        $candidates = [
+            $winDir . '\System32\WindowsPowerShell\v1.0\powershell.exe',
+            $winDir . '\SysWOW64\WindowsPowerShell\v1.0\powershell.exe',
+            'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe',
+            'C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe',
+        ];
+
+        foreach ($candidates as $path) {
+            if (@file_exists($path)) {
+                return '"' . $path . '"';
+            }
+        }
+
+        return 'powershell';
+    }
+
+    /**
+     * Get the absolute path to a standard Windows system utility (net, arp, nbtstat).
+     */
+    public static function getSystemToolPath($toolName)
+    {
+        $winDir = getenv('WINDIR') ?: (getenv('SystemRoot') ?: 'C:\Windows');
+        $candidates = [
+            $winDir . '\System32\\' . $toolName . '.exe',
+            $winDir . '\SysWOW64\\' . $toolName . '.exe',
+            'C:\Windows\System32\\' . $toolName . '.exe',
+            'C:\Windows\SysWOW64\\' . $toolName . '.exe',
+        ];
+
+        foreach ($candidates as $path) {
+            if (@file_exists($path)) {
+                return '"' . $path . '"';
+            }
+        }
+
+        return $toolName;
     }
 
     protected function sendToWin32Spooler($printerName, $data)
@@ -402,7 +450,8 @@ POWERSHELL;
         $psFile = tempnam(sys_get_temp_dir(), "psp") . ".ps1";
         file_put_contents($psFile, $psScript);
 
-        $cmd = 'powershell -NoProfile -ExecutionPolicy Bypass -File "' . $psFile . '" 2>&1';
+        $psExe = self::getPowerShellPath();
+        $cmd = $psExe . ' -NoProfile -ExecutionPolicy Bypass -File "' . $psFile . '" 2>&1';
         exec($cmd, $out, $ret);
 
         if ($ret !== 0) {
