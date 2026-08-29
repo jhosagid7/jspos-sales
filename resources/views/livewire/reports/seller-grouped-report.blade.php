@@ -46,6 +46,10 @@
                             <input type="checkbox" wire:model.live="splitByDepartment" class="custom-control-input" id="splitDeptSwitch">
                             <label class="custom-control-label f-13" for="splitDeptSwitch"><b>Dividir Local/Gravado</b></label>
                         </div>
+                        <div class="custom-control custom-switch mb-2">
+                            <input type="checkbox" wire:model.live="condensedSummary" class="custom-control-input" id="condensedSummarySwitch">
+                            <label class="custom-control-label f-13" for="condensedSummarySwitch"><b>Resumen Condensado</b></label>
+                        </div>
                         <hr>
                         <span class="f-14"><b>Opciones de Visualizaci&oacute;n</b></span>
                         <div class="custom-control custom-checkbox mt-1">
@@ -160,67 +164,208 @@
                             </div>
                         </div>
 
-                        <!-- Tabla Comparativa Detallada -->
-                        <h5 class="txt-primary mt-3 mb-2"><i class="fa fa-table"></i> Detalle por Operador</h5>
-                        <div class="table-responsive">
-                            <table class="table table-bordered mt-1">
-                                <thead class="text-white" style="background: #3b3f5c">
-                                    <tr>
-                                        <th class="table-th text-white">Operador</th>
-                                        <th class="table-th text-white">M&eacute;todo</th>
-                                        <th class="table-th text-white text-center">Moneda</th>
-                                        @if($showOriginalAmount)
-                                        <th class="table-th text-white text-right">Monto Original</th>
-                                        @endif
-                                        @if($showExchangeRate)
-                                        <th class="table-th text-white text-right">Tasa Cambio</th>
-                                        @endif
-                                        @if($showUsdAmount)
-                                        <th class="table-th text-white text-right">Equivalente USD</th>
-                                        @endif
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @forelse($reportData as $sellerName => $sellerData)
-                                        @php
-                                            $sellerTotalUsd = 0;
-                                        @endphp
-                                        
+                        @if($condensedSummary)
+                            <!-- Tabla Resumen Condensado General -->
+                            <h5 class="txt-primary mt-3 mb-2"><i class="fa fa-list-alt"></i> Resumen Condensado (Totales Local / Gravado)</h5>
+                            <div class="table-responsive">
+                                <table class="table table-bordered mt-1">
+                                    <thead class="text-white" style="background: #1e2a3a">
+                                        <tr>
+                                            <th class="table-th text-white">Departamento</th>
+                                            <th class="table-th text-white">M&eacute;todo</th>
+                                            <th class="table-th text-white text-center">Moneda</th>
+                                            @if($showOriginalAmount)
+                                            <th class="table-th text-white text-right">Monto Original</th>
+                                            @endif
+                                            @if($showExchangeRate)
+                                            <th class="table-th text-white text-right">Tasa Cambio</th>
+                                            @endif
+                                            @if($showUsdAmount)
+                                            <th class="table-th text-white text-right">Equivalente USD</th>
+                                            @endif
+                                        </tr>
+                                    </thead>
+                                    <tbody>
                                         @if($splitByDepartment)
-                                            @php
-                                                $rowspan = 1; // Para la fila de subtotal
-                                                foreach($sellerData as $deptType => $payments) {
-                                                    $rowspan += 1; // Fila separadora del departamento
-                                                    $rowspan += $payments->count();
-                                                }
-                                                $firstDept = true;
-                                            @endphp
-                                            
-                                            @foreach($sellerData as $deptType => $payments)
-                                                @php 
-                                                    $deptTotalUsd = 0; 
-                                                    $firstPayment = true;
-                                                @endphp
-                                                
-                                                <tr>
-                                                    @if($firstDept)
-                                                        <td rowspan="{{ $rowspan }}" class="align-middle font-weight-bold">
-                                                            {{ $sellerName }}
+                                            @php $hasRows = false; @endphp
+                                            @foreach(['LOCAL', 'GRAVADO'] as $deptKey)
+                                                @if(!empty($condensedData[$deptKey]))
+                                                    @php
+                                                        $hasRows = true;
+                                                        $deptSubtotalUsd = 0;
+                                                        $items = $condensedData[$deptKey];
+                                                        $rowspan = count($items) + 1;
+                                                        $firstItem = true;
+                                                    @endphp
+                                                    @foreach($items as $item)
+                                                        @php $deptSubtotalUsd += $item->total_usd; @endphp
+                                                        <tr>
+                                                            @if($firstItem)
+                                                                <td rowspan="{{ $rowspan }}" class="align-middle font-weight-bold bg-light" style="font-size: 13px;">
+                                                                    <span class="badge {{ $deptKey == 'GRAVADO' ? 'badge-warning text-dark' : 'badge-primary' }} p-2">
+                                                                        DEP: {{ $deptKey }}
+                                                                    </span>
+                                                                </td>
+                                                                @php $firstItem = false; @endphp
+                                                            @endif
+                                                            <td class="text-uppercase font-weight-bold" style="font-size: 12px;">{{ $item->method }}</td>
+                                                            <td class="text-center font-weight-bold" style="font-size: 12px;">{{ strtoupper($item->currency) }}</td>
+                                                            @if($showOriginalAmount)
+                                                            <td class="text-right" style="font-size: 12px;">{{ number_format($item->total_amount, 2) }}</td>
+                                                            @endif
+                                                            @if($showExchangeRate)
+                                                            <td class="text-right" style="font-size: 12px;">{{ number_format($item->avg_rate, 2) }}</td>
+                                                            @endif
+                                                            @if($showUsdAmount)
+                                                            <td class="text-right font-weight-bold" style="font-size: 12px;">$ {{ number_format($item->total_usd, 2) }}</td>
+                                                            @endif
+                                                        </tr>
+                                                    @endforeach
+                                                    <tr class="table-secondary font-weight-bold">
+                                                        <td colspan="{{ 2 + ($showOriginalAmount ? 1 : 0) + ($showExchangeRate ? 1 : 0) }}" class="text-right">
+                                                            SUBTOTAL {{ $deptKey }}:
                                                         </td>
-                                                        @php $firstDept = false; @endphp
-                                                    @endif
-                                                    
-                                                    <td colspan="{{ 2 + ($showOriginalAmount ? 1 : 0) + ($showExchangeRate ? 1 : 0) + ($showUsdAmount ? 1 : 0) }}" class="bg-light font-weight-bold" style="font-size: 11px;">
-                                                        <i class="fa fa-caret-right me-1"></i> DEP: {{ $deptType }}
+                                                        @if($showUsdAmount)
+                                                        <td class="text-right text-primary font-weight-bold">$ {{ number_format($deptSubtotalUsd, 2) }}</td>
+                                                        @endif
+                                                    </tr>
+                                                @endif
+                                            @endforeach
+                                            @if(!$hasRows)
+                                                <tr>
+                                                    <td colspan="6" class="text-center text-muted p-4">
+                                                        No hay registros de cobranza para los filtros seleccionados.
                                                     </td>
                                                 </tr>
-                                                
-                                                @foreach($payments as $payment)
-                                                    @php 
-                                                        $sellerTotalUsd += $payment->total_usd; 
-                                                        $deptTotalUsd += $payment->total_usd;
-                                                    @endphp
+                                            @endif
+                                        @else
+                                            @if(!empty($condensedData['GENERAL']))
+                                                @foreach($condensedData['GENERAL'] as $item)
                                                     <tr>
+                                                        <td class="align-middle font-weight-bold">GENERAL</td>
+                                                        <td class="text-uppercase font-weight-bold" style="font-size: 12px;">{{ $item->method }}</td>
+                                                        <td class="text-center font-weight-bold" style="font-size: 12px;">{{ strtoupper($item->currency) }}</td>
+                                                        @if($showOriginalAmount)
+                                                        <td class="text-right" style="font-size: 12px;">{{ number_format($item->total_amount, 2) }}</td>
+                                                        @endif
+                                                        @if($showExchangeRate)
+                                                        <td class="text-right" style="font-size: 12px;">{{ number_format($item->avg_rate, 2) }}</td>
+                                                        @endif
+                                                        @if($showUsdAmount)
+                                                        <td class="text-right font-weight-bold" style="font-size: 12px;">$ {{ number_format($item->total_usd, 2) }}</td>
+                                                        @endif
+                                                    </tr>
+                                                @endforeach
+                                            @else
+                                                <tr>
+                                                    <td colspan="6" class="text-center text-muted p-4">
+                                                        No hay registros de cobranza para los filtros seleccionados.
+                                                    </td>
+                                                </tr>
+                                            @endif
+                                        @endif
+                                    </tbody>
+                                    <tfoot style="background-color: #2c2f4a; font-weight: bold;">
+                                        <tr>
+                                            <td colspan="{{ 3 + ($showOriginalAmount ? 1 : 0) + ($showExchangeRate ? 1 : 0) }}" class="text-right text-white">TOTAL GENERAL COBRADO USD:</td>
+                                            @if($showUsdAmount)
+                                            <td class="text-right text-success f-16 text-white">${{ number_format($totalGeneralUsd, 2) }}</td>
+                                            @endif
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        @else
+                            <!-- Tabla Comparativa Detallada -->
+                            <h5 class="txt-primary mt-3 mb-2"><i class="fa fa-table"></i> Detalle por Operador</h5>
+                            <div class="table-responsive">
+                                <table class="table table-bordered mt-1">
+                                    <thead class="text-white" style="background: #3b3f5c">
+                                        <tr>
+                                            <th class="table-th text-white">Operador</th>
+                                            <th class="table-th text-white">M&eacute;todo</th>
+                                            <th class="table-th text-white text-center">Moneda</th>
+                                            @if($showOriginalAmount)
+                                            <th class="table-th text-white text-right">Monto Original</th>
+                                            @endif
+                                            @if($showExchangeRate)
+                                            <th class="table-th text-white text-right">Tasa Cambio</th>
+                                            @endif
+                                            @if($showUsdAmount)
+                                            <th class="table-th text-white text-right">Equivalente USD</th>
+                                            @endif
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($reportData as $sellerName => $sellerData)
+                                            @php
+                                                $sellerTotalUsd = 0;
+                                            @endphp
+                                            
+                                            @if($splitByDepartment)
+                                                @php
+                                                    $rowspan = 1; // Para la fila de subtotal
+                                                    foreach($sellerData as $deptType => $payments) {
+                                                        $rowspan += 1; // Fila separadora del departamento
+                                                        $rowspan += $payments->count();
+                                                    }
+                                                    $firstDept = true;
+                                                @endphp
+                                                
+                                                @foreach($sellerData as $deptType => $payments)
+                                                    @php 
+                                                        $deptTotalUsd = 0; 
+                                                        $firstPayment = true;
+                                                    @endphp
+                                                    
+                                                    <tr>
+                                                        @if($firstDept)
+                                                            <td rowspan="{{ $rowspan }}" class="align-middle font-weight-bold">
+                                                                {{ $sellerName }}
+                                                            </td>
+                                                            @php $firstDept = false; @endphp
+                                                        @endif
+                                                        
+                                                        <td colspan="{{ 2 + ($showOriginalAmount ? 1 : 0) + ($showExchangeRate ? 1 : 0) + ($showUsdAmount ? 1 : 0) }}" class="bg-light font-weight-bold" style="font-size: 11px;">
+                                                            <i class="fa fa-caret-right me-1"></i> DEP: {{ $deptType }}
+                                                        </td>
+                                                    </tr>
+                                                    
+                                                    @foreach($payments as $payment)
+                                                        @php 
+                                                            $sellerTotalUsd += $payment->total_usd; 
+                                                            $deptTotalUsd += $payment->total_usd;
+                                                        @endphp
+                                                        <tr>
+                                                            <td class="text-uppercase" style="font-size: 11px;">{{ $payment->method }}</td>
+                                                            <td class="text-center" style="font-size: 11px;">{{ strtoupper($payment->currency) }}</td>
+                                                            @if($showOriginalAmount)
+                                                            <td class="text-right" style="font-size: 12px;">{{ number_format($payment->total_amount, 2) }}</td>
+                                                            @endif
+                                                            @if($showExchangeRate)
+                                                            <td class="text-right" style="font-size: 12px;">{{ number_format($payment->avg_rate, 2) }}</td>
+                                                            @endif
+                                                            @if($showUsdAmount)
+                                                            <td class="text-right" style="font-size: 12px;">$ {{ number_format($payment->total_usd, 2) }}</td>
+                                                            @endif
+                                                        </tr>
+                                                    @endforeach
+                                                @endforeach
+                                            @else
+                                                @php
+                                                    $rowspan = $sellerData->count() + 1; 
+                                                    $first = true;
+                                                @endphp
+                                                
+                                                @foreach($sellerData as $payment)
+                                                    @php $sellerTotalUsd += $payment->total_usd; @endphp
+                                                    <tr>
+                                                        @if($first)
+                                                            <td rowspan="{{ $rowspan }}" class="align-middle font-weight-bold">
+                                                                {{ $sellerName }}
+                                                            </td>
+                                                            @php $first = false; @endphp
+                                                        @endif
                                                         <td class="text-uppercase" style="font-size: 11px;">{{ $payment->method }}</td>
                                                         <td class="text-center" style="font-size: 11px;">{{ strtoupper($payment->currency) }}</td>
                                                         @if($showOriginalAmount)
@@ -234,68 +379,40 @@
                                                         @endif
                                                     </tr>
                                                 @endforeach
-                                            @endforeach
-                                        @else
-                                            @php
-                                                $rowspan = $sellerData->count() + 1; 
-                                                $first = true;
-                                            @endphp
+                                            @endif
                                             
-                                            @foreach($sellerData as $payment)
-                                                @php $sellerTotalUsd += $payment->total_usd; @endphp
-                                                <tr>
-                                                    @if($first)
-                                                        <td rowspan="{{ $rowspan }}" class="align-middle font-weight-bold">
-                                                            {{ $sellerName }}
-                                                        </td>
-                                                        @php $first = false; @endphp
-                                                    @endif
-                                                    <td class="text-uppercase" style="font-size: 11px;">{{ $payment->method }}</td>
-                                                    <td class="text-center" style="font-size: 11px;">{{ strtoupper($payment->currency) }}</td>
-                                                    @if($showOriginalAmount)
-                                                    <td class="text-right" style="font-size: 12px;">{{ number_format($payment->total_amount, 2) }}</td>
-                                                    @endif
-                                                    @if($showExchangeRate)
-                                                    <td class="text-right" style="font-size: 12px;">{{ number_format($payment->avg_rate, 2) }}</td>
-                                                    @endif
-                                                    @if($showUsdAmount)
-                                                    <td class="text-right" style="font-size: 12px;">$ {{ number_format($payment->total_usd, 2) }}</td>
-                                                    @endif
-                                                </tr>
-                                            @endforeach
-                                        @endif
-                                        
-                                        <!-- Fila de subtotal por vendedor -->
-                                        <tr class="bg-light">
-                                            <td colspan="2" class="text-right font-weight-bold" style="font-size: 12px;">SUBTOTAL OPERADOR:</td>
-                                            @if($showOriginalAmount)<td></td>@endif
-                                            @if($showExchangeRate)<td></td>@endif
-                                            @if($showUsdAmount)
-                                            <td class="text-right font-weight-bold text-success" style="font-size: 13px;">
-                                                $ {{ number_format($sellerTotalUsd, 2) }}
-                                            </td>
-                                            @endif
-                                        </tr>
-                                    @empty
-                                        <tr>
-                                            <td colspan="6" class="text-center text-muted p-4">
-                                                No hay registros de cobranza para los filtros seleccionados.
-                                            </td>
-                                        </tr>
-                                    @endforelse
-                                </tbody>
-                                @if($reportData->isNotEmpty())
-                                    <tfoot style="background-color: #2c2f4a; font-weight: bold;">
-                                        <tr>
-                                            <td colspan="{{ 3 + ($showOriginalAmount ? 1 : 0) + ($showExchangeRate ? 1 : 0) }}" class="text-right text-white">TOTAL GENERAL COBRADO USD:</td>
-                                            @if($showUsdAmount)
-                                            <td class="text-right text-success">${{ number_format($totalGeneralUsd, 2) }}</td>
-                                            @endif
-                                        </tr>
-                                    </tfoot>
-                                @endif
-                            </table>
-                        </div>
+                                            <!-- Fila de subtotal por vendedor -->
+                                            <tr class="bg-light">
+                                                <td colspan="2" class="text-right font-weight-bold" style="font-size: 12px;">SUBTOTAL OPERADOR:</td>
+                                                @if($showOriginalAmount)<td></td>@endif
+                                                @if($showExchangeRate)<td></td>@endif
+                                                @if($showUsdAmount)
+                                                <td class="text-right font-weight-bold text-success" style="font-size: 13px;">
+                                                    $ {{ number_format($sellerTotalUsd, 2) }}
+                                                </td>
+                                                @endif
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted p-4">
+                                                    No hay registros de cobranza para los filtros seleccionados.
+                                                </td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                    @if($reportData->isNotEmpty())
+                                        <tfoot style="background-color: #2c2f4a; font-weight: bold;">
+                                            <tr>
+                                                <td colspan="{{ 3 + ($showOriginalAmount ? 1 : 0) + ($showExchangeRate ? 1 : 0) }}" class="text-right text-white">TOTAL GENERAL COBRADO USD:</td>
+                                                @if($showUsdAmount)
+                                                <td class="text-right text-success">${{ number_format($totalGeneralUsd, 2) }}</td>
+                                                @endif
+                                            </tr>
+                                        </tfoot>
+                                    @endif
+                                </table>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>

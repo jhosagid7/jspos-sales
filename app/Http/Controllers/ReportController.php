@@ -3865,6 +3865,7 @@ class ReportController extends Controller
         $dateFrom        = $request->get('dateFrom', Carbon::today()->format('Y-m-d'));
         $dateTo          = $request->get('dateTo',   Carbon::today()->format('Y-m-d'));
         $splitByDepartment = $request->get('splitByDepartment', 0) == 1;
+        $condensedSummary  = $request->get('condensedSummary', 0) == 1;
         $selectedOperators = $request->get('selectedOperators')
             ? array_filter(explode(',', $request->get('selectedOperators')))
             : [];
@@ -4015,16 +4016,62 @@ class ReportController extends Controller
         });
 
         $totalGeneralUsd = 0;
+        $condensedData = [
+            'LOCAL' => [],
+            'GRAVADO' => [],
+            'GENERAL' => [],
+            'total_local_usd' => 0,
+            'total_gravado_usd' => 0,
+            'grand_total_usd' => 0,
+        ];
+
         foreach ($reportData as $sellerName => $payments) {
             if ($splitByDepartment) {
-                foreach ($payments as $deptPayments) {
+                foreach ($payments as $deptType => $deptPayments) {
+                    $deptKey = strtoupper($deptType);
+                    if (!isset($condensedData[$deptKey])) $condensedData[$deptKey] = [];
                     foreach ($deptPayments as $p) {
                         $totalGeneralUsd += $p->total_usd;
+                        
+                        $methodKey = $p->method . '-' . $p->currency;
+                        if (!isset($condensedData[$deptKey][$methodKey])) {
+                            $condensedData[$deptKey][$methodKey] = (object)[
+                                'method' => $p->method,
+                                'currency' => $p->currency,
+                                'total_amount' => 0,
+                                'total_usd' => 0,
+                                'avg_rate' => $p->avg_rate
+                            ];
+                        }
+                        $condensedData[$deptKey][$methodKey]->total_amount += $p->total_amount;
+                        $condensedData[$deptKey][$methodKey]->total_usd += $p->total_usd;
+
+                        if ($deptKey === 'GRAVADO') {
+                            $condensedData['total_gravado_usd'] += $p->total_usd;
+                        } else {
+                            $condensedData['total_local_usd'] += $p->total_usd;
+                        }
+                        $condensedData['grand_total_usd'] += $p->total_usd;
                     }
                 }
             } else {
                 foreach ($payments as $p) {
                     $totalGeneralUsd += $p->total_usd;
+                    
+                    $methodKey = $p->method . '-' . $p->currency;
+                    if (!isset($condensedData['GENERAL'][$methodKey])) {
+                        $condensedData['GENERAL'][$methodKey] = (object)[
+                            'method' => $p->method,
+                            'currency' => $p->currency,
+                            'total_amount' => 0,
+                            'total_usd' => 0,
+                            'avg_rate' => $p->avg_rate
+                        ];
+                    }
+                    $condensedData['GENERAL'][$methodKey]->total_amount += $p->total_amount;
+                    $condensedData['GENERAL'][$methodKey]->total_usd += $p->total_usd;
+                    $condensedData['total_local_usd'] += $p->total_usd;
+                    $condensedData['grand_total_usd'] += $p->total_usd;
                 }
             }
         }
@@ -4032,17 +4079,19 @@ class ReportController extends Controller
         $config = Configuration::first();
 
         $pdf = Pdf::loadView('reports.seller-grouped-report-pdf', [
-            'reportData'      => $reportData,
-            'totalGeneralUsd' => $totalGeneralUsd,
-            'config'          => $config,
-            'dateFrom'    => $dateFrom,
-            'dateTo'      => $dateTo,
+            'reportData'        => $reportData,
+            'condensedData'     => $condensedData,
+            'condensedSummary'  => $condensedSummary,
+            'totalGeneralUsd'   => $totalGeneralUsd,
+            'config'            => $config,
+            'dateFrom'          => $dateFrom,
+            'dateTo'            => $dateTo,
             'splitByDepartment' => $splitByDepartment,
-            'showOriginalAmount' => $showOriginalAmount,
-            'showExchangeRate' => $showExchangeRate,
-            'showUsdAmount' => $showUsdAmount,
-            'showSignatures' => $showSignatures,
-            'generatedAt' => Carbon::now()->format('d/m/Y H:i'),
+            'showOriginalAmount'=> $showOriginalAmount,
+            'showExchangeRate'  => $showExchangeRate,
+            'showUsdAmount'     => $showUsdAmount,
+            'showSignatures'    => $showSignatures,
+            'generatedAt'       => Carbon::now()->format('d/m/Y H:i'),
         ])->setPaper('a4', 'landscape');
 
         $filename = 'Reporte_Vendedores_'

@@ -33,8 +33,12 @@ class SellerGroupedTicketPrintTest extends TestCase
             ])
         ]);
 
-        // In test mode, getPrinterConfig returns null and handles gracefully without throwing
-        $this->printSellerGroupedTicket($dummyData, '2026-08-29', '2026-08-29', true, true);
+        // Standard Detailed Ticket
+        $this->printSellerGroupedTicket($dummyData, '2026-08-29', '2026-08-29', true, true, false);
+        $this->assertTrue(true);
+
+        // Condensed Summary Ticket
+        $this->printSellerGroupedTicket($dummyData, '2026-08-29', '2026-08-29', true, true, true);
         $this->assertTrue(true);
     }
 }

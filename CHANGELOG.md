@@ -1,3 +1,11 @@
+## [1.10.409] - 2026-08-29
+
+### Added
+- **Interruptor de Resumen Condensado en Reporte de Cobranza por Operador**:
+  - `SellerGroupedReport.php` & `seller-grouped-report.blade.php`: Agregado switch *Resumen Condensado* (inicia en `OFF` por defecto). Al activarse (`ON`), consolida de forma compacta el total cobrado por departamentos (`LOCAL` y `GRAVADO`), métodos de pago y totales generales, ocultando las filas repetidas por operador individual.
+  - `PrintTrait.php`: Soporte para impresión térmica del ticket en formato resumen condensado cuando el switch está activo.
+  - `ReportController.php` & `seller-grouped-report-pdf.blade.php`: Soporte de vista y exportación a PDF en formato resumen condensado.
+
 ## [1.10.408] - 2026-08-29
 
 ### Added

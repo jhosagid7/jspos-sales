@@ -20,6 +20,7 @@ class SellerGroupedReport extends Component
     public $showPdfModal = false;
     public $pdfUrl = '';
     public $splitByDepartment = false;
+    public $condensedSummary = false;
 
     public $showOriginalAmount = true;
     public $showExchangeRate = true;
@@ -205,9 +206,74 @@ class SellerGroupedReport extends Component
         });
     }
 
+    public function getCondensedData()
+    {
+        $reportData = $this->getReportData();
+        $condensed = [
+            'LOCAL' => [],
+            'GRAVADO' => [],
+            'GENERAL' => [],
+            'total_local_usd' => 0,
+            'total_gravado_usd' => 0,
+            'grand_total_usd' => 0,
+        ];
+
+        foreach ($reportData as $sellerName => $departments) {
+            if ($this->splitByDepartment) {
+                foreach ($departments as $deptType => $payments) {
+                    $deptKey = strtoupper($deptType);
+                    if (!isset($condensed[$deptKey])) {
+                        $condensed[$deptKey] = [];
+                    }
+                    foreach ($payments as $p) {
+                        $methodKey = $p->method . '-' . $p->currency;
+                        if (!isset($condensed[$deptKey][$methodKey])) {
+                            $condensed[$deptKey][$methodKey] = (object)[
+                                'method' => $p->method,
+                                'currency' => $p->currency,
+                                'total_amount' => 0,
+                                'total_usd' => 0,
+                                'avg_rate' => $p->avg_rate
+                            ];
+                        }
+                        $condensed[$deptKey][$methodKey]->total_amount += $p->total_amount;
+                        $condensed[$deptKey][$methodKey]->total_usd += $p->total_usd;
+
+                        if ($deptKey === 'GRAVADO') {
+                            $condensed['total_gravado_usd'] += $p->total_usd;
+                        } else {
+                            $condensed['total_local_usd'] += $p->total_usd;
+                        }
+                        $condensed['grand_total_usd'] += $p->total_usd;
+                    }
+                }
+            } else {
+                foreach ($departments as $p) {
+                    $methodKey = $p->method . '-' . $p->currency;
+                    if (!isset($condensed['GENERAL'][$methodKey])) {
+                        $condensed['GENERAL'][$methodKey] = (object)[
+                            'method' => $p->method,
+                            'currency' => $p->currency,
+                            'total_amount' => 0,
+                            'total_usd' => 0,
+                            'avg_rate' => $p->avg_rate
+                        ];
+                    }
+                    $condensed['GENERAL'][$methodKey]->total_amount += $p->total_amount;
+                    $condensed['GENERAL'][$methodKey]->total_usd += $p->total_usd;
+                    $condensed['total_local_usd'] += $p->total_usd;
+                    $condensed['grand_total_usd'] += $p->total_usd;
+                }
+            }
+        }
+
+        return $condensed;
+    }
+
     public function generatePdf()
     {
         $reportData = $this->getReportData();
+        $condensedData = $this->getCondensedData();
         
         $totalGeneralUsd = 0;
         foreach ($reportData as $sellerName => $payments) {
@@ -227,17 +293,19 @@ class SellerGroupedReport extends Component
         $config = \App\Models\Configuration::first();
 
         $pdf = Pdf::loadView('reports.seller-grouped-report-pdf', [
-            'reportData'  => $reportData,
-            'totalGeneralUsd' => $totalGeneralUsd,
-            'config'      => $config,
-            'dateFrom'    => $this->dateFrom,
-            'dateTo'      => $this->dateTo,
+            'reportData'        => $reportData,
+            'condensedData'     => $condensedData,
+            'condensedSummary'  => $this->condensedSummary,
+            'totalGeneralUsd'   => $totalGeneralUsd,
+            'config'            => $config,
+            'dateFrom'          => $this->dateFrom,
+            'dateTo'            => $this->dateTo,
             'splitByDepartment' => $this->splitByDepartment,
-            'showOriginalAmount' => $this->showOriginalAmount,
-            'showExchangeRate' => $this->showExchangeRate,
-            'showUsdAmount' => $this->showUsdAmount,
-            'showSignatures' => $this->showSignatures,
-            'generatedAt' => Carbon::now()->format('d/m/Y H:i'),
+            'showOriginalAmount'=> $this->showOriginalAmount,
+            'showExchangeRate'  => $this->showExchangeRate,
+            'showUsdAmount'     => $this->showUsdAmount,
+            'showSignatures'    => $this->showSignatures,
+            'generatedAt'       => Carbon::now()->format('d/m/Y H:i'),
         ])->setPaper('a4', 'landscape');
 
         $filename = 'Reporte_Vendedores_'
@@ -252,14 +320,15 @@ class SellerGroupedReport extends Component
     public function openPdfPreview()
     {
         $params = [
-            'dateFrom'        => $this->dateFrom,
-            'dateTo'          => $this->dateTo,
+            'dateFrom'          => $this->dateFrom,
+            'dateTo'            => $this->dateTo,
             'splitByDepartment' => $this->splitByDepartment ? 1 : 0,
+            'condensedSummary'  => $this->condensedSummary ? 1 : 0,
             'selectedOperators' => implode(',', $this->selectedOperators),
-            'showOriginalAmount' => $this->showOriginalAmount ? 1 : 0,
-            'showExchangeRate' => $this->showExchangeRate ? 1 : 0,
-            'showUsdAmount' => $this->showUsdAmount ? 1 : 0,
-            'showSignatures' => $this->showSignatures ? 1 : 0,
+            'showOriginalAmount'=> $this->showOriginalAmount ? 1 : 0,
+            'showExchangeRate'  => $this->showExchangeRate ? 1 : 0,
+            'showUsdAmount'     => $this->showUsdAmount ? 1 : 0,
+            'showSignatures'    => $this->showSignatures ? 1 : 0,
         ];
 
         $this->pdfUrl = route('reports.seller_grouped.pdf', $params);
@@ -285,7 +354,8 @@ class SellerGroupedReport extends Component
             $this->dateFrom,
             $this->dateTo,
             $this->splitByDepartment,
-            $this->showSignatures
+            $this->showSignatures,
+            $this->condensedSummary
         );
 
         $this->dispatch('noty', msg: 'TICKET DE COBRANZA ENVIADO A LA IMPRESORA');
@@ -295,6 +365,7 @@ class SellerGroupedReport extends Component
     {
         $operatorsList = User::orderBy('name')->get();
         $reportData  = $this->getReportData();
+        $condensedData = $this->getCondensedData();
 
         $totalGeneralUsd = 0;
         // Also calculate totals by method/currency for the top cards
@@ -341,6 +412,7 @@ class SellerGroupedReport extends Component
         return view('livewire.reports.seller-grouped-report', [
             'operatorsList' => $operatorsList,
             'reportData'  => $reportData,
+            'condensedData' => $condensedData,
             'totalGeneralUsd' => $totalGeneralUsd,
             'totalsByMethod' => $totalsByMethod
         ]);

@@ -1196,9 +1196,9 @@ trait PrintTrait
 
     /**
      * Prints thermal ticket for Operator Collection / Cobranza por Operador report.
-     * Supports 58mm (32 cols) and 80mm (45 cols) paper widths, department split, and signatures.
+     * Supports 58mm (32 cols) and 80mm (45 cols) paper widths, department split, condensed summary, and signatures.
      */
-    public function printSellerGroupedTicket($reportData, $dateFrom, $dateTo, $splitByDepartment = false, $showSignatures = true)
+    public function printSellerGroupedTicket($reportData, $dateFrom, $dateTo, $splitByDepartment = false, $showSignatures = true, $condensedSummary = false)
     {
         try {
             $printConfig = $this->getPrinterConfig();
@@ -1220,7 +1220,8 @@ trait PrintTrait
                 $printer->setTextSize(1, 1);
                 $printer->text(strtoupper($config->business_name) . "\n");
                 $printer->setTextSize(1, 2);
-                $printer->text("COBRANZA POR OPERADOR\n");
+                $title = $condensedSummary ? "COBRANZA (RESUMEN)\n" : "COBRANZA POR OPERADOR\n";
+                $printer->text($title);
                 $printer->setTextSize(1, 1);
                 $printer->text($doubleSeparator . "\n");
                 
@@ -1235,53 +1236,116 @@ trait PrintTrait
 
                 $grandTotalUsd = 0;
 
-                foreach ($reportData as $sellerName => $payments) {
-                    $printer->setJustification(Printer::JUSTIFY_LEFT);
-                    $printer->setTextSize(1, 1);
-                    $printer->text("OPERADOR: " . strtoupper($sellerName) . "\n");
-                    $printer->text($separator . "\n");
-
-                    $sellerTotalUsd = 0;
-
-                    if ($splitByDepartment) {
-                        foreach ($payments as $deptType => $items) {
-                            $printer->text("▶ DEP: " . strtoupper($deptType) . "\n");
-                            $deptTotalUsd = 0;
-                            foreach ($items as $item) {
-                                $methodStr = strtoupper($item->method) . " (" . strtoupper($item->currency) . ")";
-                                $amountUsd = "$" . number_format($item->total_usd, 2);
-                                
-                                if ($is58mm) {
-                                    $line = sprintf("  %-18.18s %11s", $methodStr, $amountUsd);
-                                } else {
-                                    $line = sprintf("  %-28.28s %14s", $methodStr, $amountUsd);
+                if ($condensedSummary) {
+                    // Aggregate condensed summary by department
+                    $condensed = [];
+                    foreach ($reportData as $sellerName => $departments) {
+                        if ($splitByDepartment) {
+                            foreach ($departments as $deptType => $payments) {
+                                $deptKey = strtoupper($deptType);
+                                if (!isset($condensed[$deptKey])) $condensed[$deptKey] = [];
+                                foreach ($payments as $p) {
+                                    $methodKey = $p->method . '-' . $p->currency;
+                                    if (!isset($condensed[$deptKey][$methodKey])) {
+                                        $condensed[$deptKey][$methodKey] = (object)[
+                                            'method' => $p->method,
+                                            'currency' => $p->currency,
+                                            'total_amount' => 0,
+                                            'total_usd' => 0
+                                        ];
+                                    }
+                                    $condensed[$deptKey][$methodKey]->total_amount += $p->total_amount;
+                                    $condensed[$deptKey][$methodKey]->total_usd += $p->total_usd;
                                 }
-                                $printer->text($line . "\n");
-                                $deptTotalUsd += $item->total_usd;
                             }
-                            $sellerTotalUsd += $deptTotalUsd;
-                            $printer->text($separator . "\n");
+                        } else {
+                            if (!isset($condensed['GENERAL'])) $condensed['GENERAL'] = [];
+                            foreach ($departments as $p) {
+                                $methodKey = $p->method . '-' . $p->currency;
+                                if (!isset($condensed['GENERAL'][$methodKey])) {
+                                    $condensed['GENERAL'][$methodKey] = (object)[
+                                        'method' => $p->method,
+                                        'currency' => $p->currency,
+                                        'total_amount' => 0,
+                                        'total_usd' => 0
+                                    ];
+                                }
+                                $condensed['GENERAL'][$methodKey]->total_amount += $p->total_amount;
+                                $condensed['GENERAL'][$methodKey]->total_usd += $p->total_usd;
+                            }
                         }
-                    } else {
-                        foreach ($payments as $item) {
+                    }
+
+                    foreach ($condensed as $deptKey => $items) {
+                        $printer->text("▶ RESUMEN " . ($deptKey !== 'GENERAL' ? "DEP: " . $deptKey : "GENERAL") . "\n");
+                        $deptSubtotalUsd = 0;
+                        foreach ($items as $item) {
                             $methodStr = strtoupper($item->method) . " (" . strtoupper($item->currency) . ")";
                             $amountUsd = "$" . number_format($item->total_usd, 2);
                             if ($is58mm) {
-                                $line = sprintf("%-19.19s %12s", $methodStr, $amountUsd);
+                                $line = sprintf("  %-18.18s %11s", $methodStr, $amountUsd);
                             } else {
-                                $line = sprintf("%-29.29s %15s", $methodStr, $amountUsd);
+                                $line = sprintf("  %-28.28s %14s", $methodStr, $amountUsd);
                             }
                             $printer->text($line . "\n");
-                            $sellerTotalUsd += $item->total_usd;
+                            $deptSubtotalUsd += $item->total_usd;
                         }
                         $printer->text($separator . "\n");
+                        $subLine = $is58mm
+                            ? sprintf("SUBTOTAL %-8.8s: %14s", $deptKey, "$" . number_format($deptSubtotalUsd, 2))
+                            : sprintf("SUBTOTAL %-12.12s: %27s", $deptKey, "$" . number_format($deptSubtotalUsd, 2));
+                        $printer->text($subLine . "\n\n");
+                        $grandTotalUsd += $deptSubtotalUsd;
                     }
+                } else {
+                    foreach ($reportData as $sellerName => $payments) {
+                        $printer->setJustification(Printer::JUSTIFY_LEFT);
+                        $printer->setTextSize(1, 1);
+                        $printer->text("OPERADOR: " . strtoupper($sellerName) . "\n");
+                        $printer->text($separator . "\n");
 
-                    $grandTotalUsd += $sellerTotalUsd;
-                    $subtotalLine = $is58mm 
-                        ? sprintf("SUBTOTAL OPERADOR: %13s", "$" . number_format($sellerTotalUsd, 2))
-                        : sprintf("SUBTOTAL OPERADOR: %26s", "$" . number_format($sellerTotalUsd, 2));
-                    $printer->text($subtotalLine . "\n\n");
+                        $sellerTotalUsd = 0;
+
+                        if ($splitByDepartment) {
+                            foreach ($payments as $deptType => $items) {
+                                $printer->text("▶ DEP: " . strtoupper($deptType) . "\n");
+                                $deptTotalUsd = 0;
+                                foreach ($items as $item) {
+                                    $methodStr = strtoupper($item->method) . " (" . strtoupper($item->currency) . ")";
+                                    $amountUsd = "$" . number_format($item->total_usd, 2);
+                                    
+                                    if ($is58mm) {
+                                        $line = sprintf("  %-18.18s %11s", $methodStr, $amountUsd);
+                                    } else {
+                                        $line = sprintf("  %-28.28s %14s", $methodStr, $amountUsd);
+                                    }
+                                    $printer->text($line . "\n");
+                                    $deptTotalUsd += $item->total_usd;
+                                }
+                                $sellerTotalUsd += $deptTotalUsd;
+                                $printer->text($separator . "\n");
+                            }
+                        } else {
+                            foreach ($payments as $item) {
+                                $methodStr = strtoupper($item->method) . " (" . strtoupper($item->currency) . ")";
+                                $amountUsd = "$" . number_format($item->total_usd, 2);
+                                if ($is58mm) {
+                                    $line = sprintf("%-19.19s %12s", $methodStr, $amountUsd);
+                                } else {
+                                    $line = sprintf("%-29.29s %15s", $methodStr, $amountUsd);
+                                }
+                                $printer->text($line . "\n");
+                                $sellerTotalUsd += $item->total_usd;
+                            }
+                            $printer->text($separator . "\n");
+                        }
+
+                        $grandTotalUsd += $sellerTotalUsd;
+                        $subtotalLine = $is58mm 
+                            ? sprintf("SUBTOTAL OPERADOR: %13s", "$" . number_format($sellerTotalUsd, 2))
+                            : sprintf("SUBTOTAL OPERADOR: %26s", "$" . number_format($sellerTotalUsd, 2));
+                        $printer->text($subtotalLine . "\n\n");
+                    }
                 }
 
                 // --- GRAND TOTAL ---
@@ -1298,7 +1362,7 @@ trait PrintTrait
                 if ($showSignatures) {
                     $printer->setJustification(Printer::JUSTIFY_CENTER);
                     if ($is58mm) {
-                        $printer->text("\nFirma Operador:\n\n");
+                        $printer->text("\nFirma Responsable:\n\n");
                         $printer->text("________________________________\n");
                         $printer->text("Entrega de Turno\n\n");
                         $printer->text("\nFirma Supervisor / Auditor:\n\n");
@@ -1307,7 +1371,7 @@ trait PrintTrait
                     } else {
                         $printer->text("\n\n");
                         $printer->text("   ____________________         ____________________   \n");
-                        $printer->text("      Firma Operador               Firma Supervisor    \n");
+                        $printer->text("      Firma Responsable            Firma Supervisor    \n");
                         $printer->text("     Entrega de Turno             Recibido Conforme    \n\n");
                     }
                 }

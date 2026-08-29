@@ -75,8 +75,97 @@
     </div>
 
     {{-- Tabla --}}
-    <div class="section-title">Detalle por Operador</div>
+    <div class="section-title">{{ isset($condensedSummary) && $condensedSummary ? 'Resumen Condensado General' : 'Detalle por Operador' }}</div>
 
+    @if(isset($condensedSummary) && $condensedSummary)
+    <table>
+        <thead>
+            <tr>
+                <th style="text-align:left; width:25%;">Departamento</th>
+                <th>M&eacute;todo</th>
+                <th>Moneda</th>
+                @if($showOriginalAmount)
+                <th>Monto Original</th>
+                @endif
+                @if($showExchangeRate)
+                <th>Tasa de Cambio</th>
+                @endif
+                @if($showUsdAmount)
+                <th>Equivalente USD</th>
+                @endif
+            </tr>
+        </thead>
+        <tbody>
+            @if(isset($splitByDepartment) && $splitByDepartment)
+                @foreach(['LOCAL', 'GRAVADO'] as $deptKey)
+                    @if(!empty($condensedData[$deptKey]))
+                        @php
+                            $deptSubtotalUsd = 0;
+                            $items = $condensedData[$deptKey];
+                            $rowspan = count($items) + 1;
+                            $firstItem = true;
+                        @endphp
+                        @foreach($items as $item)
+                            @php $deptSubtotalUsd += $item->total_usd; @endphp
+                            <tr>
+                                @if($firstItem)
+                                    <td class="seller" rowspan="{{ $rowspan }}" style="font-weight:bold; font-size:10px;">
+                                        DEP: {{ $deptKey }}
+                                    </td>
+                                    @php $firstItem = false; @endphp
+                                @endif
+                                <td class="cnt" style="text-align:left; padding-left:12px;">{{ strtoupper($item->method) }}</td>
+                                <td class="cnt">{{ strtoupper($item->currency) }}</td>
+                                @if($showOriginalAmount)
+                                <td class="num">{{ number_format($item->total_amount, 2) }}</td>
+                                @endif
+                                @if($showExchangeRate)
+                                <td class="num">{{ number_format($item->avg_rate, 2) }}</td>
+                                @endif
+                                @if($showUsdAmount)
+                                <td class="num">$ {{ number_format($item->total_usd, 2) }}</td>
+                                @endif
+                            </tr>
+                        @endforeach
+                        <tr>
+                            <td colspan="{{ 2 + ($showOriginalAmount ? 1 : 0) + ($showExchangeRate ? 1 : 0) }}" class="subtotal">SUBTOTAL {{ $deptKey }}:</td>
+                            @if($showUsdAmount)
+                            <td class="subtotal-val">$ {{ number_format($deptSubtotalUsd, 2) }}</td>
+                            @endif
+                        </tr>
+                    @endif
+                @endforeach
+            @else
+                @if(!empty($condensedData['GENERAL']))
+                    @foreach($condensedData['GENERAL'] as $item)
+                        <tr>
+                            <td class="seller">GENERAL</td>
+                            <td class="cnt" style="text-align:left; padding-left:12px;">{{ strtoupper($item->method) }}</td>
+                            <td class="cnt">{{ strtoupper($item->currency) }}</td>
+                            @if($showOriginalAmount)
+                            <td class="num">{{ number_format($item->total_amount, 2) }}</td>
+                            @endif
+                            @if($showExchangeRate)
+                            <td class="num">{{ number_format($item->avg_rate, 2) }}</td>
+                            @endif
+                            @if($showUsdAmount)
+                            <td class="num">$ {{ number_format($item->total_usd, 2) }}</td>
+                            @endif
+                        </tr>
+                    @endforeach
+                @endif
+            @endif
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="{{ 3 + ($showOriginalAmount ? 1 : 0) + ($showExchangeRate ? 1 : 0) }}" class="num">TOTAL GENERAL COBRADO USD:</td>
+                @if($showUsdAmount)
+                <td class="num" style="color:#7ef0b4;">$ {{ number_format($totalGeneralUsd, 2) }}</td>
+                @endif
+            </tr>
+        </tfoot>
+    </table>
+    @else
     <table>
         <thead>
             <tr>
@@ -181,6 +270,7 @@
         </tfoot>
         @endif
     </table>
+    @endif
 
     @if(isset($showSignatures) && $showSignatures)
     <!-- Firmas -->
