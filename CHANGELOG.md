@@ -1,3 +1,9 @@
+## [1.10.411] - 2026-08-29
+
+### Fixed
+- **Formato del Símbolo de Dólar ($) en el Cuerpo del Ticket de Cobranza**:
+  - Se homogeneizó la visualización explícita del símbolo de dólar `$ ` con espacio para cada fila de cobro, subtotales por departamento, subtotales por operador y total general en `PrintTrait.php`.
+
 ## [1.10.410] - 2026-08-29
 
 ### Fixed
