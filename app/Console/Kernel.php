@@ -46,13 +46,13 @@ class Kernel extends ConsoleKernel
             ->runInBackground();
 
         // Limpieza diaria de respaldos antiguos a las 11:00 PM
-        $schedule->command('backup:clean')
+        $schedule->command('backup:clean --disable-notifications')
             ->timezone('America/Caracas')
             ->dailyAt('23:00')
             ->runInBackground();
 
         // Respaldo de base de datos cada 2 horas entre las 6:00 y las 22:00 (6 AM - 10 PM)
-        $schedule->command('backup:run --only-db')
+        $schedule->command('backup:run --only-db --disable-notifications')
             ->timezone('America/Caracas')
             ->everyTwoHours()
             ->between('6:00', '22:00')

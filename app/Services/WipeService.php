@@ -15,7 +15,7 @@ class WipeService
     {
         try {
             // Run Spatie DB Backup
-            Artisan::call('backup:run', ['--only-db' => true]);
+            Artisan::call('backup:run', ['--only-db' => true, '--disable-notifications' => true]);
 
             $backupName = config('backup.backup.name', 'Laravel');
             $disk = Storage::disk('backup');

@@ -22,13 +22,13 @@ if %ERRORLEVEL% NEQ 0 (
 
 :: 2. Limpiar respaldos viejos según reglas de config/backup.php
 echo [PASO 1] Ejecutando limpieza de respaldos antiguos (php artisan backup:clean)...
-echo [%DATE% %TIME%] Ejecutando php artisan backup:clean... >> "%LOG_FILE%"
-call "C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe" artisan backup:clean >> "%LOG_FILE%" 2>&1
+echo [%DATE% %TIME%] Ejecutando php artisan backup:clean --disable-notifications... >> "%LOG_FILE%"
+call "C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe" artisan backup:clean --disable-notifications >> "%LOG_FILE%" 2>&1
 
 :: 3. Ejecutar el respaldo de Laravel
-echo [PASO 2] Generando respaldo (php artisan backup:run --only-db)...
-echo [%DATE% %TIME%] Ejecutando php artisan backup:run --only-db... >> "%LOG_FILE%"
-call "C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe" artisan backup:run --only-db >> "%LOG_FILE%" 2>&1
+echo [PASO 2] Generando respaldo (php artisan backup:run --only-db --disable-notifications)...
+echo [%DATE% %TIME%] Ejecutando php artisan backup:run --only-db --disable-notifications... >> "%LOG_FILE%"
+call "C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe" artisan backup:run --only-db --disable-notifications >> "%LOG_FILE%" 2>&1
 
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Fallo al crear el respaldo.

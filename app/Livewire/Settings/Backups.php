@@ -45,13 +45,13 @@ class Backups extends Component
     public function create($option = 'only-db')
     {
         try {
-            $flags = [];
+            $flags = ['--disable-notifications' => true];
             if ($option === 'only-db') {
                 $flags['--only-db'] = true;
             } elseif ($option === 'only-files') {
                 $flags['--only-files'] = true;
             }
-            // 'full' implies no flags (both)
+            // 'full' implies no extra flags (both)
 
             Artisan::call('backup:run', $flags);
             

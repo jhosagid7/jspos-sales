@@ -196,14 +196,14 @@ return [
      * the `Spatie\Backup\Notifications\Notifications` classes.
      */
     'notifications' => [
-        'notifications' => [
+        'notifications' => env('BACKUP_MAIL_ENABLED', false) ? [
             \Spatie\Backup\Notifications\Notifications\BackupHasFailedNotification::class => ['mail'],
             \Spatie\Backup\Notifications\Notifications\UnhealthyBackupWasFoundNotification::class => ['mail'],
             \Spatie\Backup\Notifications\Notifications\CleanupHasFailedNotification::class => ['mail'],
             \Spatie\Backup\Notifications\Notifications\BackupWasSuccessfulNotification::class => ['mail'],
             \Spatie\Backup\Notifications\Notifications\HealthyBackupWasFoundNotification::class => ['mail'],
             \Spatie\Backup\Notifications\Notifications\CleanupWasSuccessfulNotification::class => ['mail'],
-        ],
+        ] : [],
 
         /*
          * Here you can specify the notifiable to which the notifications should be sent. The default

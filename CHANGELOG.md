@@ -1,3 +1,11 @@
+## [1.10.414] - 2026-08-29
+
+### Fixed
+- **Copias de Seguridad (Backups) sin Bloqueo por Servidor de Correo Inexistente**:
+  - Se corrigió el error `Connection could not be established with host "mailpit:1025"` al crear respaldos de base de datos.
+  - Se deshabilitaron las notificaciones por correo por defecto en `config/backup.php` (ahora controladas por `BACKUP_MAIL_ENABLED=true`) y se añadió el flag `--disable-notifications` en la UI de Backups, scripts `.bat` y el planificador de tareas (`Kernel.php`).
+  - Las copias de seguridad manuales y automáticas ahora se ejecutan de manera inmediata y sin fallos.
+
 ## [1.10.413] - 2026-08-29
 
 ### Fixed

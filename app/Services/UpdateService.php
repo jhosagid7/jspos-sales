@@ -168,7 +168,7 @@ class UpdateService
     public function runBackup()
     {
         try {
-            Artisan::call('backup:run', ['--only-db' => true]);
+            Artisan::call('backup:run', ['--only-db' => true, '--disable-notifications' => true]);
             return true;
         } catch (\Exception $e) {
             throw new \Exception("Backup failed: " . $e->getMessage());
