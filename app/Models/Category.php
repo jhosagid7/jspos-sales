@@ -9,10 +9,14 @@ class Category extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name'];
-
+    protected $fillable = ['name', 'department_id'];
 
     //relationship
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
+    }
+
     public function image()
     {
         return  $this->morphOne(Image::class, 'model'); //->withDefault();

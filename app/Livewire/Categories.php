@@ -97,10 +97,10 @@ class Categories extends Component
     {
         if (!empty($this->search)) {
             $this->resetPage();
-            $query = Category::where('name', 'like', "%{$this->search}%")
+            $query = Category::with('department')->where('name', 'like', "%{$this->search}%")
                 ->orderBy('name', 'asc');
         } else {
-            $query = Category::orderBy('name', 'asc');
+            $query = Category::with('department')->orderBy('name', 'asc');
         }
 
         $this->records = $query->count();

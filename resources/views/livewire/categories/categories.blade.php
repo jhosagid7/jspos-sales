@@ -10,7 +10,7 @@
 
                     <div class="form-group">
                         <label>Name</label>
-                        <input wire:model.lazy="category.name" type="text"
+                        <input wire:model="category.name" type="text"
                             class="form-control form-control-lg" placeholder="Name">
                         @error('category.name') <span class="text-danger">{{ $message }}</span> @enderror
                     </div>
@@ -19,7 +19,7 @@
                     <div class="form-group mt-3">
                         <label>Departamento</label>
                         <div class="d-flex align-items-center">
-                            <select wire:model.defer="category.department_id" class="form-control form-control-lg">
+                            <select wire:model="category.department_id" class="form-control form-control-lg">
                                 <option value="">Seleccione Departamento</option>
                                 @foreach(\App\Models\Department::orderBy('name')->get() as $dept)
                                     <option value="{{ $dept->id }}">{{ $dept->name }} ({{ strtoupper($dept->report_type) }})</option>
@@ -148,9 +148,15 @@
                                     </td>
                                     @if(in_array('module_departments', config('tenant.modules', [])))
                                     <td>
-                                        <span class="badge badge-primary text-uppercase" style="font-size: 13px; font-weight: bold; padding: 6px 12px; border-radius: 4px;">
-                                            {{ $item->department ? $item->department->name : 'Otros' }}
-                                        </span>
+                                        @if($item->department)
+                                            <span class="badge {{ $item->department->report_type == 'gravado' ? 'badge-warning text-dark' : 'badge-primary' }} text-uppercase" style="font-size: 12px; font-weight: bold; padding: 6px 10px; border-radius: 4px;">
+                                                {{ $item->department->name }} ({{ strtoupper($item->department->report_type) }})
+                                            </span>
+                                        @else
+                                            <span class="badge badge-secondary text-uppercase" style="font-size: 12px; font-weight: bold; padding: 6px 10px; border-radius: 4px;">
+                                                Sin Asignar (LOCAL)
+                                            </span>
+                                        @endif
                                     </td>
                                     @endif
                                     <td>

@@ -1,3 +1,10 @@
+## [1.10.407] - 2026-08-29
+
+### Fixed
+- **Persistencia de Departamento en Categorías y Enlace con Modelos**:
+  - `Category.php`: Agregado `department_id` al array `$fillable` e implementada la relación `department()` (`belongsTo(Department::class)`).
+  - `Categories.php` & `categories.blade.php`: Corregida la directiva de enlace bidireccional en Livewire 3 (`wire:model` en lugar del obsoleto `wire:model.defer`), eager-loading de departamentos en la consulta y mejora visual en la tabla para mostrar el nombre del departamento y su etiqueta de tipo (`LOCAL` o `GRAVADO`).
+
 ## [1.10.406] - 2026-08-29
 
 ### Fixed
