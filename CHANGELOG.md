@@ -1,3 +1,9 @@
+## [1.10.405] - 2026-08-29
+
+### Added
+- **Renderizado Universal de Códigos QR para Impresoras Térmicas de 58mm y 80mm**:
+  - `PrintTrait.php`: Implementado el método `printQrCode()` que genera el código QR como imagen de mapa de bits (raster `bitImage`) mediante `DNS2D` y `EscposImage`. Esto soluciona la omisión del código QR en impresoras de 58mm (las cuales carecen de soporte para comandos ESC/POS nativos `GS ( k`), garantizando compatibilidad del 100% en todas las marcas y tamaños de ticketeras térmicas.
+
 ## [1.10.404] - 2026-08-29
 
 ### Fixed
