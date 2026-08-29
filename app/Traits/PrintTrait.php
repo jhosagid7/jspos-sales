@@ -28,22 +28,46 @@ trait PrintTrait
         // Determine printer name: Device > User > Global
         $printerName = null;
         $printerWidth = '80mm';
-        
-        // 1. Check Device Authorization
-        $deviceToken = \Illuminate\Support\Facades\Cookie::get('device_token') ?? session('device_token');
         $isNetwork = false;
         $printerUser = null;
         $printerPassword = null;
+        
+        // 1. Check Device Authorization (Token from Cookie, Session, Request, or Header)
+        $deviceToken = null;
+        try {
+            $deviceToken = request()?->cookie('device_token') 
+                ?? \Illuminate\Support\Facades\Cookie::get('device_token') 
+                ?? session('device_token') 
+                ?? request()?->header('X-Device-Token');
+        } catch (\Throwable $e) {}
 
+        $deviceAuth = null;
         if ($deviceToken) {
             $deviceAuth = \App\Models\DeviceAuthorization::where('uuid', $deviceToken)->first();
-            if ($deviceAuth && !empty($deviceAuth->printer_name)) {
-                $printerName = $deviceAuth->printer_name;
-                $printerWidth = $deviceAuth->printer_width ?? '80mm';
-                $isNetwork = $deviceAuth->is_network;
-                $printerUser = $deviceAuth->printer_user;
-                $printerPassword = $deviceAuth->printer_password;
+        }
+
+        // Fallback: If no token or no printer on this token, find approved device by current client IP
+        if ((!$deviceAuth || empty($deviceAuth->printer_name)) && request()) {
+            $clientIp = request()->ip();
+            if ($clientIp) {
+                $deviceAuthByIp = \App\Models\DeviceAuthorization::where('ip_address', $clientIp)
+                    ->where('status', 'approved')
+                    ->whereNotNull('printer_name')
+                    ->where('printer_name', '!=', '')
+                    ->orderBy('last_accessed_at', 'desc')
+                    ->first();
+                if ($deviceAuthByIp) {
+                    $deviceAuth = $deviceAuthByIp;
+                }
             }
+        }
+
+        if ($deviceAuth && !empty($deviceAuth->printer_name)) {
+            $printerName = $deviceAuth->printer_name;
+            $printerWidth = $deviceAuth->printer_width ?? '80mm';
+            $isNetwork = (bool) $deviceAuth->is_network;
+            $printerUser = $deviceAuth->printer_user;
+            $printerPassword = $deviceAuth->printer_password;
         }
 
         // 2. Check User (if no device printer)
@@ -52,7 +76,7 @@ trait PrintTrait
             if ($user && $user->printer_name) {
                 $printerName = $user->printer_name;
                 $printerWidth = $user->printer_width ?? '80mm';
-                $isNetwork = $user->is_network;
+                $isNetwork = (bool) $user->is_network;
                 $printerUser = $user->printer_user;
                 $printerPassword = $user->printer_password;
             }
@@ -62,7 +86,7 @@ trait PrintTrait
         if (empty($printerName)) {
             $printerName = $config->printer_name;
             $printerWidth = $config->printer_width ?? '80mm';
-            $isNetwork = $config->is_network;
+            $isNetwork = (bool) $config->is_network;
             $printerUser = $config->printer_user;
             $printerPassword = $config->printer_password;
         }
@@ -73,25 +97,21 @@ trait PrintTrait
         }
 
         if ($isNetwork && $printerUser && $printerPassword) {
-                // Let's try to detect if it is a UNC path to convert it to smb format
-                $cleanName = str_replace('\\\\', '', $printerName); // Remove leading \\
-                $parts = explode('\\', $cleanName);
-                
-                if (count($parts) >= 2) {
-                    $computer = $parts[0];
-                    $share = $parts[1];
-                     // Need to URL Encode user and pass if they have special chars for the URI format to be valid
-                     // But parse_url needs them encoded to separate correctly if they contain @ or :
-                     // However, our Custom Connector will handle raw strings if we pass safely or we should encode?
-                     // Standard URL encoding is safest for URI format.
-                     $encUser = urlencode($printerUser);
-                     $encPass = urlencode($printerPassword);
-                     $printerName = "smb://{$encUser}:{$encPass}@{$computer}/{$share}";
-                } else {
-                    $encUser = urlencode($printerUser);
-                    $encPass = urlencode($printerPassword);
-                    $printerName = "smb://{$encUser}:{$encPass}@{$cleanName}";
-                }
+            // Let's try to detect if it is a UNC path to convert it to smb format
+            $cleanName = str_replace('\\\\', '', $printerName); // Remove leading \\
+            $parts = explode('\\', $cleanName);
+            
+            if (count($parts) >= 2) {
+                $computer = $parts[0];
+                $share = $parts[1];
+                $encUser = urlencode($printerUser);
+                $encPass = urlencode($printerPassword);
+                $printerName = "smb://{$encUser}:{$encPass}@{$computer}/{$share}";
+            } else {
+                $encUser = urlencode($printerUser);
+                $encPass = urlencode($printerPassword);
+                $printerName = "smb://{$encUser}:{$encPass}@{$cleanName}";
+            }
         }
 
         return [

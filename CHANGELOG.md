@@ -1,3 +1,9 @@
+## [1.10.404] - 2026-08-29
+
+### Fixed
+- **Resolución Robusta de Dispositivo e Impresora en PrintTrait**:
+  - `PrintTrait.php`: Ampliado el alcance de detección del dispositivo autorizando la lectura del token desde cookies de solicitud, sesión, cabeceras HTTP (`X-Device-Token`) e incorporando un respaldo por dirección IP del cliente para garantizar que las preferencias de impresora configuradas en el Administrador de Dispositivos se apliquen de forma inmediata sin depender exclusivamente de cookies locales.
+
 ## [1.10.403] - 2026-08-29
 
 ### Fixed
