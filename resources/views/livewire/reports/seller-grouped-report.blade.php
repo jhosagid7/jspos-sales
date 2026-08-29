@@ -73,9 +73,14 @@
                         </button>
                     </div>
 
-                    <!-- Botones PDF (solo visible cuando hay datos) -->
+                    <!-- Botones PDF e Impresión (solo visible cuando hay datos) -->
                     @if($showReport)
-                    <div class="mt-2 d-flex gap-1">
+                    <div class="mt-3">
+                        <button wire:click.prevent="printTicket" class="btn btn-info btn-sm w-100 mb-2 font-weight-bold" title="Imprimir Ticket Térmico">
+                            <i class="fa fa-print me-1"></i> Imprimir Ticket Térmico
+                        </button>
+                    </div>
+                    <div class="mt-1 d-flex gap-1">
                         <button wire:click.prevent="openPdfPreview" class="btn btn-outline-danger btn-sm flex-fill" title="Previsualizar PDF">
                             <i class="fa fa-eye"></i> Vista Previa
                         </button>

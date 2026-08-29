@@ -1193,5 +1193,137 @@ trait PrintTrait
             Log::warning("Native ESC/POS QR Code failed: " . $e->getMessage());
         }
     }
+
+    /**
+     * Prints thermal ticket for Operator Collection / Cobranza por Operador report.
+     * Supports 58mm (32 cols) and 80mm (45 cols) paper widths, department split, and signatures.
+     */
+    public function printSellerGroupedTicket($reportData, $dateFrom, $dateTo, $splitByDepartment = false, $showSignatures = true)
+    {
+        try {
+            $printConfig = $this->getPrinterConfig();
+
+            if ($printConfig) {
+                $config = $printConfig['config'];
+                $printerName = $printConfig['printerName'];
+                $printerWidth = $printConfig['printerWidth'];
+
+                $connector = new CustomWindowsPrintConnector($printerName);
+                $printer = new Printer($connector);
+
+                $is58mm = ($printerWidth === '58mm');
+                $separator = $is58mm ? "--------------------------------" : "=============================================";
+                $doubleSeparator = $is58mm ? "================================" : "=============================================";
+
+                // --- HEADER ---
+                $printer->setJustification(Printer::JUSTIFY_CENTER);
+                $printer->setTextSize(1, 1);
+                $printer->text(strtoupper($config->business_name) . "\n");
+                $printer->setTextSize(1, 2);
+                $printer->text("COBRANZA POR OPERADOR\n");
+                $printer->setTextSize(1, 1);
+                $printer->text($doubleSeparator . "\n");
+                
+                $printer->setJustification(Printer::JUSTIFY_LEFT);
+                $dateFormatted = ($dateFrom === $dateTo) 
+                    ? Carbon::parse($dateFrom)->format('d/m/Y')
+                    : Carbon::parse($dateFrom)->format('d/m/Y') . " al " . Carbon::parse($dateTo)->format('d/m/Y');
+                
+                $printer->text("Fecha: " . $dateFormatted . "\n");
+                $printer->text("Hora:  " . Carbon::now()->format('H:i:s') . "\n");
+                $printer->text($separator . "\n");
+
+                $grandTotalUsd = 0;
+
+                foreach ($reportData as $sellerName => $payments) {
+                    $printer->setJustification(Printer::JUSTIFY_LEFT);
+                    $printer->setTextSize(1, 1);
+                    $printer->text("OPERADOR: " . strtoupper($sellerName) . "\n");
+                    $printer->text($separator . "\n");
+
+                    $sellerTotalUsd = 0;
+
+                    if ($splitByDepartment) {
+                        foreach ($payments as $deptType => $items) {
+                            $printer->text("▶ DEP: " . strtoupper($deptType) . "\n");
+                            $deptTotalUsd = 0;
+                            foreach ($items as $item) {
+                                $methodStr = strtoupper($item->method) . " (" . strtoupper($item->currency) . ")";
+                                $amountUsd = "$" . number_format($item->total_usd, 2);
+                                
+                                if ($is58mm) {
+                                    $line = sprintf("  %-18.18s %11s", $methodStr, $amountUsd);
+                                } else {
+                                    $line = sprintf("  %-28.28s %14s", $methodStr, $amountUsd);
+                                }
+                                $printer->text($line . "\n");
+                                $deptTotalUsd += $item->total_usd;
+                            }
+                            $sellerTotalUsd += $deptTotalUsd;
+                            $printer->text($separator . "\n");
+                        }
+                    } else {
+                        foreach ($payments as $item) {
+                            $methodStr = strtoupper($item->method) . " (" . strtoupper($item->currency) . ")";
+                            $amountUsd = "$" . number_format($item->total_usd, 2);
+                            if ($is58mm) {
+                                $line = sprintf("%-19.19s %12s", $methodStr, $amountUsd);
+                            } else {
+                                $line = sprintf("%-29.29s %15s", $methodStr, $amountUsd);
+                            }
+                            $printer->text($line . "\n");
+                            $sellerTotalUsd += $item->total_usd;
+                        }
+                        $printer->text($separator . "\n");
+                    }
+
+                    $grandTotalUsd += $sellerTotalUsd;
+                    $subtotalLine = $is58mm 
+                        ? sprintf("SUBTOTAL OPERADOR: %13s", "$" . number_format($sellerTotalUsd, 2))
+                        : sprintf("SUBTOTAL OPERADOR: %26s", "$" . number_format($sellerTotalUsd, 2));
+                    $printer->text($subtotalLine . "\n\n");
+                }
+
+                // --- GRAND TOTAL ---
+                $printer->text($doubleSeparator . "\n");
+                $printer->setTextSize(1, 2);
+                $totalLine = $is58mm
+                    ? sprintf("TOTAL USD: %16s", "$" . number_format($grandTotalUsd, 2))
+                    : sprintf("TOTAL GENERAL USD: %24s", "$" . number_format($grandTotalUsd, 2));
+                $printer->text($totalLine . "\n");
+                $printer->setTextSize(1, 1);
+                $printer->text($doubleSeparator . "\n\n");
+
+                // --- SIGNATURES ---
+                if ($showSignatures) {
+                    $printer->setJustification(Printer::JUSTIFY_CENTER);
+                    if ($is58mm) {
+                        $printer->text("\nFirma Operador:\n\n");
+                        $printer->text("________________________________\n");
+                        $printer->text("Entrega de Turno\n\n");
+                        $printer->text("\nFirma Supervisor / Auditor:\n\n");
+                        $printer->text("________________________________\n");
+                        $printer->text("Recibido Conforme\n\n");
+                    } else {
+                        $printer->text("\n\n");
+                        $printer->text("   ____________________         ____________________   \n");
+                        $printer->text("      Firma Operador               Firma Supervisor    \n");
+                        $printer->text("     Entrega de Turno             Recibido Conforme    \n\n");
+                    }
+                }
+
+                $printer->feed(3);
+                $printer->cut();
+                $printer->close();
+            } else {
+                Log::info("Configuracion de impresora no encontrada");
+            }
+        } catch (\Exception $th) {
+            Log::error("Error printing Seller Grouped Ticket: " . $th->getMessage());
+            if (method_exists($this, 'dispatch')) {
+                $this->dispatch('noty', msg: 'ERROR IMPRIMIENDO TICKET: ' . $th->getMessage());
+            }
+        }
+    }
 }
 

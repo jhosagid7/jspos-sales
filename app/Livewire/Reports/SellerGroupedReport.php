@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 class SellerGroupedReport extends Component
 {
+    use \App\Traits\PrintTrait;
+
     public $selectedOperators = [];
     public $dateFrom = '';
     public $dateTo = '';
@@ -268,6 +270,25 @@ class SellerGroupedReport extends Component
     {
         $this->showPdfModal = false;
         $this->pdfUrl = '';
+    }
+
+    public function printTicket()
+    {
+        $reportData = $this->getReportData();
+        if ($reportData->isEmpty()) {
+            $this->dispatch('noty', msg: 'NO HAY DATOS PARA IMPRIMIR');
+            return;
+        }
+
+        $this->printSellerGroupedTicket(
+            $reportData,
+            $this->dateFrom,
+            $this->dateTo,
+            $this->splitByDepartment,
+            $this->showSignatures
+        );
+
+        $this->dispatch('noty', msg: 'TICKET DE COBRANZA ENVIADO A LA IMPRESORA');
     }
 
     public function render()

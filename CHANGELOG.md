@@ -1,3 +1,10 @@
+## [1.10.408] - 2026-08-29
+
+### Added
+- **Impresión Térmica de Ticket para Reporte de Cobranza por Operador**:
+  - `PrintTrait.php`: Añadido el método `printSellerGroupedTicket()` con soporte completo para 58mm y 80mm, desglose por departamentos (`LOCAL` y `GRAVADO`), métodos de pago, totales en USD y líneas de firmas de entrega/recepción de turno.
+  - `SellerGroupedReport.php` & `seller-grouped-report.blade.php`: Integrado botón de acción *Imprimir Ticket Térmico* y método `printTicket()`.
+
 ## [1.10.407] - 2026-08-29
 
 ### Fixed
