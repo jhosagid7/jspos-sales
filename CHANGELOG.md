@@ -1,3 +1,9 @@
+## [1.10.403] - 2026-08-29
+
+### Fixed
+- **Sanitización de Codificación UTF-8 en Registro de Logs**:
+  - `Utf8LineFormatter.php`: Reemplazado el parámetro `'auto'` en `mb_convert_encoding()` por la lista explícita `'ISO-8859-1, Windows-1252, UTF-8'` para evitar advertencias de detección en PHP 8.x al formatear excepciones o advertencias del sistema.
+
 ## [1.10.402] - 2026-08-29
 
 ### Fixed
