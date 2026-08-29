@@ -1,3 +1,12 @@
+## [1.10.401] - 2026-08-29
+
+### Added
+- **Resolución Automática Inteligente de Nombres de Equipo para Impresoras de Red**:
+  - `CustomWindowsPrintConnector.php`: Implementado el método estático `resolveHostnameToIp()` con resolución multi-capa (IPv4/IPv6 directa, `localhost`, DNS nativo, mDNS `.local`, tabla de malla JSVPN/Tailscale y descubrimiento dinámico por coincidencia NetBIOS/ARP con validación de puertos SMB `445`/`139`).
+  - **Caché en Memoria Ultrarrápida**: Incorporada caché de 5 minutos en `\Illuminate\Support\Facades\Cache` para que las impresiones sucesivas se resuelvan instantáneamente a 0 ms.
+  - **Autenticación Previa de Sesión SMB**: Apertura automática de sesión de red (`net use`) con credenciales antes del envío a la cola de impresión de Windows (`sendToWin32Spooler`), permitiendo imprimir tanto por nombre de equipo (`DESKTOP-XXXX`) como por dirección IP fija o dinámica.
+  - `PrinterHostResolverTest.php`: Creada suite de pruebas unitarias cubriendo resolución directa de IP, resolución de loopback, resolución Tailscale/Mesh e inicialización UNC/SMB.
+
 ## [1.10.400] - 2026-08-26
 
 ### Fixed

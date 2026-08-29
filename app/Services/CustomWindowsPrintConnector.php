@@ -151,7 +151,20 @@ class CustomWindowsPrintConnector implements PrintConnector
 
     protected function finalizeWin($data)
     {
-        $printerName = $this->isLocal ? $this->printerName : ("\\\\" . $this->hostname . "\\" . $this->printerName);
+        $targetHost = $this->isLocal ? null : self::resolveHostnameToIp($this->hostname);
+        $printerName = $this->isLocal ? $this->printerName : ("\\\\" . ($targetHost ?: $this->hostname) . "\\" . $this->printerName);
+
+        // If network printer with credentials, authenticate SMB session prior to spooling/copying
+        if (!$this->isLocal && $this->userName !== null) {
+            $device = $printerName;
+            $user = "/user:" . ($this->workgroup != null ? ($this->workgroup . "\\") : "") . $this->userName;
+            if ($this->userPassword == null) {
+                $command = sprintf("net use %s %s", escapeshellarg($device), escapeshellarg($user));
+            } else {
+                $command = sprintf("net use %s %s %s", escapeshellarg($device), escapeshellarg($user), escapeshellarg($this->userPassword));
+            }
+            $this->runCommand($command, $outputStr, $errorStr);
+        }
 
         // Primary Method: Windows Raw Print Spooler API via PowerShell (Works for ALL local and network printers)
         try {
@@ -164,7 +177,7 @@ class CustomWindowsPrintConnector implements PrintConnector
 
         // Fallback Method 1: copy to device UNC
         if (!$this->isLocal) {
-            $device = "\\\\" . $this->hostname . "\\" . $this->printerName;
+            $device = $printerName;
             $netUseError = "";
             if ($this->userName !== null) {
                 $user = "/user:" . ($this->workgroup != null ? ($this->workgroup . "\\") : "") . $this->userName;
@@ -203,6 +216,109 @@ class CustomWindowsPrintConnector implements PrintConnector
                 throw new Exception("Failed to write file to printer at " . $this->printerName);
             }
         }
+    }
+
+    /**
+     * Resolve a hostname/computer name to an IP address dynamically.
+     * Supports IPv4, IPv6, localhost, DNS, mDNS (.local), Tailscale/JSVPN mesh, and NetBIOS/ARP.
+     */
+    public static function resolveHostnameToIp($hostname)
+    {
+        if (empty($hostname)) return $hostname;
+        
+        $hostname = trim($hostname, "\\ ");
+        
+        // 1. If already valid IPv4 or IPv6, return immediately
+        if (filter_var($hostname, FILTER_VALIDATE_IP)) {
+            return $hostname;
+        }
+
+        if (strtolower($hostname) === 'localhost') {
+            return '127.0.0.1';
+        }
+
+        // Cache resolution for 5 minutes to keep printing instantaneous (0 ms)
+        $cacheKey = "printer_resolved_ip_" . md5($hostname);
+        try {
+            if (class_exists('\Illuminate\Support\Facades\Cache')) {
+                $cached = \Illuminate\Support\Facades\Cache::get($cacheKey);
+                if ($cached && filter_var($cached, FILTER_VALIDATE_IP)) {
+                    return $cached;
+                }
+            }
+        } catch (\Throwable $e) {}
+
+        // 2. Try standard DNS / gethostbyname
+        $ip = @gethostbyname($hostname);
+        if ($ip !== $hostname && filter_var($ip, FILTER_VALIDATE_IP)) {
+            self::cacheResolvedIp($cacheKey, $ip);
+            return $ip;
+        }
+
+        // 3. Try .local (mDNS)
+        $ipLocal = @gethostbyname($hostname . '.local');
+        if ($ipLocal !== ($hostname . '.local') && filter_var($ipLocal, FILTER_VALIDATE_IP)) {
+            self::cacheResolvedIp($cacheKey, $ipLocal);
+            return $ipLocal;
+        }
+
+        // 4. Windows NetBIOS + ARP + Tailscale resolution
+        if (PHP_OS_FAMILY === 'Windows') {
+            // Check Tailscale / JSVPN Mesh status
+            $tailscale = @shell_exec("tailscale status 2>&1");
+            if ($tailscale && preg_match('/([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})\s+' . preg_quote(strtolower($hostname), '/') . '\b/i', $tailscale, $mTs)) {
+                self::cacheResolvedIp($cacheKey, $mTs[1]);
+                return $mTs[1];
+            }
+
+            // Query NetBIOS for MAC address
+            $nbtOutput = @shell_exec("nbtstat -a " . escapeshellarg($hostname));
+            if ($nbtOutput && preg_match('/MAC\s*=\s*([0-9a-fA-F\-]{17})/i', $nbtOutput, $m)) {
+                $mac = strtolower(str_replace(':', '-', trim($m[1])));
+
+                // Find candidate IPs in ARP table with this MAC
+                $arpOutput = @shell_exec("arp -a");
+                if ($arpOutput && preg_match_all('/([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})\s+' . preg_quote($mac, '/') . '/i', $arpOutput, $mArp)) {
+                    $candidateIps = $mArp[1];
+                    if (count($candidateIps) === 1) {
+                        self::cacheResolvedIp($cacheKey, $candidateIps[0]);
+                        return $candidateIps[0];
+                    }
+
+                    // Test which IP is responding to SMB port 445 / 139
+                    foreach ($candidateIps as $candidate) {
+                        $fp = @fsockopen($candidate, 445, $errno, $errstr, 0.3);
+                        if ($fp) {
+                            fclose($fp);
+                            self::cacheResolvedIp($cacheKey, $candidate);
+                            return $candidate;
+                        }
+                        $fp = @fsockopen($candidate, 139, $errno, $errstr, 0.3);
+                        if ($fp) {
+                            fclose($fp);
+                            self::cacheResolvedIp($cacheKey, $candidate);
+                            return $candidate;
+                        }
+                    }
+
+                    if (!empty($candidateIps[0])) {
+                        self::cacheResolvedIp($cacheKey, $candidateIps[0]);
+                        return $candidateIps[0];
+                    }
+                }
+            }
+        }
+
+        return $hostname;
+    }
+
+    private static function cacheResolvedIp($key, $ip)
+    {
+        try {
+            if (class_exists('\Illuminate\Support\Facades\Cache')) {
+                \Illuminate\Support\Facades\Cache::put($key, $ip, now()->addMinutes(5));
+            }
+        } catch (\Throwable $e) {}
     }
 
     protected function sendToWin32Spooler($printerName, $data)
