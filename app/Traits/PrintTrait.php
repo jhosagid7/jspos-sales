@@ -1217,6 +1217,7 @@ trait PrintTrait
 
                 // --- HEADER ---
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
+                $printer->setFont(Printer::FONT_A);
                 $printer->setTextSize(1, 1);
                 $printer->text(strtoupper($config->business_name) . "\n");
                 $printer->setTextSize(1, 2);
@@ -1233,6 +1234,14 @@ trait PrintTrait
                 $printer->text("Fecha: " . $dateFormatted . "\n");
                 $printer->text("Hora:  " . Carbon::now()->format('H:i:s') . "\n");
                 $printer->text($separator . "\n");
+
+                // Switch to Font B (smaller letter) on 58mm for the entire body so large amounts and descriptions never wrap
+                if ($is58mm) {
+                    $printer->setFont(Printer::FONT_B);
+                    $bodySep = "--------------------------------------";
+                } else {
+                    $bodySep = $separator;
+                }
 
                 $grandTotalUsd = 0;
 
@@ -1283,16 +1292,16 @@ trait PrintTrait
                             $methodStr = strtoupper($item->method) . " (" . strtoupper($item->currency) . ")";
                             $amountUsd = "$" . number_format($item->total_usd, 2);
                             if ($is58mm) {
-                                $line = sprintf("  %-18.18s %11s", $methodStr, $amountUsd);
+                                $line = sprintf("  %-22.22s %13s", $methodStr, $amountUsd);
                             } else {
                                 $line = sprintf("  %-28.28s %14s", $methodStr, $amountUsd);
                             }
                             $printer->text($line . "\n");
                             $deptSubtotalUsd += $item->total_usd;
                         }
-                        $printer->text($separator . "\n");
+                        $printer->text($bodySep . "\n");
                         $subLine = $is58mm
-                            ? sprintf("SUBTOTAL %-8.8s: %14s", $deptKey, "$" . number_format($deptSubtotalUsd, 2))
+                            ? sprintf("SUBTOTAL %-8.8s: %19s", $deptKey, "$" . number_format($deptSubtotalUsd, 2))
                             : sprintf("SUBTOTAL %-12.12s: %27s", $deptKey, "$" . number_format($deptSubtotalUsd, 2));
                         $printer->text($subLine . "\n\n");
                         $grandTotalUsd += $deptSubtotalUsd;
@@ -1300,9 +1309,8 @@ trait PrintTrait
                 } else {
                     foreach ($reportData as $sellerName => $payments) {
                         $printer->setJustification(Printer::JUSTIFY_LEFT);
-                        $printer->setTextSize(1, 1);
                         $printer->text("OPERADOR: " . strtoupper($sellerName) . "\n");
-                        $printer->text($separator . "\n");
+                        $printer->text($bodySep . "\n");
 
                         $sellerTotalUsd = 0;
 
@@ -1315,7 +1323,7 @@ trait PrintTrait
                                     $amountUsd = "$" . number_format($item->total_usd, 2);
                                     
                                     if ($is58mm) {
-                                        $line = sprintf("  %-18.18s %11s", $methodStr, $amountUsd);
+                                        $line = sprintf("  %-22.22s %13s", $methodStr, $amountUsd);
                                     } else {
                                         $line = sprintf("  %-28.28s %14s", $methodStr, $amountUsd);
                                     }
@@ -1323,29 +1331,34 @@ trait PrintTrait
                                     $deptTotalUsd += $item->total_usd;
                                 }
                                 $sellerTotalUsd += $deptTotalUsd;
-                                $printer->text($separator . "\n");
+                                $printer->text($bodySep . "\n");
                             }
                         } else {
                             foreach ($payments as $item) {
                                 $methodStr = strtoupper($item->method) . " (" . strtoupper($item->currency) . ")";
                                 $amountUsd = "$" . number_format($item->total_usd, 2);
                                 if ($is58mm) {
-                                    $line = sprintf("%-19.19s %12s", $methodStr, $amountUsd);
+                                    $line = sprintf("%-24.24s %13s", $methodStr, $amountUsd);
                                 } else {
                                     $line = sprintf("%-29.29s %15s", $methodStr, $amountUsd);
                                 }
                                 $printer->text($line . "\n");
                                 $sellerTotalUsd += $item->total_usd;
                             }
-                            $printer->text($separator . "\n");
+                            $printer->text($bodySep . "\n");
                         }
 
                         $grandTotalUsd += $sellerTotalUsd;
                         $subtotalLine = $is58mm 
-                            ? sprintf("SUBTOTAL OPERADOR: %13s", "$" . number_format($sellerTotalUsd, 2))
+                            ? sprintf("SUBTOTAL OPERADOR: %19s", "$" . number_format($sellerTotalUsd, 2))
                             : sprintf("SUBTOTAL OPERADOR: %26s", "$" . number_format($sellerTotalUsd, 2));
                         $printer->text($subtotalLine . "\n\n");
                     }
+                }
+
+                // Restore Font A for Grand Total and Signatures
+                if ($is58mm) {
+                    $printer->setFont(Printer::FONT_A);
                 }
 
                 // --- GRAND TOTAL ---

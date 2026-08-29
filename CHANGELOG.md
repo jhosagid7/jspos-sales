@@ -1,3 +1,10 @@
+## [1.10.410] - 2026-08-29
+
+### Fixed
+- **Ajuste de Tipografía Condensada (Font B) en Ticket Térmico de Cobranza (58mm)**:
+  - Se implementó la fuente compacta `Font B` (40 columnas) en el cuerpo del ticket para impresoras de 58mm en `PrintTrait.php`.
+  - Ahora las descripciones de departamentos (`DEP: LOCAL`, `DEP: GRAVADO`), los métodos de pago largos y montos de 5 o más cifras se imprimen alineados en una sola línea sin desbordarse hacia la línea inferior.
+
 ## [1.10.409] - 2026-08-29
 
 ### Added
