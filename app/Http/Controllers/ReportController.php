@@ -3877,11 +3877,11 @@ class ReportController extends Controller
         // 0. Subconsulta de proporciones
         $salesProportions = DB::table('sale_details')
             ->join('products', 'sale_details.product_id', '=', 'products.id')
-            ->join('categories', 'products.category_id', '=', 'categories.id')
+            ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
             ->leftJoin('departments', 'categories.department_id', '=', 'departments.id')
             ->select(
                 'sale_details.sale_id',
-                DB::raw("SUM(CASE WHEN departments.report_type = 'local' THEN sale_details.quantity * sale_details.sale_price ELSE 0 END) as local_subtotal"),
+                DB::raw("SUM(CASE WHEN departments.report_type = 'gravado' THEN 0 ELSE sale_details.quantity * sale_details.sale_price END) as local_subtotal"),
                 DB::raw("SUM(CASE WHEN departments.report_type = 'gravado' THEN sale_details.quantity * sale_details.sale_price ELSE 0 END) as gravado_subtotal"),
                 DB::raw("SUM(sale_details.quantity * sale_details.sale_price) as total_subtotal")
             )

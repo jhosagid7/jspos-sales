@@ -1,3 +1,9 @@
+## [1.10.406] - 2026-08-29
+
+### Fixed
+- **Corrección en Clasificación por Defecto Local / Gravado en Reporte Cobranza por Operador**:
+  - `SellerGroupedReport.php` & `ReportController.php`: Actualizada la subconsulta de proporciones para aplicar `leftJoin` en categorías y clasificar automáticamente como **LOCAL** cualquier producto/servicio que no pertenezca explícitamente a un departamento de tipo `gravado`. Esto evita que ventas de productos sin departamento asignado desaparezcan o se omitan al activar el desglose *Dividir Local/Gravado*.
+
 ## [1.10.405] - 2026-08-29
 
 ### Added
