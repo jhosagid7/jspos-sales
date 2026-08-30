@@ -19,22 +19,19 @@ class Backups extends Component
 
     public function loadBackups()
     {
-        // Use the 'backup' disk configured in filesystems.php
-        // The folder name is usually the app name (slugified) or defined in backup.php
-        $backupName = config('backup.backup.name');
         $disk = Storage::disk('backup');
         
-        if (!$disk->exists($backupName)) {
-            $this->backups = [];
-            return;
-        }
+        // Scan all zip files in the backup disk (handles all company/app folders)
+        $allFiles = $disk->allFiles();
+        $zipFiles = collect($allFiles)->filter(function ($file) {
+            return str_ends_with(strtolower($file), '.zip');
+        });
 
-        $files = $disk->files($backupName);
-        
-        $this->backups = collect($files)->map(function ($file) use ($disk) {
+        $this->backups = $zipFiles->map(function ($file) use ($disk) {
             return [
                 'path' => str_replace('\\', '/', $file),
                 'name' => basename($file),
+                'folder' => dirname($file) !== '.' ? dirname($file) : '',
                 'size' => $this->formatSize($disk->size($file)),
                 'date' => Carbon::createFromTimestamp($disk->lastModified($file))->format('Y-m-d H:i:s'),
                 'timestamp' => $disk->lastModified($file)
@@ -53,9 +50,17 @@ class Backups extends Component
             }
             // 'full' implies no extra flags (both)
 
-            Artisan::call('backup:run', $flags);
+            $exitCode = Artisan::call('backup:run', $flags);
+            $output = Artisan::output();
             
             $this->loadBackups();
+
+            if ($exitCode !== 0) {
+                $errorMsg = !empty(trim($output)) ? trim($output) : "Código de error {$exitCode}";
+                $this->dispatch('noty', msg: 'Error al generar la copia: ' . $errorMsg, type: 'error');
+                return;
+            }
+
             $this->dispatch('noty', msg: 'Copia de seguridad creada exitosamente');
         } catch (\Exception $e) {
             $this->dispatch('noty', msg: 'Error al crear copia: ' . $e->getMessage(), type: 'error');

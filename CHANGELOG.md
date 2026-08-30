@@ -1,3 +1,11 @@
+## [1.10.415] - 2026-08-29
+
+### Fixed
+- **Visualización y Detección de Copias de Seguridad en Disco**:
+  - Se mejoró `Backups.php` para escanear recursivamente todos los archivos `.zip` en el disco de respaldos, permitiendo mostrar de inmediato las copias sin importar el nombre o carpeta de la empresa asignada por Spatie Backup.
+  - Se optimizó la descarga (`BackupController.php`) para localizar y descargar cualquier archivo de respaldo en cualquier subcarpeta.
+  - Se robusteció la autodetección de `mysqldump.exe` en `config/database.php` para verificar la existencia real del binario antes de usar rutas por defecto.
+
 ## [1.10.414] - 2026-08-29
 
 ### Fixed

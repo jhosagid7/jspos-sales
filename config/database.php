@@ -63,7 +63,15 @@ return [
             ]) : [],
             'timezone' => '-04:00',
             'dump' => [
-               'dump_binary_path' => env('DB_DUMP_PATH', (function() {
+               'dump_binary_path' => (function() {
+                    $envPath = env('DB_DUMP_PATH');
+                    if ($envPath) {
+                        $clean = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $envPath), DIRECTORY_SEPARATOR);
+                        if (file_exists($clean . DIRECTORY_SEPARATOR . 'mysqldump.exe') || file_exists($clean . DIRECTORY_SEPARATOR . 'mysqldump')) {
+                            return $clean;
+                        }
+                    }
+
                     // Autodetect Laragon MySQL/MariaDB paths
                     foreach (['mysql', 'mariadb'] as $type) {
                         $basePath = 'C:\laragon\bin\\' . $type . '\\';
@@ -72,16 +80,17 @@ return [
                             if (!empty($dirs)) {
                                 rsort($dirs); // Get highest version first
                                 foreach ($dirs as $dir) {
-                                    if (is_dir($dir . DIRECTORY_SEPARATOR . 'bin')) {
-                                        return $dir . DIRECTORY_SEPARATOR . 'bin';
+                                    $binDir = $dir . DIRECTORY_SEPARATOR . 'bin';
+                                    if (file_exists($binDir . DIRECTORY_SEPARATOR . 'mysqldump.exe') || file_exists($binDir . DIRECTORY_SEPARATOR . 'mysqldump')) {
+                                        return $binDir;
                                     }
                                 }
                             }
                         }
                     }
-                    // Fallback to common path if nothing found
-                    return 'C:\laragon\bin\mysql\mysql-8.0.30-winx64\bin';
-               })()),
+                    // Fallback to env or default
+                    return $envPath ?: 'C:\laragon\bin\mysql\mysql-8.0.30-winx64\bin';
+               })(),
                'useSingleTransaction' => true,
                'timeout' => 60 * 5, // 5 minute timeout
             ],
