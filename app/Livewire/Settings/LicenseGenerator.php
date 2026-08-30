@@ -117,7 +117,10 @@ class LicenseGenerator extends Component
 
     public function render()
     {
-        return view('livewire.settings.license-generator')
+        return view('livewire.settings.license-generator', [
+            'availableModules' => $this->availableModules,
+            'dependencies' => $this->dependencies,
+        ])
             ->extends('layouts.theme.app')
             ->section('content');
     }

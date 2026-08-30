@@ -1,3 +1,10 @@
+## [1.10.416] - 2026-08-29
+
+### Fixed
+- **Error de Servidor al Cargar 'Generador SaaS' (LicenseGenerator)**:
+  - Se solucionó el error `Undefined variable $availableModules` al abrir el Generador Maestro de Licencias SaaS (`license-generator`).
+  - Se pasan explícitamente las variables `$availableModules` y `$dependencies` desde el método `render()` del componente Livewire.
+
 ## [1.10.415] - 2026-08-29
 
 ### Fixed
