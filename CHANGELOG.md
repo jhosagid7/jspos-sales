@@ -1,3 +1,10 @@
+## [1.10.419] - 2026-08-30
+
+### Changed
+- **Nombre y Versión Dinámica de JSPOS en Pestañas del Navegador**:
+  - `AppServiceProvider.php`: Se configuró el nombre de la aplicación global de forma dinámica (`JSPOS v{version}`) leyendo directamente del archivo `version.txt` y compartiendo `$systemTitle` y `$systemVersion` a todas las vistas.
+  - `app.blade.php`, `app-simple.blade.php`, `login.blade.php`, `layouts/app.blade.php` y `layouts/guest.blade.php`: Se actualizaron las etiquetas `<title>` para mostrar de forma limpia y consistente la identidad oficial `JSPOS vX.X.XXX` (ej. `JSPOS v1.10.419` y `JSPOS v1.10.419 - Acceso` en el login), evitando que el nombre comercial de la empresa cliente sobreescriba el título de la pestaña del navegador.
+
 ## [1.10.418] - 2026-08-30
 
 ### Added

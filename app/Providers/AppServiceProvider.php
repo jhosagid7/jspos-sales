@@ -23,6 +23,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Auto-configure dynamic system name and version
+        try {
+            $rawVer = file_exists(base_path('version.txt')) ? trim(file_get_contents(base_path('version.txt'))) : '1.0';
+            $systemVersion = 'v' . ltrim($rawVer, 'v');
+            $systemTitle = 'JSPOS ' . $systemVersion;
+            config(['app.name' => $systemTitle]);
+            \Illuminate\Support\Facades\View::share('systemVersion', $systemVersion);
+            \Illuminate\Support\Facades\View::share('systemTitle', $systemTitle);
+        } catch (\Throwable $e) {}
+
         // Auto-synchronize APP_URL & URL root with request host to prevent Livewire 401 signature mismatch
         try {
             if (!app()->runningInConsole() && isset($_SERVER['HTTP_HOST'])) {
