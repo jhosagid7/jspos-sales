@@ -1,3 +1,9 @@
+## [1.10.418] - 2026-08-30
+
+### Added
+- **Configuración de Cabecera en Ticket de Cobranza por Operador**:
+  - `Configuration.php`, `PrintTrait.php` y `settings.blade.php`: Agregada la sección *Ticket de Cobranza por Operador* en la pestaña 15 de Configuración (Tickets) con el switch `show_company_data` ("Datos de la empresa"), permitiendo mostrar u ocultar el nombre de la empresa en el encabezado del ticket térmico de cobranzas.
+
 ## [1.10.417] - 2026-08-30
 
 ### Added

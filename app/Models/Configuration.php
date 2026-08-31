@@ -258,6 +258,9 @@ class Configuration extends Model
                 'show_header' => true,
                 'show_charges_breakdown' => true,
             ],
+            'seller_grouped' => [
+                'show_company_data' => true,
+            ],
         ];
     }
 

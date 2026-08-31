@@ -1274,10 +1274,14 @@ trait PrintTrait
                 $doubleSeparator = $is58mm ? "================================" : "=============================================";
 
                 // --- HEADER ---
+                $showCompanyData = $config ? $config->getTicketSetting('seller_grouped', 'show_company_data', true) : true;
+
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
                 $printer->setFont(Printer::FONT_A);
-                $printer->setTextSize(1, 1);
-                $printer->text(strtoupper($config->business_name) . "\n");
+                if ($showCompanyData && !empty($config->business_name)) {
+                    $printer->setTextSize(1, 1);
+                    $printer->text(strtoupper($config->business_name) . "\n");
+                }
                 $printer->setTextSize(1, 2);
                 $title = $condensedSummary ? "COBRANZA (RESUMEN)\n" : "COBRANZA POR OPERADOR\n";
                 $printer->text($title);

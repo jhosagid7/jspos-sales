@@ -66,6 +66,9 @@ class TicketConfigurationTest extends TestCase
         // Verify internal keys
         $this->assertTrue($defaults['internal']['show_header']);
         $this->assertTrue($defaults['internal']['show_charges_breakdown']);
+
+        // Verify seller_grouped keys
+        $this->assertTrue($defaults['seller_grouped']['show_company_data']);
     }
 
     /** @test */
@@ -169,6 +172,7 @@ class TicketConfigurationTest extends TestCase
             ->set('ticketSettings.sales.show_company_data', false)
             ->set('ticketSettings.sales.show_qr', false)
             ->set('ticketSettings.payments.show_debt', false)
+            ->set('ticketSettings.seller_grouped.show_company_data', false)
             ->call('saveConfig');
 
         // Verify DB persistence
@@ -182,6 +186,7 @@ class TicketConfigurationTest extends TestCase
         $this->assertFalse($saved['sales']['show_company_data']);
         $this->assertFalse($saved['sales']['show_qr']);
         $this->assertFalse($saved['payments']['show_debt']);
+        $this->assertFalse($saved['seller_grouped']['show_company_data']);
         $this->assertTrue($saved['sales']['show_subtotal']);
         $this->assertTrue($saved['orders']['show_company_data']);
     }

@@ -1952,6 +1952,29 @@ Departamento de Control de Calidad y Manufactura
                                             </div>
                                         </div>
                                     </div>
+                                    {{-- 8. Ticket de Cobranza por Operador --}}
+                                    <div class="col-12">
+                                        <div class="card shadow-sm border-0 mb-0">
+                                            <div class="card-header bg-light py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="fa fa-users text-primary"></i>
+                                                    <span class="fw-bold text-dark">Ticket de Cobranza por Operador</span>
+                                                </div>
+                                                <span class="badge bg-primary text-white">Reportes y Arqueos</span>
+                                            </div>
+                                            <div class="card-body p-3">
+                                                <div class="row g-3">
+                                                    <div class="col-md-6">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="ticketSellerGroupedCompanyData" wire:model="ticketSettings.seller_grouped.show_company_data">
+                                                            <label class="custom-control-label" for="ticketSellerGroupedCompanyData">Datos de la empresa (Cabecera)</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Muestra u oculta el nombre de la empresa en el encabezado del ticket.</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div class="mt-4 pt-3 border-top d-flex justify-content-end">
