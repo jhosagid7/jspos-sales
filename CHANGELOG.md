@@ -1,3 +1,26 @@
+## [1.10.417] - 2026-08-30
+
+### Added
+- **Configuración Modular e Independiente de Tickets Térmicos (ESC/POS)**:
+  - Nueva pestaña 15 en el módulo de Configuración (*Tickets*) que permite personalizar de manera independiente cada tipo de ticket térmico:
+    - *Ticket de Venta (POS)*: Auto-impresión al cobrar (`auto_print`), datos de empresa en cabecera, subtotal, IVA, efectivo y cambio recibido (`show_cash_change`), mensaje de pie/agradecimiento, sitio web y código QR para clonación rápida.
+    - *Ticket de Pedidos y Cotizaciones*: Cabecera, subtotal, IVA, cambio, pie de página, sitio web y QR.
+    - *Ticket de Abonos y Cobranzas de Clientes*: Cabecera, deuda actual y saldo liquidado, pie de página.
+    - *Ticket de Pagos a Proveedores*: Cabecera y deuda con el proveedor.
+    - *Ticket de Corte y Arqueo de Caja*: Cabecera, desglose de ventas, desglose de cobranzas recibidas y movimientos de billetera/custodia.
+    - *Ticket de Historial de Pagos*: Cabecera, notas de crédito/devoluciones y alerta de días de mora.
+    - *Ticket Interno (Comprobante Contable)*: Encabezado comanda interna y desglose de recargos/comisiones/fletes.
+  - Integración en el trait `PrintTrait.php` y el módulo POS `Sales.php`.
+
+- **Configuración Modular e Independiente de Facturas y Documentos PDF**:
+  - Nueva pestaña 16 en el módulo de Configuración (*Facturas PDF*) con controles independientes para:
+    - *Facturas de Venta (Contado y Crédito)*: Logotipo, datos de empresa, datos de vendedor y operador, cuentas bancarias autorizadas, subtotal, IVA, recuadro de firma y sello, monto en letras, notas/observaciones, código QR y código alfanumérico de control/auditoría (`footer_code`).
+    - *Pedidos y Cotizaciones*: Logotipo, datos de empresa, vendedor, cuentas bancarias, subtotal, IVA, firma/sello, monto en letras, notas, QR y código de auditoría.
+    - *Órdenes de Compra a Proveedores*: Logotipo, datos de empresa, subtotal, IVA, firma de autorización, monto en letras, notas y código de auditoría.
+    - *Notas de Débito y Ajustes de Inventario (Cargos y Descargos)*: Logotipo, datos de empresa, subtotal, IVA, firma/sello, monto en letras, notas y código de auditoría.
+    - *Reportes PDF Generales*: Logotipo institucional, encabezado de empresa y pie con fecha/hora de generación.
+  - Adaptación de todas las plantillas Blade en `resources/views/vendor/invoices/templates/` con retrocompatibilidad garantizada.
+
 ## [1.10.416] - 2026-08-29
 
 ### Fixed

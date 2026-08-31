@@ -188,6 +188,32 @@
                                 </div>
                             </a>
                         </li>
+
+                        @role('Super Admin')
+                        {{-- Tab 15: Configuración de Tickets --}}
+                        <li class="nav-item mb-2">
+                            <a class="nav-link {{ $tab == 15 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                               wire:click.prevent="$set('tab',15)" href="#">
+                                <i class="fa fa-receipt fa-2x text-warning"></i>
+                                <div>
+                                    <h6 class="mb-0 text-warning">Tickets</h6>
+                                    <small class="{{ $tab == 15 ? 'text-white' : 'text-muted' }}">Formato e Impresión</small>
+                                </div>
+                            </a>
+                        </li>
+
+                        {{-- Tab 16: Configuración de Facturas PDF --}}
+                        <li class="nav-item mb-2">
+                            <a class="nav-link {{ $tab == 16 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                               wire:click.prevent="$set('tab',16)" href="#">
+                                <i class="fa fa-file-pdf fa-2x text-danger"></i>
+                                <div>
+                                    <h6 class="mb-0 text-danger">Facturas PDF</h6>
+                                    <small class="{{ $tab == 16 ? 'text-white' : 'text-muted' }}">Formato y Secciones</small>
+                                </div>
+                            </a>
+                        </li>
+                        @endrole
                     </ul>
                 </div>
 
@@ -1609,6 +1635,865 @@ Departamento de Control de Calidad y Manufactura
                                             </div>
                                         </div>
                                     @endforeach
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- TAB 15: CONFIGURACIÓN DE TICKETS --}}
+                        <div class="tab-pane fade {{ $tab == 15 ? 'active show' : '' }}" id="tickets-settings" role="tabpanel"
+                            aria-labelledby="tickets-settings-tab">
+                            <div class="sidebar-body">
+                                <div class="d-flex align-items-center justify-content-between mb-4 border-bottom pb-3">
+                                    <div>
+                                        <h5 class="mb-1 text-primary fw-bold"><i class="fa fa-receipt me-2"></i>Configuración de Tickets Térmicos</h5>
+                                        <p class="text-muted mb-0 small">Personaliza la apariencia, contenido e impresión automática para cada tipo de ticket térmico ESC/POS del sistema.</p>
+                                    </div>
+                                    <button wire:click.prevent="saveConfig" class="btn btn-primary shadow-sm">
+                                        <i class="fa fa-save me-2"></i>Guardar Cambios
+                                    </button>
+                                </div>
+
+                                <div class="row g-4">
+                                    {{-- 1. Ticket de Ventas (POS) --}}
+                                    <div class="col-12">
+                                        <div class="card shadow-sm border-0 mb-0">
+                                            <div class="card-header bg-light py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="fa fa-shopping-cart text-primary"></i>
+                                                    <span class="fw-bold text-dark">Ticket de Venta (POS)</span>
+                                                </div>
+                                                <span class="badge bg-primary text-white">Ventas y Facturación</span>
+                                            </div>
+                                            <div class="card-body p-3">
+                                                <div class="row g-3">
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="ticketSalesAutoPrint" wire:model="ticketSettings.sales.auto_print">
+                                                            <label class="custom-control-label fw-bold text-primary" for="ticketSalesAutoPrint">Auto-imprimir al cobrar venta</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Si se apaga, no imprime automáticamente pero permite reimprimir manual.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="ticketSalesCompanyData" wire:model="ticketSettings.sales.show_company_data">
+                                                            <label class="custom-control-label" for="ticketSalesCompanyData">Datos de la empresa (Cabecera)</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Nombre, RIF/NIT, dirección y teléfono.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="ticketSalesSubtotal" wire:model="ticketSettings.sales.show_subtotal">
+                                                            <label class="custom-control-label" for="ticketSalesSubtotal">Línea de Subtotal</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Muestra el desglose del subtotal antes de impuesto.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="ticketSalesTax" wire:model="ticketSettings.sales.show_tax">
+                                                            <label class="custom-control-label" for="ticketSalesTax">Línea de IVA / Impuesto</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Muestra el desglose del monto de IVA.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="ticketSalesCashChange" wire:model="ticketSettings.sales.show_cash_change">
+                                                            <label class="custom-control-label" for="ticketSalesCashChange">Efectivo y Cambio (Vuelto)</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Muestra el monto entregado en efectivo y el cambio devuelto.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="ticketSalesFooterMessage" wire:model="ticketSettings.sales.show_footer_message">
+                                                            <label class="custom-control-label" for="ticketSalesFooterMessage">Mensaje de Leyenda / Gracias</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Muestra el mensaje de agradecimiento configurado.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="ticketSalesWebsite" wire:model="ticketSettings.sales.show_website">
+                                                            <label class="custom-control-label" for="ticketSalesWebsite">Sitio Web en pie de ticket</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Muestra la URL del sitio web de la empresa.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="ticketSalesQr" wire:model="ticketSettings.sales.show_qr">
+                                                            <label class="custom-control-label" for="ticketSalesQr">Código QR (Scan para Clonar)</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Muestra el código QR para clonar la venta con la app móvil.</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- 2. Ticket de Pedidos / Cotizaciones --}}
+                                    <div class="col-12">
+                                        <div class="card shadow-sm border-0 mb-0">
+                                            <div class="card-header bg-light py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="fa fa-clipboard-list text-info"></i>
+                                                    <span class="fw-bold text-dark">Ticket de Pedidos / Cotizaciones</span>
+                                                </div>
+                                                <span class="badge bg-info text-white">Preventa y Cotización</span>
+                                            </div>
+                                            <div class="card-body p-3">
+                                                <div class="row g-3">
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="ticketOrdersCompanyData" wire:model="ticketSettings.orders.show_company_data">
+                                                            <label class="custom-control-label" for="ticketOrdersCompanyData">Datos de la empresa (Cabecera)</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Nombre, RIF/NIT, dirección y teléfono.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="ticketOrdersSubtotal" wire:model="ticketSettings.orders.show_subtotal">
+                                                            <label class="custom-control-label" for="ticketOrdersSubtotal">Línea de Subtotal</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Muestra el desglose del subtotal antes de impuesto.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="ticketOrdersTax" wire:model="ticketSettings.orders.show_tax">
+                                                            <label class="custom-control-label" for="ticketOrdersTax">Línea de IVA / Impuesto</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Muestra el desglose del monto de IVA.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="ticketOrdersCashChange" wire:model="ticketSettings.orders.show_cash_change">
+                                                            <label class="custom-control-label" for="ticketOrdersCashChange">Efectivo y Cambio</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Muestra forma de pago y cambio si aplica.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="ticketOrdersFooterMessage" wire:model="ticketSettings.orders.show_footer_message">
+                                                            <label class="custom-control-label" for="ticketOrdersFooterMessage">Mensaje de Leyenda / Gracias</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Muestra la leyenda o mensaje en el pie.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="ticketOrdersWebsite" wire:model="ticketSettings.orders.show_website">
+                                                            <label class="custom-control-label" for="ticketOrdersWebsite">Sitio Web en pie de ticket</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Muestra la URL del sitio web de la empresa.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="ticketOrdersQr" wire:model="ticketSettings.orders.show_qr">
+                                                            <label class="custom-control-label" for="ticketOrdersQr">Código QR (Scan para Clonar)</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Muestra el código QR para procesar el pedido.</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- 3. Ticket de Abonos / Pagos de Clientes --}}
+                                    <div class="col-md-6">
+                                        <div class="card shadow-sm border-0 mb-0 h-100">
+                                            <div class="card-header bg-light py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="fa fa-hand-holding-usd text-success"></i>
+                                                    <span class="fw-bold text-dark">Ticket de Abonos (Clientes)</span>
+                                                </div>
+                                                <span class="badge bg-success text-white">Cobranzas</span>
+                                            </div>
+                                            <div class="card-body p-3">
+                                                <div class="d-flex flex-column gap-3">
+                                                    <div class="custom-control custom-switch">
+                                                        <input type="checkbox" class="custom-control-input" id="ticketPaymentsCompanyData" wire:model="ticketSettings.payments.show_company_data">
+                                                        <label class="custom-control-label" for="ticketPaymentsCompanyData">Datos de la empresa (Cabecera)</label>
+                                                    </div>
+                                                    <div class="custom-control custom-switch">
+                                                        <input type="checkbox" class="custom-control-input" id="ticketPaymentsDebt" wire:model="ticketSettings.payments.show_debt">
+                                                        <label class="custom-control-label" for="ticketPaymentsDebt">Deuda actual / Crédito liquidado</label>
+                                                    </div>
+                                                    <div class="custom-control custom-switch">
+                                                        <input type="checkbox" class="custom-control-input" id="ticketPaymentsFooterMessage" wire:model="ticketSettings.payments.show_footer_message">
+                                                        <label class="custom-control-label" for="ticketPaymentsFooterMessage">Mensaje de Leyenda / Gracias</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- 4. Ticket de Pagos a Proveedores (Egresos) --}}
+                                    <div class="col-md-6">
+                                        <div class="card shadow-sm border-0 mb-0 h-100">
+                                            <div class="card-header bg-light py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="fa fa-file-invoice-dollar text-danger"></i>
+                                                    <span class="fw-bold text-dark">Ticket de Pagos a Proveedores</span>
+                                                </div>
+                                                <span class="badge bg-danger text-white">Egresos</span>
+                                            </div>
+                                            <div class="card-body p-3">
+                                                <div class="d-flex flex-column gap-3">
+                                                    <div class="custom-control custom-switch">
+                                                        <input type="checkbox" class="custom-control-input" id="ticketPayablesCompanyData" wire:model="ticketSettings.payables.show_company_data">
+                                                        <label class="custom-control-label" for="ticketPayablesCompanyData">Datos de la empresa (Cabecera)</label>
+                                                    </div>
+                                                    <div class="custom-control custom-switch">
+                                                        <input type="checkbox" class="custom-control-input" id="ticketPayablesDebt" wire:model="ticketSettings.payables.show_debt">
+                                                        <label class="custom-control-label" for="ticketPayablesDebt">Deuda actual con el proveedor</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- 5. Ticket de Corte / Arqueo de Caja --}}
+                                    <div class="col-md-6">
+                                        <div class="card shadow-sm border-0 mb-0 h-100">
+                                            <div class="card-header bg-light py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="fa fa-cash-register text-warning"></i>
+                                                    <span class="fw-bold text-dark">Ticket de Corte de Caja</span>
+                                                </div>
+                                                <span class="badge bg-warning text-dark">Arqueos</span>
+                                            </div>
+                                            <div class="card-body p-3">
+                                                <div class="d-flex flex-column gap-3">
+                                                    <div class="custom-control custom-switch">
+                                                        <input type="checkbox" class="custom-control-input" id="ticketCashCountCompanyData" wire:model="ticketSettings.cash_count.show_company_data">
+                                                        <label class="custom-control-label" for="ticketCashCountCompanyData">Datos de la empresa (Cabecera)</label>
+                                                    </div>
+                                                    <div class="custom-control custom-switch">
+                                                        <input type="checkbox" class="custom-control-input" id="ticketCashCountSalesBreakdown" wire:model="ticketSettings.cash_count.show_sales_breakdown">
+                                                        <label class="custom-control-label" for="ticketCashCountSalesBreakdown">Desglose de Ventas del Día</label>
+                                                    </div>
+                                                    <div class="custom-control custom-switch">
+                                                        <input type="checkbox" class="custom-control-input" id="ticketCashCountPaymentsBreakdown" wire:model="ticketSettings.cash_count.show_payments_breakdown">
+                                                        <label class="custom-control-label" for="ticketCashCountPaymentsBreakdown">Desglose de Cobranzas / Pagos Recibidos</label>
+                                                    </div>
+                                                    <div class="custom-control custom-switch">
+                                                        <input type="checkbox" class="custom-control-input" id="ticketCashCountWallet" wire:model="ticketSettings.cash_count.show_wallet">
+                                                        <label class="custom-control-label" for="ticketCashCountWallet">Movimientos Billetera / Custodia</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- 6. Ticket de Historial de Pagos de Venta --}}
+                                    <div class="col-md-6">
+                                        <div class="card shadow-sm border-0 mb-0 h-100">
+                                            <div class="card-header bg-light py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="fa fa-history text-secondary"></i>
+                                                    <span class="fw-bold text-dark">Ticket de Historial de Pagos</span>
+                                                </div>
+                                                <span class="badge bg-secondary text-white">Historial</span>
+                                            </div>
+                                            <div class="card-body p-3">
+                                                <div class="d-flex flex-column gap-3">
+                                                    <div class="custom-control custom-switch">
+                                                        <input type="checkbox" class="custom-control-input" id="ticketPaymentHistoryCompanyData" wire:model="ticketSettings.payment_history.show_company_data">
+                                                        <label class="custom-control-label" for="ticketPaymentHistoryCompanyData">Datos de la empresa (Cabecera)</label>
+                                                    </div>
+                                                    <div class="custom-control custom-switch">
+                                                        <input type="checkbox" class="custom-control-input" id="ticketPaymentHistoryReturns" wire:model="ticketSettings.payment_history.show_returns">
+                                                        <label class="custom-control-label" for="ticketPaymentHistoryReturns">Notas de Crédito / Devoluciones</label>
+                                                    </div>
+                                                    <div class="custom-control custom-switch">
+                                                        <input type="checkbox" class="custom-control-input" id="ticketPaymentHistoryDueAlert" wire:model="ticketSettings.payment_history.show_due_alert">
+                                                        <label class="custom-control-label" for="ticketPaymentHistoryDueAlert">Alerta de Cuenta Vencida y Días de Atraso</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- 7. Ticket Interno / Comanda Contable --}}
+                                    <div class="col-12">
+                                        <div class="card shadow-sm border-0 mb-0">
+                                            <div class="card-header bg-light py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="fa fa-calculator text-dark"></i>
+                                                    <span class="fw-bold text-dark">Ticket Interno / Comprobante Contable</span>
+                                                </div>
+                                                <span class="badge bg-dark text-white">Uso Administrativo</span>
+                                            </div>
+                                            <div class="card-body p-3">
+                                                <div class="row g-3">
+                                                    <div class="col-md-6">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="ticketInternalHeader" wire:model="ticketSettings.internal.show_header">
+                                                            <label class="custom-control-label" for="ticketInternalHeader">Encabezado de Comprobante Contable Interno</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Muestra "*** COMPROBANTE CONTABLE INTERNO *** (NO ENTREGAR AL CLIENTE)".</small>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="ticketInternalCharges" wire:model="ticketSettings.internal.show_charges_breakdown">
+                                                            <label class="custom-control-label" for="ticketInternalCharges">Desglose de Cargos Adicionales</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Muestra desglose de Comisiones, Recargos, Fletes y Diferencia Cambiaria.</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4 pt-3 border-top d-flex justify-content-end">
+                                    <button wire:click.prevent="saveConfig" class="btn btn-primary px-4 py-2 shadow-sm">
+                                        <i class="fa fa-save me-2"></i>Guardar Configuración de Tickets
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- TAB 16: CONFIGURACIÓN DE FACTURAS Y REPORTES PDF --}}
+                        <div class="tab-pane fade {{ $tab == 16 ? 'active show' : '' }}" id="pdf-settings" role="tabpanel"
+                            aria-labelledby="pdf-settings-tab">
+                            <div class="sidebar-body">
+                                <div class="d-flex align-items-center justify-content-between mb-4 border-bottom pb-3">
+                                    <div>
+                                        <h5 class="mb-1 text-danger fw-bold"><i class="fa fa-file-pdf me-2"></i>Configuración de Facturas y Documentos PDF</h5>
+                                        <p class="text-muted mb-0 small">Personaliza la apariencia, membretes, totales y secciones visibles en todas las facturas y reportes PDF del sistema.</p>
+                                    </div>
+                                    <button wire:click.prevent="saveConfig" class="btn btn-primary shadow-sm">
+                                        <i class="fa fa-save me-2"></i>Guardar Cambios
+                                    </button>
+                                </div>
+
+                                <div class="row g-4">
+                                    {{-- 1. Factura de Venta Contado (Pagada) --}}
+                                    <div class="col-12">
+                                        <div class="card shadow-sm border-0 mb-0">
+                                            <div class="card-header bg-light py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="fa fa-file-text text-success"></i>
+                                                    <span class="fw-bold text-dark">Factura de Venta Contado (Pagada)</span>
+                                                </div>
+                                                <span class="badge bg-success text-white">Ventas Pagadas</span>
+                                            </div>
+                                            <div class="card-body p-3">
+                                                <div class="row g-3">
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfSalesPaidLogo" wire:model="pdfSettings.sales_paid.show_logo">
+                                                            <label class="custom-control-label" for="pdfSalesPaidLogo">Mostrar Logotipo</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Muestra el logo de la empresa en la cabecera superior.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfSalesPaidCompanyData" wire:model="pdfSettings.sales_paid.show_company_data">
+                                                            <label class="custom-control-label" for="pdfSalesPaidCompanyData">Datos de la Empresa</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Nombre de la empresa en el encabezado.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfSalesPaidSellerData" wire:model="pdfSettings.sales_paid.show_seller_data">
+                                                            <label class="custom-control-label" for="pdfSalesPaidSellerData">Vendedor y Operador</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Muestra el nombre del vendedor y operador asignado.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfSalesPaidSellerBanks" wire:model="pdfSettings.sales_paid.show_seller_banks">
+                                                            <label class="custom-control-label" for="pdfSalesPaidSellerBanks">Cuentas Bancarias</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Cuentas bancarias asociadas al vendedor / empresa.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfSalesPaidSubtotal" wire:model="pdfSettings.sales_paid.show_subtotal">
+                                                            <label class="custom-control-label" for="pdfSalesPaidSubtotal">Línea de Subtotal / Base</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Línea de subtotal / base imponible antes de impuesto.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfSalesPaidTax" wire:model="pdfSettings.sales_paid.show_tax">
+                                                            <label class="custom-control-label" for="pdfSalesPaidTax">Línea de IVA / Impuesto</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Línea del porcentaje y monto total de IVA.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfSalesPaidSignatureBox" wire:model="pdfSettings.sales_paid.show_signature_box">
+                                                            <label class="custom-control-label" for="pdfSalesPaidSignatureBox">Recuadro de Firma y Sello</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Línea "FIRMA, SELLO Y FECHA DE RECIBO".</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfSalesPaidAmountInWords" wire:model="pdfSettings.sales_paid.show_amount_in_words">
+                                                            <label class="custom-control-label" for="pdfSalesPaidAmountInWords">Monto en Letras</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Monto total expresado en palabras.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfSalesPaidNotes" wire:model="pdfSettings.sales_paid.show_notes">
+                                                            <label class="custom-control-label" for="pdfSalesPaidNotes">Notas y Observaciones</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Notas, políticas o términos agregados a la venta.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfSalesPaidQr" wire:model="pdfSettings.sales_paid.show_qr">
+                                                            <label class="custom-control-label" for="pdfSalesPaidQr">Código QR (Scan para Clonar)</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Código QR para clonación rápida de factura.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfSalesPaidFooterCode" wire:model="pdfSettings.sales_paid.show_footer_code">
+                                                            <label class="custom-control-label" for="pdfSalesPaidFooterCode">Código de Control / Auditoría</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Código alfanumérico en el pie de página (ej. OFJPF0...).</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- 2. Factura de Venta a Crédito (Pendiente) --}}
+                                    <div class="col-12">
+                                        <div class="card shadow-sm border-0 mb-0">
+                                            <div class="card-header bg-light py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="fa fa-credit-card text-warning"></i>
+                                                    <span class="fw-bold text-dark">Factura de Venta a Crédito (Pendiente)</span>
+                                                </div>
+                                                <span class="badge bg-warning text-dark">Créditos y Cuentas por Cobrar</span>
+                                            </div>
+                                            <div class="card-body p-3">
+                                                <div class="row g-3">
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfSalesCreditLogo" wire:model="pdfSettings.sales_credit.show_logo">
+                                                            <label class="custom-control-label" for="pdfSalesCreditLogo">Mostrar Logotipo</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Logo de la empresa en la cabecera.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfSalesCreditCompanyData" wire:model="pdfSettings.sales_credit.show_company_data">
+                                                            <label class="custom-control-label" for="pdfSalesCreditCompanyData">Datos de la Empresa</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Nombre de la empresa en cabecera.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfSalesCreditSellerData" wire:model="pdfSettings.sales_credit.show_seller_data">
+                                                            <label class="custom-control-label" for="pdfSalesCreditSellerData">Vendedor y Operador</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Vendedor y operador asignado.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfSalesCreditSellerBanks" wire:model="pdfSettings.sales_credit.show_seller_banks">
+                                                            <label class="custom-control-label" for="pdfSalesCreditSellerBanks">Cuentas Bancarias</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Cuentas bancarias asociadas.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfSalesCreditSubtotal" wire:model="pdfSettings.sales_credit.show_subtotal">
+                                                            <label class="custom-control-label" for="pdfSalesCreditSubtotal">Línea de Subtotal / Base</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Subtotal / base imponible.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfSalesCreditTax" wire:model="pdfSettings.sales_credit.show_tax">
+                                                            <label class="custom-control-label" for="pdfSalesCreditTax">Línea de IVA / Impuesto</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Porcentaje y monto de IVA.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfSalesCreditSignatureBox" wire:model="pdfSettings.sales_credit.show_signature_box">
+                                                            <label class="custom-control-label" for="pdfSalesCreditSignatureBox">Recuadro de Firma y Sello</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Firma, sello y fecha de recibo.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfSalesCreditAmountInWords" wire:model="pdfSettings.sales_credit.show_amount_in_words">
+                                                            <label class="custom-control-label" for="pdfSalesCreditAmountInWords">Monto en Letras</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Monto total en palabras.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfSalesCreditNotes" wire:model="pdfSettings.sales_credit.show_notes">
+                                                            <label class="custom-control-label" for="pdfSalesCreditNotes">Notas y Observaciones</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Notas y condiciones del crédito.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfSalesCreditQr" wire:model="pdfSettings.sales_credit.show_qr">
+                                                            <label class="custom-control-label" for="pdfSalesCreditQr">Código QR (Scan para Clonar)</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Código QR de clonación.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfSalesCreditFooterCode" wire:model="pdfSettings.sales_credit.show_footer_code">
+                                                            <label class="custom-control-label" for="pdfSalesCreditFooterCode">Código de Control / Auditoría</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Código alfanumérico en el pie de página (ej. OFJPF0...).</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- 3. Pedidos y Cotizaciones --}}
+                                    <div class="col-12">
+                                        <div class="card shadow-sm border-0 mb-0">
+                                            <div class="card-header bg-light py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="fa fa-list-alt text-info"></i>
+                                                    <span class="fw-bold text-dark">Pedidos y Cotizaciones</span>
+                                                </div>
+                                                <span class="badge bg-info text-white">Preventa y Presupuestos</span>
+                                            </div>
+                                            <div class="card-body p-3">
+                                                <div class="row g-3">
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfOrdersLogo" wire:model="pdfSettings.orders.show_logo">
+                                                            <label class="custom-control-label" for="pdfOrdersLogo">Mostrar Logotipo</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Logo en cabecera del presupuesto.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfOrdersCompanyData" wire:model="pdfSettings.orders.show_company_data">
+                                                            <label class="custom-control-label" for="pdfOrdersCompanyData">Datos de la Empresa</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Nombre de la empresa.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfOrdersSellerData" wire:model="pdfSettings.orders.show_seller_data">
+                                                            <label class="custom-control-label" for="pdfOrdersSellerData">Vendedor y Operador</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Vendedor y operador.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfOrdersSellerBanks" wire:model="pdfSettings.orders.show_seller_banks">
+                                                            <label class="custom-control-label" for="pdfOrdersSellerBanks">Cuentas Bancarias</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Cuentas para transferencias.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfOrdersSubtotal" wire:model="pdfSettings.orders.show_subtotal">
+                                                            <label class="custom-control-label" for="pdfOrdersSubtotal">Línea de Subtotal / Base</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Subtotal de la cotización.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfOrdersTax" wire:model="pdfSettings.orders.show_tax">
+                                                            <label class="custom-control-label" for="pdfOrdersTax">Línea de IVA / Impuesto</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">IVA calculado.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfOrdersSignatureBox" wire:model="pdfSettings.orders.show_signature_box">
+                                                            <label class="custom-control-label" for="pdfOrdersSignatureBox">Recuadro de Firma y Sello</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Firma y sello de aceptación.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfOrdersAmountInWords" wire:model="pdfSettings.orders.show_amount_in_words">
+                                                            <label class="custom-control-label" for="pdfOrdersAmountInWords">Monto en Letras</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Total en letras.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfOrdersNotes" wire:model="pdfSettings.orders.show_notes">
+                                                            <label class="custom-control-label" for="pdfOrdersNotes">Notas y Términos</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Validez del presupuesto y condiciones comerciales.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfOrdersQr" wire:model="pdfSettings.orders.show_qr">
+                                                            <label class="custom-control-label" for="pdfOrdersQr">Código QR (Scan para Clonar)</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">QR de clonación rápida.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfOrdersFooterCode" wire:model="pdfSettings.orders.show_footer_code">
+                                                            <label class="custom-control-label" for="pdfOrdersFooterCode">Código de Control / Auditoría</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Código alfanumérico en el pie de página (ej. OFJPF0...).</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- 4. Órdenes de Compra a Proveedores --}}
+                                    <div class="col-12">
+                                        <div class="card shadow-sm border-0 mb-0">
+                                            <div class="card-header bg-light py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="fa fa-truck text-dark"></i>
+                                                    <span class="fw-bold text-dark">Órdenes de Compra a Proveedores</span>
+                                                </div>
+                                                <span class="badge bg-dark text-white">Compras y Abastecimiento</span>
+                                            </div>
+                                            <div class="card-body p-3">
+                                                <div class="row g-3">
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfPurchaseOrdersLogo" wire:model="pdfSettings.purchase_orders.show_logo">
+                                                            <label class="custom-control-label" for="pdfPurchaseOrdersLogo">Mostrar Logotipo</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Logo en cabecera de la orden.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfPurchaseOrdersCompanyData" wire:model="pdfSettings.purchase_orders.show_company_data">
+                                                            <label class="custom-control-label" for="pdfPurchaseOrdersCompanyData">Datos de la Empresa</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Nombre de la empresa.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfPurchaseOrdersSubtotal" wire:model="pdfSettings.purchase_orders.show_subtotal">
+                                                            <label class="custom-control-label" for="pdfPurchaseOrdersSubtotal">Línea de Subtotal / Base</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Subtotal de compra.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfPurchaseOrdersTax" wire:model="pdfSettings.purchase_orders.show_tax">
+                                                            <label class="custom-control-label" for="pdfPurchaseOrdersTax">Línea de IVA / Impuesto</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">IVA estimado.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfPurchaseOrdersSignatureBox" wire:model="pdfSettings.purchase_orders.show_signature_box">
+                                                            <label class="custom-control-label" for="pdfPurchaseOrdersSignatureBox">Recuadro de Firma y Sello</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Firma de autorización de compra.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfPurchaseOrdersAmountInWords" wire:model="pdfSettings.purchase_orders.show_amount_in_words">
+                                                            <label class="custom-control-label" for="pdfPurchaseOrdersAmountInWords">Monto en Letras</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Total en letras.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfPurchaseOrdersNotes" wire:model="pdfSettings.purchase_orders.show_notes">
+                                                            <label class="custom-control-label" for="pdfPurchaseOrdersNotes">Notas y Términos</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Instrucciones de entrega y pago.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfPurchaseOrdersFooterCode" wire:model="pdfSettings.purchase_orders.show_footer_code">
+                                                            <label class="custom-control-label" for="pdfPurchaseOrdersFooterCode">Código de Control / Auditoría</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Código alfanumérico en el pie de página (ej. OFJPF0...).</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- 5. Notas de Débito y Comprobantes de Cargo --}}
+                                    <div class="col-12">
+                                        <div class="card shadow-sm border-0 mb-0">
+                                            <div class="card-header bg-light py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="fa fa-money text-secondary"></i>
+                                                    <span class="fw-bold text-dark">Notas de Débito y Comprobantes de Cargo</span>
+                                                </div>
+                                                <span class="badge bg-secondary text-white">Ajustes y Notas</span>
+                                            </div>
+                                            <div class="card-body p-3">
+                                                <div class="row g-3">
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfDebitNotesLogo" wire:model="pdfSettings.debit_notes.show_logo">
+                                                            <label class="custom-control-label" for="pdfDebitNotesLogo">Mostrar Logotipo</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Logo en cabecera.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfDebitNotesCompanyData" wire:model="pdfSettings.debit_notes.show_company_data">
+                                                            <label class="custom-control-label" for="pdfDebitNotesCompanyData">Datos de la Empresa</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Nombre de la empresa.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfDebitNotesSubtotal" wire:model="pdfSettings.debit_notes.show_subtotal">
+                                                            <label class="custom-control-label" for="pdfDebitNotesSubtotal">Línea de Subtotal / Base</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Subtotal de la nota de débito.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfDebitNotesTax" wire:model="pdfSettings.debit_notes.show_tax">
+                                                            <label class="custom-control-label" for="pdfDebitNotesTax">Línea de IVA / Impuesto</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">IVA calculado.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfDebitNotesSignatureBox" wire:model="pdfSettings.debit_notes.show_signature_box">
+                                                            <label class="custom-control-label" for="pdfDebitNotesSignatureBox">Recuadro de Firma y Sello</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Firma y sello.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfDebitNotesAmountInWords" wire:model="pdfSettings.debit_notes.show_amount_in_words">
+                                                            <label class="custom-control-label" for="pdfDebitNotesAmountInWords">Monto en Letras</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Total en letras.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfDebitNotesNotes" wire:model="pdfSettings.debit_notes.show_notes">
+                                                            <label class="custom-control-label" for="pdfDebitNotesNotes">Notas y Observaciones</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Notas de motivo de cargo/débito.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfDebitNotesFooterCode" wire:model="pdfSettings.debit_notes.show_footer_code">
+                                                            <label class="custom-control-label" for="pdfDebitNotesFooterCode">Código de Control / Auditoría</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Código alfanumérico en el pie de página (ej. OFJPF0...).</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- 6. Reportes PDF Generales --}}
+                                    <div class="col-12">
+                                        <div class="card shadow-sm border-0 mb-0">
+                                            <div class="card-header bg-light py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="fa fa-bar-chart text-primary"></i>
+                                                    <span class="fw-bold text-dark">Reportes PDF Generales</span>
+                                                </div>
+                                                <span class="badge bg-primary text-white">Arqueos, Estados de Cuenta, etc.</span>
+                                            </div>
+                                            <div class="card-body p-3">
+                                                <div class="row g-3">
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfReportsLogo" wire:model="pdfSettings.reports.show_logo">
+                                                            <label class="custom-control-label" for="pdfReportsLogo">Mostrar Logotipo</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Logo en cabecera de los reportes PDF.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfReportsCompanyData" wire:model="pdfSettings.reports.show_company_data">
+                                                            <label class="custom-control-label" for="pdfReportsCompanyData">Datos de Empresa en Encabezado</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Nombre, RIF/NIT y dirección en el reporte.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="pdfReportsFooterTimestamp" wire:model="pdfSettings.reports.show_footer_timestamp">
+                                                            <label class="custom-control-label" for="pdfReportsFooterTimestamp">Fecha y Hora de Generación en Pie</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Fecha y hora exacta de emisión en el pie de página.</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4 pt-3 border-top d-flex justify-content-end">
+                                    <button wire:click.prevent="saveConfig" class="btn btn-primary px-4 py-2 shadow-sm">
+                                        <i class="fa fa-save me-2"></i>Guardar Configuración de Facturas PDF
+                                    </button>
                                 </div>
                             </div>
                         </div>

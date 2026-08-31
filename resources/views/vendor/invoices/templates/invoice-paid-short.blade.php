@@ -305,28 +305,42 @@
     </head>
 
     <body>
+        @php
+            $config = \App\Models\Configuration::first();
+            $showLogo = $config ? $config->getPdfSetting('sales_paid', 'show_logo', true) : true;
+            $showCompanyData = $config ? $config->getPdfSetting('sales_paid', 'show_company_data', true) : true;
+            $showSellerData = $config ? $config->getPdfSetting('sales_paid', 'show_seller_data', true) : true;
+            $showSellerBanks = $config ? $config->getPdfSetting('sales_paid', 'show_seller_banks', true) : true;
+            $showSubtotal = $config ? $config->getPdfSetting('sales_paid', 'show_subtotal', true) : true;
+            $showTax = $config ? $config->getPdfSetting('sales_paid', 'show_tax', true) : true;
+            $showSignatureBox = $config ? $config->getPdfSetting('sales_paid', 'show_signature_box', true) : true;
+            $showAmountInWords = $config ? $config->getPdfSetting('sales_paid', 'show_amount_in_words', true) : true;
+            $showNotes = $config ? $config->getPdfSetting('sales_paid', 'show_notes', true) : true;
+            $showQr = $config ? $config->getPdfSetting('sales_paid', 'show_qr', true) : true;
+            $showFooterCode = $config ? $config->getPdfSetting('sales_paid', 'show_footer_code', true) : true;
+        @endphp
+
         {{-- Header --}}
 
         <table style="margin-bottom:0px;" class="table mt-1">
             <tbody>
                 <tr>
                     <td class="pl-0 border-0" width="15%">
-                       @if($invoice->logo)
+                       @if($showLogo && $invoice->logo)
                             <img src="{{ $invoice->getLogo() }}" alt="logo" height="50">
-
                         @endif
                     </td>
                     <td class="pl-0 border-0" width="70%">
                         <h4 class="text-center text-uppercase invoice-title">
-                            <strong>{{ $invoice->name }}</strong>
+                            @if($showCompanyData)
+                                <strong>{{ $invoice->name }}</strong>
+                            @endif
                         </h4>
                     </td>
                     <td class="clearfix pl-0 border-0 invoice-details"  width="15%">
                         <p > <strong class="remission-title text-green">{{ $invoice->getSerialNumber() }}</strong>
                         <b> <br>{{ __('invoices::invoice.remission') }}</b>
                         </p>
-
-
                     </td>
                 </tr>
             </tbody>
@@ -396,10 +410,10 @@
                         @if(($invoice->seller->custom_fields['footer_data']['credit_days'] ?? 0) > 0)
                         {{ __('invoices::invoice.due_date') }}: <strong>{{ $invoice->getPayUntilDate() }}</strong><br>
                         @endif
-                        @if($invoice->seller->custom_fields['vendedor'] ?? false)
+                        @if($showSellerData && ($invoice->seller->custom_fields['vendedor'] ?? false))
                             Vendedor: <b>{{ $invoice->seller->custom_fields['vendedor'] }}</b><br>
                         @endif
-                        @if($invoice->seller->custom_fields['operador'] ?? false)
+                        @if($showSellerData && ($invoice->seller->custom_fields['operador'] ?? false))
                             Operador: <b>{{ $invoice->seller->custom_fields['operador'] }}</b><br>
                         @endif
                         {{ __('invoices::invoice.amount_due') }}: <strong class="text-green title-data">{{ $invoice->formatCurrency($invoice->total_amount) }}</strong><br>
@@ -509,7 +523,7 @@
                         </td>
                     </tr>
                 @endif
-                @if($invoice->taxable_amount)
+                @if($showSubtotal && $invoice->taxable_amount)
                     <tr>
                         <td colspan="{{ $colspan }}" class="border-0"></td>
                         <td class="pl-0 text-right">{{ __('invoices::invoice.taxable_amount') }}</td>
@@ -518,7 +532,7 @@
                         </td>
                     </tr>
                 @endif
-                @if($invoice->tax_rate)
+                @if($showTax && $invoice->tax_rate)
                     <tr>
                         <td colspan="{{ $colspan }}" class="border-0"></td>
                         <td class="pl-0 text-right">{{ __('invoices::invoice.tax_rate') }}</td>
@@ -527,7 +541,7 @@
                         </td>
                     </tr>
                 @endif
-                @if($invoice->hasItemOrInvoiceTax())
+                @if($showTax && $invoice->hasItemOrInvoiceTax())
                     <tr>
                         <td colspan="{{ $colspan }}" class="border-0"></td>
                         <td class="pl-0 text-right">{{ __('invoices::invoice.total_taxes') }}</td>
@@ -555,6 +569,7 @@
             </tbody>
         </table>
 
+        @if($showSignatureBox)
         <table class="table">
             <thead>
                 <th>
@@ -567,14 +582,19 @@
                 </th>
             </tbody>
         </table>
+        @endif
 
+        @if($showFooterCode && !empty($invoice->seller->custom_fields['footer_code']))
         <p class="text-center" style="font-size: 9px; color: #555; margin-top: 5px;">
-            {{ $invoice->seller->custom_fields['footer_code'] ?? '' }}
+            {{ $invoice->seller->custom_fields['footer_code'] }}
         </p>
+        @endif
 
+        @if($showAmountInWords)
         <p class="clase_table text-uppercase">
             <b>{{ __('invoices::invoice.amount_in_words') }}:</b> {{ $invoice->getTotalAmountInWords() }}
         </p>
+        @endif
 
 
 
@@ -595,7 +615,7 @@
                             
                             @if($usdDiscount > 0)
                                 <div style="margin-bottom: 3px;">
-                                    <span style="color: #0380b2;">•</span> <strong>Descuento Base:</strong> {{ number_format($usdDiscount, 0) }}% de descuento en divisas.
+                                     <span style="color: #0380b2;">•</span> <strong>Descuento Base:</strong> {{ number_format($usdDiscount, 0) }}% de descuento en divisas.
                                 </div>
                             @endif
                 
@@ -609,11 +629,11 @@
                 
                                     @if($dDaysFrom == 0)
                                          <div style="margin-bottom: 3px;">
-                                            <span style="color: #0380b2;">•</span> <strong>{{ number_format($dPercent, 0) }}% Pronto Pago:</strong> primeros <strong>{{ $dDaysTo }}</strong> días.
+                                             <span style="color: #0380b2;">•</span> <strong>{{ number_format($dPercent, 0) }}% Pronto Pago:</strong> primeros <strong>{{ $dDaysTo }}</strong> días.
                                          </div>
                                     @else
                                          <div style="margin-bottom: 3px;">
-                                            <span style="color: #0380b2;">•</span> <strong>{{ number_format($dPercent, 0) }}% Pronto Pago:</strong> días <strong>{{ $dDaysFrom }}</strong> a <strong>{{ $dDaysTo ?? '+' }}</strong>.
+                                             <span style="color: #0380b2;">•</span> <strong>{{ number_format($dPercent, 0) }}% Pronto Pago:</strong> días <strong>{{ $dDaysFrom }}</strong> a <strong>{{ $dDaysTo ?? '+' }}</strong>.
                                          </div>
                                     @endif
                                 @endforeach
@@ -645,7 +665,7 @@
                 $vendedorBanks = $invoice->seller->custom_fields['vendedor_banks'] ?? collect();
             @endphp
 
-            @if(count($vendedorBanks) > 0)
+            @if($showSellerBanks && count($vendedorBanks) > 0)
             <div style="margin-top: 15px; border: 1px solid #0380b2; border-radius: 10px; overflow: hidden; margin-bottom: 10px;">
                 <div style="background: #0380b2; color: #fff; padding: 5px 10px; font-weight: bold; text-transform: uppercase; font-size: 13px;">
                     Instrucciones de Pago / Cuentas Bancarias Autorizadas
@@ -685,14 +705,14 @@
                         
                     </td>
                     <td width="15%" style="text-align: center; background: #fff; border-top: 1px solid #6B7280; border-left: 1px solid #6B7280; border-bottom-right-radius: 15px; vertical-align: middle; line-height: 0;">
-                        @if($invoice->seller->custom_fields['cloning_qr'] ?? false)
+                        @if($showQr && ($invoice->seller->custom_fields['cloning_qr'] ?? false))
                             {!! $invoice->seller->custom_fields['cloning_qr'] !!}
                         @endif
                     </td>
                 </tr>
             </table>
 
-        @if($invoice->notes)
+        @if($showNotes && $invoice->notes)
             <p class="clase_table text-uppercase">
                 <b>{{ __('invoices::invoice.notes') }}:</b> {!! $invoice->notes !!}
             </p>

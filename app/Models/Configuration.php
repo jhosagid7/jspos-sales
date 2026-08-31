@@ -115,9 +115,13 @@ class Configuration extends Model
         'sales_show_breakdown_freight',
         'sales_show_warehouse',
         'sales_show_driver',
+        'ticket_settings',
+        'pdf_settings',
     ];
 
     protected $casts = [
+        'pdf_settings' => 'array',
+        'ticket_settings' => 'array',
         'addon_modules' => 'array',
         'local_overrides' => 'array',
         'backup_emails' => 'array',
@@ -203,5 +207,160 @@ class Configuration extends Model
         }
         
         return in_array($addon, $licenseModules);
+    }
+
+    /**
+     * Retorna la estructura de configuración por defecto para todos los tickets térmicos.
+     */
+    public static function getDefaultTicketSettings(): array
+    {
+        return [
+            'sales' => [
+                'auto_print' => true,
+                'show_company_data' => true,
+                'show_subtotal' => true,
+                'show_tax' => true,
+                'show_cash_change' => true,
+                'show_footer_message' => true,
+                'show_website' => true,
+                'show_qr' => true,
+            ],
+            'orders' => [
+                'show_company_data' => true,
+                'show_subtotal' => true,
+                'show_tax' => true,
+                'show_cash_change' => true,
+                'show_footer_message' => true,
+                'show_website' => true,
+                'show_qr' => true,
+            ],
+            'payments' => [
+                'show_company_data' => true,
+                'show_debt' => true,
+                'show_footer_message' => true,
+            ],
+            'payables' => [
+                'show_company_data' => true,
+                'show_debt' => true,
+            ],
+            'cash_count' => [
+                'show_company_data' => true,
+                'show_sales_breakdown' => true,
+                'show_payments_breakdown' => true,
+                'show_wallet' => true,
+            ],
+            'payment_history' => [
+                'show_company_data' => true,
+                'show_returns' => true,
+                'show_due_alert' => true,
+            ],
+            'internal' => [
+                'show_header' => true,
+                'show_charges_breakdown' => true,
+            ],
+        ];
+    }
+
+    /**
+     * Obtiene el valor booleano de una opción de ticket específica.
+     */
+    public function getTicketSetting(string $ticketType, string $key, bool $default = true): bool
+    {
+        $settings = $this->ticket_settings;
+        if (is_string($settings)) {
+            $settings = json_decode($settings, true);
+        }
+        if (is_array($settings) && isset($settings[$ticketType][$key])) {
+            return (bool) $settings[$ticketType][$key];
+        }
+        return $default;
+    }
+
+    /**
+     * Retorna la estructura de configuración por defecto para todos los documentos PDF.
+     */
+    public static function getDefaultPdfSettings(): array
+    {
+        return [
+            'sales_paid' => [
+                'show_logo' => true,
+                'show_company_data' => true,
+                'show_seller_data' => true,
+                'show_seller_banks' => true,
+                'show_subtotal' => true,
+                'show_tax' => true,
+                'show_signature_box' => true,
+                'show_amount_in_words' => true,
+                'show_notes' => true,
+                'show_qr' => true,
+                'show_footer_code' => true,
+            ],
+            'sales_credit' => [
+                'show_logo' => true,
+                'show_company_data' => true,
+                'show_seller_data' => true,
+                'show_seller_banks' => true,
+                'show_subtotal' => true,
+                'show_tax' => true,
+                'show_signature_box' => true,
+                'show_amount_in_words' => true,
+                'show_notes' => true,
+                'show_qr' => true,
+                'show_footer_code' => true,
+            ],
+            'orders' => [
+                'show_logo' => true,
+                'show_company_data' => true,
+                'show_seller_data' => true,
+                'show_seller_banks' => true,
+                'show_subtotal' => true,
+                'show_tax' => true,
+                'show_signature_box' => true,
+                'show_amount_in_words' => true,
+                'show_notes' => true,
+                'show_qr' => true,
+                'show_footer_code' => true,
+            ],
+            'purchase_orders' => [
+                'show_logo' => true,
+                'show_company_data' => true,
+                'show_subtotal' => true,
+                'show_tax' => true,
+                'show_signature_box' => true,
+                'show_amount_in_words' => true,
+                'show_notes' => true,
+                'show_footer_code' => true,
+            ],
+            'debit_notes' => [
+                'show_logo' => true,
+                'show_company_data' => true,
+                'show_subtotal' => true,
+                'show_tax' => true,
+                'show_signature_box' => true,
+                'show_amount_in_words' => true,
+                'show_notes' => true,
+                'show_footer_code' => true,
+            ],
+            'reports' => [
+                'show_logo' => true,
+                'show_company_data' => true,
+                'show_footer_timestamp' => true,
+            ],
+        ];
+    }
+
+    /**
+     * Obtiene el valor booleano de una opción de PDF específica.
+     */
+    public function getPdfSetting(string $pdfType, string $key, bool $default = true): bool
+    {
+        $settings = $this->pdf_settings;
+        if (is_string($settings)) {
+            $settings = json_decode($settings, true);
+        }
+        if (is_array($settings) && isset($settings[$pdfType][$key])) {
+            return (bool) $settings[$pdfType][$key];
+        }
+        return $default;
     }
 }

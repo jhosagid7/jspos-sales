@@ -24,7 +24,8 @@ class Settings extends Component
     public $treasuryCutoffHour = '17:00';
     public $treasuryAutoClose = true;
     public $discountRules = [];
-    public $localOverrides = []; // For super admin to override license modules
+    public $ticketSettings = []; // Configuración modular de tickets térmicos
+    public $pdfSettings = []; // Configuración modular de facturas y documentos PDF
 
     public $logo, $logo_preview; // Logo properties
     public $backupEmails; // Backup Emails
@@ -207,6 +208,30 @@ class Settings extends Component
                     $this->localOverrides[$key] = '';
                 }
             }
+
+            // Load Ticket Settings
+            $defaults = Configuration::getDefaultTicketSettings();
+            $savedSettings = is_array($config->ticket_settings) ? $config->ticket_settings : (json_decode($config->ticket_settings, true) ?? []);
+            
+            $this->ticketSettings = [];
+            foreach ($defaults as $type => $keys) {
+                $this->ticketSettings[$type] = [];
+                foreach ($keys as $k => $defVal) {
+                    $this->ticketSettings[$type][$k] = isset($savedSettings[$type][$k]) ? (bool)$savedSettings[$type][$k] : $defVal;
+                }
+            }
+
+            // Load PDF Settings
+            $pdfDefaults = Configuration::getDefaultPdfSettings();
+            $savedPdfSettings = is_array($config->pdf_settings) ? $config->pdf_settings : (json_decode($config->pdf_settings, true) ?? []);
+
+            $this->pdfSettings = [];
+            foreach ($pdfDefaults as $type => $keys) {
+                $this->pdfSettings[$type] = [];
+                foreach ($keys as $k => $defVal) {
+                    $this->pdfSettings[$type][$k] = isset($savedPdfSettings[$type][$k]) ? (bool)$savedPdfSettings[$type][$k] : $defVal;
+                }
+            }
         }
     }
 
@@ -373,6 +398,8 @@ class Settings extends Component
                 'catalogue_show_prices' => $this->catalogueShowPrices ? 1 : 0,
                 'catalogue_show_base_prices' => $this->catalogueShowBasePrices ? 1 : 0,
                 'sequential_cut_off_date' => $this->sequentialCutOffDate ? \Carbon\Carbon::parse($this->sequentialCutOffDate)->format('Y-m-d H:i:s') : null,
+                'ticket_settings' => $this->ticketSettings,
+                'pdf_settings' => $this->pdfSettings,
             ];
 
             // Handle Logo Upload
@@ -417,6 +444,7 @@ class Settings extends Component
             //
 
         } catch (\Throwable $th) {
+            \Illuminate\Support\Facades\Log::error("Settings saveConfig failed: " . $th->getMessage(), ['trace' => $th->getTraceAsString()]);
             $this->dispatch('noty', msg: "Error al intentar actualizar la configuración general: " . $th->getMessage());
         }
     }

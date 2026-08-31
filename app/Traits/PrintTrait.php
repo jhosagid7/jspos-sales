@@ -142,11 +142,13 @@ trait PrintTrait
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
                 $printer->setTextSize(1, 1);
 
-                $printer->text(strtoupper($config->business_name) . "\n");
-                $printer->setTextSize(1, 1);
-                $printer->text("$config->address \n");
-                $printer->text("NIT: $config->taxpayer_id \n");
-                $printer->text("TEL: $config->phone \n\n");
+                if ($config->getTicketSetting('sales', 'show_company_data', true)) {
+                    $printer->text(strtoupper($config->business_name) . "\n");
+                    $printer->setTextSize(1, 1);
+                    $printer->text("$config->address \n");
+                    $printer->text("NIT: $config->taxpayer_id \n");
+                    $printer->text("TEL: $config->phone \n\n");
+                }
 
                 $printer->setJustification(Printer::JUSTIFY_LEFT);
                 //$printer->text("=============================================\n");
@@ -216,28 +218,40 @@ trait PrintTrait
                 $printer->setJustification(Printer::JUSTIFY_LEFT);
 
                 $desglose = $this->desgloseMonto($sale->total);
-                $printer->text("SUBTOTAL....... " . $currencySymbol . number_format($desglose['subtotal'], 2) . "\n");
-                $printer->text("IVA............ " . $currencySymbol . number_format($desglose['iva'], 2) . "\n");
+                if ($config->getTicketSetting('sales', 'show_subtotal', true)) {
+                    $printer->text("SUBTOTAL....... " . $currencySymbol . number_format($desglose['subtotal'], 2) . "\n");
+                }
+                if ($config->getTicketSetting('sales', 'show_tax', true)) {
+                    $printer->text("IVA............ " . $currencySymbol . number_format($desglose['iva'], 2) . "\n");
+                }
                 $printer->text("TOTAL.......... " . $currencySymbol . number_format($sale->total, 2) . "\n");
 
-                if ($sale->type == 'cash') {
-                    $printer->text("EFECTIVO....... " . $currencySymbol . number_format($sale->cash, 2) . "\n");
-                    if (floatval($sale->change) > 0)  $printer->text("\nCAMBIO......... " . $currencySymbol . number_format($sale->change, 2) . "\n");
-                } else {
-                    $printer->text($sale->type == 'credit' ? "FORMA DE PAGO: CRÉDITO" :  "FORMA DE PAGO:  DEPÓSITO" .  "\n");
+                if ($config->getTicketSetting('sales', 'show_cash_change', true)) {
+                    if ($sale->type == 'cash') {
+                        $printer->text("EFECTIVO....... " . $currencySymbol . number_format($sale->cash, 2) . "\n");
+                        if (floatval($sale->change) > 0)  $printer->text("\nCAMBIO......... " . $currencySymbol . number_format($sale->change, 2) . "\n");
+                    } else {
+                        $printer->text($sale->type == 'credit' ? "FORMA DE PAGO: CRÉDITO" :  "FORMA DE PAGO:  DEPÓSITO" .  "\n");
+                    }
                 }
 
                 $printer->feed(1);
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
-                $printer->text("$config->leyend\n");
-                $printer->text("$config->website\n");
+                if ($config->getTicketSetting('sales', 'show_footer_message', true) && !empty($config->leyend)) {
+                    $printer->text("$config->leyend\n");
+                }
+                if ($config->getTicketSetting('sales', 'show_website', true) && !empty($config->website)) {
+                    $printer->text("$config->website\n");
+                }
                 
                 // QR Code for Cloning (Universal bitmap rendering for 58mm and 80mm printers)
-                try {
-                    $this->printQrCode($printer, "SALE:" . $sale->id, $printerWidth);
-                    $printer->text("SCAN PARA CLONAR\n");
-                } catch (\Exception $e) {
-                    \Log::warning("Could not print QR Code: " . $e->getMessage());
+                if ($config->getTicketSetting('sales', 'show_qr', true)) {
+                    try {
+                        $this->printQrCode($printer, "SALE:" . $sale->id, $printerWidth);
+                        $printer->text("SCAN PARA CLONAR\n");
+                    } catch (\Exception $e) {
+                        \Log::warning("Could not print QR Code: " . $e->getMessage());
+                    }
                 }
 
                 $printer->feed(3);
@@ -271,12 +285,13 @@ trait PrintTrait
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
                 $printer->setTextSize(1, 1);
 
-                $printer->text(strtoupper($config->business_name) . "\n");
-
-                $printer->setTextSize(1, 1);
-                $printer->text("$config->address \n");
-                $printer->text("NIT: $config->taxpayer_id \n");
-                $printer->text("TEL: $config->phone \n\n");
+                if ($config->getTicketSetting('payments', 'show_company_data', true)) {
+                    $printer->text(strtoupper($config->business_name) . "\n");
+                    $printer->setTextSize(1, 1);
+                    $printer->text("$config->address \n");
+                    $printer->text("NIT: $config->taxpayer_id \n");
+                    $printer->text("TEL: $config->phone \n\n");
+                }
 
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
                 $printer->text("==  Comprobante de Pago ==" . "\n\n");
@@ -308,10 +323,12 @@ trait PrintTrait
                 $printer->text("Compra: " . $currencySymbol . $payment->sale->total . "\n");
                 $printer->text("Abono: " . $currencySymbol . $payment->amount . "\n");
 
-                if ($payment->sale->debt <= 0) {
-                    $printer->text("CRÉDITO LIQUIDADO \n");
-                } else {
-                    $printer->text("Deuda actual: " . $currencySymbol . $payment->sale->debt . "\n\n");
+                if ($config->getTicketSetting('payments', 'show_debt', true)) {
+                    if ($payment->sale->debt <= 0) {
+                        $printer->text("CRÉDITO LIQUIDADO \n");
+                    } else {
+                        $printer->text("Deuda actual: " . $currencySymbol . $payment->sale->debt . "\n\n");
+                    }
                 }
 
                 //    $printer->text("Forma de Pago:" . ($payment->pay_way == 'cash' ? 'EFECTIVO' : 'DEPÓSITO')  . "\n");
@@ -350,6 +367,12 @@ trait PrintTrait
                 $printer->text($separator . "\n");
                 $printer->text("Atiende:" . $payment->sale->user->name . "\n");
 
+                if ($config->getTicketSetting('payments', 'show_footer_message', true) && !empty($config->leyend)) {
+                    $printer->feed(1);
+                    $printer->setJustification(Printer::JUSTIFY_CENTER);
+                    $printer->text("$config->leyend\n");
+                }
+
 
                 $printer->feed(3);
                 $printer->cut();
@@ -382,12 +405,13 @@ trait PrintTrait
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
                 $printer->setTextSize(1, 1);
 
-                $printer->text(strtoupper($config->business_name) . "\n");
-
-                $printer->setTextSize(1, 1);
-                $printer->text("$config->address \n");
-                $printer->text("NIT: $config->taxpayer_id \n");
-                $printer->text("TEL: $config->phone \n\n");
+                if ($config->getTicketSetting('payables', 'show_company_data', true)) {
+                    $printer->text(strtoupper($config->business_name) . "\n");
+                    $printer->setTextSize(1, 1);
+                    $printer->text("$config->address \n");
+                    $printer->text("NIT: $config->taxpayer_id \n");
+                    $printer->text("TEL: $config->phone \n\n");
+                }
 
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
                 $printer->text("==  Comprobante de Pago ==" . "\n\n");
@@ -419,10 +443,12 @@ trait PrintTrait
                 $printer->text("Compra: " . $currencySymbol . $payable->purchase->total . "\n");
                 $printer->text("Abono: " . $currencySymbol . $payable->amount . "\n");
 
-                if ($payable->purchase->debt <= 0) {
-                    $printer->text("CRÉDITO LIQUIDADO \n");
-                } else {
-                    $printer->text("Deuda actual: " . $currencySymbol . $payable->purchase->debt . "\n\n");
+                if ($config->getTicketSetting('payables', 'show_debt', true)) {
+                    if ($payable->purchase->debt <= 0) {
+                        $printer->text("CRÉDITO LIQUIDADO \n");
+                    } else {
+                        $printer->text("Deuda actual: " . $currencySymbol . $payable->purchase->debt . "\n\n");
+                    }
                 }
 
                 //    $printer->text("Forma de Pago:" . ($payment->pay_way == 'cash' ? 'EFECTIVO' : 'DEPÓSITO')  . "\n");
@@ -517,7 +543,9 @@ trait PrintTrait
                 // --- HEADER ---
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
                 $printer->setTextSize(1, 1);
-                $printer->text(strtoupper($config->business_name) . "\n");
+                if ($config->getTicketSetting('cash_count', 'show_company_data', true)) {
+                    $printer->text(strtoupper($config->business_name) . "\n");
+                }
                 $printer->text("CORTE DE CAJA\n");
                 $printer->setJustification(Printer::JUSTIFY_LEFT);
                 $printer->text($separator . "\n");
@@ -532,101 +560,105 @@ trait PrintTrait
                 };
 
                 // --- SECTION 1: VENTAS DEL DÍA ---
-                $printer->setJustification(Printer::JUSTIFY_CENTER);
-                $printer->text("VENTAS DEL DÍA (FLUJO NETO)\n");
-                $printer->setJustification(Printer::JUSTIFY_LEFT);
-                $printer->text($separator . "\n");
+                if ($config->getTicketSetting('cash_count', 'show_sales_breakdown', true)) {
+                    $printer->setJustification(Printer::JUSTIFY_CENTER);
+                    $printer->text("VENTAS DEL DÍA (FLUJO NETO)\n");
+                    $printer->setJustification(Printer::JUSTIFY_LEFT);
+                    $printer->text($separator . "\n");
 
-                // Cash
-                if (!empty($salesByCurrency['cash'])) {
-                    $printer->text("EFECTIVO:\n");
-                    foreach ($salesByCurrency['cash'] as $currency => $amount) {
-                         if ($currency === '_CUSTODIA_') {
-                             $label = 'BILLETERA (CUSTODIA)';
-                         } else {
-                             $label = $getCurrencyLabel($currency);
-                         }
-                         $printer->text("  " . $label . ": " . number_format($amount, 2) . "\n");
-                    }
-                }
-                // Bank
-                if (!empty($salesByCurrency['deposit'])) {
-                    $printer->text("BANCO:\n");
-                    foreach ($salesByCurrency['deposit'] as $bankName => $currencies) {
-                        if (is_array($currencies)) {
-                             $printer->text("  " . $bankName . ":\n");
-                             foreach ($currencies as $curr => $amt) {
-                                  $printer->text("    " . $getCurrencyLabel($curr) . ": " . number_format($amt, 2) . "\n");
+                    // Cash
+                    if (!empty($salesByCurrency['cash'])) {
+                        $printer->text("EFECTIVO:\n");
+                        foreach ($salesByCurrency['cash'] as $currency => $amount) {
+                             if ($currency === '_CUSTODIA_') {
+                                 $label = 'BILLETERA (CUSTODIA)';
+                             } else {
+                                 $label = $getCurrencyLabel($currency);
                              }
-                        } else {
-                             $printer->text("  Otros: " . $getCurrencyLabel($bankName) . ": " . number_format($currencies, 2) . "\n");
+                             $printer->text("  " . $label . ": " . number_format($amount, 2) . "\n");
                         }
                     }
-                }
-                // Zelle
-                if (!empty($salesByCurrency['zelle'])) {
-                    $printer->text("ZELLE:\n");
-                    foreach ($salesByCurrency['zelle'] as $sender => $amount) {
-                         $printer->text("  " . substr($sender, 0, 18) . ": " . number_format($amount, 2) . "\n");
+                    // Bank
+                    if (!empty($salesByCurrency['deposit'])) {
+                        $printer->text("BANCO:\n");
+                        foreach ($salesByCurrency['deposit'] as $bankName => $currencies) {
+                            if (is_array($currencies)) {
+                                 $printer->text("  " . $bankName . ":\n");
+                                 foreach ($currencies as $curr => $amt) {
+                                      $printer->text("    " . $getCurrencyLabel($curr) . ": " . number_format($amt, 2) . "\n");
+                                 }
+                            } else {
+                                 $printer->text("  Otros: " . $getCurrencyLabel($bankName) . ": " . number_format($currencies, 2) . "\n");
+                            }
+                        }
                     }
-                }
-                // USDT Binance
-                if (!empty($salesByCurrency['usdt'])) {
-                    $usdtLabel = \App\Helpers\CurrencyHelper::getUsdtLabel();
-                    $printer->text(strtoupper($usdtLabel) . ":\n");
-                    foreach ($salesByCurrency['usdt'] as $sender => $amount) {
-                         $printer->text("  " . substr($sender, 0, 18) . ": " . number_format($amount, 2) . "\n");
+                    // Zelle
+                    if (!empty($salesByCurrency['zelle'])) {
+                        $printer->text("ZELLE:\n");
+                        foreach ($salesByCurrency['zelle'] as $sender => $amount) {
+                             $printer->text("  " . substr($sender, 0, 18) . ": " . number_format($amount, 2) . "\n");
+                        }
                     }
+                    // USDT Binance
+                    if (!empty($salesByCurrency['usdt'])) {
+                        $usdtLabel = \App\Helpers\CurrencyHelper::getUsdtLabel();
+                        $printer->text(strtoupper($usdtLabel) . ":\n");
+                        foreach ($salesByCurrency['usdt'] as $sender => $amount) {
+                             $printer->text("  " . substr($sender, 0, 18) . ": " . number_format($amount, 2) . "\n");
+                        }
+                    }
+                    
+                    $printer->text("\nTOTAL VENTAS RECIBIDAS: " . $currencySymbol . number_format($salesTotal - $credit, 2) . "\n");
+                    $printer->text("VENTAS A CRÉDITO: " . $currencySymbol . number_format($credit, 2) . "\n\n");
                 }
-                
-                $printer->text("\nTOTAL VENTAS RECIBIDAS: " . $currencySymbol . number_format($salesTotal - $credit, 2) . "\n");
-                $printer->text("VENTAS A CRÉDITO: " . $currencySymbol . number_format($credit, 2) . "\n\n");
 
 
                 // --- SECTION 2: PAGOS RECIBIDOS ---
-                $printer->setJustification(Printer::JUSTIFY_CENTER);
-                $printer->text("PAGOS DE CRÉDITOS RECIBIDOS\n");
-                $printer->setJustification(Printer::JUSTIFY_LEFT);
-                $printer->text($separator . "\n");
+                if ($config->getTicketSetting('cash_count', 'show_payments_breakdown', true)) {
+                    $printer->setJustification(Printer::JUSTIFY_CENTER);
+                    $printer->text("PAGOS DE CRÉDITOS RECIBIDOS\n");
+                    $printer->setJustification(Printer::JUSTIFY_LEFT);
+                    $printer->text($separator . "\n");
 
-                // Cash
-                if (!empty($paymentsByCurrency['cash'])) {
-                    $printer->text("EFECTIVO:\n");
-                    foreach ($paymentsByCurrency['cash'] as $currency => $amount) {
-                         $printer->text("  " . $getCurrencyLabel($currency) . ": " . number_format($amount, 2) . "\n");
-                    }
-                }
-                // Bank
-                if (!empty($paymentsByCurrency['deposit'])) {
-                    $printer->text("BANCO:\n");
-                    foreach ($paymentsByCurrency['deposit'] as $bankName => $currencies) {
-                        if (is_array($currencies)) {
-                             $printer->text("  " . $bankName . ":\n");
-                             foreach ($currencies as $curr => $amt) {
-                                  $printer->text("    " . $getCurrencyLabel($curr) . ": " . number_format($amt, 2) . "\n");
-                             }
-                        } else {
-                             $printer->text("  Otros: " . $getCurrencyLabel($bankName) . ": " . number_format($currencies, 2) . "\n");
+                    // Cash
+                    if (!empty($paymentsByCurrency['cash'])) {
+                        $printer->text("EFECTIVO:\n");
+                        foreach ($paymentsByCurrency['cash'] as $currency => $amount) {
+                             $printer->text("  " . $getCurrencyLabel($currency) . ": " . number_format($amount, 2) . "\n");
                         }
                     }
-                }
-                // Zelle
-                if (!empty($paymentsByCurrency['zelle'])) {
-                    $printer->text("ZELLE:\n");
-                    foreach ($paymentsByCurrency['zelle'] as $sender => $amount) {
-                         $printer->text("  " . substr($sender, 0, 18) . ": " . number_format($amount, 2) . "\n");
+                    // Bank
+                    if (!empty($paymentsByCurrency['deposit'])) {
+                        $printer->text("BANCO:\n");
+                        foreach ($paymentsByCurrency['deposit'] as $bankName => $currencies) {
+                            if (is_array($currencies)) {
+                                 $printer->text("  " . $bankName . ":\n");
+                                 foreach ($currencies as $curr => $amt) {
+                                      $printer->text("    " . $getCurrencyLabel($curr) . ": " . number_format($amt, 2) . "\n");
+                                 }
+                            } else {
+                                 $printer->text("  Otros: " . $getCurrencyLabel($bankName) . ": " . number_format($currencies, 2) . "\n");
+                            }
+                        }
                     }
-                }
-                // USDT Binance
-                if (!empty($paymentsByCurrency['usdt'])) {
-                    $usdtLabel = \App\Helpers\CurrencyHelper::getUsdtLabel();
-                    $printer->text(strtoupper($usdtLabel) . ":\n");
-                    foreach ($paymentsByCurrency['usdt'] as $sender => $amount) {
-                         $printer->text("  " . substr($sender, 0, 18) . ": " . number_format($amount, 2) . "\n");
+                    // Zelle
+                    if (!empty($paymentsByCurrency['zelle'])) {
+                        $printer->text("ZELLE:\n");
+                        foreach ($paymentsByCurrency['zelle'] as $sender => $amount) {
+                             $printer->text("  " . substr($sender, 0, 18) . ": " . number_format($amount, 2) . "\n");
+                        }
                     }
+                    // USDT Binance
+                    if (!empty($paymentsByCurrency['usdt'])) {
+                        $usdtLabel = \App\Helpers\CurrencyHelper::getUsdtLabel();
+                        $printer->text(strtoupper($usdtLabel) . ":\n");
+                        foreach ($paymentsByCurrency['usdt'] as $sender => $amount) {
+                             $printer->text("  " . substr($sender, 0, 18) . ": " . number_format($amount, 2) . "\n");
+                        }
+                    }
+                    
+                    $printer->text("\nTOTAL PAGOS RECIBIDOS: " . $currencySymbol . number_format($payments, 2) . "\n\n");
                 }
-                
-                $printer->text("\nTOTAL PAGOS RECIBIDOS: " . $currencySymbol . number_format($payments, 2) . "\n\n");
 
 
                 // --- SECTION 3: RESUMEN TOTAL ---
@@ -687,14 +719,16 @@ trait PrintTrait
                 $printer->text("TOTAL " . strtoupper($usdtLabel) . ": $" . number_format($usdtTotal, 2) . "\n\n");
 
                 // --- SECTION 4: BILLETERA / CUSTODIA ---
-                if ($walletAdded > 0 || $walletUsed > 0) {
-                    $printer->setJustification(Printer::JUSTIFY_CENTER);
-                    $printer->text("MOVIMIENTOS BILLETERA\n");
-                    $printer->setJustification(Printer::JUSTIFY_LEFT);
-                    $printer->text($separator . "\n");
-                    $printer->text("Custodia Hoy (+): " . $currencySymbol . number_format($walletAdded, 2) . "\n");
-                    $printer->text("Consumo Billetera (-): " . $currencySymbol . number_format($walletUsed, 2) . "\n");
-                    $printer->text($separator . "\n\n");
+                if ($config->getTicketSetting('cash_count', 'show_wallet', true)) {
+                    if ($walletAdded > 0 || $walletUsed > 0) {
+                        $printer->setJustification(Printer::JUSTIFY_CENTER);
+                        $printer->text("MOVIMIENTOS BILLETERA\n");
+                        $printer->setJustification(Printer::JUSTIFY_LEFT);
+                        $printer->text($separator . "\n");
+                        $printer->text("Custodia Hoy (+): " . $currencySymbol . number_format($walletAdded, 2) . "\n");
+                        $printer->text("Consumo Billetera (-): " . $currencySymbol . number_format($walletUsed, 2) . "\n");
+                        $printer->text($separator . "\n\n");
+                    }
                 }
 
                 $printer->text($separator . "\n");
@@ -741,11 +775,13 @@ trait PrintTrait
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
                 $printer->setTextSize(1, 1);
 
-                $printer->text(strtoupper($config->business_name) . "\n");
-                $printer->setTextSize(1, 1);
-                $printer->text("$config->address \n");
-                $printer->text("NIT: $config->taxpayer_id \n");
-                $printer->text("TEL: $config->phone \n\n");
+                if ($config->getTicketSetting('orders', 'show_company_data', true)) {
+                    $printer->text(strtoupper($config->business_name) . "\n");
+                    $printer->setTextSize(1, 1);
+                    $printer->text("$config->address \n");
+                    $printer->text("NIT: $config->taxpayer_id \n");
+                    $printer->text("TEL: $config->phone \n\n");
+                }
 
                 // Add Title
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
@@ -805,28 +841,40 @@ trait PrintTrait
                 $printer->setJustification(Printer::JUSTIFY_LEFT);
 
                 $desglose = $this->desgloseMonto($order->total);
-                $printer->text("SUBTOTAL....... $" . number_format($desglose['subtotal'], 2) . "\n");
-                $printer->text("IVA............ $" . number_format($desglose['iva'], 2) . "\n");
+                if ($config->getTicketSetting('orders', 'show_subtotal', true)) {
+                    $printer->text("SUBTOTAL....... $" . number_format($desglose['subtotal'], 2) . "\n");
+                }
+                if ($config->getTicketSetting('orders', 'show_tax', true)) {
+                    $printer->text("IVA............ $" . number_format($desglose['iva'], 2) . "\n");
+                }
                 $printer->text("TOTAL.......... $" . number_format($order->total, 2) . "\n");
 
-                if ($order->type == 'cash') {
-                    $printer->text("EFECTIVO....... $" . number_format($order->cash, 2) . "\n");
-                    if (floatval($order->change) > 0)  $printer->text("\nCAMBIO......... $" . number_format($order->change, 2) . "\n");
-                } else {
-                    $printer->text($order->type == 'credit' ? "FORMA DE PAGO: CRÉDITO" :  "FORMA DE PAGO:  DEPÓSITO" .  "\n");
+                if ($config->getTicketSetting('orders', 'show_cash_change', true)) {
+                    if ($order->type == 'cash') {
+                        $printer->text("EFECTIVO....... $" . number_format($order->cash, 2) . "\n");
+                        if (floatval($order->change) > 0)  $printer->text("\nCAMBIO......... $" . number_format($order->change, 2) . "\n");
+                    } else {
+                        $printer->text($order->type == 'credit' ? "FORMA DE PAGO: CRÉDITO" :  "FORMA DE PAGO:  DEPÓSITO" .  "\n");
+                    }
                 }
 
                 $printer->feed(1);
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
-                $printer->text("$config->leyend\n");
-                $printer->text("$config->website\n");
+                if ($config->getTicketSetting('orders', 'show_footer_message', true) && !empty($config->leyend)) {
+                    $printer->text("$config->leyend\n");
+                }
+                if ($config->getTicketSetting('orders', 'show_website', true) && !empty($config->website)) {
+                    $printer->text("$config->website\n");
+                }
 
                 // QR Code for Cloning (Universal bitmap rendering for 58mm and 80mm printers)
-                try {
-                    $this->printQrCode($printer, "ORD:" . $order->id, $printerWidth);
-                    $printer->text("SCAN PARA CLONAR\n");
-                } catch (\Exception $e) {
-                    \Log::warning("Could not print QR Code: " . $e->getMessage());
+                if ($config->getTicketSetting('orders', 'show_qr', true)) {
+                    try {
+                        $this->printQrCode($printer, "ORD:" . $order->id, $printerWidth);
+                        $printer->text("SCAN PARA CLONAR\n");
+                    } catch (\Exception $e) {
+                        \Log::warning("Could not print QR Code: " . $e->getMessage());
+                    }
                 }
 
                 $printer->feed(3);
@@ -862,8 +910,10 @@ trait PrintTrait
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
                 $printer->setTextSize(1, 1);
 
-                $printer->text(strtoupper($config->business_name) . "\n");
-                $printer->setTextSize(1, 1);
+                if ($config->getTicketSetting('payment_history', 'show_company_data', true)) {
+                    $printer->text(strtoupper($config->business_name) . "\n");
+                    $printer->setTextSize(1, 1);
+                }
                 $printer->text("Historial de Pagos\n\n");
 
                 // Determine widths based on configuration
@@ -909,22 +959,24 @@ trait PrintTrait
 
 
                 $totalReturnsUSD = 0;
-                $returns = $sale->returns->where('refund_method', 'debt_reduction')->where('status', 'approved');
-                foreach ($returns as $return) {
-                    $date = Carbon::parse($return->created_at)->format('d/m/y');
-                    $amount = number_format($return->total_returned, 2);
-                    $method = 'Nota Credito';
-                    
-                    $amountStr = $amount . " USD";
+                if ($config->getTicketSetting('payment_history', 'show_returns', true)) {
+                    $returns = $sale->returns->where('refund_method', 'debt_reduction')->where('status', 'approved');
+                    foreach ($returns as $return) {
+                        $date = Carbon::parse($return->created_at)->format('d/m/y');
+                        $amount = number_format($return->total_returned, 2);
+                        $method = 'Nota Credito';
+                        
+                        $amountStr = $amount . " USD";
 
-                    $printer->text("$date  $method\n");
-                    $printer->setJustification(Printer::JUSTIFY_RIGHT);
-                    $printer->text("$amountStr\n");
-                    $printer->setJustification(Printer::JUSTIFY_LEFT);
+                        $printer->text("$date  $method\n");
+                        $printer->setJustification(Printer::JUSTIFY_RIGHT);
+                        $printer->text("$amountStr\n");
+                        $printer->setJustification(Printer::JUSTIFY_LEFT);
 
-                    $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
-                    $amountUSD = $return->total_returned / $rate;
-                    $totalReturnsUSD += $amountUSD;
+                        $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
+                        $amountUSD = $return->total_returned / $rate;
+                        $totalReturnsUSD += $amountUSD;
+                    }
                 }
 
                 $printer->text($separator . "\n");
@@ -958,11 +1010,13 @@ trait PrintTrait
                 $printer->text("\n");
                 $printer->text("Saldo Pendiente ($primaryCode): $" . number_format($balanceSystem, 2) . "\n");
 
-                if ($sale->days_overdue > 0) {
-                    $printer->text("\n");
-                    $printer->setJustification(Printer::JUSTIFY_CENTER);
-                    $printer->text("*** CUENTA VENCIDA ***\n");
-                    $printer->text("Días de atraso: " . $sale->days_overdue . "\n");
+                if ($config->getTicketSetting('payment_history', 'show_due_alert', true)) {
+                    if ($sale->days_overdue > 0) {
+                        $printer->text("\n");
+                        $printer->setJustification(Printer::JUSTIFY_CENTER);
+                        $printer->text("*** CUENTA VENCIDA ***\n");
+                        $printer->text("Días de atraso: " . $sale->days_overdue . "\n");
+                    }
                 }
 
                 $printer->feed(3);
@@ -995,8 +1049,10 @@ trait PrintTrait
                 $printer->setTextSize(1, 1);
 
                 // Header
-                $printer->text("*** COMPROBANTE CONTABLE INTERNO ***\n");
-                $printer->text("(NO ENTREGAR AL CLIENTE)\n\n");
+                if ($config->getTicketSetting('internal', 'show_header', true)) {
+                    $printer->text("*** COMPROBANTE CONTABLE INTERNO ***\n");
+                    $printer->text("(NO ENTREGAR AL CLIENTE)\n\n");
+                }
                 
                 $printer->setJustification(Printer::JUSTIFY_LEFT);
                 $printer->text("Folio: " . ($sale->invoice_number ?? $sale->id) . "\n");
@@ -1057,9 +1113,9 @@ trait PrintTrait
                      // Reverse Calculation
                      $cleanTotal = max(0, $finalImporte - $itemFreight);
                      if ($sale->created_at >= \App\Services\ConfigurationService::getSequentialCutOffDate()) {
-                         $itemTotalBase = ($cleanTotal / (1 + $diffPercent / 100)) / (1 + ($commPercent + $markupPercent) / 100);
+                          $itemTotalBase = ($cleanTotal / (1 + $diffPercent / 100)) / (1 + ($commPercent + $markupPercent) / 100);
                      } else {
-                         $itemTotalBase = $cleanTotal / (1 + $combinedPercent);
+                          $itemTotalBase = $cleanTotal / (1 + $combinedPercent);
                      }
                      $baseUnit = ($qty > 0) ? ($itemTotalBase / $qty) : 0;
                      
@@ -1099,39 +1155,41 @@ trait PrintTrait
                 $printer->text($separator . "\n");
 
                 // Cargos Adicionales
-                $printer->setJustification(Printer::JUSTIFY_LEFT);
-                $printer->text("DESGLOSE CARGOS:\n");
-                $printer->setJustification(Printer::JUSTIFY_RIGHT);
-                
-                if ($commPercent > 0) {
-                     $amt = $totalBase * ($commPercent / 100);
-                     $printer->text("Comision (" . number_format($commPercent, 2) . "%): " . $currencySymbol . number_format($amt, 2) . "\n");
-                }
-                
-                if ($markupPercent > 0) {
-                     $amt = $totalBase * ($markupPercent / 100);
-                     $printer->text("Recargo (" . number_format($markupPercent, 2) . "%): " . $currencySymbol . number_format($amt, 2) . "\n");
-                }
-                
-                if ($configFreightTotal > 0) {
-                     $printer->text("Flete (Config " . number_format($freightPercent, 2) . "%): " . $currencySymbol . number_format($configFreightTotal, 2) . "\n");
-                }
+                if ($config->getTicketSetting('internal', 'show_charges_breakdown', true)) {
+                    $printer->setJustification(Printer::JUSTIFY_LEFT);
+                    $printer->text("DESGLOSE CARGOS:\n");
+                    $printer->setJustification(Printer::JUSTIFY_RIGHT);
+                    
+                    if ($commPercent > 0) {
+                         $amt = $totalBase * ($commPercent / 100);
+                         $printer->text("Comision (" . number_format($commPercent, 2) . "%): " . $currencySymbol . number_format($amt, 2) . "\n");
+                    }
+                    
+                    if ($markupPercent > 0) {
+                         $amt = $totalBase * ($markupPercent / 100);
+                         $printer->text("Recargo (" . number_format($markupPercent, 2) . "%): " . $currencySymbol . number_format($amt, 2) . "\n");
+                    }
+                    
+                    if ($configFreightTotal > 0) {
+                         $printer->text("Flete (Config " . number_format($freightPercent, 2) . "%): " . $currencySymbol . number_format($configFreightTotal, 2) . "\n");
+                    }
 
-                if ($productFreightTotal > 0) {
-                     $printer->text("Flete (Productos): " . $currencySymbol . number_format($productFreightTotal, $decimals) . "\n");
-                }
+                    if ($productFreightTotal > 0) {
+                         $printer->text("Flete (Productos): " . $currencySymbol . number_format($productFreightTotal, $decimals) . "\n");
+                    }
 
-                if ($diffPercent > 0) {
-                      if ($sale->created_at >= \App\Services\ConfigurationService::getSequentialCutOffDate()) {
-                           $commAmt = round($totalBase * ($commPercent / 100), $decimals);
-                           $markupAmt = round($totalBase * ($markupPercent / 100), $decimals);
-                           $intermediateTotal = round($totalBase + $commAmt + $markupAmt + $configFreightTotal + $productFreightTotal, $decimals);
-                           $amt = round($intermediateTotal * ($diffPercent / 100), $decimals);
-                      } else {
-                           $amt = round($totalBase * ($diffPercent / 100), $decimals);
-                      }
-                      $printer->text("Dif. Cambiaria (" . number_format($diffPercent, 2) . "%): " . $currencySymbol . number_format($amt, $decimals) . "\n");
-                 }
+                    if ($diffPercent > 0) {
+                          if ($sale->created_at >= \App\Services\ConfigurationService::getSequentialCutOffDate()) {
+                               $commAmt = round($totalBase * ($commPercent / 100), $decimals);
+                               $markupAmt = round($totalBase * ($markupPercent / 100), $decimals);
+                               $intermediateTotal = round($totalBase + $commAmt + $markupAmt + $configFreightTotal + $productFreightTotal, $decimals);
+                               $amt = round($intermediateTotal * ($diffPercent / 100), $decimals);
+                          } else {
+                               $amt = round($totalBase * ($diffPercent / 100), $decimals);
+                          }
+                          $printer->text("Dif. Cambiaria (" . number_format($diffPercent, 2) . "%): " . $currencySymbol . number_format($amt, $decimals) . "\n");
+                     }
+                }
 
                 $printer->text($separator . "\n");
                 

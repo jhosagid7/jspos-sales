@@ -162,6 +162,13 @@
     </head>
 
     <body>
+        @php
+            $config = \App\Models\Configuration::first();
+            $showLogo = $config ? $config->getPdfSetting('debit_notes', 'show_logo', true) : true;
+            $showCompanyData = $config ? $config->getPdfSetting('debit_notes', 'show_company_data', true) : true;
+            $showSignatureBox = $config ? $config->getPdfSetting('debit_notes', 'show_signature_box', true) : true;
+            $showNotes = $config ? $config->getPdfSetting('debit_notes', 'show_notes', true) : true;
+        @endphp
         @if(strtolower($invoice->seller->custom_fields['status'] ?? '') === 'pending')
             <div class="watermark">PENDIENTE</div>
         @endif
@@ -170,13 +177,15 @@
             <tbody>
                 <tr>
                     <td class="pl-0 border-0" width="15%">
-                       @if($invoice->logo)
+                       @if($showLogo && $invoice->logo)
                             <img src="{{ $invoice->getLogo() }}" alt="logo" height="50">
                         @endif
                     </td>
                     <td class="pl-0 border-0" width="70%">
                         <h4 class="text-center text-uppercase invoice-title">
-                            <strong>{{ $invoice->name }}</strong>
+                            @if($showCompanyData)
+                                <strong>{{ $invoice->name }}</strong>
+                            @endif
                         </h4>
                         <h5 class="text-center text-uppercase" style="color: #0380b2; margin: 0;">
                             AJUSTE DE SALIDA
@@ -250,7 +259,7 @@
             </tfoot>
         </table>
 
-        @if($invoice->notes)
+        @if($showNotes && $invoice->notes)
             <div class="box-disclaimer">
                 <b>Comentarios:</b> {!! $invoice->notes !!}
             </div>
@@ -271,6 +280,7 @@
             </tr>
         </table>
 
+        @if($showSignatureBox)
         <table class="table mt-5">
             <thead>
                 <th>
@@ -287,6 +297,7 @@
                 </tr>
             </tbody>
         </table>
+        @endif
         
         <script type="text/php">
             if (isset($pdf) && $PAGE_COUNT > 1) {

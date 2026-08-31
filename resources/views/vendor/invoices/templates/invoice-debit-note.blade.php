@@ -311,28 +311,39 @@
     </head>
 
     <body>
+        @php
+            $config = \App\Models\Configuration::first();
+            $showLogo = $config ? $config->getPdfSetting('debit_notes', 'show_logo', true) : true;
+            $showCompanyData = $config ? $config->getPdfSetting('debit_notes', 'show_company_data', true) : true;
+            $showSubtotal = $config ? $config->getPdfSetting('debit_notes', 'show_subtotal', true) : true;
+            $showTax = $config ? $config->getPdfSetting('debit_notes', 'show_tax', true) : true;
+            $showSignatureBox = $config ? $config->getPdfSetting('debit_notes', 'show_signature_box', true) : true;
+            $showAmountInWords = $config ? $config->getPdfSetting('debit_notes', 'show_amount_in_words', true) : true;
+            $showNotes = $config ? $config->getPdfSetting('debit_notes', 'show_notes', true) : true;
+            $showFooterCode = $config ? $config->getPdfSetting('debit_notes', 'show_footer_code', true) : true;
+        @endphp
+
         {{-- Header --}}
 
         <table style="margin-bottom:0px;" class="table mt-1">
             <tbody>
                 <tr>
                     <td class="pl-0 border-0" width="15%">
-                       @if($invoice->logo)
+                       @if($showLogo && $invoice->logo)
                             <img src="{{ $invoice->getLogo() }}" alt="logo" height="50">
-
                         @endif
                     </td>
                     <td class="pl-0 border-0" width="70%">
                         <h4 class="text-center text-uppercase invoice-title">
-                            <strong>{{ $invoice->name }}</strong>
+                            @if($showCompanyData)
+                                <strong>{{ $invoice->name }}</strong>
+                            @endif
                         </h4>
                     </td>
                     <td class="clearfix pl-0 border-0 invoice-details" width="15%">
                         <p > <strong class="remission-title text-blue">{{ $invoice->getSerialNumber() }}</strong>
                         <b> <br>NOTA DE DÉBITO</b>
                         </p>
-
-
                     </td>
                 </tr>
             </tbody>
@@ -504,8 +515,7 @@
                             {{ $invoice->formatCurrency($invoice->total_discount) }}
                         </td>
                     </tr>
-                @endif
-                @if($invoice->taxable_amount)
+                @endif                @if($showSubtotal && $invoice->taxable_amount)
                     <tr>
                         <td colspan="{{ $invoice->table_columns - 2 }}" class="border-0"></td>
                         <td class="pl-0 text-right">{{ __('invoices::invoice.taxable_amount') }}</td>
@@ -514,7 +524,7 @@
                         </td>
                     </tr>
                 @endif
-                @if($invoice->tax_rate)
+                @if($showTax && $invoice->tax_rate)
                     <tr>
                         <td colspan="{{ $invoice->table_columns - 2 }}" class="border-0"></td>
                         <td class="pl-0 text-right">{{ __('invoices::invoice.tax_rate') }}</td>
@@ -523,7 +533,7 @@
                         </td>
                     </tr>
                 @endif
-                @if($invoice->hasItemOrInvoiceTax())
+                @if($showTax && $invoice->hasItemOrInvoiceTax())
                     <tr>
                         <td colspan="{{ $invoice->table_columns - 2 }}" class="border-0"></td>
                         <td class="pl-0 text-right">{{ __('invoices::invoice.total_taxes') }}</td>
@@ -551,6 +561,7 @@
             </tbody>
         </table>
 
+        @if($showSignatureBox)
         <table class="table">
             <thead>
                 <th>
@@ -561,16 +572,21 @@
                 <th>
                     <td class="text-center">FIRMA, SELLO Y FECHA DE RECIBO</td>
                 </th>
-            <tbody>
+            </tbody>
         </table>
+        @endif
         
+        @if($showFooterCode && !empty($invoice->seller->custom_fields['footer_code']))
         <p class="text-center" style="font-size: 9px; color: #555; margin-top: 5px;">
-            {{ $invoice->seller->custom_fields['footer_code'] ?? '' }}
+            {{ $invoice->seller->custom_fields['footer_code'] }}
         </p>
+        @endif
 
+        @if($showAmountInWords)
         <p class="clase_table text-uppercase">
             <b>{{ __('invoices::invoice.amount_in_words') }}:</b> {{ $invoice->getTotalAmountInWords() }}
         </p>
+        @endif
 
 
 
@@ -605,11 +621,11 @@
                 
                                     @if($dDaysFrom == 0)
                                          <div style="margin-bottom: 3px;">
-                                            <span style="color: #0380b2;">•</span> <strong>{{ number_format($dPercent, 0) }}% Pronto Pago:</strong> primeros <strong>{{ $dDaysTo }}</strong> días.
+                                             <span style="color: #0380b2;">•</span> <strong>{{ number_format($dPercent, 0) }}% Pronto Pago:</strong> primeros <strong>{{ $dDaysTo }}</strong> días.
                                          </div>
                                     @else
                                          <div style="margin-bottom: 3px;">
-                                            <span style="color: #0380b2;">•</span> <strong>{{ number_format($dPercent, 0) }}% Pronto Pago:</strong> días <strong>{{ $dDaysFrom }}</strong> a <strong>{{ $dDaysTo ?? '+' }}</strong>.
+                                             <span style="color: #0380b2;">•</span> <strong>{{ number_format($dPercent, 0) }}% Pronto Pago:</strong> días <strong>{{ $dDaysFrom }}</strong> a <strong>{{ $dDaysTo ?? '+' }}</strong>.
                                          </div>
                                     @endif
                                 @endforeach
@@ -687,7 +703,7 @@
                 </tr>
             </table>
         
-        @if($invoice->notes)
+        @if($showNotes && $invoice->notes)
             <p class="clase_table text-uppercase">
                 <b>{{ __('invoices::invoice.notes') }}:</b> {!! $invoice->notes !!}
             </p>

@@ -4771,18 +4771,21 @@ class Sales extends Component
             session()->forget('totalCartAtPayment');
 
             // Automatic Ticket Printing via ESC/POS connector
-            try {
-                $this->printSale($sale->id);
-            } catch (\Throwable $pe) {
-                \Illuminate\Support\Facades\Log::warning("Could not print sale ticket: " . $pe->getMessage());
-            }
+            $config = \App\Models\Configuration::first();
+            if (!$config || $config->getTicketSetting('sales', 'auto_print', true)) {
+                try {
+                    $this->printSale($sale->id);
+                } catch (\Throwable $pe) {
+                    \Illuminate\Support\Facades\Log::warning("Could not print sale ticket: " . $pe->getMessage());
+                }
 
-            // base64 / printerapp
-            try {
-                $b64 = $this->jsonData($sale->id);
-                $this->dispatch('print-json', data: $b64);
-            } catch (\Throwable $je) {
-                \Illuminate\Support\Facades\Log::warning("jsonData dispatch failed: " . $je->getMessage());
+                // base64 / printerapp
+                try {
+                    $b64 = $this->jsonData($sale->id);
+                    $this->dispatch('print-json', data: $b64);
+                } catch (\Throwable $je) {
+                    \Illuminate\Support\Facades\Log::warning("jsonData dispatch failed: " . $je->getMessage());
+                }
             }
         } catch (\Exception $th) {
             DB::rollBack();

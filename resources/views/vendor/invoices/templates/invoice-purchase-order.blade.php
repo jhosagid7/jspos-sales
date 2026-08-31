@@ -215,6 +215,16 @@
     </head>
 
     <body>
+        @php
+            $config = \App\Models\Configuration::first();
+            $showLogo = $config ? $config->getPdfSetting('purchase_orders', 'show_logo', true) : true;
+            $showCompanyData = $config ? $config->getPdfSetting('purchase_orders', 'show_company_data', true) : true;
+            $showSubtotal = $config ? $config->getPdfSetting('purchase_orders', 'show_subtotal', true) : true;
+            $showTax = $config ? $config->getPdfSetting('purchase_orders', 'show_tax', true) : true;
+            $showSignatureBox = $config ? $config->getPdfSetting('purchase_orders', 'show_signature_box', true) : true;
+            $showAmountInWords = $config ? $config->getPdfSetting('purchase_orders', 'show_amount_in_words', true) : true;
+            $showNotes = $config ? $config->getPdfSetting('purchase_orders', 'show_notes', true) : true;
+        @endphp
         @if(strtolower($invoice->seller->custom_fields['status'] ?? '') === 'pending')
             <div class="watermark">PENDIENTE</div>
         @endif
@@ -223,11 +233,12 @@
             <tbody>
                 <tr>
                     <td class="pl-0 border-0" width="25%" style="vertical-align: middle;">
-                        @if($invoice->logo)
+                        @if($showLogo && $invoice->logo)
                             <img src="{{ $invoice->getLogo() }}" alt="logo" height="80">
                         @endif
                     </td>
                     <td class="border-0 text-center" width="50%" style="vertical-align: middle;">
+                        @if($showCompanyData)
                         <h4 class="text-uppercase" style="color: #0380b2; font-weight: bold; font-size: 20px; margin: 0;">
                             {{ $invoice->seller->name }}
                         </h4>
@@ -236,6 +247,7 @@
                             TEL: {{ $invoice->seller->phone }}<br>
                             {{ $invoice->seller->custom_fields['CC/NIT'] ?? '' }}
                         </div>
+                        @endif
                     </td>
                     <td class="border-0 text-right" width="25%" style="vertical-align: middle;">
                         <h4 class="text-uppercase" style="color: #0380b2; font-size: 20px; font-weight: bold; margin: 0;">
@@ -327,7 +339,7 @@
             </tfoot>
         </table>
 
-        @if($invoice->notes)
+        @if($showNotes && $invoice->notes)
             <div class="box-disclaimer">
                 <strong>NOTAS:</strong><br>
                 {!! $invoice->notes !!}
@@ -349,6 +361,7 @@
             </tr>
         </table>
 
+        @if($showSignatureBox)
         <div style="margin-top: 80px;">
             <table width="100%">
                 <tr>
@@ -367,6 +380,7 @@
                 </tr>
             </table>
         </div>
+        @endif
 
     </body>
 </html>
