@@ -381,8 +381,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/costs', [\App\Http\Controllers\BagFactoryWebController::class, 'costsIndex'])->name('costs.index');
     Route::get('/costos', [\App\Http\Controllers\BagFactoryWebController::class, 'costsIndex'])->name('costs.index_alias');
-    Route::post('/costs', [\App\Http\Controllers\BagFactoryWebController::class, 'costsUpdate'])->name('costs.update');
-    Route::post('/products/{id}/technical', [\App\Http\Controllers\BagFactoryWebController::class, 'productsTechnicalUpdate'])->name('products.technical.update');
+    Route::match(['post', 'put'], '/costs', [\App\Http\Controllers\BagFactoryWebController::class, 'costsUpdate'])->name('costs.update');
+    Route::match(['post', 'put'], '/products/{id}/technical', [\App\Http\Controllers\BagFactoryWebController::class, 'productsTechnicalUpdate'])->name('products.technical.update');
 
     Route::get('/catalogo-bolsas', [\App\Http\Controllers\BagFactoryWebController::class, 'productsIndex'])->name('products.index');
     Route::get('/catalogo', [\App\Http\Controllers\BagFactoryWebController::class, 'productsIndex'])->name('products.index_alias');
