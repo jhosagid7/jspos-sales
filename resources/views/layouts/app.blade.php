@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>@yield('title', 'Control de Planta') - JSBolsas Pro</title>
+    <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon-jsbolsas.png') }}">
+    <link rel="shortcut icon" href="{{ asset('assets/images/favicon-jsbolsas.png') }}">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Google Fonts -->

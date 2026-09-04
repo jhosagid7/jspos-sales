@@ -27,7 +27,7 @@ class LoginSuccess
     public function handle(Login $event)
     {
         // Verificar si el usuario está suspendido
-        if ($event->user->status != 'Active') {
+        if (!empty($event->user->status) && in_array(strtolower($event->user->status), ['locked', 'inactive', 'suspended', 'bloqueado'])) {
 
             Auth::logout();
 
