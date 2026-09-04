@@ -380,6 +380,12 @@
                     </a>
                     <ul class="nav nav-treeview">
                         <li class="nav-item">
+                            <a href="{{ route('system.bag_factory.index') }}" class="nav-link {{ Request::is('system/fabrica-bolsas*') || Request::is('fabrica-bolsas*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon text-warning"></i>
+                                <p>Supervisión JSBolsas (Turnos / Báscula)</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a href="{{ route('production.index') }}" class="nav-link {{ Request::is('production') || Request::is('production/create*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Historial Levantamiento</p>

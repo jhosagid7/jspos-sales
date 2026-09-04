@@ -72,13 +72,13 @@ Route::prefix('install')->name('install.')->group(function () {
     Route::get('/download-shortcut', [\App\Http\Controllers\InstallController::class, 'downloadShortcut'])->name('downloadShortcut');
 });
 
-Route::get('/dashboard', function () {
+Route::get('/dashboard', function (\Illuminate\Http\Request $request) {
     // If it's a Driver AND NOT an Admin/Super Admin, send to Driver Dashboard
-    if (auth()->user()->hasRole('Driver') && !auth()->user()->hasAnyRole(['Admin', 'Super Admin'])) {
+    if (auth()->check() && method_exists(auth()->user(), 'hasRole') && auth()->user()->hasRole('Driver') && !auth()->user()->hasAnyRole(['Admin', 'Super Admin'])) {
         return redirect()->route('driver.dashboard');
     }
-    return redirect()->route('welcome');
-})->middleware(['auth', 'verified'])->name('dashboard');
+    return app(\App\Http\Controllers\BagFactoryWebController::class)->dashboard($request);
+})->middleware(['auth'])->name('dashboard');
 
 
 
@@ -339,6 +339,56 @@ Route::prefix('system')->name('system.')->group(function () {
             return redirect('/dashboard')->with('error', 'La migración finalizó con advertencias: ' . $e->getMessage());
         }
     })->name('upgrade-db');
+
+    // JSBolsas (Administración de Fábrica de Bolsas) Web Routes
+    Route::prefix('fabrica-bolsas')->name('bag_factory.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\BagFactoryWebController::class, 'index'])->name('index');
+        Route::post('/approve/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'approve'])->name('approve');
+        Route::post('/bulk-approve', [\App\Http\Controllers\BagFactoryWebController::class, 'bulkApprove'])->name('bulk_approve');
+        Route::post('/adjust/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'adjust'])->name('adjust');
+        Route::post('/reject/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'reject'])->name('reject');
+        Route::get('/ticket/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'ticket'])->name('ticket');
+    });
+});
+
+// JSBolsas Pro / Bag Factory Web Routes
+Route::middleware('auth')->group(function () {
+    Route::get('/scale', [\App\Http\Controllers\BagFactoryWebController::class, 'scaleAudit'])->name('scale.index');
+    Route::post('/scale/approve/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'approve'])->name('scale.approve');
+    Route::post('/scale/bulk-approve', [\App\Http\Controllers\BagFactoryWebController::class, 'bulkApprove'])->name('scale.bulk_approve');
+    Route::post('/scale/adjust/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'adjust'])->name('scale.adjust');
+    Route::post('/scale/reject/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'reject'])->name('scale.reject');
+
+    Route::get('/reports-fabrica', [\App\Http\Controllers\BagFactoryWebController::class, 'reportsIndex'])->name('reports.index');
+    Route::get('/reports-fabrica/pdf', [\App\Http\Controllers\BagFactoryWebController::class, 'reportsPdf'])->name('reports.pdf');
+
+    Route::get('/formulas', [\App\Http\Controllers\BagFactoryWebController::class, 'formulasIndex'])->name('formulas.index');
+    Route::post('/formulas', [\App\Http\Controllers\BagFactoryWebController::class, 'formulasStore'])->name('formulas.store');
+    Route::post('/formulas/{id}/version', [\App\Http\Controllers\BagFactoryWebController::class, 'formulasNewVersion'])->name('formulas.new_version');
+
+    Route::get('/raw-materials', [\App\Http\Controllers\BagFactoryWebController::class, 'rawMaterialsIndex'])->name('raw_materials.index');
+    Route::post('/raw-materials', [\App\Http\Controllers\BagFactoryWebController::class, 'rawMaterialsStore'])->name('raw_materials.store');
+    Route::post('/raw-materials/{id}/price', [\App\Http\Controllers\BagFactoryWebController::class, 'rawMaterialsUpdatePrice'])->name('raw_materials.update_price');
+
+    Route::get('/costs', [\App\Http\Controllers\BagFactoryWebController::class, 'costsIndex'])->name('costs.index');
+    Route::post('/costs', [\App\Http\Controllers\BagFactoryWebController::class, 'costsUpdate'])->name('costs.update');
+    Route::post('/products/{id}/technical', [\App\Http\Controllers\BagFactoryWebController::class, 'productsTechnicalUpdate'])->name('products.technical_update');
+
+    Route::get('/catalogo-bolsas', [\App\Http\Controllers\BagFactoryWebController::class, 'productsIndex'])->name('products.index');
+    Route::post('/catalogo-bolsas', [\App\Http\Controllers\BagFactoryWebController::class, 'productsStore'])->name('products.store');
+    Route::put('/catalogo-bolsas/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'productsUpdate'])->name('products.update');
+    Route::delete('/catalogo-bolsas/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'productsDestroy'])->name('products.destroy');
+
+    Route::get('/usuarios-fabrica', [\App\Http\Controllers\BagFactoryWebController::class, 'usersIndex'])->name('users.index');
+    Route::post('/usuarios-fabrica', [\App\Http\Controllers\BagFactoryWebController::class, 'usersStore'])->name('users.store');
+    Route::put('/usuarios-fabrica/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'usersUpdate'])->name('users.update');
+    Route::delete('/usuarios-fabrica/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'usersDestroy'])->name('users.destroy');
+
+    Route::get('/machines', [\App\Http\Controllers\BagFactoryWebController::class, 'machinesIndex'])->name('machines.index');
+    Route::post('/machines', [\App\Http\Controllers\BagFactoryWebController::class, 'machinesStore'])->name('machines.store');
+    Route::delete('/machines/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'machinesDestroy'])->name('machines.destroy');
+
+    Route::get('/ticket/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'ticket'])->name('ticket');
 });
 
 require __DIR__ . '/auth.php';

@@ -47,6 +47,7 @@ nssm/*.bak
 
 # Mobile App Binaries
 *.apk
+!public/JSBolsas.apk
 
 # Auto-migration logs
 /storage/framework/migrated_*.log

@@ -213,4 +213,48 @@ class User extends Authenticatable
     {
         return $query->permission('distribution.map'); // Or the specific driver permission
     }
+
+    public function isSuperAdmin(): bool
+    {
+        return in_array(strtolower($this->role ?? ''), ['superadmin', 'super admin', 'super_admin'])
+            || (method_exists($this, 'hasRole') && $this->hasRole(['Super Admin', 'superadmin']));
+    }
+
+    public function isAdmin(): bool
+    {
+        return in_array(strtolower($this->role ?? ''), ['admin', 'administrador'])
+            || (method_exists($this, 'hasRole') && $this->hasRole(['Admin', 'admin']))
+            || $this->isSuperAdmin();
+    }
+
+    public function isSupervisor(): bool
+    {
+        return strtolower($this->role ?? '') === 'supervisor'
+            || (method_exists($this, 'hasRole') && $this->hasRole(['Supervisor', 'supervisor']));
+    }
+
+    public function isOperator(): bool
+    {
+        return in_array(strtolower($this->role ?? ''), ['operario', 'operator'])
+            || (method_exists($this, 'hasRole') && $this->hasRole(['Operario', 'operario', 'Operator']));
+    }
+
+    public function isWarehouse(): bool
+    {
+        return in_array(strtolower($this->role ?? $this->profile ?? ''), ['almacen', 'warehouse'])
+            || (method_exists($this, 'hasRole') && $this->hasRole(['Almacen', 'almacen', 'Warehouse']));
+    }
+
+    public function getRoleAttribute()
+    {
+        return $this->attributes['role'] ?? $this->attributes['profile'] ?? null;
+    }
+
+    public function setRoleAttribute($value)
+    {
+        if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'role')) {
+            $this->attributes['role'] = $value;
+        }
+        $this->attributes['profile'] = $value;
+    }
 }

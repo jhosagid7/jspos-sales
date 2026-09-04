@@ -7,6 +7,10 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:intl/intl.dart';
 import 'dart:math';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'screens/operator_dashboard.dart';
+import 'screens/supervisor_dashboard.dart';
+import 'screens/warehouse_lifting_screen.dart';
+import 'constants.dart';
 
 void main() {
   runApp(const BolsasApp());
@@ -18,7 +22,7 @@ class BolsasApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'JSPOS Bolsas',
+      title: 'JSBolsas Pro',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1B263B), primary: const Color(0xFF1B263B)),
@@ -40,7 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
-  String _baseUrl = "";
+  String _baseUrl = "https://bolsas.plasticosmyf.com";
   String _appVersion = "";
   String _deviceToken = "";
 
@@ -61,7 +65,8 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     setState(() {
-      _baseUrl = prefs.getString('base_url') ?? '';
+      _baseUrl = prefs.getString('base_url') ?? 'https://bolsas.plasticosmyf.com';
+      if (_baseUrl.isEmpty) _baseUrl = 'https://bolsas.plasticosmyf.com';
       _emailController.text = prefs.getString('last_email') ?? '';
       _appVersion = pkg.version;
       _deviceToken = token;
@@ -83,6 +88,10 @@ class _LoginScreenState extends State<LoginScreen> {
     return List.generate(length, (index) => chars[rand.nextInt(chars.length)]).join();
   }
 
+  void _showAbout(BuildContext context) {
+    showAppAboutDialog(context, _appVersion);
+  }
+
   Future<void> _showSettings() async {
     final controller = TextEditingController(text: _baseUrl);
     await showDialog(
@@ -93,14 +102,14 @@ class _LoginScreenState extends State<LoginScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              title: const Text('VPN ZeroTier'),
-              subtitle: const Text('http://192.168.194.66'),
-              onTap: () => controller.text = 'http://192.168.194.66',
+              title: const Text('🌐 Servidor VPS Nube (Oficial)'),
+              subtitle: const Text('https://bolsas.plasticosmyf.com'),
+              onTap: () => controller.text = 'https://bolsas.plasticosmyf.com',
             ),
             ListTile(
-              title: const Text('IP Local'),
-              subtitle: const Text('http://192.168.1.100'),
-              onTap: () => controller.text = 'http://192.168.1.100',
+              title: const Text('🔒 Red VPN Tailscale / ZeroTier'),
+              subtitle: const Text('http://100.64.0.4:8000'),
+              onTap: () => controller.text = 'http://100.64.0.4:8000',
             ),
             const Divider(),
             TextField(
@@ -154,6 +163,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setInt('user_id', data['user']['id'] ?? 0);
         await prefs.setString('token', data['token'] ?? '');
         await prefs.setString('user_name', data['user']['name'] ?? 'Operador Bolsas');
+        await prefs.setString('user_role', data['user']['role'] ?? 'operario');
         await prefs.setString('last_email', _emailController.text);
 
         if (mounted) {
@@ -215,23 +225,53 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             const SizedBox(height: 60),
             Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
+                  tooltip: 'Acerca de y Créditos',
+                  onPressed: () => _showAbout(context),
+                  icon: const Icon(Icons.info_outline_rounded, color: Colors.white70),
+                ),
+                IconButton(
+                  tooltip: 'Configuración Servidor',
                   onPressed: _showSettings,
                   icon: const Icon(Icons.settings, color: Colors.white70),
-                )
+                ),
               ],
             ),
             const Icon(Icons.precision_manufacturing_rounded, size: 100, color: Colors.amberAccent),
             const SizedBox(height: 10),
             const Text(
-              'JSPOS Bolsas',
+              'JSBolsas Pro',
               style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold),
             ),
             const Text(
-              'Levantamiento de Producción de Bolsas',
+              'Administración y Producción de Planta',
               style: TextStyle(color: Colors.white70, fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: () => _showAbout(context),
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.amberAccent.withOpacity(0.5)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.verified_rounded, size: 14, color: Colors.amberAccent),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Versión ${_appVersion.isNotEmpty ? _appVersion : kAppVersion}',
+                      style: const TextStyle(color: Colors.amberAccent, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
             ),
             const Spacer(),
             Container(
@@ -244,34 +284,28 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   TextField(
                     controller: _emailController,
-                    decoration: InputDecoration(
-                      labelText: 'Usuario (Email)',
-                      border: const OutlineInputBorder(),
-                      prefixIcon: const Icon(Icons.person),
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () => _emailController.clear(),
-                      ),
+                    decoration: const InputDecoration(
+                      labelText: 'Correo Electrónico',
+                      prefixIcon: Icon(Icons.email_outlined),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 15),
                   TextField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
                       labelText: 'Contraseña',
-                      border: const OutlineInputBorder(),
-                      prefixIcon: const Icon(Icons.lock),
+                      prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                        icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
                         onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 25),
                   SizedBox(
                     width: double.infinity,
-                    height: 55,
+                    height: 50,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _login,
                       style: ElevatedButton.styleFrom(
@@ -281,13 +315,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       child: _isLoading
                           ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text('ENTRAR', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          : const Text('INICIAR SESIÓN', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
-                  ),
-                  const SizedBox(height: 15),
-                  Text(
-                    'Servidor: $_baseUrl  •  Versión Bolsas: $_appVersion',
-                    style: const TextStyle(fontSize: 10, color: Colors.grey),
                   ),
                 ],
               ),
@@ -299,16 +328,18 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-// --- DASHBOARD ---
 class DashboardScreen extends StatefulWidget {
   final String baseUrl;
   const DashboardScreen({super.key, required this.baseUrl});
+
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
   String _userName = "";
+  String _userRole = "operario";
+  String _token = "";
   late String _baseUrl;
   String _appVersion = "";
 
@@ -325,12 +356,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() {
       _appVersion = pkg.version;
       _userName = prefs.getString('user_name') ?? "Operador Bolsas";
+      _userRole = prefs.getString('user_role') ?? "operario";
+      _token = prefs.getString('token') ?? "";
     });
+  }
+
+  void _showAbout(BuildContext context) {
+    showAppAboutDialog(context, _appVersion);
   }
 
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
+    await prefs.remove('user_role');
+    await prefs.remove('user_name');
+    await prefs.remove('user_id');
     if (mounted) {
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LoginScreen()));
     }
@@ -338,6 +378,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final role = _userRole.toLowerCase().trim();
+    final isAdmin = role == 'admin' || role == 'superadmin' || role.contains('admin') || role == 'administrador';
+    final isSupervisor = role.contains('supervisor') || role.contains('jefe') || isAdmin;
+    final isOperario = role.contains('operari') || role.contains('operador') || isAdmin;
+    final isAlmacen = role.contains('almacen') || role.contains('despacho') || isAdmin;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F9),
       appBar: AppBar(
@@ -345,9 +391,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
-          'Fábrica de Bolsas',
+          'JSBolsas Pro',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline_rounded, color: Colors.white70),
+            tooltip: 'Acerca de y Créditos',
+            onPressed: () => _showAbout(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout_rounded, color: Colors.white70),
+            tooltip: 'Cerrar Sesión',
+            onPressed: _logout,
+          ),
+        ],
       ),
       drawer: Drawer(
         child: Column(
@@ -355,22 +413,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
             UserAccountsDrawerHeader(
               decoration: const BoxDecoration(color: Color(0xFF1B263B)),
               accountName: Text(_userName, style: const TextStyle(fontWeight: FontWeight.bold)),
-              accountEmail: const Text("Operador de Fábrica"),
+              accountEmail: Text("Rol: ${_userRole.toUpperCase()}"),
               currentAccountPicture: const CircleAvatar(
                 backgroundColor: Colors.white,
                 child: Icon(Icons.precision_manufacturing_rounded, color: Color(0xFF1B263B), size: 40),
               ),
             ),
             ListTile(
+              leading: const Icon(Icons.info_outline_rounded, color: Color(0xFF0284C7)),
+              title: const Text('Acerca de y Créditos', style: TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: const Text('Información del sistema y autor', style: TextStyle(fontSize: 12)),
+              onTap: () => _showAbout(context),
+            ),
+            const Divider(height: 1),
+            ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text('Cerrar Sesión'),
+              title: const Text('Cerrar Sesión / Cambiar Usuario'),
               onTap: _logout,
             ),
             const Spacer(),
             const Divider(height: 1),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 25, top: 15),
-              child: Text('v$_appVersion', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+            InkWell(
+              onTap: () => _showAbout(context),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 25, top: 15, left: 15, right: 15),
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1B263B).withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF1B263B).withOpacity(0.15)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.verified_rounded, size: 16, color: Color(0xFF10B981)),
+                    const SizedBox(width: 6),
+                    Text(
+                      'JSBolsas Pro v${_appVersion.isNotEmpty ? _appVersion : kAppVersion}',
+                      style: const TextStyle(color: Color(0xFF1B263B), fontWeight: FontWeight.bold, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -408,10 +492,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _userName,
                     style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    'Levantamiento y registro de lotes de producción diarios.',
-                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.amber.shade300, width: 1),
+                    ),
+                    child: Text(
+                      'ROL: ${_userRole.toUpperCase()}',
+                      style: const TextStyle(color: Colors.amberAccent, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ],
               ),
@@ -419,7 +511,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 25, vertical: 10),
               child: Text(
-                'Operaciones',
+                'Módulos Habilitados para tu Rol',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1B263B)),
               ),
             ),
@@ -427,31 +519,67 @@ class _DashboardScreenState extends State<DashboardScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-                  _menuCard(
-                    'Registrar Producción',
-                    'Cargar bolsas producidas por día',
-                    Icons.add_task_rounded,
-                    Colors.blue.shade700,
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => ProductionScreen(baseUrl: _baseUrl)),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 15),
-                  _menuCard(
-                    'Historial de Levantamiento',
-                    'Ver lotes subidos anteriormente',
-                    Icons.history_rounded,
-                    Colors.teal.shade700,
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => ProductionHistoryScreen(baseUrl: _baseUrl)),
-                      );
-                    },
-                  ),
+                  if (isOperario)
+                    _menuCard(
+                      '⚡ Turnos & Carga Offline-First',
+                      'Apertura Diurna/Nocturna, pesaje y sync automático',
+                      Icons.flash_on_rounded,
+                      const Color(0xFF0284C7),
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => OperatorDashboardScreen(
+                              baseUrl: _baseUrl,
+                              token: _token,
+                              userName: _userName,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  if (isSupervisor) ...[
+                    const SizedBox(height: 15),
+                    _menuCard(
+                      '👨‍💼 Supervisión & Báscula (Jefe)',
+                      'Auditar en báscula, pre-levantamiento y tickets QR',
+                      Icons.fact_check_rounded,
+                      const Color(0xFF059669),
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SupervisorDashboardScreen(
+                              baseUrl: _baseUrl,
+                              token: _token,
+                              userName: _userName,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                  if (isAlmacen) ...[
+                    const SizedBox(height: 15),
+                    _menuCard(
+                      '📥 Recepción Almacén General (JSPOS)',
+                      'Escanear QR o seleccionar bultos para ingresar a ventas',
+                      Icons.inventory_2_rounded,
+                      const Color(0xFFD97706),
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => WarehouseLiftingScreen(
+                              baseUrl: _baseUrl,
+                              token: _token,
+                              userName: _userName,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -2051,3 +2179,108 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> {
     );
   }
 }
+
+void showAppAboutDialog(BuildContext context, String appVersion) {
+  final ver = appVersion.isNotEmpty ? appVersion : kAppVersion;
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: const Color(0xFF1B263B),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.amber.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.precision_manufacturing_rounded, size: 48, color: Colors.amberAccent),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'JSBolsas Pro',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
+          ),
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.amberAccent.withOpacity(0.5)),
+            ),
+            child: Text(
+              'Versión v$ver (Build 230)',
+              style: const TextStyle(color: Colors.amberAccent, fontSize: 13, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Divider(color: Colors.white24),
+            const SizedBox(height: 8),
+            _aboutRow(Icons.business_rounded, 'Empresa / Fábrica', 'Plásticos M&F'),
+            const SizedBox(height: 12),
+            _aboutRow(Icons.person_rounded, 'Autor / Créditos', 'Jhonny Sagid'),
+            const SizedBox(height: 12),
+            _aboutRow(Icons.architecture_rounded, 'Módulos', 'Turnos, Báscula & Almacén'),
+            const SizedBox(height: 12),
+            _aboutRow(Icons.cloud_sync_rounded, 'Sincronización', 'Offline-First SQLite + VPS API'),
+            const SizedBox(height: 12),
+            _aboutRow(Icons.verified_rounded, 'Estado del Sistema', 'Producción Oficial 2026'),
+            const SizedBox(height: 12),
+            const Divider(color: Colors.white24),
+            const SizedBox(height: 4),
+            const Center(
+              child: Text(
+                '© 2026 Plásticos M&F • Todos los derechos reservados',
+                style: TextStyle(color: Colors.white38, fontSize: 11),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        Center(
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0284C7),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
+            ),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ENTENDIDO', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _aboutRow(IconData icon, String label, String value) {
+  return Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Icon(icon, size: 20, color: const Color(0xFF38BDF8)),
+      const SizedBox(width: 12),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+            const SizedBox(height: 2),
+            Text(value, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+

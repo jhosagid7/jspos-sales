@@ -130,3 +130,29 @@ Route::prefix('bolsas')->middleware('auth:sanctum')->group(function () {
     Route::post('/production', [App\Http\Controllers\Api\BagsProductionApiController::class, 'store']);
     Route::get('/production/history', [App\Http\Controllers\Api\BagsProductionApiController::class, 'history']);
 });
+
+// Bag Factory Dedicated Routes (Administración de Fábrica de Bolsas)
+Route::prefix('bag-factory')->middleware('auth:sanctum')->group(function () {
+    Route::get('/products', [App\Http\Controllers\Api\BagFactoryApiController::class, 'products']);
+    Route::get('/machines', [App\Http\Controllers\Api\BagFactoryApiController::class, 'machines']);
+    Route::post('/shifts/open', [App\Http\Controllers\Api\BagFactoryApiController::class, 'openShift']);
+    Route::post('/shifts/close', [App\Http\Controllers\Api\BagFactoryApiController::class, 'closeShift']);
+    Route::get('/shifts/active', [App\Http\Controllers\Api\BagFactoryApiController::class, 'activeShift']);
+    Route::get('/shifts/history', [App\Http\Controllers\Api\BagFactoryApiController::class, 'shiftsHistory']);
+    Route::post('/productions/sync', [App\Http\Controllers\Api\BagFactoryApiController::class, 'syncProductions']);
+
+    // Supervisor & Operations Manager Endpoints
+    Route::get('/supervisor/feed', [App\Http\Controllers\Api\BagFactoryApiController::class, 'supervisorFeed']);
+    Route::put('/supervisor/productions/{id}', [App\Http\Controllers\Api\BagFactoryApiController::class, 'adjustProduction']);
+    Route::post('/supervisor/productions/{id}/approve', [App\Http\Controllers\Api\BagFactoryApiController::class, 'approveProduction']);
+    Route::post('/supervisor/productions/bulk-approve', [App\Http\Controllers\Api\BagFactoryApiController::class, 'bulkApprove']);
+    Route::post('/supervisor/productions/{id}/reject', [App\Http\Controllers\Api\BagFactoryApiController::class, 'rejectProduction']);
+    Route::get('/supervisor/pre-stock', [App\Http\Controllers\Api\BagFactoryApiController::class, 'preStock']);
+    Route::get('/supervisor/ticket/{id}', [App\Http\Controllers\Api\BagFactoryApiController::class, 'ticketData']);
+    Route::get('/ticket/{id}', [App\Http\Controllers\Api\BagFactoryApiController::class, 'ticketData']);
+
+    // JSPOS General Warehouse Lifting & Receiving Endpoints
+    Route::get('/lifting/pending', [App\Http\Controllers\Api\BagFactoryApiController::class, 'liftingPending']);
+    Route::get('/lifting/scan/{code}', [App\Http\Controllers\Api\BagFactoryApiController::class, 'scanQr']);
+    Route::post('/lifting/receive', [App\Http\Controllers\Api\BagFactoryApiController::class, 'receiveLifting']);
+});
