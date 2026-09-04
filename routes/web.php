@@ -46,7 +46,10 @@ Route::post('/livewire/upload-file', [\App\Http\Controllers\LivewireUploadContro
     ->name('livewire.upload-file');
 
 Route::get('/', function () {
-    return view('auth.login');
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+    return redirect()->route('login');
 });
 
 // License Routes
