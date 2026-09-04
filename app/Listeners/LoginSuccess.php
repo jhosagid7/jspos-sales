@@ -74,24 +74,40 @@ class LoginSuccess
 
     public function checkCreditSales()
     {
-        $sales = Sale::where('type', 'credit')->where('status', 'pending')->orderBy('id', 'asc')
-            ->where('created_at', '<', Carbon::now()->subDays(session('settings')->credit_days))
-            ->with('customer')
-            ->get();
+        if (!\Illuminate\Support\Facades\Schema::hasTable('sales') || !session('settings') || !isset(session('settings')->credit_days)) {
+            return;
+        }
 
-        if ($sales != null && $sales->count() > 0) {
-            session(['noty_sales' => $sales]);
+        try {
+            $sales = Sale::where('type', 'credit')->where('status', 'pending')->orderBy('id', 'asc')
+                ->where('created_at', '<', Carbon::now()->subDays(session('settings')->credit_days))
+                ->with('customer')
+                ->get();
+
+            if ($sales != null && $sales->count() > 0) {
+                session(['noty_sales' => $sales]);
+            }
+        } catch (\Throwable $th) {
+            // Ignore if schema differs in modular standalone instances
         }
     }
     public function checkCreditPurchases()
     {
-        $purchases = Purchase::where('type', 'credit')->where('status', 'pending')->orderBy('id', 'asc')
-            ->where('created_at', '<', Carbon::now()->subDays(session('settings')->credit_purchase_days))
-            ->with('supplier')
-            ->get();
+        if (!\Illuminate\Support\Facades\Schema::hasTable('purchases') || !session('settings') || !isset(session('settings')->credit_purchase_days)) {
+            return;
+        }
 
-        if ($purchases != null && $purchases->count() > 0) {
-            session(['noty_purchases' => $purchases]);
+        try {
+            $purchases = Purchase::where('type', 'credit')->where('status', 'pending')->orderBy('id', 'asc')
+                ->where('created_at', '<', Carbon::now()->subDays(session('settings')->credit_purchase_days))
+                ->with('supplier')
+                ->get();
+
+            if ($purchases != null && $purchases->count() > 0) {
+                session(['noty_purchases' => $purchases]);
+            }
+        } catch (\Throwable $th) {
+            // Ignore if schema differs in modular standalone instances
         }
     }
 }
