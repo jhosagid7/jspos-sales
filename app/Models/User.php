@@ -239,10 +239,20 @@ class User extends Authenticatable
             || (method_exists($this, 'hasRole') && $this->hasRole(['Operario', 'operario', 'Operator']));
     }
 
+    public function isOperario(): bool
+    {
+        return $this->isOperator();
+    }
+
     public function isWarehouse(): bool
     {
         return in_array(strtolower($this->role ?? $this->profile ?? ''), ['almacen', 'warehouse'])
             || (method_exists($this, 'hasRole') && $this->hasRole(['Almacen', 'almacen', 'Warehouse']));
+    }
+
+    public function isAlmacen(): bool
+    {
+        return $this->isWarehouse();
     }
 
     public function getRoleAttribute()

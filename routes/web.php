@@ -360,10 +360,10 @@ Route::prefix('system')->name('system.')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('/scale', [\App\Http\Controllers\BagFactoryWebController::class, 'scaleAudit'])->name('scale.index');
     Route::get('/bascula', [\App\Http\Controllers\BagFactoryWebController::class, 'scaleAudit'])->name('scale.index_alias');
-    Route::post('/scale/approve/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'approve'])->name('scale.approve');
-    Route::post('/scale/bulk-approve', [\App\Http\Controllers\BagFactoryWebController::class, 'bulkApprove'])->name('scale.bulk_approve');
-    Route::post('/scale/adjust/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'adjust'])->name('scale.adjust');
-    Route::post('/scale/reject/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'reject'])->name('scale.reject');
+    Route::post('/scale/approve/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'approve'])->name('approve');
+    Route::post('/scale/bulk-approve', [\App\Http\Controllers\BagFactoryWebController::class, 'bulkApprove'])->name('bulk_approve');
+    Route::post('/scale/adjust/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'adjust'])->name('adjust');
+    Route::post('/scale/reject/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'reject'])->name('reject');
 
     Route::get('/reports-fabrica', [\App\Http\Controllers\BagFactoryWebController::class, 'reportsIndex'])->name('reports.index');
     Route::get('/reports', [\App\Http\Controllers\BagFactoryWebController::class, 'reportsIndex'])->name('reports.index_en');
@@ -382,7 +382,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/costs', [\App\Http\Controllers\BagFactoryWebController::class, 'costsIndex'])->name('costs.index');
     Route::get('/costos', [\App\Http\Controllers\BagFactoryWebController::class, 'costsIndex'])->name('costs.index_alias');
     Route::post('/costs', [\App\Http\Controllers\BagFactoryWebController::class, 'costsUpdate'])->name('costs.update');
-    Route::post('/products/{id}/technical', [\App\Http\Controllers\BagFactoryWebController::class, 'productsTechnicalUpdate'])->name('products.technical_update');
+    Route::post('/products/{id}/technical', [\App\Http\Controllers\BagFactoryWebController::class, 'productsTechnicalUpdate'])->name('products.technical.update');
 
     Route::get('/catalogo-bolsas', [\App\Http\Controllers\BagFactoryWebController::class, 'productsIndex'])->name('products.index');
     Route::get('/catalogo', [\App\Http\Controllers\BagFactoryWebController::class, 'productsIndex'])->name('products.index_alias');

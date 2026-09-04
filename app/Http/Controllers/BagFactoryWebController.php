@@ -110,7 +110,7 @@ class BagFactoryWebController extends Controller
             'pending_review'  => BagProduction::where('status', 'pending_review')->count(),
             'approved_ready'  => BagProduction::where('status', 'approved')->whereNull('lifted_at')->count(),
             'active_shifts'   => (int)(clone $shiftCountQuery)->count(),
-            'total_operators' => User::where('profile', 'like', '%operario%')->orWhere('profile', 'like', '%operator%')->count() ?: User::count(),
+            'total_operators' => User::where('role', 'like', '%operario%')->orWhere('role', 'like', '%operator%')->count() ?: User::count(),
         ];
 
         // 2. Turnos de la Jornada / Período
