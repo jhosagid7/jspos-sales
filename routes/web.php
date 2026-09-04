@@ -86,7 +86,9 @@ Route::get('/dashboard', function (\Illuminate\Http\Request $request) {
 
 
 Route::middleware('auth')->group(function () {
-    Route::get('welcome', Welcome::class)->name('welcome');
+    Route::get('welcome', function () {
+        return redirect()->route('dashboard');
+    })->name('welcome');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
