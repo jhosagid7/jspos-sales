@@ -5,7 +5,7 @@
         <h5 class="fw-bold mb-0 text-white">JSBolsas <span class="text-info">Pro</span></h5>
         <div class="d-flex align-items-center gap-1 mt-1">
             <small class="text-white-50" style="font-size: 10px;">Plásticos M&F Steel</small>
-            <span class="badge bg-warning text-dark font-monospace" style="font-size: 9px; padding: 2px 5px;">v2.2.1</span>
+            <span class="badge bg-warning text-dark font-monospace" style="font-size: 9px; padding: 2px 5px;">v2.3.0</span>
         </div>
     </div>
 </div>
