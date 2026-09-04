@@ -20,135 +20,6 @@
     @endif
 </div>
 
-<!-- Buscador de Auditoría Clínica por Código QR / Reclamaciones -->
-<div class="card-custom mb-4 border border-warning-subtle">
-    <div class="row align-items-center g-3">
-        <div class="col-md-6">
-            <h5 class="fw-bold text-warning mb-1">
-                <i class="bi bi-shield-shaded me-2"></i> Auditoría e Investigación de Calidad por Código QR
-            </h5>
-            <p class="text-white-50 small mb-0">
-                Ingresa el código QR o ID del bulto/bobina para obtener un reporte clínico instantáneo de fabricación y trazabilidad.
-            </p>
-        </div>
-        <div class="col-md-6">
-            <form action="{{ route('scale.index') }}" method="GET" class="d-flex gap-2">
-                <div class="input-group">
-                    <span class="input-group-text bg-dark border-secondary text-warning">
-                        <i class="bi bi-qr-code-scan"></i>
-                    </span>
-                    <input type="text" name="qr" class="form-control bg-dark text-white border-secondary" 
-                           placeholder="Ej: PKG-004321, 14, UUID..." value="{{ $qrQuery ?? '' }}" required>
-                </div>
-                <button type="submit" class="btn btn-warning fw-bold text-nowrap">
-                    <i class="bi bi-search me-1"></i> Auditar QR
-                </button>
-                @if(!empty($qrQuery))
-                    <a href="{{ route('scale.index') }}" class="btn btn-outline-secondary">
-                        <i class="bi bi-x-lg"></i>
-                    </a>
-                @endif
-            </form>
-        </div>
-    </div>
-
-    @if(!empty($qrQuery))
-        <hr class="border-secondary my-3">
-        @if($clinicalReport)
-            <div class="p-3 bg-black rounded border border-warning">
-                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
-                    <div>
-                        <span class="badge bg-warning text-dark font-monospace fs-6 px-2 py-1">QR: {{ $clinicalReport->qr_code }}</span>
-                        <h4 class="fw-bold text-white mt-2 mb-0">{{ $clinicalReport->product->name ?? 'Bolsa' }}</h4>
-                        <small class="text-white-50">SKU: {{ $clinicalReport->product->sku ?? 'N/A' }} • Registro #{{ $clinicalReport->id }}</small>
-                    </div>
-                    <div class="d-flex gap-2 align-items-center">
-                        <span class="badge {{ $clinicalReport->status === 'approved' ? 'bg-success' : ($clinicalReport->status === 'lifted' ? 'bg-info text-dark' : 'bg-warning text-dark') }} fs-6">
-                            {{ strtoupper($clinicalReport->status) }}
-                        </span>
-                        <a href="{{ route('ticket', $clinicalReport->id) }}" target="_blank" class="btn btn-outline-light btn-sm fw-bold">
-                            🖨️ Ver Ticket Físico
-                        </a>
-                    </div>
-                </div>
-
-                <div class="row g-3">
-                    <div class="col-12 col-md-4">
-                        <div class="p-2 bg-dark rounded border border-secondary h-100">
-                            <small class="text-white-50 fw-bold d-block text-uppercase" style="font-size: 10px;">📐 Dimensiones y Calibre</small>
-                            <span class="text-white fw-bold">
-                                @if($clinicalReport->product && $clinicalReport->product->width_inch && $clinicalReport->product->length_inch)
-                                    {{ $clinicalReport->product->width_inch }}" x {{ $clinicalReport->product->length_inch }}" (C-{{ $clinicalReport->product->gauge_caliber ?? 'N/A' }})
-                                @else
-                                    Venta por {{ $clinicalReport->product->sale_unit ?? 'KG' }}
-                                @endif
-                            </span>
-                            <br><small class="text-white-50">Peso Unitario / Millar: {{ $clinicalReport->product->unit_weight_kg ?? 0 }} Kg</small>
-                        </div>
-                    </div>
-                    <div class="col-12 col-md-4">
-                        <div class="p-2 bg-dark rounded border border-secondary h-100">
-                            <small class="text-white-50 fw-bold d-block text-uppercase" style="font-size: 10px;">🧪 Fórmula y Materia Prima</small>
-                            <span class="text-info fw-bold">
-                                {{ $clinicalReport->product->formula->name ?? 'Fórmula Estándar de Mezcla' }}
-                            </span>
-                            <br><small class="text-warning font-monospace">Costo Receta: ${{ number_format($clinicalReport->product ? $clinicalReport->product->calculateRawMaterialCost() : 0, 3) }} / Kg</small>
-                        </div>
-                    </div>
-                    <div class="col-12 col-md-4">
-                        <div class="p-2 bg-dark rounded border border-secondary h-100">
-                            <small class="text-white-50 fw-bold d-block text-uppercase" style="font-size: 10px;">🏭 Máquina Utilizada</small>
-                            <span class="text-white fw-bold">
-                                @if($clinicalReport->machine)
-                                    <span class="badge bg-secondary font-monospace">[{{ $clinicalReport->machine->code }}]</span> {{ $clinicalReport->machine->name }}
-                                @else
-                                    <span class="text-white-50">No especificada</span>
-                                @endif
-                            </span>
-                            <br><small class="text-white-50">Tipo: {{ strtoupper($clinicalReport->machine->type ?? 'N/A') }}</small>
-                        </div>
-                    </div>
-                    <div class="col-12 col-md-4">
-                        <div class="p-2 bg-dark rounded border border-secondary h-100">
-                            <small class="text-white-50 fw-bold d-block text-uppercase" style="font-size: 10px;">👤 Operario a Cargo</small>
-                            <span class="text-white fw-bold">
-                                <i class="bi bi-person-circle text-info me-1"></i> {{ $clinicalReport->user->name ?? 'Operario' }}
-                            </span>
-                            <br><small class="text-white-50">{{ $clinicalReport->user->email ?? '' }}</small>
-                        </div>
-                    </div>
-                    <div class="col-12 col-md-4">
-                        <div class="p-2 bg-dark rounded border border-secondary h-100">
-                            <small class="text-white-50 fw-bold d-block text-uppercase" style="font-size: 10px;">⏱️ Turno / Fecha / Hora</small>
-                            <span class="text-white fw-bold">
-                                {{ $clinicalReport->recorded_at ? $clinicalReport->recorded_at->format('d/m/Y h:i A') : 'Sin Fecha' }}
-                            </span>
-                            <br><small class="text-white-50">Jornada: {{ strtoupper($clinicalReport->shift->shift_type ?? 'DIURNO') }}</small>
-                        </div>
-                    </div>
-                    <div class="col-12 col-md-4">
-                        <div class="p-2 bg-dark rounded border border-secondary h-100">
-                            <small class="text-white-50 fw-bold d-block text-uppercase" style="font-size: 10px;">⚖️ Pesaje Físico Registrado</small>
-                            <span class="text-success fw-bold fs-5 font-monospace">
-                                {{ number_format($clinicalReport->weight, 2) }} Kg
-                            </span>
-                            <small class="text-white-50">({{ number_format($clinicalReport->quantity, 0) }} unids/bobinas)</small>
-                            @if($clinicalReport->reviewer)
-                                <br><small class="text-white-50">Auditado por: {{ $clinicalReport->reviewer->name }}</small>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            </div>
-        @else
-            <div class="alert alert-danger mb-0">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                No se encontró ningún bulto ni registro de producción coincidente con el código <strong>"{{ $qrQuery }}"</strong>.
-            </div>
-        @endif
-    @endif
-</div>
-
 <!-- Pendientes de Auditoría -->
 <div class="card-custom mb-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -169,7 +40,6 @@
                     <tr>
                         <th>Fecha / Hora</th>
                         <th>Operario</th>
-                        <th>Máquina</th>
                         <th>Producto / Medida</th>
                         <th>Cant. / Presentación</th>
                         <th>
@@ -236,16 +106,6 @@
                             </td>
                             <td class="fw-bold text-white">
                                 <i class="bi bi-person-circle me-1 text-info"></i> {{ $prod->user->name ?? 'Operario' }}
-                            </td>
-                            <td>
-                                @if($prod->shift?->machine)
-                                    <span class="badge bg-dark border border-info text-info font-monospace" style="font-size: 11px;">
-                                        [{{ $prod->shift->machine->code }}]
-                                    </span>
-                                    <br><small class="text-white-50">{{ $prod->shift->machine->name }}</small>
-                                @else
-                                    <span class="text-white-50 small">N/A</span>
-                                @endif
                             </td>
                             <td>
                                 <span class="fw-bold text-info">{{ $prod->product->name ?? 'Producto' }}</span>
@@ -520,7 +380,6 @@
                         <th>Código QR</th>
                         <th>Producto / Medida</th>
                         <th>Operario</th>
-                        <th>Máquina</th>
                         <th>Cant. / Presentación</th>
                         <th>Peso Total</th>
                         <th>Desglose Individual</th>
@@ -547,16 +406,6 @@
                                 @endif
                             </td>
                             <td>{{ $item->user->name ?? 'Operario' }}</td>
-                            <td>
-                                @if($item->shift?->machine)
-                                    <span class="badge bg-dark border border-info text-info font-monospace" style="font-size: 11px;">
-                                        [{{ $item->shift->machine->code }}]
-                                    </span>
-                                    <br><small class="text-white-50">{{ $item->shift->machine->name }}</small>
-                                @else
-                                    <span class="text-white-50 small">N/A</span>
-                                @endif
-                            </td>
                             <td>
                                 <span class="badge {{ $isBobina ? 'bg-warning text-dark' : 'bg-primary' }}">
                                     {{ number_format($item->quantity, 0) }} {{ $isBobina ? 'Bobinas' : ($item->product?->sale_unit ?? 'Bultos') }}

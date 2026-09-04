@@ -15,24 +15,13 @@
 <!-- Filtros Predictivos -->
 <div class="card-custom mb-4">
     <form action="{{ route('reports.index') }}" method="GET" class="row g-3 align-items-end">
-        <div class="col-md-2">
+        <div class="col-md-3">
             <label class="form-label small text-white-50">Fecha Desde</label>
             <input type="date" name="start_date" class="form-control bg-dark text-white border-secondary" value="{{ request('start_date') }}">
         </div>
-        <div class="col-md-2">
+        <div class="col-md-3">
             <label class="form-label small text-white-50">Fecha Hasta</label>
             <input type="date" name="end_date" class="form-control bg-dark text-white border-secondary" value="{{ request('end_date') }}">
-        </div>
-        <div class="col-md-2">
-            <label class="form-label small text-white-50">Máquina</label>
-            <select name="machine_id" class="form-select bg-dark text-white border-secondary">
-                <option value="">Todas las Máquinas</option>
-                @foreach($allMachines as $m)
-                    <option value="{{ $m->id }}" {{ request('machine_id') == $m->id ? 'selected' : '' }}>
-                        [{{ $m->code }}] {{ $m->name }}
-                    </option>
-                @endforeach
-            </select>
         </div>
         <div class="col-md-2">
             <label class="form-label small text-white-50">Operario Fabricante</label>
@@ -211,11 +200,6 @@
                                 </td>
                                 <td class="fw-bold text-white">
                                     {{ $p->user->name ?? 'Operario' }}
-                                    @if($p->shift?->machine)
-                                        <br><span class="badge bg-dark border border-info-subtle text-info font-monospace" style="font-size: 10px;">
-                                            🏭 [{{ $p->shift->machine->code }}] {{ $p->shift->machine->name }}
-                                        </span>
-                                    @endif
                                 </td>
                                 <td>
                                     <span class="fw-bold text-info">{{ $p->product->name ?? 'Producto' }}</span>

@@ -214,9 +214,6 @@
                         <td>
                             <strong>{{ $p->user->name ?? 'Operario' }}</strong>
                             <br><span style="font-size: 8px; color: #64748b;">Turno: {{ strtoupper($p->shift->shift_type ?? 'Diurno') }}</span>
-                            @if($p->shift?->machine)
-                                <br><span style="font-size: 8px; color: #0284c7; font-weight: bold;">Máq: [{{ $p->shift->machine->code }}] {{ $p->shift->machine->name }}</span>
-                            @endif
                         </td>
                         <td>
                             {{ strtoupper($p->status) }}

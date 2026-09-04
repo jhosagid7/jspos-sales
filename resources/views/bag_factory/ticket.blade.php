@@ -98,10 +98,6 @@
             <td style="text-align: right;">{{ $prod->user->name ?? 'Operario' }}</td>
         </tr>
         <tr>
-            <td class="bold">MÁQUINA:</td>
-            <td style="text-align: right;">{{ $prod->shift?->machine ? ($prod->shift->machine->code . ' (' . $prod->shift->machine->name . ')') : 'N/A' }}</td>
-        </tr>
-        <tr>
             <td class="bold">TURNO:</td>
             <td style="text-align: right;">{{ strtoupper($prod->shift->shift_type ?? 'DIURNO') }}</td>
         </tr>

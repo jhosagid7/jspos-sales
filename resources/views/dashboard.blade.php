@@ -13,42 +13,18 @@
         <p class="text-white-50 mb-0">Control en tiempo real de metas de trabajadores, pesaje en báscula y balance financiero acumulado.</p>
     </div>
 
-    <!-- Selector de Período y Máquina -->
+    <!-- Selector de Período -->
     <div class="d-flex gap-2 align-items-center flex-wrap">
-        <!-- Selector de Máquinas -->
-        <div class="dropdown">
-            <button class="btn btn-sm btn-dark border border-secondary rounded-pill dropdown-toggle fw-bold text-white px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                🏭 {{ $selectedMachine ? '[' . $selectedMachine->code . '] ' . $selectedMachine->name : 'Todas las Máquinas' }}
-            </button>
-            <ul class="dropdown-menu dropdown-menu-dark shadow border-secondary">
-                <li>
-                    <a class="dropdown-item {{ empty($financials['machine_id']) ? 'active' : '' }}" 
-                       href="{{ route('dashboard', array_filter(array_merge(request()->query(), ['machine_id' => null]))) }}">
-                        🏭 Todas las Máquinas
-                    </a>
-                </li>
-                <li><hr class="dropdown-divider border-secondary"></li>
-                @foreach($allMachines as $m)
-                    <li>
-                        <a class="dropdown-item {{ ($financials['machine_id'] ?? '') == $m->id ? 'active' : '' }}" 
-                           href="{{ route('dashboard', array_merge(request()->query(), ['machine_id' => $m->id])) }}">
-                            <span class="badge bg-secondary font-monospace me-1">{{ $m->code }}</span> {{ $m->name }}
-                        </a>
-                    </li>
-                @endforeach
-            </ul>
-        </div>
-
         <div class="btn-group p-1 bg-dark border border-secondary rounded-pill shadow-sm" role="group">
-            <a href="{{ route('dashboard', array_filter(array_merge(request()->query(), ['period' => 'today', 'start_date' => null, 'end_date' => null]))) }}" 
+            <a href="{{ route('dashboard', ['period' => 'today']) }}" 
                class="btn btn-sm rounded-pill fw-bold {{ ($financials['period'] ?? 'today') === 'today' ? 'btn-primary text-white shadow' : 'btn-link text-white-50 text-decoration-none' }}">
                 ☀️ Hoy
             </a>
-            <a href="{{ route('dashboard', array_filter(array_merge(request()->query(), ['period' => 'week', 'start_date' => null, 'end_date' => null]))) }}" 
+            <a href="{{ route('dashboard', ['period' => 'week']) }}" 
                class="btn btn-sm rounded-pill fw-bold {{ ($financials['period'] ?? '') === 'week' ? 'btn-primary text-white shadow' : 'btn-link text-white-50 text-decoration-none' }}">
                 📅 Esta Semana
             </a>
-            <a href="{{ route('dashboard', array_filter(array_merge(request()->query(), ['period' => 'month', 'start_date' => null, 'end_date' => null]))) }}" 
+            <a href="{{ route('dashboard', ['period' => 'month']) }}" 
                class="btn btn-sm rounded-pill fw-bold {{ ($financials['period'] ?? '') === 'month' ? 'btn-primary text-white shadow' : 'btn-link text-white-50 text-decoration-none' }}">
                 🗓️ Este Mes
             </a>
@@ -78,9 +54,6 @@
             </div>
             <form action="{{ route('dashboard') }}" method="GET">
                 <input type="hidden" name="period" value="custom">
-                @if(!empty($financials['machine_id']))
-                    <input type="hidden" name="machine_id" value="{{ $financials['machine_id'] }}">
-                @endif
                 <div class="modal-body">
                     <p class="text-white-50 small mb-3">
                         Selecciona el rango de fechas para recalcular el balance de ingresos, costos de producción y utilidades del período.
@@ -106,48 +79,6 @@
         </div>
     </div>
 </div>
-
-@if($machineStats)
-<!-- Card de KPIs de Máquina Seleccionada -->
-<div class="card-custom border border-info rounded-3 p-3 mb-4 text-white shadow-sm bg-dark">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <div>
-            <div class="d-flex align-items-center gap-2">
-                <span class="badge bg-info text-dark font-monospace fs-6 px-2 py-1">[{{ $machineStats['machine']->code }}]</span>
-                <h5 class="fw-bold text-white mb-0">{{ $machineStats['machine']->name }}</h5>
-                <span class="badge bg-secondary text-uppercase" style="font-size: 10px;">{{ $machineStats['machine']->type }}</span>
-            </div>
-            <small class="text-white-50 mt-1 d-block">
-                Métricas acumuladas de esta máquina en el período seleccionado ({{ $financials['period_label'] }}).
-            </small>
-        </div>
-        <div class="d-flex gap-4 flex-wrap align-items-center">
-            <div class="text-center px-2">
-                <small class="text-white-50 d-block" style="font-size: 11px;">KILOS PROCESADOS</small>
-                <strong class="text-warning fs-5">{{ number_format($machineStats['total_kg'], 2) }} Kg</strong>
-            </div>
-            <div class="text-center px-2 border-start border-secondary">
-                <small class="text-white-50 d-block" style="font-size: 11px;">UNIDADES / PAQ.</small>
-                <strong class="text-info fs-5">{{ number_format($machineStats['total_packages'], 0) }}</strong>
-            </div>
-            <div class="text-center px-2 border-start border-secondary">
-                <small class="text-white-50 d-block" style="font-size: 11px;">HORAS DE ENCENDIDO</small>
-                <strong class="text-white fs-5">{{ number_format($machineStats['estimated_hours'], 1) }} hrs</strong>
-            </div>
-            <div class="text-center px-2 border-start border-secondary">
-                <small class="text-white-50 d-block" style="font-size: 11px;">EFICIENCIA DE TURNO</small>
-                <strong class="text-{{ $machineStats['efficiency'] >= 100 ? 'success' : ($machineStats['efficiency'] >= 60 ? 'warning' : 'danger') }} fs-5">
-                    {{ $machineStats['efficiency'] }}%
-                </strong>
-            </div>
-            <a href="{{ route('dashboard', array_filter(array_merge(request()->query(), ['machine_id' => null]))) }}" 
-               class="btn btn-outline-secondary btn-sm py-1 px-2" title="Quitar filtro de máquina">
-                <i class="bi bi-x-lg"></i>
-            </a>
-        </div>
-    </div>
-</div>
-@endif
 
 <!-- KPIs Financieros en Tiempo Real -->
 <div class="row g-3 mb-4">
@@ -345,11 +276,6 @@
                         <tr>
                             <td class="fw-bold text-white">
                                 <i class="bi bi-person-circle text-info me-1"></i> {{ $shift->user->name ?? 'Operario' }}
-                                @if($shift->machine)
-                                    <br><span class="badge bg-dark border border-info-subtle text-info font-monospace" style="font-size: 10px;">
-                                        🏭 [{{ $shift->machine->code }}] {{ $shift->machine->name }}
-                                    </span>
-                                @endif
                             </td>
                             <td>
                                 @if($shift->shift_type === 'diurno')

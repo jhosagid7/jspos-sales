@@ -13,7 +13,7 @@
 <!-- Descargar APK Móvil -->
 <div class="mb-3 px-1">
     <a href="/JSBolsas.apk" class="btn btn-outline-info btn-sm w-100 fw-bold d-flex align-items-center justify-content-center gap-2 py-2" style="border-radius: 10px;">
-        <i class="bi bi-android2 fs-5"></i> Descargar APK Móvil <span class="badge bg-info text-dark">v2.4.0</span>
+        <i class="bi bi-android2 fs-5"></i> Descargar APK Móvil <span class="badge bg-info text-dark">v2.3.0</span>
     </a>
 </div>
 
