@@ -17,10 +17,10 @@ Route::middleware('guest')->group(function () {
 
     Route::post('register', [RegisteredUserController::class, 'store']);
 
-    Route::get('login', [\App\Http\Controllers\BagFactoryWebController::class, 'showLogin'])
+    Route::get('login', [AuthenticatedSessionController::class, 'create'])
                 ->name('login');
 
-    Route::post('login', [\App\Http\Controllers\BagFactoryWebController::class, 'login']);
+    Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
                 ->name('password.request');
@@ -54,6 +54,6 @@ Route::middleware('auth')->group(function () {
 
     Route::put('password', [PasswordController::class, 'update'])->name('password.update');
 
-    Route::post('logout', [\App\Http\Controllers\BagFactoryWebController::class, 'logout'])
+    Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
                 ->name('logout');
 });

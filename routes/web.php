@@ -46,10 +46,7 @@ Route::post('/livewire/upload-file', [\App\Http\Controllers\LivewireUploadContro
     ->name('livewire.upload-file');
 
 Route::get('/', function () {
-    if (auth()->check()) {
-        return redirect()->route('dashboard');
-    }
-    return redirect()->route('login');
+    return view('auth.login');
 });
 
 // License Routes
@@ -75,20 +72,18 @@ Route::prefix('install')->name('install.')->group(function () {
     Route::get('/download-shortcut', [\App\Http\Controllers\InstallController::class, 'downloadShortcut'])->name('downloadShortcut');
 });
 
-Route::get('/dashboard', function (\Illuminate\Http\Request $request) {
+Route::get('/dashboard', function () {
     // If it's a Driver AND NOT an Admin/Super Admin, send to Driver Dashboard
     if (auth()->check() && method_exists(auth()->user(), 'hasRole') && auth()->user()->hasRole('Driver') && !auth()->user()->hasAnyRole(['Admin', 'Super Admin'])) {
         return redirect()->route('driver.dashboard');
     }
-    return app(\App\Http\Controllers\BagFactoryWebController::class)->dashboard($request);
-})->middleware(['auth'])->name('dashboard');
+    return redirect()->route('welcome');
+})->middleware(['auth', 'verified'])->name('dashboard');
 
 
 
 Route::middleware('auth')->group(function () {
-    Route::get('welcome', function () {
-        return redirect()->route('dashboard');
-    })->name('welcome');
+    Route::get('welcome', Welcome::class)->name('welcome');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
