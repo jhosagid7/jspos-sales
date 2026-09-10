@@ -88,7 +88,12 @@ class BagShift extends Model
             }
         }
 
-        $totalCost = $rawCost + $fixedCost;
+        $totalLaborCost = (float)$this->productions()->sum('labor_earned_amount');
+        if ($totalLaborCost <= 0 && $this->user) {
+            $totalLaborCost = (float)$this->user->daily_salary;
+        }
+
+        $totalCost = $rawCost + $fixedCost + $totalLaborCost;
         $netProfit = $income - $totalCost;
         $margin = $income > 0 ? round(($netProfit / $income) * 100, 2) : 0.0;
 

@@ -90,8 +90,12 @@
             <td style="text-align: right;">{{ $prod->qr_code }}</td>
         </tr>
         <tr>
+            <td class="bold">LOTE:</td>
+            <td style="text-align: right; font-weight: bold;">{{ $prod->effective_batch_code }}</td>
+        </tr>
+        <tr>
             <td class="bold">PRODUCTO:</td>
-            <td style="text-align: right;">{{ $prod->product->name ?? 'Bolsa' }}</td>
+            <td style="text-align: right;">{{ $prod->product_name }}</td>
         </tr>
         <tr>
             <td class="bold">OPERARIO:</td>
@@ -102,12 +106,16 @@
             <td style="text-align: right;">{{ strtoupper($prod->shift->shift_type ?? 'DIURNO') }}</td>
         </tr>
         <tr>
-            <td class="bold">BULTOS:</td>
-            <td style="text-align: right;">{{ number_format($prod->quantity, 0) }}</td>
+            <td class="bold">BULTOS / DETALLE:</td>
+            <td style="text-align: right;">{{ number_format($prod->completed_packages_count ?: $prod->quantity, 0) }} Bulto(s) @if($prod->fractional_units > 0) + {{ number_format($prod->fractional_units, 0) }} Mill @endif</td>
         </tr>
         <tr>
             <td class="bold" style="font-size: 14px;">PESO TOTAL:</td>
             <td style="text-align: right; font-size: 15px; font-weight: bold;">{{ number_format($prod->weight, 2) }} Kg</td>
+        </tr>
+        <tr>
+            <td class="bold">CALIDAD PESO:</td>
+            <td style="text-align: right; font-weight: bold;">{{ $prod->weight_grade_label }}</td>
         </tr>
         <tr>
             <td class="bold">FECHA:</td>

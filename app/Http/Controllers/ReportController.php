@@ -1577,7 +1577,9 @@ class ReportController extends Controller
             'category' => true,
             'supplier' => true,
             'cost' => true,
+            'cost_unit' => true,
             'price' => true,
+            'price_unit' => true,
             'utility_percent' => true,
             'valuation_cost' => true,
             'valuation_price' => true,
@@ -1627,6 +1629,19 @@ class ReportController extends Controller
             ->with(['category', 'supplier', 'warehouses'])
             ->orderBy('name')
             ->get();
+
+        $products->transform(function ($product) {
+            $units = 0;
+            if (preg_match('/(\d+)\s*(?:UND|UNID|UNIDADES|UMD|PCS|PIEZAS)\b/i', $product->name, $matches)) {
+                $units = intval($matches[1]);
+            }
+
+            $product->units_per_package = $units > 0 ? $units : null;
+            $product->unit_cost = ($units > 0 && floatval($product->cost) > 0) ? round(floatval($product->cost) / $units, 4) : null;
+            $product->unit_price = ($units > 0 && floatval($product->price) > 0) ? round(floatval($product->price) / $units, 4) : null;
+
+            return $product;
+        });
 
         $config = Configuration::first();
         $user = auth()->user();

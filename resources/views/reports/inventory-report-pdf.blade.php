@@ -148,11 +148,13 @@
                 @endif
 
                 @if(!empty($columns['physical_inventory'])) <th style="width: 60px;" class="text-center">FISICO</th> @endif
-                @if(!empty($columns['cost'])) <th style="width: 60px;" class="text-right">COSTO</th> @endif
-                @if(!empty($columns['price'])) <th style="width: 60px;" class="text-right">PRECIO</th> @endif
-                @if(!empty($columns['utility_percent'])) <th style="width: 50px;" class="text-center">UT. %</th> @endif
-                @if(!empty($columns['valuation_cost'])) <th style="width: 70px;" class="text-right">VAL. COSTO</th> @endif
-                @if(!empty($columns['valuation_price'])) <th style="width: 70px;" class="text-right">VAL. VENTA</th> @endif
+                @if(!empty($columns['cost'])) <th style="width: 55px;" class="text-right">COSTO</th> @endif
+                @if(!empty($columns['cost_unit'])) <th style="width: 55px;" class="text-right">COSTO UNIT.</th> @endif
+                @if(!empty($columns['price'])) <th style="width: 55px;" class="text-right">PRECIO</th> @endif
+                @if(!empty($columns['price_unit'])) <th style="width: 55px;" class="text-right">PRECIO UNIT.</th> @endif
+                @if(!empty($columns['utility_percent'])) <th style="width: 45px;" class="text-center">UT. %</th> @endif
+                @if(!empty($columns['valuation_cost'])) <th style="width: 65px;" class="text-right">VAL. COSTO</th> @endif
+                @if(!empty($columns['valuation_price'])) <th style="width: 65px;" class="text-right">VAL. VENTA</th> @endif
             </tr>
         </thead>
         <tbody>
@@ -184,7 +186,26 @@
                         </td> 
                     @endif
                     @if(!empty($columns['cost'])) <td class="text-right">{{ number_format($product->cost, 2) }}</td> @endif
+                    @if(!empty($columns['cost_unit']))
+                        <td class="text-right">
+                            @if($product->unit_cost !== null)
+                                {{ number_format($product->unit_cost, 4) }}
+                                <br><span style="font-size: 6.5pt; color: #888;">({{ $product->units_per_package }}u)</span>
+                            @else
+                                -
+                            @endif
+                        </td>
+                    @endif
                     @if(!empty($columns['price'])) <td class="text-right">{{ number_format($product->price, 2) }}</td> @endif
+                    @if(!empty($columns['price_unit']))
+                        <td class="text-right font-bold" style="color: #2ec4b6;">
+                            @if($product->unit_price !== null)
+                                {{ number_format($product->unit_price, 4) }}
+                            @else
+                                -
+                            @endif
+                        </td>
+                    @endif
                     @if(!empty($columns['utility_percent'])) 
                         <td class="text-center">
                             {{ $product->cost > 0 ? number_format((($product->price - $product->cost) / $product->cost) * 100, 2) . '%' : '0%' }}

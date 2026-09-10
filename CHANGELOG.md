@@ -1,3 +1,16 @@
+## [1.10.420] - 2026-09-10
+
+### Added
+- **Cálculo de Costo y Precio Unitario por Envase / Bulto (Rotación e Inventario)**:
+  - `RotationReport.php`, `rotation-report.blade.php`, `rotation-report-pdf.blade.php`: Se añadieron los campos y columnas calculadas de *Costo Unit. Envase* y *Precio Unit. Envase* (con 4 decimales) detectando automáticamente las unidades por bulto a partir del nombre del producto (ej. `200UND`, `150UND`, `117UND`, `42UND`, `500UND`) y mostrando `-` para productos regulares sin unidades de bulto.
+  - `InventoryReport.php`, `ReportController.php`, `inventory-report.blade.php`, `inventory-report-pdf.blade.php`: Se integraron las columnas *Costo Unit. Envase ($)* y *Precio Unit. Envase ($)* en el Reporte de Inventario / Stock, con soporte para mostrar/ocultar dinámicamente desde el panel de configuración de columnas y reflejarse de forma óptima en la impresión PDF.
+
+- **Nómina Dinámica por Días Laborales, Clasificación de Calidad y Registro Colaborativo (Fábrica de Bolsas)**:
+  - Configuración de días laborales semanales (5, 6 o 7 días) por operador para cálculo exacto de salario diario (`User.php`, `users/index.blade.php`).
+  - Clasificación automática y visual de calidad de bobinas/bultos (Grados A, B, C) según tolerancia de peso teórico vs real de la ficha técnica (`BagProduct.php`, `BagProduction.php`, `ticket.blade.php`).
+  - Registro colaborativo de fracciones de bultos pendientes entre turnos (`BagShift.php`, `BagFactoryApiController.php`).
+  - Módulo y vista de liquidación de nómina de operadores con desglose detallado de sueldos y bonos (`payroll.blade.php`, `BagFactoryWebController.php`).
+
 ## [1.10.419] - 2026-08-30
 
 ### Changed

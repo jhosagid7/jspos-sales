@@ -329,6 +329,8 @@
                                     <th style="width: 70px; cursor: help;" class="text-center text-white" title="Clasificación de Pareto: A (80% ventas acumuladas), B (15% ventas), C (5% o sin movimiento).">Clase ABC</th>
                                     <th class="text-center text-white" style="cursor: help;" title="Stock físico disponible actualmente en almacén.">Stock Actual</th>
                                     <th class="text-center text-white" style="cursor: help;" title="Capital total inmovilizado en stock (Stock Actual * Costo Unitario).">Valor Stock (Costo)</th>
+                                    <th class="text-center text-white" style="cursor: help;" title="Costo unitario por envase/unidad individual (Costo Bulto / Unidades del Bulto). Solo aplica a productos con unidades especificadas.">Costo Unit.</th>
+                                    <th class="text-center text-white" style="cursor: help;" title="Precio de venta unitario por envase/unidad individual (Precio Bulto / Unidades del Bulto). Solo aplica a productos con unidades especificadas.">Precio Unit.</th>
                                     <th class="text-center text-white" style="cursor: help;" title="Unidades vendidas en el rango de fechas seleccionado.">Vendido (U)</th>
                                     <th class="text-center text-white" style="cursor: help;" title="Ventas totales facturadas en USD.">Ventas (USD)</th>
                                     <th class="text-center text-white" style="cursor: help;" title="Ganancia bruta generada por el producto: Ventas (USD) - Costo total vendido.">Margen USD</th>
@@ -359,6 +361,21 @@
                                         </td>
                                         <td class="text-center align-middle font-weight-bold">{{ $product->stock_qty }}</td>
                                         <td class="text-center align-middle text-muted">${{ number_format($product->stock_value, 2) }}</td>
+                                        <td class="text-center align-middle">
+                                            @if($product->unit_cost !== null)
+                                                <span class="font-weight-bold text-dark">${{ number_format($product->unit_cost, 4) }}</span>
+                                                <small class="d-block text-muted" style="font-size: 10px;">({{ $product->units_per_package }} und/bto)</small>
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </td>
+                                        <td class="text-center align-middle">
+                                            @if($product->unit_price !== null)
+                                                <span class="font-weight-bold text-success">${{ number_format($product->unit_price, 4) }}</span>
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </td>
                                         <td class="text-center align-middle font-weight-bold">{{ $product->total_sold }}</td>
                                         <td class="text-center align-middle">${{ number_format($product->sales_usd, 2) }}</td>
                                         <td class="text-center align-middle text-success font-weight-bold">
@@ -396,7 +413,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="13" class="text-center py-4 text-muted">No se encontraron datos de rotación con los filtros actuales.</td>
+                                        <td colspan="15" class="text-center py-4 text-muted">No se encontraron datos de rotación con los filtros actuales.</td>
                                     </tr>
                                 @endforelse
                             </tbody>

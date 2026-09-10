@@ -51,6 +51,9 @@ class User extends Authenticatable
         'is_deadline_active',
         'monthly_goal',
         'route_goal',
+        'weekly_salary',
+        'work_days_per_week',
+        'pay_partial_packages',
     ];
 
     public function warehouse()
@@ -79,6 +82,9 @@ class User extends Authenticatable
         'is_network' => 'boolean',
         'is_deadline_active' => 'boolean',
         'order_deadline_at' => 'datetime',
+        'weekly_salary' => 'decimal:2',
+        'work_days_per_week' => 'integer',
+        'pay_partial_packages' => 'boolean',
     ];
 
     /**
@@ -266,5 +272,90 @@ class User extends Authenticatable
             $this->attributes['role'] = $value;
         }
         $this->attributes['profile'] = $value;
+    }
+
+    /**
+     * Calculate daily salary based on weekly salary and configured work days (5, 6 or 7).
+     */
+    public function getDailySalaryAttribute(): float
+    {
+        $days = max(1, (int)($this->work_days_per_week ?: 6));
+        $salary = (float)($this->weekly_salary ?: 90.00);
+        return round($salary / $days, 4);
+    }
+
+    /**
+     * Calculate labor tariffs per bulto and per millar for a given bag product.
+     */
+    public function calculateLaborTariff($product): array
+    {
+        $dailySalary = $this->daily_salary;
+        $targetUnits = max(1, (int)($product->target_units_per_shift ?? 1));
+        $packageTariff = round($dailySalary / $targetUnits, 4);
+        $millarPerBulto = max(1, (float)($product->millar_per_bulto ?? 1));
+        $fractionTariff = round($packageTariff / $millarPerBulto, 4);
+
+        return [
+            'daily_salary'    => $dailySalary,
+            'package_tariff'  => $packageTariff,
+            'fraction_tariff' => $fractionTariff,
+        ];
+    }
+
+    /**
+     * Get operator shift earnings breakdown.
+     */
+    public function getShiftEarnings($shiftId): array
+    {
+        $productions = \App\Models\BagProduction::where('user_id', $this->id)
+            ->where('bag_shift_id', $shiftId)
+            ->get();
+
+        $earned = (float)$productions->sum('labor_earned_amount');
+        $retained = (float)$productions->sum('labor_retained_amount');
+        $available = (float)($earned - $retained);
+        $completedPackages = (float)$productions->sum('completed_packages_count');
+        $fractionalUnits = (float)$productions->sum('fractional_units');
+
+        return [
+            'earned'             => round($earned, 2),
+            'available'          => round($available, 2),
+            'retained'           => round($retained, 2),
+            'completed_packages' => $completedPackages,
+            'fractional_units'   => $fractionalUnits,
+            'count'              => $productions->count(),
+        ];
+    }
+
+    /**
+     * Get operator weekly earnings breakdown.
+     */
+    public function getWeeklyEarnings($startDate = null, $endDate = null): array
+    {
+        $start = $startDate ? \Carbon\Carbon::parse($startDate)->startOfDay() : now()->startOfWeek(\Carbon\Carbon::MONDAY)->startOfDay();
+        $end = $endDate ? \Carbon\Carbon::parse($endDate)->endOfDay() : now()->endOfWeek(\Carbon\Carbon::SUNDAY)->endOfDay();
+
+        $productions = \App\Models\BagProduction::where('user_id', $this->id)
+            ->whereBetween('recorded_at', [$start, $end])
+            ->get();
+
+        $earned = (float)$productions->sum('labor_earned_amount');
+        $retained = (float)$productions->sum('labor_retained_amount');
+        $available = (float)($earned - $retained);
+        $completedPackages = (float)$productions->sum('completed_packages_count');
+        $fractionalUnits = (float)$productions->sum('fractional_units');
+
+        return [
+            'start_date'         => $start->toDateString(),
+            'end_date'           => $end->toDateString(),
+            'weekly_salary'      => (float)($this->weekly_salary ?: 90.00),
+            'work_days'          => (int)($this->work_days_per_week ?: 6),
+            'daily_salary'       => $this->daily_salary,
+            'earned'             => round($earned, 2),
+            'available'          => round($available, 2),
+            'retained'           => round($retained, 2),
+            'completed_packages' => $completedPackages,
+            'fractional_units'   => $fractionalUnits,
+        ];
     }
 }

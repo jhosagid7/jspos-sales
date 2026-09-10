@@ -35,7 +35,9 @@ class InventoryReport extends Component
         'stock' => true,
         'physical_inventory' => false,
         'cost' => true,
+        'cost_unit' => true,
         'price' => true,
+        'price_unit' => true,
         'utility_percent' => false,
         'valuation_cost' => false,
         'valuation_price' => false
@@ -139,7 +141,7 @@ class InventoryReport extends Component
 
     public function getProductsData()
     {
-        return Product::where('status', 'available')
+        $products = Product::where('status', 'available')
             ->when($this->product_type === 'products', function ($q) {
                 $q->where('is_raw_material', false);
             })
@@ -185,6 +187,21 @@ class InventoryReport extends Component
             ->with(['category', 'supplier', 'warehouses'])
             ->orderBy('name')
             ->paginate($this->pagination);
+
+        $products->getCollection()->transform(function ($product) {
+            $units = 0;
+            if (preg_match('/(\d+)\s*(?:UND|UNID|UNIDADES|UMD|PCS|PIEZAS)\b/i', $product->name, $matches)) {
+                $units = intval($matches[1]);
+            }
+
+            $product->units_per_package = $units > 0 ? $units : null;
+            $product->unit_cost = ($units > 0 && floatval($product->cost) > 0) ? round(floatval($product->cost) / $units, 4) : null;
+            $product->unit_price = ($units > 0 && floatval($product->price) > 0) ? round(floatval($product->price) / $units, 4) : null;
+
+            return $product;
+        });
+
+        return $products;
     }
 
     public function openPdfPreview()

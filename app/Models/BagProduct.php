@@ -303,4 +303,63 @@ class BagProduct extends Model
 
         $this->save();
     }
+
+    /**
+     * Breakdown units into complete packages and loose fractional units.
+     */
+    public function calculateBreakdown(float $units): array
+    {
+        $capacity = max(0.0001, (float)($this->millar_per_bulto ?: 1));
+        $completed = floor($units / $capacity);
+        $fraction = round($units - ($completed * $capacity), 4);
+
+        return [
+            'completed_packages'   => (float)$completed,
+            'fractional_units'     => (float)$fraction,
+            'is_package_completed' => ($fraction == 0.0),
+        ];
+    }
+
+    /**
+     * Calculate weight quality grading (A, B, C) based on comparison with standard theoretical weight.
+     * Tolerance: +/- 3% is Grade 'B' (Optimal). > +3% is 'A' (Overweight). < -3% is 'C' (Underweight).
+     */
+    public function calculateWeightQualityGrade(float $actualWeight, float $quantity = 1.0, float $fractionalUnits = 0.0): array
+    {
+        if ($this->is_variable_quantity) {
+            return [
+                'grade'              => 'B',
+                'deviation_percent'  => 0.0,
+                'theoretical_weight' => round($actualWeight, 4),
+                'actual_weight'      => round($actualWeight, 4),
+            ];
+        }
+
+        $unitWeight = (float)($this->unit_weight_kg > 0 ? $this->unit_weight_kg : $this->calculatePhysicalWeight());
+        $millarPerBulto = (float)($this->millar_per_bulto ?: 1);
+        $packageWeight = (float)($this->real_total_weight_kg > 0 ? $this->real_total_weight_kg : ($unitWeight * $millarPerBulto));
+
+        $theoretical = ($quantity * $packageWeight) + ($fractionalUnits * $unitWeight);
+        if ($theoretical <= 0.0001) {
+            $theoretical = $actualWeight > 0 ? $actualWeight : 1.0;
+        }
+
+        $deviation = (($actualWeight - $theoretical) / $theoretical) * 100.0;
+        $deviation = round($deviation, 2);
+
+        if (abs($deviation) <= 3.0) {
+            $grade = 'B';
+        } elseif ($deviation > 3.0) {
+            $grade = 'A';
+        } else {
+            $grade = 'C';
+        }
+
+        return [
+            'grade'              => $grade,
+            'deviation_percent'  => $deviation,
+            'theoretical_weight' => round($theoretical, 4),
+            'actual_weight'      => round($actualWeight, 4),
+        ];
+    }
 }

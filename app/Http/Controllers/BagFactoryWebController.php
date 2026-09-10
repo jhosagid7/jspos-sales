@@ -493,17 +493,23 @@ class BagFactoryWebController extends Controller
         }
 
         $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6',
-            'role'     => 'required|in:' . implode(',', $allowedRoles),
+            'name'                 => 'required|string|max:255',
+            'email'                => 'required|email|unique:users,email',
+            'password'             => 'required|string|min:6',
+            'role'                 => 'required|in:' . implode(',', $allowedRoles),
+            'weekly_salary'        => 'nullable|numeric|min:0',
+            'work_days_per_week'   => 'nullable|integer|in:5,6,7',
+            'pay_partial_packages' => 'nullable|boolean',
         ]);
 
         User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' => Hash::make($request->password),
-            'role'     => $request->role,
+            'name'                 => $request->name,
+            'email'                => $request->email,
+            'password'             => Hash::make($request->password),
+            'role'                 => $request->role,
+            'weekly_salary'        => $request->filled('weekly_salary') ? $request->weekly_salary : 90.00,
+            'work_days_per_week'   => $request->filled('work_days_per_week') ? $request->work_days_per_week : 6,
+            'pay_partial_packages' => $request->boolean('pay_partial_packages'),
         ]);
 
         return back()->with('status', 'Usuario creado exitosamente.');
@@ -519,10 +525,13 @@ class BagFactoryWebController extends Controller
         }
 
         $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email,' . $id,
-            'role'     => 'required|in:' . implode(',', $allowedRoles),
-            'password' => 'nullable|string|min:6',
+            'name'                 => 'required|string|max:255',
+            'email'                => 'required|email|unique:users,email,' . $id,
+            'role'                 => 'required|in:' . implode(',', $allowedRoles),
+            'password'             => 'nullable|string|min:6',
+            'weekly_salary'        => 'nullable|numeric|min:0',
+            'work_days_per_week'   => 'nullable|integer|in:5,6,7',
+            'pay_partial_packages' => 'nullable|boolean',
         ]);
 
         if ($user->isSuperAdmin() && !Auth::user()?->isSuperAdmin()) {
@@ -532,12 +541,54 @@ class BagFactoryWebController extends Controller
         $user->name = $request->name;
         $user->email = $request->email;
         $user->role = $request->role;
+        if ($request->filled('weekly_salary')) {
+            $user->weekly_salary = $request->weekly_salary;
+        }
+        if ($request->filled('work_days_per_week')) {
+            $user->work_days_per_week = $request->work_days_per_week;
+        }
+        $user->pay_partial_packages = $request->boolean('pay_partial_packages');
+
         if ($request->filled('password')) {
             $user->password = Hash::make($request->password);
         }
         $user->save();
 
         return back()->with('status', 'Usuario actualizado correctamente.');
+    }
+
+    // ==================== MONITOR DE NÓMINA Y RENDIMIENTO ====================
+    public function payrollIndex(Request $request)
+    {
+        $startDate = $request->filled('start_date') ? Carbon::parse($request->start_date)->startOfDay() : now()->startOfWeek(Carbon::MONDAY)->startOfDay();
+        $endDate = $request->filled('end_date') ? Carbon::parse($request->end_date)->endOfDay() : now()->endOfWeek(Carbon::SUNDAY)->endOfDay();
+
+        $operators = User::where(function ($q) {
+            $q->where('role', 'like', '%operario%')
+              ->orWhere('role', 'like', '%operator%')
+              ->orWhere('profile', 'like', '%operario%');
+        })->orderBy('name')->get();
+
+        if ($operators->isEmpty()) {
+            $operators = User::orderBy('name')->get();
+        }
+
+        $payrollData = $operators->map(function ($op) use ($startDate, $endDate) {
+            $weekly = $op->getWeeklyEarnings($startDate, $endDate);
+            return [
+                'operator' => $op,
+                'weekly'   => $weekly,
+            ];
+        });
+
+        // Incomplete fractions pending collaborative completion
+        $incompleteFractions = BagProduction::where('is_package_completed', false)
+            ->where('labor_retained_amount', '>', 0)
+            ->with(['product', 'user', 'shift'])
+            ->orderBy('recorded_at', 'desc')
+            ->get();
+
+        return view('bag_factory.payroll', compact('payrollData', 'incompleteFractions', 'startDate', 'endDate'));
     }
 
     public function usersDestroy($id)

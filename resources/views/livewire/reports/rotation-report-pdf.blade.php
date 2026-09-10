@@ -173,6 +173,8 @@
                 @if(in_array('abc_class', $selectedPdfColumns)) <th style="width: 40px;">Clase</th> @endif
                 @if(in_array('stock_qty', $selectedPdfColumns)) <th style="width: 50px;">Stock</th> @endif
                 @if(in_array('stock_value', $selectedPdfColumns)) <th style="width: 65px;">Valor Stock</th> @endif
+                @if(in_array('unit_cost', $selectedPdfColumns)) <th style="width: 55px;">Costo Unit.</th> @endif
+                @if(in_array('unit_price', $selectedPdfColumns)) <th style="width: 55px;">Precio Unit.</th> @endif
                 @if(in_array('total_sold', $selectedPdfColumns)) <th style="width: 50px;">Vendido</th> @endif
                 @if(in_array('sales_usd', $selectedPdfColumns)) <th style="width: 65px;">Ventas USD</th> @endif
                 @if(in_array('margin_usd', $selectedPdfColumns)) <th style="width: 65px;">Margen USD</th> @endif
@@ -200,6 +202,25 @@
                     @endif
                     @if(in_array('stock_qty', $selectedPdfColumns)) <td style="font-weight: bold;">{{ $product->stock_qty }}</td> @endif
                     @if(in_array('stock_value', $selectedPdfColumns)) <td style="color: #666;">${{ number_format($product->stock_value, 2) }}</td> @endif
+                    @if(in_array('unit_cost', $selectedPdfColumns))
+                        <td>
+                            @if($product->unit_cost !== null)
+                                ${{ number_format($product->unit_cost, 4) }}
+                                <br><span style="font-size: 7px; color: #888;">({{ $product->units_per_package }}u)</span>
+                            @else
+                                -
+                            @endif
+                        </td>
+                    @endif
+                    @if(in_array('unit_price', $selectedPdfColumns))
+                        <td style="color: #2ec4b6; font-weight: bold;">
+                            @if($product->unit_price !== null)
+                                ${{ number_format($product->unit_price, 4) }}
+                            @else
+                                -
+                            @endif
+                        </td>
+                    @endif
                     @if(in_array('total_sold', $selectedPdfColumns)) <td style="font-weight: bold;">{{ $product->total_sold }}</td> @endif
                     @if(in_array('sales_usd', $selectedPdfColumns)) <td>${{ number_format($product->sales_usd, 2) }}</td> @endif
                     @if(in_array('margin_usd', $selectedPdfColumns))

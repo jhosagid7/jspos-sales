@@ -25,6 +25,8 @@ class InventoryReportFilterTest extends TestCase
         parent::setUp();
 
         $this->user = User::factory()->create();
+        \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'reports.sales']);
+        $this->user->givePermissionTo('reports.sales');
 
         $warehouse = \App\Models\Warehouse::create([
             'id' => 1,
@@ -139,5 +141,75 @@ class InventoryReportFilterTest extends TestCase
 
         $pdfUrl = $component->get('pdfUrl');
         $this->assertStringContainsString('product_type=raw_materials', $pdfUrl);
+    }
+
+    public function test_inventory_report_calculates_and_toggles_unit_cost_and_price_columns()
+    {
+        $category = Category::first();
+        $supplier = Supplier::first();
+
+        // Create container product with units in name
+        $pPet = Product::create([
+            'name' => 'ENVASE PET 330ML 200UND',
+            'sku' => 'PET-330',
+            'price' => 28.00,
+            'cost' => 12.54,
+            'status' => 'available',
+            'category_id' => $category->id,
+            'supplier_id' => $supplier->id,
+            'is_raw_material' => false,
+            'type' => 'physical',
+            'stock_qty' => 10,
+            'low_stock' => 5,
+        ]);
+
+        $component = Livewire::actingAs($this->user)
+            ->test(InventoryReport::class);
+
+        // Check columns present in configuration
+        $columns = $component->get('columns');
+        $this->assertArrayHasKey('cost_unit', $columns);
+        $this->assertArrayHasKey('price_unit', $columns);
+        $this->assertTrue($columns['cost_unit']);
+        $this->assertTrue($columns['price_unit']);
+
+        // Check products data calculations
+        $productsData = $component->instance()->getProductsData();
+        $itemPet = collect($productsData->items())->firstWhere('id', $pPet->id);
+        $this->assertNotNull($itemPet);
+        $this->assertEquals(200, $itemPet->units_per_package);
+        $this->assertEquals(0.0627, $itemPet->unit_cost);
+        $this->assertEquals(0.1400, $itemPet->unit_price);
+
+        // Check standard product has null unit values
+        $itemStandard = collect($productsData->items())->firstWhere('id', $this->product->id);
+        $this->assertNotNull($itemStandard);
+        $this->assertNull($itemStandard->units_per_package);
+        $this->assertNull($itemStandard->unit_cost);
+        $this->assertNull($itemStandard->unit_price);
+
+        // Toggle column off
+        $component->set('columns.cost_unit', false)
+            ->assertSet('columns.cost_unit', false);
+    }
+
+    public function test_inventory_report_pdf_endpoint_renders_with_unit_columns()
+    {
+        $this->actingAs($this->user);
+
+        $params = [
+            'columns' => json_encode([
+                'sku' => true,
+                'name' => true,
+                'cost' => true,
+                'cost_unit' => true,
+                'price' => true,
+                'price_unit' => true,
+            ]),
+        ];
+
+        $response = $this->get(route('reports.inventory.pdf', $params));
+        $response->assertStatus(200);
+        $response->assertHeader('content-type', 'application/pdf');
     }
 }

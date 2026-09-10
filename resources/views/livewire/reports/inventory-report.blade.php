@@ -89,8 +89,10 @@
                                 'supplier' => 'Proveedor',
                                 'stock' => 'Existencia Sistema',
                                 'physical_inventory' => 'Físico (Campo Vacío)',
-                                'cost' => 'Costo Unitario ($)',
-                                'price' => 'Precio Venta ($)',
+                                'cost' => 'Costo Bulto / Base ($)',
+                                'cost_unit' => 'Costo Unit. Envase ($)',
+                                'price' => 'Precio Bulto / Base ($)',
+                                'price_unit' => 'Precio Unit. Envase ($)',
                                 'utility_percent' => 'Utilidad % (UT. %)',
                                 'valuation_cost' => 'Valuación Costo',
                                 'valuation_price' => 'Valuación Venta'
@@ -188,7 +190,9 @@
                                     @endif
 
                                     @if($columns['cost']) <th>Costo</th> @endif
+                                    @if(!empty($columns['cost_unit'])) <th>Costo Unit.</th> @endif
                                     @if($columns['price']) <th>Precio</th> @endif
+                                    @if(!empty($columns['price_unit'])) <th>Precio Unit.</th> @endif
                                     @if($columns['utility_percent']) <th>UT. %</th> @endif
                                     @if($columns['valuation_cost']) <th>Val. Costo</th> @endif
                                     @if($columns['valuation_price']) <th>Val. Venta</th> @endif
@@ -234,7 +238,26 @@
                                             </td> 
                                         @endif
                                         @if($columns['cost']) <td>${{ number_format($product->cost, 2) }}</td> @endif
+                                        @if(!empty($columns['cost_unit']))
+                                            <td>
+                                                @if($product->unit_cost !== null)
+                                                    <span class="font-weight-bold text-dark">${{ number_format($product->unit_cost, 4) }}</span>
+                                                    <small class="d-block text-muted" style="font-size: 10px;">({{ $product->units_per_package }} und/bto)</small>
+                                                @else
+                                                    <span class="text-muted">-</span>
+                                                @endif
+                                            </td>
+                                        @endif
                                         @if($columns['price']) <td>${{ number_format($product->price, 2) }}</td> @endif
+                                        @if(!empty($columns['price_unit']))
+                                            <td>
+                                                @if($product->unit_price !== null)
+                                                    <span class="font-weight-bold text-success">${{ number_format($product->unit_price, 4) }}</span>
+                                                @else
+                                                    <span class="text-muted">-</span>
+                                                @endif
+                                            </td>
+                                        @endif
                                         @if($columns['utility_percent']) 
                                             <td class="text-center font-weight-bold text-muted small">
                                                 {{ $product->cost > 0 ? number_format((($product->price - $product->cost) / $product->cost) * 100, 2) . '%' : '0%' }}
@@ -253,7 +276,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="15" class="text-center py-4 text-muted">No se encontraron productos con los filtros aplicados.</td>
+                                        <td colspan="18" class="text-center py-4 text-muted">No se encontraron productos con los filtros aplicados.</td>
                                     </tr>
                                 @endforelse
                             </tbody>

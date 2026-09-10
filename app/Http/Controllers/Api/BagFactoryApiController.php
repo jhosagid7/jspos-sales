@@ -192,21 +192,61 @@ class BagFactoryApiController extends Controller
         }
 
         $syncedIds = [];
+        $operator = auth()->user() ?? \App\Models\User::find($userId);
 
         DB::beginTransaction();
         try {
             foreach ($request->productions as $item) {
+                $qty = (float)$item['quantity'];
+                $weight = (float)$item['weight'];
+                $product = BagProduct::find($item['product_id']);
+
+                $completedPackages = $qty;
+                $fractionalUnits = 0.0;
+                $isPackageCompleted = true;
+                $earnedAmount = 0.0;
+                $retainedAmount = 0.0;
+                $grade = 'B';
+                $deviationPercent = 0.0;
+
+                if ($product) {
+                    $breakdown = $product->calculateBreakdown($qty);
+                    $completedPackages = $breakdown['completed_packages'];
+                    $fractionalUnits = $breakdown['fractional_units'];
+                    $isPackageCompleted = $breakdown['is_package_completed'];
+
+                    if ($operator) {
+                        $tariffs = $operator->calculateLaborTariff($product);
+                        $packageTariff = $tariffs['package_tariff'];
+                        $fractionTariff = $tariffs['fraction_tariff'];
+                        $earnedAmount = round(($completedPackages * $packageTariff) + ($fractionalUnits * $fractionTariff), 2);
+                        $payPartial = (bool)($operator->pay_partial_packages ?? false);
+                        $retainedAmount = ($isPackageCompleted || $payPartial) ? 0.00 : round($fractionalUnits * $fractionTariff, 2);
+                    }
+
+                    $quality = $product->calculateWeightQualityGrade($weight, $completedPackages, $fractionalUnits);
+                    $grade = $quality['grade'];
+                    $deviationPercent = $quality['deviation_percent'];
+                }
+
                 $prod = BagProduction::updateOrCreate(
                     ['sync_id' => $item['sync_id']],
                     [
-                        'bag_shift_id' => $shift->id,
-                        'user_id'      => $userId,
-                        'product_id'   => $item['product_id'],
-                        'quantity'     => $item['quantity'],
-                        'weight'       => $item['weight'],
-                        'recorded_at'  => Carbon::parse($item['recorded_at']),
-                        'status'       => $item['status'] ?? 'pending_review',
-                        'metadata'     => $item['metadata'] ?? null,
+                        'bag_shift_id'             => $shift->id,
+                        'user_id'                  => $userId,
+                        'product_id'               => $item['product_id'],
+                        'quantity'                 => $item['quantity'],
+                        'weight'                   => $item['weight'],
+                        'recorded_at'              => Carbon::parse($item['recorded_at']),
+                        'status'                   => $item['status'] ?? 'pending_review',
+                        'metadata'                 => $item['metadata'] ?? null,
+                        'completed_packages_count' => $completedPackages,
+                        'fractional_units'         => $fractionalUnits,
+                        'is_package_completed'     => $isPackageCompleted,
+                        'labor_earned_amount'      => $earnedAmount,
+                        'labor_retained_amount'    => $retainedAmount,
+                        'weight_quality_grade'     => $grade,
+                        'weight_deviation_percent' => $deviationPercent,
                     ]
                 );
                 $syncedIds[] = $prod->id;
@@ -341,24 +381,33 @@ class BagFactoryApiController extends Controller
 
         $productions = $query->get()->map(function ($p) {
             return [
-                'id'               => $p->id,
-                'bag_shift_id'     => $p->bag_shift_id,
-                'shift_type'       => $p->shift->shift_type ?? 'diurno',
-                'user_id'          => $p->user_id,
-                'operator_name'    => $p->user->name ?? 'Operario',
-                'product_id'       => $p->product_id,
-                'product_name'     => $p->product->name ?? 'Bolsa',
-                'sku'              => $p->product->sku ?? '',
-                'quantity'         => (float)$p->quantity,
-                'weight'           => (float)$p->weight,
-                'original_weight'  => $p->original_weight ? (float)$p->original_weight : null,
-                'recorded_at'      => $p->recorded_at?->toDateTimeString(),
-                'status'           => $p->status,
-                'qr_code'          => $p->qr_code,
-                'metadata'         => $p->metadata,
-                'rejection_reason' => $p->rejection_reason,
-                'reviewed_by_name' => $p->reviewer->name ?? null,
-                'reviewed_at'      => $p->reviewed_at?->toDateTimeString(),
+                'id'                       => $p->id,
+                'bag_shift_id'             => $p->bag_shift_id,
+                'shift_type'               => $p->shift->shift_type ?? 'diurno',
+                'user_id'                  => $p->user_id,
+                'operator_name'            => $p->user->name ?? 'Operario',
+                'product_id'               => $p->product_id,
+                'product_name'             => $p->product_name,
+                'sku'                      => $p->product->sku ?? '',
+                'quantity'                 => (float)$p->quantity,
+                'weight'                   => (float)$p->weight,
+                'original_weight'          => $p->original_weight ? (float)$p->original_weight : null,
+                'recorded_at'              => $p->recorded_at?->toDateTimeString(),
+                'status'                   => $p->status,
+                'qr_code'                  => $p->qr_code,
+                'metadata'                 => $p->metadata,
+                'rejection_reason'         => $p->rejection_reason,
+                'weight_quality_grade'     => $p->weight_quality_grade,
+                'weight_deviation_percent' => $p->weight_deviation_percent,
+                'weight_grade_label'       => $p->weight_grade_label,
+                'effective_batch_code'     => $p->effective_batch_code,
+                'completed_packages_count' => (float)$p->completed_packages_count,
+                'fractional_units'         => (float)$p->fractional_units,
+                'is_package_completed'     => (bool)$p->is_package_completed,
+                'labor_earned_amount'      => (float)$p->labor_earned_amount,
+                'labor_retained_amount'    => (float)$p->labor_retained_amount,
+                'reviewed_by_name'         => $p->reviewer->name ?? null,
+                'reviewed_at'              => $p->reviewed_at?->toDateTimeString(),
             ];
         });
 
@@ -551,25 +600,92 @@ class BagFactoryApiController extends Controller
         $machine = $prod->shift?->machine;
 
         $data = [
-            'id'            => $prod->id,
-            'qr_code'       => $prod->qr_code,
-            'product_name'  => $prod->product->name ?? 'Bolsa',
-            'sku'           => $prod->product->sku ?? '',
-            'operator_name' => $prod->user->name ?? 'Operario',
-            'machine_code'  => $machine?->code ?? '',
-            'machine_name'  => $machine?->name ?? '',
-            'machine_label' => $machine ? ($machine->code . ' (' . $machine->name . ')') : '',
-            'shift_type'    => strtoupper($prod->shift->shift_type ?? 'DIURNO'),
-            'quantity'      => (float)$prod->quantity,
-            'weight'        => (float)$prod->weight,
-            'recorded_at'   => $prod->recorded_at?->format('d/m/Y h:i A'),
-            'status'        => $prod->status,
-            'reviewed_by'   => $prod->reviewer->name ?? 'Supervisor de Planta',
+            'id'                       => $prod->id,
+            'qr_code'                  => $prod->qr_code,
+            'product_name'             => $prod->product_name,
+            'sku'                      => $prod->product->sku ?? '',
+            'operator_name'            => $prod->user->name ?? 'Operario',
+            'machine_code'             => $machine?->code ?? '',
+            'machine_name'             => $machine?->name ?? '',
+            'machine_label'            => $machine ? ($machine->code . ' (' . $machine->name . ')') : '',
+            'shift_type'               => strtoupper($prod->shift->shift_type ?? 'DIURNO'),
+            'quantity'                 => (float)$prod->quantity,
+            'weight'                   => (float)$prod->weight,
+            'recorded_at'              => $prod->recorded_at?->format('d/m/Y h:i A'),
+            'status'                   => $prod->status,
+            'weight_quality_grade'     => $prod->weight_quality_grade,
+            'weight_deviation_percent' => $prod->weight_deviation_percent,
+            'weight_grade_label'       => $prod->weight_grade_label,
+            'effective_batch_code'     => $prod->effective_batch_code,
+            'completed_packages_count' => (float)$prod->completed_packages_count,
+            'fractional_units'         => (float)$prod->fractional_units,
+            'is_package_completed'     => (bool)$prod->is_package_completed,
+            'labor_earned_amount'      => (float)$prod->labor_earned_amount,
+            'labor_retained_amount'    => (float)$prod->labor_retained_amount,
+            'reviewed_by'              => $prod->reviewer->name ?? 'Supervisor de Planta',
         ];
 
         return response()->json([
             'success' => true,
             'data'    => $data,
+        ]);
+    }
+
+    /**
+     * Operator Earnings Endpoint: returns daily/shift and weekly accumulated metrics.
+     */
+    public function operatorEarnings(Request $request)
+    {
+        $user = auth()->user();
+        if ($request->filled('user_id') && ($user->hasRole('Admin') || $user->isSupervisor())) {
+            $user = \App\Models\User::findOrFail($request->user_id);
+        }
+
+        $shiftId = $request->shift_id;
+        if (!$shiftId) {
+            $activeShift = BagShift::where('user_id', $user->id)->where('status', 'open')->latest()->first();
+            $shiftId = $activeShift?->id;
+        }
+
+        $shiftData = $shiftId ? $user->getShiftEarnings($shiftId) : [
+            'earned' => 0.0, 'available' => 0.0, 'retained' => 0.0, 'completed_packages' => 0, 'fractional_units' => 0, 'count' => 0
+        ];
+
+        $weeklyData = $user->getWeeklyEarnings($request->start_date, $request->end_date);
+
+        return response()->json([
+            'success' => true,
+            'user'    => [
+                'id'                 => $user->id,
+                'name'               => $user->name,
+                'weekly_salary'      => (float)($user->weekly_salary ?: 90.00),
+                'work_days_per_week' => (int)($user->work_days_per_week ?: 6),
+                'daily_salary'       => $user->daily_salary,
+            ],
+            'shift'   => $shiftData,
+            'weekly'  => $weeklyData,
+        ]);
+    }
+
+    /**
+     * Complete loose fraction collaboratively and release retained earnings.
+     */
+    public function completeFraction(Request $request)
+    {
+        $request->validate([
+            'production_id'            => 'required|exists:bag_productions,id',
+            'completing_production_id' => 'required|exists:bag_productions,id|different:production_id',
+        ]);
+
+        $incomplete = BagProduction::findOrFail($request->production_id);
+        $completing = BagProduction::findOrFail($request->completing_production_id);
+
+        $incomplete->completeFractionWith($completing);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Fracción completada y sueldo retenido liberado exitosamente.',
+            'data'    => $incomplete->fresh(['product', 'user', 'completedBy']),
         ]);
     }
 
@@ -599,17 +715,20 @@ class BagFactoryApiController extends Controller
 
         $items = $query->get()->map(function ($bp) {
             return [
-                'id'            => $bp->id,
-                'qr_code'       => $bp->qr_code,
-                'product_id'    => $bp->product_id,
-                'product_name'  => $bp->product->name ?? 'Bolsa',
-                'sku'           => $bp->product->sku ?? '',
-                'quantity'      => (float)$bp->quantity,
-                'weight'        => (float)$bp->weight,
-                'operator_name' => $bp->user->name ?? 'Operario',
-                'shift_type'    => $bp->shift->shift_type ?? 'diurno',
-                'reviewed_by'   => $bp->reviewer->name ?? 'Supervisor',
-                'reviewed_at'   => $bp->reviewed_at?->toDateTimeString(),
+                'id'                       => $bp->id,
+                'qr_code'                  => $bp->qr_code,
+                'product_id'               => $bp->product_id,
+                'product_name'             => $bp->product_name,
+                'sku'                      => $bp->product->sku ?? '',
+                'quantity'                 => (float)$bp->quantity,
+                'weight'                   => (float)$bp->weight,
+                'operator_name'            => $bp->user->name ?? 'Operario',
+                'shift_type'               => $bp->shift->shift_type ?? 'diurno',
+                'weight_quality_grade'     => $bp->weight_quality_grade,
+                'weight_deviation_percent' => $bp->weight_deviation_percent,
+                'effective_batch_code'     => $bp->effective_batch_code,
+                'reviewed_by'              => $bp->reviewer->name ?? 'Supervisor',
+                'reviewed_at'              => $bp->reviewed_at?->toDateTimeString(),
             ];
         });
 
@@ -645,18 +764,21 @@ class BagFactoryApiController extends Controller
         return response()->json([
             'success' => true,
             'data'    => [
-                'id'            => $prod->id,
-                'qr_code'       => $prod->qr_code,
-                'product_id'    => $prod->product_id,
-                'product_name'  => $prod->product->name ?? 'Bolsa',
-                'sku'           => $prod->product->sku ?? '',
-                'quantity'      => (float)$prod->quantity,
-                'weight'        => (float)$prod->weight,
-                'status'        => $prod->status,
-                'operator_name' => $prod->user->name ?? 'Operario',
-                'shift_type'    => $prod->shift->shift_type ?? 'diurno',
-                'is_ready'      => $isReady,
-                'lifted_at'     => $prod->lifted_at?->toDateTimeString(),
+                'id'                       => $prod->id,
+                'qr_code'                  => $prod->qr_code,
+                'product_id'               => $prod->product_id,
+                'product_name'             => $prod->product_name,
+                'sku'                      => $prod->product->sku ?? '',
+                'quantity'                 => (float)$prod->quantity,
+                'weight'                   => (float)$prod->weight,
+                'status'                   => $prod->status,
+                'operator_name'            => $prod->user->name ?? 'Operario',
+                'shift_type'               => $prod->shift->shift_type ?? 'diurno',
+                'weight_quality_grade'     => $prod->weight_quality_grade,
+                'weight_deviation_percent' => $prod->weight_deviation_percent,
+                'effective_batch_code'     => $prod->effective_batch_code,
+                'is_ready'                 => $isReady,
+                'lifted_at'                => $prod->lifted_at?->toDateTimeString(),
             ],
         ]);
     }

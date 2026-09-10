@@ -140,6 +140,7 @@ Route::prefix('bag-factory')->middleware('auth:sanctum')->group(function () {
     Route::get('/shifts/active', [App\Http\Controllers\Api\BagFactoryApiController::class, 'activeShift']);
     Route::get('/shifts/history', [App\Http\Controllers\Api\BagFactoryApiController::class, 'shiftsHistory']);
     Route::post('/productions/sync', [App\Http\Controllers\Api\BagFactoryApiController::class, 'syncProductions']);
+    Route::get('/operator/earnings', [App\Http\Controllers\Api\BagFactoryApiController::class, 'operatorEarnings']);
 
     // Supervisor & Operations Manager Endpoints
     Route::get('/supervisor/feed', [App\Http\Controllers\Api\BagFactoryApiController::class, 'supervisorFeed']);
@@ -147,6 +148,7 @@ Route::prefix('bag-factory')->middleware('auth:sanctum')->group(function () {
     Route::post('/supervisor/productions/{id}/approve', [App\Http\Controllers\Api\BagFactoryApiController::class, 'approveProduction']);
     Route::post('/supervisor/productions/bulk-approve', [App\Http\Controllers\Api\BagFactoryApiController::class, 'bulkApprove']);
     Route::post('/supervisor/productions/{id}/reject', [App\Http\Controllers\Api\BagFactoryApiController::class, 'rejectProduction']);
+    Route::post('/supervisor/fractions/complete', [App\Http\Controllers\Api\BagFactoryApiController::class, 'completeFraction']);
     Route::get('/supervisor/pre-stock', [App\Http\Controllers\Api\BagFactoryApiController::class, 'preStock']);
     Route::get('/supervisor/ticket/{id}', [App\Http\Controllers\Api\BagFactoryApiController::class, 'ticketData']);
     Route::get('/ticket/{id}', [App\Http\Controllers\Api\BagFactoryApiController::class, 'ticketData']);

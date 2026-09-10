@@ -21,6 +21,7 @@
                     <th>Nombre</th>
                     <th>Correo Electrónico</th>
                     <th>Rol en el Sistema</th>
+                    <th>Sueldo Base / Días</th>
                     <th>Fecha Registro</th>
                     <th class="text-end">Acciones</th>
                 </tr>
@@ -48,6 +49,14 @@
                                 <span class="badge bg-success text-white px-2 py-1">📦 Almacén / POS</span>
                             @else
                                 <span class="badge bg-dark px-2 py-1">{{ strtoupper($u->role) }}</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($u->isOperario() || $u->weekly_salary > 0)
+                                <span class="text-success fw-bold">${{ number_format($u->weekly_salary ?: 90, 2) }}</span> <small class="text-white-50">/ {{ $u->work_days_per_week ?: 6 }} días</small>
+                                <div class="text-white-50" style="font-size: 11px;">(${{ number_format($u->daily_salary, 2) }}/día)</div>
+                            @else
+                                <span class="text-white-50">-</span>
                             @endif
                         </td>
                         <td>{{ $u->created_at ? $u->created_at->format('d/m/Y') : '-' }}</td>
@@ -97,6 +106,29 @@
                                                 <option value="almacen" {{ $u->role === 'almacen' ? 'selected' : '' }}>📦 Almacén (Levantamiento y Recepción General)</option>
                                             </select>
                                         </div>
+
+                                        <div class="row g-2 mb-3">
+                                            <div class="col-6">
+                                                <label class="form-label small text-white-50">Salario Semanal ($ USD)</label>
+                                                <input type="number" step="0.01" name="weekly_salary" class="form-control bg-secondary text-white border-0" value="{{ $u->weekly_salary ?: 90.00 }}">
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label small text-white-50">Días Laborales / Sem</label>
+                                                <select name="work_days_per_week" class="form-select bg-secondary text-white border-0">
+                                                    <option value="5" {{ ($u->work_days_per_week == 5) ? 'selected' : '' }}>5 Días (Lun a Vie)</option>
+                                                    <option value="6" {{ ($u->work_days_per_week == 6 || is_null($u->work_days_per_week)) ? 'selected' : '' }}>6 Días (Lun a Sáb)</option>
+                                                    <option value="7" {{ ($u->work_days_per_week == 7) ? 'selected' : '' }}>7 Días (Continuo / Dom)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" name="pay_partial_packages" value="1" id="payPartial{{ $u->id }}" {{ $u->pay_partial_packages ? 'checked' : '' }}>
+                                            <label class="form-check-label small text-white-50" for="payPartial{{ $u->id }}">
+                                                Pagar fracciones sueltas inmediatamente (sin retener hasta armar bulto)
+                                            </label>
+                                        </div>
+
                                         <div class="mb-3">
                                             <label class="form-label small text-white-50">Nueva Contraseña (Opcional)</label>
                                             <input type="password" name="password" class="form-control bg-secondary text-white border-0" placeholder="Dejar en blanco para mantener la actual">
@@ -146,6 +178,26 @@
                             <option value="operario">👷 Operario (App Móvil)</option>
                             <option value="almacen">📦 Almacén (Levantamiento General)</option>
                         </select>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small text-white-50">Salario Semanal ($ USD)</label>
+                            <input type="number" step="0.01" name="weekly_salary" class="form-control bg-secondary text-white border-0" value="90.00">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-white-50">Días Laborales / Sem</label>
+                            <select name="work_days_per_week" class="form-select bg-secondary text-white border-0">
+                                <option value="5">5 Días (Lun a Vie)</option>
+                                <option value="6" selected>6 Días (Lun a Sáb)</option>
+                                <option value="7">7 Días (Continuo / Dom)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="pay_partial_packages" value="1" id="createPayPartial">
+                        <label class="form-check-label small text-white-50" for="createPayPartial">
+                            Pagar fracciones sueltas inmediatamente (sin retener hasta armar bulto)
+                        </label>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small text-white-50">Contraseña</label>

@@ -468,5 +468,100 @@ class RotationReportTest extends TestCase
                 return $products->contains('id', $rawMaterial->id) && $products->count() > 1;
             });
     }
+
+    public function test_rotation_report_calculates_container_unit_cost_and_price_for_packaged_products()
+    {
+        $this->actingAs($this->adminUser);
+
+        // Create container products matching user's packaging patterns
+        $pPet330 = Product::create([
+            'name' => 'ENVASE PET 330ML 200UND',
+            'sku' => 'PET-330-200',
+            'cost' => 12.54,
+            'price' => 28.00,
+            'price_usd' => 28.00,
+            'show_in_sales' => true,
+            'stock_qty' => 50,
+            'manage_stock' => true,
+            'low_stock' => 0,
+            'category_id' => $this->category->id,
+            'supplier_id' => $this->supplier->id,
+        ]);
+
+        $pPet1000 = Product::create([
+            'name' => 'ENVASES PET 1000ML 150UND',
+            'sku' => 'PET-1000-150',
+            'cost' => 15.49,
+            'price' => 28.50,
+            'price_usd' => 28.50,
+            'show_in_sales' => true,
+            'stock_qty' => 30,
+            'manage_stock' => true,
+            'low_stock' => 0,
+            'category_id' => $this->category->id,
+            'supplier_id' => $this->supplier->id,
+        ]);
+
+        $pGalon = Product::create([
+            'name' => 'ENVASE PET GALON 3.785 42UND',
+            'sku' => 'PET-GALON-42',
+            'cost' => 21.83,
+            'price' => 33.00,
+            'price_usd' => 33.00,
+            'show_in_sales' => true,
+            'stock_qty' => 20,
+            'manage_stock' => true,
+            'low_stock' => 0,
+            'category_id' => $this->category->id,
+            'supplier_id' => $this->supplier->id,
+        ]);
+
+        $component = Livewire::test(RotationReport::class);
+        $data = $component->instance()->getRotationData();
+
+        // 1. Verify ENVASE PET 330ML 200UND: 12.54 / 200 = 0.0627, 28.00 / 200 = 0.1400
+        $item330 = collect($data->items())->firstWhere('id', $pPet330->id);
+        $this->assertNotNull($item330);
+        $this->assertEquals(200, $item330->units_per_package);
+        $this->assertEquals(0.0627, $item330->unit_cost);
+        $this->assertEquals(0.1400, $item330->unit_price);
+
+        // 2. Verify ENVASES PET 1000ML 150UND: 15.49 / 150 = 0.1033, 28.50 / 150 = 0.1900
+        $item1000 = collect($data->items())->firstWhere('id', $pPet1000->id);
+        $this->assertNotNull($item1000);
+        $this->assertEquals(150, $item1000->units_per_package);
+        $this->assertEquals(0.1033, $item1000->unit_cost);
+        $this->assertEquals(0.1900, $item1000->unit_price);
+
+        // 3. Verify ENVASE PET GALON 3.785 42UND: 21.83 / 42 = 0.5198, 33.00 / 42 = 0.7857
+        $itemGalon = collect($data->items())->firstWhere('id', $pGalon->id);
+        $this->assertNotNull($itemGalon);
+        $this->assertEquals(42, $itemGalon->units_per_package);
+        $this->assertEquals(0.5198, $itemGalon->unit_cost);
+        $this->assertEquals(0.7857, $itemGalon->unit_price);
+
+        // 4. Verify standard non-packaged product (Product Alpha): null / null
+        $itemAlpha = collect($data->items())->firstWhere('id', $this->p1->id);
+        $this->assertNotNull($itemAlpha);
+        $this->assertNull($itemAlpha->units_per_package);
+        $this->assertNull($itemAlpha->unit_cost);
+        $this->assertNull($itemAlpha->unit_price);
+    }
+
+    public function test_rotation_report_includes_unit_cost_and_price_in_available_and_selected_pdf_columns()
+    {
+        $this->actingAs($this->adminUser);
+
+        $component = Livewire::test(RotationReport::class);
+
+        $this->assertArrayHasKey('unit_cost', $component->get('availablePdfColumns'));
+        $this->assertArrayHasKey('unit_price', $component->get('availablePdfColumns'));
+        $this->assertContains('unit_cost', $component->get('selectedPdfColumns'));
+        $this->assertContains('unit_price', $component->get('selectedPdfColumns'));
+
+        // Ensure PDF downloads with new columns selected
+        $component->call('generatePdf')
+            ->assertFileDownloaded('Reporte_Rotacion.pdf');
+    }
 }
 

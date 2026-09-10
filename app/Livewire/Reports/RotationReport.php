@@ -34,6 +34,8 @@ class RotationReport extends Component
         'abc_class',
         'stock_qty',
         'stock_value',
+        'unit_cost',
+        'unit_price',
         'total_sold',
         'sales_usd',
         'margin_usd',
@@ -49,6 +51,8 @@ class RotationReport extends Component
         'abc_class' => 'Clase ABC',
         'stock_qty' => 'Stock Actual',
         'stock_value' => 'Valor Stock',
+        'unit_cost' => 'Costo Unit. Envase',
+        'unit_price' => 'Precio Unit. Envase',
         'total_sold' => 'Vendido',
         'sales_usd' => 'Ventas USD',
         'margin_usd' => 'Margen USD',
@@ -398,6 +402,19 @@ class RotationReport extends Component
             $product->margin_percent = $product->sales_usd > 0 ? round(($product->margin_usd / $product->sales_usd) * 100, 2) : 0;
             $product->stock_value = floatval($product->stock_qty) * floatval($product->cost);
             $product->abc_class = $this->abcMap[$product->id] ?? 'C';
+
+            // Unit calculations for container / packaged products (e.g. 200UND, 150UND, 42UND)
+            $unitsPerPackage = null;
+            if (preg_match('/(\d+)\s*(?:UND|UNID|UNIDADES|UMD|PCS|PIEZAS)\b/i', $product->name, $matches)) {
+                $units = intval($matches[1]);
+                if ($units > 0) {
+                    $unitsPerPackage = $units;
+                }
+            }
+
+            $product->units_per_package = $unitsPerPackage;
+            $product->unit_cost = $unitsPerPackage ? round(floatval($product->cost) / $unitsPerPackage, 4) : null;
+            $product->unit_price = $unitsPerPackage ? round(floatval($product->price) / $unitsPerPackage, 4) : null;
 
             return $product;
         });

@@ -397,6 +397,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/machines/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'machinesDestroy'])->name('machines.destroy');
 
     Route::get('/ticket/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'ticket'])->name('ticket');
+    Route::get('/payroll', [\App\Http\Controllers\BagFactoryWebController::class, 'payrollIndex'])->name('bag_factory.payroll');
+    Route::get('/nomina', [\App\Http\Controllers\BagFactoryWebController::class, 'payrollIndex'])->name('bag_factory.payroll_alias');
 });
 
 require __DIR__ . '/auth.php';
