@@ -21,6 +21,7 @@ class Users extends Component
     public  $role, $roleSelectedId,  $permissionId, $roles = [];
     public $selectedBanks = []; // Array of bank IDs for this user
     public $selectedSharedSellers = []; // Array of shared seller IDs for this user
+    public $selectedTerminalOperators = []; // Array of operator IDs assigned to this shared terminal
     public $commission_percent = 0, $freight_percent = 0, $exchange_diff_percent = 0, $current_batch = '1', $agreement;
     public $sellerCommission1Threshold, $sellerCommission1Percentage, $sellerCommission2Threshold, $sellerCommission2Percentage;
     public $discountRules = []; // Array of discount rules for this user (seller)
@@ -66,6 +67,7 @@ class Users extends Component
         'user.monthly_goal' => 'nullable|numeric|min:0',
         'user.route_goal' => 'nullable|numeric|min:0',
         'user.warehouse_id' => 'nullable|exists:warehouses,id',
+        'user.is_shared_terminal' => 'nullable|boolean',
     ];
 
     protected $messages = [
@@ -110,10 +112,16 @@ class Users extends Component
         $users = $this->loadUsers();
         $allBanks = \App\Models\Bank::orderBy('name')->get();
         $allWarehouses = \App\Models\Warehouse::orderBy('name')->get();
+        $allOperatorsList = User::where('status', 'Active')
+            ->when($this->user->id, fn($q) => $q->where('id', '!=', $this->user->id))
+            ->orderBy('name')
+            ->get();
+
         return view('livewire.users.users', [
             'users' => $users,
             'allBanks' => $allBanks,
-            'allWarehouses' => $allWarehouses
+            'allWarehouses' => $allWarehouses,
+            'allOperatorsList' => $allOperatorsList
         ]);
     }
 
@@ -209,6 +217,9 @@ class Users extends Component
         // Load selected shared sellers
         $this->selectedSharedSellers = $user->sharedSellers->pluck('id')->toArray();
 
+        // Load selected terminal operators
+        $this->selectedTerminalOperators = $user->assignedOperators->pluck('id')->toArray();
+
         $this->dispatch('init-new');
     }
 
@@ -225,6 +236,7 @@ class Users extends Component
         $this->editing = false;
         $this->discountRules = [];
         $this->selectedSharedSellers = [];
+        $this->selectedTerminalOperators = [];
         $this->tab = 1;
     }
 
@@ -310,10 +322,18 @@ class Users extends Component
             if($this->user->is_deadline_active == null) $this->user->is_deadline_active = 0;
             if($this->user->monthly_goal == null) $this->user->monthly_goal = 0;
             if($this->user->route_goal == null) $this->user->route_goal = 0;
+            $this->user->is_shared_terminal = $this->user->is_shared_terminal ? 1 : 0;
             
             \Illuminate\Support\Facades\Log::info('Store: Saving User...');
             $this->user->save();
             \Illuminate\Support\Facades\Log::info('Store: User Saved', ['id' => $this->user->id]);
+
+            // Sync Terminal Operators
+            if ($this->user->is_shared_terminal) {
+                $this->user->assignedOperators()->sync($this->selectedTerminalOperators);
+            } else {
+                $this->user->assignedOperators()->detach();
+            }
 
             // Sync Banks
             if ($this->isSeller($this->user->profile)) {

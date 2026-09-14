@@ -5,6 +5,7 @@ namespace App\Livewire;
 use Carbon\Carbon;
 
 use App\Models\Bank;
+use App\Models\User;
 use App\Models\Sale;
 use App\Models\Order;
 use App\Models\Product;
@@ -174,6 +175,19 @@ class Sales extends Component
     public $pendingCreditAuthId = null;
     public $creditAuthStatusMessage = '';
     public $creditAuthApproved = false;
+
+    // Shared Terminal Properties
+    public $isSharedTerminal = false;
+    public $availableOperators = [];
+    public $selected_operator_id = null;
+
+    public function getEffectiveUserId()
+    {
+        if ($this->isSharedTerminal && !empty($this->selected_operator_id)) {
+            return $this->selected_operator_id;
+        }
+        return Auth::id();
+    }
 
     public function updatedSelectedPaymentMethod($value)
     {
@@ -997,6 +1011,18 @@ class Sales extends Component
         $this->moduleCredits = in_array('module_credits', $modules);
         $this->moduleAdvancedPayments = in_array('module_advanced_payments', $modules);
 
+        // Shared Terminal Initialization
+        $currentUser = Auth::user();
+        $this->isSharedTerminal = (bool)($currentUser->is_shared_terminal ?? false);
+        if ($this->isSharedTerminal) {
+            $assigned = $currentUser->assignedOperators()->where('status', 'Active')->orderBy('name')->get();
+            if ($assigned->isNotEmpty()) {
+                $this->availableOperators = $assigned;
+            } else {
+                $this->availableOperators = User::where('status', 'Active')->where('id', '!=', $currentUser->id)->orderBy('name')->get();
+            }
+        }
+
         if (session()->has("cart")) {
             $this->cart = collect(session("cart"))->map(function($item) {
                 if (!isset($item['id'])) {
@@ -1569,7 +1595,8 @@ class Sales extends Component
                 'invoiceCurrency_id', 'invoiceExchangeRate', 'displayCurrency',
                 'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
                 'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
-                'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies'
+                'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies',
+                'isSharedTerminal', 'availableOperators'
             );
             $this->clear();
             session()->forget('sale_customer');
@@ -1626,7 +1653,8 @@ class Sales extends Component
             'invoiceCurrency_id', 'invoiceExchangeRate', 'displayCurrency',
             'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
             'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
-            'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies'
+            'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies',
+            'isSharedTerminal', 'availableOperators'
         );
         $this->clear();
         session()->forget('sale_customer');
@@ -3046,6 +3074,7 @@ class Sales extends Component
 
         $this->cart = new Collection;
         $this->driver_id = null;
+        $this->selected_operator_id = null;
         $this->payments = [];
         $this->changeDistribution = [];
         $this->editing_sale_id = null;
@@ -3108,7 +3137,8 @@ class Sales extends Component
             'invoiceCurrency_id', 'invoiceExchangeRate', 'displayCurrency',
             'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
             'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
-            'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies'
+            'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies',
+            'isSharedTerminal', 'availableOperators'
         );
         $this->clear();
         session()->forget('sale_customer');
@@ -3477,6 +3507,11 @@ class Sales extends Component
 
     public function initPayment($type)
     {
+        if ($this->isSharedTerminal && empty($this->selected_operator_id)) {
+            $this->dispatch('noty', msg: 'DEBE SELECCIONAR EL OPERADOR RESPONSABLE DE LA VENTA');
+            return;
+        }
+
         // Redirigir Banco (3) y Nequi (4) al modal unificado (1)
         if ($type == 3) {
             $this->selectedPaymentMethod = 'bank';
@@ -3735,6 +3770,11 @@ class Sales extends Component
         // dd($this->totalInPrimaryCurrency);
         // dd(get_object_vars($this));
         $type = $this->payType;
+
+        if ($this->isSharedTerminal && empty($this->selected_operator_id)) {
+            $this->dispatch('noty', msg: 'DEBE SELECCIONAR EL OPERADOR RESPONSABLE DE LA VENTA');
+            return;
+        }
 
         // Sincronizar el carrito del componente Livewire con la sesión
         if (!empty($this->cart)) {
@@ -4216,7 +4256,7 @@ class Sales extends Component
                 'discount' => 0,
                 'items' => $this->itemsCart,
                 'customer_id' => $this->customer['id'],
-                'user_id' => Auth()->user()->id,
+                'user_id' => $this->getEffectiveUserId(),
                 'type' => $saleType,
                 'status' => $status,
                 'cash' => $totalPaidInPrimaryCurrency,
@@ -4758,7 +4798,8 @@ class Sales extends Component
                 'invoiceCurrency_id', 'invoiceExchangeRate', 'displayCurrency',
                 'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
                 'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
-                'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies'
+                'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies',
+                'isSharedTerminal', 'availableOperators'
             );
             $this->clear();
             session()->forget('sale_customer');
@@ -4796,6 +4837,11 @@ class Sales extends Component
     #[On('storeOrder')]
     public function storeOrder()
     {
+        if ($this->isSharedTerminal && empty($this->selected_operator_id)) {
+            $this->dispatch('noty', msg: 'DEBE SELECCIONAR EL OPERADOR RESPONSABLE DE LA VENTA');
+            return;
+        }
+
         // Enforce exchange rate gap validation on credit orders
         $rateGap = $this->rateGap;
         $activeDiff = $this->activeDiff;
@@ -4981,7 +5027,7 @@ class Sales extends Component
                     'discount' => 0,
                     'items' => $this->itemsCart,
                     'customer_id' => $this->customer['id'],
-                    'user_id' => Auth()->user()->id,
+                    'user_id' => $this->getEffectiveUserId(),
                     'status' => 'pending',
                     'apply_commissions' => $this->applyCommissions,
                     'apply_freight' => $this->applyFreight,
@@ -5059,7 +5105,8 @@ class Sales extends Component
                 'invoiceCurrency_id', 'invoiceExchangeRate', 'displayCurrency',
                 'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
                 'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
-                'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies'
+                'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies',
+                'isSharedTerminal', 'availableOperators'
             );
             $this->clear();
             session()->forget('sale_customer');

@@ -455,6 +455,40 @@ class UpdateService
             }
         }
 
+        // Fix: Ensure usdt_record_id exists in sale_payment_details and payments
+        if (\Illuminate\Support\Facades\Schema::hasTable('sale_payment_details')) {
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('sale_payment_details', 'usdt_record_id')) {
+                \Illuminate\Support\Facades\Schema::table('sale_payment_details', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->unsignedBigInteger('usdt_record_id')->nullable()->after('zelle_record_id');
+                });
+            }
+        }
+        if (\Illuminate\Support\Facades\Schema::hasTable('payments')) {
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('payments', 'usdt_record_id')) {
+                \Illuminate\Support\Facades\Schema::table('payments', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->unsignedBigInteger('usdt_record_id')->nullable()->after('zelle_record_id');
+                });
+            }
+        }
+
+        // Fix: Ensure is_shared_terminal on users and terminal_operators table
+        if (\Illuminate\Support\Facades\Schema::hasTable('users')) {
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('users', 'is_shared_terminal')) {
+                \Illuminate\Support\Facades\Schema::table('users', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->boolean('is_shared_terminal')->default(false)->after('status');
+                });
+            }
+        }
+        if (!\Illuminate\Support\Facades\Schema::hasTable('terminal_operators')) {
+            \Illuminate\Support\Facades\Schema::create('terminal_operators', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->id();
+                $table->foreignId('terminal_id')->constrained('users')->onDelete('cascade');
+                $table->foreignId('operator_id')->constrained('users')->onDelete('cascade');
+                $table->timestamps();
+                $table->unique(['terminal_id', 'operator_id']);
+            });
+        }
+
         // Create the AutoMigrate flag file so AutoMigrate middleware recognizes completion for this version
         $versionFile = base_path('version.txt');
         if (File::exists($versionFile)) {

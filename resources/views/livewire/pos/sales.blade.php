@@ -90,6 +90,33 @@
                 </div>
 
                 <div class="card-body p-3">
+                    {{-- Shared Terminal Operator Selector --}}
+                    @if($isSharedTerminal)
+                    <div class="form-group mb-3 border-bottom pb-3 p-2 rounded" style="background-color: #f0f7ff; border: 1.5px solid #007bff !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="font-weight-bold mb-0 text-primary">
+                                <i class="fas fa-user-tag me-1"></i> Operador / Cajero: <span class="text-danger">*</span>
+                            </label>
+                            @if(!empty($selected_operator_id))
+                                <span class="badge badge-success" style="font-size: 0.8em;"><i class="fas fa-check"></i> Asignado</span>
+                            @else
+                                <span class="badge badge-danger" style="font-size: 0.8em;"><i class="fas fa-exclamation-triangle"></i> Requerido</span>
+                            @endif
+                        </div>
+                        <select wire:model.live="selected_operator_id" class="form-control form-control-sm font-weight-bold" style="border: 1.5px solid #007bff; background-color: #ffffff;">
+                            <option value="">-- Seleccionar Operador --</option>
+                            @foreach($availableOperators as $op)
+                                <option value="{{ $op->id }}">{{ $op->name }}</option>
+                            @endforeach
+                        </select>
+                        @if(empty($selected_operator_id))
+                            <small class="text-danger font-weight-bold d-block mt-1">
+                                <i class="fas fa-exclamation-circle me-1"></i> Seleccione el operador para facturar
+                            </small>
+                        @endif
+                    </div>
+                    @endif
+
                     {{-- Invoice Currency Selector --}}
                     <div class="form-group mb-3 border-bottom pb-3">
                         <div class="d-flex justify-content-between align-items-center mb-1">

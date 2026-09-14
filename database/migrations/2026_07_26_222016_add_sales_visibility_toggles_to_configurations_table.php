@@ -11,13 +11,25 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('configurations', function (Blueprint $table) {
-            $table->boolean('sales_show_commissions')->default(false)->after('sales_show_rate_badge');
-            $table->boolean('sales_show_freight')->default(false)->after('sales_show_commissions');
-            $table->boolean('sales_show_breakdown_freight')->default(false)->after('sales_show_freight');
-            $table->boolean('sales_show_warehouse')->default(false)->after('sales_show_breakdown_freight');
-            $table->boolean('sales_show_driver')->default(false)->after('sales_show_warehouse');
-        });
+        if (Schema::hasTable('configurations')) {
+            Schema::table('configurations', function (Blueprint $table) {
+                if (!Schema::hasColumn('configurations', 'sales_show_commissions')) {
+                    $table->boolean('sales_show_commissions')->default(false)->after('sales_show_rate_badge');
+                }
+                if (!Schema::hasColumn('configurations', 'sales_show_freight')) {
+                    $table->boolean('sales_show_freight')->default(false)->after('sales_show_commissions');
+                }
+                if (!Schema::hasColumn('configurations', 'sales_show_breakdown_freight')) {
+                    $table->boolean('sales_show_breakdown_freight')->default(false)->after('sales_show_freight');
+                }
+                if (!Schema::hasColumn('configurations', 'sales_show_warehouse')) {
+                    $table->boolean('sales_show_warehouse')->default(false)->after('sales_show_breakdown_freight');
+                }
+                if (!Schema::hasColumn('configurations', 'sales_show_driver')) {
+                    $table->boolean('sales_show_driver')->default(false)->after('sales_show_warehouse');
+                }
+            });
+        }
     }
 
     /**

@@ -227,9 +227,53 @@
                                         @endif
                                     </div>
                                     <small class="text-muted d-block mt-1">Este color se usa para identificar las órdenes de este vendedor en la lista de ventas. Se recomiendan colores pasteles.</small>
-                                    @error('user.color') <span class="text-danger">{{ $message }}</span> @enderror
                                 </div>
                                 @endif
+
+                                {{-- Configuración de Terminal / Caja Compartida (Multiusuario) --}}
+                                <div class="col-sm-12 mt-3 p-3 bg-light rounded border">
+                                    <div class="form-check form-switch pl-0">
+                                        <div class="custom-control custom-switch">
+                                            <input type="checkbox" class="custom-control-input" id="isSharedTerminalSwitch" wire:model.live="user.is_shared_terminal">
+                                            <label class="custom-control-label font-weight-bold text-dark" for="isSharedTerminalSwitch" style="cursor: pointer;">
+                                                <i class="fa fa-users-cog text-primary mr-1"></i> ¿Es Terminal / Caja Compartida (Multiusuario)?
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">
+                                        Al activar esta opción, al iniciar sesión con este usuario en el Punto de Venta (POS) se mostrará un selector para elegir qué operador realiza cada venta.
+                                    </small>
+
+                                    @if($user->is_shared_terminal)
+                                        <div class="mt-3 border-top pt-3">
+                                            <label class="form-label font-weight-bold text-primary mb-2">
+                                                <i class="fa fa-user-check mr-1"></i> Operadores autorizados para esta Caja:
+                                            </label>
+                                            <div class="row" style="max-height: 180px; overflow-y: auto;">
+                                                @forelse($allOperatorsList as $op)
+                                                    <div class="col-sm-6 mb-2">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" 
+                                                                   value="{{ $op->id }}" 
+                                                                   id="op_{{ $op->id }}" 
+                                                                   wire:model.live="selectedTerminalOperators">
+                                                            <label class="form-check-label text-dark" for="op_{{ $op->id }}" style="cursor: pointer;">
+                                                                {{ $op->name }}
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                @empty
+                                                    <div class="col-sm-12 text-muted small">No hay otros operadores registrados.</div>
+                                                @endforelse
+                                            </div>
+                                            @if(empty($selectedTerminalOperators))
+                                                <small class="text-warning d-block mt-1">
+                                                    <i class="fa fa-exclamation-triangle mr-1"></i> Si no seleccionas ninguno, se mostrarán todos los operadores activos por defecto.
+                                                </small>
+                                            @endif
+                                        </div>
+                                    @endif
+                                </div>
                             </div>
 
                         </div>

@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('configurations', function (Blueprint $table) {
-            $table->boolean('sales_show_rate_badge')->default(true)->after('sales_view_mode');
-        });
+        if (Schema::hasTable('configurations') && !Schema::hasColumn('configurations', 'sales_show_rate_badge')) {
+            Schema::table('configurations', function (Blueprint $table) {
+                $table->boolean('sales_show_rate_badge')->default(true)->after('sales_view_mode');
+            });
+        }
     }
 
     /**

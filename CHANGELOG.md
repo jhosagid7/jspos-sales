@@ -1,3 +1,18 @@
+## [1.10.423] - 2026-09-14
+
+### Added
+- **Terminal / Caja Compartida (Multiusuario) en Punto de Venta (POS)**:
+  - `User.php`: Incorporación del atributo `is_shared_terminal` y relación `assignedOperators()` vinculada a la tabla pivote `terminal_operators`.
+  - `Users.php`, `users/form.blade.php`: Nuevo switch interactivo en la gestión de usuarios para designar una cuenta como "Terminal / Caja Compartida" y seleccionar específicamente la lista de operadores autorizados para facturar en ese equipo físico.
+  - `Sales.php`, `sales.blade.php`: Detección automática de caja compartida al iniciar sesión, desplegable reactivo de selección de operador responsable en la barra lateral del POS y validación obligatoria antes de iniciar pagos o guardar órdenes en espera.
+  - Atribución exacta de la venta y recaudación al operador seleccionado en base de datos (`sales.user_id`) garantizando que los reportes de cobranza por operador (`SellerGroupedReport`) agrupen y totalicen las ventas con total precisión.
+  - `SharedTerminalPosTest.php`: Suite completa de 9 pruebas automatizadas (24 aserciones) que cubren relaciones, CRUD, selección de operador, bloqueos y reportes.
+
+### Fixed
+- **Resiliencia e Idempotencia en Migraciones y Esquemas de Base de Datos**:
+  - `2026_07_26_220617_add_sales_show_rate_badge_to_configurations_table.php`, `2026_07_26_222016_add_sales_visibility_toggles_to_configurations_table.php`: Se añadieron validaciones defensivas `Schema::hasColumn` para evitar excepciones por columnas preexistentes que bloqueaban migraciones pendientes.
+  - `UpdateService.php`: Auto-reparación defensiva de esquemas en `runMigrations()` que garantiza la existencia de `usdt_record_id`, `is_shared_terminal` y la tabla `terminal_operators` en cualquier proceso de actualización automática de clientes.
+
 ## [1.10.422] - 2026-09-14
 
 ### Changed

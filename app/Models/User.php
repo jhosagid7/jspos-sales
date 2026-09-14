@@ -54,6 +54,7 @@ class User extends Authenticatable
         'weekly_salary',
         'work_days_per_week',
         'pay_partial_packages',
+        'is_shared_terminal',
     ];
 
     public function warehouse()
@@ -85,7 +86,18 @@ class User extends Authenticatable
         'weekly_salary' => 'decimal:2',
         'work_days_per_week' => 'integer',
         'pay_partial_packages' => 'boolean',
+        'is_shared_terminal' => 'boolean',
     ];
+
+    public function assignedOperators()
+    {
+        return $this->belongsToMany(User::class, 'terminal_operators', 'terminal_id', 'operator_id');
+    }
+
+    public function getAssignedOperatorIds()
+    {
+        return $this->assignedOperators()->pluck('operator_id')->toArray();
+    }
 
     /**
      * Format date for datetime-local input
