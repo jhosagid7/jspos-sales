@@ -50,6 +50,11 @@
                                 <p class="mb-0 text-center font-weight-bold text-dark">
                                     {{ $progressStatus }}
                                 </p>
+                                @if($progress == 30)
+                                    <p class="text-muted small text-center mt-2 mb-0">
+                                        <i class="fas fa-info-circle me-1"></i> Transfiriendo paquete desde GitHub. El tiempo de espera dependerá de la velocidad de su conexión a internet.
+                                    </p>
+                                @endif
                             </div>
                         @elseif($status === 'done')
                             <div class="alert alert-success border-0 shadow-sm p-4">

@@ -44,10 +44,11 @@ DATOS_SERVIDOR_Y_ECOSISTEMA.txt
 
 # Temporary backup for nssm update
 nssm/*.bak
+!nssm/*.exe
+!nssm/**/*.exe
 
 # Mobile App Binaries
 *.apk
-!public/JSBolsas.apk
 
 # Auto-migration logs
 /storage/framework/migrated_*.log
@@ -57,6 +58,7 @@ google-drive-key.json
 
 # WhatsApp uploads
 /whatsapp-api/uploads/
+/whatsapp-api/uploads/*
 
 # Scratch folder
 /scratch/
@@ -65,6 +67,16 @@ google-drive-key.json
 /installer/output/
 /installer/tools/*.exe
 /installer/tools/*.msi
+*.msi
+
+# Heavy documentation & design PDFs in root/agent
+/*.pdf
+/.agent/workflows/*.pdf
+
+# IDE Helpers
+_ide_helper.php
+_ide_helper_models.php
+.phpstorm.meta.php
 
 # Developer Docs and Scratch Files
 CONTEXTO_IA.md
@@ -76,3 +88,5 @@ plan_modulos_saas.md
 GUIA_*.md
 INSTALLATION_GUIDE.md
 *.exe
+!nssm/*.exe
+!nssm/**/*.exe

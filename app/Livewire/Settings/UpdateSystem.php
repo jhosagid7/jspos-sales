@@ -157,7 +157,7 @@ class UpdateSystem extends Component
 
     public function download(UpdateService $updater)
     {
-        $this->progressStatus = 'Descargando archivos...';
+        $this->progressStatus = 'Descargando paquete de actualización desde GitHub...';
         $this->progress = 30;
 
         try {

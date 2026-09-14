@@ -1,3 +1,11 @@
+## [1.10.422] - 2026-09-14
+
+### Changed
+- **Optimización de Repositorio y Rendimiento del Sistema de Actualizaciones**:
+  - Se desvincularon del seguimiento de Git más de 147 MB de binarios e instaladores pesados (`.apk`, `.msi`, `.pdf` pesados y temporales), reduciendo drásticamente el tamaño del archivo ZIP de actualización generado por GitHub para descargas ultrarrápidas y fluidas.
+  - `.gitignore`: Reglas estrictas de exclusión para binarios pesados protegiendo explícitamente el ejecutable `nssm.exe` (`!nssm/*.exe`) para la gestión ininterrumpida de servicios de Windows.
+  - `UpdateSystem.php`, `update-system.blade.php`: Mejora de la experiencia de usuario y claridad en la barra de progreso durante la fase de descarga (30%) con mensajes de estado descriptivos e informativos.
+
 ## [1.10.421] - 2026-09-14
 
 ### Added
