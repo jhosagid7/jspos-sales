@@ -1,3 +1,10 @@
+## [1.10.424] - 2026-09-14
+
+### Fixed
+- **Compatibilidad y Relaciones de Fórmulas y Recetas en App Móvil de Soplados**:
+  - `ProductionFormula.php`: Se restauraron las relaciones Eloquent `ingredient()` y `product()` (`withTrashed()`) junto con los atributos `$fillable` (`product_id`, `ingredient_id`, `quantity`) para la manufactura de Soplados.
+  - Corrección de la excepción interna `RelationNotFoundException` en la API (`/api/soplados/products/{id}/formula`) que ocasionaba que la aplicación móvil de Soplados mostrara erróneamente *"Este producto no tiene una receta configurada."* al seleccionar botellones o productos terminados.
+
 ## [1.10.423] - 2026-09-14
 
 ### Added

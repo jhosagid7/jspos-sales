@@ -14,6 +14,9 @@ class ProductionFormula extends Model
     protected $table = 'production_formulas';
 
     protected $fillable = [
+        'product_id',
+        'ingredient_id',
+        'quantity',
         'name',
         'code',
         'description',
@@ -23,7 +26,18 @@ class ProductionFormula extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'quantity' => 'decimal:4',
     ];
+
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class, 'product_id')->withTrashed();
+    }
+
+    public function ingredient(): BelongsTo
+    {
+        return $this->belongsTo(Product::class, 'ingredient_id')->withTrashed();
+    }
 
     public function versions(): HasMany
     {
