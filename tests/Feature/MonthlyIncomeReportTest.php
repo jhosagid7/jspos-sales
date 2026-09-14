@@ -45,12 +45,16 @@ class MonthlyIncomeReportTest extends TestCase
             'decimals' => 2,
             'vat' => 16,
             'printer_name' => 'PDF',
-            'credit_days' => 15
+            'credit_days' => 15,
+            'module_weekly_income' => true,
+            'module_monthly_income' => true,
         ]);
 
+        $role = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Super Admin', 'guard_name' => 'web']);
         $this->adminUser = User::factory()->create();
-        $this->adminUser->syncRoles([]);
+        $this->adminUser->assignRole($role);
         $this->adminUser->givePermissionTo('reports.sales');
+        config(['tenant.modules' => ['module_weekly_income', 'module_monthly_income']]);
     }
 
     public function test_monthly_income_report_component_can_be_accessed()
@@ -135,14 +139,60 @@ class MonthlyIncomeReportTest extends TestCase
             'type' => 'credit',
         ]);
 
+        // Week 4: Mon 22/06 - Sat 27/06 (ISO Week 2026-26)
+        // USDT Contado sale of 75 USD + USDT Cobranza of 55 USD
+        $saleW4 = Sale::create([
+            'total' => 75.00,
+            'total_usd' => 75.00,
+            'items' => 1,
+            'customer_id' => $customer->id,
+            'user_id' => $this->adminUser->id,
+            'created_at' => '2026-06-24 10:00:00',
+            'invoice_number' => 'FM0003',
+            'status' => 'paid',
+            'type' => 'usdt',
+        ]);
+
+        SalePaymentDetail::create([
+            'sale_id' => $saleW4->id,
+            'payment_method' => 'usdt',
+            'currency_code' => 'USD',
+            'amount' => 75.00,
+            'exchange_rate' => 1.00,
+            'amount_in_primary_currency' => 75.00,
+            'bank_name' => 'USDT BINANCE'
+        ]);
+
+        $sheetW4 = CollectionSheet::create([
+            'sheet_number' => '20260625-001',
+            'opened_at' => '2026-06-25 08:00:00',
+            'opened_by' => $this->adminUser->id,
+            'status' => 'open'
+        ]);
+
+        Payment::create([
+            'collection_sheet_id' => $sheetW4->id,
+            'sale_id' => $saleW3->id,
+            'user_id' => $this->adminUser->id,
+            'pay_way' => 'usdt',
+            'currency' => 'USD',
+            'amount' => 55.00,
+            'exchange_rate' => 1.00,
+            'status' => 'approved',
+            'pay_date' => '2026-06-25',
+            'bank' => 'USDT'
+        ]);
+
         // Test Livewire component calculations
         Livewire::test(\App\Livewire\Reports\MonthlyIncomeReport::class)
             ->set('selectedMonth', $month)
             ->assertSet('selectedMonth', $month)
             ->assertViewHas('report', function ($report) {
-                // Category 'DOLARES' should have:
-                // Week 2026-23: Contado = 100
+                // Category 'DOLARES': Week 2026-23: Contado = 100
                 $this->assertEquals(100.00, $report['DOLARES']['2026-23']['contado']);
+                // Category 'USDT': Week 2026-26: Contado = 75, Cobranza = 55
+                $this->assertEquals(75.00, $report['USDT']['2026-26']['contado']);
+                $this->assertEquals(55.00, $report['USDT']['2026-26']['cobranza']);
                 return true;
             })
             ->assertViewHas('weeklyMetrics', function ($metrics) {
@@ -152,10 +202,14 @@ class MonthlyIncomeReportTest extends TestCase
                 $this->assertEquals(80.00, $metrics['2026-24']['subtotal_cobranza']);
                 // ISO Week 2026-25 (Week 3): ventas_credito = 200, total_general = 200
                 $this->assertEquals(200.00, $metrics['2026-25']['ventas_credito']);
+                // ISO Week 2026-26 (Week 4): subtotal_contado = 75, subtotal_cobranza = 55, total_general = 130
+                $this->assertEquals(75.00, $metrics['2026-26']['subtotal_contado']);
+                $this->assertEquals(55.00, $metrics['2026-26']['subtotal_cobranza']);
+                $this->assertEquals(130.00, $metrics['2026-26']['total_general']);
                 return true;
             })
-            ->assertViewHas('monthlyTotalGeneral', 380.00) // 100 (W1) + 80 (W2) + 200 (W3)
-            ->assertViewHas('monthlyTotalRecibido', 180.00); // 100 (W1) + 80 (W2)
+            ->assertViewHas('monthlyTotalGeneral', 510.00) // 100 (W1) + 80 (W2) + 200 (W3) + 130 (W4)
+            ->assertViewHas('monthlyTotalRecibido', 310.00); // 100 (W1) + 80 (W2) + 130 (W4)
 
         Carbon::setTestNow(); // Reset
     }

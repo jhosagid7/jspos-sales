@@ -2439,7 +2439,8 @@ class ReportController extends Controller
             'BANCO DE VENEZUELA' => 'BANCO DE VENEZUELA',
             'BANCO PROVINCIAL' => 'BANCO PROVINCIAL',
             'BANCO MERCANTIL' => 'BANCO MERCANTIL',
-            'ZELLE' => 'ZELLE'
+            'ZELLE' => 'ZELLE',
+            'USDT' => 'USDT'
         ];
 
         $report = [];
@@ -2492,6 +2493,8 @@ class ReportController extends Controller
                             } elseif ($curr === 'VES' || $curr === 'VED') {
                                 $dayData['EFECTIVO BS']['contado'] += $amtUSD;
                             }
+                        } elseif ($method === 'usdt' || str_contains($bank, 'USDT') || str_contains($bank, 'BINANCE') || str_contains($bank, 'CRIPTO')) {
+                            $dayData['USDT']['contado'] += $amtUSD;
                         } elseif ($method === 'zelle' || str_contains($bank, 'ZELLE')) {
                             $dayData['ZELLE']['contado'] += $amtUSD;
                         } elseif ($method === 'bank' || $method === 'deposit') {
@@ -2533,6 +2536,8 @@ class ReportController extends Controller
                             } elseif ($curr === 'VES' || $curr === 'VED') {
                                 $dayData['EFECTIVO BS']['contado'] += $netAmt;
                             }
+                        } elseif ($sale->type === 'usdt' || str_contains(strtoupper($sale->bank_name ?? ''), 'USDT') || str_contains(strtoupper($sale->bank_name ?? ''), 'BINANCE') || str_contains(strtoupper($sale->bank_name ?? ''), 'CRIPTO')) {
+                            $dayData['USDT']['contado'] += $netAmt;
                         } elseif ($sale->type === 'zelle') {
                             $dayData['ZELLE']['contado'] += $netAmt;
                         } elseif ($sale->type === 'bank') {
@@ -2576,6 +2581,8 @@ class ReportController extends Controller
                         } elseif ($curr === 'VES' || $curr === 'VED') {
                             $dayData['EFECTIVO BS']['cobranza'] += $amtUSD;
                         }
+                    } elseif ($payWay === 'usdt' || str_contains($bank, 'USDT') || str_contains($bank, 'BINANCE') || str_contains($bank, 'CRIPTO')) {
+                        $dayData['USDT']['cobranza'] += $amtUSD;
                     } elseif ($payWay === 'zelle' || str_contains($bank, 'ZELLE')) {
                         $dayData['ZELLE']['cobranza'] += $amtUSD;
                     } elseif ($payWay === 'bank' || $payWay === 'deposit') {
@@ -2727,7 +2734,8 @@ class ReportController extends Controller
             'BANCO DE VENEZUELA' => 'BANCO DE VENEZUELA',
             'BANCO PROVINCIAL' => 'BANCO PROVINCIAL',
             'BANCO MERCANTIL' => 'BANCO MERCANTIL',
-            'ZELLE' => 'ZELLE'
+            'ZELLE' => 'ZELLE',
+            'USDT' => 'USDT'
         ];
 
         $report = [];
@@ -2783,6 +2791,8 @@ class ReportController extends Controller
                             } elseif ($curr === 'VES' || $curr === 'VED') {
                                 $report['EFECTIVO BS'][$wKey]['contado'] += $amtUSD;
                             }
+                        } elseif ($method === 'usdt' || str_contains($bank, 'USDT') || str_contains($bank, 'BINANCE') || str_contains($bank, 'CRIPTO')) {
+                            $report['USDT'][$wKey]['contado'] += $amtUSD;
                         } elseif ($method === 'zelle' || str_contains($bank, 'ZELLE')) {
                             $report['ZELLE'][$wKey]['contado'] += $amtUSD;
                         } elseif ($method === 'bank' || $method === 'deposit') {
@@ -2824,6 +2834,8 @@ class ReportController extends Controller
                             } elseif ($curr === 'VES' || $curr === 'VED') {
                                 $report['EFECTIVO BS'][$wKey]['contado'] += $netAmt;
                             }
+                        } elseif ($sale->type === 'usdt' || str_contains(strtoupper($sale->bank_name ?? ''), 'USDT') || str_contains(strtoupper($sale->bank_name ?? ''), 'BINANCE') || str_contains(strtoupper($sale->bank_name ?? ''), 'CRIPTO')) {
+                            $report['USDT'][$wKey]['contado'] += $netAmt;
                         } elseif ($sale->type === 'zelle') {
                             $report['ZELLE'][$wKey]['contado'] += $netAmt;
                         } elseif ($sale->type === 'bank') {
@@ -2867,6 +2879,8 @@ class ReportController extends Controller
                         } elseif ($curr === 'VES' || $curr === 'VED') {
                             $report['EFECTIVO BS'][$wKey]['cobranza'] += $amtUSD;
                         }
+                    } elseif ($payWay === 'usdt' || str_contains($bank, 'USDT') || str_contains($bank, 'BINANCE') || str_contains($bank, 'CRIPTO')) {
+                        $report['USDT'][$wKey]['cobranza'] += $amtUSD;
                     } elseif ($payWay === 'zelle' || str_contains($bank, 'ZELLE')) {
                         $report['ZELLE'][$wKey]['cobranza'] += $amtUSD;
                     } elseif ($payWay === 'bank' || $payWay === 'deposit') {

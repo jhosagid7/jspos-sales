@@ -111,16 +111,16 @@
         .card-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
             background-color: #FFFFFF;
         }
         .card-header {
             background-color: #5B9BD5;
             color: #FFFFFF;
-            font-size: 9px;
+            font-size: 8.5px;
             font-weight: bold;
             text-align: center;
-            padding: 5px;
+            padding: 4px;
             border: 1px solid #2F5597;
             text-transform: uppercase;
         }
@@ -130,18 +130,18 @@
             font-weight: bold;
             font-size: 7.5px;
             text-align: center;
-            padding: 3px;
+            padding: 2.5px;
             border: 0.5px solid #D9D9D9;
         }
         .card-td-label {
             font-weight: bold;
             color: #444444;
-            padding: 3.5px 5px;
+            padding: 2.2px 4px;
             border: 0.5px solid #D9D9D9;
             text-align: left;
         }
         .card-td-amount {
-            padding: 3.5px 5px;
+            padding: 2.2px 4px;
             border: 0.5px solid #D9D9D9;
             text-align: right;
         }

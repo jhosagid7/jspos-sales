@@ -34,7 +34,8 @@ class SendDailyClosureNotification extends Command
             'BANCO DE VENEZUELA' => 'BANCO DE VENEZUELA',
             'BANCO PROVINCIAL' => 'BANCO PROVINCIAL',
             'BANCO MERCANTIL' => 'BANCO MERCANTIL',
-            'ZELLE' => 'ZELLE'
+            'ZELLE' => 'ZELLE',
+            'USDT' => 'USDT'
         ];
 
         // Initialize day data
@@ -72,6 +73,8 @@ class SendDailyClosureNotification extends Command
                         } elseif ($curr === 'VES' || $curr === 'VED') {
                             $dayData['EFECTIVO BS']['contado'] += $amtUSD;
                         }
+                    } elseif ($method === 'usdt' || str_contains($bank, 'USDT') || str_contains($bank, 'BINANCE') || str_contains($bank, 'CRIPTO')) {
+                        $dayData['USDT']['contado'] += $amtUSD;
                     } elseif ($method === 'zelle' || str_contains($bank, 'ZELLE')) {
                         $dayData['ZELLE']['contado'] += $amtUSD;
                     } elseif ($method === 'bank' || $method === 'deposit') {
@@ -113,6 +116,8 @@ class SendDailyClosureNotification extends Command
                         } elseif ($curr === 'VES' || $curr === 'VED') {
                             $dayData['EFECTIVO BS']['contado'] += $netAmt;
                         }
+                    } elseif ($sale->type === 'usdt' || str_contains(strtoupper($sale->bank_name ?? ''), 'USDT') || str_contains(strtoupper($sale->bank_name ?? ''), 'BINANCE') || str_contains(strtoupper($sale->bank_name ?? ''), 'CRIPTO')) {
+                        $dayData['USDT']['contado'] += $netAmt;
                     } elseif ($sale->type === 'zelle') {
                         $dayData['ZELLE']['contado'] += $netAmt;
                     } elseif ($sale->type === 'bank') {
@@ -151,6 +156,8 @@ class SendDailyClosureNotification extends Command
                     } elseif ($curr === 'VES' || $curr === 'VED') {
                         $dayData['EFECTIVO BS']['cobranza'] += $amtUSD;
                     }
+                } elseif ($payWay === 'usdt' || str_contains($bank, 'USDT') || str_contains($bank, 'BINANCE') || str_contains($bank, 'CRIPTO')) {
+                    $dayData['USDT']['cobranza'] += $amtUSD;
                 } elseif ($payWay === 'zelle' || str_contains($bank, 'ZELLE')) {
                     $dayData['ZELLE']['cobranza'] += $amtUSD;
                 } elseif ($payWay === 'bank' || $payWay === 'deposit') {

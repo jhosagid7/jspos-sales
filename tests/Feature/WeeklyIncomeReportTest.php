@@ -45,13 +45,16 @@ class WeeklyIncomeReportTest extends TestCase
             'decimals' => 2,
             'vat' => 16,
             'printer_name' => 'PDF',
-            'credit_days' => 15
+            'credit_days' => 15,
+            'module_weekly_income' => true,
+            'module_monthly_income' => true,
         ]);
 
+        $role = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Super Admin', 'guard_name' => 'web']);
         $this->adminUser = User::factory()->create();
-        // Assign role permissions if needed, or simply act as Admin
-        $this->adminUser->syncRoles([]);
+        $this->adminUser->assignRole($role);
         $this->adminUser->givePermissionTo('reports.sales');
+        config(['tenant.modules' => ['module_weekly_income', 'module_monthly_income']]);
     }
 
     public function test_weekly_income_report_component_can_be_accessed()
@@ -78,7 +81,7 @@ class WeeklyIncomeReportTest extends TestCase
             'type' => 'Consumidor Final'
         ]);
 
-        // 1. Contado Cash Sale (USD)
+        // 1. Contado Cash Sale (USD) on Monday
         $saleCash = Sale::create([
             'total' => 100.00,
             'total_usd' => 100.00,
@@ -100,7 +103,7 @@ class WeeklyIncomeReportTest extends TestCase
             'amount_in_primary_currency' => 100.00
         ]);
 
-        // 2. Contado Cash Sale with change (COP)
+        // 2. Contado Cash Sale with change (COP) on Monday
         $saleChange = Sale::create([
             'total' => 50.00,
             'total_usd' => 50.00,
@@ -175,6 +178,52 @@ class WeeklyIncomeReportTest extends TestCase
         ]);
         // Net credit should be 150 - 30 = 120 USD.
 
+        // 5. Contado USDT Sale on Wednesday 2026-06-10
+        $wednesday = '2026-06-10';
+        $saleUsdt = Sale::create([
+            'total' => 50.00,
+            'total_usd' => 50.00,
+            'items' => 1,
+            'customer_id' => $customer->id,
+            'user_id' => $this->adminUser->id,
+            'created_at' => $wednesday . ' 10:00:00',
+            'invoice_number' => 'F0004',
+            'status' => 'paid',
+            'type' => 'usdt',
+        ]);
+
+        SalePaymentDetail::create([
+            'sale_id' => $saleUsdt->id,
+            'payment_method' => 'usdt',
+            'currency_code' => 'USD',
+            'amount' => 50.00,
+            'exchange_rate' => 1.00,
+            'amount_in_primary_currency' => 50.00,
+            'bank_name' => 'USDT BINANCE'
+        ]);
+
+        // 6. Cobranza USDT on Thursday 2026-06-11 via CollectionSheet
+        $thursday = '2026-06-11';
+        $sheetThu = CollectionSheet::create([
+            'sheet_number' => '20260611-001',
+            'opened_at' => $thursday . ' 08:00:00',
+            'opened_by' => $this->adminUser->id,
+            'status' => 'open'
+        ]);
+
+        Payment::create([
+            'collection_sheet_id' => $sheetThu->id,
+            'sale_id' => $saleCredit->id,
+            'user_id' => $this->adminUser->id,
+            'pay_way' => 'usdt',
+            'currency' => 'USD',
+            'amount' => 45.00,
+            'exchange_rate' => 1.00,
+            'status' => 'approved',
+            'pay_date' => $thursday,
+            'bank' => 'USDT'
+        ]);
+
         // Test Livewire Component calculations
         Livewire::test(\App\Livewire\Reports\WeeklyIncomeReport::class)
             ->set('selectedDate', $monday)
@@ -199,10 +248,26 @@ class WeeklyIncomeReportTest extends TestCase
                 $this->assertEquals(80.00, $martes['total_general']);
                 $this->assertEquals(80.00, $martes['total_recibido']);
 
+                // MIERCOLES calculations
+                // USDT Contado: 50 USD
+                $miercoles = $report['MIERCOLES'];
+                $this->assertEquals(50.00, $miercoles['subtotal_contado']);
+                $this->assertEquals(50.00, $miercoles['data']['USDT']['contado']);
+                $this->assertEquals(50.00, $miercoles['total_general']);
+                $this->assertEquals(50.00, $miercoles['total_recibido']);
+
+                // JUEVES calculations
+                // USDT Cobranza: 45 USD
+                $jueves = $report['JUEVES'];
+                $this->assertEquals(45.00, $jueves['subtotal_cobranza']);
+                $this->assertEquals(45.00, $jueves['data']['USDT']['cobranza']);
+                $this->assertEquals(45.00, $jueves['total_general']);
+                $this->assertEquals(45.00, $jueves['total_recibido']);
+
                 return true;
             })
-            ->assertViewHas('weeklyTotalGeneral', 380.00) // 300 Lunes + 80 Martes
-            ->assertViewHas('weeklyTotalRecibido', 260.00); // 180 Lunes + 80 Martes
+            ->assertViewHas('weeklyTotalGeneral', 475.00) // 300 Lunes + 80 Martes + 50 Miercoles + 45 Jueves
+            ->assertViewHas('weeklyTotalRecibido', 355.00); // 180 Lunes + 80 Martes + 50 Miercoles + 45 Jueves
 
         Carbon::setTestNow(); // Reset test time
     }

@@ -1,3 +1,13 @@
+## [1.10.421] - 2026-09-14
+
+### Added
+- **Soporte y Cálculo de Pagos USDT en Reportes de Ingresos Semanal y Mensual**:
+  - `WeeklyIncomeReport.php`, `MonthlyIncomeReport.php`: Se incorporó la categoría `USDT` tanto en la interfaz interactiva web como en el procesamiento y cálculo de montos de contado (`SalePaymentDetail`, `Sale`) y cobranzas (`Payment` de planillas de cobro / cuentas por cobrar), reflejando con exactitud los subtotales de contado, cobranzas y total general.
+  - `ReportController.php`: Actualizados los métodos de exportación a PDF `weeklyIncomeReportPdf` y `monthlyIncomeReportPdf` para clasificar y mostrar la fila de `USDT` manteniendo sincronía total con las vistas interactivas.
+  - `weekly-income-report-pdf.blade.php`: Optimización del espaciado de tablas para garantizar un ajuste perfecto de las 8 categorías en una sola página horizontal (A4 landscape).
+  - `SendDailyClosureNotification.php`: Se integró el método `USDT` en la notificación automática de cierre diario enviada por WhatsApp y correo electrónico.
+  - `WeeklyIncomeReportTest.php`, `MonthlyIncomeReportTest.php`: Nuevas pruebas automatizadas con validación de cálculos en USDT para contado, cobranzas y generación de PDFs.
+
 ## [1.10.420] - 2026-09-10
 
 ### Added
