@@ -1,3 +1,9 @@
+## [1.10.429] - 2026-09-15
+
+### Performance
+- **Apertura Instantánea (< 10ms) del Modal de Configuración de Impresora**:
+  - `DeviceManager.php`: Se desacopló la ejecución automática y síncrona del escáner de red al abrir el modal de configuración (`editPrinter()`), permitiendo que la ventana emergente aparezca inmediatamente sin retrasos. El escaneo de impresoras se ejecuta ahora de forma explícita y asíncrona cuando el usuario presiona *"Escanear Red y Locales"*.
+
 ## [1.10.428] - 2026-09-15
 
 ### Fixed

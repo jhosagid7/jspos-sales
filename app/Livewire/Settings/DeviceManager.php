@@ -289,11 +289,6 @@ class DeviceManager extends Component
                 }
             }
 
-            // Auto-scan printers if empty
-            if (empty($this->discovered_printers)) {
-                $this->scanPrinters();
-            }
-
             $this->dispatch('show-modal', 'modalPrinter');
         }
     }
