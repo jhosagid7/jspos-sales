@@ -497,16 +497,47 @@ class UpdateService
             File::put($flagFile, 'Migrated on: ' . now()->toDateTimeString());
         }
 
-        Artisan::call('optimize:clear');
+        self::safeClearBootstrapCache();
 
         return true;
     }
 
     public function cleanup()
     {
-        Artisan::call('optimize:clear');
+        self::safeClearBootstrapCache();
         \Illuminate\Support\Facades\Cache::forget('system_update_available');
         return true;
+    }
+
+    public static function safeClearBootstrapCache()
+    {
+        try {
+            $cacheFiles = [
+                base_path('bootstrap/cache/packages.php'),
+                base_path('bootstrap/cache/services.php'),
+                base_path('bootstrap/cache/config.php'),
+                base_path('bootstrap/cache/routes-v7.php'),
+                base_path('bootstrap/cache/events.php'),
+            ];
+            foreach ($cacheFiles as $f) {
+                if (File::exists($f)) {
+                    @unlink($f);
+                }
+            }
+            // Clean any leftover .tmp files
+            $tmpFiles = glob(base_path('bootstrap/cache/*.tmp'));
+            if ($tmpFiles) {
+                foreach ($tmpFiles as $tmp) {
+                    @unlink($tmp);
+                }
+            }
+        } catch (\Throwable $e) {}
+
+        try {
+            Artisan::call('optimize:clear');
+        } catch (\Throwable $e) {
+            Log::warning("Updater: optimize:clear warning: " . $e->getMessage());
+        }
     }
 
     /**

@@ -1,3 +1,9 @@
+## [1.10.435] - 2026-09-15
+
+### Fixed
+- **Limpieza Segura de Caché Bootstrap en Actualizador de Windows (Error rename packages.php code 5)**:
+  - `UpdateService.php`: Se implementó `safeClearBootstrapCache()` para eliminar directamente archivos de manifiesto en `bootstrap/cache/` antes de ejecutar `optimize:clear`, previniendo bloqueos de archivos en Windows (`Access is denied code 5` al renombrar archivos `.tmp`).
+
 ## [1.10.434] - 2026-09-15
 
 ### Performance & Fixed
