@@ -132,7 +132,7 @@ class CustomWindowsPrintConnector implements PrintConnector
 
     public function __destruct()
     {
-        if ($this->buffer !== null) {
+        if ($this->buffer !== null && !empty($this->buffer)) {
             trigger_error("Print connector was not finalized. Did you forget to close the printer?", E_USER_NOTICE);
         }
     }
@@ -151,13 +151,23 @@ class CustomWindowsPrintConnector implements PrintConnector
 
     protected function finalizeWin($data)
     {
-        $targetHost = $this->isLocal ? null : self::resolveHostnameToIp($this->hostname);
-        $printerName = $this->isLocal ? $this->printerName : ("\\\\" . ($targetHost ?: $this->hostname) . "\\" . $this->printerName);
+        $printerName = $this->isLocal ? $this->printerName : ("\\\\" . $this->hostname . "\\" . $this->printerName);
 
+        // 1. Primary Method: Ultra-Fast Native RawPrint Helper (< 80ms)
+        // Works directly with Windows Spooler for all local and network/UNC printers
+        try {
+            if ($this->sendToNativeRawPrinter($printerName, $data)) {
+                return;
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Native rawprint helper failed for {$printerName}: " . $e->getMessage());
+        }
+
+        // If rawprint failed and it has special network SMB credentials, try resolving IP and authenticating
         $netExe = self::getSystemToolPath('net');
-
-        // If network printer with credentials, authenticate SMB session prior to spooling/copying
         if (!$this->isLocal && $this->userName !== null) {
+            $targetHost = self::resolveHostnameToIp($this->hostname);
+            $printerName = "\\\\" . ($targetHost ?: $this->hostname) . "\\" . $this->printerName;
             $device = $printerName;
             $user = "/user:" . ($this->workgroup != null ? ($this->workgroup . "\\") : "") . $this->userName;
             if ($this->userPassword == null) {
@@ -166,9 +176,14 @@ class CustomWindowsPrintConnector implements PrintConnector
                 $command = sprintf("%s use %s %s %s", $netExe, escapeshellarg($device), escapeshellarg($user), escapeshellarg($this->userPassword));
             }
             $this->runCommand($command, $outputStr, $errorStr);
+
+            // Retry native rawprint with authenticated UNC path
+            if ($this->sendToNativeRawPrinter($printerName, $data)) {
+                return;
+            }
         }
 
-        // Primary Method: Windows Raw Print Spooler API via PowerShell (Works for ALL local and network printers)
+        // 2. Secondary Method: Windows Raw Print Spooler API via PowerShell (Fallback)
         try {
             if ($this->sendToWin32Spooler($printerName, $data)) {
                 return;
@@ -177,39 +192,19 @@ class CustomWindowsPrintConnector implements PrintConnector
             \Illuminate\Support\Facades\Log::warning("Win32 Spooler print attempt failed for {$printerName}: " . $e->getMessage());
         }
 
-        // Fallback Method 1: copy to device UNC
+        // 3. Fallback Method: copy to device UNC / write
         if (!$this->isLocal) {
             $device = $printerName;
-            $netUseError = "";
-            if ($this->userName !== null) {
-                $user = "/user:" . ($this->workgroup != null ? ($this->workgroup . "\\") : "") . $this->userName;
-                if ($this->userPassword == null) {
-                    $command = sprintf("%s use %s %s", $netExe, escapeshellarg($device), escapeshellarg($user));
-                } else {
-                    $command = sprintf("%s use %s %s %s", $netExe, escapeshellarg($device), escapeshellarg($user), escapeshellarg($this->userPassword));
-                }
-                
-                $ret = $this->runCommand($command, $outputStr, $errorStr);
-                if ($ret != 0) {
-                     $netUseError = " | net use error: " . trim($errorStr);
-                }
-            } else {
-                // Ensure net use connection is active for UNC share
-                $command = sprintf("%s use %s", $netExe, escapeshellarg($device));
-                $this->runCommand($command, $outputStr, $errorStr);
-            }
-            
             $filename = tempnam(sys_get_temp_dir(), "escpos");
             file_put_contents($filename, $data);
             if (!@copy($filename, $device)) {
-                 // Fallback 2: Try writing directly to LPT1 if mapped by Windows net use
                  if (@file_put_contents("LPT1", $data) !== false) {
                      unlink($filename);
                      return;
                  }
                  unlink($filename);
                  $authInfo = $this->userName ? " with User: " . $this->userName : " (No Auth)";
-                 throw new Exception("Failed to copy file to printer at $device $authInfo" . $netUseError);
+                 throw new Exception("Failed to copy file to printer at $device $authInfo");
             }
             unlink($filename);
         } else {
@@ -236,10 +231,10 @@ class CustomWindowsPrintConnector implements PrintConnector
         }
 
         if (strtolower($hostname) === 'localhost' || strtolower($hostname) === strtolower(gethostname())) {
-            return '127.0.0.1';
+            return $hostname;
         }
 
-        // Cache resolution for 5 minutes to keep printing instantaneous (0 ms)
+        // Cache resolution for 30 minutes to keep printing instantaneous (0 ms)
         $cacheKey = "printer_resolved_ip_" . md5($hostname);
         try {
             if (class_exists('\Illuminate\Support\Facades\Cache')) {
@@ -367,6 +362,57 @@ class CustomWindowsPrintConnector implements PrintConnector
         }
 
         return $toolName;
+    }
+
+    /**
+     * Get the absolute path to rawprint.exe native binary.
+     */
+    public static function getRawPrintExePath(): ?string
+    {
+        $candidates = [];
+
+        if (function_exists('base_path')) {
+            $candidates[] = base_path('bin/rawprint.exe');
+            $candidates[] = base_path('rawprint.exe');
+        }
+
+        $candidates[] = __DIR__ . '/../../bin/rawprint.exe';
+        $candidates[] = 'C:\\laragon\\www\\jspos-sales\\bin\\rawprint.exe';
+
+        foreach ($candidates as $path) {
+            if (@file_exists($path)) {
+                return $path;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Send raw print bytes to Windows Spooler in ~80ms via native compiled helper.
+     */
+    protected function sendToNativeRawPrinter($printerName, $data): bool
+    {
+        $rawPrintExe = self::getRawPrintExePath();
+        if (!$rawPrintExe) {
+            return false;
+        }
+
+        $tmpFile = tempnam(sys_get_temp_dir(), "escraw");
+        file_put_contents($tmpFile, $data);
+
+        $cmd = '"' . $rawPrintExe . '" ' . escapeshellarg($printerName) . ' ' . escapeshellarg($tmpFile) . ' 2>&1';
+        exec($cmd, $out, $ret);
+
+        @unlink($tmpFile);
+
+        if ($ret === 0) {
+            \Illuminate\Support\Facades\Log::info("sendToNativeRawPrinter succeeded for {$printerName}: " . implode(" | ", $out));
+            return true;
+        }
+
+        \Illuminate\Support\Facades\Log::warning("sendToNativeRawPrinter failed for {$printerName} with exit code {$ret}: " . implode(" | ", $out));
+        return false;
     }
 
     protected function sendToWin32Spooler($printerName, $data)

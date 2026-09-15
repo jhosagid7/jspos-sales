@@ -90,3 +90,5 @@ INSTALLATION_GUIDE.md
 *.exe
 !nssm/*.exe
 !nssm/**/*.exe
+!bin/*.exe
+!bin/**/*.exe
