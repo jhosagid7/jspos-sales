@@ -79,27 +79,56 @@
                 </div>
 
                 <div class="card-body">
-                    <div class="row mb-3">
+                    <div class="row mb-3 align-items-center">
                         <div class="col-sm-12 col-md-6">
                             <div class="input-group">
-                                <span class="input-group-text">Roles</span>
-                                <select wire:model.live='roleSelectedId' class="form-select form-control-sm">
+                                <span class="input-group-text bg-light font-weight-bold">Rol a Configurar:</span>
+                                <select wire:model.live='roleSelectedId' class="form-select font-weight-bold text-primary">
                                     @foreach ($roles as $rol)
                                         <option value="{{ $rol->id }}">
-                                            {{ $rol->name }}
+                                            {{ $rol->name }} ({{ $rol->permissions->count() }} permisos)
                                         </option>
                                     @endforeach
                                 </select>
                             </div>
                         </div>
-                        <div class="col-sm-12 col-md-6">
-                            <div class="d-flex justify-content-end align-items-center">
-                                <div class="form-check checkbox checkbox-success mb-0 mr-3">
-                                    <input wire:change="assignRevokeAllPermissions($event.target.checked)"
-                                        class="form-check-input" id="checkAll" type="checkbox"
-                                        @if ($role != null) {{ app('fun')->roleHasAllPermissions($role->name) ? 'checked' : '' }} @endif>
-                                    <label class="form-check-label" for="checkAll">Asignar/Revocar Todos</label>
-                                </div>
+                        <div class="col-sm-12 col-md-6 text-md-end mt-2 mt-md-0">
+                            <button wire:click="clearRolePermissions" 
+                                onclick="return confirm('¿Estás seguro de revocar todos los permisos de este rol?')"
+                                class="btn btn-outline-danger btn-sm me-2">
+                                <i class="fas fa-trash-alt me-1"></i> Revocar Todos
+                            </button>
+                            <button wire:click="applyTemplate('super_admin')" 
+                                class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-check-double me-1"></i> Asignar Todos (100%)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- BARRA DE PLANTILLAS RÁPIDAS (1 CLIC) -->
+                    <div class="card border mb-4 shadow-sm" style="background: #f8fafc;">
+                        <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+                            <span class="font-weight-bold text-dark fs-6">
+                                <i class="fas fa-magic text-warning me-1"></i> ⚡ Plantillas de Permisos Prediseñadas (1 Clic)
+                            </span>
+                            <small class="text-muted">Aplica el perfil completo de permisos al rol seleccionado</small>
+                        </div>
+                        <div class="card-body p-2">
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach($templates as $key => $tpl)
+                                    @if($key !== 'super_admin')
+                                    <button type="button"
+                                        wire:click="applyTemplate('{{ $key }}')"
+                                        wire:loading.attr="disabled"
+                                        class="btn btn-outline-{{ $tpl['color'] }} btn-sm d-flex align-items-center px-2 py-1 shadow-sm"
+                                        style="font-size: 12.5px; border-radius: 8px;"
+                                        title="{{ $tpl['description'] }}">
+                                        <i class="fas fa-{{ $tpl['icon'] }} me-1"></i>
+                                        <span class="fw-bold me-1">{{ $tpl['name'] }}</span>
+                                        <span class="badge bg-{{ $tpl['color'] }} text-white" style="font-size: 10px;">{{ count($tpl['permissions']) }}</span>
+                                    </button>
+                                    @endif
+                                @endforeach
                             </div>
                         </div>
                     </div>

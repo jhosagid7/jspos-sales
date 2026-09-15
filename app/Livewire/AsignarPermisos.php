@@ -61,10 +61,73 @@ class AsignarPermisos extends Component
             ];
         })->sortBy('name');
 
+        $templates = \App\Services\RoleTemplateService::getTemplates();
+
         return view('livewire.roles.asignar-permisos', [
-            'permisos' => $permisos, // Keep for compatibility if needed, but we'll use groupedPermissions
-            'groupedPermissions' => $groupedPermissions
+            'permisos' => $permisos,
+            'groupedPermissions' => $groupedPermissions,
+            'templates' => $templates,
         ]);
+    }
+
+    public function applyTemplate($templateKey)
+    {
+        try {
+            if (!$this->roleSelectedId) {
+                $this->dispatch('noty', msg: "Selecciona primero un rol para aplicar la plantilla");
+                return;
+            }
+
+            $role = Role::find($this->roleSelectedId);
+            if (!$role) {
+                $this->dispatch('noty', msg: "El rol seleccionado no existe");
+                return;
+            }
+
+            // Protect Super Admin role from unauthorized modification
+            if ($role->name === 'Super Admin' && !auth()->user()->hasRole('Super Admin')) {
+                $this->dispatch('noty', msg: "No tienes permiso para modificar permisos del Super Admin");
+                return;
+            }
+
+            $result = \App\Services\RoleTemplateService::applyTemplateToRole($role, $templateKey);
+
+            $this->role = $role->fresh('permissions');
+            $this->dispatch('noty', msg: "Plantilla '{$result['template_name']}' aplicada correctamente al rol {$role->name} ({$result['permissions_count']} permisos asignados)");
+
+        } catch (\Exception $th) {
+            $this->dispatch('noty', msg: "Error al aplicar plantilla: {$th->getMessage()}");
+        }
+    }
+
+    public function clearRolePermissions()
+    {
+        try {
+            if (!$this->roleSelectedId) {
+                $this->dispatch('noty', msg: "Selecciona primero un rol para limpiar sus permisos");
+                return;
+            }
+
+            $role = Role::find($this->roleSelectedId);
+            if (!$role) {
+                $this->dispatch('noty', msg: "El rol seleccionado no existe");
+                return;
+            }
+
+            if ($role->name === 'Super Admin' && !auth()->user()->hasRole('Super Admin')) {
+                $this->dispatch('noty', msg: "No tienes permiso para modificar permisos del Super Admin");
+                return;
+            }
+
+            $role->syncPermissions([]);
+            app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+
+            $this->role = $role->fresh('permissions');
+            $this->dispatch('noty', msg: "Se revocaron todos los permisos al rol {$role->name}");
+
+        } catch (\Exception $th) {
+            $this->dispatch('noty', msg: "Error al limpiar permisos: {$th->getMessage()}");
+        }
     }
 
     private function translateGroup($key)

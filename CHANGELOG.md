@@ -1,3 +1,17 @@
+## [1.10.425] - 2026-09-14
+
+### Added
+- **Plantillas de Roles de 1 Clic en Asignación de Permisos**:
+  - `RoleTemplateService.php`: Servicio centralizado que define 8 plantillas funcionales (`cashier`, `seller`, `foreign_seller`, `driver`, `supervisor`, `admin`, `super_admin`, `soplados`) con perfiles de permisos exactos y testeados para cada rol del negocio.
+  - `AsignarPermisos.php`, `asignar-permisos.blade.php`: Nueva barra superior interactiva de plantillas rápidas que permite asignar con un solo clic el perfil completo correspondiente (Cajero, Vendedor, Vendedor Foráneo, Chofer, Supervisor, Administrador, Asignar Todos 100%, Revocar Todos) a cualquier rol existente o nuevo.
+  - `RoleSeeder.php`: Actualizado para utilizar `RoleTemplateService`, garantizando que todos los roles predeterminados se creen con sus permisos perfectamente calibrados y operativos desde la instalación o actualización del sistema.
+  - `RolePermissionsTemplatesTest.php`: Suite completa de pruebas unitarias y de integración que validan la asignación de plantillas, bypass de caja para preventistas y acceso garantizado al POS.
+
+### Fixed
+- **Limpieza Integral de Permisos Huérfanos y Obsoletos**:
+  - `PermissionSeeder.php`: Depuración automática de 39 permisos planos huérfanos sin notación por puntos (como `ventas`, `clientes`, `corte-de-caja`, `pago con Banco`) que generaban confusión y bloqueos en las rutas protegidas del sistema. Establecidos 135 permisos canónicos estructurados por módulo.
+  - `UpdateService.php`: Ejecución automática de `PermissionSeeder` y `RoleSeeder` en cada actualización de clientes para mantener sincronizados los permisos sin intervención manual.
+
 ## [1.10.424] - 2026-09-14
 
 ### Fixed

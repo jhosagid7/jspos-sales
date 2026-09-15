@@ -15,22 +15,39 @@ class PermissionSeeder extends Seeder
     {
         // Defined Permissions grouped by Module
         $permissions = [
-            // Sales
+            // Sales / POS
             'sales.index',
             'sales.create',
             'sales.edit',
             'sales.delete',
             'sales.pdf',
-            'sales.pdf',
-            'sales.view_all', // New: View all sales
-            'sales.view_own', // New: View only own sales
+            'sales.view_all',
+            'sales.view_own',
+            'sales.view_history',
+            'sales.approve_deletion',
+            'sales.manage_adjustments',
+            'sales.show_exchange_rate',
+            'sales.change_invoice_currency',
+            'sales.mix_warehouses',
+            'sales.switch_warehouse',
+            'sales.select_driver',
+            'sales.configure_price_list',
+            'sales.generate_price_list',
+            'pos.select_operator',
+            'manage_debit_notes',
+
+            // Orders / Preventa
             'orders.view_all',
             'orders.view_own',
+            'orders.view_history',
+            'orders.save',
             'orders.add_to_cart',
             'orders.delete',
             'orders.edit',
             'orders.details',
             'orders.pdf',
+
+            // Payments / Cobranzas
             'payments.view_all',
             'payments.view_own',
             'payments.pay',
@@ -38,19 +55,28 @@ class PermissionSeeder extends Seeder
             'payments.print_receipt',
             'payments.view_proof',
             'payments.print_history',
-            'payments.print_pdf',       // New: Print PDF History
-            'payments.upload',          // New: Upload pending payment
-            'payments.approve',         // New: Approve pending payment
-            'payments.register_direct', // New: Register approved payment directly
-            'payments.delete',          // New: Delete payment
-            'sales.approve_deletion', // Special permission for approving deletions
-            'sales.manage_adjustments', // New: Manage Price Adjustments (Commissions/Freight)
-            'sales.change_invoice_currency', // New: Change Invoice Currency in POS
+            'payments.print_pdf',
+            'payments.upload',
+            'payments.approve',
+            'payments.register_direct',
+            'payments.delete',
+            'payments.void_today',
+            'payments.void_anytime',
+            'payments.approve_custom_rate',
+            'payments.force_discounts',
+            'payments.methods',
+            'payments.method_cash',
+            'payments.method_bank',
+            'payments.method_credit',
+            'payments.method_nequi',
             
-            // Cash Register
+            // Cash Register / Arqueo
             'cash_register.open',
             'cash_register.close',
             'cash_register.access',
+            'cash_register.bypass',
+            'cash_register.view_all',
+            'cash_register.view_own',
             
             // Products
             'products.index',
@@ -58,7 +84,10 @@ class PermissionSeeder extends Seeder
             'products.edit',
             'products.delete',
             'products.import',
-            'products.labels', // Generate labels/barcodes
+            'products.labels',
+            'products.edit.inventory',
+            'products.edit.categories',
+            'products.edit.price_rules',
             
             // Categories
             'categories.index',
@@ -70,10 +99,15 @@ class PermissionSeeder extends Seeder
             'customers.index',
             'customers.create',
             'customers.edit',
-            'customers.edit',
             'customers.delete',
-            'customers.view_all', // New: View all customers
-            'customers.view_own', // New: View only own customers
+            'customers.import',
+            'customers.view_all',
+            'customers.view_own',
+            'customers.edit_commercial_config',
+            'customers.edit_credit_config',
+            'customer_statement.index',
+            'customer_statement.view_all',
+            'customer_statement.view_own',
             
             // Suppliers
             'suppliers.index',
@@ -87,11 +121,17 @@ class PermissionSeeder extends Seeder
             'purchases.edit',
             'purchases.delete',
             
-            // Inventory
-            'inventory.index',       // View general inventory
-            'adjustments.create',    // Cargos/Descargos (General)
-            'adjustments.approve',   // Approve adjustments
-            'transfers.create',      // Create transfers
+            // Inventory & Warehouses
+            'inventory.index',
+            'adjustments.create',
+            'adjustments.approve',
+            'adjustments.approve_cargo',
+            'adjustments.approve_descargo',
+            'adjustments.delete_cargo',
+            'adjustments.delete_descargo',
+            'adjustments.reject_cargo',
+            'adjustments.reject_descargo',
+            'transfers.create',
             'warehouses.index',
             'warehouses.create',
             'warehouses.edit',
@@ -102,6 +142,10 @@ class PermissionSeeder extends Seeder
             'users.create',
             'users.edit',
             'users.delete',
+            'users.edit_commercial_config',
+            'users.edit_credit_config',
+            'system.is_seller',
+            'system.is_foreign_seller',
             
             // Roles & Permissions
             'roles.index',
@@ -114,14 +158,18 @@ class PermissionSeeder extends Seeder
             'reports.sales',
             'reports.purchases',
             'reports.stock',
-            'reports.financial', // Accounts receivable/payable
+            'reports.financial',
             'reports.commissions',
+            'reports.audit',
+            'reports.customer_payment_relationship',
+            'collections.audit',
             
             // Settings
             'settings.index',
             'settings.backups',
             'settings.logs',
             'settings.update',
+            'settings.stock_reservation',
             
             // Production / Soplados
             'production.index',
@@ -131,18 +179,23 @@ class PermissionSeeder extends Seeder
             'soplados.manager',
 
             // Distribution
-            'distribution.map', // Driver map access
-
-            // Granular Config Permissions
-            'customers.edit_commercial_config',
-            'customers.edit_credit_config',
-            'users.edit_commercial_config',
-            'users.edit_credit_config',
+            'distribution.map',
+            'driver_monitoring',
         ];
 
         // Ensure permissions exist
         foreach ($permissions as $permission) {
             Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
         }
+
+        // Clean up orphaned / legacy permissions not in the canonical list
+        $orphaned = Permission::whereNotIn('name', $permissions)->get();
+        foreach ($orphaned as $orphan) {
+            $orphan->roles()->detach();
+            $orphan->users()->detach();
+            $orphan->delete();
+        }
+
+        app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }
