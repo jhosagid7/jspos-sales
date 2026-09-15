@@ -41,17 +41,46 @@ class CheckDeviceAuthorization
             }
         }
 
-        // FINGERPRINT FALLBACK: If no device found by token, try to find an existing APPROVED device by IP + UA
-        // This prevents duplication from mobile apps that haven't saved their token yet.
+        // FINGERPRINT FALLBACK: If no device found by token, find existing APPROVED device by IP/Subnet + UA
+        // This prevents duplication from mobile apps, localhost/IPv6, or router DHCP changes.
         if (!$device) {
-            $device = \App\Models\DeviceAuthorization::where('ip_address', $request->ip())
-                ->where('user_agent', $request->userAgent() ?? 'Unknown')
+            $clientIp = $request->ip();
+            $ua = $request->userAgent() ?? 'Unknown';
+
+            // 1. Check exact IP + UA
+            $device = \App\Models\DeviceAuthorization::where('ip_address', $clientIp)
+                ->where('user_agent', $ua)
                 ->where('status', 'approved')
                 ->orderBy('last_accessed_at', 'desc')
                 ->first();
+
+            // 2. Localhost / Loopback deduplication (127.0.0.1, ::1)
+            if (!$device && ($clientIp === '127.0.0.1' || $clientIp === '::1' || $clientIp === 'localhost')) {
+                $device = \App\Models\DeviceAuthorization::whereIn('ip_address', ['127.0.0.1', '::1'])
+                    ->where('status', 'approved')
+                    ->orderBy('last_accessed_at', 'desc')
+                    ->first();
+            }
+
+            // 3. Subnet fallback: If client has same UA and accessed recently on same /24 subnet (DHCP change)
+            if (!$device && filter_var($clientIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                $subnetPrefix = substr($clientIp, 0, strrpos($clientIp, '.') + 1);
+                $device = \App\Models\DeviceAuthorization::where('ip_address', 'like', $subnetPrefix . '%')
+                    ->where('user_agent', $ua)
+                    ->where('status', 'approved')
+                    ->where('last_accessed_at', '>=', now()->subDays(7))
+                    ->orderBy('last_accessed_at', 'desc')
+                    ->first();
+            }
             
             if ($device) {
                 $token = $device->uuid;
+                try {
+                    $device->update([
+                        'ip_address' => $clientIp,
+                        'last_accessed_at' => now(),
+                    ]);
+                } catch (\Throwable $e) {}
                 // If it's a web request, sync the cookie so we don't have to fallback again
                 if (!$request->expectsJson() && !$request->cookie($cookieName)) {
                     $this->queueDeviceCookie($token);

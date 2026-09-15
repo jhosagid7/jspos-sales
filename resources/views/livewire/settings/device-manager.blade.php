@@ -28,6 +28,11 @@
                         </small>
                     </div>
                     <div>
+                        <button wire:click="purgeDuplicates" class="btn btn-outline-warning mr-2" 
+                            onclick="confirm('¿Estás seguro de depurar dispositivos duplicados e inactivos?') || event.stopImmediatePropagation()"
+                            title="Eliminar dispositivos duplicados e inactivos">
+                            <i class="fas fa-broom mr-1"></i> Limpiar Duplicados
+                        </button>
                         <button class="btn btn-info mr-2" data-toggle="modal" data-target="#modalHelp">
                             <i class="fas fa-question-circle"></i> Ayuda
                         </button>
@@ -62,6 +67,7 @@
                                 <th class="table-th text-white">IP / Navegador</th>
                                 <th class="table-th text-white text-center">Estado</th>
                                 <th class="table-th text-white">Último Acceso</th>
+                                <th class="table-th text-white">Impresora Asignada</th>
                                 <th class="table-th text-white text-center">Acciones</th>
                             </tr>
                         </thead>
@@ -101,12 +107,21 @@
                                     <p class="text-xs font-weight-bold mb-0">{{ $device->ip_address }}</p>
                                     <p class="text-xs text-secondary mb-0">{{ Str::limit($device->user_agent, 40) }}</p>
                                 </td>
+                                <td class="align-middle text-center text-sm">
+                                    @if ($device->status == 'approved')
+                                        <span class="badge badge-sm bg-gradient-success">Aprobado</span>
+                                    @elseif($device->status == 'pending')
+                                        <span class="badge badge-sm bg-gradient-warning">Pendiente</span>
+                                    @elseif($device->status == 'blocked')
+                                        <span class="badge badge-sm bg-gradient-danger">Bloqueado</span>
+                                    @endif
+                                </td>
                                 <td>
                                     <p class="text-xs font-weight-bold mb-0">{{ $device->last_accessed_at ? \Carbon\Carbon::parse($device->last_accessed_at)->diffForHumans() : 'Nunca' }}</p>
                                 </td>
                                 <td>
                                     <div class="d-flex flex-column">
-                                        <span class="text-xs font-weight-bold mb-0">
+                                        <span class="text-xs font-weight-bold mb-0 text-truncate" style="max-width: 200px;" title="{{ $device->printer_name ?? 'Predeterminada' }}">
                                             {{ $device->printer_name ?? 'Predeterminada' }}
                                         </span>
                                         <span class="text-xs text-secondary mb-0">
@@ -116,15 +131,6 @@
                                     <button wire:click="editPrinter({{ $device->id }})" class="btn btn-sm btn-outline-dark mt-1" title="Configurar Impresora">
                                         <i class="fas fa-print me-1"></i> Configurar
                                     </button>
-                                </td>
-                                <td class="align-middle text-center text-sm">
-                                    @if ($device->status == 'approved')
-                                        <span class="badge badge-sm bg-gradient-success">Aprobado</span>
-                                    @elseif($device->status == 'pending')
-                                        <span class="badge badge-sm bg-gradient-warning">Pendiente</span>
-                                    @elseif($device->status == 'blocked')
-                                        <span class="badge badge-sm bg-gradient-danger">Bloqueado</span>
-                                    @endif
                                 </td>
                                 <td class="align-middle text-center">
                                     @if ($device->status == 'pending' || $device->status == 'blocked')
@@ -164,22 +170,62 @@
 
     <!-- Modal Edit Printer -->
     <div class="modal fade" id="modalPrinter" tabindex="-1" role="dialog" aria-labelledby="modalPrinterLabel" aria-hidden="true" wire:ignore.self>
-        <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modalPrinterLabel">Configurar Impresora del Dispositivo</h5>
+                    <h5 class="modal-title font-weight-bold" id="modalPrinterLabel">
+                        <i class="fas fa-print mr-2 text-primary"></i> Configurar Impresora del Dispositivo
+                    </h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
                 <div class="modal-body">
-                    <div class="alert alert-info text-white" role="alert">
-                        <strong>Nota:</strong> Esta configuración tiene prioridad sobre la impresora del usuario y la global.
-                        Si es de red, ingrese la IP/Nombre del equipo y el nombre compartido por separado.
+                    <div class="alert alert-info text-white mb-3" role="alert">
+                        <strong><i class="fas fa-info-circle mr-1"></i> Prioridad de Impresión:</strong> Esta configuración tiene prioridad sobre la impresora del usuario y la global del sistema.
                     </div>
+
+                    <!-- Scanner Box -->
+                    <div class="card mb-3 border-primary" style="background-color: #f8faff;">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="mb-0 font-weight-bold text-primary">
+                                    <i class="fas fa-satellite-dish mr-1"></i> Detección Automática de Impresoras
+                                </h6>
+                                <button type="button" wire:click="scanPrinters" wire:loading.attr="disabled" class="btn btn-sm btn-primary">
+                                    <span wire:loading wire:target="scanPrinters" class="spinner-border spinner-border-sm mr-1" role="status"></span>
+                                    <i wire:loading.remove wire:target="scanPrinters" class="fas fa-sync-alt mr-1"></i>
+                                    Escanear Red y Locales
+                                </button>
+                            </div>
+
+                            @if(!empty($discovered_printers))
+                                <div class="form-group mb-0">
+                                    <label class="text-xs font-weight-bold text-muted mb-1">Impresoras Detectadas en la Red / PC:</label>
+                                    <select wire:change="selectDiscoveredPrinter($event.target.value)" class="form-control form-control-sm">
+                                        <option value="">-- Seleccionar impresora detectada para auto-rellenar --</option>
+                                        @foreach($discovered_printers as $p)
+                                            <option value="{{ $p['unc'] }}">
+                                                {{ $p['label'] }} ({{ $p['unc'] }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <small class="text-muted d-block mt-1">
+                                        <i class="fas fa-magic text-warning mr-1"></i> Al seleccionar una opción se completarán automáticamente los campos de configuración.
+                                    </small>
+                                </div>
+                            @else
+                                <small class="text-muted">
+                                    Haga clic en "Escanear Red y Locales" para descubrir impresoras compartidas en la red local y colas locales de Windows.
+                                </small>
+                            @endif
+                        </div>
+                    </div>
+
+                    <!-- Form Settings -->
                     <div class="form-group" @if($is_network) style="display:none" @endif>
-                        <label for="printerName">Nombre de la Impresora (Local)</label>
-                        <input type="text" class="form-control" id="printerName" wire:model="printer_name" placeholder="Ej: EPSON TM-T20II">
+                        <label for="printerName" class="font-weight-bold">Nombre de la Impresora (Local)</label>
+                        <input type="text" class="form-control" id="printerName" wire:model="printer_name" placeholder="Ej: POS-80 o EPSON TM-T20II">
                         @error('printer_name') <span class="text-danger">{{ $message }}</span> @enderror
                     </div>
 
@@ -187,30 +233,36 @@
                     <div class="row">
                          <div class="col-md-6">
                             <div class="form-group">
-                                <label for="printerHost">IP o Nombre del Equipo</label>
-                                <input type="text" class="form-control" id="printerHost" wire:model="printer_host" placeholder="Ej: 192.168.1.50 o CAJA-PC">
+                                <label for="printerHost" class="font-weight-bold">IP o Nombre del Equipo de Red</label>
+                                <input type="text" class="form-control" id="printerHost" wire:model="printer_host" placeholder="Ej: 192.168.20.115 o CAJA-PRINCIPAL">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="printerShare">Nombre Compartido</label>
-                                <input type="text" class="form-control" id="printerShare" wire:model="printer_share" placeholder="Ej: POS-80">
+                                <label for="printerShare" class="font-weight-bold">Nombre Compartido (Share)</label>
+                                <input type="text" class="form-control" id="printerShare" wire:model="printer_share" placeholder="Ej: POS-80-Series">
                             </div>
                         </div>
                     </div>
                     @endif
-                    <div class="form-group">
-                        <label for="printerWidth">Ancho del Papel</label>
-                        <select class="form-control" id="printerWidth" wire:model="printer_width">
-                            <option value="80mm">80mm (Estándar)</option>
-                            <option value="58mm">58mm (Pequeña)</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <div class="custom-control custom-checkbox">
-                            <input type="checkbox" class="custom-control-input" id="isNetwork" wire:model.live="is_network">
-                            <label class="custom-control-label" for="isNetwork">¿Es una impresora de red con contraseña?</label>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="printerWidth" class="font-weight-bold">Ancho del Papel</label>
+                                <select class="form-control" id="printerWidth" wire:model="printer_width">
+                                    <option value="80mm">80mm (Estándar POS)</option>
+                                    <option value="58mm">58mm (Pequeña POS)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-center">
+                            <div class="custom-control custom-checkbox mt-2">
+                                <input type="checkbox" class="custom-control-input" id="isNetwork" wire:model.live="is_network">
+                                <label class="custom-control-label font-weight-bold" for="isNetwork">
+                                    ¿Es una impresora compartida en red?
+                                </label>
+                            </div>
                         </div>
                     </div>
 
@@ -218,22 +270,58 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="printerUser">Usuario</label>
+                                <label for="printerUser">Usuario de Red (Opcional)</label>
                                 <input type="text" class="form-control" id="printerUser" wire:model="printer_user" placeholder="Ej: Administrador">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="printerPassword">Contraseña</label>
+                                <label for="printerPassword">Contraseña de Red (Opcional)</label>
                                 <input type="password" class="form-control" id="printerPassword" wire:model="printer_password" placeholder="********">
                             </div>
                         </div>
                     </div>
                     @endif
+
+                    <!-- Diagnostics & Test Result Area -->
+                    @if($connection_test_result)
+                        <div class="alert {{ $connection_test_result['success'] ? 'alert-success' : 'alert-danger' }} mb-3 py-2 px-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas {{ $connection_test_result['success'] ? 'fa-check-circle' : 'fa-exclamation-triangle' }} mr-2"></i>
+                                    <strong>{{ $connection_test_result['success'] ? 'Conexión Exitosa' : 'Fallo de Conexión' }}:</strong>
+                                    {{ $connection_test_result['message'] }}
+                                </div>
+                                @if(isset($connection_test_result['latency_ms']) && $connection_test_result['latency_ms'] > 0)
+                                    <span class="badge badge-light text-dark font-weight-bold ml-2">
+                                        ⚡ {{ $connection_test_result['latency_ms'] }} ms
+                                    </span>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Action Buttons for Testing -->
+                    <div class="d-flex flex-wrap gap-2 justify-content-start pt-2 border-top">
+                        <button type="button" wire:click="testPrinterConnection" wire:loading.attr="disabled" class="btn btn-outline-success mr-2">
+                            <span wire:loading wire:target="testPrinterConnection" class="spinner-border spinner-border-sm mr-1" role="status"></span>
+                            <i wire:loading.remove wire:target="testPrinterConnection" class="fas fa-bolt mr-1"></i>
+                            Probar Conexión
+                        </button>
+
+                        <button type="button" wire:click="printTestTicket" wire:loading.attr="disabled" class="btn btn-outline-info">
+                            <span wire:loading wire:target="printTestTicket" class="spinner-border spinner-border-sm mr-1" role="status"></span>
+                            <i wire:loading.remove wire:target="printTestTicket" class="fas fa-receipt mr-1"></i>
+                            Imprimir Ticket de Prueba
+                        </button>
+                    </div>
+
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" wire:click="updatePrinter">Guardar Configuración</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" wire:click="updatePrinter">
+                        <i class="fas fa-save mr-1"></i> Guardar Configuración
+                    </button>
                 </div>
             </div>
         </div>

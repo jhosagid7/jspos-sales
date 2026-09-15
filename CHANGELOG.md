@@ -1,3 +1,18 @@
+## [1.10.427] - 2026-09-15
+
+### Added
+- **Detección Automática de Impresoras Locales y de Red en Gestión de Dispositivos**:
+  - `PrinterDiscoveryService.php`: Nuevo servicio de autodescubrimiento e interoperabilidad de impresoras que escanea colas de impresión locales de Windows (`Get-Printer`) y sondea la subred local mediante ARP y SMB (`net view \\IP`) en el puerto 445 para encontrar impresoras térmicas y estándar compartidas de forma instantánea.
+  - `DeviceManager.php`, `device-manager.blade.php`: Nuevo botón y modal interactivo de *Detección Automática de Impresoras* con autocompletado inteligente de rutas UNC (`\\IP\Recurso`), host y nombre compartido.
+  - **Prueba de Conexión en Tiempo Real**: Diagnóstico de conectividad con medición de latencia en milisegundos (`ms`), feedback visual con badges de estado verde/rojo y códigos de error explicativos (Error 1801, 1722, 5).
+  - **Impresión de Ticket de Prueba Físico**: Botón de 1 clic para enviar un ticket de validación formal a la impresora asignada (`80mm` o `58mm`) verificando la operatividad del hardware sin emitir ventas reales.
+  - **Depuración y Limpieza de Dispositivos Duplicados**: Botón *Limpiar Duplicados* que purga dispositivos huérfanos/inactivos y deduplica registros obsoletos generados por cambios de IP en DHCP o navegadores.
+  - `PrinterDiscoveryAndTestPageTest.php`: Suite de 5 pruebas unitarias y de integración que validan el escaneo, diagnóstico de latencia, configuración interactiva y depuración de duplicados.
+
+### Fixed
+- **Deduplicación Inteligente en Middleware de Dispositivos (`CheckDeviceAuthorization`)**:
+  - Se implementó un mecanismo de reconocimiento por huella digital (Subred `/24` + User-Agent) y resolución de loopback (`localhost`, `127.0.0.1`, `::1`) para evitar la creación indiscriminada de dispositivos aleatorios (`Dispositivo Va44`, `Dispositivo l6Ne`) cuando el router asigna una nueva IP por DHCP o cuando se accede desde diferentes dominios locales.
+
 ## [1.10.426] - 2026-09-15
 
 ### Fixed
