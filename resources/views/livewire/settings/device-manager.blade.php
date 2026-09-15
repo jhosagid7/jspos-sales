@@ -267,17 +267,26 @@
                     </div>
 
                     @if($is_network)
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="printerUser">Usuario de Red (Opcional)</label>
-                                <input type="text" class="form-control" id="printerUser" wire:model="printer_user" placeholder="Ej: Administrador">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="printerPassword">Contraseña de Red (Opcional)</label>
-                                <input type="password" class="form-control" id="printerPassword" wire:model="printer_password" placeholder="********">
+                    <div class="mb-3">
+                        <a class="text-xs font-weight-bold text-muted text-decoration-none" data-toggle="collapse" href="#credentialsCollapse" role="button" aria-expanded="{{ (!empty($printer_user) || !empty($printer_password)) ? 'true' : 'false' }}">
+                            <i class="fas fa-key text-warning mr-1"></i> ¿El equipo remoto requiere usuario y contraseña de Windows? (Opcional) <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                        </a>
+                        <div class="collapse {{ (!empty($printer_user) || !empty($printer_password)) ? 'show' : '' }} mt-2" id="credentialsCollapse">
+                            <div class="card card-body p-2 bg-light border-0">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-1">
+                                            <label for="printerUser" class="text-xs font-weight-bold">Usuario de Windows</label>
+                                            <input type="text" class="form-control form-control-sm" id="printerUser" wire:model="printer_user" placeholder="Ej: Administrador">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-1">
+                                            <label for="printerPassword" class="text-xs font-weight-bold">Contraseña</label>
+                                            <input type="password" class="form-control form-control-sm" id="printerPassword" wire:model="printer_password" placeholder="********">
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -1,3 +1,9 @@
+## [1.10.430] - 2026-09-15
+
+### UI / UX
+- **Simplificación Visual y Credenciales Plegables en Configuración de Impresora**:
+  - `device-manager.blade.php`: Se transformó la sección de usuario y contraseña en un panel plegable/colapsado opcional (*"¿El equipo remoto requiere usuario y contraseña de Windows?"*), manteniendo la interfaz de configuración limpia, directa y libre de campos innecesarios para el uso diario.
+
 ## [1.10.429] - 2026-09-15
 
 ### Performance
