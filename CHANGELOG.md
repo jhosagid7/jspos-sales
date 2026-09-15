@@ -1,3 +1,11 @@
+## [1.10.432] - 2026-09-15
+
+### Fixed
+- **Motor Dual Spooler + SMB Direct Stream para Impresoras de Red y Corrección Error 1801**:
+  - `rawprint.cs / rawprint.exe`: Se implementó un motor dual de comunicación con impresoras de red compartidas (UNC). Si Windows Spooler reporta `Error 1801` (común cuando la terminal cliente no tiene el controlador/driver instalado localmente), el sistema conmuta automáticamente y sin demoras a escritura directa por flujo SMB (`FileStream` / `File.WriteAllBytes`), logrando impresión y pruebas de conexión exitosas e instantáneas (~26 ms).
+  - `DeviceManager.php`: Detección automática del flag `is_network` al editar o seleccionar cualquier impresora cuyo nombre comience por `\\`, garantizando que registros existentes en base de datos sin el flag explícito se gestionen correctamente como impresoras de red.
+  - `CustomWindowsPrintConnector.php` & `PrintTrait.php`: Robustecimiento de la resolución de nombres de host, IP y verificación de red en segundo plano.
+
 ## [1.10.431] - 2026-09-15
 
 ### Fixed

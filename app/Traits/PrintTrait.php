@@ -65,7 +65,7 @@ trait PrintTrait
         if ($deviceAuth && !empty($deviceAuth->printer_name)) {
             $printerName = $deviceAuth->printer_name;
             $printerWidth = $deviceAuth->printer_width ?? '80mm';
-            $isNetwork = (bool) $deviceAuth->is_network;
+            $isNetwork = (bool) $deviceAuth->is_network || str_starts_with($printerName, '\\\\');
             $printerUser = $deviceAuth->printer_user;
             $printerPassword = $deviceAuth->printer_password;
         }
@@ -76,7 +76,7 @@ trait PrintTrait
             if ($user && $user->printer_name) {
                 $printerName = $user->printer_name;
                 $printerWidth = $user->printer_width ?? '80mm';
-                $isNetwork = (bool) $user->is_network;
+                $isNetwork = (bool) $user->is_network || str_starts_with($printerName, '\\\\');
                 $printerUser = $user->printer_user;
                 $printerPassword = $user->printer_password;
             }
@@ -86,7 +86,7 @@ trait PrintTrait
         if (empty($printerName)) {
             $printerName = $config->printer_name;
             $printerWidth = $config->printer_width ?? '80mm';
-            $isNetwork = (bool) $config->is_network;
+            $isNetwork = (bool) $config->is_network || str_starts_with($printerName, '\\\\');
             $printerUser = $config->printer_user;
             $printerPassword = $config->printer_password;
         }

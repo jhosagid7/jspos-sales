@@ -231,7 +231,7 @@ class CustomWindowsPrintConnector implements PrintConnector
         }
 
         if (strtolower($hostname) === 'localhost' || strtolower($hostname) === strtolower(gethostname())) {
-            return $hostname;
+            return '127.0.0.1';
         }
 
         // Cache resolution for 30 minutes to keep printing instantaneous (0 ms)

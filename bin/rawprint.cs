@@ -37,10 +37,28 @@ public class RawPrintHelper {
     [DllImport("winspool.Drv", EntryPoint = "WritePrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
     public static extern bool WritePrinter(IntPtr hPrinter, IntPtr pBytes, Int32 dwCount, out Int32 dwWritten);
 
+    public static string ResolveHostToIp(string host) {
+        if (string.IsNullOrEmpty(host)) return host;
+        IPAddress ip;
+        if (IPAddress.TryParse(host, out ip)) return host;
+        try {
+            var addresses = Dns.GetHostAddresses(host);
+            if (addresses != null && addresses.Length > 0) {
+                foreach (var a in addresses) {
+                    if (a.AddressFamily == AddressFamily.InterNetwork) {
+                        return a.ToString();
+                    }
+                }
+            }
+        } catch {}
+        return host;
+    }
+
     public static bool TestTcpPort(string host, int port, int timeoutMs) {
+        string target = ResolveHostToIp(host);
         try {
             using (var client = new TcpClient()) {
-                var ar = client.BeginConnect(host, port, null, null);
+                var ar = client.BeginConnect(target, port, null, null);
                 if (ar.AsyncWaitHandle.WaitOne(timeoutMs)) {
                     client.EndConnect(ar);
                     return true;
@@ -68,6 +86,41 @@ public class RawPrintHelper {
 
         Task.WaitAll(tasks.ToArray());
         return liveIps;
+    }
+
+    public static bool TrySpoolerPrint(string pName, byte[] bytes) {
+        IntPtr hPrn = IntPtr.Zero;
+        DOCINFOW di = new DOCINFOW();
+        di.pDocName = "POS Ticket";
+        di.pDataType = "RAW";
+
+        bool ok = false;
+        try {
+            if (OpenPrinter(pName, out hPrn, IntPtr.Zero)) {
+                if (StartDocPrinter(hPrn, 1, di)) {
+                    if (StartPagePrinter(hPrn)) {
+                        IntPtr p = Marshal.AllocCoTaskMem(bytes.Length);
+                        Marshal.Copy(bytes, 0, p, bytes.Length);
+                        Int32 written = 0;
+                        ok = WritePrinter(hPrn, p, bytes.Length, out written);
+                        Marshal.FreeCoTaskMem(p);
+                        EndPagePrinter(hPrn);
+                    }
+                    EndDocPrinter(hPrn);
+                }
+                ClosePrinter(hPrn);
+            }
+        } catch {}
+        return ok;
+    }
+
+    public static bool TryDirectSmbPrint(string uncPath, byte[] bytes) {
+        try {
+            File.WriteAllBytes(uncPath, bytes);
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     public static int Main(string[] args) {
@@ -103,17 +156,21 @@ public class RawPrintHelper {
                 string host = slashIdx > 0 ? clean.Substring(0, slashIdx) : clean;
                 string share = slashIdx > 0 ? clean.Substring(slashIdx + 1) : "";
 
-                // 1. First probe host on port 445
-                bool tcpOk = TestTcpPort(host, 445, 400);
+                // 1. Probe host on port 445
+                bool tcpOk = TestTcpPort(host, 445, 500);
                 if (!tcpOk) {
                     Console.WriteLine("Error: El equipo de red (" + host + ") no responde o esta apagado.");
                     return 1;
                 }
 
                 // 2. If user/pass provided, authenticate session
-                if (!string.IsNullOrEmpty(user) && !string.IsNullOrEmpty(pass)) {
+                if (!string.IsNullOrEmpty(user)) {
                     try {
-                        var psi = new ProcessStartInfo("net", "use \\\\" + host + " /u:\"" + user + "\" \"" + pass + "\"") {
+                        string netArgs = "use \\\\" + host + " /u:\"" + user + "\"";
+                        if (!string.IsNullOrEmpty(pass)) {
+                            netArgs += " \"" + pass + "\"";
+                        }
+                        var psi = new ProcessStartInfo("net", netArgs) {
                             RedirectStandardOutput = true,
                             RedirectStandardError = true,
                             UseShellExecute = false,
@@ -124,19 +181,61 @@ public class RawPrintHelper {
                         }
                     } catch {}
                 }
-            }
 
-            // 3. OpenPrinter test
-            IntPtr hPrinter = IntPtr.Zero;
-            bool opened = OpenPrinter(printerName, out hPrinter, IntPtr.Zero);
-            if (opened) {
-                ClosePrinter(hPrinter);
-                Console.WriteLine("OK");
-                return 0;
-            } else {
+                // 3. Test OpenPrinter or Direct SMB write handle
+                IntPtr hPrinter = IntPtr.Zero;
+                bool opened = OpenPrinter(printerName, out hPrinter, IntPtr.Zero);
+                if (opened) {
+                    ClosePrinter(hPrinter);
+                    Console.WriteLine("OK");
+                    return 0;
+                }
+
+                // Also test if raw IP UNC works if host was a name
+                string ipHost = ResolveHostToIp(host);
+                if (ipHost != host) {
+                    string ipUnc = "\\\\" + ipHost + "\\" + share;
+                    if (OpenPrinter(ipUnc, out hPrinter, IntPtr.Zero)) {
+                        ClosePrinter(hPrinter);
+                        Console.WriteLine("OK");
+                        return 0;
+                    }
+                }
+
+                // Test SMB share direct stream access
+                try {
+                    using (var fs = new FileStream(printerName, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite)) {
+                        Console.WriteLine("OK");
+                        return 0;
+                    }
+                } catch {}
+
+                if (ipHost != host) {
+                    string ipUnc = "\\\\" + ipHost + "\\" + share;
+                    try {
+                        using (var fs = new FileStream(ipUnc, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite)) {
+                            Console.WriteLine("OK");
+                            return 0;
+                        }
+                    } catch {}
+                }
+
                 int err = Marshal.GetLastWin32Error();
-                Console.WriteLine("Error: No se pudo abrir la cola de impresion (Win32: " + err + ")");
+                Console.WriteLine("Error: Nombre de impresora no encontrado en el equipo de red (Error " + (err > 0 ? err.ToString() : "1801") + ").");
                 return 1;
+            } else {
+                // Local printer test
+                IntPtr hPrinter = IntPtr.Zero;
+                bool opened = OpenPrinter(printerName, out hPrinter, IntPtr.Zero);
+                if (opened) {
+                    ClosePrinter(hPrinter);
+                    Console.WriteLine("OK");
+                    return 0;
+                } else {
+                    int err = Marshal.GetLastWin32Error();
+                    Console.WriteLine("Error: No se pudo abrir la impresora local (Error " + err + ")");
+                    return 1;
+                }
             }
         }
 
@@ -157,34 +256,44 @@ public class RawPrintHelper {
             return 4;
         }
 
-        IntPtr hPrn = IntPtr.Zero;
-        DOCINFOW di = new DOCINFOW();
-        di.pDocName = "POS Ticket";
-        di.pDataType = "RAW";
-
-        bool ok = false;
-        if (OpenPrinter(pName, out hPrn, IntPtr.Zero)) {
-            if (StartDocPrinter(hPrn, 1, di)) {
-                if (StartPagePrinter(hPrn)) {
-                    IntPtr p = Marshal.AllocCoTaskMem(bytes.Length);
-                    Marshal.Copy(bytes, 0, p, bytes.Length);
-                    Int32 written = 0;
-                    ok = WritePrinter(hPrn, p, bytes.Length, out written);
-                    Marshal.FreeCoTaskMem(p);
-                    EndPagePrinter(hPrn);
-                }
-                EndDocPrinter(hPrn);
-            }
-            ClosePrinter(hPrn);
-        }
-
-        if (ok) {
+        // 1. Try Windows Spooler API
+        if (TrySpoolerPrint(pName, bytes)) {
             Console.WriteLine("OK");
             return 0;
-        } else {
-            int err = Marshal.GetLastWin32Error();
-            Console.WriteLine("Error printing (Win32 error: " + err + ")");
-            return 1;
         }
+
+        // 2. If network UNC, try resolving hostname to IP and try Spooler again
+        if (pName.StartsWith("\\\\")) {
+            string clean = pName.Substring(2);
+            int slashIdx = clean.IndexOf('\\');
+            string ipUnc = null;
+            if (slashIdx > 0) {
+                string host = clean.Substring(0, slashIdx);
+                string share = clean.Substring(slashIdx + 1);
+                string ip = ResolveHostToIp(host);
+                if (ip != host) {
+                    ipUnc = "\\\\" + ip + "\\" + share;
+                    if (TrySpoolerPrint(ipUnc, bytes)) {
+                        Console.WriteLine("OK");
+                        return 0;
+                    }
+                }
+            }
+
+            // 3. Fallback: Direct SMB Write
+            if (TryDirectSmbPrint(pName, bytes)) {
+                Console.WriteLine("OK");
+                return 0;
+            }
+
+            if (!string.IsNullOrEmpty(ipUnc) && TryDirectSmbPrint(ipUnc, bytes)) {
+                Console.WriteLine("OK");
+                return 0;
+            }
+        }
+
+        int lastErr = Marshal.GetLastWin32Error();
+        Console.WriteLine("Error printing (Win32 error: " + lastErr + ")");
+        return 1;
     }
 }

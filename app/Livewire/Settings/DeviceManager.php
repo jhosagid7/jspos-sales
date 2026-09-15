@@ -138,7 +138,7 @@ class DeviceManager extends Component
 
         if (Str::startsWith($unc, '\\\\')) {
             $this->is_network = true;
-            $clean = str_replace('\\\\', '', $unc);
+            $clean = ltrim($unc, '\\');
             $parts = explode('\\', $clean);
             if (count($parts) >= 2) {
                 $this->printer_host = $parts[0];
@@ -297,7 +297,7 @@ class DeviceManager extends Component
             $this->selected_device_id = $id;
             $this->printer_name = $device->printer_name ?? '';
             $this->printer_width = $device->printer_width ?? '80mm';
-            $this->is_network = (bool) $device->is_network;
+            $this->is_network = (bool) $device->is_network || Str::startsWith($this->printer_name, '\\\\');
             $this->printer_user = $device->printer_user ?? '';
             $this->printer_password = $device->printer_password ?? '';
             $this->connection_test_result = null;
@@ -307,7 +307,7 @@ class DeviceManager extends Component
             $this->printer_share = $this->printer_name;
             
             if ($this->is_network && Str::contains($this->printer_name, '\\')) {
-                $clean = str_replace('\\\\', '', $this->printer_name);
+                $clean = ltrim($this->printer_name, '\\');
                 $parts = explode('\\', $clean);
                 if (count($parts) >= 2) {
                     $this->printer_host = $parts[0];
