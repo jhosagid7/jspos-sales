@@ -147,10 +147,26 @@ class DeviceManager extends Component
                 $this->printer_host = $clean;
                 $this->printer_share = '';
             }
+
+            // Check if there are known credentials for this specific host
+            $hostAuth = DeviceAuthorization::where('printer_name', 'like', "%{$this->printer_host}%")
+                ->whereNotNull('printer_user')
+                ->where('printer_user', '!=', '')
+                ->first();
+
+            if ($hostAuth) {
+                $this->printer_user = $hostAuth->printer_user;
+                $this->printer_password = $hostAuth->printer_password;
+            } else {
+                $this->printer_user = '';
+                $this->printer_password = '';
+            }
         } else {
             $this->is_network = false;
             $this->printer_host = '';
             $this->printer_share = $unc;
+            $this->printer_user = '';
+            $this->printer_password = '';
         }
     }
 

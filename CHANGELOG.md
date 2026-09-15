@@ -1,3 +1,10 @@
+## [1.10.433] - 2026-09-15
+
+### Fixed
+- **Win32 Kernel32 CreateFile / WriteFile Nativo para Flujos de Red SMB (Error 1801 definitivo)**:
+  - `rawprint.cs / rawprint.exe`: Se reemplazó la llamada a `FileStream` de .NET (la cual lanzaba `NotSupportedException` ante rutas de dispositivos DOS/UNC de impresora) por llamadas nativas Win32 `kernel32.dll!CreateFile` (`CREATE_ALWAYS`) y `kernel32.dll!WriteFile`. Esto permite enviar bytes ESC/POS y validar conexión directamente a recursos compartidos de red (`\\192.168.20.117\POS-80-Print`, etc.) en ~20 ms sin requerir drivers locales.
+  - `DeviceManager.php`: Al seleccionar una impresora del listado detectado, se cargan automáticamente las credenciales guardadas para ese host específico o se limpian si se selecciona un equipo diferente, evitando enviar contraseñas incorrectas que bloqueen el acceso SMB (Error 5).
+
 ## [1.10.432] - 2026-09-15
 
 ### Fixed

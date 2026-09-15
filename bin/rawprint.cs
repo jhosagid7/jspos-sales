@@ -37,6 +37,31 @@ public class RawPrintHelper {
     [DllImport("winspool.Drv", EntryPoint = "WritePrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
     public static extern bool WritePrinter(IntPtr hPrinter, IntPtr pBytes, Int32 dwCount, out Int32 dwWritten);
 
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+    public static extern Microsoft.Win32.SafeHandles.SafeFileHandle CreateFile(
+        string lpFileName,
+        uint dwDesiredAccess,
+        uint dwShareMode,
+        IntPtr lpSecurityAttributes,
+        uint dwCreationDisposition,
+        uint dwFlagsAndAttributes,
+        IntPtr hTemplateFile
+    );
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool WriteFile(
+        Microsoft.Win32.SafeHandles.SafeFileHandle hFile,
+        byte[] lpBuffer,
+        uint nNumberOfBytesToWrite,
+        out uint lpNumberOfBytesWritten,
+        IntPtr lpOverlapped
+    );
+
+    const uint GENERIC_WRITE = 0x40000000;
+    const uint FILE_SHARE_READ = 1;
+    const uint FILE_SHARE_WRITE = 2;
+    const uint CREATE_ALWAYS = 2;
+
     public static string ResolveHostToIp(string host) {
         if (string.IsNullOrEmpty(host)) return host;
         IPAddress ip;
@@ -114,10 +139,23 @@ public class RawPrintHelper {
         return ok;
     }
 
+    public static bool TryDirectSmbTest(string uncPath) {
+        try {
+            using (var handle = CreateFile(uncPath, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, IntPtr.Zero, CREATE_ALWAYS, 0, IntPtr.Zero)) {
+                return !handle.IsInvalid;
+            }
+        } catch {
+            return false;
+        }
+    }
+
     public static bool TryDirectSmbPrint(string uncPath, byte[] bytes) {
         try {
-            File.WriteAllBytes(uncPath, bytes);
-            return true;
+            using (var handle = CreateFile(uncPath, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, IntPtr.Zero, CREATE_ALWAYS, 0, IntPtr.Zero)) {
+                if (handle.IsInvalid) return false;
+                uint written;
+                return WriteFile(handle, bytes, (uint)bytes.Length, out written, IntPtr.Zero) && written == bytes.Length;
+            }
         } catch {
             return false;
         }
@@ -202,22 +240,18 @@ public class RawPrintHelper {
                     }
                 }
 
-                // Test SMB share direct stream access
-                try {
-                    using (var fs = new FileStream(printerName, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite)) {
-                        Console.WriteLine("OK");
-                        return 0;
-                    }
-                } catch {}
+                // Test SMB share direct stream access via Kernel32 CreateFile
+                if (TryDirectSmbTest(printerName)) {
+                    Console.WriteLine("OK");
+                    return 0;
+                }
 
                 if (ipHost != host) {
                     string ipUnc = "\\\\" + ipHost + "\\" + share;
-                    try {
-                        using (var fs = new FileStream(ipUnc, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite)) {
-                            Console.WriteLine("OK");
-                            return 0;
-                        }
-                    } catch {}
+                    if (TryDirectSmbTest(ipUnc)) {
+                        Console.WriteLine("OK");
+                        return 0;
+                    }
                 }
 
                 int err = Marshal.GetLastWin32Error();
