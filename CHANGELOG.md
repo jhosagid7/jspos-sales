@@ -1,3 +1,11 @@
+## [1.10.428] - 2026-09-15
+
+### Fixed
+- **Optimización de Detección de Impresoras en Red (Eliminación de IPs Obsoletas y Soporte de Autenticación)**:
+  - `rawprint.cs`, `rawprint.exe`: Incorporación de escáner multihilo nativo en C# (`--scan-subnet`) y prueba de conectividad no bloqueante (`--test`) que valida el puerto SMB (TCP 445) con timeout estricto antes de consultar el spooler, eliminando falsos positivos en IPs desconectadas o antiguas (ej: `.104`, `.105`).
+  - `PrinterDiscoveryService.php`: Integración de barrido paralelo por subred y reintento de autenticación SMB automática con credenciales almacenadas (`net use \\IP /u:user pass`) cuando el host responde con `Error 5 (Acceso denegado)`. Esto permite descubrir inmediatamente impresoras protegidas en Windows 10/11 como `\\192.168.20.117\POS-80-Print` y `\\192.168.20.117\POS80`.
+  - Filtrado automático de colas de impresión de red mapeadas obsoletas en el Spooler de Windows si el equipo remoto no está activo en la red local.
+
 ## [1.10.427] - 2026-09-15
 
 ### Added

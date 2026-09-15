@@ -178,7 +178,11 @@ class DeviceManager extends Component
             return;
         }
 
-        $result = \App\Services\PrinterDiscoveryService::testConnection($target);
+        $result = \App\Services\PrinterDiscoveryService::testConnection(
+            $target,
+            $this->printer_user ?? '',
+            $this->printer_password ?? ''
+        );
         $this->connection_test_result = $result;
 
         if ($result['success']) {
@@ -200,7 +204,12 @@ class DeviceManager extends Component
             return;
         }
 
-        $result = \App\Services\PrinterDiscoveryService::printTestPage($target, $this->printer_width ?? '80mm');
+        $result = \App\Services\PrinterDiscoveryService::printTestPage(
+            $target,
+            $this->printer_width ?? '80mm',
+            $this->printer_user ?? '',
+            $this->printer_password ?? ''
+        );
         $this->connection_test_result = $result;
 
         if ($result['success']) {

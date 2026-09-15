@@ -1,6 +1,12 @@
 using System;
 using System.IO;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading.Tasks;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Diagnostics;
 
 public class RawPrintHelper {
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
@@ -31,13 +37,111 @@ public class RawPrintHelper {
     [DllImport("winspool.Drv", EntryPoint = "WritePrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
     public static extern bool WritePrinter(IntPtr hPrinter, IntPtr pBytes, Int32 dwCount, out Int32 dwWritten);
 
+    public static bool TestTcpPort(string host, int port, int timeoutMs) {
+        try {
+            using (var client = new TcpClient()) {
+                var ar = client.BeginConnect(host, port, null, null);
+                if (ar.AsyncWaitHandle.WaitOne(timeoutMs)) {
+                    client.EndConnect(ar);
+                    return true;
+                }
+            }
+        } catch {}
+        return false;
+    }
+
+    public static List<string> ScanSubnetLiveIps(string subnetPrefix, int timeoutMs) {
+        var liveIps = new List<string>();
+        var tasks = new List<Task>();
+        object lockObj = new object();
+
+        for (int i = 1; i <= 254; i++) {
+            string ip = subnetPrefix + i;
+            tasks.Add(Task.Factory.StartNew(() => {
+                if (TestTcpPort(ip, 445, timeoutMs)) {
+                    lock (lockObj) {
+                        liveIps.Add(ip);
+                    }
+                }
+            }));
+        }
+
+        Task.WaitAll(tasks.ToArray());
+        return liveIps;
+    }
+
     public static int Main(string[] args) {
-        if (args.Length < 2) {
+        if (args.Length == 0) {
             Console.WriteLine("Usage: rawprint <printer_name> <file_path>");
+            Console.WriteLine("       rawprint --test <printer_name> [user] [pass]");
+            Console.WriteLine("       rawprint --scan-subnet <subnet_prefix>");
             return 2;
         }
 
-        string printerName = args[0];
+        // Mode 1: Subnet Live IP Scan
+        if (args[0] == "--scan-subnet") {
+            string prefix = args.Length > 1 ? args[1] : "192.168.20.";
+            if (!prefix.EndsWith(".")) prefix += ".";
+            var live = ScanSubnetLiveIps(prefix, 350);
+            Console.WriteLine(string.Join(",", live.ToArray()));
+            return 0;
+        }
+
+        // Mode 2: Test Printer Connection
+        if (args[0] == "--test") {
+            if (args.Length < 2) {
+                Console.WriteLine("Error: Missing printer name");
+                return 2;
+            }
+            string printerName = args[1];
+            string user = args.Length > 2 ? args[2] : "";
+            string pass = args.Length > 3 ? args[3] : "";
+
+            if (printerName.StartsWith("\\\\")) {
+                string clean = printerName.Substring(2);
+                int slashIdx = clean.IndexOf('\\');
+                string host = slashIdx > 0 ? clean.Substring(0, slashIdx) : clean;
+                string share = slashIdx > 0 ? clean.Substring(slashIdx + 1) : "";
+
+                // 1. First probe host on port 445
+                bool tcpOk = TestTcpPort(host, 445, 400);
+                if (!tcpOk) {
+                    Console.WriteLine("Error: El equipo de red (" + host + ") no responde o esta apagado.");
+                    return 1;
+                }
+
+                // 2. If user/pass provided, authenticate session
+                if (!string.IsNullOrEmpty(user) && !string.IsNullOrEmpty(pass)) {
+                    try {
+                        var psi = new ProcessStartInfo("net", "use \\\\" + host + " /u:\"" + user + "\" \"" + pass + "\"") {
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true,
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        };
+                        using (var p = Process.Start(psi)) {
+                            p.WaitForExit(2000);
+                        }
+                    } catch {}
+                }
+            }
+
+            // 3. OpenPrinter test
+            IntPtr hPrinter = IntPtr.Zero;
+            bool opened = OpenPrinter(printerName, out hPrinter, IntPtr.Zero);
+            if (opened) {
+                ClosePrinter(hPrinter);
+                Console.WriteLine("OK");
+                return 0;
+            } else {
+                int err = Marshal.GetLastWin32Error();
+                Console.WriteLine("Error: No se pudo abrir la cola de impresion (Win32: " + err + ")");
+                return 1;
+            }
+        }
+
+        // Mode 3: Print File
+        string pName = args[0];
         string filePath = args[1];
 
         if (!File.Exists(filePath)) {
@@ -53,25 +157,25 @@ public class RawPrintHelper {
             return 4;
         }
 
-        IntPtr hPrinter = IntPtr.Zero;
+        IntPtr hPrn = IntPtr.Zero;
         DOCINFOW di = new DOCINFOW();
         di.pDocName = "POS Ticket";
         di.pDataType = "RAW";
 
         bool ok = false;
-        if (OpenPrinter(printerName, out hPrinter, IntPtr.Zero)) {
-            if (StartDocPrinter(hPrinter, 1, di)) {
-                if (StartPagePrinter(hPrinter)) {
+        if (OpenPrinter(pName, out hPrn, IntPtr.Zero)) {
+            if (StartDocPrinter(hPrn, 1, di)) {
+                if (StartPagePrinter(hPrn)) {
                     IntPtr p = Marshal.AllocCoTaskMem(bytes.Length);
                     Marshal.Copy(bytes, 0, p, bytes.Length);
                     Int32 written = 0;
-                    ok = WritePrinter(hPrinter, p, bytes.Length, out written);
+                    ok = WritePrinter(hPrn, p, bytes.Length, out written);
                     Marshal.FreeCoTaskMem(p);
-                    EndPagePrinter(hPrinter);
+                    EndPagePrinter(hPrn);
                 }
-                EndDocPrinter(hPrinter);
+                EndDocPrinter(hPrn);
             }
-            ClosePrinter(hPrinter);
+            ClosePrinter(hPrn);
         }
 
         if (ok) {
