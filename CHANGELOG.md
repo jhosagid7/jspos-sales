@@ -1,3 +1,14 @@
+## [1.10.431] - 2026-09-15
+
+### Fixed
+- **Depuración Integral de Dispositivos Inactivos y Huérfanos**:
+  - `DeviceManager.php`: El botón *"Limpiar Duplicados"* ahora purga automáticamente:
+    1. Dispositivos con nombres autogenerados (`Dispositivo xxxx`) inactivos por más de 14 días (o 7 días sin impresora configurada).
+    2. Duplicados locales de `127.0.0.1` / `::1` inactivos.
+    3. Registros pendientes o bloqueados inactivos por más de 14 días.
+    4. Sesiones duplicadas por IP y navegador (conservando siempre la más reciente).
+    5. Dispositivos abandonados con más de 45 días de inactividad sin impresora asignada, protegiendo siempre la sesión activa actual del usuario.
+
 ## [1.10.430] - 2026-09-15
 
 ### UI / UX

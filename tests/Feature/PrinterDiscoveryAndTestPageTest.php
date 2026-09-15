@@ -168,6 +168,34 @@ class PrinterDiscoveryAndTestPageTest extends TestCase
         ]);
         $stalePending->save();
 
+        // Generic auto-generated device inactive > 14 days
+        $staleGeneric = new DeviceAuthorization();
+        $staleGeneric->timestamps = false;
+        $staleGeneric->forceFill([
+            'uuid' => 'stale-generic-uuid',
+            'name' => 'Dispositivo KUXd',
+            'ip_address' => '192.168.194.127',
+            'user_agent' => 'Android Mobile',
+            'status' => 'approved',
+            'created_at' => now()->subDays(30),
+            'last_accessed_at' => now()->subDays(30),
+        ]);
+        $staleGeneric->save();
+
+        // Stale localhost duplicate inactive > 2 days
+        $staleLocalhost = new DeviceAuthorization();
+        $staleLocalhost->timestamps = false;
+        $staleLocalhost->forceFill([
+            'uuid' => 'stale-localhost-uuid',
+            'name' => 'Dispositivo B0b3',
+            'ip_address' => '127.0.0.1',
+            'user_agent' => 'Chrome Windows',
+            'status' => 'approved',
+            'created_at' => now()->subDays(50),
+            'last_accessed_at' => now()->subDays(50),
+        ]);
+        $staleLocalhost->save();
+
         // Distinct approved device on another IP (should NOT be deleted)
         $otherDevice = DeviceAuthorization::create([
             'uuid' => 'other-device-uuid',
@@ -184,9 +212,11 @@ class PrinterDiscoveryAndTestPageTest extends TestCase
             ->call('purgeDuplicates')
             ->assertDispatched('noty');
 
-        // Verify that stalePending and duplicateOld were removed
+        // Verify that stalePending, duplicateOld, staleGeneric, and staleLocalhost were removed
         $this->assertDatabaseMissing('device_authorizations', ['id' => $stalePending->id]);
         $this->assertDatabaseMissing('device_authorizations', ['id' => $duplicateOld->id]);
+        $this->assertDatabaseMissing('device_authorizations', ['id' => $staleGeneric->id]);
+        $this->assertDatabaseMissing('device_authorizations', ['id' => $staleLocalhost->id]);
 
         // Verify that currentDevice and otherDevice remain
         $this->assertDatabaseHas('device_authorizations', ['id' => $currentDevice->id]);

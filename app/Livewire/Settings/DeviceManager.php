@@ -222,41 +222,69 @@ class DeviceManager extends Component
     public function purgeDuplicates()
     {
         $deletedCount = 0;
-        
-        // 1. Delete pending devices older than 14 days
-        $deletedCount += DeviceAuthorization::where('status', 'pending')
-            ->where(function ($q) {
-                $q->where('created_at', '<', now()->subDays(14))
-                  ->orWhere('last_accessed_at', '<', now()->subDays(14));
-            })
-            ->delete();
+        $currentToken = $this->current_token ?? \Illuminate\Support\Facades\Cookie::get('device_token') ?? session('device_token');
 
-        // 2. Group approved devices by IP + User-Agent and delete older duplicates (keeping the most recently accessed)
-        $approvedDevices = DeviceAuthorization::where('status', 'approved')
-            ->orderBy('last_accessed_at', 'desc')
-            ->get();
-
-        $seen = [];
+        $allDevices = DeviceAuthorization::all();
         $idsToDelete = [];
+        $seenFingerprints = [];
 
-        foreach ($approvedDevices as $dev) {
+        // 1. Group approved devices by IP + User-Agent and mark older duplicate sessions for removal
+        $sortedDevices = DeviceAuthorization::orderBy('last_accessed_at', 'desc')->get();
+        foreach ($sortedDevices as $dev) {
             $key = $dev->ip_address . '|' . $dev->user_agent;
 
-            // Always preserve the currently active device session, but mark its fingerprint as seen
-            if ($this->current_token && $dev->uuid === $this->current_token) {
-                $seen[$key] = true;
+            // Always preserve the currently active device session
+            if ($currentToken && $dev->uuid === $currentToken) {
+                $seenFingerprints[$key] = true;
                 continue;
             }
 
-            if (isset($seen[$key])) {
+            if (isset($seenFingerprints[$key])) {
                 $idsToDelete[] = $dev->id;
             } else {
-                $seen[$key] = true;
+                $seenFingerprints[$key] = true;
             }
         }
 
+        // 2. Remove generic auto-generated devices (Dispositivo xxxx) inactive > 14 days,
+        // non-approved devices inactive > 14 days, loopback duplicates, and long-abandoned devices
+        foreach ($allDevices as $dev) {
+            if ($currentToken && $dev->uuid === $currentToken) {
+                continue;
+            }
+
+            $daysInactive = $dev->last_accessed_at ? $dev->last_accessed_at->diffInDays(now()) : 999;
+            $isGenericName = str_starts_with($dev->name, 'Dispositivo ') || preg_match('/^Dispositivo\s+[a-zA-Z0-9]{4}$/', $dev->name);
+
+            // A) Generic auto-generated device inactive for more than 14 days (or 7 days if no printer configured)
+            if ($isGenericName && ($daysInactive >= 14 || ($daysInactive >= 7 && empty($dev->printer_name)))) {
+                $idsToDelete[] = $dev->id;
+                continue;
+            }
+
+            // B) Non-approved devices inactive for more than 14 days
+            if ($dev->status !== 'approved' && $daysInactive >= 14) {
+                $idsToDelete[] = $dev->id;
+                continue;
+            }
+
+            // C) Stale loopback duplicates (127.0.0.1, ::1) inactive > 2 days
+            if (in_array($dev->ip_address, ['127.0.0.1', '::1', 'localhost']) && $daysInactive >= 2) {
+                $idsToDelete[] = $dev->id;
+                continue;
+            }
+
+            // D) Inactive for more than 45 days without configured printer
+            if ($daysInactive >= 45 && empty($dev->printer_name)) {
+                $idsToDelete[] = $dev->id;
+                continue;
+            }
+        }
+
+        $idsToDelete = array_unique($idsToDelete);
+
         if (!empty($idsToDelete)) {
-            $deletedCount += DeviceAuthorization::whereIn('id', $idsToDelete)->delete();
+            $deletedCount = DeviceAuthorization::whereIn('id', $idsToDelete)->delete();
         }
 
         $this->dispatch('noty', msg: "Se eliminaron {$deletedCount} dispositivos duplicados o inactivos.");
