@@ -254,6 +254,33 @@ public class RawPrintHelper {
                     }
                 }
 
+                // If user was supplied but failed, clear bad credentials and test anonymously/guest
+                if (!string.IsNullOrEmpty(user)) {
+                    try {
+                        var psi = new ProcessStartInfo("net", "use \\\\" + host + " /delete /y") {
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true,
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        };
+                        using (var p = Process.Start(psi)) {
+                            p.WaitForExit(1000);
+                        }
+                    } catch {}
+
+                    if (TryDirectSmbTest(printerName)) {
+                        Console.WriteLine("OK");
+                        return 0;
+                    }
+                    if (ipHost != host) {
+                        string ipUnc = "\\\\" + ipHost + "\\" + share;
+                        if (TryDirectSmbTest(ipUnc)) {
+                            Console.WriteLine("OK");
+                            return 0;
+                        }
+                    }
+                }
+
                 int err = Marshal.GetLastWin32Error();
                 Console.WriteLine("Error: Nombre de impresora no encontrado en el equipo de red (Error " + (err > 0 ? err.ToString() : "1801") + ").");
                 return 1;
@@ -290,14 +317,13 @@ public class RawPrintHelper {
             return 4;
         }
 
-        // 1. Try Windows Spooler API
-        if (TrySpoolerPrint(pName, bytes)) {
-            Console.WriteLine("OK");
-            return 0;
-        }
-
-        // 2. If network UNC, try resolving hostname to IP and try Spooler again
+        // For network UNC printers, try Direct SMB Write FIRST (< 25ms, no Spooler driver timeout)
         if (pName.StartsWith("\\\\")) {
+            if (TryDirectSmbPrint(pName, bytes)) {
+                Console.WriteLine("OK");
+                return 0;
+            }
+
             string clean = pName.Substring(2);
             int slashIdx = clean.IndexOf('\\');
             string ipUnc = null;
@@ -307,20 +333,26 @@ public class RawPrintHelper {
                 string ip = ResolveHostToIp(host);
                 if (ip != host) {
                     ipUnc = "\\\\" + ip + "\\" + share;
-                    if (TrySpoolerPrint(ipUnc, bytes)) {
+                    if (TryDirectSmbPrint(ipUnc, bytes)) {
                         Console.WriteLine("OK");
                         return 0;
                     }
                 }
             }
 
-            // 3. Fallback: Direct SMB Write
-            if (TryDirectSmbPrint(pName, bytes)) {
+            // Fallback: Try Windows Spooler API
+            if (TrySpoolerPrint(pName, bytes)) {
                 Console.WriteLine("OK");
                 return 0;
             }
 
-            if (!string.IsNullOrEmpty(ipUnc) && TryDirectSmbPrint(ipUnc, bytes)) {
+            if (!string.IsNullOrEmpty(ipUnc) && TrySpoolerPrint(ipUnc, bytes)) {
+                Console.WriteLine("OK");
+                return 0;
+            }
+        } else {
+            // Local printer: Try Windows Spooler API
+            if (TrySpoolerPrint(pName, bytes)) {
                 Console.WriteLine("OK");
                 return 0;
             }

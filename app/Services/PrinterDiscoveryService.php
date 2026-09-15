@@ -190,9 +190,22 @@ class PrinterDiscoveryService
             ];
         }
 
+        $targetToTest = $printerName;
+        if (str_starts_with($printerName, '\\\\')) {
+            $clean = ltrim($printerName, '\\');
+            $parts = explode('\\', $clean);
+            if (count($parts) >= 2) {
+                $resolvedIp = CustomWindowsPrintConnector::resolveHostnameToIp($parts[0]);
+                if (!empty($resolvedIp) && $resolvedIp !== $parts[0]) {
+                    $targetToTest = "\\\\{$resolvedIp}\\{$parts[1]}";
+                }
+            }
+        }
+
         // If credentials not provided but it's a network printer, try finding stored credentials
         if (empty($user) && str_starts_with($printerName, '\\\\')) {
             $auth = \App\Models\DeviceAuthorization::where('printer_name', $printerName)
+                ->orWhere('printer_name', $targetToTest)
                 ->whereNotNull('printer_user')
                 ->where('printer_user', '!=', '')
                 ->first();
@@ -203,7 +216,7 @@ class PrinterDiscoveryService
         }
 
         $t0 = microtime(true);
-        $cmd = '"' . $exePath . '" --test ' . escapeshellarg($printerName);
+        $cmd = '"' . $exePath . '" --test ' . escapeshellarg($targetToTest);
         if (!empty($user)) {
             $cmd .= ' ' . escapeshellarg($user) . ' ' . escapeshellarg($pass);
         }
@@ -214,6 +227,20 @@ class PrinterDiscoveryService
 
         $latencyMs = round(($t1 - $t0) * 1000, 1);
         $outputStr = implode(" ", $out);
+
+        // Fallback: If test with resolved IP failed, test original printerName
+        if ($ret !== 0 && $targetToTest !== $printerName) {
+            $cmd2 = '"' . $exePath . '" --test ' . escapeshellarg($printerName);
+            if (!empty($user)) {
+                $cmd2 .= ' ' . escapeshellarg($user) . ' ' . escapeshellarg($pass);
+            }
+            $cmd2 .= ' 2>&1';
+            exec($cmd2, $out2, $ret2);
+            if ($ret2 === 0 && str_contains(implode(" ", $out2), 'OK')) {
+                $ret = 0;
+                $outputStr = implode(" ", $out2);
+            }
+        }
 
         if ($ret === 0 && str_contains($outputStr, 'OK')) {
             return [

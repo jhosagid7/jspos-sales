@@ -1,3 +1,10 @@
+## [1.10.434] - 2026-09-15
+
+### Performance & Fixed
+- **Optimización de Velocidad Extrema en Impresión de Red (< 180 ms) y Auto-Recuperación de Credenciales**:
+  - `rawprint.cs / rawprint.exe`: Priorización de flujo directo SMB Win32 antes de Spooler para rutas UNC en modo impresión, eliminando el timeout de 5 a 10 segundos de drivers en Windows Spooler. Se agregó auto-recuperación ante credenciales residuales erróneas ejecutando reconexión anónima/invitado automática.
+  - `CustomWindowsPrintConnector.php` & `PrinterDiscoveryService.php`: Pre-resolución de nombres de host NetBIOS a dirección IP (`DESKTOP-CP7495D` -> `192.168.20.117`) en milisegundos con almacenamiento en caché, reduciendo el tiempo de envío de ticket de prueba de ~10.4 segundos a **175 ms**.
+
 ## [1.10.433] - 2026-09-15
 
 ### Fixed

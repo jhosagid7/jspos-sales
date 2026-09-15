@@ -151,10 +151,12 @@ class CustomWindowsPrintConnector implements PrintConnector
 
     protected function finalizeWin($data)
     {
-        $printerName = $this->isLocal ? $this->printerName : ("\\\\" . $this->hostname . "\\" . $this->printerName);
+        $targetHost = $this->hostname ? self::resolveHostnameToIp($this->hostname) : null;
+        $hostToUse = $targetHost ?: $this->hostname;
+        $printerName = $this->isLocal ? $this->printerName : ("\\\\" . $hostToUse . "\\" . $this->printerName);
 
         // 1. Primary Method: Ultra-Fast Native RawPrint Helper (< 80ms)
-        // Works directly with Windows Spooler for all local and network/UNC printers
+        // Works directly with Windows Spooler and Kernel32 Direct SMB Stream
         try {
             if ($this->sendToNativeRawPrinter($printerName, $data)) {
                 return;
