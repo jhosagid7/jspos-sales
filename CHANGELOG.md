@@ -1,3 +1,10 @@
+## [1.10.436] - 2026-09-17
+
+### Fixed
+- **Visibilidad del Botón de Edición de Facturas (Lapicito) para Administradores**:
+  - `salesr.blade.php`: Se corrigió la condición de visibilidad de la acción de edición de facturas para incluir el permiso `sales.edit` y los roles `Admin` / `Administrador`, permitiendo que el botón del lapicito se muestre correctamente en el reporte de ventas para los administradores.
+  - `RoleTemplateService.php`: Se incorporó el permiso `sales.approve_deletion` a la plantilla de Administrador para permitir la gestión completa de anulaciones.
+
 ## [1.10.435] - 2026-09-15
 
 ### Fixed

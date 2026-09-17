@@ -88,7 +88,7 @@ class RoleTemplateService
     {
         return [
             // Sales & POS
-            'sales.index', 'sales.create', 'sales.edit', 'sales.pdf', 'sales.view_all', 'sales.view_history',
+            'sales.index', 'sales.create', 'sales.edit', 'sales.approve_deletion', 'sales.pdf', 'sales.view_all', 'sales.view_history',
             'sales.manage_adjustments', 'sales.show_exchange_rate', 'sales.change_invoice_currency',
             'sales.mix_warehouses', 'sales.switch_warehouse', 'sales.select_driver', 'sales.configure_price_list',
             'sales.generate_price_list', 'pos.select_operator', 'manage_debit_notes',

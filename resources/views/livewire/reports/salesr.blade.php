@@ -600,8 +600,13 @@
                                             </button>
 
                                             @php
-                                                $canEditAnytime = auth()->user()->can('sales.edit_anytime') || auth()->user()->hasRole('Super Admin') || auth()->user()->is_admin;
-                                                $canEditTemp = auth()->user()->can('sales.edit_temporary') && $sale->is_within_edit_window;
+                                                $canEditAnytime = auth()->user()->can('sales.edit_anytime') 
+                                                    || auth()->user()->can('sales.edit') 
+                                                    || auth()->user()->hasRole('Super Admin') 
+                                                    || auth()->user()->hasRole('Admin') 
+                                                    || auth()->user()->hasRole('Administrador') 
+                                                    || auth()->user()->is_admin;
+                                                $canEditTemp = (auth()->user()->can('sales.edit_temporary') || auth()->user()->can('sales.edit')) && ($sale->is_within_edit_window ?? true);
                                                 $isSaleReturnedOrDeleted = strtolower($sale->status) === 'returned' || strtolower($sale->status) === 'cancelled' || $sale->deleted_at !== null;
                                             @endphp
 
