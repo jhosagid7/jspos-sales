@@ -54,5 +54,30 @@ class SellerGroupedTicketPrintTest extends TestCase
         // Condensed Summary Ticket
         $this->printSellerGroupedTicket($dummyData, '2026-08-29', '2026-08-29', true, true, true);
         $this->assertTrue(true);
+
+        // Detailed Ticket with invoice counts and invoice breakdown
+        $invoiceCounts = ['Jhonny Pirela (77)' => 2];
+        $invoicesByOperator = [
+            'Jhonny Pirela (77)' => collect([
+                (object)[
+                    'id' => 1,
+                    'invoice_number' => 'FAC-001',
+                    'customer_name' => 'Cliente A',
+                    'total' => 20,
+                    'total_usd' => 20,
+                    'created_at' => '2026-08-29 10:00:00'
+                ],
+                (object)[
+                    'id' => 2,
+                    'invoice_number' => 'FAC-002',
+                    'customer_name' => 'Cliente B',
+                    'total' => 15,
+                    'total_usd' => 15,
+                    'created_at' => '2026-08-29 11:00:00'
+                ]
+            ])
+        ];
+        $this->printSellerGroupedTicket($dummyData, '2026-08-29', '2026-08-29', true, true, false, $invoiceCounts, $invoicesByOperator);
+        $this->assertTrue(true);
     }
 }

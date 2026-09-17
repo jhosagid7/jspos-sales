@@ -1,3 +1,13 @@
+## [1.10.437] - 2026-09-17
+
+### Added
+- **Conteo, Desglose e Impresión de Facturas por Operador en Reporte de Cobranza (`SellerGroupedReport`)**:
+  - `SellerGroupedReport.php` & `seller-grouped-report.blade.php`: Agregado contador de facturas emitidas por operador (badge informativo), botón interactivo **"Ver Facturas"** con modal responsivo para consultar facturas asociadas y switch **"Incluir Detalle de Facturas"** en filtros.
+  - **Impresión Rápida de Tickets**: Agregado botón para imprimir ticket térmico directo (`printInvoiceTicket()`) junto al botón de factura PDF en el listado de facturas.
+  - `ReportController.php` & `seller-grouped-report-pdf.blade.php`: Incluido conteo de facturas en la tabla de operadores y soporte para sección de desglose de facturas en el reporte PDF.
+  - `PrintTrait.php`: Soporte para conteo y detalle de facturas en el ticket térmico de cobranza por operador.
+  - `SellerGroupedReportInvoicesTest.php`: Pruebas de integración para conteo, modal y endpoints PDF.
+
 ## [1.10.436] - 2026-09-17
 
 ### Fixed

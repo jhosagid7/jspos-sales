@@ -3903,6 +3903,40 @@ class ReportController extends Controller
         $showExchangeRate = $request->get('showExchangeRate', 1) == 1;
         $showUsdAmount = $request->get('showUsdAmount', 1) == 1;
         $showSignatures = $request->get('showSignatures', 0) == 1;
+        $showInvoiceBreakdown = $request->get('showInvoiceBreakdown', 0) == 1;
+
+        // Subconsulta de facturas emitidas por operador
+        $salesCountQuery = DB::table('sales')
+            ->leftJoin('users', 'sales.user_id', '=', 'users.id')
+            ->leftJoin('customers', 'sales.customer_id', '=', 'customers.id')
+            ->where('sales.status', '<>', 'returned')
+            ->whereNull('sales.deletion_approved_at')
+            ->where('sales.created_at', '>=', $dateFrom . ' 00:00:00')
+            ->where('sales.created_at', '<=', $dateTo . ' 23:59:59');
+
+        if (!empty($selectedOperators)) {
+            $salesCountQuery->whereIn('sales.user_id', $selectedOperators);
+        }
+
+        $invoices = $salesCountQuery->select([
+            'sales.id',
+            'sales.invoice_number',
+            'sales.created_at',
+            'sales.total',
+            'sales.total_usd',
+            'sales.status',
+            'sales.user_id',
+            DB::raw("COALESCE(users.name, 'SISTEMA / ONLINE') as seller_name"),
+            DB::raw("COALESCE(customers.name, 'Cliente General') as customer_name")
+        ])
+        ->orderBy('sales.created_at', 'desc')
+        ->get();
+
+        $invoicesByOperator = $invoices->groupBy('seller_name');
+        $invoiceCounts = [];
+        foreach ($invoicesByOperator as $sellerName => $list) {
+            $invoiceCounts[$sellerName] = $list->count();
+        }
 
         // 0. Subconsulta de proporciones
         $salesProportions = DB::table('sale_details')
@@ -4108,19 +4142,22 @@ class ReportController extends Controller
         $config = Configuration::first();
 
         $pdf = Pdf::loadView('reports.seller-grouped-report-pdf', [
-            'reportData'        => $reportData,
-            'condensedData'     => $condensedData,
-            'condensedSummary'  => $condensedSummary,
-            'totalGeneralUsd'   => $totalGeneralUsd,
-            'config'            => $config,
-            'dateFrom'          => $dateFrom,
-            'dateTo'            => $dateTo,
-            'splitByDepartment' => $splitByDepartment,
-            'showOriginalAmount'=> $showOriginalAmount,
-            'showExchangeRate'  => $showExchangeRate,
-            'showUsdAmount'     => $showUsdAmount,
-            'showSignatures'    => $showSignatures,
-            'generatedAt'       => Carbon::now()->format('d/m/Y H:i'),
+            'reportData'           => $reportData,
+            'condensedData'        => $condensedData,
+            'condensedSummary'     => $condensedSummary,
+            'totalGeneralUsd'      => $totalGeneralUsd,
+            'config'               => $config,
+            'dateFrom'             => $dateFrom,
+            'dateTo'               => $dateTo,
+            'splitByDepartment'    => $splitByDepartment,
+            'showOriginalAmount'   => $showOriginalAmount,
+            'showExchangeRate'     => $showExchangeRate,
+            'showUsdAmount'        => $showUsdAmount,
+            'showSignatures'       => $showSignatures,
+            'showInvoiceBreakdown' => $showInvoiceBreakdown,
+            'invoiceCounts'        => $invoiceCounts,
+            'invoicesByOperator'   => $invoicesByOperator,
+            'generatedAt'          => Carbon::now()->format('d/m/Y H:i'),
         ])->setPaper('a4', 'landscape');
 
         $filename = 'Reporte_Vendedores_'

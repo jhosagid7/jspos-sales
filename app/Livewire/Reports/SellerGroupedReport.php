@@ -26,6 +26,10 @@ class SellerGroupedReport extends Component
     public $showExchangeRate = true;
     public $showUsdAmount = true;
     public $showSignatures = false;
+    public $showInvoiceBreakdown = false;
+    public $showOperatorInvoicesModal = false;
+    public $selectedOperatorName = '';
+    public $selectedOperatorInvoices = [];
 
     public function mount()
     {
@@ -270,10 +274,87 @@ class SellerGroupedReport extends Component
         return $condensed;
     }
 
+    public function getInvoicesData()
+    {
+        if (!$this->showReport) {
+            return [
+                'counts' => [],
+                'by_operator' => collect([]),
+                'all' => collect([]),
+            ];
+        }
+
+        $salesQuery = DB::table('sales')
+            ->leftJoin('users', 'sales.user_id', '=', 'users.id')
+            ->leftJoin('customers', 'sales.customer_id', '=', 'customers.id')
+            ->where('sales.status', '<>', 'returned')
+            ->whereNull('sales.deletion_approved_at');
+
+        if ($this->dateFrom) {
+            $salesQuery->where('sales.created_at', '>=', $this->dateFrom . ' 00:00:00');
+        }
+        if ($this->dateTo) {
+            $salesQuery->where('sales.created_at', '<=', $this->dateTo . ' 23:59:59');
+        }
+        if (!empty($this->selectedOperators)) {
+            $salesQuery->whereIn('sales.user_id', $this->selectedOperators);
+        }
+
+        $invoices = $salesQuery->select([
+            'sales.id',
+            'sales.invoice_number',
+            'sales.created_at',
+            'sales.total',
+            'sales.total_usd',
+            'sales.status',
+            'sales.user_id',
+            DB::raw("COALESCE(users.name, 'SISTEMA / ONLINE') as seller_name"),
+            DB::raw("COALESCE(customers.name, 'Cliente General') as customer_name")
+        ])
+        ->orderBy('sales.created_at', 'desc')
+        ->get();
+
+        $byOperator = $invoices->groupBy('seller_name');
+        $counts = [];
+        foreach ($byOperator as $sellerName => $list) {
+            $counts[$sellerName] = $list->count();
+        }
+
+        return [
+            'counts' => $counts,
+            'by_operator' => $byOperator,
+            'all' => $invoices,
+        ];
+    }
+
+    public function openOperatorInvoicesModal($operatorName)
+    {
+        $this->selectedOperatorName = $operatorName;
+        $invoicesData = $this->getInvoicesData();
+        $this->selectedOperatorInvoices = isset($invoicesData['by_operator'][$operatorName])
+            ? $invoicesData['by_operator'][$operatorName]->toArray()
+            : [];
+        $this->showOperatorInvoicesModal = true;
+    }
+
+    public function closeOperatorInvoicesModal()
+    {
+        $this->showOperatorInvoicesModal = false;
+        $this->selectedOperatorName = '';
+        $this->selectedOperatorInvoices = [];
+    }
+
+    public function printInvoiceTicket($saleId)
+    {
+        $this->printSale($saleId);
+        $this->dispatch('noty', msg: 'Ticket de venta enviado a la impresora.');
+    }
+
     public function generatePdf()
     {
         $reportData = $this->getReportData();
         $condensedData = $this->getCondensedData();
+        $invoicesData = $this->getInvoicesData();
         
         $totalGeneralUsd = 0;
         foreach ($reportData as $sellerName => $payments) {
@@ -293,19 +374,22 @@ class SellerGroupedReport extends Component
         $config = \App\Models\Configuration::first();
 
         $pdf = Pdf::loadView('reports.seller-grouped-report-pdf', [
-            'reportData'        => $reportData,
-            'condensedData'     => $condensedData,
-            'condensedSummary'  => $this->condensedSummary,
-            'totalGeneralUsd'   => $totalGeneralUsd,
-            'config'            => $config,
-            'dateFrom'          => $this->dateFrom,
-            'dateTo'            => $this->dateTo,
-            'splitByDepartment' => $this->splitByDepartment,
-            'showOriginalAmount'=> $this->showOriginalAmount,
-            'showExchangeRate'  => $this->showExchangeRate,
-            'showUsdAmount'     => $this->showUsdAmount,
-            'showSignatures'    => $this->showSignatures,
-            'generatedAt'       => Carbon::now()->format('d/m/Y H:i'),
+            'reportData'           => $reportData,
+            'condensedData'        => $condensedData,
+            'condensedSummary'     => $this->condensedSummary,
+            'totalGeneralUsd'      => $totalGeneralUsd,
+            'config'               => $config,
+            'dateFrom'             => $this->dateFrom,
+            'dateTo'               => $this->dateTo,
+            'splitByDepartment'    => $this->splitByDepartment,
+            'showOriginalAmount'   => $this->showOriginalAmount,
+            'showExchangeRate'     => $this->showExchangeRate,
+            'showUsdAmount'        => $this->showUsdAmount,
+            'showSignatures'       => $this->showSignatures,
+            'showInvoiceBreakdown' => $this->showInvoiceBreakdown,
+            'invoiceCounts'        => $invoicesData['counts'],
+            'invoicesByOperator'   => $invoicesData['by_operator'],
+            'generatedAt'          => Carbon::now()->format('d/m/Y H:i'),
         ])->setPaper('a4', 'landscape');
 
         $filename = 'Reporte_Vendedores_'
@@ -320,15 +404,16 @@ class SellerGroupedReport extends Component
     public function openPdfPreview()
     {
         $params = [
-            'dateFrom'          => $this->dateFrom,
-            'dateTo'            => $this->dateTo,
-            'splitByDepartment' => $this->splitByDepartment ? 1 : 0,
-            'condensedSummary'  => $this->condensedSummary ? 1 : 0,
-            'selectedOperators' => implode(',', $this->selectedOperators),
-            'showOriginalAmount'=> $this->showOriginalAmount ? 1 : 0,
-            'showExchangeRate'  => $this->showExchangeRate ? 1 : 0,
-            'showUsdAmount'     => $this->showUsdAmount ? 1 : 0,
-            'showSignatures'    => $this->showSignatures ? 1 : 0,
+            'dateFrom'             => $this->dateFrom,
+            'dateTo'               => $this->dateTo,
+            'splitByDepartment'    => $this->splitByDepartment ? 1 : 0,
+            'condensedSummary'     => $this->condensedSummary ? 1 : 0,
+            'selectedOperators'    => implode(',', $this->selectedOperators),
+            'showOriginalAmount'   => $this->showOriginalAmount ? 1 : 0,
+            'showExchangeRate'     => $this->showExchangeRate ? 1 : 0,
+            'showUsdAmount'        => $this->showUsdAmount ? 1 : 0,
+            'showSignatures'       => $this->showSignatures ? 1 : 0,
+            'showInvoiceBreakdown' => $this->showInvoiceBreakdown ? 1 : 0,
         ];
 
         $this->pdfUrl = route('reports.seller_grouped.pdf', $params);
@@ -349,13 +434,17 @@ class SellerGroupedReport extends Component
             return;
         }
 
+        $invoicesData = $this->getInvoicesData();
+
         $this->printSellerGroupedTicket(
             $reportData,
             $this->dateFrom,
             $this->dateTo,
             $this->splitByDepartment,
             $this->showSignatures,
-            $this->condensedSummary
+            $this->condensedSummary,
+            $invoicesData['counts'],
+            $this->showInvoiceBreakdown ? $invoicesData['by_operator'] : []
         );
 
         $this->dispatch('noty', msg: 'TICKET DE COBRANZA ENVIADO A LA IMPRESORA');
@@ -366,6 +455,7 @@ class SellerGroupedReport extends Component
         $operatorsList = User::orderBy('name')->get();
         $reportData  = $this->getReportData();
         $condensedData = $this->getCondensedData();
+        $invoicesData = $this->getInvoicesData();
 
         $totalGeneralUsd = 0;
         // Also calculate totals by method/currency for the top cards
@@ -410,11 +500,13 @@ class SellerGroupedReport extends Component
         }
 
         return view('livewire.reports.seller-grouped-report', [
-            'operatorsList' => $operatorsList,
-            'reportData'  => $reportData,
-            'condensedData' => $condensedData,
-            'totalGeneralUsd' => $totalGeneralUsd,
-            'totalsByMethod' => $totalsByMethod
+            'operatorsList'        => $operatorsList,
+            'reportData'           => $reportData,
+            'condensedData'        => $condensedData,
+            'totalGeneralUsd'      => $totalGeneralUsd,
+            'totalsByMethod'       => $totalsByMethod,
+            'invoiceCounts'        => $invoicesData['counts'],
+            'invoicesByOperator'   => $invoicesData['by_operator'],
         ]);
     }
 }

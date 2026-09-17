@@ -68,6 +68,10 @@
                             <input type="checkbox" wire:model.live="showSignatures" class="custom-control-input" id="opt_signatures">
                             <label class="custom-control-label f-12" for="opt_signatures">Incluir Firmas en PDF</label>
                         </div>
+                        <div class="custom-control custom-checkbox mt-1">
+                            <input type="checkbox" wire:model.live="showInvoiceBreakdown" class="custom-control-input" id="opt_invoices">
+                            <label class="custom-control-label f-12" for="opt_invoices">Incluir Detalle de Facturas</label>
+                        </div>
                     </div>
 
                     <!-- Botones de Acción -->
@@ -321,7 +325,15 @@
                                                     <tr>
                                                         @if($firstDept)
                                                             <td rowspan="{{ $rowspan }}" class="align-middle font-weight-bold">
-                                                                {{ $sellerName }}
+                                                                <div class="font-weight-bold text-dark" style="font-size: 13px;">{{ $sellerName }}</div>
+                                                                <div class="mt-1 d-flex flex-column align-items-start gap-1">
+                                                                    <span class="badge badge-info font-weight-bold text-white px-2 py-1" style="font-size: 11px;">
+                                                                        <i class="fas fa-file-invoice me-1"></i> {{ $invoiceCounts[$sellerName] ?? 0 }} {{ ($invoiceCounts[$sellerName] ?? 0) == 1 ? 'Factura' : 'Facturas' }}
+                                                                    </span>
+                                                                    <button wire:click.prevent="openOperatorInvoicesModal('{{ addslashes($sellerName) }}')" class="btn btn-outline-primary btn-xs py-0 px-2 mt-1 shadow-sm font-weight-bold" title="Ver Facturas de este operador" style="font-size: 11px;">
+                                                                        <i class="fas fa-list me-1"></i> Ver Facturas
+                                                                    </button>
+                                                                </div>
                                                             </td>
                                                             @php $firstDept = false; @endphp
                                                         @endif
@@ -362,7 +374,15 @@
                                                     <tr>
                                                         @if($first)
                                                             <td rowspan="{{ $rowspan }}" class="align-middle font-weight-bold">
-                                                                {{ $sellerName }}
+                                                                <div class="font-weight-bold text-dark" style="font-size: 13px;">{{ $sellerName }}</div>
+                                                                <div class="mt-1 d-flex flex-column align-items-start gap-1">
+                                                                    <span class="badge badge-info font-weight-bold text-white px-2 py-1" style="font-size: 11px;">
+                                                                        <i class="fas fa-file-invoice me-1"></i> {{ $invoiceCounts[$sellerName] ?? 0 }} {{ ($invoiceCounts[$sellerName] ?? 0) == 1 ? 'Factura' : 'Facturas' }}
+                                                                    </span>
+                                                                    <button wire:click.prevent="openOperatorInvoicesModal('{{ addslashes($sellerName) }}')" class="btn btn-outline-primary btn-xs py-0 px-2 mt-1 shadow-sm font-weight-bold" title="Ver Facturas de este operador" style="font-size: 11px;">
+                                                                        <i class="fas fa-list me-1"></i> Ver Facturas
+                                                                    </button>
+                                                                </div>
                                                             </td>
                                                             @php $first = false; @endphp
                                                         @endif
@@ -392,6 +412,58 @@
                                                 </td>
                                                 @endif
                                             </tr>
+
+                                            @if($showInvoiceBreakdown && isset($invoicesByOperator[$sellerName]) && $invoicesByOperator[$sellerName]->isNotEmpty())
+                                                <!-- Desglose de Facturas Inline -->
+                                                <tr style="background-color: #f0f4f8;">
+                                                    <td colspan="{{ 3 + ($showOriginalAmount ? 1 : 0) + ($showExchangeRate ? 1 : 0) + ($showUsdAmount ? 1 : 0) }}" class="p-2">
+                                                        <div class="card border-0 mb-0 shadow-sm" style="background-color: #fff;">
+                                                            <div class="card-header bg-secondary text-white py-1 px-3 d-flex justify-content-between align-items-center">
+                                                                <span class="font-weight-bold" style="font-size: 12px;">
+                                                                    <i class="fas fa-file-invoice me-1"></i> Facturas Emitidas por {{ $sellerName }} ({{ $invoicesByOperator[$sellerName]->count() }})
+                                                                </span>
+                                                            </div>
+                                                            <div class="card-body p-0">
+                                                                <table class="table table-sm table-striped mb-0" style="font-size: 11px;">
+                                                                    <thead class="bg-light text-dark">
+                                                                        <tr>
+                                                                            <th># Factura</th>
+                                                                            <th>Fecha / Hora</th>
+                                                                            <th>Cliente</th>
+                                                                            <th class="text-right">Total USD</th>
+                                                                            <th class="text-center">Acciones</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        @foreach($invoicesByOperator[$sellerName] as $opInv)
+                                                                            @php 
+                                                                                $invObj = (object)$opInv;
+                                                                                $tUsd = $invObj->total_usd > 0 ? (float)$invObj->total_usd : (float)$invObj->total;
+                                                                            @endphp
+                                                                            <tr>
+                                                                                <td class="font-weight-bold text-primary">#{{ $invObj->invoice_number ?: $invObj->id }}</td>
+                                                                                <td>{{ \Carbon\Carbon::parse($invObj->created_at)->format('d/m/Y H:i') }}</td>
+                                                                                <td>{{ $invObj->customer_name }}</td>
+                                                                                <td class="text-right font-weight-bold text-success">${{ number_format($tUsd, 2) }}</td>
+                                                                                <td class="text-center">
+                                                                                    <div class="d-flex justify-content-center gap-1">
+                                                                                        <a href="{{ route('pos.sales.generatePdfInvoice', $invObj->id) }}" target="_blank" class="btn btn-outline-danger btn-xs" title="Ver Factura PDF">
+                                                                                            <i class="fas fa-file-pdf"></i>
+                                                                                        </a>
+                                                                                        <button wire:click.prevent="printInvoiceTicket({{ $invObj->id }})" class="btn btn-outline-dark btn-xs" title="Imprimir Ticket Térmico">
+                                                                                            <i class="fas fa-receipt text-info"></i>
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </td>
+                                                                            </tr>
+                                                                        @endforeach
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            @endif
                                         @empty
                                             <tr>
                                                 <td colspan="6" class="text-center text-muted p-4">
@@ -418,6 +490,90 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal Facturas del Operador -->
+    @if ($showOperatorInvoicesModal)
+        <div class="modal fade show" tabindex="-1" role="dialog" style="display: block; background: rgba(0,0,0,0.5); z-index: 1060;">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered" role="document">
+                <div class="modal-content shadow-lg border-0">
+                    <div class="modal-header bg-dark text-white p-2 px-3 d-flex justify-content-between align-items-center">
+                        <h6 class="modal-title text-white font-weight-bold mb-0">
+                            <i class="fas fa-file-invoice text-info me-2"></i> Facturas Emitidas: {{ $selectedOperatorName }}
+                            <span class="badge badge-light text-dark ms-2">{{ count($selectedOperatorInvoices) }}</span>
+                        </h6>
+                        <button type="button" class="close text-white" wire:click.prevent="closeOperatorInvoicesModal" aria-label="Close" style="outline: none;">
+                            <span aria-hidden="true" style="font-size: 22px;">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body p-3">
+                        @if(empty($selectedOperatorInvoices))
+                            <div class="alert alert-warning text-center my-3">
+                                <i class="fas fa-info-circle me-1"></i> No se encontraron facturas emitidas por este operador en el rango de fechas seleccionado.
+                            </div>
+                        @else
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped table-hover mb-0">
+                                    <thead class="thead-dark" style="font-size: 12px;">
+                                        <tr>
+                                            <th># Factura</th>
+                                            <th>Fecha / Hora</th>
+                                            <th>Cliente</th>
+                                            <th class="text-right">Total USD</th>
+                                            <th class="text-center">Estado</th>
+                                            <th class="text-center">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody style="font-size: 12px;">
+                                        @php $modalTotalUsd = 0; @endphp
+                                        @foreach($selectedOperatorInvoices as $inv)
+                                            @php 
+                                                $invObj = (object)$inv; 
+                                                $tUsd = $invObj->total_usd > 0 ? (float)$invObj->total_usd : (float)$invObj->total;
+                                                $modalTotalUsd += $tUsd;
+                                            @endphp
+                                            <tr>
+                                                <td class="font-weight-bold text-primary">#{{ $invObj->invoice_number ?: $invObj->id }}</td>
+                                                <td>{{ \Carbon\Carbon::parse($invObj->created_at)->format('d/m/Y H:i') }}</td>
+                                                <td>{{ $invObj->customer_name }}</td>
+                                                <td class="text-right font-weight-bold text-success">${{ number_format($tUsd, 2) }}</td>
+                                                <td class="text-center">
+                                                    <span class="badge {{ $invObj->status === 'paid' ? 'badge-success' : 'badge-secondary' }}">
+                                                        {{ strtoupper($invObj->status) }}
+                                                    </span>
+                                                </td>
+                                                <td class="text-center">
+                                                    <div class="d-flex justify-content-center gap-1">
+                                                        <a href="{{ route('pos.sales.generatePdfInvoice', $invObj->id) }}" target="_blank" class="btn btn-outline-danger btn-xs" title="Ver Factura PDF">
+                                                            <i class="fas fa-file-pdf"></i>
+                                                        </a>
+                                                        <button wire:click.prevent="printInvoiceTicket({{ $invObj->id }})" class="btn btn-outline-dark btn-xs" title="Imprimir Ticket Térmico">
+                                                            <i class="fas fa-receipt text-info"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                    <tfoot class="bg-light font-weight-bold" style="font-size: 13px;">
+                                        <tr>
+                                            <td colspan="3" class="text-right">TOTAL FACTURAS OPERADOR:</td>
+                                            <td class="text-right text-success">${{ number_format($modalTotalUsd, 2) }}</td>
+                                            <td colspan="2"></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="modal-footer p-2 bg-light d-flex justify-content-end">
+                        <button type="button" class="btn btn-secondary btn-sm" wire:click.prevent="closeOperatorInvoicesModal">
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 
     <!-- Modal Visor PDF -->
     @if ($showPdfModal)

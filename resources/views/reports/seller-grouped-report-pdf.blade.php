@@ -201,7 +201,12 @@
                     @foreach($sellerData as $deptType => $payments)
                         <tr>
                             @if($isFirstRow)
-                                <td class="seller" rowspan="{{ $rowspan }}">{{ $sellerName }}</td>
+                                <td class="seller" rowspan="{{ $rowspan }}">
+                                    {{ $sellerName }}
+                                    <div style="font-size: 7.5px; color: #34495e; font-weight: normal; margin-top: 2px;">
+                                        ({{ $invoiceCounts[$sellerName] ?? 0 }} {{ ($invoiceCounts[$sellerName] ?? 0) == 1 ? 'factura' : 'facturas' }})
+                                    </div>
+                                </td>
                             @endif
                             <td colspan="{{ 2 + ($showOriginalAmount ? 1 : 0) + ($showExchangeRate ? 1 : 0) + ($showUsdAmount ? 1 : 0) }}" style="background:#e8ecf1; font-weight:bold; font-size:9px;">&gt; DEP: {{ $deptType }}</td>
                         </tr>
@@ -229,7 +234,12 @@
                         @php $sellerTotalUsd += $row->total_usd; @endphp
                         <tr>
                             @if($index === 0)
-                                <td class="seller" rowspan="{{ count($sellerData) }}">{{ $sellerName }}</td>
+                                <td class="seller" rowspan="{{ count($sellerData) }}">
+                                    {{ $sellerName }}
+                                    <div style="font-size: 7.5px; color: #34495e; font-weight: normal; margin-top: 2px;">
+                                        ({{ $invoiceCounts[$sellerName] ?? 0 }} {{ ($invoiceCounts[$sellerName] ?? 0) == 1 ? 'factura' : 'facturas' }})
+                                    </div>
+                                </td>
                             @endif
                             <td class="cnt">{{ strtoupper($row->method) }}</td>
                             <td class="cnt">{{ strtoupper($row->currency) }}</td>
@@ -270,6 +280,50 @@
         </tfoot>
         @endif
     </table>
+    @endif
+
+    @if(isset($showInvoiceBreakdown) && $showInvoiceBreakdown && !empty($invoicesByOperator) && count($invoicesByOperator) > 0)
+    <!-- Detalle de Facturas Emitidas por Operador -->
+    <div style="margin-top: 18px; page-break-before: auto;">
+        <div class="section-title">Detalle de Facturas Emitidas por Operador</div>
+        @foreach($invoicesByOperator as $sellerName => $invoices)
+            <div style="font-size: 9.5px; font-weight: bold; color: #1e2a3a; margin-top: 8px; margin-bottom: 4px;">
+                Operador: {{ $sellerName }} ({{ count($invoices) }} {{ count($invoices) == 1 ? 'Factura' : 'Facturas' }})
+            </div>
+            <table style="margin-bottom: 8px;">
+                <thead>
+                    <tr>
+                        <th style="text-align:left; width:15%;"># Factura</th>
+                        <th style="text-align:left; width:20%;">Fecha / Hora</th>
+                        <th style="text-align:left; width:45%;">Cliente</th>
+                        <th style="text-align:right; width:20%;">Total USD</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @php $opInvoicesTotal = 0; @endphp
+                    @foreach($invoices as $inv)
+                        @php 
+                            $invObj = (object)$inv;
+                            $tUsd = $invObj->total_usd > 0 ? (float)$invObj->total_usd : (float)$invObj->total;
+                            $opInvoicesTotal += $tUsd;
+                        @endphp
+                        <tr>
+                            <td style="font-weight:bold;">#{{ $invObj->invoice_number ?: $invObj->id }}</td>
+                            <td>{{ \Carbon\Carbon::parse($invObj->created_at)->format('d/m/Y H:i') }}</td>
+                            <td>{{ $invObj->customer_name }}</td>
+                            <td class="num font-weight-bold">$ {{ number_format($tUsd, 2) }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3" class="num">SUBTOTAL FACTURAS {{ strtoupper($sellerName) }}:</td>
+                        <td class="num" style="color:#7ef0b4;">$ {{ number_format($opInvoicesTotal, 2) }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        @endforeach
+    </div>
     @endif
 
     @if(isset($showSignatures) && $showSignatures)

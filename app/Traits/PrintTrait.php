@@ -1256,7 +1256,7 @@ trait PrintTrait
      * Prints thermal ticket for Operator Collection / Cobranza por Operador report.
      * Supports 58mm (32 cols) and 80mm (45 cols) paper widths, department split, condensed summary, and signatures.
      */
-    public function printSellerGroupedTicket($reportData, $dateFrom, $dateTo, $splitByDepartment = false, $showSignatures = true, $condensedSummary = false)
+    public function printSellerGroupedTicket($reportData, $dateFrom, $dateTo, $splitByDepartment = false, $showSignatures = true, $condensedSummary = false, $invoiceCounts = [], $invoicesByOperator = [])
     {
         try {
             $printConfig = $this->getPrinterConfig();
@@ -1374,7 +1374,9 @@ trait PrintTrait
                 } else {
                     foreach ($reportData as $sellerName => $payments) {
                         $printer->setJustification(Printer::JUSTIFY_LEFT);
-                        $printer->text("OPERADOR: " . strtoupper($sellerName) . "\n");
+                        $invCount = isset($invoiceCounts[$sellerName]) ? $invoiceCounts[$sellerName] : null;
+                        $countText = $invCount !== null ? " ({$invCount} " . ($invCount == 1 ? 'Factura' : 'Facturas') . ")" : "";
+                        $printer->text("OPERADOR: " . strtoupper($sellerName) . $countText . "\n");
                         $printer->text($bodySep . "\n");
 
                         $sellerTotalUsd = 0;
@@ -1414,6 +1416,25 @@ trait PrintTrait
                                 }
                                 $printer->text($line . "\n");
                                 $sellerTotalUsd += $item->total_usd;
+                            }
+                            $printer->text($bodySep . "\n");
+                        }
+
+                        // Detalle de Facturas si fue solicitado
+                        if (!empty($invoicesByOperator[$sellerName]) && count($invoicesByOperator[$sellerName]) > 0) {
+                            $printer->text("  DETALLE FACTURAS (" . count($invoicesByOperator[$sellerName]) . "):\n");
+                            foreach ($invoicesByOperator[$sellerName] as $inv) {
+                                $invObj = (object)$inv;
+                                $invNum = "#" . ($invObj->invoice_number ?: $invObj->id);
+                                $tUsd = $invObj->total_usd > 0 ? (float)$invObj->total_usd : (float)$invObj->total;
+                                $invTotal = "$" . number_format($tUsd, 2);
+                                $custName = substr($invObj->customer_name ?? 'General', 0, 10);
+                                if ($is58mm) {
+                                    $lineInv = sprintf("  %-8.8s %-10.10s %10s", $invNum, $custName, $invTotal);
+                                } else {
+                                    $lineInv = sprintf("  %-12.12s %-16.16s %12s", $invNum, $custName, $invTotal);
+                                }
+                                $printer->text($lineInv . "\n");
                             }
                             $printer->text($bodySep . "\n");
                         }
