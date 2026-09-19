@@ -76,7 +76,8 @@ class SellerGroupedReport extends Component
             ->join('sales', 'sale_payment_details.sale_id', '=', 'sales.id')
             ->leftJoin('users', 'sales.user_id', '=', 'users.id')
             ->leftJoinSub($salesProportions, 'proportions', 'sales.id', '=', 'proportions.sale_id')
-            ->where('sales.status', '<>', 'returned')
+            ->whereNotIn('sales.status', ['returned', 'voided', 'cancelled', 'anulated', 'deleted'])
+            ->whereNull('sales.deleted_at')
             ->whereNull('sales.deletion_approved_at');
 
         if ($this->dateFrom) {
@@ -108,7 +109,8 @@ class SellerGroupedReport extends Component
             ->join('sales', 'payments.sale_id', '=', 'sales.id')
             ->leftJoin('users', 'payments.user_id', '=', 'users.id')
             ->leftJoinSub($salesProportions, 'proportions', 'sales.id', '=', 'proportions.sale_id')
-            ->where('sales.status', '<>', 'returned')
+            ->whereNotIn('sales.status', ['returned', 'voided', 'cancelled', 'anulated', 'deleted'])
+            ->whereNull('sales.deleted_at')
             ->whereNull('sales.deletion_approved_at')
             ->where('payments.status', 'approved');
 
@@ -136,12 +138,46 @@ class SellerGroupedReport extends Component
             DB::raw("SUM((payments.amount / CASE WHEN payments.exchange_rate > 0 THEN payments.exchange_rate ELSE 1 END) * CASE WHEN proportions.total_subtotal > 0 THEN (proportions.gravado_subtotal / proportions.total_subtotal) ELSE 0 END) as gravado_usd")
         ])->groupBy('payments.user_id', 'users.name', 'payments.pay_way', 'payments.currency')->get();
 
-        $allRaw = $posPayments->concat($abonos);
+        // 3. Devoluciones de ventas (sale_returns) - Restan cobranza
+        $returnsQuery = DB::table('sale_returns')
+            ->join('sales', 'sale_returns.sale_id', '=', 'sales.id')
+            ->leftJoin('users', 'sales.user_id', '=', 'users.id')
+            ->leftJoinSub($salesProportions, 'proportions', 'sales.id', '=', 'proportions.sale_id')
+            ->where('sale_returns.status', 'approved')
+            ->whereNotIn('sales.status', ['returned', 'voided', 'cancelled', 'anulated', 'deleted'])
+            ->whereNull('sales.deleted_at')
+            ->whereNull('sales.deletion_approved_at');
+
+        if ($this->dateFrom) {
+            $returnsQuery->where('sale_returns.created_at', '>=', $this->dateFrom . ' 00:00:00');
+        }
+        if ($this->dateTo) {
+            $returnsQuery->where('sale_returns.created_at', '<=', $this->dateTo . ' 23:59:59');
+        }
+        if (!empty($this->selectedOperators)) {
+            $returnsQuery->whereIn('sales.user_id', $this->selectedOperators);
+        }
+
+        $returns = $returnsQuery->select([
+            'sales.user_id',
+            DB::raw("COALESCE(users.name, 'SISTEMA / ONLINE') as seller_name"),
+            DB::raw("COALESCE(sale_returns.refund_method, 'cash') as method"),
+            DB::raw("COALESCE(sales.primary_currency_code, 'USD') as currency"),
+            DB::raw("-1 * SUM(sale_returns.total_returned) as total_amount"),
+            DB::raw("AVG(COALESCE(sales.primary_exchange_rate, 1)) as avg_rate"),
+            DB::raw("-1 * SUM(sale_returns.total_returned / CASE WHEN sales.primary_exchange_rate > 0 THEN sales.primary_exchange_rate ELSE 1 END) as total_usd"),
+            DB::raw("-1 * SUM(sale_returns.total_returned * CASE WHEN proportions.total_subtotal > 0 THEN (proportions.local_subtotal / proportions.total_subtotal) ELSE 1 END) as local_amount"),
+            DB::raw("-1 * SUM((sale_returns.total_returned / CASE WHEN sales.primary_exchange_rate > 0 THEN sales.primary_exchange_rate ELSE 1 END) * CASE WHEN proportions.total_subtotal > 0 THEN (proportions.local_subtotal / proportions.total_subtotal) ELSE 1 END) as local_usd"),
+            DB::raw("-1 * SUM(sale_returns.total_returned * CASE WHEN proportions.total_subtotal > 0 THEN (proportions.gravado_subtotal / proportions.total_subtotal) ELSE 0 END) as gravado_amount"),
+            DB::raw("-1 * SUM((sale_returns.total_returned / CASE WHEN sales.primary_exchange_rate > 0 THEN sales.primary_exchange_rate ELSE 1 END) * CASE WHEN proportions.total_subtotal > 0 THEN (proportions.gravado_subtotal / proportions.total_subtotal) ELSE 0 END) as gravado_usd")
+        ])->groupBy('sales.user_id', 'users.name', 'sale_returns.refund_method', 'sales.primary_currency_code')->get();
+
+        $allRaw = $posPayments->concat($abonos)->concat($returns);
         
         $unpivoted = collect();
         foreach ($allRaw as $row) {
             if ($this->splitByDepartment) {
-                if ($row->local_amount > 0.01) {
+                if (abs($row->local_amount) > 0.001 || abs($row->local_usd) > 0.001) {
                     $unpivoted->push((object)[
                         'seller_name' => $row->seller_name,
                         'method' => $row->method,
@@ -152,7 +188,7 @@ class SellerGroupedReport extends Component
                         'avg_rate' => $row->avg_rate
                     ]);
                 }
-                if ($row->gravado_amount > 0.01) {
+                if (abs($row->gravado_amount) > 0.001 || abs($row->gravado_usd) > 0.001) {
                     $unpivoted->push((object)[
                         'seller_name' => $row->seller_name,
                         'method' => $row->method,
@@ -164,15 +200,17 @@ class SellerGroupedReport extends Component
                     ]);
                 }
             } else {
-                $unpivoted->push((object)[
-                    'seller_name' => $row->seller_name,
-                    'method' => $row->method,
-                    'currency' => $row->currency,
-                    'department_type' => 'GENERAL',
-                    'total_amount' => $row->total_amount,
-                    'total_usd' => $row->total_usd,
-                    'avg_rate' => $row->avg_rate
-                ]);
+                if (abs($row->total_amount) > 0.001 || abs($row->total_usd) > 0.001) {
+                    $unpivoted->push((object)[
+                        'seller_name' => $row->seller_name,
+                        'method' => $row->method,
+                        'currency' => $row->currency,
+                        'department_type' => 'GENERAL',
+                        'total_amount' => $row->total_amount,
+                        'total_usd' => $row->total_usd,
+                        'avg_rate' => $row->avg_rate
+                    ]);
+                }
             }
         }
 
@@ -181,7 +219,7 @@ class SellerGroupedReport extends Component
             if ($this->splitByDepartment) {
                 return $sellerPayments->groupBy('department_type')->map(function($deptGroup) {
                     return $deptGroup->groupBy(function($item) {
-                        return $item->method . '-' . $item->currency;
+                        return strtolower($item->method) . '-' . strtoupper($item->currency);
                     })->map(function($methodGroup) {
                         $first = $methodGroup->first();
                         return (object)[
@@ -191,11 +229,15 @@ class SellerGroupedReport extends Component
                             'avg_rate' => $methodGroup->avg('avg_rate'),
                             'total_usd' => $methodGroup->sum('total_usd'),
                         ];
+                    })->filter(function($item) {
+                        return abs($item->total_amount) > 0.001 || abs($item->total_usd) > 0.001;
                     })->values();
+                })->filter(function($deptGroup) {
+                    return $deptGroup->isNotEmpty();
                 });
             } else {
                 return $sellerPayments->groupBy(function($item) {
-                    return $item->method . '-' . $item->currency;
+                    return strtolower($item->method) . '-' . strtoupper($item->currency);
                 })->map(function($methodGroup) {
                     $first = $methodGroup->first();
                     return (object)[
@@ -205,8 +247,12 @@ class SellerGroupedReport extends Component
                         'avg_rate' => $methodGroup->avg('avg_rate'),
                         'total_usd' => $methodGroup->sum('total_usd'),
                     ];
+                })->filter(function($item) {
+                    return abs($item->total_amount) > 0.001 || abs($item->total_usd) > 0.001;
                 })->values();
             }
+        })->filter(function($sellerGroup) {
+            return $sellerGroup->isNotEmpty();
         });
     }
 
@@ -287,7 +333,8 @@ class SellerGroupedReport extends Component
         $salesQuery = DB::table('sales')
             ->leftJoin('users', 'sales.user_id', '=', 'users.id')
             ->leftJoin('customers', 'sales.customer_id', '=', 'customers.id')
-            ->where('sales.status', '<>', 'returned')
+            ->whereNotIn('sales.status', ['returned', 'voided', 'cancelled', 'anulated', 'deleted'])
+            ->whereNull('sales.deleted_at')
             ->whereNull('sales.deletion_approved_at');
 
         if ($this->dateFrom) {
@@ -309,7 +356,8 @@ class SellerGroupedReport extends Component
             'sales.status',
             'sales.user_id',
             DB::raw("COALESCE(users.name, 'SISTEMA / ONLINE') as seller_name"),
-            DB::raw("COALESCE(customers.name, 'Cliente General') as customer_name")
+            DB::raw("COALESCE(customers.name, 'Cliente General') as customer_name"),
+            DB::raw("GREATEST(0, (CASE WHEN sales.total_usd > 0 THEN sales.total_usd ELSE sales.total / CASE WHEN sales.primary_exchange_rate > 0 THEN sales.primary_exchange_rate ELSE 1 END END) - COALESCE((SELECT SUM(sr.total_returned / CASE WHEN s2.primary_exchange_rate > 0 THEN s2.primary_exchange_rate ELSE 1 END) FROM sale_returns sr JOIN sales s2 ON s2.id = sr.sale_id WHERE sr.sale_id = sales.id AND sr.status = 'approved'), 0)) as net_total_usd")
         ])
         ->orderBy('sales.created_at', 'desc')
         ->get();

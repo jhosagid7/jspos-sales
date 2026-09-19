@@ -200,4 +200,172 @@ class SellerGroupedReportInvoicesTest extends TestCase
             ->call('printInvoiceTicket', $sale->id)
             ->assertDispatched('noty');
     }
+
+    public function test_deleted_and_voided_and_cancelled_sales_are_excluded_from_operator_collections()
+    {
+        $today = Carbon::today()->format('Y-m-d');
+
+        // Active sale with payment
+        $saleActive = Sale::create([
+            'total' => 100,
+            'total_usd' => 100,
+            'items' => 1,
+            'type' => 1,
+            'customer_id' => $this->customer->id,
+            'user_id' => $this->operator1->id,
+            'invoice_number' => 'FAC-ACTIVE',
+            'status' => 'paid',
+            'created_at' => Carbon::today()->hour(10),
+        ]);
+        \App\Models\SalePaymentDetail::create([
+            'sale_id' => $saleActive->id,
+            'payment_method' => 'cash',
+            'currency_code' => 'USD',
+            'amount' => 100,
+            'exchange_rate' => 1,
+            'amount_in_primary_currency' => 100,
+            'created_at' => Carbon::today()->hour(10),
+        ]);
+
+        // Returned sale with payment (should be excluded)
+        $saleReturned = Sale::create([
+            'total' => 50,
+            'total_usd' => 50,
+            'items' => 1,
+            'type' => 1,
+            'customer_id' => $this->customer->id,
+            'user_id' => $this->operator1->id,
+            'invoice_number' => 'FAC-RETURNED',
+            'status' => 'returned',
+            'created_at' => Carbon::today()->hour(11),
+        ]);
+        \App\Models\SalePaymentDetail::create([
+            'sale_id' => $saleReturned->id,
+            'payment_method' => 'cash',
+            'currency_code' => 'USD',
+            'amount' => 50,
+            'exchange_rate' => 1,
+            'amount_in_primary_currency' => 50,
+            'created_at' => Carbon::today()->hour(11),
+        ]);
+
+        // Sale with deletion_approved_at (eliminated invoice)
+        $saleApprovedDeletion = Sale::create([
+            'total' => 70,
+            'total_usd' => 70,
+            'items' => 1,
+            'type' => 1,
+            'customer_id' => $this->customer->id,
+            'user_id' => $this->operator1->id,
+            'invoice_number' => 'FAC-DEL-APPROVED',
+            'status' => 'paid',
+            'deletion_approved_at' => Carbon::now(),
+            'created_at' => Carbon::today()->hour(11),
+        ]);
+        \App\Models\SalePaymentDetail::create([
+            'sale_id' => $saleApprovedDeletion->id,
+            'payment_method' => 'cash',
+            'currency_code' => 'USD',
+            'amount' => 70,
+            'exchange_rate' => 1,
+            'amount_in_primary_currency' => 70,
+            'created_at' => Carbon::today()->hour(11),
+        ]);
+
+        // Soft-deleted sale
+        $saleSoftDeleted = Sale::create([
+            'total' => 90,
+            'total_usd' => 90,
+            'items' => 1,
+            'type' => 1,
+            'customer_id' => $this->customer->id,
+            'user_id' => $this->operator1->id,
+            'invoice_number' => 'FAC-DELETED',
+            'status' => 'paid',
+            'deleted_at' => Carbon::now(),
+            'deletion_approved_at' => Carbon::now(),
+            'created_at' => Carbon::today()->hour(12),
+        ]);
+        \App\Models\SalePaymentDetail::create([
+            'sale_id' => $saleSoftDeleted->id,
+            'payment_method' => 'cash',
+            'currency_code' => 'USD',
+            'amount' => 90,
+            'exchange_rate' => 1,
+            'amount_in_primary_currency' => 90,
+            'created_at' => Carbon::today()->hour(12),
+        ]);
+
+        $component = Livewire::actingAs($this->adminUser)
+            ->test(\App\Livewire\Reports\SellerGroupedReport::class)
+            ->set('dateFrom', $today)
+            ->set('dateTo', $today)
+            ->call('searchData');
+
+        $reportData = $component->instance()->getReportData();
+        $invoicesData = $component->instance()->getInvoicesData();
+
+        // Should ONLY count the 1 active sale of 100 USD
+        $this->assertEquals(1, $invoicesData['counts']['Yuliana Padilla'] ?? 0);
+        $operatorPayments = $reportData['Yuliana Padilla'] ?? collect();
+        $this->assertNotEmpty($operatorPayments);
+        $this->assertEquals(100.00, $operatorPayments->sum('total_usd'));
+    }
+
+    public function test_approved_sale_returns_deduct_from_operator_collected_amount()
+    {
+        $today = Carbon::today()->format('Y-m-d');
+
+        // Sale of $100
+        $sale = Sale::create([
+            'total' => 100,
+            'total_usd' => 100,
+            'items' => 2,
+            'type' => 1,
+            'customer_id' => $this->customer->id,
+            'user_id' => $this->operator1->id,
+            'invoice_number' => 'FAC-DEV',
+            'status' => 'paid',
+            'created_at' => Carbon::today()->hour(10),
+        ]);
+        \App\Models\SalePaymentDetail::create([
+            'sale_id' => $sale->id,
+            'payment_method' => 'cash',
+            'currency_code' => 'USD',
+            'amount' => 100,
+            'exchange_rate' => 1,
+            'amount_in_primary_currency' => 100,
+            'created_at' => Carbon::today()->hour(10),
+        ]);
+
+        // Approved SaleReturn of $30 cash
+        \App\Models\SaleReturn::create([
+            'sale_id' => $sale->id,
+            'customer_id' => $this->customer->id,
+            'user_id' => $this->operator1->id,
+            'return_number' => 'DEV-001',
+            'total_returned' => 30,
+            'refund_method' => 'cash',
+            'status' => 'approved',
+            'created_at' => Carbon::today()->hour(11),
+        ]);
+
+        $component = Livewire::actingAs($this->adminUser)
+            ->test(\App\Livewire\Reports\SellerGroupedReport::class)
+            ->set('dateFrom', $today)
+            ->set('dateTo', $today)
+            ->call('searchData');
+
+        $reportData = $component->instance()->getReportData();
+        $invoicesData = $component->instance()->getInvoicesData();
+
+        // 100 - 30 = 70 Net USD
+        $operatorPayments = $reportData['Yuliana Padilla'] ?? collect();
+        $this->assertEquals(70.00, $operatorPayments->sum('total_usd'));
+
+        // Net amount on invoice in data list
+        $inv = $invoicesData['all']->firstWhere('id', $sale->id);
+        $this->assertNotNull($inv);
+        $this->assertEquals(70.00, (float)$inv->net_total_usd);
+    }
 }

@@ -36,6 +36,11 @@
         .tag-cargo { background-color: #3498db; }
         .tag-descargo { background-color: #e74c3c; }
         .tag-nc { background-color: #8e44ad; }
+        .tag-corte { background-color: #2c3e50; }
+        .tag-prod { background-color: #16a085; }
+        .tag-consumo { background-color: #d35400; }
+        .tag-anulada { background-color: #2980b9; }
+        .tag-transfer { background-color: #7f8c8d; }
         
         .footer { position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 8px; color: #777; border-top: 1px solid #ddd; padding-top: 5px; }
     </style>
@@ -102,10 +107,10 @@
         <thead>
             <tr>
                 <th width="12%" class="text-center">FECHA</th>
-                <th width="10%">TIPO</th>
+                <th width="12%">TIPO</th>
                 <th width="8%" class="text-center">REF #</th>
-                <th width="15%">DEPÓSITO</th>
-                <th width="20%">DETALLE</th>
+                <th width="14%">DEPÓSITO</th>
+                <th width="19%">DETALLE</th>
                 <th width="10%">OPERADOR</th>
                 <th width="8%" class="text-center">ENTRADA</th>
                 <th width="8%" class="text-center">SALIDA</th>
@@ -116,14 +121,24 @@
             @php $currentBalance = $initialStock; @endphp
             @forelse($movements as $m)
                 @php 
-                    $currentBalance += ($m->quantity_in - $m->quantity_out);
+                    $isCut = isset($m->is_cut_reset) && $m->is_cut_reset == 1;
+                    if ($isCut) {
+                        $currentBalance = floatval($m->quantity_in);
+                    } else {
+                        $currentBalance += ($m->quantity_in - $m->quantity_out);
+                    }
                     $typeClass = 'tag-cargo';
                     if($m->type == 'Venta') $typeClass = 'tag-venta';
                     elseif($m->type == 'Compra') $typeClass = 'tag-compra';
                     elseif($m->type == 'Descargo (Salida)') $typeClass = 'tag-descargo';
                     elseif($m->type == 'Devolución (NC)') $typeClass = 'tag-nc';
+                    elseif($m->type == 'Corte de Inventario') $typeClass = 'tag-corte';
+                    elseif($m->type == 'Producción') $typeClass = 'tag-prod';
+                    elseif($m->type == 'Consumo Producción') $typeClass = 'tag-consumo';
+                    elseif(str_contains($m->type, 'Anulada')) $typeClass = 'tag-anulada';
+                    elseif(str_contains($m->type, 'Transferencia')) $typeClass = 'tag-transfer';
                 @endphp
-                <tr>
+                <tr style="{{ $isCut ? 'background-color: #fff9db;' : '' }}">
                     <td class="text-center">{{ \Carbon\Carbon::parse($m->movement_date)->format('d/m/Y H:i') }}</td>
                     <td><span class="tag {{ $typeClass }}">{{ $m->type }}</span></td>
                     <td class="text-center">{{ $m->reference }}</td>
@@ -131,10 +146,16 @@
                     <td>{{ $m->detail ?? '-' }}</td>
                     <td>{{ $m->operator }}</td>
                     <td class="text-right text-success">
-                        {{ $m->quantity_in > 0 ? number_format($m->quantity_in, 2) : '' }}
+                        @if($isCut)
+                            <span style="font-weight: bold; color: #b7791f;">{{ number_format($m->quantity_in, 2) }}</span>
+                        @else
+                            {{ $m->quantity_in > 0 ? number_format($m->quantity_in, 2) : '' }}
+                        @endif
                     </td>
                     <td class="text-right text-danger">
-                        {{ $m->quantity_out > 0 ? number_format($m->quantity_out, 2) : '' }}
+                        @if(!$isCut && $m->quantity_out > 0)
+                            {{ number_format($m->quantity_out, 2) }}
+                        @endif
                     </td>
                     <td class="text-right font-bold {{ $currentBalance < 0 ? 'text-danger' : 'text-primary' }}">
                         {{ number_format($currentBalance, 2) }}

@@ -715,7 +715,7 @@ class SalesReport extends Component
                     if (!$product) continue;
 
                     // RESTORE PRODUCT ITEM (BOBINAS/REELS)
-                    $meta = json_decode($detail->metadata, true);
+                    $meta = is_array($detail->metadata) ? $detail->metadata : json_decode($detail->metadata, true);
                     if ($meta && isset($meta['product_item_id'])) {
                         $pi = \App\Models\ProductItem::find($meta['product_item_id']);
                         if ($pi) {

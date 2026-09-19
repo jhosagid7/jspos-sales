@@ -438,7 +438,7 @@
                                                                         @foreach($invoicesByOperator[$sellerName] as $opInv)
                                                                             @php 
                                                                                 $invObj = (object)$opInv;
-                                                                                $tUsd = $invObj->total_usd > 0 ? (float)$invObj->total_usd : (float)$invObj->total;
+                                                                                $tUsd = isset($invObj->net_total_usd) ? (float)$invObj->net_total_usd : ($invObj->total_usd > 0 ? (float)$invObj->total_usd : (float)$invObj->total);
                                                                             @endphp
                                                                             <tr>
                                                                                 <td class="font-weight-bold text-primary">#{{ $invObj->invoice_number ?: $invObj->id }}</td>
@@ -528,7 +528,7 @@
                                         @foreach($selectedOperatorInvoices as $inv)
                                             @php 
                                                 $invObj = (object)$inv; 
-                                                $tUsd = $invObj->total_usd > 0 ? (float)$invObj->total_usd : (float)$invObj->total;
+                                                $tUsd = isset($invObj->net_total_usd) ? (float)$invObj->net_total_usd : ($invObj->total_usd > 0 ? (float)$invObj->total_usd : (float)$invObj->total);
                                                 $modalTotalUsd += $tUsd;
                                             @endphp
                                             <tr>

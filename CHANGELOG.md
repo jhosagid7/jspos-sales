@@ -1,3 +1,21 @@
+## [1.10.438] - 2026-09-19
+
+### Added & Improved
+- **Cortes de Inventario Físico y Reestructuración Integral del Kardex (`ProductMovementsReport`)**:
+  - `InventoryCut.php`, `InventoryCutDetail.php` & migración `inventory_cuts`: Soporte completo para registrar cortes de inventario físico por almacén/depósito con ajuste automático de stock y trazabilidad de usuario.
+  - `ProductMovementsReport.php` & `product-movements-report.blade.php`:
+    - Detección automática del último corte de inventario físico antes o dentro del rango de fechas, estableciendo la existencia inicial y reseteando la línea base del Kardex para evitar saldos distorsionados.
+    - Filtro dinámico y reactivo por depósito individual o consolidado general.
+    - Inclusión completa y unificada de salidas/entradas de manufactura (Planta Bolsas / Soplados), transferencias entre almacenes, compras, ventas, devoluciones, cargos y descargos.
+  - `product-movements-pdf.blade.php` & `ReportController.php`: Sincronización del reporte PDF con el nuevo motor de cortes y trazabilidad de inventario.
+
+### Fixed
+- **Deducción de Facturas Eliminadas y Devoluciones en Cobranza por Operador (`SellerGroupedReport`)**:
+  - `SellerGroupedReport.php` & `ReportController.php`: Exclusión estricta de ventas con aprobación de eliminación (`deletion_approved_at IS NOT NULL`), anuladas o soft-deleted en los pagos POS, abonos y conteos.
+  - **Deducción de Devoluciones**: Consulta e integración de devoluciones de venta aprobadas (`sale_returns`), restando automáticamente los montos devueltos al total recaudado del operador por método de pago y moneda.
+  - `seller-grouped-report.blade.php` & `seller-grouped-report-pdf.blade.php`: Visualización del monto neto de facturas (`net_total_usd`) en vista web, modales y PDF.
+  - `ProductKardexAndCutTest.php`, `SellerGroupedReportInvoicesTest.php`, `StockMovementConsistencyTest.php`: Cobertura exhaustiva de pruebas unitarias y de integración.
+
 ## [1.10.437] - 2026-09-17
 
 ### Added

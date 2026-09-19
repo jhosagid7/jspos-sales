@@ -205,17 +205,6 @@ class Transfers extends Component
 
         $pw->stock_qty += $qty;
         $pw->save();
-
-        $config = \App\Models\Configuration::first();
-        $defaultWarehouseId = $config->default_warehouse_id ?? \App\Models\Warehouse::first()->id ?? 1;
-
-        if ($warehouseId == $defaultWarehouseId) {
-            $product = \App\Models\Product::find($productId);
-            if ($product) {
-                $product->stock_qty += $qty;
-                $product->save();
-            }
-        }
     }
 
     // Modal properties for receiving

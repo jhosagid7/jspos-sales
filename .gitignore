@@ -92,3 +92,10 @@ INSTALLATION_GUIDE.md
 !nssm/**/*.exe
 !bin/*.exe
 !bin/**/*.exe
+ANTIGRAVITY_SYNC_CASA.zip
+generate_pdf_manual.py
+graph*.html
+graphify-out/
+public/vip_debug.log
+Reparar_Red*
+

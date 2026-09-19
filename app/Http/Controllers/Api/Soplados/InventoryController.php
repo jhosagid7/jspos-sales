@@ -174,17 +174,6 @@ class InventoryController extends Controller
 
         $pw->stock_qty += $quantity;
         $pw->save();
-
-        $config = Configuration::first();
-        $defaultWarehouseId = $config->default_warehouse_id ?? \App\Models\Warehouse::first()->id ?? 1;
-
-        if ($warehouseId == $defaultWarehouseId) {
-            $product = Product::find($productId);
-            if ($product) {
-                $product->stock_qty += $quantity;
-                $product->save();
-            }
-        }
     }
 
     /**
@@ -544,15 +533,10 @@ class InventoryController extends Controller
         $pw->stock_qty = $stockQty;
         $pw->save();
 
-        $config = Configuration::first();
-        $defaultWarehouseId = $config->default_warehouse_id ?? \App\Models\Warehouse::first()->id ?? 1;
-
-        if ($warehouseId == $defaultWarehouseId) {
-            $product = Product::find($productId);
-            if ($product) {
-                $product->stock_qty = $stockQty;
-                $product->save();
-            }
+        $product = Product::find($productId);
+        if ($product) {
+            $product->stock_qty = \App\Models\ProductWarehouse::where('product_id', $productId)->sum('stock_qty');
+            $product->save();
         }
     }
 }

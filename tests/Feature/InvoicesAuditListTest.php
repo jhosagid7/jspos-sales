@@ -32,7 +32,7 @@ class InvoicesAuditListTest extends TestCase
 
         config([
             'app.installed' => false,
-            'tenant.modules' => ['module_credits', 'module_roles'],
+            'tenant.modules' => ['module_credits', 'module_roles', 'module_invoice_audit'],
         ]);
 
         Configuration::create([

@@ -311,7 +311,7 @@ class Sale extends Model
             // NEW: Update Variable Items to 'sold' if they were previously 'reserved'
             foreach ($this->details as $detail) {
                 if ($detail->metadata) {
-                    $meta = json_decode($detail->metadata, true);
+                    $meta = is_array($detail->metadata) ? $detail->metadata : json_decode($detail->metadata, true);
                     if (isset($meta['product_item_id'])) {
                         $pi = \App\Models\ProductItem::find($meta['product_item_id']);
                         if ($pi && $pi->status === 'reserved') {

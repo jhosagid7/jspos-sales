@@ -1897,53 +1897,190 @@ class ReportController extends Controller
         $dateFrom = $request->get('dateFrom');
         $dateTo = $request->get('dateTo');
         $selected_warehouse_id = $request->get('warehouse_id', 'all');
-
         $product = \App\Models\Product::with(['category', 'supplier'])->findOrFail($product_id);
         
         $start = Carbon::parse($dateFrom)->startOfDay();
         $end = Carbon::parse($dateTo)->endOfDay();
+        $warehouseId = $selected_warehouse_id;
 
-        // 1. Initial Stock
-        $inBefore = DB::table('purchase_details')
-                    ->join('purchases', 'purchases.id', '=', 'purchase_details.purchase_id')
-                    ->where('product_id', $product_id)->where('purchase_details.created_at', '<', $start)
-                    ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
-                        $q->where('purchases.warehouse_id', $selected_warehouse_id);
-                    })->sum('quantity')
-                  + DB::table('cargo_details')->where('product_id', $product_id)->where('cargo_details.created_at', '<', $start)
-                        ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
-                            $q->join('cargos', 'cargos.id', '=', 'cargo_details.cargo_id')
-                                ->where('cargos.warehouse_id', $selected_warehouse_id);
-                        })->sum('quantity')
-                  + DB::table('sale_return_details')
-                        ->join('sale_details', 'sale_details.id', '=', 'sale_return_details.sale_detail_id')
-                        ->where('sale_return_details.product_id', $product_id)
-                        ->where('sale_return_details.created_at', '<', $start)
-                        ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
-                            $q->where('sale_details.warehouse_id', $selected_warehouse_id);
-                        })->sum('quantity_returned')
-                  + DB::table('transfer_details')->join('transfers', 'transfers.id', '=', 'transfer_details.transfer_id')
-                                ->where('product_id', $product_id)->where('transfer_details.created_at', '<', $start)
-                                ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
-                                    $q->where('transfers.to_warehouse_id', $selected_warehouse_id);
-                                })->sum('quantity');
+        // 1. Buscar si hay cortes de inventario
+        // Prioridad A: Corte en o antes de la fecha inicial (corte anterior a dateFrom)
+        $latestCutBeforeStart = DB::table('inventory_cuts as ic')
+            ->leftJoin('inventory_cut_details as icd', function($join) use ($warehouseId) {
+                $join->on('icd.inventory_cut_id', '=', 'ic.id');
+                if ($warehouseId != 'all') {
+                    $join->where('icd.warehouse_id', $warehouseId);
+                }
+            })
+            ->where('ic.product_id', $product_id)
+            ->where('ic.cut_date', '<=', $start)
+            ->orderBy('ic.cut_date', 'desc')
+            ->select(
+                'ic.id',
+                'ic.cut_date',
+                DB::raw($warehouseId != 'all' ? 'COALESCE(SUM(icd.counted_stock), 0) as baseline_stock' : 'ic.total_stock as baseline_stock')
+            )
+            ->groupBy('ic.id', 'ic.cut_date', 'ic.total_stock')
+            ->first();
 
-        $outBefore = DB::table('sale_details')->where('product_id', $product_id)->where('sale_details.created_at', '<', $start)
-                        ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
-                            $q->where('warehouse_id', $selected_warehouse_id);
-                        })->sum('quantity')
-                   + DB::table('descargo_details')->where('product_id', $product_id)->where('descargo_details.created_at', '<', $start)
-                        ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
-                            $q->join('descargos', 'descargos.id', '=', 'descargo_details.descargo_id')
-                                ->where('descargos.warehouse_id', $selected_warehouse_id);
-                        })->sum('quantity')
-                    + DB::table('transfer_details')->join('transfers', 'transfers.id', '=', 'transfer_details.transfer_id')
-                                ->where('product_id', $product_id)->where('transfer_details.created_at', '<', $start)
-                                ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
-                                    $q->where('transfers.from_warehouse_id', $selected_warehouse_id);
-                                })->sum('quantity');
+        // Prioridad B: Corte ocurrido dentro del rango (cuando no hay corte anterior)
+        $latestCutInRange = DB::table('inventory_cuts as ic')
+            ->leftJoin('inventory_cut_details as icd', function($join) use ($warehouseId) {
+                $join->on('icd.inventory_cut_id', '=', 'ic.id');
+                if ($warehouseId != 'all') {
+                    $join->where('icd.warehouse_id', $warehouseId);
+                }
+            })
+            ->where('ic.product_id', $product_id)
+            ->whereBetween('ic.cut_date', [$start, $end])
+            ->orderBy('ic.cut_date', 'asc')
+            ->select(
+                'ic.id',
+                'ic.cut_date',
+                DB::raw($warehouseId != 'all' ? 'COALESCE(SUM(icd.counted_stock), 0) as baseline_stock' : 'ic.total_stock as baseline_stock')
+            )
+            ->groupBy('ic.id', 'ic.cut_date', 'ic.total_stock')
+            ->first();
 
-        $initialStock = $inBefore - $outBefore;
+        if ($latestCutBeforeStart) {
+            $cutDateBoundary = $latestCutBeforeStart->cut_date;
+            $baselineStock = floatval($latestCutBeforeStart->baseline_stock);
+        } elseif ($latestCutInRange) {
+            $cutDateBoundary = $latestCutInRange->cut_date;
+            $baselineStock = floatval($latestCutInRange->baseline_stock);
+        } else {
+            $cutDateBoundary = null;
+            $baselineStock = 0;
+        }
+
+        // --- Calcular Stock Inicial (Todo entre cutDateBoundary y dateFrom) ---
+        $inBefore = 0;
+        $outBefore = 0;
+
+        if ($latestCutBeforeStart) {
+            // Compras
+            $inBefore += DB::table('purchase_details')
+                ->join('purchases', 'purchases.id', '=', 'purchase_details.purchase_id')
+                ->where('product_id', $product_id)
+                ->where('purchase_details.created_at', '<', $start)
+                ->where('purchase_details.created_at', '>', $cutDateBoundary)
+                ->when($warehouseId != 'all', function($q) use ($warehouseId) {
+                    $q->where('purchases.warehouse_id', $warehouseId);
+                })
+                ->sum('quantity');
+
+            // Cargos (Ajustes +) excluyendo motivos de corte
+            $inBefore += DB::table('cargo_details')
+                ->join('cargos', 'cargos.id', '=', 'cargo_details.cargo_id')
+                ->where('product_id', $product_id)
+                ->where('cargos.motive', 'NOT LIKE', '%Corte de Inventario%')
+                ->where('cargo_details.created_at', '<', $start)
+                ->where('cargo_details.created_at', '>', $cutDateBoundary)
+                ->when($warehouseId != 'all', function($q) use ($warehouseId) {
+                    $q->where('cargos.warehouse_id', $warehouseId);
+                })
+                ->sum('quantity');
+
+            // Devoluciones (Ajustes +) - Solo Aprobadas
+            $inBefore += DB::table('sale_return_details')
+                ->join('sale_details', 'sale_details.id', '=', 'sale_return_details.sale_detail_id')
+                ->join('sale_returns', 'sale_returns.id', '=', 'sale_return_details.sale_return_id')
+                ->where('sale_return_details.product_id', $product_id)
+                ->where('sale_returns.status', 'approved')
+                ->where('sale_return_details.created_at', '<', $start)
+                ->where('sale_return_details.created_at', '>', $cutDateBoundary)
+                ->when($warehouseId != 'all', function($q) use ($warehouseId) {
+                    $q->where('sale_details.warehouse_id', $warehouseId);
+                })
+                ->sum('quantity_returned');
+
+            // Ventas Anuladas
+            $inBefore += DB::table('sale_details')
+                ->join('sales', 'sales.id', '=', 'sale_details.sale_id')
+                ->where('product_id', $product_id)
+                ->where(function($q) {
+                    $q->whereNotNull('sales.deleted_at')
+                      ->orWhereNotNull('sales.deletion_approved_at')
+                      ->orWhereIn('sales.status', ['cancelled', 'voided', 'anulated']);
+                })
+                ->where(DB::raw("COALESCE(sales.deletion_approved_at, sales.deleted_at, sales.updated_at)"), '<', $start)
+                ->where(DB::raw("COALESCE(sales.deletion_approved_at, sales.deleted_at, sales.updated_at)"), '>', $cutDateBoundary)
+                ->when($warehouseId != 'all', function($q) use ($warehouseId) {
+                    $q->where('sale_details.warehouse_id', $warehouseId);
+                })
+                ->sum('quantity');
+
+            // Transferencias (Entrada)
+            $inBefore += DB::table('transfer_details')
+                ->join('transfers', 'transfers.id', '=', 'transfer_details.transfer_id')
+                ->where('product_id', $product_id)
+                ->where('transfer_details.created_at', '<', $start)
+                ->where('transfer_details.created_at', '>', $cutDateBoundary)
+                ->when($warehouseId != 'all', function($q) use ($warehouseId) {
+                    $q->where('transfers.to_warehouse_id', $warehouseId);
+                })
+                ->sum('quantity');
+
+            // Producción de Planta (Entrada)
+            $inBefore += DB::table('production_outputs as po')
+                ->join('production_logs as pl', 'pl.id', '=', 'po.production_log_id')
+                ->join('shifts as sh', 'sh.id', '=', 'pl.shift_id')
+                ->where('po.product_id', $product_id)
+                ->whereIn('po.quality', ['1st', '2nd'])
+                ->where('po.created_at', '<', $start)
+                ->where('po.created_at', '>', $cutDateBoundary)
+                ->when($warehouseId != 'all', function($q) use ($warehouseId) {
+                    $q->where('sh.warehouse_id', $warehouseId);
+                })
+                ->sum('po.quantity');
+
+            // Ventas
+            $outBefore += DB::table('sale_details')
+                ->where('product_id', $product_id)
+                ->where('sale_details.created_at', '<', $start)
+                ->where('sale_details.created_at', '>', $cutDateBoundary)
+                ->when($warehouseId != 'all', function($q) use ($warehouseId) {
+                    $q->where('warehouse_id', $warehouseId);
+                })
+                ->sum('quantity');
+
+            // Descargos (Ajustes -) excluyendo motivos de corte
+            $outBefore += DB::table('descargo_details')
+                ->join('descargos', 'descargos.id', '=', 'descargo_details.descargo_id')
+                ->where('product_id', $product_id)
+                ->where('descargos.motive', 'NOT LIKE', '%Corte de Inventario%')
+                ->where('descargo_details.created_at', '<', $start)
+                ->where('descargo_details.created_at', '>', $cutDateBoundary)
+                ->when($warehouseId != 'all', function($q) use ($warehouseId) {
+                    $q->where('descargos.warehouse_id', $warehouseId);
+                })
+                ->sum('quantity');
+
+            // Transferencias (Salida)
+            $outBefore += DB::table('transfer_details')
+                ->join('transfers', 'transfers.id', '=', 'transfer_details.transfer_id')
+                ->where('product_id', $product_id)
+                ->where('transfer_details.created_at', '<', $start)
+                ->where('transfer_details.created_at', '>', $cutDateBoundary)
+                ->when($warehouseId != 'all', function($q) use ($warehouseId) {
+                    $q->where('transfers.from_warehouse_id', $warehouseId);
+                })
+                ->sum('quantity');
+
+            // Consumo de Materia Prima en Planta (Salida)
+            $outBefore += DB::table('production_materials as pm')
+                ->join('production_logs as pl', 'pl.id', '=', 'pm.production_log_id')
+                ->join('shifts as sh', 'sh.id', '=', 'pl.shift_id')
+                ->where('pm.product_id', $product_id)
+                ->where('pm.created_at', '<', $start)
+                ->where('pm.created_at', '>', $cutDateBoundary)
+                ->when($warehouseId != 'all', function($q) use ($warehouseId) {
+                    $q->where('sh.warehouse_id', $warehouseId);
+                })
+                ->sum('pm.quantity');
+        }
+
+        $initialStock = $baselineStock + $inBefore - $outBefore;
 
         // 2. Movements
         $v = DB::table('sale_details as sd')
@@ -1953,58 +2090,140 @@ class ReportController extends Controller
             ->leftJoin('warehouses as w', 'w.id', '=', 'sd.warehouse_id')
             ->where('sd.product_id', $product_id)
             ->whereBetween('sd.created_at', [$start, $end])
-            ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
-                $q->where('sd.warehouse_id', $selected_warehouse_id);
+            ->when($warehouseId != 'all', function($q) use ($warehouseId) {
+                $q->where('sd.warehouse_id', $warehouseId);
             })
-            ->select('sd.created_at as movement_date', DB::raw("'Venta' as type"), 's.invoice_number as reference', 'u.name as operator', 'c.name as detail', 'w.name as warehouse_name', DB::raw("0 as quantity_in"), 'sd.quantity as quantity_out');
+            ->select(
+                'sd.created_at as movement_date',
+                DB::raw("'Venta' as type"),
+                's.invoice_number as reference',
+                'u.name as operator',
+                'c.name as detail',
+                'w.name as warehouse_name',
+                DB::raw("0 as quantity_in"),
+                'sd.quantity as quantity_out',
+                DB::raw("0 as is_cut_reset")
+            );
 
         $co = DB::table('purchase_details as pd')
             ->join('purchases as p', 'p.id', '=', 'pd.purchase_id')
-            ->join('suppliers as su', 'su.id', '=', 'p.supplier_id')
+            ->join('suppliers as s', 's.id', '=', 'p.supplier_id')
             ->join('users as u', 'u.id', '=', 'p.user_id')
             ->leftJoin('warehouses as w', 'w.id', '=', 'p.warehouse_id')
             ->where('pd.product_id', $product_id)
             ->whereBetween('pd.created_at', [$start, $end])
-            ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
-                $q->where('p.warehouse_id', $selected_warehouse_id);
+            ->when($warehouseId != 'all', function($q) use ($warehouseId) {
+                $q->where('p.warehouse_id', $warehouseId);
             })
-            ->select('pd.created_at as movement_date', DB::raw("'Compra' as type"), 'p.id as reference', 'u.name as operator', 'su.name as detail', DB::raw("COALESCE(w.name, 'Principal (Compras)') as warehouse_name"), 'pd.quantity as quantity_in', DB::raw("0 as quantity_out"));
+            ->select(
+                'pd.created_at as movement_date',
+                DB::raw("'Compra' as type"),
+                'p.id as reference',
+                'u.name as operator',
+                's.name as detail',
+                DB::raw("COALESCE(w.name, 'Principal (Compras)') as warehouse_name"),
+                'pd.quantity as quantity_in',
+                DB::raw("0 as quantity_out"),
+                DB::raw("0 as is_cut_reset")
+            );
 
         $ca = DB::table('cargo_details as cd')
-            ->join('cargos as car', 'car.id', '=', 'cd.cargo_id')
-            ->join('users as u', 'u.id', '=', 'car.user_id')
-            ->leftJoin('warehouses as w', 'w.id', '=', 'car.warehouse_id')
+            ->join('cargos as c', 'c.id', '=', 'cd.cargo_id')
+            ->join('users as u', 'u.id', '=', 'c.user_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'c.warehouse_id')
             ->where('cd.product_id', $product_id)
+            ->where('c.motive', 'NOT LIKE', '%Corte de Inventario%')
             ->whereBetween('cd.created_at', [$start, $end])
-            ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
-                $q->where('car.warehouse_id', $selected_warehouse_id);
+            ->when($warehouseId != 'all', function($q) use ($warehouseId) {
+                $q->where('c.warehouse_id', $warehouseId);
             })
-            ->select('cd.created_at as movement_date', DB::raw("'Cargo (Ajuste)' as type"), 'car.id as reference', 'u.name as operator', 'car.motive as detail', 'w.name as warehouse_name', 'cd.quantity as quantity_in', DB::raw("0 as quantity_out"));
+            ->select(
+                'cd.created_at as movement_date',
+                DB::raw("'Cargo (Ajuste)' as type"),
+                'c.id as reference',
+                'u.name as operator',
+                'c.motive as detail',
+                'w.name as warehouse_name',
+                'cd.quantity as quantity_in',
+                DB::raw("0 as quantity_out"),
+                DB::raw("0 as is_cut_reset")
+            );
 
         $de = DB::table('descargo_details as dd')
-            ->join('descargos as des', 'des.id', '=', 'dd.descargo_id')
-            ->join('users as u', 'u.id', '=', 'des.user_id')
-            ->leftJoin('warehouses as w', 'w.id', '=', 'des.warehouse_id')
+            ->join('descargos as d', 'd.id', '=', 'dd.descargo_id')
+            ->join('users as u', 'u.id', '=', 'd.user_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'd.warehouse_id')
             ->where('dd.product_id', $product_id)
+            ->where('d.motive', 'NOT LIKE', '%Corte de Inventario%')
             ->whereBetween('dd.created_at', [$start, $end])
-            ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
-                $q->where('des.warehouse_id', $selected_warehouse_id);
+            ->when($warehouseId != 'all', function($q) use ($warehouseId) {
+                $q->where('d.warehouse_id', $warehouseId);
             })
-            ->select('dd.created_at as movement_date', DB::raw("'Descargo (Salida)' as type"), 'des.id as reference', 'u.name as operator', 'des.motive as detail', 'w.name as warehouse_name', DB::raw("0 as quantity_in"), 'dd.quantity as quantity_out');
+            ->select(
+                'dd.created_at as movement_date',
+                DB::raw("'Descargo (Salida)' as type"),
+                'd.id as reference',
+                'u.name as operator',
+                'd.motive as detail',
+                'w.name as warehouse_name',
+                DB::raw("0 as quantity_in"),
+                'dd.quantity as quantity_out',
+                DB::raw("0 as is_cut_reset")
+            );
 
         $re = DB::table('sale_return_details as rd')
-            ->join('sale_returns as sr', 'sr.id', '=', 'rd.sale_return_id')
+            ->join('sale_returns as r', 'r.id', '=', 'rd.sale_return_id')
             ->join('sale_details as sd_orig', 'sd_orig.id', '=', 'rd.sale_detail_id')
-            ->join('sales as s', 's.id', '=', 'sr.sale_id')
-            ->join('customers as cl', 'cl.id', '=', 's.customer_id')
-            ->join('users as u', 'u.id', '=', 'sr.user_id')
+            ->join('sales as s', 's.id', '=', 'r.sale_id')
+            ->join('customers as c', 'c.id', '=', 's.customer_id')
+            ->join('users as u', 'u.id', '=', 'r.user_id')
             ->leftJoin('warehouses as w', 'w.id', '=', 'sd_orig.warehouse_id')
             ->where('rd.product_id', $product_id)
+            ->where('r.status', 'approved')
             ->whereBetween('rd.created_at', [$start, $end])
-            ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
-                $q->where('sd_orig.warehouse_id', $selected_warehouse_id);
+            ->when($warehouseId != 'all', function($q) use ($warehouseId) {
+                $q->where('sd_orig.warehouse_id', $warehouseId);
             })
-            ->select('rd.created_at as movement_date', DB::raw("'Devolución (NC)' as type"), 'sr.id as reference', 'u.name as operator', 'cl.name as detail', DB::raw("COALESCE(w.name, 'Principal (NC)') as warehouse_name"), 'rd.quantity_returned as quantity_in', DB::raw("0 as quantity_out"));
+            ->select(
+                'rd.created_at as movement_date',
+                DB::raw("'Devolución (NC)' as type"),
+                'r.id as reference',
+                'u.name as operator',
+                'c.name as detail',
+                DB::raw("COALESCE(w.name, 'Principal (NC)') as warehouse_name"),
+                'rd.quantity_returned as quantity_in',
+                DB::raw("0 as quantity_out"),
+                DB::raw("0 as is_cut_reset")
+            );
+
+        // Ventas Anuladas - ENTRADA
+        $va = DB::table('sale_details as sd')
+            ->join('sales as s', 's.id', '=', 'sd.sale_id')
+            ->join('customers as c', 'c.id', '=', 's.customer_id')
+            ->leftJoin('users as u', 'u.id', '=', 's.deletion_approved_by')
+            ->leftJoin('users as u2', 'u2.id', '=', 's.user_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'sd.warehouse_id')
+            ->where('sd.product_id', $product_id)
+            ->where(function($q) {
+                $q->whereNotNull('s.deleted_at')
+                  ->orWhereNotNull('s.deletion_approved_at')
+                  ->orWhereIn('s.status', ['cancelled', 'voided', 'anulated']);
+            })
+            ->whereBetween(DB::raw("COALESCE(s.deletion_approved_at, s.deleted_at, s.updated_at)"), [$start, $end])
+            ->when($warehouseId != 'all', function($q) use ($warehouseId) {
+                $q->where('sd.warehouse_id', $warehouseId);
+            })
+            ->select(
+                DB::raw("COALESCE(s.deletion_approved_at, s.deleted_at, s.updated_at) as movement_date"),
+                DB::raw("'Venta Anulada (Reingreso)' as type"),
+                's.invoice_number as reference',
+                DB::raw("COALESCE(u.name, u2.name, 'Sistema') as operator"),
+                DB::raw("CONCAT('Anulación: ', COALESCE(s.deletion_reason, 'N/A')) as detail"),
+                'w.name as warehouse_name',
+                'sd.quantity as quantity_in',
+                DB::raw("0 as quantity_out"),
+                DB::raw("0 as is_cut_reset")
+            );
 
         $trIn = DB::table('transfer_details as td')
             ->join('transfers as t', 't.id', '=', 'td.transfer_id')
@@ -2013,10 +2232,20 @@ class ReportController extends Controller
             ->leftJoin('warehouses as wf', 'wf.id', '=', 't.from_warehouse_id')
             ->where('td.product_id', $product_id)
             ->whereBetween('td.created_at', [$start, $end])
-            ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
-                $q->where('t.to_warehouse_id', $selected_warehouse_id);
+            ->when($warehouseId != 'all', function($q) use ($warehouseId) {
+                $q->where('t.to_warehouse_id', $warehouseId);
             })
-            ->select('td.created_at as movement_date', DB::raw("'Transferencia (Entrada)' as type"), 't.id as reference', 'u.name as operator', DB::raw("CONCAT(COALESCE(wf.name, 'N/A'), ' -> ', COALESCE(w.name, 'N/A')) as detail"), 'w.name as warehouse_name', 'td.quantity as quantity_in', DB::raw("0 as quantity_out"));
+            ->select(
+                'td.created_at as movement_date',
+                DB::raw("'Transferencia (Entrada)' as type"),
+                't.id as reference',
+                'u.name as operator',
+                DB::raw("CONCAT(COALESCE(wf.name, 'N/A'), ' -> ', COALESCE(w.name, 'N/A')) as detail"),
+                'w.name as warehouse_name',
+                'td.quantity as quantity_in',
+                DB::raw("0 as quantity_out"),
+                DB::raw("0 as is_cut_reset")
+            );
 
         $trOut = DB::table('transfer_details as td')
             ->join('transfers as t', 't.id', '=', 'td.transfer_id')
@@ -2025,16 +2254,114 @@ class ReportController extends Controller
             ->leftJoin('warehouses as wt', 'wt.id', '=', 't.to_warehouse_id')
             ->where('td.product_id', $product_id)
             ->whereBetween('td.created_at', [$start, $end])
-            ->when($selected_warehouse_id != 'all', function($q) use($selected_warehouse_id) {
-                $q->where('t.from_warehouse_id', $selected_warehouse_id);
+            ->when($warehouseId != 'all', function($q) use ($warehouseId) {
+                $q->where('t.from_warehouse_id', $warehouseId);
             })
-            ->select('td.created_at as movement_date', DB::raw("'Transferencia (Salida)' as type"), 't.id as reference', 'u.name as operator', DB::raw("CONCAT(COALESCE(w.name, 'N/A'), ' -> ', COALESCE(wt.name, 'N/A')) as detail"), 'w.name as warehouse_name', DB::raw("0 as quantity_in"), 'td.quantity as quantity_out');
+            ->select(
+                'td.created_at as movement_date',
+                DB::raw("'Transferencia (Salida)' as type"),
+                't.id as reference',
+                'u.name as operator',
+                DB::raw("CONCAT(COALESCE(w.name, 'N/A'), ' -> ', COALESCE(wt.name, 'N/A')) as detail"),
+                'w.name as warehouse_name',
+                DB::raw("0 as quantity_in"),
+                'td.quantity as quantity_out',
+                DB::raw("0 as is_cut_reset")
+            );
 
-        $movements = $v->unionAll($co)->unionAll($ca)->unionAll($de)->unionAll($re)->unionAll($trIn)->unionAll($trOut)->orderBy('movement_date', 'asc')->get();
+        // Producción Soplados - ENTRADA
+        $prodIn = DB::table('production_outputs as po')
+            ->join('production_logs as pl', 'pl.id', '=', 'po.production_log_id')
+            ->join('shifts as sh', 'sh.id', '=', 'pl.shift_id')
+            ->join('users as u', 'u.id', '=', 'pl.user_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'sh.warehouse_id')
+            ->where('po.product_id', $product_id)
+            ->whereIn('po.quality', ['1st', '2nd'])
+            ->whereBetween('po.created_at', [$start, $end])
+            ->when($warehouseId != 'all', function($q) use ($warehouseId) {
+                $q->where('sh.warehouse_id', $warehouseId);
+            })
+            ->select(
+                'po.created_at as movement_date',
+                DB::raw("'Producción' as type"),
+                DB::raw("CONCAT('Lote #', pl.id) as reference"),
+                'u.name as operator',
+                DB::raw("CONCAT('Producción Soplados (Calidad ', UPPER(po.quality), ')') as detail"),
+                'w.name as warehouse_name',
+                'po.quantity as quantity_in',
+                DB::raw("0 as quantity_out"),
+                DB::raw("0 as is_cut_reset")
+            );
 
-        $totalIn = $movements->sum('quantity_in');
-        $totalOut = $movements->sum('quantity_out');
-        $finalStock = $initialStock + $totalIn - $totalOut;
+        // Consumo de Materia Prima en Planta - SALIDA
+        $prodMatOut = DB::table('production_materials as pm')
+            ->join('production_logs as pl', 'pl.id', '=', 'pm.production_log_id')
+            ->join('shifts as sh', 'sh.id', '=', 'pl.shift_id')
+            ->join('users as u', 'u.id', '=', 'pl.user_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'sh.warehouse_id')
+            ->where('pm.product_id', $product_id)
+            ->whereBetween('pm.created_at', [$start, $end])
+            ->when($warehouseId != 'all', function($q) use ($warehouseId) {
+                $q->where('sh.warehouse_id', $warehouseId);
+            })
+            ->select(
+                'pm.created_at as movement_date',
+                DB::raw("'Consumo Producción' as type"),
+                DB::raw("CONCAT('Lote #', pl.id) as reference"),
+                'u.name as operator',
+                DB::raw("'Consumo Materia Prima en Planta' as detail"),
+                'w.name as warehouse_name',
+                DB::raw("0 as quantity_in"),
+                'pm.quantity as quantity_out',
+                DB::raw("0 as is_cut_reset")
+            );
+
+        // Cortes de Inventario Físico - REINICIO DE BALANZA (BASELINE)
+        $cuts = DB::table('inventory_cuts as ic')
+            ->leftJoin('users as u', 'u.id', '=', 'ic.user_id')
+            ->where('ic.product_id', $product_id)
+            ->whereBetween('ic.cut_date', [$start, $end])
+            ->select(
+                'ic.cut_date as movement_date',
+                DB::raw("'Corte de Inventario' as type"),
+                DB::raw("CONCAT('CORTE #', ic.id) as reference"),
+                DB::raw("COALESCE(u.name, 'Administrador') as operator"),
+                DB::raw("CONCAT('Conteo Físico Establecido (', COALESCE(ic.notes, 'Corte de Inventario'), ')') as detail"),
+                DB::raw($warehouseId != 'all' 
+                    ? "(SELECT w.name FROM warehouses w WHERE w.id = " . intval($warehouseId) . ") as warehouse_name" 
+                    : "'TODOS LOS DEPÓSITOS' as warehouse_name"),
+                DB::raw($warehouseId != 'all' 
+                    ? "COALESCE((SELECT icd.counted_stock FROM inventory_cut_details icd WHERE icd.inventory_cut_id = ic.id AND icd.warehouse_id = " . intval($warehouseId) . "), 0) as quantity_in" 
+                    : "ic.total_stock as quantity_in"),
+                DB::raw("0 as quantity_out"),
+                DB::raw("1 as is_cut_reset")
+            );
+
+        $movements = $v->unionAll($co)
+            ->unionAll($ca)
+            ->unionAll($de)
+            ->unionAll($re)
+            ->unionAll($trIn)
+            ->unionAll($trOut)
+            ->unionAll($va)
+            ->unionAll($prodIn)
+            ->unionAll($prodMatOut)
+            ->unionAll($cuts)
+            ->orderBy('movement_date', 'asc')
+            ->get();
+
+        $totalIn = $movements->where('is_cut_reset', 0)->sum('quantity_in');
+        $totalOut = $movements->where('is_cut_reset', 0)->sum('quantity_out');
+        
+        $currentBal = $initialStock;
+        foreach ($movements as $m) {
+            if (isset($m->is_cut_reset) && $m->is_cut_reset == 1) {
+                $currentBal = floatval($m->quantity_in);
+            } else {
+                $currentBal += (floatval($m->quantity_in) - floatval($m->quantity_out));
+            }
+        }
+        $finalStock = $currentBal;
 
         $config = Configuration::first();
         $user = auth()->user();
@@ -2043,6 +2370,7 @@ class ReportController extends Controller
         $pdf = Pdf::loadView('reports.product-movements-pdf', compact('product', 'movements', 'initialStock', 'totalIn', 'totalOut', 'finalStock', 'config', 'user', 'dateFrom', 'dateTo', 'warehouse_name'));
 
         return $pdf->stream('Kardex_' . $product->sku . '.pdf');
+
     }
 
     public function customerStatementPdf(Request $request)
@@ -3909,7 +4237,8 @@ class ReportController extends Controller
         $salesCountQuery = DB::table('sales')
             ->leftJoin('users', 'sales.user_id', '=', 'users.id')
             ->leftJoin('customers', 'sales.customer_id', '=', 'customers.id')
-            ->where('sales.status', '<>', 'returned')
+            ->whereNotIn('sales.status', ['returned', 'voided', 'cancelled', 'anulated', 'deleted'])
+            ->whereNull('sales.deleted_at')
             ->whereNull('sales.deletion_approved_at')
             ->where('sales.created_at', '>=', $dateFrom . ' 00:00:00')
             ->where('sales.created_at', '<=', $dateTo . ' 23:59:59');
@@ -3927,7 +4256,8 @@ class ReportController extends Controller
             'sales.status',
             'sales.user_id',
             DB::raw("COALESCE(users.name, 'SISTEMA / ONLINE') as seller_name"),
-            DB::raw("COALESCE(customers.name, 'Cliente General') as customer_name")
+            DB::raw("COALESCE(customers.name, 'Cliente General') as customer_name"),
+            DB::raw("GREATEST(0, (CASE WHEN sales.total_usd > 0 THEN sales.total_usd ELSE sales.total / CASE WHEN sales.primary_exchange_rate > 0 THEN sales.primary_exchange_rate ELSE 1 END END) - COALESCE((SELECT SUM(sr.total_returned / CASE WHEN s2.primary_exchange_rate > 0 THEN s2.primary_exchange_rate ELSE 1 END) FROM sale_returns sr JOIN sales s2 ON s2.id = sr.sale_id WHERE sr.sale_id = sales.id AND sr.status = 'approved'), 0)) as net_total_usd")
         ])
         ->orderBy('sales.created_at', 'desc')
         ->get();
@@ -3955,7 +4285,8 @@ class ReportController extends Controller
             ->join('sales', 'sale_payment_details.sale_id', '=', 'sales.id')
             ->leftJoin('users', 'sales.user_id', '=', 'users.id')
             ->leftJoinSub($salesProportions, 'proportions', 'sales.id', '=', 'proportions.sale_id')
-            ->where('sales.status', '<>', 'returned')
+            ->whereNotIn('sales.status', ['returned', 'voided', 'cancelled', 'anulated', 'deleted'])
+            ->whereNull('sales.deleted_at')
             ->whereNull('sales.deletion_approved_at')
             ->where('sale_payment_details.created_at', '>=', $dateFrom . ' 00:00:00')
             ->where('sale_payment_details.created_at', '<=', $dateTo . ' 23:59:59');
@@ -3982,7 +4313,8 @@ class ReportController extends Controller
             ->join('sales', 'payments.sale_id', '=', 'sales.id')
             ->leftJoin('users', 'payments.user_id', '=', 'users.id')
             ->leftJoinSub($salesProportions, 'proportions', 'sales.id', '=', 'proportions.sale_id')
-            ->where('sales.status', '<>', 'returned')
+            ->whereNotIn('sales.status', ['returned', 'voided', 'cancelled', 'anulated', 'deleted'])
+            ->whereNull('sales.deleted_at')
             ->whereNull('sales.deletion_approved_at')
             ->where('payments.status', 'approved')
             ->where('payments.payment_date', '>=', $dateFrom . ' 00:00:00')
@@ -4006,12 +4338,42 @@ class ReportController extends Controller
             DB::raw("SUM((payments.amount / CASE WHEN payments.exchange_rate > 0 THEN payments.exchange_rate ELSE 1 END) * CASE WHEN proportions.total_subtotal > 0 THEN (proportions.gravado_subtotal / proportions.total_subtotal) ELSE 0 END) as gravado_usd")
         ])->groupBy('payments.user_id', 'users.name', 'payments.pay_way', 'payments.currency')->get();
 
-        $allRaw = $posPayments->concat($abonos);
+        // 3. Devoluciones de ventas (sale_returns) - Restan cobranza
+        $returnsQuery = DB::table('sale_returns')
+            ->join('sales', 'sale_returns.sale_id', '=', 'sales.id')
+            ->leftJoin('users', 'sales.user_id', '=', 'users.id')
+            ->leftJoinSub($salesProportions, 'proportions', 'sales.id', '=', 'proportions.sale_id')
+            ->where('sale_returns.status', 'approved')
+            ->whereNotIn('sales.status', ['returned', 'voided', 'cancelled', 'anulated', 'deleted'])
+            ->whereNull('sales.deleted_at')
+            ->whereNull('sales.deletion_approved_at')
+            ->where('sale_returns.created_at', '>=', $dateFrom . ' 00:00:00')
+            ->where('sale_returns.created_at', '<=', $dateTo . ' 23:59:59');
+
+        if (!empty($selectedOperators)) {
+            $returnsQuery->whereIn('sales.user_id', $selectedOperators);
+        }
+
+        $returns = $returnsQuery->select([
+            'sales.user_id',
+            DB::raw("COALESCE(users.name, 'SISTEMA / ONLINE') as seller_name"),
+            DB::raw("COALESCE(sale_returns.refund_method, 'cash') as method"),
+            DB::raw("COALESCE(sales.primary_currency_code, 'USD') as currency"),
+            DB::raw("-1 * SUM(sale_returns.total_returned) as total_amount"),
+            DB::raw("AVG(COALESCE(sales.primary_exchange_rate, 1)) as avg_rate"),
+            DB::raw("-1 * SUM(sale_returns.total_returned / CASE WHEN sales.primary_exchange_rate > 0 THEN sales.primary_exchange_rate ELSE 1 END) as total_usd"),
+            DB::raw("-1 * SUM(sale_returns.total_returned * CASE WHEN proportions.total_subtotal > 0 THEN (proportions.local_subtotal / proportions.total_subtotal) ELSE 1 END) as local_amount"),
+            DB::raw("-1 * SUM((sale_returns.total_returned / CASE WHEN sales.primary_exchange_rate > 0 THEN sales.primary_exchange_rate ELSE 1 END) * CASE WHEN proportions.total_subtotal > 0 THEN (proportions.local_subtotal / proportions.total_subtotal) ELSE 1 END) as local_usd"),
+            DB::raw("-1 * SUM(sale_returns.total_returned * CASE WHEN proportions.total_subtotal > 0 THEN (proportions.gravado_subtotal / proportions.total_subtotal) ELSE 0 END) as gravado_amount"),
+            DB::raw("-1 * SUM((sale_returns.total_returned / CASE WHEN sales.primary_exchange_rate > 0 THEN sales.primary_exchange_rate ELSE 1 END) * CASE WHEN proportions.total_subtotal > 0 THEN (proportions.gravado_subtotal / proportions.total_subtotal) ELSE 0 END) as gravado_usd")
+        ])->groupBy('sales.user_id', 'users.name', 'sale_returns.refund_method', 'sales.primary_currency_code')->get();
+
+        $allRaw = $posPayments->concat($abonos)->concat($returns);
 
         $unpivoted = collect();
         foreach ($allRaw as $row) {
             if ($splitByDepartment) {
-                if ($row->local_amount > 0.01) {
+                if (abs($row->local_amount) > 0.001 || abs($row->local_usd) > 0.001) {
                     $unpivoted->push((object)[
                         'seller_name' => $row->seller_name,
                         'method' => $row->method,
@@ -4022,7 +4384,7 @@ class ReportController extends Controller
                         'avg_rate' => $row->avg_rate
                     ]);
                 }
-                if ($row->gravado_amount > 0.01) {
+                if (abs($row->gravado_amount) > 0.001 || abs($row->gravado_usd) > 0.001) {
                     $unpivoted->push((object)[
                         'seller_name' => $row->seller_name,
                         'method' => $row->method,
@@ -4034,15 +4396,17 @@ class ReportController extends Controller
                     ]);
                 }
             } else {
-                $unpivoted->push((object)[
-                    'seller_name' => $row->seller_name,
-                    'method' => $row->method,
-                    'currency' => $row->currency,
-                    'department_type' => 'GENERAL',
-                    'total_amount' => $row->total_amount,
-                    'total_usd' => $row->total_usd,
-                    'avg_rate' => $row->avg_rate
-                ]);
+                if (abs($row->total_amount) > 0.001 || abs($row->total_usd) > 0.001) {
+                    $unpivoted->push((object)[
+                        'seller_name' => $row->seller_name,
+                        'method' => $row->method,
+                        'currency' => $row->currency,
+                        'department_type' => 'GENERAL',
+                        'total_amount' => $row->total_amount,
+                        'total_usd' => $row->total_usd,
+                        'avg_rate' => $row->avg_rate
+                    ]);
+                }
             }
         }
 
@@ -4050,7 +4414,7 @@ class ReportController extends Controller
             if ($splitByDepartment) {
                 return $sellerPayments->groupBy('department_type')->map(function($deptGroup) {
                     return $deptGroup->groupBy(function($item) {
-                        return $item->method . '-' . $item->currency;
+                        return strtolower($item->method) . '-' . strtoupper($item->currency);
                     })->map(function($methodGroup) {
                         $first = $methodGroup->first();
                         return (object)[
@@ -4060,11 +4424,15 @@ class ReportController extends Controller
                             'avg_rate' => $methodGroup->avg('avg_rate'),
                             'total_usd' => $methodGroup->sum('total_usd'),
                         ];
+                    })->filter(function($item) {
+                        return abs($item->total_amount) > 0.001 || abs($item->total_usd) > 0.001;
                     })->values();
+                })->filter(function($deptGroup) {
+                    return $deptGroup->isNotEmpty();
                 });
             } else {
                 return $sellerPayments->groupBy(function($item) {
-                    return $item->method . '-' . $item->currency;
+                    return strtolower($item->method) . '-' . strtoupper($item->currency);
                 })->map(function($methodGroup) {
                     $first = $methodGroup->first();
                     return (object)[
@@ -4074,8 +4442,12 @@ class ReportController extends Controller
                         'avg_rate' => $methodGroup->avg('avg_rate'),
                         'total_usd' => $methodGroup->sum('total_usd'),
                     ];
+                })->filter(function($item) {
+                    return abs($item->total_amount) > 0.001 || abs($item->total_usd) > 0.001;
                 })->values();
             }
+        })->filter(function($sellerGroup) {
+            return $sellerGroup->isNotEmpty();
         });
 
         $totalGeneralUsd = 0;

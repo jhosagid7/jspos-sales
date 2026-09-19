@@ -304,7 +304,7 @@
                     @foreach($invoices as $inv)
                         @php 
                             $invObj = (object)$inv;
-                            $tUsd = $invObj->total_usd > 0 ? (float)$invObj->total_usd : (float)$invObj->total;
+                            $tUsd = isset($invObj->net_total_usd) ? (float)$invObj->net_total_usd : ($invObj->total_usd > 0 ? (float)$invObj->total_usd : (float)$invObj->total);
                             $opInvoicesTotal += $tUsd;
                         @endphp
                         <tr>

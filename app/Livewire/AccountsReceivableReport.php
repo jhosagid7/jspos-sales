@@ -1423,7 +1423,7 @@ class AccountsReceivableReport extends Component
                 if ($item->stock_action === 'returned_to_stock') {
                     if ($saleDetail) {
                          // RESTORE PRODUCT ITEM (BOBINAS/REELS)
-                        $meta = json_decode($saleDetail->metadata, true);
+                        $meta = is_array($saleDetail->metadata) ? $saleDetail->metadata : json_decode($saleDetail->metadata, true);
                         if ($meta && isset($meta['product_item_id'])) {
                             $pi = \App\Models\ProductItem::find($meta['product_item_id']);
                             if ($pi) {
