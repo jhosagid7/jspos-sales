@@ -73,7 +73,7 @@ class Customer extends Authenticatable
 
     public function setNameAttribute($value)
     {
-        $this->attributes['name'] = \App\Helpers\NameNormalizer::personOrEntityName($value);
+        $this->attributes['name'] = \App\Helpers\NameNormalizer::uppercase($value);
     }
 
     function sales()

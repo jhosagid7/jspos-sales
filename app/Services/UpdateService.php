@@ -396,7 +396,7 @@ class UpdateService
             Log::warning("Updater: Automatic stock synchronization failed: " . $th->getMessage());
         }
 
-        // Auto-heal / normalize names in database (Title Case for people, Uppercase for products & warehouses)
+        // Auto-heal / normalize names in database to full UPPERCASE (Users, Customers, Suppliers, Warehouses, Products)
         try {
             Artisan::call('names:normalize');
         } catch (\Throwable $th) {

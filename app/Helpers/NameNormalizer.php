@@ -43,12 +43,18 @@ class NameNormalizer
     ];
 
     /**
-     * Normalize a person or business name into proper title case with Spanish support.
-     * Example: "  maria   guillen  " -> "Maria Guillen"
-     * Example: "JUAN DE LA ROSA" -> "Juan de la Rosa"
-     * Example: "DISTRIBUIDORA LOS LLANOS C.A." -> "Distribuidora Los Llanos C.A."
+     * Normalize a person or business name into UPPERCASE with UTF-8 support.
+     * Enforces the project standard where all names (Users, Customers, Suppliers, etc.) are uppercase.
      */
     public static function personOrEntityName(?string $value): ?string
+    {
+        return self::uppercase($value);
+    }
+
+    /**
+     * Legacy/Alternate: Normalize a name into proper title case with Spanish support.
+     */
+    public static function titleCase(?string $value): ?string
     {
         if ($value === null) {
             return null;
