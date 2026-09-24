@@ -1,3 +1,21 @@
+## [1.10.442] - 2026-09-24
+
+### Changed & Improved
+- **Normalización Estricta de Nombres a MAYÚSCULAS en Todo el Sistema**:
+  - `Customer.php`: Mutador automático `setNameAttribute` adaptado para convertir SIEMPRE a MAYÚSCULAS limpias con soporte UTF-8 (`mb_strtoupper`) sin importar cómo el usuario lo escriba al registrar o editar.
+  - `User.php`: Mutador automático `setNameAttribute` adaptado para forzar nombres de usuarios y operadores en MAYÚSCULAS.
+  - `Supplier.php`: Mutador automático `setNameAttribute` forzado a MAYÚSCULAS para todos los proveedores.
+  - `Warehouse.php`: Mutadores `setNameAttribute` y `setPartnerNameAttribute` forzados a MAYÚSCULAS tanto para el nombre del depósito como para el nombre del socio/aliado.
+  - `Category.php` & `Department.php`: Incorporación de mutador `setNameAttribute` para garantizar nombres de categorías y departamentos 100% en MAYÚSCULAS.
+  - `NameNormalizer.php`: `personOrEntityName` actualizado como alias directo a `uppercase`, manteniendo `titleCase` como método utilitario.
+  - `NormalizeEntitiesNames.php`: Comando Artisan `php artisan names:normalize` actualizado para transformar y reportar en MAYÚSCULAS: Usuarios, Clientes, Proveedores, Depósitos, Socios, Productos, Categorías y Departamentos.
+  - `UpdateService.php`: Ejecución automática de la normalización completa en clientes al actualizar (`runMigrations`).
+
+### Tests
+- Cobertura de pruebas unitarias y de integración actualizada:
+  - `NameNormalizerTest.php`: 4 pruebas (19 assertions).
+  - `ModelNameNormalizationTest.php`: 5 pruebas (11 assertions).
+
 ## [1.10.441] - 2026-09-24
 
 ### Fixed & Improved
