@@ -3,7 +3,7 @@
         <div class="col-md-4">
             <div class="card card-absolute">
                 <div class="card-header bg-primary">
-                    <h5 class="txt-light">{{ $selected_id > 0 ? 'Editar Depósito' : 'Crear Depósito' }}</h5>
+                    <h5 class="txt-light">{{ $selected_id > 0 ? ('Editar ' . term('warehouse')) : ('Crear ' . term('warehouse')) }}</h5>
                 </div>
 
                 <div class="card-body">
@@ -11,7 +11,8 @@
                     <div class="form-group">
                         <label>Nombre</label>
                         <input wire:model="name" id='inputFocus' type="text"
-                            class="form-control form-control-lg" placeholder="Nombre del depósito"
+                            class="form-control form-control-lg text-uppercase" placeholder="Nombre {{ term('warehouse_of') }}"
+                            style="text-transform: uppercase;"
                             @cannot('warehouses.create') disabled @endcannot
                             @if($selected_id > 0) @cannot('warehouses.edit') disabled @endcannot @endif
                             >
@@ -48,23 +49,24 @@
                                 @if($selected_id > 0) @cannot('warehouses.edit') disabled @endcannot @endif
                             >
                             <label class="custom-control-label font-weight-bold text-dark" for="is_partner_warehouse">
-                                <i class="fa fa-handshake-o text-primary"></i> ¿Depósito de Socio / Consignación?
+                                <i class="fa fa-handshake-o text-primary"></i> ¿{{ term('warehouse') }} de {{ term('partner') }} / Consignación?
                             </label>
                         </div>
                         <small class="text-muted d-block mt-1">
-                            Marque esta casilla si este depósito pertenece a un socio o consignatario para trazabilidad de ventas FIFO.
+                            Marque esta casilla si este {{ term('warehouse_lower') }} pertenece a un {{ term('partner_lower') }} o consignatario para trazabilidad de ventas FIFO.
                         </small>
                     </div>
 
                     @if($is_partner_warehouse)
                     <div class="form-group">
-                        <label class="font-weight-bold text-primary">Nombre del Socio / Consignatario</label>
+                        <label class="font-weight-bold text-primary">Nombre del {{ term('partner') }} / Consignatario</label>
                         <input wire:model="partner_name" type="text"
-                            class="form-control form-control-lg border-primary" placeholder="Ej: Socio 1 - Carlos"
+                            class="form-control form-control-lg border-primary" placeholder="Ej: {{ term('partner') }} 1 - Carlos"
+                            style="text-transform: capitalize;"
                             @cannot('warehouses.create') disabled @endcannot
                             @if($selected_id > 0) @cannot('warehouses.edit') disabled @endcannot @endif
                         >
-                        <small class="text-muted">Nombre del socio para liquidaciones y reportes.</small>
+                        <small class="text-muted">Nombre {{ term('partner_of') }} para liquidaciones y reportes.</small>
                         @error('partner_name') <span class="text-danger d-block">{{ $message }}</span> @enderror
                     </div>
                     @endif
@@ -96,7 +98,7 @@
                 <div class="card-header border-l-primary border-2">
                     <div class="row">
                         <div class="col-sm-12 col-md-8">
-                            <h4>Depósitos</h4>
+                            <h4>{{ term('warehouses') }}</h4>
                         </div>
                         <div class="col-sm-12 col-md-3">
                             {{-- search --}}
@@ -132,7 +134,7 @@
                                     </td>
                                     <td>
                                         @if($item->is_partner_warehouse)
-                                            <span class="badge badge-warning text-dark"><i class="fa fa-handshake-o"></i> Socio / Consig.</span>
+                                            <span class="badge badge-warning text-dark"><i class="fa fa-handshake-o"></i> {{ term('partner') }} / Consig.</span>
                                         @else
                                             <span class="badge badge-light text-muted"><i class="fa fa-building"></i> Tienda / Propio</span>
                                         @endif

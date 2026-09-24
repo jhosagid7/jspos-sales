@@ -72,6 +72,11 @@ class Product extends Model
         'is_variable_price' => 'boolean',
     ];
 
+    public function setNameAttribute($value)
+    {
+        $this->attributes['name'] = \App\Helpers\NameNormalizer::uppercase($value);
+    }
+
     //relationships
 
     public function priceTiers()

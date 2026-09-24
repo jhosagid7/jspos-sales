@@ -15,3 +15,17 @@ if (!function_exists('formatMoney')) {
         return number_format($amount, $decimals);
     }
 }
+
+if (!function_exists('term')) {
+    /**
+     * Get customized regional terminology label.
+     *
+     * @param string $key e.g. 'warehouse', 'warehouses', 'partner', 'partners'
+     * @param string|null $default
+     * @return string
+     */
+    function term(string $key, ?string $default = null): string
+    {
+        return \App\Services\TerminologyService::get($key, $default);
+    }
+}

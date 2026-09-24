@@ -4,7 +4,7 @@
             <div class="widget widget-chart-one">
             <div class="widget-heading d-flex justify-content-between align-items-center">
                 <h4 class="card-title text-uppercase font-weight-bold mb-0">
-                    <i class="fas fa-handshake text-primary mr-2"></i> Reporte de Ventas y Liquidación por Socio / Depósito de Origen
+                    <i class="fas fa-handshake text-primary mr-2"></i> Reporte de Ventas y Liquidación por {{ term('partner') }} / {{ term('warehouse') }} de Origen
                 </h4>
                 <div>
                     <button wire:click="openPdf" class="btn btn-outline-danger btn-sm shadow-sm">
@@ -18,7 +18,7 @@
                 <div class="row mb-2">
                     <div class="col-xl-3 col-md-6 col-12 mb-2">
                         <div class="card border-0 shadow-sm rounded-lg bg-light text-center p-3 h-100">
-                            <span class="text-muted font-weight-bold text-uppercase small">Stock en Depósito Socio</span>
+                            <span class="text-muted font-weight-bold text-uppercase small">Stock en {{ term('warehouse') }} {{ term('partner') }}</span>
                             <h3 class="font-weight-bold text-info mt-1 mb-0">{{ number_format($kpis['origin_physical_stock'], 2) }}</h3>
                             <small class="text-muted">Unidades físicas sin traspasar</small>
                         </div>
@@ -81,7 +81,7 @@
                             <i class="fas fa-list-ul mr-1"></i> Ventas: Detallado
                         </button>
                         <button type="button" wire:click="$set('viewMode', 'origin_stock')" class="btn btn-sm {{ $viewMode === 'origin_stock' ? 'btn-info font-weight-bold active text-white' : 'btn-outline-info bg-white' }}">
-                            <i class="fas fa-warehouse mr-1"></i> Stock en Depósito del Socio
+                            <i class="fas fa-warehouse mr-1"></i> Stock en {{ term('warehouse') }} {{ term('partner_of') }}
                             <span class="badge badge-light ml-1 text-dark">{{ number_format($kpis['origin_physical_stock'], 0) }}</span>
                         </button>
                         <button type="button" wire:click="$set('viewMode', 'consignment_stock')" class="btn btn-sm {{ $viewMode === 'consignment_stock' ? 'btn-warning font-weight-bold active text-dark' : 'btn-outline-warning bg-white text-dark' }}">
@@ -109,9 +109,9 @@
                             @endif
                         </div>
                         <div class="col-md-3 col-sm-6 mb-2">
-                            <label class="font-weight-bold small text-muted">Socio / Depósito de Origen</label>
+                            <label class="font-weight-bold small text-muted">{{ term('partner') }} / {{ term('warehouse') }} de Origen</label>
                             <select wire:model.live="origin_warehouse_id" class="form-control form-control-sm">
-                                <option value="all">-- Todos los Socios / Consignatarios --</option>
+                                <option value="all">-- Todos los {{ term('partners') }} / Consignatarios --</option>
                                 @foreach($partnerWarehouses as $wh)
                                     <option value="{{ $wh->id }}">
                                         {{ $wh->name }} {{ $wh->partner_name ? '('.$wh->partner_name.')' : '' }}
@@ -150,7 +150,7 @@
                         <div class="alert alert-info mt-2 mb-0 d-flex align-items-center">
                             <i class="fas fa-info-circle mr-2 fa-lg"></i>
                             <div>
-                                <strong>Nota:</strong> Aún no has designado depósitos como socios. Para que el sistema sepa qué depósitos representan socios, ve al menú <strong>Depósitos</strong>, crea o edita el depósito y activa la casilla <em>"¿Depósito de Socio / Consignación?"</em>.
+                                <strong>Nota:</strong> Aún no has designado {{ term('warehouses_lower') }} como {{ term('partners_lower') }}. Para que el sistema sepa qué {{ term('warehouses_lower') }} representan {{ term('partners_lower') }}, ve al menú <strong>{{ term('warehouses') }}</strong>, crea o edita el {{ term('warehouse_lower') }} y activa la casilla <em>"¿{{ term('warehouse') }} de {{ term('partner') }} / Consignación?"</em>.
                             </div>
                         </div>
                     @endif
@@ -163,7 +163,7 @@
                         <table class="table table-bordered table-hover table-striped mb-0">
                             <thead class="bg-dark text-white">
                                 <tr>
-                                    <th>Socio / Depósito de Origen</th>
+                                    <th>{{ term('partner') }} / {{ term('warehouse') }} de Origen</th>
                                     <th>Código / Barra</th>
                                     <th>Producto</th>
                                     <th class="text-right">Unidades Vendidas</th>
@@ -235,7 +235,7 @@
                                     <th>Fecha</th>
                                     <th>Factura</th>
                                     <th>Cliente</th>
-                                    <th>Socio / Depósito Origen</th>
+                                    <th>{{ term('partner') }} / {{ term('warehouse') }} Origen</th>
                                     <th>Producto</th>
                                     <th class="text-right">Cantidad</th>
                                     <th class="text-right">P. Unitario ($)</th>
@@ -315,7 +315,7 @@
                         <table class="table table-bordered table-hover table-striped mb-0">
                             <thead class="bg-info text-white">
                                 <tr>
-                                    <th>Socio / Depósito de Origen</th>
+                                    <th>{{ term('partner') }} / {{ term('warehouse') }} de Origen</th>
                                     <th>Responsable / Contacto</th>
                                     <th>Código / SKU</th>
                                     <th>Categoría</th>
@@ -348,7 +348,7 @@
                                     <tr>
                                         <td colspan="8" class="text-center py-4 text-muted">
                                             <i class="fas fa-boxes fa-2x mb-2 d-block"></i>
-                                            No hay existencias físicas registradas en los depósitos de los socios para los filtros seleccionados.
+                                            No hay existencias físicas registradas en {{ term('warehouses_of') }} {{ term('partners_of') }} para los filtros seleccionados.
                                         </td>
                                     </tr>
                                 @endforelse
@@ -361,7 +361,7 @@
                         <table class="table table-bordered table-hover table-striped mb-0">
                             <thead class="bg-warning text-dark font-weight-bold">
                                 <tr>
-                                    <th>Socio / Origen</th>
+                                    <th>{{ term('partner') }} / Origen</th>
                                     <th>Tienda Destino</th>
                                     <th>N° Traspaso</th>
                                     <th>Fecha Ingreso</th>
@@ -452,7 +452,7 @@
         <div class="modal-dialog modal-xl" role="document" style="height: 90vh;">
             <div class="modal-content h-100">
                 <div class="modal-header bg-dark text-white py-2">
-                    <h5 class="modal-title"><i class="fas fa-file-pdf mr-1 text-danger"></i> Liquidación de Ventas por Socio - PDF</h5>
+                    <h5 class="modal-title"><i class="fas fa-file-pdf mr-1 text-danger"></i> Liquidación de Ventas por {{ term('partner') }} - PDF</h5>
                     <button type="button" class="close text-white" wire:click="$set('showPdfModal', false)">
                         <span>&times;</span>
                     </button>

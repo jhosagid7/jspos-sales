@@ -129,6 +129,11 @@ class AppServiceProvider extends ServiceProvider
             return false;
         });
 
+        // Registro de directiva Blade para Terminología Regional Personalizable
+        \Illuminate\Support\Facades\Blade::directive('term', function ($expression) {
+            return "<?php echo term({$expression}); ?>";
+        });
+
         try {
             $config = \App\Services\ConfigurationService::getConfig();
             if ($config) {

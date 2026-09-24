@@ -58,6 +58,10 @@ class Settings extends Component
     public $sopladosWarehouseId, $bolsasWarehouseId, $productionMaterialsWarehouseId;
     public $warehouses = [];
 
+    // Regional Terminology Settings
+    public $warehouseTerm = 'deposito';
+    public $partnerTerm = 'socio';
+
     // Global Rates
     public $bcvRate;
     public $binanceRate;
@@ -232,6 +236,11 @@ class Settings extends Component
                     $this->pdfSettings[$type][$k] = isset($savedPdfSettings[$type][$k]) ? (bool)$savedPdfSettings[$type][$k] : $defVal;
                 }
             }
+
+            // Regional Terminology Settings
+            $labels = is_array($config->custom_labels) ? $config->custom_labels : (json_decode($config->custom_labels, true) ?? []);
+            $this->warehouseTerm = $labels['warehouse_term'] ?? 'deposito';
+            $this->partnerTerm = $labels['partner_term'] ?? 'socio';
         }
     }
 
@@ -321,7 +330,7 @@ class Settings extends Component
         }
 
         // Permission check for stock reservation setting
-        $currentConfig = Configuration::find($this->setting_id);
+        $currentConfig = Configuration::find($this->setting_id) ?? Configuration::first();
         if ($currentConfig && $this->checkStockReservation != $currentConfig->check_stock_reservation) {
             if (!auth()->user()->can('settings.stock_reservation')) {
                 $this->addError('checkStockReservation', 'No tienes permiso para cambiar la configuración de reserva de stock.');
@@ -400,6 +409,13 @@ class Settings extends Component
                 'sequential_cut_off_date' => $this->sequentialCutOffDate ? \Carbon\Carbon::parse($this->sequentialCutOffDate)->format('Y-m-d H:i:s') : null,
                 'ticket_settings' => $this->ticketSettings,
                 'pdf_settings' => $this->pdfSettings,
+                'custom_labels' => array_merge(
+                    is_array($currentConfig?->custom_labels) ? $currentConfig->custom_labels : (json_decode($currentConfig?->custom_labels ?? '[]', true) ?? []),
+                    [
+                        'warehouse_term' => $this->warehouseTerm,
+                        'partner_term' => $this->partnerTerm,
+                    ]
+                ),
             ];
 
             // Handle Logo Upload
@@ -414,6 +430,8 @@ class Settings extends Component
                 ['id' => $this->setting_id],
                 $data
             );
+
+            \App\Services\TerminologyService::clearCache();
 
             // Save Global Settings for Credit:
             // Need to update specifically because updateOrCreate might not trigger if I missed adding them to $data array above.

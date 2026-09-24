@@ -1,3 +1,28 @@
+## [1.10.440] - 2026-09-24
+
+### Added & Improved
+- **Diccionario y Regionalización de Terminología Multi-País**:
+  - `configurations`: Nueva columna `custom_labels` (JSON) para almacenar personalizaciones de términos por país o cliente.
+  - `TerminologyService.php` & `MoneyHelper.php`: Helper global `term($key, $default)` y directiva Blade `@term($key)` con presets regionales para depósitos (`deposito` / `bodega` / `almacen`) y socios FIFO (`socio` / `proveedor` / `aliado`), con retrocompatibilidad del 100% para clientes existentes.
+  - `Settings.php` & `settings.blade.php`: Selectores dinámicos en Pestaña 1 de Configuración para cambiar la terminología en vivo con limpieza automática de caché.
+  - Adaptación dinámica de vistas y reportes: Menú lateral (`sidebar.blade.php`), Depósitos/Bodegas (`warehouses.blade.php`), Traspasos (`transfers.blade.php`), Reporte de Liquidación FIFO (`partner-sales-liquidation-report.blade.php`) y PDF de liquidación horizontal.
+- **Normalización Automática de Nombres en Base de Datos**:
+  - `NameNormalizer.php`: Helper con soporte UTF-8 inteligente para capitalizar nombres propios y entidades comerciales (Title Case para Usuarios, Clientes, Proveedores y Socios de Bodega), respetando preposiciones en español (`de`, `del`, `de la`) y siglas empresariales (`C.A.`, `S.A.`, `S.R.L.`, etc.).
+  - `User.php`, `Customer.php`, `Supplier.php`: Mutadores automáticos `setNameAttribute` para garantizar almacenamiento consistente y prolijo.
+  - `Product.php` & `Warehouse.php`: Mutadores automáticos `setNameAttribute` para forzar almacenamiento SIEMPRE en MAYÚSCULAS en productos y bodegas/depósitos.
+  - `NormalizeEntitiesNames.php`: Nuevo comando Artisan `php artisan names:normalize` (con `--dry-run`) para limpiar datos históricos existentes.
+  - `UpdateService.php`: Integración automática del comando `names:normalize` en el flujo de actualización de clientes.
+
+### Fixed
+- **Error al Guardar Configuración General**:
+  - `Settings.php`: Se corrigió la referencia a `$currentConfig` en `saveConfig()` para evitar la excepción `Undefined variable $conf`, permitiendo que las opciones de regionalización y configuraciones globales se persistan correctamente.
+
+### Tests
+- Cobertura completa de pruebas automatizadas en:
+  - `RegionalTerminologyTest.php` (5 tests, 40 assertions).
+  - `NameNormalizerTest.php` (4 tests, 19 assertions).
+  - `ModelNameNormalizationTest.php` (5 tests, 11 assertions).
+
 ## [1.10.439] - 2026-09-24
 
 ### Fixed

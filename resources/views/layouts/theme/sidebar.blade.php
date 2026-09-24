@@ -603,7 +603,7 @@
                         <li class="nav-item">
                             <a href="{{ route('warehouses') }}" class="nav-link {{ Request::is('warehouses') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
-                                <p>Depósitos / Almacenes</p>
+                                <p>{{ term('warehouse') == 'Bodega' ? 'Bodegas' : (term('warehouse') == 'Almacén' ? 'Almacenes' : 'Depósitos / Almacenes') }}</p>
                             </a>
                         </li>
                         @endcan
@@ -660,7 +660,7 @@
                                   <li class="nav-item">
                                       <a href="{{ route('reports.partner.sales') }}" class="nav-link {{ Route::is('reports.partner.sales*') ? 'active' : '' }}">
                                           <i class="far fa-dot-circle nav-icon"></i>
-                                          <p>Ventas por Socio (FIFO)</p>
+                                          <p>Ventas por {{ term('partner') }} (FIFO)</p>
                                       </a>
                                   </li>
                                   @endcanany

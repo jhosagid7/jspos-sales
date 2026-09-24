@@ -396,6 +396,13 @@ class UpdateService
             Log::warning("Updater: Automatic stock synchronization failed: " . $th->getMessage());
         }
 
+        // Auto-heal / normalize names in database (Title Case for people, Uppercase for products & warehouses)
+        try {
+            Artisan::call('names:normalize');
+        } catch (\Throwable $th) {
+            Log::warning("Updater: Automatic names normalization failed: " . $th->getMessage());
+        }
+
         // Self-healing Storage Link (Windows Junction Point & Unix Symlink)
         try {
             $publicStorage = public_path('storage');

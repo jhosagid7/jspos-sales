@@ -400,7 +400,32 @@
                                         @error('address') <span class="text-danger">{{ $message }}</span> @enderror
                                     </div>
 
-                                    <div class="col-12">
+                                    <div class="col-12 mt-3">
+                                        <h6 class="text-primary font-weight-bold"><i class="fas fa-language mr-1"></i> TERMINOLOGÍA Y REGIONALIZACIÓN</h6>
+                                        <hr class="mt-1 mb-2">
+                                    </div>
+
+                                    <div class="col-sm-12 col-md-6">
+                                        <label class="form-label font-weight-bold">TÉRMINO PARA ALMACÉN / DEPÓSITO</label>
+                                        <select wire:model="warehouseTerm" class="form-control">
+                                            <option value="deposito">Depósito / Depósitos (Estándar)</option>
+                                            <option value="bodega">Bodega / Bodegas (Colombia / Chile / Otros)</option>
+                                            <option value="almacen">Almacén / Almacenes</option>
+                                        </select>
+                                        <small class="text-muted">Ajusta cómo se muestra la palabra "Depósito" en menús, inventario y traspasos.</small>
+                                    </div>
+
+                                    <div class="col-sm-12 col-md-6">
+                                        <label class="form-label font-weight-bold">TÉRMINO PARA SOCIOS / CUSTODIA (MÓDULO FIFO)</label>
+                                        <select wire:model="partnerTerm" class="form-control">
+                                            <option value="socio">Socio / Socios (Estándar)</option>
+                                            <option value="proveedor">Proveedor / Proveedores</option>
+                                            <option value="aliado">Aliado / Aliados</option>
+                                        </select>
+                                        <small class="text-muted">Ajusta cómo se nombran los socios consignatarios en el módulo de liquidación FIFO.</small>
+                                    </div>
+
+                                    <div class="col-12 mt-4">
                                         <button class="btn btn-primary" wire:click.prevent="saveConfig" wire:loading.attr="disabled">
                                             <span wire:loading.remove wire:target="saveConfig">Guardar Configuración</span>
                                             <span wire:loading wire:target="saveConfig">Guardando...</span>

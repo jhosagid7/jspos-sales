@@ -89,6 +89,11 @@ class User extends Authenticatable
         'is_shared_terminal' => 'boolean',
     ];
 
+    public function setNameAttribute($value)
+    {
+        $this->attributes['name'] = \App\Helpers\NameNormalizer::personOrEntityName($value);
+    }
+
     public function assignedOperators()
     {
         return $this->belongsToMany(User::class, 'terminal_operators', 'terminal_id', 'operator_id');

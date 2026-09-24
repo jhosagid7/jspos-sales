@@ -77,7 +77,7 @@
                                 </a>
                                 @if($transfer->status == 'pending')
                                     <button wire:click="dispatchTransferFromWeb({{ $transfer->id }})" 
-                                            wire:confirm="¿Despachar este traspaso? El stock se descontará del almacén de origen."
+                                            wire:confirm="¿Despachar este traspaso? El stock se descontará {{ term('warehouse_of') }} de origen."
                                             class="btn btn-primary btn-sm" title="Despachar Traspaso">
                                         <i class="fas fa-truck"></i> Despachar
                                     </button>
@@ -124,9 +124,9 @@
             <div class="row">
                 <div class="col-md-4">
                     <div class="form-group">
-                        <label>Origen</label>
+                        <label>{{ term('warehouse') }} Origen</label>
                         <select wire:model.live="from_warehouse_id" class="form-control">
-                            <option value="">Seleccione Origen</option>
+                            <option value="">Seleccione {{ term('warehouse') }} Origen</option>
                             @foreach($warehouses as $w)
                             <option value="{{ $w->id }}">{{ $w->name }}</option>
                             @endforeach
@@ -136,9 +136,9 @@
                 </div>
                 <div class="col-md-4">
                     <div class="form-group">
-                        <label>Destino</label>
+                        <label>{{ term('warehouse') }} Destino</label>
                         <select wire:model="to_warehouse_id" class="form-control">
-                            <option value="">Seleccione Destino</option>
+                            <option value="">Seleccione {{ term('warehouse') }} Destino</option>
                             @foreach($warehouses as $w)
                                 @if($w->id != $from_warehouse_id)
                                     <option value="{{ $w->id }}">{{ $w->name }}</option>
@@ -163,22 +163,22 @@
                             <span>Buscar Producto</span>
                             <small class="text-muted font-weight-bold">
                                 @if(!empty($from_warehouse_id))
-                                    <i class="fas fa-check-circle text-success mr-1"></i> Filtrando solo productos con stock en depósito de origen
+                                    <i class="fas fa-check-circle text-success mr-1"></i> Filtrando solo productos con stock en {{ term('warehouse_lower') }} de origen
                                 @else
-                                    <i class="fas fa-exclamation-circle text-warning mr-1"></i> Requiere seleccionar depósito de origen
+                                    <i class="fas fa-exclamation-circle text-warning mr-1"></i> Requiere seleccionar {{ term('warehouse_lower') }} de origen
                                 @endif
                             </small>
                         </label>
                         @if(empty($from_warehouse_id))
                             <div class="alert alert-warning py-2 px-3 small mb-2 d-flex align-items-center">
                                 <i class="fas fa-exclamation-triangle mr-2"></i>
-                                <span>Por favor <b>seleccione primero el almacén de origen</b> para buscar productos disponibles.</span>
+                                <span>Por favor <b>seleccione primero {{ term('warehouse_lower') }} de origen</b> para buscar productos disponibles.</span>
                             </div>
                         @endif
                         <input type="text" 
                             wire:model.live="product_search" 
                             class="form-control" 
-                            placeholder="{{ empty($from_warehouse_id) ? 'Seleccione primero el almacén de origen...' : 'Buscar por nombre, SKU o código de barra...' }}"
+                            placeholder="{{ empty($from_warehouse_id) ? 'Seleccione primero ' . term('warehouse_lower') . ' de origen...' : 'Buscar por nombre, SKU o código de barra...' }}"
                             {{ empty($from_warehouse_id) ? 'disabled' : '' }}>
                         @if(count($products_search_result) > 0)
                         <div class="list-group position-absolute w-100 shadow-lg" style="z-index: 1050; max-height: 280px; overflow-y: auto;">
@@ -201,7 +201,7 @@
                         @elseif(strlen($product_search) > 1 && !empty($from_warehouse_id))
                         <div class="list-group position-absolute w-100 shadow" style="z-index: 1050;">
                             <div class="list-group-item text-muted small py-2 text-center">
-                                <i class="fas fa-info-circle mr-1"></i> No se encontraron productos con stock disponible en este depósito de origen.
+                                <i class="fas fa-info-circle mr-1"></i> No se encontraron productos con stock disponible en este {{ term('warehouse_lower') }} de origen.
                             </div>
                         </div>
                         @endif

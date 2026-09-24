@@ -16,6 +16,16 @@ class Warehouse extends Model
         'is_partner_warehouse' => 'boolean',
     ];
 
+    public function setNameAttribute($value)
+    {
+        $this->attributes['name'] = \App\Helpers\NameNormalizer::uppercase($value);
+    }
+
+    public function setPartnerNameAttribute($value)
+    {
+        $this->attributes['partner_name'] = \App\Helpers\NameNormalizer::personOrEntityName($value);
+    }
+
     public function products()
     {
         return $this->belongsToMany(Product::class, 'product_warehouse')

@@ -71,6 +71,11 @@ class Customer extends Authenticatable
         'email_notify_payments' => 'boolean',
     ];
 
+    public function setNameAttribute($value)
+    {
+        $this->attributes['name'] = \App\Helpers\NameNormalizer::personOrEntityName($value);
+    }
+
     function sales()
     {
         return $this->hasMany(Sale::class);

@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Reporte de Ventas y Liquidación por Socio</title>
+    <title>Reporte de Ventas y Liquidación por {{ term('partner') }}</title>
     <style>
         @page {
             margin: 10mm 8mm;
@@ -114,10 +114,10 @@
         <tr>
             <td style="width: 70%;">
                 <div class="title">{{ $config->business_name ?? 'JSPOS SALES' }}</div>
-                <div class="subtitle">Liquidación y Ventas por Socio / Depósito de Origen</div>
+                <div class="subtitle">Liquidación y Ventas por {{ term('partner') }} / {{ term('warehouse') }} de Origen</div>
                 <div class="subtitle">Período: <strong>{{ \Carbon\Carbon::parse($dateFrom)->format('d/m/Y') }}</strong> al <strong>{{ \Carbon\Carbon::parse($dateTo)->format('d/m/Y') }}</strong></div>
                 @if($originWarehouse)
-                    <div class="subtitle">Socio / Depósito: <strong>{{ $originWarehouse->name }}</strong></div>
+                    <div class="subtitle">{{ term('partner') }} / {{ term('warehouse') }}: <strong>{{ $originWarehouse->name }}</strong></div>
                 @endif
             </td>
             <td style="width: 30%; text-align: right;">
@@ -125,7 +125,7 @@
                 <div class="subtitle">Modo: 
                     @if($viewMode === 'summary') Resumen Agrupado de Ventas
                     @elseif($viewMode === 'detailed') Detalle de Facturas
-                    @elseif($viewMode === 'origin_stock') Stock en Depósito del Socio
+                    @elseif($viewMode === 'origin_stock') Stock en {{ term('warehouse') }} {{ term('partner_of') }}
                     @elseif($viewMode === 'consignment_stock') Stock Consignado en Tienda
                     @endif
                 </div>
@@ -137,7 +137,7 @@
         <tr>
             <td style="width: 25%;">
                 <div class="kpi-box">
-                    <div class="kpi-title">Stock en Depósito Socio</div>
+                    <div class="kpi-title">Stock en {{ term('warehouse') }} {{ term('partner') }}</div>
                     <div class="kpi-value" style="color: #0284c7;">{{ number_format($kpis['origin_physical_stock'], 2) }}</div>
                 </div>
             </td>
@@ -188,7 +188,7 @@
         <table class="data-table">
             <thead>
                 <tr>
-                    <th style="width: 16%;">Socio / Origen</th>
+                    <th style="width: 16%;">{{ term('partner') }} / Origen</th>
                     <th style="width: 10%;" class="nowrap">Código / Barra</th>
                     <th style="width: 22%;">Producto</th>
                     <th class="text-right nowrap" style="width: 7%;">Unidades</th>
@@ -203,7 +203,7 @@
             <tbody>
                 @forelse($items as $row)
                     <tr>
-                        <td><strong>{{ $row->origin_warehouse_name ?? 'Depósito Principal' }}</strong></td>
+                        <td><strong>{{ $row->origin_warehouse_name ?? (term('warehouse') . ' Principal') }}</strong></td>
                         <td class="nowrap">{{ $row->product_barcode ?? 'S/C' }}</td>
                         <td>{{ $row->product_name }}</td>
                         <td class="text-right nowrap"><strong>{{ number_format($row->total_quantity, 2) }}</strong></td>
@@ -240,7 +240,7 @@
                     <th style="width: 9%;" class="text-center nowrap">Fecha</th>
                     <th style="width: 7%;" class="text-center nowrap">Factura</th>
                     <th style="width: 12%;">Cliente</th>
-                    <th style="width: 12%;">Socio / Origen</th>
+                    <th style="width: 12%;">{{ term('partner') }} / Origen</th>
                     <th style="width: 18%;">Producto</th>
                     <th class="text-right nowrap" style="width: 5%;">Cant.</th>
                     <th class="text-right nowrap" style="width: 6%;">P. Unit ($)</th>
@@ -300,7 +300,7 @@
         <table class="data-table">
             <thead>
                 <tr>
-                    <th style="width: 16%;">Socio / Depósito Origen</th>
+                    <th style="width: 16%;">{{ term('partner') }} / {{ term('warehouse') }} Origen</th>
                     <th style="width: 15%;">Responsable</th>
                     <th style="width: 12%;" class="nowrap">Código / SKU</th>
                     <th style="width: 11%;">Categoría</th>
@@ -329,7 +329,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="text-center">No se encontraron existencias en los depósitos de los socios.</td>
+                        <td colspan="8" class="text-center">No se encontraron existencias en {{ term('warehouses_of') }} {{ term('partners_of') }}.</td>
                     </tr>
                 @endforelse
             </tbody>
@@ -351,7 +351,7 @@
         <table class="data-table">
             <thead>
                 <tr>
-                    <th style="width: 11%;">Socio / Origen</th>
+                    <th style="width: 11%;">{{ term('partner') }} / Origen</th>
                     <th style="width: 11%;">Tienda Destino</th>
                     <th style="width: 6%;" class="text-center nowrap">N° Trasp.</th>
                     <th style="width: 8%;" class="text-center nowrap">Fecha</th>

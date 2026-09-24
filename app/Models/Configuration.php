@@ -117,9 +117,11 @@ class Configuration extends Model
         'sales_show_driver',
         'ticket_settings',
         'pdf_settings',
+        'custom_labels',
     ];
 
     protected $casts = [
+        'custom_labels' => 'array',
         'pdf_settings' => 'array',
         'ticket_settings' => 'array',
         'addon_modules' => 'array',
@@ -370,5 +372,94 @@ class Configuration extends Model
             return (bool) $settings[$pdfType][$key];
         }
         return $default;
+    }
+
+    /**
+     * Obtiene una etiqueta de terminología personalizada según la configuración regional.
+     */
+    public function getCustomLabel(string $key, ?string $default = null): string
+    {
+        $labels = is_array($this->custom_labels) ? $this->custom_labels : (json_decode($this->custom_labels, true) ?? []);
+
+        // Presets: warehouse_term ('deposito' [default], 'bodega', 'almacen')
+        $warehousePreset = $labels['warehouse_term'] ?? 'deposito';
+        // Presets: partner_term ('socio' [default], 'proveedor', 'aliado')
+        $partnerPreset = $labels['partner_term'] ?? 'socio';
+
+        $terms = [
+            'deposito' => [
+                'warehouse' => 'Depósito',
+                'warehouses' => 'Depósitos',
+                'warehouse_lower' => 'depósito',
+                'warehouses_lower' => 'depósitos',
+                'warehouse_of' => 'del depósito',
+                'warehouses_of' => 'de los depósitos',
+            ],
+            'bodega' => [
+                'warehouse' => 'Bodega',
+                'warehouses' => 'Bodegas',
+                'warehouse_lower' => 'bodega',
+                'warehouses_lower' => 'bodegas',
+                'warehouse_of' => 'de la bodega',
+                'warehouses_of' => 'de las bodegas',
+            ],
+            'almacen' => [
+                'warehouse' => 'Almacén',
+                'warehouses' => 'Almacenes',
+                'warehouse_lower' => 'almacén',
+                'warehouses_lower' => 'almacenes',
+                'warehouse_of' => 'del almacén',
+                'warehouses_of' => 'de los almacenes',
+            ],
+            'socio' => [
+                'partner' => 'Socio',
+                'partners' => 'Socios',
+                'partner_lower' => 'socio',
+                'partners_lower' => 'socios',
+                'partner_of' => 'del socio',
+                'partners_of' => 'de los socios',
+            ],
+            'proveedor' => [
+                'partner' => 'Proveedor',
+                'partners' => 'Proveedores',
+                'partner_lower' => 'proveedor',
+                'partners_lower' => 'proveedores',
+                'partner_of' => 'del proveedor',
+                'partners_of' => 'de los proveedores',
+            ],
+            'aliado' => [
+                'partner' => 'Aliado',
+                'partners' => 'Aliados',
+                'partner_lower' => 'aliado',
+                'partners_lower' => 'aliados',
+                'partner_of' => 'del aliado',
+                'partners_of' => 'de los aliados',
+            ],
+        ];
+
+        // Specific custom overrides take precedence if defined
+        if (!empty($labels[$key])) {
+            return (string)$labels[$key];
+        }
+
+        // Check configured warehouse preset
+        if (isset($terms[$warehousePreset][$key])) {
+            return $terms[$warehousePreset][$key];
+        }
+
+        // Check configured partner preset
+        if (isset($terms[$partnerPreset][$key])) {
+            return $terms[$partnerPreset][$key];
+        }
+
+        // Fallback to default presets
+        if (isset($terms['deposito'][$key])) {
+            return $terms['deposito'][$key];
+        }
+        if (isset($terms['socio'][$key])) {
+            return $terms['socio'][$key];
+        }
+
+        return $default ?? $key;
     }
 }

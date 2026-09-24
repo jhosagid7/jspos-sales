@@ -13,6 +13,10 @@ class Supplier extends Model
         'name', 'address', 'phone'
     ];
 
+    public function setNameAttribute($value)
+    {
+        $this->attributes['name'] = \App\Helpers\NameNormalizer::personOrEntityName($value);
+    }
 
     function products()
     {
