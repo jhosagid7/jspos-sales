@@ -59,9 +59,27 @@
 <body class="{{ $bodyClassString }}">
     <div class="wrapper">
         <!-- Preloader -->
-        <div class="preloader flex-column justify-content-center align-items-center">
+        <div class="preloader flex-column justify-content-center align-items-center" id="global-app-preloader">
             <img class="animation__shake" src="{{ asset('assets/login/img/favicon-card.ico') }}" alt="SystemLogo" height="60" width="60">
         </div>
+        <script>
+            (function() {
+                function dismissPreloader() {
+                    var p = document.getElementById('global-app-preloader');
+                    if (p) {
+                        p.style.transition = 'opacity 0.2s ease';
+                        p.style.opacity = '0';
+                        setTimeout(function() { if (p && p.parentNode) p.parentNode.removeChild(p); }, 200);
+                    }
+                }
+                if (document.readyState === 'complete') {
+                    dismissPreloader();
+                } else {
+                    window.addEventListener('load', dismissPreloader);
+                    setTimeout(dismissPreloader, 600);
+                }
+            })();
+        </script>
 
         <!-- Navbar -->
         @include('layouts.theme.header')

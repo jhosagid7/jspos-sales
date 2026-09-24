@@ -616,8 +616,8 @@
                 {{-- MÓDULO 6: CENTRO DE REPORTES --}}
                 @unlessrole('Driver')
                 @canany(['reports.sales', 'reports.purchases', 'reports.financial', 'reports.stock'])
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
+                <li class="nav-item {{ Request::is('reports*') ? 'menu-open' : '' }}">
+                    <a href="#" class="nav-link {{ Request::is('reports*') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-chart-line text-info"></i>
                         <p>
                             CENTRO DE REPORTES
@@ -625,8 +625,8 @@
                         </p>
                     </a>
                     <ul class="nav nav-treeview">
-                        <li class="nav-item {{ Request::is('reports/sales*') || Request::is('reports/daily-sales*') || Request::is('reports/payment-relationship*') || Request::is('reports/customer-payment*') || Request::is('reports/weekly-income*') || Request::is('reports/monthly-income*') || Request::is('reports/customers*') || Request::is('reports/customer-activity*') || Request::is('reports/sales-analysis*') || Request::is('reports/sellers-performance*') || Request::is('reports/operators-precision*') || Request::is('reports/exchange-diff*') || Request::is('reports/cash-flow-forecast*') || Request::is('reports/strategic*') ? 'menu-open' : '' }}">
-                            <a href="#" class="nav-link {{ Request::is('reports/sales*') || Request::is('reports/daily-sales*') || Request::is('reports/payment-relationship*') || Request::is('reports/customer-payment*') || Request::is('reports/weekly-income*') || Request::is('reports/monthly-income*') || Request::is('reports/customers*') || Request::is('reports/customer-activity*') || Request::is('reports/sales-analysis*') || Request::is('reports/sellers-performance*') || Request::is('reports/operators-precision*') || Request::is('reports/exchange-diff*') || Request::is('reports/cash-flow-forecast*') || Request::is('reports/strategic*') ? 'active' : '' }}">
+                        <li class="nav-item {{ Request::is('reports/sales*') || Request::is('reports/daily-sales*') || Request::is('reports/partner-sales*') || Request::is('reports/payment-relationship*') || Request::is('reports/customer-payment*') || Request::is('reports/weekly-income*') || Request::is('reports/monthly-income*') || Request::is('reports/customers*') || Request::is('reports/customer-activity*') || Request::is('reports/sales-analysis*') || Request::is('reports/sellers-performance*') || Request::is('reports/operators-precision*') || Request::is('reports/exchange-diff*') || Request::is('reports/cash-flow-forecast*') || Request::is('reports/strategic*') ? 'menu-open' : '' }}">
+                            <a href="#" class="nav-link {{ Request::is('reports/sales*') || Request::is('reports/daily-sales*') || Request::is('reports/partner-sales*') || Request::is('reports/payment-relationship*') || Request::is('reports/customer-payment*') || Request::is('reports/weekly-income*') || Request::is('reports/monthly-income*') || Request::is('reports/customers*') || Request::is('reports/customer-activity*') || Request::is('reports/sales-analysis*') || Request::is('reports/sellers-performance*') || Request::is('reports/operators-precision*') || Request::is('reports/exchange-diff*') || Request::is('reports/cash-flow-forecast*') || Request::is('reports/strategic*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>
                                     Ventas y Cobros
@@ -655,6 +655,16 @@
                                           <p>Ventas Diarias</p>
                                       </a>
                                   </li>
+                                  @module('module_partner_sales')
+                                  @canany(['reports.partner_sales', 'reports.sales'])
+                                  <li class="nav-item">
+                                      <a href="{{ route('reports.partner.sales') }}" class="nav-link {{ Route::is('reports.partner.sales*') ? 'active' : '' }}">
+                                          <i class="far fa-dot-circle nav-icon"></i>
+                                          <p>Ventas por Socio (FIFO)</p>
+                                      </a>
+                                  </li>
+                                  @endcanany
+                                  @endmodule
                                   @module('module_credits')
                                   <li class="nav-item">
                                       <a href="{{ route('reports.payment.relationship') }}" class="nav-link {{ Route::is('reports.payment.relationship*') ? 'active' : '' }}">

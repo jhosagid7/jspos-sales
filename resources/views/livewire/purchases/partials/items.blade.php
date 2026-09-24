@@ -116,6 +116,8 @@
                                         </button>
                                     </div>
                                     <input type="number" 
+                                        wire:change="updateQty('{{ $item['id'] }}', $event.target.value )"
+                                        wire:blur="updateQty('{{ $item['id'] }}', $event.target.value )"
                                         wire:keydown.enter.prevent="updateQty('{{ $item['id'] }}', $event.target.value )"
                                         class="form-control form-control-sm text-center border font-weight-bold" 
                                         value="{{ $item['qty'] }}"

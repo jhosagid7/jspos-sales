@@ -121,7 +121,7 @@ class RoleTemplateService
             'users.index', 'users.create', 'users.edit', 'users.edit_commercial_config', 'users.edit_credit_config',
             // Reports
             'reports.sales', 'reports.purchases', 'reports.stock', 'reports.financial', 'reports.commissions',
-            'reports.audit', 'reports.customer_payment_relationship', 'collections.audit',
+            'reports.audit', 'reports.customer_payment_relationship', 'collections.audit', 'reports.partner_sales',
             // Settings
             'settings.index', 'settings.stock_reservation',
             // Production & Distribution
@@ -160,8 +160,10 @@ class RoleTemplateService
     public static function getCashierPermissions(): array
     {
         return [
+            // System Role Flags
+            'system.is_seller',
             // POS Sales
-            'sales.index', 'sales.create', 'sales.pdf', 'sales.show_exchange_rate', 'pos.select_operator', 'manage_debit_notes',
+            'sales.index', 'sales.create', 'sales.pdf', 'sales.show_exchange_rate', 'sales.change_invoice_currency', 'sales.manage_adjustments', 'pos.select_operator', 'manage_debit_notes',
             // Cash Register
             'cash_register.open', 'cash_register.close', 'cash_register.access', 'cash_register.view_own',
             // Orders

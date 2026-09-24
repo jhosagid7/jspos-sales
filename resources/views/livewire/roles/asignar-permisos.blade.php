@@ -105,13 +105,39 @@
                         </div>
                     </div>
 
-                    <!-- BARRA DE PLANTILLAS RÁPIDAS (1 CLIC) -->
+                    <!-- BARRA DE PLANTILLAS RÁPIDAS (1 CLIC) Y GESTIÓN JSON -->
                     <div class="card border mb-4 shadow-sm" style="background: #f8fafc;">
-                        <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
-                            <span class="font-weight-bold text-dark fs-6">
-                                <i class="fas fa-magic text-warning me-1"></i> ⚡ Plantillas de Permisos Prediseñadas (1 Clic)
-                            </span>
-                            <small class="text-muted">Aplica el perfil completo de permisos al rol seleccionado</small>
+                        <div class="card-header bg-white py-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div>
+                                <span class="font-weight-bold text-dark fs-6">
+                                    <i class="fas fa-magic text-warning me-1"></i> ⚡ Plantillas de Permisos Prediseñadas
+                                </span>
+                                <small class="text-muted d-block d-md-inline ms-md-2">Aplica perfiles o importa/exporta en JSON</small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <!-- Exportar JSON -->
+                                <button type="button" 
+                                    wire:click="exportTemplate" 
+                                    wire:loading.attr="disabled"
+                                    class="btn btn-sm btn-outline-secondary d-flex align-items-center shadow-sm"
+                                    title="Exportar la configuración de permisos del rol seleccionado a archivo JSON">
+                                    <i class="fas fa-download me-1 text-primary"></i>
+                                    <span class="fw-bold">Exportar JSON</span>
+                                </button>
+
+                                <!-- Importar JSON -->
+                                <label class="btn btn-sm btn-outline-secondary d-flex align-items-center shadow-sm mb-0 cursor-pointer"
+                                    style="cursor: pointer;"
+                                    title="Importar un archivo JSON de permisos al rol seleccionado">
+                                    <i class="fas fa-upload me-1 text-success"></i>
+                                    <span class="fw-bold">Importar JSON</span>
+                                    <input type="file" wire:model="templateFile" accept=".json" class="d-none">
+                                </label>
+                                
+                                <div wire:loading wire:target="templateFile" class="spinner-border spinner-border-sm text-primary ms-1" role="status">
+                                    <span class="visually-hidden">Cargando...</span>
+                                </div>
+                            </div>
                         </div>
                         <div class="card-body p-2">
                             <div class="d-flex flex-wrap gap-2">

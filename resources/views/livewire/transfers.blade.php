@@ -125,7 +125,7 @@
                 <div class="col-md-4">
                     <div class="form-group">
                         <label>Origen</label>
-                        <select wire:model="from_warehouse_id" class="form-control">
+                        <select wire:model.live="from_warehouse_id" class="form-control">
                             <option value="">Seleccione Origen</option>
                             @foreach($warehouses as $w)
                             <option value="{{ $w->id }}">{{ $w->name }}</option>
@@ -140,7 +140,9 @@
                         <select wire:model="to_warehouse_id" class="form-control">
                             <option value="">Seleccione Destino</option>
                             @foreach($warehouses as $w)
-                            <option value="{{ $w->id }}">{{ $w->name }}</option>
+                                @if($w->id != $from_warehouse_id)
+                                    <option value="{{ $w->id }}">{{ $w->name }}</option>
+                                @endif
                             @endforeach
                         </select>
                         @error('to_warehouse_id') <span class="text-danger">{{ $message }}</span> @enderror
@@ -156,16 +158,51 @@
 
             <div class="row mt-4">
                 <div class="col-md-12">
-                    <div class="form-group">
-                        <label>Buscar Producto</label>
-                        <input type="text" wire:model.live="product_search" class="form-control" placeholder="Buscar por nombre o SKU...">
+                    <div class="form-group position-relative">
+                        <label class="d-flex justify-content-between">
+                            <span>Buscar Producto</span>
+                            <small class="text-muted font-weight-bold">
+                                @if(!empty($from_warehouse_id))
+                                    <i class="fas fa-check-circle text-success mr-1"></i> Filtrando solo productos con stock en depósito de origen
+                                @else
+                                    <i class="fas fa-exclamation-circle text-warning mr-1"></i> Requiere seleccionar depósito de origen
+                                @endif
+                            </small>
+                        </label>
+                        @if(empty($from_warehouse_id))
+                            <div class="alert alert-warning py-2 px-3 small mb-2 d-flex align-items-center">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>
+                                <span>Por favor <b>seleccione primero el almacén de origen</b> para buscar productos disponibles.</span>
+                            </div>
+                        @endif
+                        <input type="text" 
+                            wire:model.live="product_search" 
+                            class="form-control" 
+                            placeholder="{{ empty($from_warehouse_id) ? 'Seleccione primero el almacén de origen...' : 'Buscar por nombre, SKU o código de barra...' }}"
+                            {{ empty($from_warehouse_id) ? 'disabled' : '' }}>
                         @if(count($products_search_result) > 0)
-                        <div class="list-group position-absolute w-100" style="z-index: 1000;">
+                        <div class="list-group position-absolute w-100 shadow-lg" style="z-index: 1050; max-height: 280px; overflow-y: auto;">
                             @foreach($products_search_result as $product)
-                            <a href="#" wire:click.prevent="addToCart({{ $product->id }})" class="list-group-item list-group-item-action">
-                                {{ $product->name }} ({{ $product->sku }})
+                            <a href="#" wire:click.prevent="addToCart({{ $product->id }})" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2">
+                                <div>
+                                    <strong class="text-dark">{{ $product->name }}</strong>
+                                    <span class="text-muted small ml-2">SKU: {{ $product->sku ?? 'S/N' }}</span>
+                                </div>
+                                <div>
+                                    @if(isset($product->current_warehouse_stock))
+                                        <span class="badge badge-success px-2 py-1 font-weight-bold" style="font-size: 0.8rem;">
+                                            <i class="fas fa-cubes mr-1"></i> Stock: {{ number_format($product->current_warehouse_stock, 2) }}
+                                        </span>
+                                    @endif
+                                </div>
                             </a>
                             @endforeach
+                        </div>
+                        @elseif(strlen($product_search) > 1 && !empty($from_warehouse_id))
+                        <div class="list-group position-absolute w-100 shadow" style="z-index: 1050;">
+                            <div class="list-group-item text-muted small py-2 text-center">
+                                <i class="fas fa-info-circle mr-1"></i> No se encontraron productos con stock disponible en este depósito de origen.
+                            </div>
                         </div>
                         @endif
                     </div>
@@ -174,31 +211,38 @@
 
             <div class="row mt-3">
                 <div class="col-md-12">
-                    <table class="table table-bordered">
-                        <thead>
+                    <table class="table table-bordered table-striped align-middle">
+                        <thead class="bg-light">
                             <tr>
                                 <th>Producto</th>
-                                <th width="150">Cantidad</th>
-                                <th width="100">Acciones</th>
+                                <th width="160" class="text-center">Stock en Origen</th>
+                                <th width="160" class="text-center">Cantidad a Traspasar</th>
+                                <th width="80" class="text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($cart as $index => $item)
                             <tr>
-                                <td>{{ $item['name'] }}</td>
-                                <td>
-                                    <input type="number" class="form-control" value="{{ $item['qty'] }}" 
-                                        wire:change="updateQty({{ $index }}, $event.target.value)">
+                                <td class="font-weight-bold align-middle">{{ $item['name'] }}</td>
+                                <td class="text-center align-middle">
+                                    <span class="badge badge-info px-2 py-1" style="font-size: 0.85rem;">
+                                        {{ number_format($item['stock'] ?? 0, 2) }}
+                                    </span>
                                 </td>
-                                <td>
-                                    <button wire:click="removeFromCart({{ $index }})" class="btn btn-danger btn-sm">
+                                <td class="text-center align-middle">
+                                    <input type="number" step="any" min="0.01" max="{{ $item['stock'] ?? '' }}" class="form-control text-center font-weight-bold" value="{{ $item['qty'] }}" 
+                                        wire:change="updateQty({{ $index }}, $event.target.value)"
+                                        wire:blur="updateQty({{ $index }}, $event.target.value)">
+                                </td>
+                                <td class="text-center align-middle">
+                                    <button wire:click="removeFromCart({{ $index }})" class="btn btn-outline-danger btn-sm" title="Eliminar">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="3" class="text-center">Agregue productos al traspaso</td>
+                                <td colspan="4" class="text-center text-muted py-3">Agregue productos al traspaso</td>
                             </tr>
                             @endforelse
                         </tbody>

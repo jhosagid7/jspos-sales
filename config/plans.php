@@ -78,6 +78,7 @@ return [
     */
     'available_modules' => [
         // ── Módulos Core ──────────────────────────────────────────────
+        'module_partner_sales'      => 'Liquidación y Ventas por Socio / Depósito Origen',
         'module_credits'            => 'Créditos y Cuentas por Cobrar',
         'module_purchases'          => 'Compras a Proveedores',
         'module_multi_warehouse'    => 'Múltiples Depósitos y Traspasos',

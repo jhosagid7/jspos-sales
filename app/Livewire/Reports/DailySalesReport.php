@@ -87,8 +87,10 @@ class DailySalesReport extends Component
                 }
             ])
                 ->when($this->searchFolio, function($q) {
-                    $q->where('id', 'like', "%{$this->searchFolio}%")
-                      ->orWhere('invoice_number', 'like', "%{$this->searchFolio}%");
+                    $q->where(function($sub) {
+                        $sub->where('id', 'like', "%{$this->searchFolio}%")
+                            ->orWhere('invoice_number', 'like', "%{$this->searchFolio}%");
+                    });
                 })
                 ->when($dFrom && $dTo && !$this->searchFolio, function($q) use ($dFrom, $dTo) {
                     $q->whereBetween('created_at', [$dFrom, $dTo]);
@@ -112,8 +114,10 @@ class DailySalesReport extends Component
 
             // Calculate totals
              $salesQuery = Sale::when($this->searchFolio, function($q) {
-                    $q->where('id', 'like', "%{$this->searchFolio}%")
-                      ->orWhere('invoice_number', 'like', "%{$this->searchFolio}%");
+                    $q->where(function($sub) {
+                        $sub->where('id', 'like', "%{$this->searchFolio}%")
+                            ->orWhere('invoice_number', 'like', "%{$this->searchFolio}%");
+                    });
                 })
                 ->when($dFrom && $dTo && !$this->searchFolio, function($q) use ($dFrom, $dTo) {
                     $q->whereBetween('created_at', [$dFrom, $dTo]);
@@ -160,8 +164,10 @@ class DailySalesReport extends Component
                 ->join('products', 'sale_details.product_id', '=', 'products.id')
                 ->join('customers', 'sales.customer_id', '=', 'customers.id') 
                 ->when($this->searchFolio, function($q) {
-                    $q->where('sales.id', 'like', "%{$this->searchFolio}%")
-                      ->orWhere('sales.invoice_number', 'like', "%{$this->searchFolio}%");
+                    $q->where(function($sub) {
+                        $sub->where('sales.id', 'like', "%{$this->searchFolio}%")
+                            ->orWhere('sales.invoice_number', 'like', "%{$this->searchFolio}%");
+                    });
                 })
                 ->when($dFrom && $dTo && !$this->searchFolio, function($q) use ($dFrom, $dTo) {
                     $q->whereBetween('sales.created_at', [$dFrom, $dTo]);
@@ -235,8 +241,10 @@ class DailySalesReport extends Component
                 'returns' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo])
             ])
             ->when($this->searchFolio, function($q) {
-                $q->where('id', 'like', "%{$this->searchFolio}%")
-                  ->orWhere('invoice_number', 'like', "%{$this->searchFolio}%");
+                $q->where(function($sub) {
+                    $sub->where('id', 'like', "%{$this->searchFolio}%")
+                        ->orWhere('invoice_number', 'like', "%{$this->searchFolio}%");
+                });
             })
             ->when($dFrom && $dTo && !$this->searchFolio, function($q) use ($dFrom, $dTo) {
                 $q->whereBetween('created_at', [$dFrom, $dTo]);

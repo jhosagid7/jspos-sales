@@ -339,6 +339,13 @@ class ReturnsComponent extends Component
         if ($saleReturn->refund_method === 'debt_reduction') {
             $saleReturn->sale->checkSettlement();
         }
+
+        // Reintegrar capas FIFO consumidas
+        try {
+            app(\App\Services\PartnerStockService::class)->restoreLayersForReturn($saleReturn);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Error restituyendo capas FIFO para devolución #{$saleReturn->id}: " . $e->getMessage());
+        }
     }
 
     public function ApproveReturn($returnId)

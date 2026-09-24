@@ -15,6 +15,16 @@ class CheckModule
             return $next($request);
         }
 
+        // Check local override or configuration addon
+        try {
+            $config = \App\Services\ConfigurationService::getConfig();
+            if ($config && method_exists($config, 'hasAddon')) {
+                if ($config->hasAddon($module)) {
+                    return $next($request);
+                }
+            }
+        } catch (\Throwable $e) {}
+
         $modules = config('tenant.modules', []);
         
         if (!in_array($module, $modules)) {

@@ -1,4 +1,24 @@
+## [1.10.439] - 2026-09-24
+
+### Fixed
+- **Discrepancia de Folio en Ticket Térmico vs Factura PDF y Reportes**:
+  - `PrintTrait.php`: Se corrigió la impresión del ticket físico para que imprima el número correlativo de factura (`$sale->invoice_number`) en lugar del ID interno autoincrementable de MySQL (`$sale->id`). Esto evita discrepancias numéricas cuando transacciones previas hacen rollback de auto-incrementos.
+  - `DailySalesReport.php`: Se agruparon las condiciones de búsqueda por folio/factura con subconsultas `where(function($sub) { ... })` para garantizar coincidencia limpia sin romper los filtros de fecha y operador.
+
+### Added & Improved
+- **Sincronización Automática de Stock en Depósito Principal en Traspasos**:
+  - `ProductWarehouse.php`: Se incorporó hook de ciclo de vida (`booted -> saved / deleted`) que sincroniza en tiempo real `products.stock_qty` cada vez que se guarda o actualiza el stock del depósito principal (Tienda Principal).
+  - `Transfers.php` & `TransferController.php`: Sincronización explícita en `updateStock()` al despachar y recibir mercancía desde/hacia el almacén por defecto.
+  - `SyncWarehouseStock.php`: Nuevo comando Artisan `php artisan stock:sync-default-warehouse` (con soporte `--dry-run`) para auditar y reparar discrepancias de stock entre `products` y `product_warehouse`.
+  - `UpdateService.php`: Integración automática del comando de sincronización de stock y migraciones en `runMigrations()`, ejecutándose de manera transparente durante la actualización del cliente.
+- **Gestión de Mercancía de Socios en Depósitos y Liquidación**:
+  - Migraciones `partner_stock_layers`, `sale_layer_consumptions` y campos en `warehouses` para trazabilidad FIFO de existencias de socios.
+  - `PartnerSalesLiquidationReport.php` & `partner-sales-liquidation-report.blade.php`: Reporte interactivo con desglose de ventas por socio, cálculo de costo, ganancia neta en USD, margen comercial (%) y exportación en formato horizontal (Landscape) en PDF.
+  - `Transfers.php`: Filtrado reactivo en traspasos para mostrar únicamente productos con existencia disponible en el depósito de origen seleccionado.
+- **Pruebas Automatizadas**: Cobertura al 100% en `InvoiceTicketAndStockTransferTest.php`, `PartnerStockFifoAndLiquidationTest.php` y `TransferOriginWarehouseStockFilterTest.php`.
+
 ## [1.10.438] - 2026-09-19
+
 
 ### Added & Improved
 - **Cortes de Inventario Físico y Reestructuración Integral del Kardex (`ProductMovementsReport`)**:

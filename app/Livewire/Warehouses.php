@@ -10,7 +10,7 @@ class Warehouses extends Component
 {
     use WithPagination;
 
-    public $name, $address, $is_active = true, $search, $selected_id, $pageTitle, $componentName;
+    public $name, $address, $is_active = true, $is_partner_warehouse = false, $partner_name = '', $search, $selected_id, $pageTitle, $componentName;
     private $pagination = 5;
 
     public function mount()
@@ -23,6 +23,7 @@ class Warehouses extends Component
     {
         if (strlen($this->search) > 0)
             $data = Warehouse::where('name', 'like', '%' . $this->search . '%')
+                ->orWhere('partner_name', 'like', '%' . $this->search . '%')
                 ->paginate($this->pagination);
         else
             $data = Warehouse::orderBy('id', 'desc')->paginate($this->pagination);
@@ -34,10 +35,12 @@ class Warehouses extends Component
 
     public function Edit($id)
     {
-        $record = Warehouse::find($id, ['id', 'name', 'address', 'is_active']);
+        $record = Warehouse::find($id, ['id', 'name', 'address', 'is_active', 'is_partner_warehouse', 'partner_name']);
         $this->name = $record->name;
         $this->address = $record->address;
-        $this->is_active = $record->is_active;
+        $this->is_active = (bool)$record->is_active;
+        $this->is_partner_warehouse = (bool)$record->is_partner_warehouse;
+        $this->partner_name = $record->partner_name ?? '';
         $this->selected_id = $record->id;
 
         $this->dispatch('show-modal', 'Show modal!');
@@ -52,6 +55,7 @@ class Warehouses extends Component
 
         $rules = [
             'name' => 'required|min:3|unique:warehouses,name',
+            'partner_name' => 'nullable|string|max:100',
         ];
 
         $messages = [
@@ -65,7 +69,9 @@ class Warehouses extends Component
         $warehouse = Warehouse::create([
             'name' => $this->name,
             'address' => $this->address,
-            'is_active' => $this->is_active
+            'is_active' => $this->is_active,
+            'is_partner_warehouse' => (bool)$this->is_partner_warehouse,
+            'partner_name' => $this->is_partner_warehouse ? $this->partner_name : null,
         ]);
 
         $this->resetUI();
@@ -81,6 +87,7 @@ class Warehouses extends Component
 
         $rules = [
             'name' => "required|min:3|unique:warehouses,name,{$this->selected_id}",
+            'partner_name' => 'nullable|string|max:100',
         ];
 
         $messages = [
@@ -95,7 +102,9 @@ class Warehouses extends Component
         $warehouse->update([
             'name' => $this->name,
             'address' => $this->address,
-            'is_active' => $this->is_active
+            'is_active' => $this->is_active,
+            'is_partner_warehouse' => (bool)$this->is_partner_warehouse,
+            'partner_name' => $this->is_partner_warehouse ? $this->partner_name : null,
         ]);
 
         $this->resetUI();
@@ -107,6 +116,8 @@ class Warehouses extends Component
         $this->name = '';
         $this->address = '';
         $this->is_active = true;
+        $this->is_partner_warehouse = false;
+        $this->partner_name = '';
         $this->search = '';
         $this->selected_id = 0;
     }

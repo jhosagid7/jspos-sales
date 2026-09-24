@@ -215,4 +215,67 @@ class RolePermissionsTemplatesTest extends TestCase
         $response = $this->actingAs($restrictedUser)->get(route('sales'));
         $response->assertStatus(403);
     }
+
+    public function test_cashier_template_includes_seller_flag_currency_change_and_adjustments()
+    {
+        $cashierPermissions = RoleTemplateService::getCashierPermissions();
+        $this->assertContains('system.is_seller', $cashierPermissions);
+        $this->assertContains('sales.change_invoice_currency', $cashierPermissions);
+        $this->assertContains('sales.manage_adjustments', $cashierPermissions);
+
+        $customRole = Role::create(['name' => 'Operador Principal', 'guard_name' => 'web']);
+        RoleTemplateService::applyTemplateToRole($customRole, 'cashier');
+
+        $this->assertTrue($customRole->hasPermissionTo('system.is_seller'));
+        $this->assertTrue($customRole->hasPermissionTo('sales.change_invoice_currency'));
+        $this->assertTrue($customRole->hasPermissionTo('sales.manage_adjustments'));
+    }
+
+    public function test_livewire_asignar_permisos_exports_template_as_json()
+    {
+        $role = Role::create(['name' => 'Vendedor VIP', 'guard_name' => 'web']);
+        $role->givePermissionTo(['sales.index', 'sales.create', 'system.is_seller']);
+
+        $response = Livewire::actingAs($this->adminUser)
+            ->test(AsignarPermisos::class)
+            ->set('roleSelectedId', $role->id)
+            ->call('exportTemplate');
+
+        $this->assertNotNull($response);
+    }
+
+    public function test_livewire_asignar_permisos_imports_template_from_json_file()
+    {
+        $role = Role::create(['name' => 'Cajero Importado', 'guard_name' => 'web']);
+        $this->assertCount(0, $role->permissions);
+
+        $templateData = [
+            'system' => 'JSPOS-Sales',
+            'role_name' => 'Plantilla Test',
+            'version' => '1.0',
+            'permissions' => [
+                'sales.index',
+                'sales.create',
+                'system.is_seller',
+                'sales.change_invoice_currency',
+                'sales.manage_adjustments'
+            ]
+        ];
+
+        $tmpFile = \Illuminate\Http\UploadedFile::fake()->createWithContent('plantilla_cajero.json', json_encode($templateData));
+
+        Livewire::actingAs($this->adminUser)
+            ->test(AsignarPermisos::class)
+            ->set('roleSelectedId', $role->id)
+            ->set('templateFile', $tmpFile)
+            ->assertDispatched('noty');
+
+        $role->refresh();
+        $this->assertTrue($role->hasPermissionTo('sales.index'));
+        $this->assertTrue($role->hasPermissionTo('sales.create'));
+        $this->assertTrue($role->hasPermissionTo('system.is_seller'));
+        $this->assertTrue($role->hasPermissionTo('sales.change_invoice_currency'));
+        $this->assertTrue($role->hasPermissionTo('sales.manage_adjustments'));
+    }
 }
+

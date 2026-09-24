@@ -9,7 +9,12 @@ class Warehouse extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'address', 'is_active'];
+    protected $fillable = ['name', 'address', 'is_active', 'is_partner_warehouse', 'partner_name'];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+        'is_partner_warehouse' => 'boolean',
+    ];
 
     public function products()
     {

@@ -4777,5 +4777,222 @@ class ReportController extends Controller
 
         return $pdf->stream($filename);
     }
+
+    public function partnerSalesPdf(Request $request)
+    {
+        $dateFrom = $request->get('dateFrom', Carbon::now()->startOfMonth()->format('Y-m-d'));
+        $dateTo = $request->get('dateTo', Carbon::now()->endOfMonth()->format('Y-m-d'));
+        $originWarehouseId = $request->get('origin_warehouse_id', 'all');
+        $destinationWarehouseId = $request->get('destination_warehouse_id', 'all');
+        $searchProduct = $request->get('searchProduct', '');
+        $viewMode = $request->get('viewMode', 'summary');
+
+        $dFrom = Carbon::parse($dateFrom)->startOfDay();
+        $dTo = Carbon::parse($dateTo)->endOfDay();
+
+        $query = \App\Models\SaleLayerConsumption::join('sales', 'sale_layer_consumptions.sale_id', '=', 'sales.id')
+            ->join('products', 'sale_layer_consumptions.product_id', '=', 'products.id')
+            ->join('warehouses as origin_wh', 'sale_layer_consumptions.origin_warehouse_id', '=', 'origin_wh.id')
+            ->whereNull('sales.deleted_at')
+            ->whereBetween('sales.created_at', [$dFrom, $dTo]);
+
+        if ($originWarehouseId !== 'all') {
+            $query->where('sale_layer_consumptions.origin_warehouse_id', $originWarehouseId);
+        } else {
+            $query->where('origin_wh.is_partner_warehouse', true);
+        }
+
+        if ($destinationWarehouseId !== 'all') {
+            $query->where('sales.warehouse_id', $destinationWarehouseId);
+        }
+
+        if (!empty($searchProduct)) {
+            $term = '%' . $searchProduct . '%';
+            $query->where(function($q) use ($term) {
+                $q->where('products.name', 'like', $term)
+                  ->orWhere('products.sku', 'like', $term);
+            });
+        }
+
+        $metrics = (clone $query)->select([
+            DB::raw('COALESCE(SUM(sale_layer_consumptions.quantity), 0) as total_qty_sold'),
+            DB::raw('COALESCE(SUM(sale_layer_consumptions.total_price), 0) as total_amount_sold'),
+            DB::raw('COALESCE(SUM(COALESCE(sale_layer_consumptions.total_cost, sale_layer_consumptions.quantity * products.cost, 0)), 0) as total_cost_sold'),
+            DB::raw('COUNT(DISTINCT sale_layer_consumptions.sale_id) as total_sales_count'),
+            DB::raw('COUNT(DISTINCT sale_layer_consumptions.product_id) as total_distinct_products'),
+        ])->first();
+
+        $layersQuery = \App\Models\TransferStockLayer::join('warehouses as origin_wh', 'transfer_stock_layers.origin_warehouse_id', '=', 'origin_wh.id')
+            ->where('transfer_stock_layers.remaining_quantity', '>', 0);
+        if ($originWarehouseId !== 'all') {
+            $layersQuery->where('transfer_stock_layers.origin_warehouse_id', $originWarehouseId);
+        } else {
+            $layersQuery->where('origin_wh.is_partner_warehouse', true);
+        }
+        if ($destinationWarehouseId !== 'all') {
+            $layersQuery->where('transfer_stock_layers.destination_warehouse_id', $destinationWarehouseId);
+        }
+        $remainingInStore = (float) $layersQuery->sum('transfer_stock_layers.remaining_quantity');
+
+        // Physical stock in partner warehouses
+        $originStockQuery = \App\Models\ProductWarehouse::join('warehouses as wh', 'product_warehouse.warehouse_id', '=', 'wh.id')
+            ->where('product_warehouse.stock_qty', '>', 0);
+        if ($originWarehouseId !== 'all') {
+            $originStockQuery->where('product_warehouse.warehouse_id', $originWarehouseId);
+        } else {
+            $originStockQuery->where('wh.is_partner_warehouse', true);
+        }
+        if (!empty($searchProduct)) {
+            $term = '%' . $searchProduct . '%';
+            $originStockQuery->join('products', 'product_warehouse.product_id', '=', 'products.id')
+                ->where(function($q) use ($term) {
+                    $q->where('products.name', 'like', $term)
+                      ->orWhere('products.sku', 'like', $term);
+                });
+        }
+        $originPhysicalStock = (float) $originStockQuery->sum('product_warehouse.stock_qty');
+
+        $totalQtySold = (float) ($metrics->total_qty_sold ?? 0);
+        $totalAmountSold = (float) ($metrics->total_amount_sold ?? 0);
+        $totalCostSold = (float) ($metrics->total_cost_sold ?? 0);
+        $totalProfit = round($totalAmountSold - $totalCostSold, 2);
+        $marginPercentage = $totalAmountSold > 0 ? round(($totalProfit / $totalAmountSold) * 100, 2) : 0;
+
+        $kpis = [
+            'total_qty_sold' => $totalQtySold,
+            'total_amount_sold' => $totalAmountSold,
+            'total_cost_sold' => $totalCostSold,
+            'total_profit' => $totalProfit,
+            'margin_percentage' => $marginPercentage,
+            'total_sales_count' => (int) ($metrics->total_sales_count ?? 0),
+            'total_distinct_products' => (int) ($metrics->total_distinct_products ?? 0),
+            'remaining_in_store' => $remainingInStore,
+            'origin_physical_stock' => $originPhysicalStock,
+        ];
+
+        if ($viewMode === 'summary') {
+            $items = $query->select([
+                    'sale_layer_consumptions.origin_warehouse_id',
+                    'origin_wh.name as origin_warehouse_name',
+                    'sale_layer_consumptions.product_id',
+                    'products.name as product_name',
+                    'products.sku as product_barcode',
+                    DB::raw('SUM(sale_layer_consumptions.quantity) as total_quantity'),
+                    DB::raw('SUM(sale_layer_consumptions.total_price) as total_sales_amount'),
+                    DB::raw('AVG(sale_layer_consumptions.unit_price) as avg_unit_price'),
+                    DB::raw('AVG(COALESCE(sale_layer_consumptions.unit_cost, products.cost, 0)) as avg_unit_cost'),
+                    DB::raw('SUM(COALESCE(sale_layer_consumptions.total_cost, sale_layer_consumptions.quantity * products.cost, 0)) as total_cost_amount'),
+                    DB::raw('(SUM(sale_layer_consumptions.total_price) - SUM(COALESCE(sale_layer_consumptions.total_cost, sale_layer_consumptions.quantity * products.cost, 0))) as total_profit'),
+                    DB::raw('CASE WHEN SUM(sale_layer_consumptions.total_price) > 0 THEN ((SUM(sale_layer_consumptions.total_price) - SUM(COALESCE(sale_layer_consumptions.total_cost, sale_layer_consumptions.quantity * products.cost, 0))) / SUM(sale_layer_consumptions.total_price)) * 100 ELSE 0 END as margin_percentage'),
+                ])
+                ->groupBy(
+                    'sale_layer_consumptions.origin_warehouse_id',
+                    'origin_wh.name',
+                    'sale_layer_consumptions.product_id',
+                    'products.name',
+                    'products.sku'
+                )
+                ->orderBy('origin_wh.name', 'asc')
+                ->orderBy('total_sales_amount', 'desc')
+                ->get();
+        } elseif ($viewMode === 'origin_stock') {
+            $items = \App\Models\ProductWarehouse::with(['warehouse', 'product.category'])
+                ->join('warehouses as wh', 'product_warehouse.warehouse_id', '=', 'wh.id')
+                ->join('products', 'product_warehouse.product_id', '=', 'products.id')
+                ->where('product_warehouse.stock_qty', '>', 0);
+
+            if ($originWarehouseId !== 'all') {
+                $items->where('product_warehouse.warehouse_id', $originWarehouseId);
+            } else {
+                $items->where('wh.is_partner_warehouse', true);
+            }
+
+            if (!empty($searchProduct)) {
+                $term = '%' . $searchProduct . '%';
+                $items->where(function($q) use ($term) {
+                    $q->where('products.name', 'like', $term)
+                      ->orWhere('products.sku', 'like', $term);
+                });
+            }
+
+            $items = $items->select('product_warehouse.*')
+                ->orderBy('wh.name', 'asc')
+                ->orderBy('products.name', 'asc')
+                ->get();
+        } elseif ($viewMode === 'consignment_stock') {
+            $items = \App\Models\TransferStockLayer::with([
+                'originWarehouse',
+                'destinationWarehouse',
+                'product',
+                'transfer'
+            ])
+            ->join('warehouses as origin_wh', 'transfer_stock_layers.origin_warehouse_id', '=', 'origin_wh.id')
+            ->join('products', 'transfer_stock_layers.product_id', '=', 'products.id')
+            ->where('transfer_stock_layers.remaining_quantity', '>', 0);
+
+            if ($originWarehouseId !== 'all') {
+                $items->where('transfer_stock_layers.origin_warehouse_id', $originWarehouseId);
+            } else {
+                $items->where('origin_wh.is_partner_warehouse', true);
+            }
+
+            if ($destinationWarehouseId !== 'all') {
+                $items->where('transfer_stock_layers.destination_warehouse_id', $destinationWarehouseId);
+            }
+
+            if (!empty($searchProduct)) {
+                $term = '%' . $searchProduct . '%';
+                $items->where(function($q) use ($term) {
+                    $q->where('products.name', 'like', $term)
+                      ->orWhere('products.sku', 'like', $term);
+                });
+            }
+
+            $items = $items->select('transfer_stock_layers.*')
+                ->orderBy('transfer_stock_layers.id', 'desc')
+                ->get();
+        } else {
+            $items = \App\Models\SaleLayerConsumption::with([
+                'originWarehouse',
+                'product',
+                'sale.customer',
+                'sale.user'
+            ])
+            ->join('sales', 'sale_layer_consumptions.sale_id', '=', 'sales.id')
+            ->join('products', 'sale_layer_consumptions.product_id', '=', 'products.id')
+            ->join('warehouses as origin_wh', 'sale_layer_consumptions.origin_warehouse_id', '=', 'origin_wh.id')
+            ->whereNull('sales.deleted_at')
+            ->whereBetween('sales.created_at', [$dFrom, $dTo]);
+
+            if ($originWarehouseId !== 'all') {
+                $items->where('sale_layer_consumptions.origin_warehouse_id', $originWarehouseId);
+            } else {
+                $items->where('origin_wh.is_partner_warehouse', true);
+            }
+            if ($destinationWarehouseId !== 'all') {
+                $items->where('sales.warehouse_id', $destinationWarehouseId);
+            }
+            if (!empty($searchProduct)) {
+                $term = '%' . $searchProduct . '%';
+                $items->where(function($q) use ($term) {
+                    $q->where('products.name', 'like', $term)
+                      ->orWhere('products.sku', 'like', $term);
+                });
+            }
+
+            $items = $items->select('sale_layer_consumptions.*')
+                ->orderBy('sale_layer_consumptions.id', 'desc')
+                ->get();
+        }
+
+        $config = \App\Models\Configuration::first();
+        $originWarehouse = $originWarehouseId !== 'all' ? \App\Models\Warehouse::find($originWarehouseId) : null;
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.partner-sales-liquidation-pdf', compact(
+            'config', 'dateFrom', 'dateTo', 'originWarehouse', 'viewMode', 'kpis', 'items'
+        ))->setPaper('a4', 'landscape');
+
+        return $pdf->stream('Liquidacion_Socios_' . Carbon::parse($dateFrom)->format('Ymd') . '_' . Carbon::parse($dateTo)->format('Ymd') . '.pdf');
+    }
 }
 

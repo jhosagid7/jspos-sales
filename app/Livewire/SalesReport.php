@@ -815,6 +815,13 @@ class SalesReport extends Component
                 $sale->paymentDetails()->delete();
                 $sale->changeDetails()->delete();
 
+                // Reintegrar capas FIFO consumidas
+                try {
+                    app(\App\Services\PartnerStockService::class)->restoreLayersForSale($sale);
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error("Error restituyendo capas FIFO para venta #{$sale->id}: " . $e->getMessage());
+                }
+
                 DB::commit();
 
         } catch (\Exception $th) {

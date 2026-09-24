@@ -29,6 +29,15 @@ class Transfers extends Component
         $this->to_warehouse_id = '';
     }
 
+    public function updatedFromWarehouseId($value)
+    {
+        if (!empty($this->cart)) {
+            $this->cart = [];
+            $this->dispatch('noty', msg: 'Al cambiar el depósito de origen se ha reiniciado la lista de productos.');
+        }
+        $this->product_search = '';
+    }
+
     public function render()
     {
         if (strlen($this->search) > 0)
@@ -39,11 +48,29 @@ class Transfers extends Component
 
         $warehouses = Warehouse::where('is_active', true)->get();
         
-        // Search products for autocomplete/selection
-        $products = [];
-        if(strlen($this->product_search) > 0) {
-            $products = Product::search($this->product_search)
-                        ->take(5)->get();
+        // Search products for autocomplete/selection (only if origin warehouse is selected and has stock)
+        $products = collect();
+        if (strlen($this->product_search) > 0) {
+            if (!empty($this->from_warehouse_id)) {
+                $products = Product::search($this->product_search)
+                    ->whereHas('productWarehouses', function ($q) {
+                        $q->where('warehouse_id', $this->from_warehouse_id)
+                          ->where('stock_qty', '>', 0);
+                    })
+                    ->with(['productWarehouses' => function ($q) {
+                        $q->where('warehouse_id', $this->from_warehouse_id);
+                    }])
+                    ->take(10)
+                    ->get()
+                    ->map(function ($product) {
+                        $pw = $product->productWarehouses->first();
+                        $product->current_warehouse_stock = $pw ? floatval($pw->stock_qty) : 0;
+                        return $product;
+                    });
+            } else {
+                $products = Product::search($this->product_search)
+                            ->take(5)->get();
+            }
         }
 
         return view('livewire.transfers', [
@@ -57,13 +84,34 @@ class Transfers extends Component
 
     public function addToCart($productId)
     {
+        if (empty($this->from_warehouse_id)) {
+            $this->dispatch('error', 'Por favor seleccione primero el depósito de origen.');
+            return;
+        }
+
         $product = Product::find($productId);
-        if(!$product) return;
+        if (!$product) return;
+
+        // Validar stock disponible en el almacén de origen
+        $pw = \App\Models\ProductWarehouse::where('product_id', $productId)
+            ->where('warehouse_id', $this->from_warehouse_id)
+            ->first();
+        $stock = $pw ? floatval($pw->stock_qty) : 0;
+
+        if ($stock <= 0) {
+            $this->dispatch('error', "El producto {$product->name} no tiene stock disponible en el depósito de origen.");
+            return;
+        }
 
         // Check if already in cart
-        foreach($this->cart as $key => $item) {
-            if($item['product_id'] == $productId) {
+        foreach ($this->cart as $key => $item) {
+            if ($item['product_id'] == $productId) {
+                if ($this->cart[$key]['qty'] + 1 > $stock) {
+                    $this->dispatch('error', "No puede traspasar más de {$stock} unidades disponibles en este depósito.");
+                    return;
+                }
                 $this->cart[$key]['qty']++;
+                $this->product_search = '';
                 return;
             }
         }
@@ -71,7 +119,8 @@ class Transfers extends Component
         $this->cart[] = [
             'product_id' => $product->id,
             'name' => $product->name,
-            'qty' => 1
+            'qty' => 1,
+            'stock' => $stock
         ];
         
         $this->product_search = '';
@@ -79,10 +128,31 @@ class Transfers extends Component
 
     public function updateQty($index, $qty)
     {
-        if($qty <= 0) {
+        if (!isset($this->cart[$index])) return;
+
+        if (!is_numeric($qty) || floatval($qty) <= 0) {
             $this->removeFromCart($index);
             return;
         }
+
+        $qty = floatval($qty);
+        $productId = $this->cart[$index]['product_id'];
+
+        if (!empty($this->from_warehouse_id)) {
+            $pw = \App\Models\ProductWarehouse::where('product_id', $productId)
+                ->where('warehouse_id', $this->from_warehouse_id)
+                ->first();
+            $stock = $pw ? floatval($pw->stock_qty) : 0;
+
+            if ($qty > $stock) {
+                $this->dispatch('error', "La cantidad solicitada ({$qty}) supera el stock disponible ({$stock}) en este depósito.");
+                $this->cart[$index]['qty'] = $stock;
+                $this->cart[$index]['stock'] = $stock;
+                return;
+            }
+            $this->cart[$index]['stock'] = $stock;
+        }
+
         $this->cart[$index]['qty'] = $qty;
     }
 
@@ -124,6 +194,19 @@ class Transfers extends Component
                         return;
                     }
                 }
+            }
+        }
+
+        // Validar que cada producto tenga suficiente stock en el depósito de origen
+        foreach ($this->cart as $item) {
+            $pw = \App\Models\ProductWarehouse::where('product_id', $item['product_id'])
+                ->where('warehouse_id', $this->from_warehouse_id)
+                ->first();
+            $stock = $pw ? floatval($pw->stock_qty) : 0;
+
+            if ($item['qty'] > $stock) {
+                $this->dispatch('error', "Stock insuficiente: El producto '{$item['name']}' solo cuenta con {$stock} unidades disponibles en el depósito de origen.");
+                return;
             }
         }
 
@@ -205,6 +288,14 @@ class Transfers extends Component
 
         $pw->stock_qty += $qty;
         $pw->save();
+
+        $defaultWarehouseId = \App\Models\Configuration::first()?->default_warehouse_id
+            ?? \App\Models\Warehouse::first()?->id
+            ?? 1;
+
+        if ($warehouseId == $defaultWarehouseId) {
+            \App\Models\Product::where('id', $productId)->update(['stock_qty' => $pw->stock_qty]);
+        }
     }
 
     // Modal properties for receiving
@@ -273,6 +364,9 @@ class Transfers extends Component
                 'rejection_reason' => $this->rejection_reason
             ]);
 
+            // Registrar capas FIFO para socios/depósitos de origen
+            app(\App\Services\PartnerStockService::class)->registerTransferLayers($transfer);
+
             DB::commit();
             $this->dispatch('hide-receive-modal');
             $this->dispatch('msg', 'Traspaso procesado. Los rechazos pendientes aparecerán en la App del operador.');
@@ -304,6 +398,9 @@ class Transfers extends Component
                 'received_by_id' => Auth::user()->id,
                 'rejection_reason' => null
             ]);
+
+            // Registrar capas FIFO para socios/depósitos de origen
+            app(\App\Services\PartnerStockService::class)->registerTransferLayers($transfer);
 
             DB::commit();
             $this->dispatch('msg', 'Traspaso aprobado y mercancía ingresada al destino.');

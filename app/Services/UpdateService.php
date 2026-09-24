@@ -389,6 +389,13 @@ class UpdateService
         Artisan::call('db:seed', ['--class' => 'SopladosProductionTargetSeeder', '--force' => true]);
         Artisan::call('db:seed', ['--class' => 'SopladosSecondQualityLinkerSeeder', '--force' => true]);
 
+        // Auto-heal / synchronize default warehouse product stock
+        try {
+            Artisan::call('stock:sync-default-warehouse');
+        } catch (\Throwable $th) {
+            Log::warning("Updater: Automatic stock synchronization failed: " . $th->getMessage());
+        }
+
         // Self-healing Storage Link (Windows Junction Point & Unix Symlink)
         try {
             $publicStorage = public_path('storage');

@@ -163,6 +163,7 @@ class PermissionSeeder extends Seeder
             'reports.audit',
             'reports.customer_payment_relationship',
             'collections.audit',
+            'reports.partner_sales',
             
             // Settings
             'settings.index',

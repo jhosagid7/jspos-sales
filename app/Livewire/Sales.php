@@ -4768,6 +4768,13 @@ class Sales extends Component
                 session()->forget(['editing_sale_id', 'edit_authorized_by', 'edit_reason']);
             }
 
+            // Consumir capas de stock FIFO de socios/depósitos
+            try {
+                app(\App\Services\PartnerStockService::class)->consumeLayersForSale($sale);
+            } catch (\Exception $e) {
+                Log::error("Error consumiendo capas FIFO para venta #{$sale->id}: " . $e->getMessage());
+            }
+
             DB::commit();
 
             // Verificar si el abono inicial liquida la venta por completo (por ejemplo, crédito con inicial del 100%)

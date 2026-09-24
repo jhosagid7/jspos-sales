@@ -4,15 +4,19 @@ namespace App\Livewire;
 
 use App\Models\User;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 
 class AsignarPermisos extends Component
 {
+    use WithFileUploads;
+
     public $search;
     public  $role, $roleSelectedId,  $permissionId;
     public $users = [], $roles = [];
+    public $templateFile;
 
     function mount()
     {
@@ -127,6 +131,107 @@ class AsignarPermisos extends Component
 
         } catch (\Exception $th) {
             $this->dispatch('noty', msg: "Error al limpiar permisos: {$th->getMessage()}");
+        }
+    }
+
+    public function exportTemplate()
+    {
+        try {
+            if (!$this->roleSelectedId) {
+                $this->dispatch('noty', msg: "Selecciona primero un rol para exportar su plantilla");
+                return null;
+            }
+
+            $role = Role::find($this->roleSelectedId);
+            if (!$role) {
+                $this->dispatch('noty', msg: "El rol seleccionado no existe");
+                return null;
+            }
+
+            $permissions = $role->permissions->pluck('name')->values()->toArray();
+
+            $data = [
+                'system' => 'JSPOS-Sales',
+                'role_name' => $role->name,
+                'exported_at' => now()->toIso8601String(),
+                'version' => '1.0',
+                'permissions_count' => count($permissions),
+                'permissions' => $permissions,
+            ];
+
+            $jsonContent = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            $cleanName = \Illuminate\Support\Str::slug($role->name, '_');
+            $fileName = "plantilla_rol_{$cleanName}.json";
+
+            return response()->streamDownload(function () use ($jsonContent) {
+                echo $jsonContent;
+            }, $fileName, [
+                'Content-Type' => 'application/json',
+            ]);
+
+        } catch (\Exception $th) {
+            $this->dispatch('noty', msg: "Error al exportar plantilla: {$th->getMessage()}");
+            return null;
+        }
+    }
+
+    public function updatedTemplateFile()
+    {
+        $this->importTemplate();
+    }
+
+    public function importTemplate()
+    {
+        try {
+            if (!$this->roleSelectedId) {
+                $this->dispatch('noty', msg: "Selecciona primero un rol para importar la plantilla");
+                $this->reset('templateFile');
+                return;
+            }
+
+            $role = Role::find($this->roleSelectedId);
+            if (!$role) {
+                $this->dispatch('noty', msg: "El rol seleccionado no existe");
+                $this->reset('templateFile');
+                return;
+            }
+
+            // Protect Super Admin role from unauthorized modification
+            if ($role->name === 'Super Admin' && !auth()->user()->hasRole('Super Admin')) {
+                $this->dispatch('noty', msg: "No tienes permiso para modificar permisos del Super Admin");
+                $this->reset('templateFile');
+                return;
+            }
+
+            if (!$this->templateFile) {
+                $this->dispatch('noty', msg: "Por favor selecciona un archivo JSON de plantilla válido");
+                return;
+            }
+
+            $content = file_get_contents($this->templateFile->getRealPath());
+            $data = json_decode($content, true);
+
+            if (!is_array($data) || !isset($data['permissions']) || !is_array($data['permissions'])) {
+                $this->dispatch('noty', msg: "El archivo JSON no tiene una estructura de plantilla válida (falta el listado de permisos)");
+                $this->reset('templateFile');
+                return;
+            }
+
+            $permNames = $data['permissions'];
+            $permissions = Permission::whereIn('name', $permNames)->get();
+
+            $role->syncPermissions($permissions);
+            app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+
+            $this->role = $role->fresh('permissions');
+            $this->reset('templateFile');
+
+            $importedFrom = $data['role_name'] ?? 'Archivo';
+            $this->dispatch('noty', msg: "Plantilla '{$importedFrom}' importada exitosamente al rol {$role->name} ({$permissions->count()} permisos aplicados)");
+
+        } catch (\Exception $th) {
+            $this->reset('templateFile');
+            $this->dispatch('noty', msg: "Error al importar plantilla: {$th->getMessage()}");
         }
     }
 

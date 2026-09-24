@@ -152,7 +152,7 @@ trait PrintTrait
 
                 $printer->setJustification(Printer::JUSTIFY_LEFT);
                 //$printer->text("=============================================\n");
-                $printer->text("Folio: " . $sale->id . "\n");
+                $printer->text("Folio: " . ($sale->invoice_number ?: $sale->id) . "\n");
                 $printer->text("Fecha: " . Carbon::parse($sale->created_at)->format('d/m/Y h:m:s') . "\n");
                 $printer->text("Cajero: " . $sale->user->name . " \n");
                 $condition = $sale->type == 'credit' ? 'CRÉDITO' : 'CONTADO';
@@ -924,7 +924,7 @@ trait PrintTrait
 
                 $printer->setJustification(Printer::JUSTIFY_LEFT);
                 $printer->text($separator . "\n");
-                $printer->text("Folio Venta: " . $sale->id . "\n");
+                $printer->text("Folio Venta: " . ($sale->invoice_number ?: $sale->id) . "\n");
                 $printer->text("Fecha Emisión: " . Carbon::parse($sale->created_at)->format('d/m/Y H:i') . "\n");
                 $printer->text("Cliente: " . $sale->customer->name . "\n");
                 $printer->text($separator . "\n");

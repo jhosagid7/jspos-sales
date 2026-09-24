@@ -414,38 +414,28 @@ class Purchases extends Component
 
     public function setCost($uid, $cost)
     {
-        //dd($uid, $cant);
-        if (!is_numeric($cost)) {
+        if (!is_numeric($cost) || floatval($cost) < 0) {
             $this->dispatch('noty', msg: 'EL VALOR DEL COSTO ES INCORRECTO');
             return;
         }
 
-        $mycart = $this->cart;
+        $cost = floatval($cost);
+        $oldItem = $this->cart->firstWhere('id', $uid);
+        if (!$oldItem) return;
 
-
-        $oldItem = $mycart->where('id', $uid)->first();
-        //dd($oldItem);
         $newItem = $oldItem;
         $newItem['cost'] = $cost;
         
         // Recalculate margin
-        if($cost > 0 && isset($newItem['price'])) {
-             $newItem['margin'] = round((($newItem['price'] - $cost) / $cost) * 100, 2);
+        if ($cost > 0 && isset($newItem['price'])) {
+            $newItem['margin'] = round((($newItem['price'] - $cost) / $cost) * 100, 2);
         }
 
         $newItem['total'] = round($newItem['qty'] * $cost, 2);
 
-        //$newItem['flete'] = $this->getItemFlete($newItem['total'], $newItem['qty'], $cost);
-
-        //delete from cart
-        $this->cart = $this->cart->reject(function ($product) use ($uid) {
-            return $product['id'] === $uid;
+        $this->cart = $this->cart->map(function ($product) use ($uid, $newItem) {
+            return $product['id'] === $uid ? $newItem : $product;
         });
-
-        $this->save();
-
-        //add item to cart
-        $this->cart->push($newItem);
 
         $this->save();
         $this->dispatch('noty', msg: 'PRECIO ACTUALIZADO');
@@ -454,30 +444,26 @@ class Purchases extends Component
 
     public function setPrice($uid, $price)
     {
-        if (!is_numeric($price)) {
+        if (!is_numeric($price) || floatval($price) < 0) {
             $this->dispatch('noty', msg: 'EL VALOR DEL PRECIO ES INCORRECTO');
             return;
         }
 
-        $mycart = $this->cart;
-        $oldItem = $mycart->where('id', $uid)->first();
+        $price = floatval($price);
+        $oldItem = $this->cart->firstWhere('id', $uid);
+        if (!$oldItem) return;
+
         $newItem = $oldItem;
         $newItem['price'] = $price;
 
         // Recalculate margin
-        if(isset($newItem['cost']) && $newItem['cost'] > 0) {
-             $newItem['margin'] = round((($price - $newItem['cost']) / $newItem['cost']) * 100, 2);
+        if (isset($newItem['cost']) && $newItem['cost'] > 0) {
+            $newItem['margin'] = round((($price - $newItem['cost']) / $newItem['cost']) * 100, 2);
         }
 
-        //delete from cart
-        $this->cart = $this->cart->reject(function ($product) use ($uid) {
-            return $product['id'] === $uid;
+        $this->cart = $this->cart->map(function ($product) use ($uid, $newItem) {
+            return $product['id'] === $uid ? $newItem : $product;
         });
-
-        $this->save();
-
-        //add item to cart
-        $this->cart->push($newItem);
 
         $this->save();
         $this->dispatch('noty', msg: 'PRECIO VENTA ACTUALIZADO');
@@ -485,32 +471,23 @@ class Purchases extends Component
 
     public function updateQty($uid, $cant = 1)
     {
-        //dd($uid, $cant);
-        if (!is_numeric($cant)) {
+        if (!is_numeric($cant) || floatval($cant) <= 0) {
             $this->dispatch('noty', msg: 'EL VALOR DE LA CANTIDAD ES INCORRECTO');
             $this->dispatch('reverse', id: $uid);
             return;
         }
 
-        $mycart = $this->cart;
-
-        $oldItem = $mycart->where('id', $uid)->first();
+        $cant = floatval($cant);
+        $oldItem = $this->cart->firstWhere('id', $uid);
+        if (!$oldItem) return;
 
         $newItem = $oldItem;
-
         $newItem['qty'] = $cant;
+        $newItem['total'] = round($cant * $newItem['cost'], 2);
 
-        $newItem['total'] = round($newItem['qty'] * $newItem['cost'], 2);
-
-        //delete from cart
-        $this->cart = $this->cart->reject(function ($product) use ($uid) {
-            return $product['id'] === $uid;
+        $this->cart = $this->cart->map(function ($product) use ($uid, $newItem) {
+            return $product['id'] === $uid ? $newItem : $product;
         });
-
-        $this->save();
-
-        //add item to cart
-        $this->cart->push($newItem);
 
         $this->save();
         $this->dispatch('focus-search');
@@ -520,30 +497,20 @@ class Purchases extends Component
 
     public function IncDec($uid, $action = 1)
     {
-        $mycart = $this->cart;
+        $oldItem = $this->cart->firstWhere('id', $uid);
+        if (!$oldItem) return;
 
-        $oldItem = $mycart->where('id', $uid)->first();
-
-        $newItem = $oldItem;
-
-        $currentQty = $newItem['qty'];
+        $currentQty = floatval($oldItem['qty']);
         $newQty = ($action == 1 ? $currentQty + 1 : $currentQty - 1);
 
-        if (floatval($newQty) > 0) {
-
+        if ($newQty > 0) {
+            $newItem = $oldItem;
             $newItem['qty'] = $newQty;
+            $newItem['total'] = round($newQty * $newItem['cost'], 2);
 
-            $newItem['total'] = round($newItem['qty'] * $newItem['cost'], 2);
-
-            //delete from cart
-            $this->cart = $this->cart->reject(function ($product) use ($uid) {
-                return $product['id'] === $uid;
+            $this->cart = $this->cart->map(function ($product) use ($uid, $newItem) {
+                return $product['id'] === $uid ? $newItem : $product;
             });
-
-            $this->save();
-
-            //add item to cart
-            $this->cart->push($newItem);
         } else {
             $this->cart = $this->cart->reject(function ($product) use ($uid) {
                 return $product['id'] === $uid;

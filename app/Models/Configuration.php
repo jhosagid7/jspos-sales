@@ -197,6 +197,11 @@ class Configuration extends Model
             return (bool) $this->local_overrides[$addon];
         }
 
+        // 1.1 Verificar si existe como columna directa en la tabla configurations
+        if (array_key_exists($addon, $this->attributes) && $this->attributes[$addon] !== null) {
+            return (bool) $this->attributes[$addon];
+        }
+
         // 2. Si no hay override, validar lo que diga la licencia
         // Los modulos estan dentro de la data de la licencia, no en addon_modules de DB
         $licenseModules = config('tenant.modules');

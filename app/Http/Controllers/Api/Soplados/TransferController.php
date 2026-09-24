@@ -177,5 +177,13 @@ class TransferController extends Controller
 
         $pw->stock_qty += $quantity;
         $pw->save();
+
+        $defaultWarehouseId = \App\Models\Configuration::first()?->default_warehouse_id
+            ?? \App\Models\Warehouse::first()?->id
+            ?? 1;
+
+        if ($warehouseId == $defaultWarehouseId) {
+            \App\Models\Product::where('id', $productId)->update(['stock_qty' => $pw->stock_qty]);
+        }
     }
 }

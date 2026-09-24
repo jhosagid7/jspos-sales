@@ -40,6 +40,35 @@
                         @error('is_active') <span class="text-danger">{{ $message }}</span> @enderror
                     </div>
 
+                    <div class="form-group border rounded p-3 bg-light mb-3">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="is_partner_warehouse"
+                                wire:model.live="is_partner_warehouse"
+                                @cannot('warehouses.create') disabled @endcannot
+                                @if($selected_id > 0) @cannot('warehouses.edit') disabled @endcannot @endif
+                            >
+                            <label class="custom-control-label font-weight-bold text-dark" for="is_partner_warehouse">
+                                <i class="fa fa-handshake-o text-primary"></i> ¿Depósito de Socio / Consignación?
+                            </label>
+                        </div>
+                        <small class="text-muted d-block mt-1">
+                            Marque esta casilla si este depósito pertenece a un socio o consignatario para trazabilidad de ventas FIFO.
+                        </small>
+                    </div>
+
+                    @if($is_partner_warehouse)
+                    <div class="form-group">
+                        <label class="font-weight-bold text-primary">Nombre del Socio / Consignatario</label>
+                        <input wire:model="partner_name" type="text"
+                            class="form-control form-control-lg border-primary" placeholder="Ej: Socio 1 - Carlos"
+                            @cannot('warehouses.create') disabled @endcannot
+                            @if($selected_id > 0) @cannot('warehouses.edit') disabled @endcannot @endif
+                        >
+                        <small class="text-muted">Nombre del socio para liquidaciones y reportes.</small>
+                        @error('partner_name') <span class="text-danger d-block">{{ $message }}</span> @enderror
+                    </div>
+                    @endif
+
                 </div>
                 <div class="card-footer d-flex justify-content-between">
                     <button class="btn btn-light {{ $selected_id > 0 ? 'd-block' : 'd-none' }}"
@@ -86,6 +115,7 @@
                             <thead class="thead-primary">
                                 <tr>
                                     <th>Nombre</th>
+                                    <th>Tipo</th>
                                     <th>Dirección</th>
                                     <th>Estatus</th>
                                     <th>Acciones</th>
@@ -94,8 +124,20 @@
                             <tbody>
                                 @forelse ($data as $item)
                                 <tr>
-                                    <td>{{ $item->name }}</td>
-                                    <td>{{ $item->address }}</td>
+                                    <td class="text-left pl-3">
+                                        <span class="font-weight-bold">{{ $item->name }}</span>
+                                        @if($item->is_partner_warehouse && $item->partner_name)
+                                            <div class="small text-muted"><i class="fa fa-user text-primary"></i> {{ $item->partner_name }}</div>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($item->is_partner_warehouse)
+                                            <span class="badge badge-warning text-dark"><i class="fa fa-handshake-o"></i> Socio / Consig.</span>
+                                        @else
+                                            <span class="badge badge-light text-muted"><i class="fa fa-building"></i> Tienda / Propio</span>
+                                        @endif
+                                    </td>
+                                    <td>{{ $item->address ?? '-' }}</td>
                                     <td>
                                         <span class="badge badge-{{ $item->is_active ? 'success' : 'danger' }}">
                                             {{ $item->is_active ? 'Activo' : 'Inactivo' }}

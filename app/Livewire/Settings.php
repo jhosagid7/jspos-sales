@@ -190,7 +190,7 @@ class Settings extends Component
             $overrides = is_array($config->local_overrides) ? $config->local_overrides : (json_decode($config->local_overrides, true) ?? []);
             
             $availableKeys = [
-                'module_credits', 'module_purchases', 'module_multi_warehouse', 'module_advanced_payments',
+                'module_credits', 'module_purchases', 'module_multi_warehouse', 'module_partner_sales', 'module_advanced_payments',
                 'module_advanced_products', 'module_labels', 'module_roles', 'module_whatsapp', 'module_commissions',
                 'module_production', 'module_soplados', 'module_bolsas', 'module_delivery', 'module_updates',
                 'module_backups', 'module_strategic_analysis', 'module_weekly_income', 'module_monthly_income',

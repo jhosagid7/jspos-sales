@@ -172,6 +172,8 @@ Route::middleware('auth')->group(function () {
         Route::get('customer-statement/pdf', [\App\Http\Controllers\ReportController::class, 'customerStatementPdf'])->name('reports.customer.statement.pdf');
         Route::get('daily-sales', \App\Livewire\Reports\DailySalesReport::class)->name('reports.daily.sales')->middleware('can:reports.sales');
         Route::get('daily-sales/pdf', [\App\Http\Controllers\ReportController::class, 'dailySalesPdf'])->name('reports.daily.sales.pdf');
+        Route::get('partner-sales', \App\Livewire\Reports\PartnerSalesLiquidationReport::class)->name('reports.partner.sales')->middleware(['can:reports.sales', 'module:module_partner_sales']);
+        Route::get('partner-sales/pdf', [\App\Http\Controllers\ReportController::class, 'partnerSalesPdf'])->name('reports.partner.sales.pdf')->middleware(['can:reports.sales', 'module:module_partner_sales']);
         Route::get('sales/pdf', [\App\Http\Controllers\ReportController::class, 'generalSalesPdf'])->name('reports.general.sales.pdf');
         Route::get('customers', \App\Livewire\Reports\CustomerReport::class)->name('reports.customers')->middleware(['can:reports.sales', 'module:module_customer_report']);
         Route::get('customers/pdf', [\App\Http\Controllers\ReportController::class, 'customersPdf'])->name('reports.customers.pdf')->middleware(['can:reports.sales', 'module:module_customer_report']);

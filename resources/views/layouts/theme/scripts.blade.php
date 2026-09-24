@@ -5,6 +5,59 @@
 <!-- AdminLTE App -->
 <script src="{{ asset('assets/js/adminlte.min.js') }}"></script>
 
+<script>
+    // Robust, fail-safe Sidebar Treeview Handler
+    (function($) {
+        if (!$) return;
+
+        function bindSidebarTreeview() {
+            // Unbind native AdminLTE unnamespaced listeners to prevent competing / double-toggle deadlocks
+            $(document).off('click', '[data-widget="treeview"] .nav-link');
+            $(window).off('load.lte.treeview');
+
+            // Attach clean, single namespaced listener for all treeview toggle items
+            $(document).off('click.appTreeview', '.nav-sidebar .nav-item > .nav-link')
+                       .on('click.appTreeview', '.nav-sidebar .nav-item > .nav-link', function(e) {
+                var $link = $(this);
+                var $treeview = $link.next('.nav-treeview');
+
+                // If this item has a submenu, toggle it
+                if ($treeview.length > 0) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    var $parent = $link.parent('.nav-item');
+                    var isOpen = $parent.hasClass('menu-open');
+
+                    if (isOpen) {
+                        $parent.removeClass('menu-open menu-is-opening');
+                        $treeview.stop(true, true).slideUp(200);
+                    } else {
+                        // Check if accordion mode is enabled
+                        var $sidebar = $link.closest('.nav-sidebar');
+                        if ($sidebar.attr('data-accordion') === 'true') {
+                            var $siblings = $parent.siblings('.menu-open');
+                            $siblings.removeClass('menu-open menu-is-opening');
+                            $siblings.children('.nav-treeview').stop(true, true).slideUp(200);
+                        }
+
+                        $parent.addClass('menu-is-opening');
+                        $treeview.stop(true, true).slideDown(200, function() {
+                            $parent.addClass('menu-open').removeClass('menu-is-opening');
+                        });
+                    }
+                }
+            });
+        }
+
+        // Initialize immediately, on DOM ready, and on Livewire page transitions
+        bindSidebarTreeview();
+        $(document).ready(bindSidebarTreeview);
+        document.addEventListener('livewire:init', bindSidebarTreeview);
+        document.addEventListener('livewire:navigated', bindSidebarTreeview);
+    })(window.jQuery);
+</script>
+
 <!-- Plugins -->
 <script src="{{ asset('assets/js/sweet-alert/sweetalert.min.js') }}"></script>
 {{-- <script src="{{ asset('assets/js/theme-customizer/customizer.js') }}"></script> --}}
@@ -188,6 +241,8 @@
     // Apply on load and listen to resizes
     window.addEventListener('resize', applyAutoZoom);
     applyAutoZoom();
+
+
 
   })
 
