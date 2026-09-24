@@ -58,15 +58,17 @@ class DataController extends Controller
 
     public function autocomplete_products(Request $request)
     {
-        $valueToSearch = $request->get('q');
+        $valueToSearch = trim($request->get('q', ''));
 
-        $suppliers = Product::where('name', 'like', "%{$valueToSearch}%")
-            ->orWhere('sku', 'like', "%{$valueToSearch}%")
-            ->orderBy('name')
+        if (empty($valueToSearch)) {
+            return response()->json([]);
+        }
+
+        $products = Product::search($valueToSearch)
             ->take(30)
             ->get();
 
-        return response()->json($suppliers);
+        return response()->json($products);
     }
 
     public function customerDebtPdf($customerId)

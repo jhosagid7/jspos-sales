@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Recibo de Pago - Factura #{{ $sale->id }}</title>
+    <title>Recibo de Pago - Factura #{{ $sale->invoice_number ?: $sale->id }}</title>
     <style>
         body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 11px; color: #333; line-height: 1.4; margin: 0; padding: 20px; }
         .header { text-align: center; margin-bottom: 25px; border-bottom: 2px solid #3498db; padding-bottom: 15px; }
@@ -51,7 +51,7 @@
         @endif
         <div class="company-name">{{ $config->business_name }}</div>
         <div class="company-info">{{ $config->address }} &bull; NIT: {{ $config->taxpayer_id }} &bull; Tel: {{ $config->phone }}</div>
-        <div class="receipt-title">RECIBO DE PAGO #{{ $sale->id }}</div>
+        <div class="receipt-title">RECIBO DE PAGO #{{ $sale->invoice_number ?: $sale->id }}</div>
     </div>
 
     <table class="info-table">
@@ -64,7 +64,7 @@
             </td>
             <td width="50%" style="text-align: right;">
                 <span class="info-label">DETALLES DE LA TRANSACCIÓN</span>
-                <span class="info-value">FOLIO: {{ $sale->id }}</span><br>
+                <span class="info-value">FOLIO: {{ $sale->invoice_number ?: $sale->id }}</span><br>
                 <span style="color: #7f8c8d; font-size: 10px;">FECHA EMISIÓN: {{ \Carbon\Carbon::parse($sale->created_at)->format('d/m/Y H:i A') }}<br>
                 VENDEDOR: {{ $sale->user->name }}</span>
             </td>

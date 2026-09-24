@@ -111,18 +111,27 @@ class Commissions extends Component
             $query->where('batch_name', 'like', "%{$this->batch_filter}%");
         }
         
-        // Filter by Invoice ID
+        // Filter by Invoice ID or Correlative
         if (!empty(trim($this->searchFactura))) {
             $searchValue = trim($this->searchFactura);
-            $saleId = 0;
+            $cleanNumber = null;
             if (is_numeric($searchValue)) {
-                $saleId = (int)$searchValue;
+                $cleanNumber = (int)$searchValue;
             } elseif (preg_match('/^[Ff]0*([1-9][0-9]*)$/', $searchValue, $matches)) {
-                $saleId = (int)$matches[1];
+                $cleanNumber = (int)$matches[1];
             }
-            if ($saleId > 0) {
-                $query->where('id', $saleId);
-            }
+
+            $query->where(function($q) use ($searchValue, $cleanNumber) {
+                $q->where('invoice_number', 'like', "%{$searchValue}%")
+                  ->orWhere('id', 'like', "%{$searchValue}%");
+
+                if ($cleanNumber !== null) {
+                    $padded = str_pad($cleanNumber, 8, '0', STR_PAD_LEFT);
+                    $q->orWhere('id', $cleanNumber)
+                      ->orWhere('invoice_number', 'like', "%{$cleanNumber}%")
+                      ->orWhere('invoice_number', 'like', "%{$padded}%");
+                }
+            });
         }
 
         $commissions = $query->orderBy('created_at', 'desc')->paginate($this->pagination);
@@ -332,18 +341,27 @@ class Commissions extends Component
                 $query->where('batch_name', 'like', "%{$this->batch_filter}%");
             }
             
-            // Filter by Invoice ID
+            // Filter by Invoice ID or Correlative
             if (!empty(trim($this->searchFactura))) {
                 $searchValue = trim($this->searchFactura);
-                $saleId = 0;
+                $cleanNumber = null;
                 if (is_numeric($searchValue)) {
-                    $saleId = (int)$searchValue;
+                    $cleanNumber = (int)$searchValue;
                 } elseif (preg_match('/^[Ff]0*([1-9][0-9]*)$/', $searchValue, $matches)) {
-                    $saleId = (int)$matches[1];
+                    $cleanNumber = (int)$matches[1];
                 }
-                if ($saleId > 0) {
-                    $query->where('id', $saleId);
-                }
+
+                $query->where(function($q) use ($searchValue, $cleanNumber) {
+                    $q->where('invoice_number', 'like', "%{$searchValue}%")
+                      ->orWhere('id', 'like', "%{$searchValue}%");
+
+                    if ($cleanNumber !== null) {
+                        $padded = str_pad($cleanNumber, 8, '0', STR_PAD_LEFT);
+                        $q->orWhere('id', $cleanNumber)
+                          ->orWhere('invoice_number', 'like', "%{$cleanNumber}%")
+                          ->orWhere('invoice_number', 'like', "%{$padded}%");
+                    }
+                });
             }
         }
 

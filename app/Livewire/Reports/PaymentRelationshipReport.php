@@ -181,13 +181,28 @@ class PaymentRelationshipReport extends Component
 
                     if ($invFrom > 0 && $invTo > 0) {
                         // Range Search
-                        $q->whereBetween('id', [$invFrom, $invTo]);
+                        $paddedFrom = 'F' . str_pad($invFrom, 8, '0', STR_PAD_LEFT);
+                        $paddedTo = 'F' . str_pad($invTo, 8, '0', STR_PAD_LEFT);
+                        $q->where(function($sub) use ($invFrom, $invTo, $paddedFrom, $paddedTo) {
+                            $sub->whereBetween('id', [$invFrom, $invTo])
+                                ->orWhereBetween('invoice_number', [$paddedFrom, $paddedTo]);
+                        });
                     } elseif ($invFrom > 0) {
-                        // Exact match for "From"
-                        $q->where('id', $invFrom);
+                        // Match for "From"
+                        $paddedFrom = 'F' . str_pad($invFrom, 8, '0', STR_PAD_LEFT);
+                        $q->where(function($sub) use ($invFrom, $paddedFrom) {
+                            $sub->where('id', $invFrom)
+                                ->orWhere('invoice_number', 'like', "%{$invFrom}%")
+                                ->orWhere('invoice_number', 'like', "%{$paddedFrom}%");
+                        });
                     } elseif ($invTo > 0) {
-                        // Exact match for "To" 
-                        $q->where('id', $invTo);
+                        // Match for "To" 
+                        $paddedTo = 'F' . str_pad($invTo, 8, '0', STR_PAD_LEFT);
+                        $q->where(function($sub) use ($invTo, $paddedTo) {
+                            $sub->where('id', $invTo)
+                                ->orWhere('invoice_number', 'like', "%{$invTo}%")
+                                ->orWhere('invoice_number', 'like', "%{$paddedTo}%");
+                        });
                     }
                 }
             });

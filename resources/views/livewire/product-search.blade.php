@@ -19,6 +19,11 @@
                         valueField: 'id',
                         labelField: 'name',
                         searchField: ['name', 'sku'],
+                        score: function(search) {
+                            return function(item) {
+                                return 1;
+                            };
+                        },
                         load: function(query, callback) {
                             var url = "{{ route('data.products') }}" + '?q=' + encodeURIComponent(
                                 query)

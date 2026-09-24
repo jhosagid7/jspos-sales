@@ -51,7 +51,14 @@ class ReportController extends Controller
                     if (is_numeric($invoiceTo)) $invTo = (int)$invoiceTo;
                     elseif (preg_match('/^[Ff]0*([1-9][0-9]*)$/', $invoiceTo, $matches)) $invTo = (int)$matches[1];
 
-                    if ($invFrom > 0 && $invTo > 0) $q->whereBetween('id', [$invFrom, $invTo]);
+                    if ($invFrom > 0 && $invTo > 0) {
+                        $paddedFrom = 'F' . str_pad($invFrom, 8, '0', STR_PAD_LEFT);
+                        $paddedTo = 'F' . str_pad($invTo, 8, '0', STR_PAD_LEFT);
+                        $q->where(function($sub) use ($invFrom, $invTo, $paddedFrom, $paddedTo) {
+                            $sub->whereBetween('id', [$invFrom, $invTo])
+                                ->orWhereBetween('invoice_number', [$paddedFrom, $paddedTo]);
+                        });
+                    }
                 }
             });
         }
@@ -1731,10 +1738,14 @@ class ReportController extends Controller
              }
              
              $query->where(function($q) use ($searchFactura, $numericSearch) {
+                 $q->where('invoice_number', 'like', "%{$searchFactura}%")
+                   ->orWhere('id', 'like', "%{$searchFactura}%");
+
                  if ($numericSearch !== null) {
-                     $q->where('id', $numericSearch);
-                 } else {
-                     $q->where('invoice_number', 'like', "%{$searchFactura}%");
+                     $padded = str_pad($numericSearch, 8, '0', STR_PAD_LEFT);
+                     $q->orWhere('id', $numericSearch)
+                       ->orWhere('invoice_number', 'like', "%{$numericSearch}%")
+                       ->orWhere('invoice_number', 'like', "%{$padded}%");
                  }
              });
         }
@@ -2524,8 +2535,13 @@ class ReportController extends Controller
             elseif (preg_match('/^[Ff]0*([1-9][0-9]*)$/', $invoiceTo, $matches)) $invTo = (int)$matches[1];
 
             if ($invFrom > 0 && $invTo > 0) {
-                $query->whereHas('sale', function($q) use ($invFrom, $invTo) {
-                    $q->whereBetween('id', [$invFrom, $invTo]);
+                $paddedFrom = 'F' . str_pad($invFrom, 8, '0', STR_PAD_LEFT);
+                $paddedTo = 'F' . str_pad($invTo, 8, '0', STR_PAD_LEFT);
+                $query->whereHas('sale', function($q) use ($invFrom, $invTo, $paddedFrom, $paddedTo) {
+                    $q->where(function($sub) use ($invFrom, $invTo, $paddedFrom, $paddedTo) {
+                        $sub->whereBetween('id', [$invFrom, $invTo])
+                            ->orWhereBetween('invoice_number', [$paddedFrom, $paddedTo]);
+                    });
                 });
             }
         }

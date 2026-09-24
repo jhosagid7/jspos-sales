@@ -62,6 +62,12 @@ class Settings extends Component
     public $warehouseTerm = 'deposito';
     public $partnerTerm = 'socio';
 
+    // AI Settings (Google Gemini)
+    public $geminiApiKey = '';
+    public $geminiModel = 'gemini-flash-latest';
+    public $aiConnectionStatus = null;
+    public $availableAiModels = [];
+
     // Global Rates
     public $bcvRate;
     public $binanceRate;
@@ -193,16 +199,7 @@ class Settings extends Component
             // Load Local Overrides
             $overrides = is_array($config->local_overrides) ? $config->local_overrides : (json_decode($config->local_overrides, true) ?? []);
             
-            $availableKeys = [
-                'module_credits', 'module_purchases', 'module_multi_warehouse', 'module_partner_sales', 'module_advanced_payments',
-                'module_advanced_products', 'module_labels', 'module_roles', 'module_whatsapp', 'module_commissions',
-                'module_production', 'module_soplados', 'module_bolsas', 'module_delivery', 'module_updates',
-                'module_backups', 'module_strategic_analysis', 'module_weekly_income', 'module_monthly_income',
-                'module_customer_report', 'module_customer_activity', 'module_sales_analysis', 'module_seller_performance',
-                'module_operator_efficiency', 'module_differential_audit', 'module_cash_flow', 'module_collection_audit',
-                'module_invoice_audit', 'module_credit_auth_history', 'module_departments', 'module_services',
-                'module_pos_optimizations', 'module_seller_grouped'
-            ];
+            $availableKeys = array_keys(config('plans.available_modules', []));
 
             $this->localOverrides = [];
             foreach ($availableKeys as $key) {
@@ -241,6 +238,11 @@ class Settings extends Component
             $labels = is_array($config->custom_labels) ? $config->custom_labels : (json_decode($config->custom_labels, true) ?? []);
             $this->warehouseTerm = $labels['warehouse_term'] ?? 'deposito';
             $this->partnerTerm = $labels['partner_term'] ?? 'socio';
+
+            // AI Settings
+            $this->geminiApiKey = $config->gemini_api_key ?? '';
+            $aiConfig = is_array($config->ai_settings) ? $config->ai_settings : (json_decode($config->ai_settings, true) ?? []);
+            $this->geminiModel = $aiConfig['model'] ?? 'gemini-flash-latest';
         }
     }
 
@@ -416,6 +418,10 @@ class Settings extends Component
                         'partner_term' => $this->partnerTerm,
                     ]
                 ),
+                'gemini_api_key' => !empty($this->geminiApiKey) ? trim($this->geminiApiKey) : null,
+                'ai_settings' => [
+                    'model' => $this->geminiModel ?: 'gemini-1.5-flash',
+                ],
             ];
 
             // Handle Logo Upload
@@ -991,6 +997,42 @@ class Settings extends Component
         }
         
         return intval($time);
+    }
+
+    public function testAiConnection()
+    {
+        $service = new \App\Services\GeminiAiService($this->geminiModel ?: 'gemini-flash-latest');
+        $this->aiConnectionStatus = $service->testConnection($this->geminiApiKey);
+
+        // Fetch models available on user's key
+        $models = $service->listAvailableModels($this->geminiApiKey);
+        if (!empty($models)) {
+            $this->availableAiModels = $models;
+        }
+
+        if (isset($this->aiConnectionStatus['model'])) {
+            $this->geminiModel = $this->aiConnectionStatus['model'];
+        }
+
+        if ($this->aiConnectionStatus['success']) {
+            $this->dispatch('noty', msg: $this->aiConnectionStatus['message']);
+        } else {
+            $this->dispatch('noty-error', msg: $this->aiConnectionStatus['message']);
+        }
+    }
+
+    public function saveAiSettings()
+    {
+        $config = Configuration::find($this->setting_id) ?? Configuration::first();
+        if ($config) {
+            $config->update([
+                'gemini_api_key' => !empty($this->geminiApiKey) ? trim($this->geminiApiKey) : null,
+                'ai_settings' => [
+                    'model' => $this->geminiModel ?: 'gemini-flash-latest',
+                ],
+            ]);
+            $this->dispatch('noty', msg: 'Configuración de Inteligencia Artificial guardada correctamente.');
+        }
     }
 }
 

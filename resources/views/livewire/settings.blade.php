@@ -213,6 +213,18 @@
                                 </div>
                             </a>
                         </li>
+
+                        {{-- Tab 17: Inteligencia Artificial (Gemini & Add-ons) --}}
+                        <li class="nav-item mb-2">
+                            <a class="nav-link {{ $tab == 17 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                                wire:click.prevent="$set('tab',17)" href="#">
+                                <i class="fa fa-magic fa-2x" style="color: #6f42c1;"></i>
+                                <div>
+                                    <h6 class="mb-0" style="color: #6f42c1;">Inteligencia Artificial</h6>
+                                    <small class="{{ $tab == 17 ? 'text-white' : 'text-muted' }}">Gemini & Add-ons</small>
+                                </div>
+                            </a>
+                        </li>
                         @endrole
                     </ul>
                 </div>
@@ -1521,7 +1533,12 @@ Departamento de Control de Calidad y Manufactura
                                             'module_cash_flow' => 'Flujo y Cobranza',
                                             'module_collection_audit' => 'Auditoría de Cobranza',
                                             'module_invoice_audit' => 'Auditoría de Facturas',
-                                            'module_credit_auth_history' => 'Historial Auth Créditos'
+                                            'module_credit_auth_history' => 'Historial Auth Créditos',
+                                            'module_ai_invoice_ocr' => 'IA: Carga de Facturas y Compras (OCR Visión)',
+                                            'module_ai_copilot' => 'IA: Copiloto Financiero y Asistente',
+                                            'module_ai_inventory_forecast' => 'IA: Predicción de Stock y Compras',
+                                            'module_ai_credit_scoring' => 'IA: Scoring Crediticio y Cobranza Predictiva',
+                                            'module_ai_daily_summary' => 'IA: Resumen Ejecutivo y Cierres Inteligentes'
                                         ];
 
                                         $pureLicenseModules = config('tenant.modules');
@@ -2548,7 +2565,194 @@ Departamento de Control de Calidad y Manufactura
                             </div>
                         </div>
 
-                    </div>
+                        {{-- TAB 17: INTELIGENCIA ARTIFICIAL (GEMINI & ADD-ONS) --}}
+                        <div class="tab-pane fade {{ $tab == 17 ? 'active show' : '' }}" id="ai-settings" role="tabpanel">
+                            <div class="sidebar-body">
+                                <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                                    <div>
+                                        <h5 class="mb-0 fw-bold" style="color: #6f42c1;">
+                                            <i class="fa fa-magic me-2"></i>Inteligencia Artificial (Google Gemini)
+                                        </h5>
+                                        <small class="text-muted">Potencia tu punto de venta con visión artificial, procesamiento de facturas y análisis predictivo.</small>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <span class="badge text-white p-2" style="background-color: #6f42c1;">BYOK (Tu propia clave)</span>
+                                        <span class="badge bg-success p-2">Capa Gratuita (1.500 req/día)</span>
+                                    </div>
+                                </div>
+
+                                {{-- Banner Explicativo / Cómo obtener la API Key --}}
+                                <div class="alert alert-light border border-primary border-opacity-25 shadow-sm p-3 mb-4 rounded-3">
+                                    <div class="d-flex align-items-start gap-3">
+                                        <div class="text-primary fs-3">
+                                            <i class="fa fa-info-circle"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h6 class="fw-bold text-primary mb-1">¿Cómo activar la Inteligencia Artificial gratis?</h6>
+                                            <p class="mb-2 text-muted" style="font-size: 0.9rem;">
+                                                El sistema utiliza la tecnología de <strong>Google Gemini</strong> de forma 100% aislada. Cada cliente puede conectar su propia cuenta de Google sin costo adicional.
+                                            </p>
+                                            <ol class="mb-2 ps-3 text-muted" style="font-size: 0.88rem;">
+                                                <li>Inicia sesión con tu cuenta de Google en <a href="https://aistudio.google.com/app/apikey" target="_blank" class="fw-bold text-decoration-underline text-primary">Google AI Studio (Click aquí)</a>.</li>
+                                                <li>Haz clic en <strong>"Create API key"</strong> (Crear clave de API).</li>
+                                                <li>Copia la clave generada, pégala en el campo a continuación y haz clic en <strong>"Probar Conexión"</strong>.</li>
+                                            </ol>
+                                            <div class="small text-secondary">
+                                                <i class="fa fa-shield-alt text-success me-1"></i> La API Key se almacena de forma segura en tu base de datos local y nunca se comparte con terceros.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Formulario de Conexión Gemini --}}
+                                <div class="card shadow-sm border-0 mb-4">
+                                    <div class="card-header bg-light py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
+                                        <span class="fw-bold text-dark"><i class="fa fa-key me-2 text-warning"></i>Credenciales de Conexión</span>
+                                        @if($aiConnectionStatus)
+                                            @if($aiConnectionStatus['success'] ?? false)
+                                                <span class="badge bg-success"><i class="fa fa-check-circle me-1"></i>Conectado con Éxito</span>
+                                            @else
+                                                <span class="badge bg-danger"><i class="fa fa-times-circle me-1"></i>Error de Conexión</span>
+                                            @endif
+                                        @endif
+                                    </div>
+                                    <div class="card-body p-3">
+                                        <div class="row g-3">
+                                            <div class="col-md-8">
+                                                <label class="form-label fw-bold">Google Gemini API Key <span class="text-danger">*</span></label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text bg-white"><i class="fa fa-lock text-muted"></i></span>
+                                                    <input type="password" 
+                                                           class="form-control font-monospace" 
+                                                           placeholder="AIzaSy..." 
+                                                           wire:model="geminiApiKey"
+                                                           autocomplete="off">
+                                                </div>
+                                                <small class="text-muted">Ingresa la clave obtenida en Google AI Studio.</small>
+                                            </div>
+
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-bold">Modelo de Inteligencia Artificial</label>
+                                                <select class="form-select form-control" wire:model="geminiModel">
+                                                    @if(!empty($availableAiModels))
+                                                        @foreach($availableAiModels as $avModel)
+                                                            <option value="{{ $avModel['id'] }}">{{ $avModel['name'] }} ({{ $avModel['id'] }})</option>
+                                                        @endforeach
+                                                    @else
+                                                        <option value="gemini-flash-latest">Gemini Flash Latest (Recomendado - Siempre la última versión)</option>
+                                                        <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
+                                                        <option value="gemini-3-flash-preview">Gemini 3 Flash Preview</option>
+                                                        <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
+                                                        <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                                                    @endif
+                                                </select>
+                                                <small class="text-muted">Los modelos Flash son ideales para OCR de facturas y consultas en tiempo real.</small>
+                                            </div>
+                                        </div>
+
+                                        {{-- Resultado de la prueba de conexión si existe --}}
+                                        @if($aiConnectionStatus)
+                                            <div class="mt-3 alert {{ ($aiConnectionStatus['success'] ?? false) ? 'alert-success' : 'alert-danger' }} py-2 px-3 mb-0 d-flex align-items-center justify-content-between">
+                                                <div>
+                                                    <i class="fa {{ ($aiConnectionStatus['success'] ?? false) ? 'fa-check-circle text-success' : 'fa-exclamation-triangle text-danger' }} me-2"></i>
+                                                    <strong>{{ $aiConnectionStatus['message'] ?? '' }}</strong>
+                                                    @if(isset($aiConnectionStatus['model']))
+                                                        <span class="badge bg-light text-dark ms-2">{{ $aiConnectionStatus['model'] }}</span>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        @endif
+
+                                        <div class="mt-3 pt-3 border-top d-flex gap-2 justify-content-end">
+                                            <button wire:click.prevent="testAiConnection" 
+                                                    wire:loading.attr="disabled"
+                                                    class="btn btn-outline-primary px-3 py-2 shadow-sm">
+                                                <span wire:loading wire:target="testAiConnection" class="spinner-border spinner-border-sm me-1"></span>
+                                                <i wire:loading.remove wire:target="testAiConnection" class="fa fa-plug me-1"></i>
+                                                Probar Conexión
+                                            </button>
+                                            <button wire:click.prevent="saveAiSettings" 
+                                                    wire:loading.attr="disabled"
+                                                    class="btn btn-primary px-4 py-2 shadow-sm">
+                                                <span wire:loading wire:target="saveAiSettings" class="spinner-border spinner-border-sm me-1"></span>
+                                                <i wire:loading.remove wire:target="saveAiSettings" class="fa fa-save me-1"></i>
+                                                Guardar Credenciales IA
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Catálogo de Add-ons de IA Licenciables --}}
+                                <div class="card shadow-sm border-0 mb-3">
+                                    <div class="card-header bg-light py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="fa fa-cubes text-purple" style="color: #6f42c1;"></i>
+                                            <span class="fw-bold text-dark">Módulos Add-ons de IA Disponibles</span>
+                                        </div>
+                                        <span class="badge bg-secondary text-white">Arquitectura Modular SaaS</span>
+                                    </div>
+                                    <div class="card-body p-3">
+                                        <p class="text-muted small mb-3">Cada función con Inteligencia Artificial está aislada en un Add-on independiente que puede contratarse por separado.</p>
+                                        
+                                        @php
+                                            $aiAddons = [
+                                                'module_ai_invoice_ocr' => [
+                                                    'name' => 'OCR & Carga Inteligente de Facturas de Compra',
+                                                    'icon' => 'fa-file-invoice-dollar',
+                                                    'desc' => 'Escanea fotos (JPG, PNG) o PDF de facturas de proveedores y carga automáticamente los renglones, precios y cantidades al carrito de compras.'
+                                                ],
+                                                'module_ai_copilot' => [
+                                                    'name' => 'Copiloto Financiero & Asistente POS',
+                                                    'icon' => 'fa-robot',
+                                                    'desc' => 'Haz consultas en lenguaje natural sobre ventas, márgenes y rendimiento del negocio (ej. "¿Cuál fue el producto más vendido esta semana?").'
+                                                ],
+                                                'module_ai_inventory_forecast' => [
+                                                    'name' => 'Predicción de Stock y Sugerencia de Reposición',
+                                                    'icon' => 'fa-chart-line',
+                                                    'desc' => 'Analiza la velocidad de venta histórica y recomienda órdenes de compra óptimas antes de que se agote la mercancía.'
+                                                ],
+                                                'module_ai_credit_scoring' => [
+                                                    'name' => 'Scoring Crediticio y Cobranza Predictiva',
+                                                    'icon' => 'fa-user-check',
+                                                    'desc' => 'Evalúa el riesgo de crédito según el comportamiento histórico del cliente y genera recordatorios persuasivos para WhatsApp.'
+                                                ],
+                                                'module_ai_daily_summary' => [
+                                                    'name' => 'Resumen Ejecutivo Diario y Cierres Inteligentes',
+                                                    'icon' => 'fa-envelope-open-text',
+                                                    'desc' => 'Genera un informe sintético para los administradores al cierre de caja con los hitos clave, ventas y alertas del día.'
+                                                ]
+                                            ];
+                                            $activeConfig = \App\Models\Configuration::first();
+                                        @endphp
+
+                                        <div class="row g-3">
+                                            @foreach($aiAddons as $addonKey => $addonData)
+                                                @php
+                                                    $isLicensed = $activeConfig ? $activeConfig->hasAddon($addonKey) : false;
+                                                @endphp
+                                                <div class="col-md-6">
+                                                    <div class="p-3 rounded border h-100 {{ $isLicensed ? 'bg-white shadow-sm' : 'bg-light text-muted' }}" 
+                                                         style="border-left: 4px solid {{ $isLicensed ? '#6f42c1' : '#dee2e6' }} !important;">
+                                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                                            <div class="d-flex align-items-center gap-2">
+                                                                <i class="fa {{ $addonData['icon'] }} fs-5 {{ $isLicensed ? 'text-purple' : 'text-secondary' }}" style="{{ $isLicensed ? 'color: #6f42c1;' : '' }}"></i>
+                                                                <span class="fw-bold {{ $isLicensed ? 'text-dark' : 'text-secondary' }}">{{ $addonData['name'] }}</span>
+                                                            </div>
+                                                            @if($isLicensed)
+                                                                <span class="badge bg-success"><i class="fa fa-check me-1"></i>Habilitado</span>
+                                                            @else
+                                                                <span class="badge bg-light text-muted border"><i class="fa fa-lock me-1"></i>Add-on Inactivo</span>
+                                                            @endif
+                                                        </div>
+                                                        <p class="small mb-0 text-muted">{{ $addonData['desc'] }}</p>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                 </div>
             </div>
         </div>

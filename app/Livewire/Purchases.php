@@ -22,8 +22,20 @@ class Purchases extends Component
     use UtilTrait;
     use PrintTrait; // Add PrintTrait
     use WithPagination;
+    use \Livewire\WithFileUploads;
 
     public Collection $cart;
+
+    // AI Invoice OCR properties
+    public $invoiceFile;
+    public $isScanningInvoice = false;
+    public $aiScanSummary = null;
+    public $aiScanUnmatched = [];
+    public $aiScanStep = 'upload'; // 'upload' | 'review'
+    public $aiProcessedItems = []; // List of all invoice items with status and suggestions
+    public $selectedMatches = []; // [index => selected_product_id]
+    public $customSearchInputs = []; // [index => search_text]
+    public $customSearchResults = []; // [index => [products]]
 
     public $taxCart = 0, $itemsCart, $subtotalCart = 0, $totalCart = 0, $ivaCart = 0, $status = 'paid', $purchaseType = 'cash', $notes;
     public $supplier, $flete;
@@ -352,9 +364,14 @@ class Purchases extends Component
 
         $total = 0;
 
-        if ($this->config->vat > 0) {
+        if (!$this->config) {
+            $this->config = \App\Services\ConfigurationService::getConfig();
+        }
+        $vatRate = $this->config?->vat ?? 0;
+
+        if ($vatRate > 0) {
             //iva venezuela 16%
-            $iva = ($this->config->vat / 100);
+            $iva = ($vatRate / 100);
 
             // precio unitario sin iva
             $precioUnitarioSinIva =  $cost / (1 + $iva);
@@ -645,10 +662,9 @@ class Purchases extends Component
     public function searchProduct()
     {
         if (!empty($this->search)) {
-            return Product::where('name', 'like', "%{$this->search}%")
-                ->orWhere('sku', 'like', "%{$this->search}%")
-                ->orderBy('name')
-                ->take(1)->get();
+            return Product::search($this->search)
+                ->take(10)
+                ->get();
         } else {
             return [];
         }
@@ -1289,5 +1305,331 @@ class Purchases extends Component
         session()->forget('flete');
         $this->dispatch('reset-tom');
         $this->dispatch('noty', msg: 'COMPRA CANCELADA');
+    }
+
+    public function processInvoiceWithAi()
+    {
+        $service = new \App\Services\GeminiAiService();
+        if (!$service->isConfigured()) {
+            $this->dispatch('noty-error', msg: 'No se ha configurado la API Key de Gemini. Ve a Configuración > Inteligencia Artificial.');
+            return;
+        }
+
+        $this->validate([
+            'invoiceFile' => 'required|file|mimes:jpeg,png,jpg,pdf|max:10240',
+        ], [
+            'invoiceFile.required' => 'Debes seleccionar una imagen o archivo PDF de la factura.',
+            'invoiceFile.mimes' => 'El archivo debe ser una imagen (JPG, PNG) o documento PDF.',
+            'invoiceFile.max' => 'El archivo no puede exceder 10 MB.',
+        ]);
+
+        $this->isScanningInvoice = true;
+        $this->aiScanUnmatched = [];
+
+        try {
+            $filePath = $this->invoiceFile->getRealPath();
+            $mimeType = $this->invoiceFile->getMimeType();
+            $base64 = base64_encode(file_get_contents($filePath));
+
+            $response = $service->analyzePurchaseInvoice($base64, $mimeType);
+
+            if (!$response['success']) {
+                $this->dispatch('noty-error', msg: $response['message'] ?? 'Error al procesar la factura con IA.');
+                $this->isScanningInvoice = false;
+                return;
+            }
+
+            $invoiceData = $response['data'];
+            $items = $invoiceData['items'] ?? [];
+            $matchedCount = 0;
+
+            // 1. Process supplier if found and not already selected
+            if (!empty($invoiceData['supplier_name'])) {
+                $supplierName = trim($invoiceData['supplier_name']);
+                $foundSupplier = \App\Models\Supplier::where('name', 'like', '%' . $supplierName . '%')->first();
+                
+                if (!$foundSupplier && strlen($supplierName) >= 5) {
+                    $words = explode(' ', $supplierName);
+                    if (count($words) >= 2) {
+                        $foundSupplier = \App\Models\Supplier::where('name', 'like', '%' . $words[0] . ' ' . $words[1] . '%')->first();
+                    }
+                }
+
+                if ($foundSupplier) {
+                    $this->setCustomer($foundSupplier);
+                }
+            }
+
+            // 2. Note invoice number in purchase notes
+            if (!empty($invoiceData['invoice_number'])) {
+                $invNumberNote = 'Factura Prov: ' . $invoiceData['invoice_number'];
+                if (empty($this->notes)) {
+                    $this->notes = $invNumberNote;
+                } elseif (!str_contains($this->notes, $invoiceData['invoice_number'])) {
+                    $this->notes .= ' | ' . $invNumberNote;
+                }
+            }
+
+            // 3. Process items and build suggestions for review
+            $this->aiProcessedItems = [];
+            $this->selectedMatches = [];
+            $this->customSearchResults = [];
+            $this->aiScanUnmatched = [];
+
+            foreach ($items as $idx => $item) {
+                $sku = !empty($item['sku']) ? trim($item['sku']) : (!empty($item['code']) ? trim($item['code']) : null);
+                $desc = !empty($item['description']) 
+                    ? trim($item['description']) 
+                    : (!empty($item['name']) ? trim($item['name']) : (!empty($item['producto']) ? trim($item['producto']) : (!empty($item['articulo']) ? trim($item['articulo']) : '')));
+                $qty = isset($item['quantity']) && floatval($item['quantity']) > 0 
+                    ? floatval($item['quantity']) 
+                    : (isset($item['qty']) && floatval($item['qty']) > 0 
+                        ? floatval($item['qty']) 
+                        : (isset($item['cantidad']) && floatval($item['cantidad']) > 0 ? floatval($item['cantidad']) : 1));
+                $unitPrice = isset($item['unit_price']) && floatval($item['unit_price']) > 0 
+                    ? floatval($item['unit_price']) 
+                    : (isset($item['unit_cost']) && floatval($item['unit_cost']) > 0 
+                        ? floatval($item['unit_cost']) 
+                        : (isset($item['cost']) && floatval($item['cost']) > 0 
+                            ? floatval($item['cost']) 
+                            : (isset($item['costo']) && floatval($item['costo']) > 0 
+                                ? floatval($item['costo']) 
+                                : (isset($item['price']) ? floatval($item['price']) : 0))));
+
+                $product = $this->findProductMatch($sku, $desc);
+
+                if ($product) {
+                    $this->AddProduct($product, $qty);
+                    // Find the newly added item in cart to update its cost
+                    $cartItem = $this->cart->firstWhere('pid', $product->id);
+                    if ($cartItem && $unitPrice > 0) {
+                        $this->setCost($cartItem['id'], $unitPrice);
+                    }
+                    $matchedCount++;
+
+                    $this->aiProcessedItems[] = [
+                        'index' => $idx,
+                        'sku' => $sku,
+                        'description' => $desc,
+                        'quantity' => $qty,
+                        'unit_price' => $unitPrice,
+                        'total_price' => $item['total_price'] ?? $item['total_cost'] ?? ($qty * $unitPrice),
+                        'status' => 'matched',
+                        'matched_product_id' => $product->id,
+                        'matched_product_name' => $product->name,
+                        'matched_product_sku' => $product->sku,
+                        'suggestions' => [],
+                    ];
+                } else {
+                    // Find similar products in the catalog using intelligent search
+                    $suggestions = [];
+                    if (!empty($desc)) {
+                        $sugQuery = Product::search($desc)->take(6)->get(['id', 'name', 'sku']);
+                        if ($sugQuery->isEmpty()) {
+                            $cleanDesc = trim(preg_replace('/[#\-_,\/]/', ' ', $desc));
+                            $words = array_values(array_filter(explode(' ', $cleanDesc), fn($w) => strlen($w) >= 3));
+                            if (!empty($words)) {
+                                $sugQuery = Product::search(implode(' ', $words))->take(6)->get(['id', 'name', 'sku']);
+                            }
+                        }
+                        $suggestions = $sugQuery->toArray();
+                    }
+
+                    $firstSugId = !empty($suggestions) ? $suggestions[0]['id'] : '';
+                    $this->selectedMatches[$idx] = $firstSugId;
+
+                    $unmatchedRow = [
+                        'index' => $idx,
+                        'sku' => $sku,
+                        'description' => $desc,
+                        'name' => $desc,
+                        'quantity' => $qty,
+                        'unit_price' => $unitPrice,
+                        'unit_cost' => $unitPrice,
+                        'total_price' => $item['total_price'] ?? $item['total_cost'] ?? ($qty * $unitPrice),
+                        'status' => 'pending',
+                        'matched_product_id' => null,
+                        'matched_product_name' => null,
+                        'matched_product_sku' => null,
+                        'suggestions' => $suggestions,
+                    ];
+
+                    $this->aiProcessedItems[] = $unmatchedRow;
+                    $this->aiScanUnmatched[] = $unmatchedRow;
+                }
+            }
+
+            $unmatchedCount = count($this->aiScanUnmatched);
+            $this->aiScanStep = 'review';
+
+            $msg = "Factura procesada: {$matchedCount} productos agregados.";
+            if ($unmatchedCount > 0) {
+                $msg .= " ({$unmatchedCount} pendientes por revisar en el diálogo).";
+            }
+
+            $this->aiScanSummary = [
+                'supplier' => $invoiceData['supplier_name'] ?? null,
+                'invoice_number' => $invoiceData['invoice_number'] ?? null,
+                'matched_count' => $matchedCount,
+                'unmatched_count' => $unmatchedCount,
+            ];
+
+            $this->dispatch('noty', msg: $msg);
+            $this->reset('invoiceFile');
+
+        } catch (\Exception $e) {
+            $this->dispatch('noty-error', msg: 'Error al escanear factura: ' . $e->getMessage());
+        } finally {
+            $this->isScanningInvoice = false;
+        }
+    }
+
+    /**
+     * Link an unconfirmed invoice item to a selected catalog product and add to cart.
+     */
+    public function linkInvoiceItem($index, $productId = null)
+    {
+        if (!isset($this->aiProcessedItems[$index])) return;
+
+        $targetId = $productId ?: ($this->selectedMatches[$index] ?? null);
+        if (!$targetId) {
+            $this->dispatch('noty-error', msg: 'Por favor selecciona un producto para vincular');
+            return;
+        }
+
+        $product = Product::find($targetId);
+        if (!$product) {
+            $this->dispatch('noty-error', msg: 'Producto no encontrado');
+            return;
+        }
+
+        $item = &$this->aiProcessedItems[$index];
+        $qty = floatval($item['quantity'] ?? 1);
+        $cost = floatval($item['unit_price'] ?? 0);
+
+        // Add to cart
+        $this->AddProduct($product, $qty);
+
+        // Update cost in cart
+        $cartItem = $this->cart->firstWhere('pid', $product->id);
+        if ($cartItem && $cost > 0) {
+            $this->setCost($cartItem['id'], $cost);
+        }
+
+        // Mark as matched
+        $item['status'] = 'matched';
+        $item['matched_product_id'] = $product->id;
+        $item['matched_product_name'] = $product->name;
+        $item['matched_product_sku'] = $product->sku;
+
+        // Update aiScanUnmatched list
+        $this->aiScanUnmatched = array_values(array_filter(
+            $this->aiScanUnmatched,
+            fn($u) => ($u['index'] ?? null) !== $index
+        ));
+
+        if ($this->aiScanSummary) {
+            $this->aiScanSummary['matched_count'] = ($this->aiScanSummary['matched_count'] ?? 0) + 1;
+            $this->aiScanSummary['unmatched_count'] = max(0, ($this->aiScanSummary['unmatched_count'] ?? 1) - 1);
+        }
+
+        $this->dispatch('noty', msg: "✓ '{$product->name}' vinculado y agregado al carrito");
+    }
+
+    /**
+     * Live search for products when the user types in the custom search box for a specific invoice row.
+     */
+    public function searchCustomProductForAiItem($index, $term)
+    {
+        $term = trim($term);
+        if (strlen($term) >= 2) {
+            $this->customSearchResults[$index] = Product::search($term)
+                ->take(8)
+                ->get(['id', 'name', 'sku'])
+                ->toArray();
+        } else {
+            $this->customSearchResults[$index] = [];
+        }
+    }
+
+    /**
+     * Directly select and link a product found via manual search.
+     */
+    public function selectCustomProductForAiItem($index, $productId)
+    {
+        $this->selectedMatches[$index] = $productId;
+        $this->linkInvoiceItem($index, $productId);
+        $this->customSearchResults[$index] = [];
+    }
+
+    /**
+     * Reset AI scan state to upload a new document.
+     */
+    public function resetAiScan()
+    {
+        $this->aiScanStep = 'upload';
+        $this->aiProcessedItems = [];
+        $this->aiScanUnmatched = [];
+        $this->selectedMatches = [];
+        $this->customSearchResults = [];
+        $this->reset('invoiceFile');
+    }
+
+    /**
+     * Intelligent matching for products extracted from invoice.
+     * Uses SKU, exact name, token search, symbol normalization, and word overlap.
+     */
+    public function findProductMatch(?string $sku, ?string $desc): ?Product
+    {
+        if (!empty($sku)) {
+            $p = Product::where('sku', trim($sku))->first();
+            if ($p) return $p;
+        }
+
+        if (empty($desc)) return null;
+
+        $desc = trim($desc);
+
+        // 1. Exact name match
+        $p = Product::where('name', $desc)->first();
+        if ($p) return $p;
+
+        // 2. Direct intelligent search (uses Product::search tokens, punctuation, relevance)
+        $p = Product::search($desc)->first();
+        if ($p) return $p;
+
+        // 3. Normalized symbols (replace # - / , _ with spaces)
+        $cleanDesc = trim(preg_replace('/[#\-_,\/]/', ' ', $desc));
+        if ($cleanDesc !== $desc) {
+            $p = Product::search($cleanDesc)->first();
+            if ($p) return $p;
+        }
+
+        // 4. Single digit padding (e.g. #1 -> 01 or 01 -> 1)
+        $paddedDesc = preg_replace('/\b(\d)\b/', '0$1', $cleanDesc);
+        if ($paddedDesc !== $cleanDesc) {
+            $p = Product::search($paddedDesc)->first();
+            if ($p) return $p;
+        }
+
+        // 5. Significant token search (words >= 3 chars, e.g. TINA OCCIDENTE)
+        $words = array_values(array_filter(explode(' ', $cleanDesc), fn($w) => strlen($w) >= 3));
+        if (count($words) >= 2) {
+            $sigPhrase = implode(' ', $words);
+            $p = Product::search($sigPhrase)->first();
+            if ($p) return $p;
+        }
+
+        // 6. Prefix search fallback
+        if (strlen($cleanDesc) >= 5) {
+            $wordsArray = array_values(array_filter(explode(' ', $cleanDesc)));
+            if (count($wordsArray) >= 2) {
+                $prefix = $wordsArray[0] . ' ' . $wordsArray[1];
+                $p = Product::where('name', 'like', "%{$prefix}%")->first();
+                if ($p) return $p;
+            }
+        }
+
+        return null;
     }
 }

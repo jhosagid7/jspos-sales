@@ -1576,9 +1576,19 @@ class Sales extends Component
             \Log::info("Attempting to clone document type: $type with ID: $id");
 
             if ($type === 'SALE') {
-                $doc = Sale::with('details')->find($id);
+                $padded = is_numeric($id) ? ('F' . str_pad($id, 8, '0', STR_PAD_LEFT)) : $id;
+                $doc = Sale::with('details')
+                    ->where('id', $id)
+                    ->orWhere('invoice_number', $id)
+                    ->orWhere('invoice_number', $padded)
+                    ->orWhere('invoice_number', 'like', "%{$id}")
+                    ->first();
             } elseif ($type === 'ORD') {
-                $doc = Order::with('details')->find($id);
+                $doc = Order::with('details')
+                    ->where('id', $id)
+                    ->orWhere('order_number', $id)
+                    ->orWhere('order_number', 'like', "%{$id}")
+                    ->first();
             } else {
                 return;
             }

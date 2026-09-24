@@ -144,9 +144,23 @@ class SalesReport extends Component
             })
             ->when(!empty(trim($this->searchFactura)), function ($q) {
                 $searchValue = trim($this->searchFactura);
-                $q->where(function($sub) use ($searchValue) {
+                $cleanNumber = null;
+                if (is_numeric($searchValue)) {
+                    $cleanNumber = (int)$searchValue;
+                } elseif (preg_match('/^[Ff]0*([1-9][0-9]*)$/', $searchValue, $matches)) {
+                    $cleanNumber = (int)$matches[1];
+                }
+
+                $q->where(function($sub) use ($searchValue, $cleanNumber) {
                     $sub->where('id', 'like', "%{$searchValue}%")
                       ->orWhere('invoice_number', 'like', "%{$searchValue}%");
+
+                    if ($cleanNumber !== null) {
+                        $padded = str_pad($cleanNumber, 8, '0', STR_PAD_LEFT);
+                        $sub->orWhere('id', $cleanNumber)
+                            ->orWhere('invoice_number', 'like', "%{$cleanNumber}%")
+                            ->orWhere('invoice_number', 'like', "%{$padded}%");
+                    }
                 });
             })
             ->when($this->type != 0, function ($q) {
@@ -293,15 +307,24 @@ class SalesReport extends Component
                     })
                     ->when(!empty(trim($this->searchFactura)), function ($query) {
                         $searchValue = trim($this->searchFactura);
-                        $saleId = 0;
+                        $cleanNumber = null;
                         if (is_numeric($searchValue)) {
-                            $saleId = (int)$searchValue;
+                            $cleanNumber = (int)$searchValue;
                         } elseif (preg_match('/^[Ff]0*([1-9][0-9]*)$/', $searchValue, $matches)) {
-                            $saleId = (int)$matches[1];
+                            $cleanNumber = (int)$matches[1];
                         }
-                        if ($saleId > 0) {
-                            $query->where('sales.id', $saleId);
-                        }
+
+                        $query->where(function($q) use ($searchValue, $cleanNumber) {
+                            $q->where('sales.invoice_number', 'like', "%{$searchValue}%")
+                              ->orWhere('sales.id', 'like', "%{$searchValue}%");
+
+                            if ($cleanNumber !== null) {
+                                $padded = str_pad($cleanNumber, 8, '0', STR_PAD_LEFT);
+                                $q->orWhere('sales.id', $cleanNumber)
+                                  ->orWhere('sales.invoice_number', 'like', "%{$cleanNumber}%")
+                                  ->orWhere('sales.invoice_number', 'like', "%{$padded}%");
+                            }
+                        });
                     })
                     ->when($this->type != 0, function ($qry) {
                         $qry->where('sales.type', $this->type);

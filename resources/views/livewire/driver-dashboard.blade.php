@@ -70,7 +70,7 @@
                     <div class="card shadow-sm border-0 mb-3">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h5 class="card-title mb-0">Pedido #{{ $sale->id }}</h5>
+                                <h5 class="card-title mb-0">Factura: {{ $sale->invoice_number ?: ('#' . $sale->id) }}</h5>
                                 <div>
                                     <span class="badge {{ $sale->type != 'cash' ? 'bg-primary' : 'bg-secondary' }} me-1">
                                         {{ $sale->type != 'cash' ? 'Crédito' : 'Contado' }}
@@ -147,7 +147,7 @@
                     <div class="card shadow-sm border-0 mb-3 bg-light">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h5 class="card-title mb-0">Pedido #{{ $sale->id }}</h5>
+                                <h5 class="card-title mb-0">Factura: {{ $sale->invoice_number ?: ('#' . $sale->id) }}</h5>
                                 <span class="badge {{ $sale->delivery_status == 'delivered' ? 'bg-success' : 'bg-danger' }}">
                                     {{ $sale->delivery_status == 'delivered' ? 'Entregado' : 'Cancelado' }}
                                 </span>

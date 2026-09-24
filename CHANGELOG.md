@@ -1,3 +1,32 @@
+## [1.10.441] - 2026-09-24
+
+### Fixed & Improved
+- **Búsqueda y Visualización de Facturas por Correlativo Oficial (`invoice_number`)**:
+  - `PartialPayment.php` & `partial-payment.blade.php`: Se adaptó la búsqueda de abonos y cuentas por cobrar para admitir el número de factura correlativo (ej. `F00004617`, `4617`) con o sin ceros a la izquierda, así como por ID interno. En la interfaz se muestra el correlativo de factura real (`invoice_number`) eliminando la confusión con IDs internos autoincrementales de MySQL.
+  - `AccountsReceivableReport.php` & `accounts-receivable-report.blade.php`: Se sincronizó el filtro y la columna de documento para buscar y mostrar el correlativo fiscal `invoice_number` con fallback a `#ID`.
+  - `ReportController.php`: Sincronización en consultas y filtros de cuentas por cobrar, relaciones de pago y reportes en PDF/Excel para buscar indistintamente por correlativo o ID.
+  - `SalesReport.php`: Consulta principal y cálculo de costo total unificados para admitir búsqueda por `invoice_number` y `sales.id`.
+  - `Commissions.php`: Filtro de comisiones adaptado para buscar por correlativo de factura exacto o ID.
+  - `PaymentRelationshipReport.php`: Búsqueda de facturas individuales o por rangos de folios (`F00000001` - `F00009999`) y numéricos.
+  - `Sales.php` (`loadFromDocument`): Carga de documentos para devoluciones o consultas buscando por ID o `invoice_number`.
+  - `payment-history-pdf.blade.php` & `driver-dashboard.blade.php`: Visualización consistente del correlativo fiscal/factura oficial.
+
+### Auto-Heal & Client Updates
+- **Auto-Sanación y Calibración en Actualizador (`UpdateService`)**:
+  - `UpdateService.php`: Integración de rutina automática en `runMigrations()` que rellena correlativos vacíos en ventas históricas (`F` con 8 dígitos) y auto-calibra la secuencia de facturación `configurations.invoice_sequence` garantizando que nunca quede por detrás del número de factura más reciente emitido. Esto asegura que ningún cliente sufra desincronización tras actualizar el sistema.
+
+### Added
+- **Inteligencia Artificial Gemini para Extracción de Compras (OCR Facturas)**:
+  - `GeminiAiService.php`: Servicio de IA para interpretar facturas de compra escaneadas o en imagen/PDF, detectando automáticamente emisor, fecha, número de control, ítems, cantidades, costos y totales.
+  - `Purchases.php` & `purchases.blade.php`: Modal de carga inteligente con procesamiento OCR y precarga en el formulario de compras.
+  - Migración `2026_09_24_133300_add_gemini_fields_to_configurations_table.php`: Almacenamiento seguro de credenciales y ajustes de IA en `configurations`.
+  - `Settings.php` & `settings.blade.php`: Configuración de clave API de Google Gemini en panel administrativo.
+
+### Tests
+- Cobertura completa de pruebas automatizadas en:
+  - `InvoiceSearchAndCorrelativeSyncTest.php`: 4 tests (15 assertions).
+  - `PurchasesAiInvoiceOcrTest.php`: Cobertura del flujo de extracción OCR con IA.
+
 ## [1.10.440] - 2026-09-24
 
 ### Added & Improved

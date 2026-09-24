@@ -118,9 +118,12 @@ class Configuration extends Model
         'ticket_settings',
         'pdf_settings',
         'custom_labels',
+        'gemini_api_key',
+        'ai_settings',
     ];
 
     protected $casts = [
+        'ai_settings' => 'array',
         'custom_labels' => 'array',
         'pdf_settings' => 'array',
         'ticket_settings' => 'array',

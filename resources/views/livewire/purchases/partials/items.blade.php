@@ -37,7 +37,17 @@
                     </div>
                 </div>
             </div>
-            <div class="col-sm-12 col-md-4 text-md-right mt-3 mt-md-0">
+            <div class="col-sm-12 col-md-4 text-md-right mt-3 mt-md-0 d-flex justify-content-md-end align-items-center">
+                @module('module_ai_invoice_ocr')
+                <button type="button" 
+                        class="btn text-white border-0 py-2 px-3 shadow-sm mr-2" 
+                        style="background: linear-gradient(135deg, #6610f2, #6f42c1); font-size: 0.75rem; border-radius: 10px;" 
+                        data-toggle="modal" 
+                        data-target="#modalAiInvoiceScan" 
+                        title="Escanear Factura con Inteligencia Artificial (OCR)">
+                    <i class="fas fa-magic mr-1"></i> IA OCR
+                </button>
+                @endmodule
                 <div class="btn-group shadow-sm" style="border-radius: 10px; overflow: hidden;">
                     <button onclick="processOrder()" type="button" class="btn btn-dark text-white border-0 py-2 px-3" style="font-size: 0.75rem;">
                         <i class="fas fa-list-alt mr-2"></i> ORDENES

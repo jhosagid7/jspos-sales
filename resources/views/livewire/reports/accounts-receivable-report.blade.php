@@ -242,7 +242,7 @@
                                                     @endphp
                                                     <tr class="text-center">
                                                         <td>
-                                                            {{ $sale->id }}
+                                                            <b>{{ $sale->invoice_number ?: ('#' . $sale->id) }}</b>
                                                             @foreach ($sale->returns as $return)
                                                                 @php $isManual = $return->details->count() === 0; @endphp
                                                                 <a href="{{ route('pos.returns.generateCreditNotePdf', $return->id) }}" 

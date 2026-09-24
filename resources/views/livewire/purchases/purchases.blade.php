@@ -12,6 +12,9 @@
             @include('livewire.purchases.partials.script')
             @include('livewire.purchases.partials.price-modal')
             @include('livewire.purchases.partials.process-order')
+            @module('module_ai_invoice_ocr')
+                @include('livewire.purchases.partials.ai-ocr-modal')
+            @endmodule
             <livewire:purchase-partial-payment />
         </div>
 

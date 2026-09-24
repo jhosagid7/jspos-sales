@@ -274,5 +274,9 @@ function DestroyOrder(rowId) {
     });
 }
 
+window.addEventListener('close-modal-ai-ocr', () => {
+    $('#modalAiInvoiceScan').modal('hide');
+});
+
 </script>
 @endpush

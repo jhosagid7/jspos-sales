@@ -79,18 +79,25 @@ class PartialPayment extends Component
                         });
                 });
 
-                // Check if search resembles an Invoice ID
-                $saleId = 0;
+                // Search by Invoice Number or ID
+                $cleanNumber = null;
                 if (is_numeric($searchValue)) {
-                    $saleId = (int)$searchValue;
+                    $cleanNumber = (int)$searchValue;
                 } elseif (preg_match('/^[Ff]0*([1-9][0-9]*)$/', $searchValue, $matches)) {
-                    $saleId = (int)$matches[1];
+                    $cleanNumber = (int)$matches[1];
                 }
 
-                // Append OR condition for exact matching Sale ID
-                if ($saleId > 0) {
-                    $query->orWhere('id', $saleId);
-                }
+                $query->orWhere(function($sub) use ($searchValue, $cleanNumber) {
+                    $sub->where('invoice_number', 'like', "%{$searchValue}%")
+                        ->orWhere('id', 'like', "%{$searchValue}%");
+
+                    if ($cleanNumber !== null) {
+                        $padded = str_pad($cleanNumber, 8, '0', STR_PAD_LEFT);
+                        $sub->orWhere('id', $cleanNumber)
+                            ->orWhere('invoice_number', 'like', "%{$cleanNumber}%")
+                            ->orWhere('invoice_number', 'like', "%{$padded}%");
+                    }
+                });
             }
         })
             ->when(!auth()->user()->can('payments.view_all') && auth()->user()->can('payments.view_own'), function($q) {

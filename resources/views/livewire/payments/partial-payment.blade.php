@@ -52,7 +52,7 @@
                                             </td>
                                             <td data-label="Venta">
                                                 <div> 
-                                                    <b>{{ $sale->id }}</b>
+                                                    <b>{{ $sale->invoice_number ?: ('#' . $sale->id) }}</b>
                                                     @foreach ($sale->returns as $return)
                                                         @php 
                                                             $isManual = $return->details->count() === 0;

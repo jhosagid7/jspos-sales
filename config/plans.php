@@ -117,5 +117,12 @@ return [
         'module_collection_audit'       => 'Auditoría de Cobranza',
         'module_invoice_audit'          => 'Auditoría de Facturas',
         'module_credit_auth_history'    => 'Historial Auth Créditos',
+
+        // ── Inteligencia Artificial (Add-ons individuales) ─────────────
+        'module_ai_invoice_ocr'         => 'IA: Carga Automática de Facturas y Compras (Visión OCR)',
+        'module_ai_copilot'             => 'IA: Copiloto Financiero y Consultas en Lenguaje Natural',
+        'module_ai_inventory_forecast'  => 'IA: Predicción de Stock y Compras Sugeridas',
+        'module_ai_credit_scoring'      => 'IA: Scoring de Crédito y Cobranza Predictiva por WhatsApp',
+        'module_ai_daily_summary'       => 'IA: Resumen Ejecutivo Diario y Cierres Inteligentes',
     ],
 ];

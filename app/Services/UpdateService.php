@@ -503,6 +503,36 @@ class UpdateService
             });
         }
 
+        // Fix: Auto-heal / backfill invoice_number for older sales and calibrate sequence
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('sales') && \Illuminate\Support\Facades\Schema::hasColumn('sales', 'invoice_number')) {
+                \Illuminate\Support\Facades\DB::table('sales')
+                    ->whereNull('invoice_number')
+                    ->orWhere('invoice_number', '')
+                    ->update([
+                        'invoice_number' => \Illuminate\Support\Facades\DB::raw("CONCAT('F', LPAD(id, 8, '0'))")
+                    ]);
+
+                $config = \App\Models\Configuration::first();
+                if ($config && \Illuminate\Support\Facades\Schema::hasColumn('configurations', 'invoice_sequence')) {
+                    $lastSaleWithInvoice = \App\Models\Sale::whereNotNull('invoice_number')
+                        ->where('invoice_number', '!=', '')
+                        ->orderBy('id', 'desc')
+                        ->first();
+                    if ($lastSaleWithInvoice) {
+                        $extractedNum = (int) preg_replace('/[^0-9]/', '', $lastSaleWithInvoice->invoice_number);
+                        if ($extractedNum > ($config->invoice_sequence ?? 0)) {
+                            $config->invoice_sequence = $extractedNum;
+                            $config->save();
+                            Log::info("Updater: invoice_sequence auto-calibrated to {$extractedNum}");
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable $th) {
+            Log::warning("Updater: Automatic invoice_number / sequence calibration failed: " . $th->getMessage());
+        }
+
         // Create the AutoMigrate flag file so AutoMigrate middleware recognizes completion for this version
         $versionFile = base_path('version.txt');
         if (File::exists($versionFile)) {
