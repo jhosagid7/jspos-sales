@@ -11,6 +11,11 @@ class Department extends Model
 
     protected $fillable = ['name', 'report_type'];
 
+    public function setNameAttribute($value)
+    {
+        $this->attributes['name'] = \App\Helpers\NameNormalizer::uppercase($value);
+    }
+
     public function categories()
     {
         return $this->hasMany(Category::class);

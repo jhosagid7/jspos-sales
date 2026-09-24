@@ -16,50 +16,50 @@ class ModelNameNormalizationTest extends TestCase
     use RefreshDatabase;
 
     /** @test */
-    public function user_name_is_automatically_normalized_to_title_case()
+    public function user_name_is_automatically_normalized_to_uppercase()
     {
         $user = User::factory()->create([
             'name' => 'maria guillen',
         ]);
 
-        $this->assertEquals('Maria Guillen', $user->name);
+        $this->assertEquals('MARIA GUILLEN', $user->name);
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
-            'name' => 'Maria Guillen',
+            'name' => 'MARIA GUILLEN',
         ]);
     }
 
     /** @test */
-    public function customer_name_is_automatically_normalized_to_title_case()
+    public function customer_name_is_automatically_normalized_to_uppercase()
     {
         $customer = Customer::create([
             'name' => '  inversiones   los   llanos   c.a.  ',
             'phone' => '04141234567',
         ]);
 
-        $this->assertEquals('Inversiones Los Llanos C.A.', $customer->name);
+        $this->assertEquals('INVERSIONES LOS LLANOS C.A.', $customer->name);
         $this->assertDatabaseHas('customers', [
             'id' => $customer->id,
-            'name' => 'Inversiones Los Llanos C.A.',
+            'name' => 'INVERSIONES LOS LLANOS C.A.',
         ]);
     }
 
     /** @test */
-    public function supplier_name_is_automatically_normalized_to_title_case()
+    public function supplier_name_is_automatically_normalized_to_uppercase()
     {
         $supplier = Supplier::create([
-            'name' => 'JUAN DE LA ROSA',
+            'name' => 'juan de la rosa',
         ]);
 
-        $this->assertEquals('Juan de la Rosa', $supplier->name);
+        $this->assertEquals('JUAN DE LA ROSA', $supplier->name);
         $this->assertDatabaseHas('suppliers', [
             'id' => $supplier->id,
-            'name' => 'Juan de la Rosa',
+            'name' => 'JUAN DE LA ROSA',
         ]);
     }
 
     /** @test */
-    public function warehouse_name_is_always_uppercase_and_partner_is_title_case()
+    public function warehouse_name_and_partner_are_both_always_uppercase()
     {
         $warehouse = Warehouse::create([
             'name' => 'bodega central de distribución',
@@ -67,11 +67,11 @@ class ModelNameNormalizationTest extends TestCase
         ]);
 
         $this->assertEquals('BODEGA CENTRAL DE DISTRIBUCIÓN', $warehouse->name);
-        $this->assertEquals('Pedro del Valle', $warehouse->partner_name);
+        $this->assertEquals('PEDRO DEL VALLE', $warehouse->partner_name);
         $this->assertDatabaseHas('warehouses', [
             'id' => $warehouse->id,
             'name' => 'BODEGA CENTRAL DE DISTRIBUCIÓN',
-            'partner_name' => 'Pedro del Valle',
+            'partner_name' => 'PEDRO DEL VALLE',
         ]);
     }
 

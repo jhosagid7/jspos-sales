@@ -8,22 +8,22 @@ use App\Helpers\NameNormalizer;
 class NameNormalizerTest extends TestCase
 {
     /** @test */
-    public function it_normalizes_person_names_correctly()
+    public function it_normalizes_person_names_to_uppercase()
     {
-        $this->assertEquals('Maria Guillen', NameNormalizer::personOrEntityName('maria guillen'));
-        $this->assertEquals('Maria Guillen', NameNormalizer::personOrEntityName('MARIA GUILLEN'));
-        $this->assertEquals('Maria Guillen', NameNormalizer::personOrEntityName('  maria    guillen  '));
-        $this->assertEquals('María Ángel Peña', NameNormalizer::personOrEntityName('maría ángel peña'));
-        $this->assertEquals('Juan de la Rosa', NameNormalizer::personOrEntityName('JUAN DE LA ROSA'));
-        $this->assertEquals('Pedro del Valle', NameNormalizer::personOrEntityName('pedro del valle'));
+        $this->assertEquals('MARIA GUILLEN', NameNormalizer::personOrEntityName('maria guillen'));
+        $this->assertEquals('MARIA GUILLEN', NameNormalizer::personOrEntityName('MARIA GUILLEN'));
+        $this->assertEquals('MARIA GUILLEN', NameNormalizer::personOrEntityName('  maria    guillen  '));
+        $this->assertEquals('MARÍA ÁNGEL PEÑA', NameNormalizer::personOrEntityName('maría ángel peña'));
+        $this->assertEquals('JUAN DE LA ROSA', NameNormalizer::personOrEntityName('JUAN DE LA ROSA'));
+        $this->assertEquals('PEDRO DEL VALLE', NameNormalizer::personOrEntityName('pedro del valle'));
     }
 
     /** @test */
     public function it_handles_acronyms_in_entity_names()
     {
-        $this->assertEquals('Inversiones Los Llanos C.A.', NameNormalizer::personOrEntityName('inversiones los llanos c.a.'));
-        $this->assertEquals('Distribuidora El Sol S.A.', NameNormalizer::personOrEntityName('distribuidora el sol s.a.'));
-        $this->assertEquals('Comercializadora Pro S.R.L.', NameNormalizer::personOrEntityName('comercializadora pro s.r.l.'));
+        $this->assertEquals('INVERSIONES LOS LLANOS C.A.', NameNormalizer::personOrEntityName('inversiones los llanos c.a.'));
+        $this->assertEquals('DISTRIBUIDORA EL SOL S.A.', NameNormalizer::personOrEntityName('distribuidora el sol s.a.'));
+        $this->assertEquals('COMERCIALIZADORA PRO S.R.L.', NameNormalizer::personOrEntityName('comercializadora pro s.r.l.'));
     }
 
     /** @test */

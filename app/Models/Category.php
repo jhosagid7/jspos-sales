@@ -11,6 +11,11 @@ class Category extends Model
 
     protected $fillable = ['name', 'department_id'];
 
+    public function setNameAttribute($value)
+    {
+        $this->attributes['name'] = \App\Helpers\NameNormalizer::uppercase($value);
+    }
+
     //relationship
     public function department()
     {

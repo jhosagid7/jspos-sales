@@ -91,7 +91,7 @@ class User extends Authenticatable
 
     public function setNameAttribute($value)
     {
-        $this->attributes['name'] = \App\Helpers\NameNormalizer::personOrEntityName($value);
+        $this->attributes['name'] = \App\Helpers\NameNormalizer::uppercase($value);
     }
 
     public function assignedOperators()

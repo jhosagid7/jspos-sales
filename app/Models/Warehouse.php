@@ -23,7 +23,7 @@ class Warehouse extends Model
 
     public function setPartnerNameAttribute($value)
     {
-        $this->attributes['partner_name'] = \App\Helpers\NameNormalizer::personOrEntityName($value);
+        $this->attributes['partner_name'] = \App\Helpers\NameNormalizer::uppercase($value);
     }
 
     public function products()
