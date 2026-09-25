@@ -1,3 +1,14 @@
+## [1.10.445] - 2026-09-25
+
+### Fixed (Resiliencia del Actualizador y Limpieza de Caché de Rutas)
+- **Corrección Crítica de Excepción `RouteNotFoundException` en Vista de Actualización (`update-system.blade.php`)**:
+  - Se sustituyó la directiva PHP/Blade `route("system.current.version")` por la resolución de URL segura `url("/system/current-version")`.
+  - Esta modificación previene de manera absoluta el error fatal `Symfony\Component\Routing\Exception\RouteNotFoundException: Route [system.current.version] not defined` cuando un cliente actualiza desde una versión previa que aún no tenía dicha ruta registrada o cuando la caché de rutas (`bootstrap/cache/routes-v7.php`) aún no ha sido recompilada en el servidor cliente.
+  - Se añadió validación `if (!r.ok) return null;` en la respuesta de sondeo del watchdog en JavaScript para tolerar transiciones momentáneas del servidor web durante el reemplazo de archivos sin interrumpir la interfaz.
+- **Purgado Automático de Caché de Rutas y Vistas (`UpdateService.php`)**:
+  - Se integró la invocación forzada de `Artisan::call('route:clear')` y `Artisan::call('view:clear')` en `safeClearBootstrapCache()`.
+  - Se añadió la ejecución inmediata de `safeClearBootstrapCache()` al finalizar la extracción de archivos en `installUpdate()`, garantizando que las nuevas rutas y vistas se encuentren disponibles de inmediato antes y después de ejecutar las migraciones de base de datos.
+
 ## [1.10.444] - 2026-09-25
 
 ### Added (Cinta de Accesos Directos Frecuentes)

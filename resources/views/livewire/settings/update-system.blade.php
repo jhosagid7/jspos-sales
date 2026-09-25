@@ -238,9 +238,13 @@
                             const cleanExpected = expectedVersion ? expectedVersion.replace('v', '').trim() : '';
 
                             watchdogInterval = setInterval(() => {
-                                fetch('{{ route("system.current.version") }}?t=' + Date.now(), { credentials: 'same-origin' })
-                                    .then(r => r.json())
+                                fetch('{{ url("/system/current-version") }}?t=' + Date.now(), { credentials: 'same-origin' })
+                                    .then(r => {
+                                        if (!r.ok) return null;
+                                        return r.json();
+                                    })
                                     .then(data => {
+                                        if (!data) return;
                                         const liveVer = data.version ? data.version.replace('v', '').trim() : '';
                                         if (cleanExpected && liveVer === cleanExpected) {
                                             clearInterval(watchdogInterval);

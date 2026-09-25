@@ -324,6 +324,9 @@ class UpdateService
                 File::put(base_path('version.txt'), $newVersion);
             }
 
+            // Immediately clear route and bootstrap cache so fresh routes and classes are loaded
+            self::safeClearBootstrapCache();
+
             // Auto-run DB migrations & seeders automatically during installation
             try {
                 $this->runMigrations();
@@ -607,6 +610,8 @@ class UpdateService
         } catch (\Throwable $e) {}
 
         try {
+            Artisan::call('route:clear');
+            Artisan::call('view:clear');
             Artisan::call('optimize:clear');
         } catch (\Throwable $e) {
             Log::warning("Updater: optimize:clear warning: " . $e->getMessage());
