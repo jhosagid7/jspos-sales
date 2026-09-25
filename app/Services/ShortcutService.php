@@ -930,18 +930,7 @@ class ShortcutService
      */
     public static function getAvailableForUser(?User $user = null): array
     {
-        $user = $user ?: Auth::user();
-        $catalog = self::getCatalog();
-        $grouped = [];
-
-        foreach ($catalog as $key => $item) {
-            if (self::canAccessShortcut($item, $user)) {
-                $category = $item['category'] ?? 'General';
-                $grouped[$category][] = $item;
-            }
-        }
-
-        return $grouped;
+        return self::getAvailableGroupedForUser($user);
     }
 
     /**
@@ -979,6 +968,154 @@ class ShortcutService
     }
 
     /**
+     * Verifica si un menú específico está permitido para el usuario considerando:
+     * 1. Si es Super Admin -> siempre permitido.
+     * 2. Si el Super Admin configuró 'allowed_menus' para este usuario -> solo se permite si está en dicha lista y cumple módulos tenant.
+     * 3. Si no tiene 'allowed_menus' configurado -> se evalúan los permisos de rol normales (canAccessShortcut).
+     */
+    public static function isMenuAllowedForUser(string $menuKey, ?User $user = null): bool
+    {
+        $user = $user ?: Auth::user();
+        if (!$user) {
+            return false;
+        }
+
+        // Super Admin siempre tiene acceso a todo
+        if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
+            return true;
+        }
+        if (method_exists($user, 'hasRole') && $user->hasRole('Super Admin')) {
+            return true;
+        }
+
+        $catalog = self::getCatalog();
+        $item = $catalog[$menuKey] ?? null;
+        if (!$item) {
+            return false;
+        }
+
+        $theme = $user->theme;
+        if (is_string($theme)) {
+            $theme = json_decode($theme, true);
+        }
+        $theme = is_array($theme) ? $theme : [];
+
+        // Si tiene override de Super Admin configurado (array)
+        if (isset($theme['allowed_menus']) && is_array($theme['allowed_menus'])) {
+            if (!in_array($menuKey, $theme['allowed_menus'])) {
+                return false;
+            }
+
+            // Validar existencia de la ruta y módulos de licencia tenant
+            if (!Route::has($item['route'])) {
+                return false;
+            }
+            if (!empty($item['module'])) {
+                $tenantModules = config('tenant.modules');
+                if (is_array($tenantModules) && !empty($tenantModules) && !in_array($item['module'], $tenantModules)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        // Si no tiene override personalizado, evalúa por rol y permisos estándar
+        return self::canAccessShortcut($item, $user);
+    }
+
+    /**
+     * Retorna todos los ítems del catálogo que el usuario tiene permitido ver (plano: key => item).
+     */
+    public static function getAvailableMenusForUser(?User $user = null): array
+    {
+        $user = $user ?: Auth::user();
+        $catalog = self::getCatalog();
+        $allowed = [];
+
+        foreach ($catalog as $key => $item) {
+            if (self::isMenuAllowedForUser($key, $user)) {
+                $allowed[$key] = $item;
+            }
+        }
+
+        return $allowed;
+    }
+
+    /**
+     * Retorna los menús permitidos agrupados por categoría para la interfaz del modal de atajos.
+     */
+    public static function getAvailableGroupedForUser(?User $user = null): array
+    {
+        $user = $user ?: Auth::user();
+        $available = self::getAvailableMenusForUser($user);
+        $grouped = [];
+
+        foreach ($available as $key => $item) {
+            $category = $item['category'] ?? 'General';
+            $grouped[$category][] = $item;
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * Establece o limpia los menús permitidos para un usuario específico.
+     */
+    public static function setAllowedMenusForUser(User $user, ?array $allowedKeys): bool
+    {
+        $theme = $user->theme;
+        if (is_string($theme)) {
+            $theme = json_decode($theme, true);
+        }
+        $theme = is_array($theme) ? $theme : [];
+
+        if ($allowedKeys === null) {
+            unset($theme['allowed_menus']);
+        } else {
+            $theme['allowed_menus'] = array_values(array_unique($allowedKeys));
+        }
+
+        $user->theme = $theme;
+        return $user->save();
+    }
+
+    /**
+     * Determina si el usuario tiene una lista de menús personalizada configurada por el Super Admin.
+     */
+    public static function hasCustomOverrides(?User $user = null): bool
+    {
+        $user = $user ?: Auth::user();
+        if (!$user) {
+            return false;
+        }
+
+        $theme = $user->theme;
+        if (is_string($theme)) {
+            $theme = json_decode($theme, true);
+        }
+
+        return is_array($theme) && isset($theme['allowed_menus']) && is_array($theme['allowed_menus']);
+    }
+
+    /**
+     * Retorna las claves de menú que el rol del usuario permite por defecto.
+     */
+    public static function getRoleDefaultMenuKeys(User $user): array
+    {
+        $catalog = self::getCatalog();
+        $keys = [];
+
+        foreach ($catalog as $key => $item) {
+            if (self::canAccessShortcut($item, $user)) {
+                $keys[] = $key;
+            }
+        }
+
+        return $keys;
+    }
+
+    /**
      * Obtiene la lista final de accesos directos activos para renderizar en la cinta.
      */
     public static function getActiveShortcutsForUser(?User $user = null): array
@@ -1010,7 +1147,7 @@ class ShortcutService
         foreach ($configuredKeys as $key) {
             if (isset($catalog[$key])) {
                 $item = $catalog[$key];
-                if (self::canAccessShortcut($item, $user)) {
+                if (self::isMenuAllowedForUser($key, $user)) {
                     $item['url'] = route($item['route']);
                     $item['is_active'] = request()->routeIs($item['route']) || request()->routeIs($item['route'] . '.*');
                     $activeShortcuts[] = $item;

@@ -262,6 +262,7 @@ Route::middleware('auth')->group(function () {
     Route::get('settings/whatsapp-outbox', \App\Livewire\Settings\WhatsappOutbox::class)->name('settings.whatsapp_outbox')->middleware(['role:Super Admin', 'module:module_whatsapp']);
     Route::get('settings/email-outbox', \App\Livewire\Settings\EmailOutbox::class)->name('settings.email_outbox')->middleware(['role:Super Admin']);
     Route::get('settings/license-generator', \App\Livewire\Settings\LicenseGenerator::class)->name('settings.license_generator')->middleware('role:Super Admin');
+    Route::get('settings/user-menus', \App\Livewire\Settings\UserMenuPermissions::class)->name('settings.user_menus')->middleware('role:Super Admin');
     
     Route::get('whatsapp/download-pdf/{msgId}', function($msgId) {
         $msg = \App\Models\WhatsappMessage::findOrFail($msgId);

@@ -997,6 +997,12 @@
                                         <p>Generador SaaS</p>
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('settings.user_menus') }}" class="nav-link {{ Request::is('settings/user-menus*') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon text-info"></i>
+                                        <p>Permisos de Menús</p>
+                                    </a>
+                                </li>
                                 @endrole
                             </ul>
                         </li>

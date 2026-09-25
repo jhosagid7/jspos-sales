@@ -1,3 +1,31 @@
+## [1.10.448] - 2026-09-25
+
+### Added (Control Dinámico de Menús y Módulos por Usuario para Super Admin)
+- **Panel Exclusivo de Permisos de Menús en Configuración (`settings/user-menus`)**:
+  - Implementado componente Livewire interactivo `App\Livewire\Settings\UserMenuPermissions` y vista Blade `settings/user-menu-permissions.blade.php`, accesible exclusivamente por cuentas `Super Admin` (`middleware('role:Super Admin')`).
+  - Selector reactivo de usuario que lista a los miembros del sistema clasificados por su rol comercial (Admin, Supervisor, Empleado, Cajero, etc.).
+  - Búsqueda en tiempo real (`🔍`), filtrado dinámico por categorías comerciales (Ventas, Inventario, Logística, Manufactura, Caja/Finanzas, Reportes, Catálogos, etc.) y botones de selección/deselección masiva por sección.
+  - Botón *"Restablecer por Rol"* que purga cualquier override personalizado y retorna automáticamente a los permisos por defecto de Spatie Role y Plan SaaS del usuario.
+- **Arquitectura de Almacenamiento Zero-Migration**:
+  - Almacenamiento directo en el campo JSON `users.theme['allowed_menus']`, garantizando 0 migraciones de base de datos, 0 interrupciones y compatibilidad total retroactiva con clientes existentes.
+- **Integración Global en Navegación y Accesos Rápidos**:
+  - `ShortcutService.php`: Se añadieron los métodos `isMenuAllowedForUser()`, `getAvailableMenusForUser()`, `getAvailableGroupedForUser()`, `setAllowedMenusForUser()`, `getRoleDefaultMenuKeys()` y `hasCustomOverrides()`.
+  - La cinta rápida de cabecera (`layouts/theme/header.blade.php`) y el modal de personalización de atajos (`layouts/theme/shortcuts-modal.blade.php`) respetan de inmediato los menús autorizados por el Super Admin.
+  - `AppServiceProvider.php`: Se registró la directiva Blade `@menuAllowed('clave')` para validar permisos dinámicos en vistas Blade.
+  - `sidebar.blade.php` y `settings.blade.php`: Se incorporó el acceso directo a *"Permisos de Menús"* bajo Ajustes Globales de Super Admin.
+- **Inmunidad Total de Super Admin**:
+  - Los usuarios con rol `Super Admin` nunca son restringidos ni bloqueados, manteniendo acceso completo e incondicional a todos los módulos y herramientas del sistema.
+
+### Tests
+- Creada suite de pruebas unitarias y de integración `UserMenuPermissionsTest.php` con 7 pruebas que validan:
+  1. Exclusividad de acceso a `settings/user-menus` únicamente para `Super Admin`.
+  2. Fallback transparente a permisos de rol estándar para usuarios sin configuración previa.
+  3. Aplicación estricta de restricciones de menús para usuarios configurados.
+  4. Filtrado reactivo en el modal de selección de accesos directos.
+  5. Restablecimiento completo a los valores predeterminados del rol con un solo clic.
+  6. Inmunidad absoluta de la cuenta Super Admin ante cualquier override.
+  7. Conmutación reactiva de switches y guardado persistente en Livewire.
+
 ## [1.10.447] - 2026-09-25
 
 ### Clean & Security (Aislamiento Estricto de JSPOS Sales y Desvinculación de JSBolsas)

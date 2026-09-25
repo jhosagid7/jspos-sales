@@ -129,6 +129,11 @@ class AppServiceProvider extends ServiceProvider
             return false;
         });
 
+        // Registro de directiva Blade para Menús Permitidos por Usuario (Control Super Admin)
+        \Illuminate\Support\Facades\Blade::if('menuAllowed', function ($menuKey) {
+            return \App\Services\ShortcutService::isMenuAllowedForUser($menuKey);
+        });
+
         // Registro de directiva Blade para Terminología Regional Personalizable
         \Illuminate\Support\Facades\Blade::directive('term', function ($expression) {
             return "<?php echo term({$expression}); ?>";

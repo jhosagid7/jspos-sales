@@ -225,6 +225,18 @@
                                 </div>
                             </a>
                         </li>
+
+                        {{-- Acceso Rápido: Permisos de Menús por Usuario --}}
+                        <li class="nav-item mb-2">
+                            <a class="nav-link d-flex align-items-center gap-4 p-3 bg-light border border-primary border-opacity-25" 
+                               href="{{ route('settings.user_menus') }}">
+                                <i class="fa fa-user-shield fa-2x text-primary"></i>
+                                <div>
+                                    <h6 class="mb-0 text-primary">Permisos de Menús</h6>
+                                    <small class="text-muted">Control visual por usuario <i class="fa fa-external-link-alt ms-1 text-primary"></i></small>
+                                </div>
+                            </a>
+                        </li>
                         @endrole
                     </ul>
                 </div>
