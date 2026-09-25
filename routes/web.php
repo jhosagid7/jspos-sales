@@ -347,66 +347,6 @@ Route::prefix('system')->name('system.')->group(function () {
             return redirect('/dashboard')->with('error', 'La migración finalizó con advertencias: ' . $e->getMessage());
         }
     })->name('upgrade-db');
-
-    // JSBolsas (Administración de Fábrica de Bolsas) Web Routes
-    Route::prefix('fabrica-bolsas')->name('bag_factory.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\BagFactoryWebController::class, 'index'])->name('index');
-        Route::post('/approve/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'approve'])->name('approve');
-        Route::post('/bulk-approve', [\App\Http\Controllers\BagFactoryWebController::class, 'bulkApprove'])->name('bulk_approve');
-        Route::post('/adjust/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'adjust'])->name('adjust');
-        Route::post('/reject/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'reject'])->name('reject');
-        Route::get('/ticket/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'ticket'])->name('ticket');
-    });
-});
-
-// JSBolsas Pro / Bag Factory Web Routes
-Route::middleware('auth')->group(function () {
-    Route::get('/scale', [\App\Http\Controllers\BagFactoryWebController::class, 'scaleAudit'])->name('scale.index');
-    Route::get('/bascula', [\App\Http\Controllers\BagFactoryWebController::class, 'scaleAudit'])->name('scale.index_alias');
-    Route::post('/scale/approve/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'approve'])->name('approve');
-    Route::post('/scale/bulk-approve', [\App\Http\Controllers\BagFactoryWebController::class, 'bulkApprove'])->name('bulk_approve');
-    Route::post('/scale/adjust/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'adjust'])->name('adjust');
-    Route::post('/scale/reject/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'reject'])->name('reject');
-
-    Route::get('/reports-fabrica', [\App\Http\Controllers\BagFactoryWebController::class, 'reportsIndex'])->name('reports.index');
-    Route::get('/reports', [\App\Http\Controllers\BagFactoryWebController::class, 'reportsIndex'])->name('reports.index_en');
-    Route::get('/reportes', [\App\Http\Controllers\BagFactoryWebController::class, 'reportsIndex'])->name('reports.index_es');
-    Route::get('/reports-fabrica/pdf', [\App\Http\Controllers\BagFactoryWebController::class, 'reportsPdf'])->name('reports.pdf');
-
-    Route::get('/formulas', [\App\Http\Controllers\BagFactoryWebController::class, 'formulasIndex'])->name('formulas.index');
-    Route::post('/formulas', [\App\Http\Controllers\BagFactoryWebController::class, 'formulasStore'])->name('formulas.store');
-    Route::post('/formulas/{id}/version', [\App\Http\Controllers\BagFactoryWebController::class, 'formulasNewVersion'])->name('formulas.new_version');
-
-    Route::get('/raw-materials', [\App\Http\Controllers\BagFactoryWebController::class, 'rawMaterialsIndex'])->name('raw_materials.index');
-    Route::get('/materias-primas', [\App\Http\Controllers\BagFactoryWebController::class, 'rawMaterialsIndex'])->name('raw_materials.index_alias');
-    Route::post('/raw-materials', [\App\Http\Controllers\BagFactoryWebController::class, 'rawMaterialsStore'])->name('raw_materials.store');
-    Route::post('/raw-materials/{id}/price', [\App\Http\Controllers\BagFactoryWebController::class, 'rawMaterialsUpdatePrice'])->name('raw_materials.update_price');
-
-    Route::get('/costs', [\App\Http\Controllers\BagFactoryWebController::class, 'costsIndex'])->name('costs.index');
-    Route::get('/costos', [\App\Http\Controllers\BagFactoryWebController::class, 'costsIndex'])->name('costs.index_alias');
-    Route::match(['post', 'put'], '/costs', [\App\Http\Controllers\BagFactoryWebController::class, 'costsUpdate'])->name('costs.update');
-    Route::match(['post', 'put'], '/products/{id}/technical', [\App\Http\Controllers\BagFactoryWebController::class, 'productsTechnicalUpdate'])->name('products.technical.update');
-
-    Route::get('/catalogo-bolsas', [\App\Http\Controllers\BagFactoryWebController::class, 'productsIndex'])->name('products.index');
-    Route::get('/catalogo', [\App\Http\Controllers\BagFactoryWebController::class, 'productsIndex'])->name('products.index_alias');
-    Route::post('/catalogo-bolsas', [\App\Http\Controllers\BagFactoryWebController::class, 'productsStore'])->name('products.store');
-    Route::put('/catalogo-bolsas/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'productsUpdate'])->name('products.update');
-    Route::delete('/catalogo-bolsas/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'productsDestroy'])->name('products.destroy');
-
-    Route::get('/usuarios-fabrica', [\App\Http\Controllers\BagFactoryWebController::class, 'usersIndex'])->name('users.index');
-    Route::get('/usuarios', [\App\Http\Controllers\BagFactoryWebController::class, 'usersIndex'])->name('users.index_alias');
-    Route::post('/usuarios-fabrica', [\App\Http\Controllers\BagFactoryWebController::class, 'usersStore'])->name('users.store');
-    Route::put('/usuarios-fabrica/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'usersUpdate'])->name('users.update');
-    Route::delete('/usuarios-fabrica/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'usersDestroy'])->name('users.destroy');
-
-    Route::get('/machines', [\App\Http\Controllers\BagFactoryWebController::class, 'machinesIndex'])->name('machines.index');
-    Route::get('/maquinas', [\App\Http\Controllers\BagFactoryWebController::class, 'machinesIndex'])->name('machines.index_alias');
-    Route::post('/machines', [\App\Http\Controllers\BagFactoryWebController::class, 'machinesStore'])->name('machines.store');
-    Route::delete('/machines/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'machinesDestroy'])->name('machines.destroy');
-
-    Route::get('/ticket/{id}', [\App\Http\Controllers\BagFactoryWebController::class, 'ticket'])->name('ticket');
-    Route::get('/payroll', [\App\Http\Controllers\BagFactoryWebController::class, 'payrollIndex'])->name('bag_factory.payroll');
-    Route::get('/nomina', [\App\Http\Controllers\BagFactoryWebController::class, 'payrollIndex'])->name('bag_factory.payroll_alias');
 });
 
 require __DIR__ . '/auth.php';

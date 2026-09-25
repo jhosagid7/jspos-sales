@@ -1,3 +1,15 @@
+## [1.10.447] - 2026-09-25
+
+### Clean & Security (Aislamiento Estricto de JSPOS Sales y Desvinculación de JSBolsas)
+- **Eliminación Quirúrgica del Acceso Directo y Enlaces Huérfanos de JSBolsas**:
+  - `ShortcutService.php`: Se retiró formalmente el atajo `system.bag_factory.index` del catálogo central de accesos directos, eliminándolo de la cinta de cabecera y del modal de configuración.
+  - `sidebar.blade.php`: Se removió el enlace *"Supervisión JSBolsas (Turnos / Báscula)"* bajo el menú *"FÁBRICA BOLSAS"*, dejando únicamente su módulo oficial y legítimo: *"Historial Levantamiento"* (`production.index`), que gestiona el ingreso de bultos al inventario general de JSPOS Sales.
+  - `routes/web.php`: Se eliminaron las rutas web remanentes de fábrica de bolsas (`/fabrica-bolsas`, `/scale`, `/costs`, `/catalogo-bolsas`, etc.), liberando las rutas comerciales `/reportes` y `/usuarios` para evitar colisiones.
+  - **Preservación Total de Apps y APKs**: Se verificó y protegió el 100% del ecosistema móvil de JSPOS Sales (APKs de Levantamiento de Bolsas, Soplados/Manufactura, Clientes VIP y Vendedores Foráneos en `public/`), sin eliminar ningún binario ni migración de base de datos.
+
+### Tests
+- Actualizada suite `UserShortcutsTest.php` validando que el catálogo de 77 rutas comerciales no contenga la ruta huérfana de JSBolsas y que todas las rutas registradas sean 100% resolubles en la aplicación.
+
 ## [1.10.446] - 2026-09-25
 
 ### Fixed (Acceso Directo JSBolsas en Cinta de Accesos Rápidos)

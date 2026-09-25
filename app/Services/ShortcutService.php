@@ -708,17 +708,6 @@ class ShortcutService
                 'category' => 'Fábrica & Producción',
                 'color' => '#28a745',
             ],
-            'system.bag_factory.index' => [
-                'key' => 'system.bag_factory.index',
-                'label' => 'Supervisión JSBolsas (Turnos / Báscula)',
-                'short_label' => 'JSBolsas',
-                'icon' => 'fas fa-shopping-bag',
-                'route' => 'system.bag_factory.index',
-                'permission' => 'production.index',
-                'module' => 'module_bolsas',
-                'category' => 'Fábrica & Producción',
-                'color' => '#ffc107',
-            ],
             'production.index' => [
                 'key' => 'production.index',
                 'label' => 'Historial Levantamiento Bolsas',

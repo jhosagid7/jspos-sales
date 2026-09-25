@@ -112,15 +112,11 @@ class UserShortcutsTest extends TestCase
     }
 
     /** @test */
-    public function system_bag_factory_index_endpoint_renders_successfully()
+    public function jsbolsas_shortcut_is_not_present_in_catalog()
     {
-        $user = User::factory()->create();
-        $user->assignRole('Admin');
-        $this->actingAs($user);
-
-        $response = $this->get(route('system.bag_factory.index'));
-        $response->assertStatus(200);
-        $response->assertSee('JSBolsas - Control de Fábrica y Supervisión');
+        $catalog = ShortcutService::getCatalog();
+        $this->assertArrayNotHasKey('system.bag_factory.index', $catalog);
     }
 }
+
 
