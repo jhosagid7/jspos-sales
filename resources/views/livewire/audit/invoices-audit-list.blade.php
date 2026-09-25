@@ -267,7 +267,7 @@
 
                                         @if(in_array('seller', $selectedColumns))
                                             <td class="small text-dark">
-                                                {{ $sale->customer->seller->name ?? 'Sin Vendedor' }}
+                                                {{ $sale->seller?->name ?: ($sale->customer?->seller?->name ?? 'Sin Vendedor') }}
                                             </td>
                                         @endif
 
@@ -587,7 +587,7 @@
                                             </div>
                                             <div class="d-flex justify-content-between mb-1">
                                                 <span class="text-muted">Vendedor:</span>
-                                                <span class="font-weight-bold text-dark">{{ $selectedSale->customer->seller->name ?? 'Sin Vendedor' }}</span>
+                                                <span class="font-weight-bold text-dark">{{ $selectedSale->seller?->name ?: ($selectedSale->customer?->seller?->name ?? 'Sin Vendedor') }}</span>
                                             </div>
                                         </div>
                                     </div>

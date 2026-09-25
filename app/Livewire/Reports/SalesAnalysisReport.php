@@ -84,9 +84,9 @@ class SalesAnalysisReport extends Component
             $selectExpression = "DATE_FORMAT(sales.created_at, '%Y-%m')";
         }
 
-        // Subquery or join with customers to filter by their assigned seller
+        // Filter by frozen sales.seller_id with fallback to customers.seller_id
         $query = DB::table('sales')
-            ->join('customers', 'sales.customer_id', '=', 'customers.id')
+            ->leftJoin('customers', 'sales.customer_id', '=', 'customers.id')
             ->select([
                 DB::raw("$selectExpression as period_label"),
                 DB::raw("SUM(sales.total_usd) as total_amount"),
@@ -100,7 +100,7 @@ class SalesAnalysisReport extends Component
             ->when($dateTo, fn($q) => $q->where('sales.created_at', '<=', $dateTo));
 
         if (!empty($this->selectedSellers)) {
-            $query->whereIn('customers.seller_id', $this->selectedSellers);
+            $query->whereIn(DB::raw('COALESCE(sales.seller_id, customers.seller_id)'), $this->selectedSellers);
         }
 
         $results = $query->groupBy(DB::raw("$selectExpression"))
@@ -177,14 +177,14 @@ class SalesAnalysisReport extends Component
 
         // Current period metrics
         $currentQuery = DB::table('sales')
-            ->join('customers', 'sales.customer_id', '=', 'customers.id')
+            ->leftJoin('customers', 'sales.customer_id', '=', 'customers.id')
             ->where('sales.status', '<>', 'returned')
             ->whereNull('sales.deletion_approved_at')
             ->when($dateFrom, fn($q) => $q->where('sales.created_at', '>=', $dateFrom))
             ->when($dateTo, fn($q) => $q->where('sales.created_at', '<=', $dateTo));
 
         if (!empty($this->selectedSellers)) {
-            $currentQuery->whereIn('customers.seller_id', $this->selectedSellers);
+            $currentQuery->whereIn(DB::raw('COALESCE(sales.seller_id, customers.seller_id)'), $this->selectedSellers);
         }
 
         $currentTotal = $currentQuery->sum('sales.total_usd');
@@ -204,14 +204,14 @@ class SalesAnalysisReport extends Component
             $prevDateTo = $dateFrom->copy()->subDay()->endOfDay();
 
             $prevQuery = DB::table('sales')
-                ->join('customers', 'sales.customer_id', '=', 'customers.id')
+                ->leftJoin('customers', 'sales.customer_id', '=', 'customers.id')
                 ->where('sales.status', '<>', 'returned')
                 ->whereNull('sales.deletion_approved_at')
                 ->where('sales.created_at', '>=', $prevDateFrom)
                 ->where('sales.created_at', '<=', $prevDateTo);
 
             if (!empty($this->selectedSellers)) {
-                $prevQuery->whereIn('customers.seller_id', $this->selectedSellers);
+                $prevQuery->whereIn(DB::raw('COALESCE(sales.seller_id, customers.seller_id)'), $this->selectedSellers);
             }
 
             $prevTotal = $prevQuery->sum('sales.total_usd');

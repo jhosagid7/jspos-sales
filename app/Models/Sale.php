@@ -18,6 +18,7 @@ class Sale extends Model
         'items',
         'status',
         'customer_id',
+        'seller_id',
 
         'user_id',
         'type',
@@ -105,6 +106,11 @@ class Sale extends Model
     function user()
     {
         return $this->belongsTo(User::class)->select('id', 'name');
+    }
+
+    public function seller()
+    {
+        return $this->belongsTo(User::class, 'seller_id')->select('id', 'name');
     }
 
     public function sellerConfig()

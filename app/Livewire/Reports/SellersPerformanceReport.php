@@ -144,11 +144,13 @@ class SellersPerformanceReport extends Component
             $selectExpression = "DATE_FORMAT(sales.created_at, '%Y-%m')";
         }
 
+        $sellerColExpr = "COALESCE(sales.seller_id, customers.seller_id)";
+
         // Query raw database records first
         $query = DB::table('sales')
-            ->join('customers', 'sales.customer_id', '=', 'customers.id')
+            ->leftJoin('customers', 'sales.customer_id', '=', 'customers.id')
             ->select([
-                'customers.seller_id',
+                DB::raw("$sellerColExpr as seller_id"),
                 DB::raw("$selectExpression as period_label"),
                 DB::raw("SUM(sales.total_usd) as total_amount"),
                 DB::raw("COUNT(*) as sales_count"),
@@ -164,15 +166,15 @@ class SellersPerformanceReport extends Component
         $oficinaId = $oficinaUser ? $oficinaUser->id : null;
 
         if (!empty($this->selectedSellers)) {
-            $query->where(function($q) use ($oficinaId) {
-                $q->whereIn('customers.seller_id', $this->selectedSellers);
+            $query->where(function($q) use ($oficinaId, $sellerColExpr) {
+                $q->whereIn(DB::raw($sellerColExpr), $this->selectedSellers);
                 if ($oficinaId && in_array($oficinaId, $this->selectedSellers)) {
-                    $q->orWhereNull('customers.seller_id');
+                    $q->orWhereNull(DB::raw($sellerColExpr));
                 }
             });
         }
 
-        $rawResults = $query->groupBy(['customers.seller_id', DB::raw("$selectExpression")])
+        $rawResults = $query->groupBy([DB::raw($sellerColExpr), DB::raw("$selectExpression")])
             ->orderBy('period_label')
             ->get();
 
@@ -180,19 +182,19 @@ class SellersPerformanceReport extends Component
         $salesForDebt = [];
         if ($this->metric === 'pending_debt') {
             $eloquentQuery = Sale::with(['paymentDetails', 'payments', 'returns', 'debitNotes', 'customer'])
-                ->where('status', '<>', 'returned')
-                ->whereNull('deletion_approved_at')
-                ->when($dateFrom, fn($q) => $q->where('created_at', '>=', $dateFrom))
-                ->when($dateTo, fn($q) => $q->where('created_at', '<=', $dateTo));
+                ->leftJoin('customers', 'sales.customer_id', '=', 'customers.id')
+                ->select('sales.*')
+                ->where('sales.status', '<>', 'returned')
+                ->whereNull('sales.deletion_approved_at')
+                ->when($dateFrom, fn($q) => $q->where('sales.created_at', '>=', $dateFrom))
+                ->when($dateTo, fn($q) => $q->where('sales.created_at', '<=', $dateTo));
 
             if (!empty($this->selectedSellers)) {
-                $eloquentQuery->whereHas('customer', function($c) use ($oficinaId) {
-                    $c->where(function($q) use ($oficinaId) {
-                        $q->whereIn('seller_id', $this->selectedSellers);
-                        if ($oficinaId && in_array($oficinaId, $this->selectedSellers)) {
-                            $q->orWhereNull('seller_id');
-                        }
-                    });
+                $eloquentQuery->where(function($q) use ($oficinaId, $sellerColExpr) {
+                    $q->whereIn(DB::raw($sellerColExpr), $this->selectedSellers);
+                    if ($oficinaId && in_array($oficinaId, $this->selectedSellers)) {
+                        $q->orWhereNull(DB::raw($sellerColExpr));
+                    }
                 });
             }
             $salesForDebt = $eloquentQuery->get();
@@ -288,7 +290,7 @@ class SellersPerformanceReport extends Component
                 if ($this->metric === 'pending_debt') {
                     // Sum debt for this seller in this period
                     $periodSales = $salesForDebt->filter(function($sale) use ($seller, $rawPeriod, $oficinaId) {
-                        $sId = $sale->customer->seller_id ?? null;
+                        $sId = $sale->seller_id ?: ($sale->customer->seller_id ?? null);
                         if ($sId != $seller->id && !(is_null($sId) && $seller->id == $oficinaId)) {
                             return false;
                         }
@@ -381,7 +383,7 @@ class SellersPerformanceReport extends Component
             $oficinaId = $oficinaUser ? $oficinaUser->id : null;
 
             $sellerSales = $sales->filter(function($sale) use ($seller, $oficinaId) {
-                $sId = $sale->customer->seller_id ?? null;
+                $sId = $sale->seller_id ?: ($sale->customer->seller_id ?? null);
                 return $sId == $seller->id || (is_null($sId) && $seller->id == $oficinaId);
             });
             

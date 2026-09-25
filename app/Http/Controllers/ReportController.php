@@ -36,7 +36,15 @@ class ReportController extends Controller
 
         if ($sellerId || $batchName || $zone || ($invoiceFrom && $invoiceTo)) {
             $query->whereHas('sale', function($q) use ($sellerId, $batchName, $zone, $invoiceFrom, $invoiceTo) {
-                if ($sellerId) $q->where('seller_id', $sellerId);
+                if ($sellerId) {
+                    $q->where(function($sub) use ($sellerId) {
+                        $sub->where('sales.seller_id', $sellerId)
+                            ->orWhere(function($ss) use ($sellerId) {
+                                $ss->whereNull('sales.seller_id')
+                                   ->whereHas('customer', fn($c) => $c->where('seller_id', $sellerId));
+                            });
+                    });
+                }
                 if ($batchName) $q->where('batch_name', 'like', "%{$batchName}%");
                 if ($zone) {
                     $q->whereHas('customer', function($c) use ($zone) {
@@ -136,6 +144,7 @@ class ReportController extends Controller
 
         $sales = \App\Models\Sale::with([
                 'customer', 
+                'seller',
                 'details', 
                 'user', 
                 'paymentDetails' => function($q) use ($dFrom, $dTo) {
@@ -163,8 +172,12 @@ class ReportController extends Controller
                 $query->where('user_id', $user_id);
             })
             ->when($seller_id != null && $seller_id != 0, function ($query) use ($seller_id) {
-                $query->whereHas('customer', function($q) use ($seller_id) {
-                    $q->where('seller_id', $seller_id);
+                $query->where(function($q) use ($seller_id) {
+                    $q->where('sales.seller_id', $seller_id)
+                        ->orWhere(function($ss) use ($seller_id) {
+                            $ss->whereNull('sales.seller_id')
+                               ->whereHas('customer', fn($c) => $c->where('seller_id', $seller_id));
+                        });
                 });
             })
             ->when($customer_id != null, function ($query) use ($customer_id) {
@@ -189,8 +202,9 @@ class ReportController extends Controller
                 } elseif ($groupBy == 'user_id') {
                     $key = $sale->user_id; $name = $sale->user->name;
                 } elseif ($groupBy == 'seller_id') {
-                    $key = $sale->customer->seller_id ?? 'NA';
-                    $name = $sale->customer->seller->name ?? 'SIN VENDEDOR';
+                    $seller = $sale->seller ?: $sale->customer?->seller;
+                    $key = $sale->seller_id ?: ($sale->customer->seller_id ?? 'NA');
+                    $name = $seller->name ?? 'SIN VENDEDOR';
                 } elseif ($groupBy == 'date') {
                     $key = $sale->created_at->format('Y-m-d'); $name = $sale->created_at->format('d/m/Y');
                 }
@@ -525,7 +539,7 @@ class ReportController extends Controller
         $dFrom = $dateFrom ? Carbon::parse($dateFrom)->startOfDay() : null;
         $dTo = $dateTo ? Carbon::parse($dateTo)->endOfDay() : null;
 
-        $sales = Sale::with(['customer', 'details', 'user', 'paymentDetails'])
+        $sales = Sale::with(['customer', 'seller', 'details', 'user', 'paymentDetails'])
             ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
                 $q->whereBetween('created_at', [$dFrom, $dTo]);
             })
@@ -540,8 +554,12 @@ class ReportController extends Controller
                 $q->where('user_id', $user_id);
             })
             ->when($seller_id != null && $seller_id != 0, function($q) use ($seller_id) {
-                $q->whereHas('customer', function($c) use ($seller_id) {
-                    $c->where('seller_id', $seller_id);
+                $q->where(function($sub) use ($seller_id) {
+                    $sub->where('sales.seller_id', $seller_id)
+                        ->orWhere(function($ss) use ($seller_id) {
+                            $ss->whereNull('sales.seller_id')
+                               ->whereHas('customer', fn($c) => $c->where('seller_id', $seller_id));
+                        });
                 });
             })
             ->when($customer_id != null, function($q) use ($customer_id) {
@@ -573,7 +591,7 @@ class ReportController extends Controller
                 } elseif ($groupBy == 'user_id') {
                     $key = $sale->user_id ?? 'NA';
                 } elseif ($groupBy == 'seller_id') {
-                    $key = $sale->customer?->seller_id ?? 'NA';
+                    $key = $sale->seller_id ?: ($sale->customer?->seller_id ?? 'NA');
                 } elseif ($groupBy == 'driver_id') {
                     $key = $sale->driver_id ?? 'NA';
                 } elseif ($groupBy == 'date') {
@@ -695,8 +713,9 @@ class ReportController extends Controller
                     $key = $sale->user_id ?? 'NA'; 
                     $name = $sale->user?->name ?? 'SIN OPERADOR';
                 } elseif ($groupBy == 'seller_id') {
-                    $key = $sale->customer?->seller_id ?? 'NA';
-                    $name = $sale->customer?->seller?->name ?? 'SIN VENDEDOR';
+                    $seller = $sale->seller ?: $sale->customer?->seller;
+                    $key = $sale->seller_id ?: ($sale->customer?->seller_id ?? 'NA');
+                    $name = $seller?->name ?? 'SIN VENDEDOR';
                 } elseif ($groupBy == 'driver_id') {
                     $key = $sale->driver_id ?? 'NA';
                     $name = $sale->driver?->name ?? 'SIN CHOFER';
@@ -751,7 +770,7 @@ class ReportController extends Controller
         $dTo = Carbon::parse($dateTo)->endOfDay();
         $selected_ids = $request->get('selected_ids') ? explode(',', $request->get('selected_ids')) : null;
 
-        $sales = Sale::with(['customer.seller', 'driver', 'sellerConfig.user', 'paymentDetails'])
+        $sales = Sale::with(['seller', 'customer.seller', 'driver', 'sellerConfig.user', 'paymentDetails'])
             ->whereNotNull('driver_id')
             ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated'])
             ->when($selected_ids, function($q) use ($selected_ids) {
@@ -762,8 +781,12 @@ class ReportController extends Controller
                 $q->where('driver_id', $driver_id);
             })
             ->when($seller_id && $seller_id !== 'all', function($q) use ($seller_id) {
-                $q->whereHas('customer', function($c) use ($seller_id) {
-                    $c->where('seller_id', $seller_id);
+                $q->where(function($sub) use ($seller_id) {
+                    $sub->where('sales.seller_id', $seller_id)
+                        ->orWhere(function($ss) use ($seller_id) {
+                            $ss->whereNull('sales.seller_id')
+                               ->whereHas('customer', fn($c) => $c->where('seller_id', $seller_id));
+                        });
                 });
             })
             ->orderBy('driver_id')
@@ -781,8 +804,8 @@ class ReportController extends Controller
             $driverKey = $sale->driver_id;
             $driverName = $sale->driver->name ?? 'N/A';
             
-            // Get Seller through Customer instead of Sale->seller_id
-            $seller = $sale->customer->seller ?? null;
+            // Resolve seller: prioritize immutable sale->seller, fallback to customer->seller
+            $seller = $sale->seller ?: ($sale->customer?->seller ?? null);
             $sellerId = $seller ? $seller->id : 0;
             $sellerName = $seller ? strtoupper($seller->name) : 'SIN VENDEDOR';
 
@@ -891,7 +914,7 @@ class ReportController extends Controller
         $dTo = Carbon::parse($dateTo)->endOfDay();
         $selected_ids = $request->get('selected_ids') ? explode(',', $request->get('selected_ids')) : null;
 
-        $sales = Sale::with(['customer', 'driver', 'deliveryCollections.payments.currency'])
+        $sales = Sale::with(['customer', 'seller', 'driver', 'deliveryCollections.payments.currency'])
             ->whereNotNull('driver_id')
             ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated'])
             ->when($selected_ids, function($q) use ($selected_ids) {
@@ -902,8 +925,12 @@ class ReportController extends Controller
                 $q->where('driver_id', $driver_id);
             })
             ->when($seller_id && $seller_id !== 'all', function($q) use ($seller_id) {
-                $q->whereHas('customer', function($c) use ($seller_id) {
-                    $c->where('seller_id', $seller_id);
+                $q->where(function($sub) use ($seller_id) {
+                    $sub->where('sales.seller_id', $seller_id)
+                        ->orWhere(function($ss) use ($seller_id) {
+                            $ss->whereNull('sales.seller_id')
+                               ->whereHas('customer', fn($c) => $c->where('seller_id', $seller_id));
+                        });
                 });
             })
             ->orderBy('driver_id')
@@ -1710,7 +1737,7 @@ class ReportController extends Controller
             $user_id = auth()->id();
         }
 
-        $query = Sale::with(['customer', 'details', 'user', 'paymentDetails', 'payments', 'returns'])
+        $query = Sale::with(['customer', 'seller', 'customer.seller', 'details', 'user', 'paymentDetails', 'payments', 'returns'])
             ->where('type', 'credit')
             ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated']);
 
@@ -1718,8 +1745,12 @@ class ReportController extends Controller
             $query->where('customer_id', $customer_id);
         }
         if ($seller_id) {
-            $query->whereHas('customer', function($q) use ($seller_id) {
-                $q->where('seller_id', $seller_id);
+            $query->where(function($q) use ($seller_id) {
+                $q->where('sales.seller_id', $seller_id)
+                    ->orWhere(function($ss) use ($seller_id) {
+                        $ss->whereNull('sales.seller_id')
+                           ->whereHas('customer', fn($c) => $c->where('seller_id', $seller_id));
+                    });
             });
         }
         if ($user_id) {
@@ -1820,8 +1851,9 @@ class ReportController extends Controller
                  $key = $sale->user_id;
                  $name = $sale->user->name ?? 'SIN USUARIO';
              } elseif ($groupBy == 'seller_id') {
-                 $key = $sale->customer->seller_id ?? 'NA';
-                 $name = $sale->customer->seller->name ?? 'SIN VENDEDOR';
+                 $seller = $sale->seller ?: $sale->customer?->seller;
+                 $key = $sale->seller_id ?: ($sale->customer->seller_id ?? 'NA');
+                 $name = $seller->name ?? 'SIN VENDEDOR';
              } elseif ($groupBy == 'date') {
                  $key = $sale->created_at->format('Y-m-d');
                  $name = $sale->created_at->format('d/m/Y');
@@ -2547,8 +2579,14 @@ class ReportController extends Controller
         }
 
         if ($sellerIdSelection != 'all' && $sellerIdSelection != 0) {
-            $query->whereHas('sale.customer', function($q) use ($sellerIdSelection) {
-                $q->where('seller_id', $sellerIdSelection);
+            $query->whereHas('sale', function($q) use ($sellerIdSelection) {
+                $q->where(function($sub) use ($sellerIdSelection) {
+                    $sub->where('sales.seller_id', $sellerIdSelection)
+                        ->orWhere(function($ss) use ($sellerIdSelection) {
+                            $ss->whereNull('sales.seller_id')
+                               ->whereHas('customer', fn($c) => $c->where('seller_id', $sellerIdSelection));
+                        });
+                });
             });
         }
 
@@ -3778,7 +3816,7 @@ class ReportController extends Controller
             ->when($dateTo, fn($q) => $q->where('sales.created_at', '<=', $dateTo));
 
         if (!empty($selectedSellers)) {
-            $query->whereIn('customers.seller_id', $selectedSellers);
+            $query->whereIn(DB::raw('COALESCE(sales.seller_id, customers.seller_id)'), $selectedSellers);
         }
 
         $results = $query->groupBy(DB::raw("$selectExpression"))
@@ -3811,14 +3849,14 @@ class ReportController extends Controller
 
         // Current KPIs
         $currentQuery = DB::table('sales')
-            ->join('customers', 'sales.customer_id', '=', 'customers.id')
+            ->leftJoin('customers', 'sales.customer_id', '=', 'customers.id')
             ->where('sales.status', '<>', 'returned')
             ->whereNull('sales.deletion_approved_at')
             ->when($dateFrom, fn($q) => $q->where('sales.created_at', '>=', $dateFrom))
             ->when($dateTo, fn($q) => $q->where('sales.created_at', '<=', $dateTo));
 
         if (!empty($selectedSellers)) {
-            $currentQuery->whereIn('customers.seller_id', $selectedSellers);
+            $currentQuery->whereIn(DB::raw('COALESCE(sales.seller_id, customers.seller_id)'), $selectedSellers);
         }
 
         $totalSales = $currentQuery->sum('sales.total_usd');
@@ -3835,14 +3873,14 @@ class ReportController extends Controller
             $prevDateTo = $dateFrom->copy()->subDay()->endOfDay();
 
             $prevQuery = DB::table('sales')
-                ->join('customers', 'sales.customer_id', '=', 'customers.id')
+                ->leftJoin('customers', 'sales.customer_id', '=', 'customers.id')
                 ->where('sales.status', '<>', 'returned')
                 ->whereNull('sales.deletion_approved_at')
                 ->where('sales.created_at', '>=', $prevDateFrom)
                 ->where('sales.created_at', '<=', $prevDateTo);
 
             if (!empty($selectedSellers)) {
-                $prevQuery->whereIn('customers.seller_id', $selectedSellers);
+                $prevQuery->whereIn(DB::raw('COALESCE(sales.seller_id, customers.seller_id)'), $selectedSellers);
             }
 
             $prevTotal = $prevQuery->sum('sales.total_usd');
@@ -3863,8 +3901,8 @@ class ReportController extends Controller
         ];
 
         // Detailed sales list for the report PDF
-        $detailedSales = \App\Models\Sale::with(['customer', 'user'])
-            ->join('customers', 'sales.customer_id', '=', 'customers.id')
+        $detailedSales = \App\Models\Sale::with(['customer', 'user', 'seller'])
+            ->leftJoin('customers', 'sales.customer_id', '=', 'customers.id')
             ->select('sales.*')
             ->where('sales.status', '<>', 'returned')
             ->whereNull('sales.deletion_approved_at')
@@ -3872,7 +3910,7 @@ class ReportController extends Controller
             ->when($dateTo, fn($q) => $q->where('sales.created_at', '<=', $dateTo));
 
         if (!empty($selectedSellers)) {
-            $detailedSales->whereIn('customers.seller_id', $selectedSellers);
+            $detailedSales->whereIn(DB::raw('COALESCE(sales.seller_id, customers.seller_id)'), $selectedSellers);
         }
 
         $detailedSales = $detailedSales->orderBy('sales.created_at', 'desc')->take(100)->get();
@@ -4003,9 +4041,9 @@ class ReportController extends Controller
 
         if (!empty($selectedSellers)) {
             $detailedSales->where(function($q) use ($selectedSellers, $oficinaId) {
-                $q->whereIn('customers.seller_id', $selectedSellers);
+                $q->whereIn(DB::raw('COALESCE(sales.seller_id, customers.seller_id)'), $selectedSellers);
                 if ($oficinaId && in_array($oficinaId, $selectedSellers)) {
-                    $q->orWhereNull('customers.seller_id');
+                    $q->orWhereNull(DB::raw('COALESCE(sales.seller_id, customers.seller_id)'));
                 }
             });
         }

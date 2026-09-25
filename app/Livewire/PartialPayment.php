@@ -71,12 +71,17 @@ class PartialPayment extends Component
             if (!empty(trim($this->search))) {
                 $searchValue = trim($this->search);
                 
-                // Search by Customer Name
-                $query->whereHas('customer', function ($subQuery) use ($searchValue) {
-                    $subQuery->where('name', 'like', "%{$searchValue}%")
-                        ->orWhereHas('seller', function ($sellerQuery) use ($searchValue) {
-                            $sellerQuery->where('name', 'like', "%{$searchValue}%");
-                        });
+                // Search by Customer Name or Seller
+                $query->where(function($sq) use ($searchValue) {
+                    $sq->whereHas('customer', function ($subQuery) use ($searchValue) {
+                        $subQuery->where('name', 'like', "%{$searchValue}%");
+                    })
+                    ->orWhereHas('seller', function ($sellerQuery) use ($searchValue) {
+                        $sellerQuery->where('name', 'like', "%{$searchValue}%");
+                    })
+                    ->orWhereHas('customer.seller', function ($sellerQuery) use ($searchValue) {
+                        $sellerQuery->where('name', 'like', "%{$searchValue}%");
+                    });
                 });
 
                 // Search by Invoice Number or ID
@@ -101,13 +106,17 @@ class PartialPayment extends Component
             }
         })
             ->when(!auth()->user()->can('payments.view_all') && auth()->user()->can('payments.view_own'), function($q) {
-                 $q->whereHas('customer', function($subQ) {
-                     $subQ->where('seller_id', auth()->id());
+                 $q->where(function($subQ) {
+                     $subQ->where('sales.seller_id', auth()->id())
+                         ->orWhere(function($ss) {
+                             $ss->whereNull('sales.seller_id')
+                                ->whereHas('customer', fn($c) => $c->where('seller_id', auth()->id()));
+                         });
                  });
             })
             ->where('type', 'credit')
             ->where('status', 'pending')
-            ->with(['customer.seller', 'payments', 'returns'])
+            ->with(['customer.seller', 'seller', 'payments', 'returns'])
             ->orderBy('sales.id', 'desc')
             ->paginate(5);
 
@@ -208,7 +217,8 @@ class PartialPayment extends Component
         $snapshotUsdDiscount = $parsedSnapshot['usd_payment_discount'];
 
         if (empty($sale->credit_rules_snapshot)) {
-            $creditConfig = CreditConfigService::getCreditConfig($sale->customer, $sale->customer->seller);
+            $seller = $sale->seller ?: $sale->customer?->seller;
+            $creditConfig = CreditConfigService::getCreditConfig($sale->customer, $seller);
             $rules = $creditConfig['discount_rules'];
             $snapshotUsdDiscount = null; 
         }
@@ -763,7 +773,8 @@ class PartialPayment extends Component
 
         $sale = Sale::find($saleId);
         if ($sale) {
-            $creditConfig = \App\Services\CreditConfigService::getCreditConfig($sale->customer, $sale->customer->seller);
+            $seller = $sale->seller ?: $sale->customer?->seller;
+            $creditConfig = \App\Services\CreditConfigService::getCreditConfig($sale->customer, $seller);
             
             $snapshotToSave = [
                 'discount_rules' => $creditConfig['discount_rules']->toArray(),
@@ -836,7 +847,8 @@ class PartialPayment extends Component
                 $snapshotUsdDiscount = $parsedSnapshot['usd_payment_discount'];
 
                 if (empty($sale->credit_rules_snapshot)) {
-                    $creditConfig = \App\Services\CreditConfigService::getCreditConfig($sale->customer, $sale->customer->seller);
+                    $seller = $sale->seller ?: $sale->customer?->seller;
+                    $creditConfig = \App\Services\CreditConfigService::getCreditConfig($sale->customer, $seller);
                     $rules = $creditConfig['discount_rules'];
                     $snapshotUsdDiscount = null;
                 }
@@ -868,7 +880,8 @@ class PartialPayment extends Component
                         if ($snapshotUsdDiscount !== null) {
                             $usdPaymentDiscountPercent = $snapshotUsdDiscount;
                         } else {
-                            $config = \App\Services\CreditConfigService::getCreditConfig($sale->customer, $sale->customer->seller);
+                            $seller = $sale->seller ?: $sale->customer?->seller;
+                            $config = \App\Services\CreditConfigService::getCreditConfig($sale->customer, $seller);
                             $usdPaymentDiscountPercent = $config['usd_payment_discount'] ?? 0;
                         }
                         

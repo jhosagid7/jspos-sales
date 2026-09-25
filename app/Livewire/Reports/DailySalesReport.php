@@ -99,8 +99,12 @@ class DailySalesReport extends Component
                     $query->where('user_id', $this->user_id);
                 })
                 ->when($this->seller_id != null, function ($query) {
-                    $query->whereHas('customer', function($q) {
-                        $q->where('seller_id', $this->seller_id);
+                    $query->where(function($q) {
+                        $q->where('sales.seller_id', $this->seller_id)
+                          ->orWhere(function($ss) {
+                              $ss->whereNull('sales.seller_id')
+                                 ->whereHas('customer', fn($c) => $c->where('seller_id', $this->seller_id));
+                          });
                     });
                 })
                 ->when($this->customer != null, function ($query) {
@@ -126,8 +130,12 @@ class DailySalesReport extends Component
                     $query->where('user_id', $this->user_id);
                 })
                 ->when($this->seller_id != null, function ($query) {
-                    $query->whereHas('customer', function($q) {
-                        $q->where('seller_id', $this->seller_id);
+                    $query->where(function($q) {
+                        $q->where('sales.seller_id', $this->seller_id)
+                          ->orWhere(function($ss) {
+                              $ss->whereNull('sales.seller_id')
+                                 ->whereHas('customer', fn($c) => $c->where('seller_id', $this->seller_id));
+                          });
                     });
                 })
                 ->when($this->customer != null, function ($query) {
@@ -176,7 +184,7 @@ class DailySalesReport extends Component
                     $query->where('sales.user_id', $this->user_id);
                 })
                 ->when($this->seller_id != null, function ($query) {
-                    $query->where('customers.seller_id', $this->seller_id);
+                    $query->whereIn(DB::raw('COALESCE(sales.seller_id, customers.seller_id)'), [$this->seller_id]);
                 })
                 ->when($this->customer != null, function ($query) {
                      $query->where('sales.customer_id', $this->customer['id']);
@@ -234,6 +242,7 @@ class DailySalesReport extends Component
 
         $sales = Sale::with([
                 'customer', 
+                'seller',
                 'details', 
                 'user', 
                 'paymentDetails' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo]),
@@ -253,8 +262,12 @@ class DailySalesReport extends Component
                 $query->where('user_id', $this->user_id);
             })
             ->when($this->seller_id != null && $this->seller_id != 0, function ($query) {
-                $query->whereHas('customer', function($q) {
-                    $q->where('seller_id', $this->seller_id);
+                $query->where(function($q) {
+                    $q->where('sales.seller_id', $this->seller_id)
+                        ->orWhere(function($ss) {
+                            $ss->whereNull('sales.seller_id')
+                               ->whereHas('customer', fn($c) => $c->where('seller_id', $this->seller_id));
+                        });
                 });
             })
             ->when($this->customer != null, function ($query) {
@@ -278,8 +291,9 @@ class DailySalesReport extends Component
                 } elseif ($this->groupBy == 'user_id') {
                     $key = $sale->user_id; $name = $sale->user->name;
                 } elseif ($this->groupBy == 'seller_id') {
-                    $key = $sale->customer->seller_id ?? 'NA';
-                    $name = $sale->customer->seller->name ?? 'SIN VENDEDOR';
+                    $seller = $sale->seller ?: $sale->customer?->seller;
+                    $key = $sale->seller_id ?: ($sale->customer->seller_id ?? 'NA');
+                    $name = $seller->name ?? 'SIN VENDEDOR';
                 } elseif ($this->groupBy == 'date') {
                     $key = $sale->created_at->format('Y-m-d'); $name = $sale->created_at->format('d/m/Y');
                 }

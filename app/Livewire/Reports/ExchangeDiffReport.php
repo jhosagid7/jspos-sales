@@ -222,7 +222,7 @@ class ExchangeDiffReport extends Component
         $subsequent = DB::table('payments')
             ->join('sales', 'payments.sale_id', '=', 'sales.id')
             ->join('customers', 'sales.customer_id', '=', 'customers.id')
-            ->leftJoin('users as sellers', 'customers.seller_id', '=', 'sellers.id')
+            ->leftJoin('users as sellers', DB::raw('COALESCE(sales.seller_id, customers.seller_id)'), '=', 'sellers.id')
             ->leftJoin('users as operators', 'payments.user_id', '=', 'operators.id')
             ->whereIn('payments.currency', ['VED', 'VES'])
             ->where('payments.status', 'approved')
@@ -249,7 +249,7 @@ class ExchangeDiffReport extends Component
         $initial = DB::table('sale_payment_details')
             ->join('sales', 'sale_payment_details.sale_id', '=', 'sales.id')
             ->join('customers', 'sales.customer_id', '=', 'customers.id')
-            ->leftJoin('users as sellers', 'customers.seller_id', '=', 'sellers.id')
+            ->leftJoin('users as sellers', DB::raw('COALESCE(sales.seller_id, customers.seller_id)'), '=', 'sellers.id')
             ->leftJoin('users as operators', 'sales.user_id', '=', 'operators.id')
             ->whereIn('sale_payment_details.currency_code', ['VED', 'VES'])
             ->whereNotIn('sales.status', ['voided', 'cancelled', 'anulated'])
@@ -286,8 +286,8 @@ class ExchangeDiffReport extends Component
             $initial->where('sales.customer_id', $this->customer_id);
         }
         if ($this->seller_id) {
-            $subsequent->where('customers.seller_id', $this->seller_id);
-            $initial->where('customers.seller_id', $this->seller_id);
+            $subsequent->where(DB::raw('COALESCE(sales.seller_id, customers.seller_id)'), $this->seller_id);
+            $initial->where(DB::raw('COALESCE(sales.seller_id, customers.seller_id)'), $this->seller_id);
         }
         if ($this->payment_agreement && $this->payment_agreement !== 'ALL') {
             $subsequent->where('sales.payment_agreement', $this->payment_agreement);

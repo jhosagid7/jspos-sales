@@ -385,7 +385,7 @@ class InvoicesAuditList extends Component
         $sellers = User::sellers()->orderBy('name')->get();
         $operators = User::orderBy('name')->get();
 
-        $query = Sale::with(['customer.seller', 'user']);
+        $query = Sale::with(['customer.seller', 'seller', 'user']);
 
         // Date range
         if ($this->dateFrom) {
@@ -424,8 +424,12 @@ class InvoicesAuditList extends Component
 
         // Seller
         if ($this->sellerId !== 'all') {
-            $query->whereHas('customer', function ($q) {
-                $q->where('customers.seller_id', $this->sellerId);
+            $query->where(function ($q) {
+                $q->where('sales.seller_id', $this->sellerId)
+                    ->orWhere(function ($ss) {
+                        $ss->whereNull('sales.seller_id')
+                           ->whereHas('customer', fn($c) => $c->where('seller_id', $this->sellerId));
+                    });
             });
         }
 
@@ -457,8 +461,8 @@ class InvoicesAuditList extends Component
                 ->orderBy('customers.name', $this->sortDirection)
                 ->select('sales.*');
         } elseif ($this->sortField === 'seller') {
-            $query->join('customers', 'sales.customer_id', '=', 'customers.id')
-                ->join('users', 'customers.seller_id', '=', 'users.id')
+            $query->leftJoin('customers', 'sales.customer_id', '=', 'customers.id')
+                ->leftJoin('users', DB::raw('COALESCE(sales.seller_id, customers.seller_id)'), '=', 'users.id')
                 ->orderBy('users.name', $this->sortDirection)
                 ->select('sales.*');
         } elseif ($this->sortField === 'operator') {

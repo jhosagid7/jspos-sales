@@ -42,8 +42,12 @@ class Welcome extends Component
         if (!$user->can('sales.view_all') && $user->can('sales.view_own')) {
             // Priority: If user is a seller (regular or foreign), filter by their assigned customers
             if ($user->can('system.is_seller') || $user->can('system.is_foreign_seller')) {
-                $query->whereHas('customer', function($q) use ($user) {
-                    $q->where('seller_id', $user->id);
+                $query->where(function($q) use ($user) {
+                    $q->where('sales.seller_id', $user->id)
+                        ->orWhere(function($ss) use ($user) {
+                            $ss->whereNull('sales.seller_id')
+                               ->whereHas('customer', fn($c) => $c->where('seller_id', $user->id));
+                        });
                 });
             } else {
                 // Otherwise fallback to sales processed directly by them
@@ -86,7 +90,7 @@ class Welcome extends Component
 
         if (!$user->can('sales.view_all') && $user->can('sales.view_own')) {
             if ($user->can('system.is_seller') || $user->can('system.is_foreign_seller')) {
-                $topProductsQuery->where('customers.seller_id', $user->id);
+                $topProductsQuery->where(\Illuminate\Support\Facades\DB::raw('COALESCE(sales.seller_id, customers.seller_id)'), $user->id);
             } else {
                 $topProductsQuery->where('sales.user_id', $user->id);
             }
@@ -153,9 +157,13 @@ class Welcome extends Component
 
             if (!auth()->user()->can('commissions.view_all')) {
                  // Force filter by view_own logic (for both regular and foreign sellers)
-                 $commissionsQuery->whereHas('customer', function($q) use ($user) {
-                    $q->where('seller_id', $user->id);
-                });
+                 $commissionsQuery->where(function($q) use ($user) {
+                     $q->where('sales.seller_id', $user->id)
+                         ->orWhere(function($ss) use ($user) {
+                             $ss->whereNull('sales.seller_id')
+                                ->whereHas('customer', fn($c) => $c->where('seller_id', $user->id));
+                         });
+                 });
             }
 
             $this->pendingCommissions = $commissionsQuery->sum('final_commission_amount');
@@ -167,8 +175,12 @@ class Welcome extends Component
                 ->whereMonth('commission_paid_at', \Carbon\Carbon::now()->month);
 
             if (!auth()->user()->can('commissions.view_all')) {
-                $paidCommissionsQuery->whereHas('customer', function($q) use ($user) {
-                    $q->where('seller_id', $user->id);
+                $paidCommissionsQuery->where(function($q) use ($user) {
+                    $q->where('sales.seller_id', $user->id)
+                        ->orWhere(function($ss) use ($user) {
+                            $ss->whereNull('sales.seller_id')
+                               ->whereHas('customer', fn($c) => $c->where('seller_id', $user->id));
+                        });
                 });
             }
             $this->paidCommissionsMonth = $paidCommissionsQuery->sum('commission_payment_amount');
@@ -236,7 +248,7 @@ class Welcome extends Component
             ->join('sales', 'sale_details.sale_id', '=', 'sales.id')
             ->join('products', 'sale_details.product_id', '=', 'products.id')
             ->join('customers', 'sales.customer_id', '=', 'customers.id')
-            ->join('users', 'customers.seller_id', '=', 'users.id')
+            ->join('users', \Illuminate\Support\Facades\DB::raw('COALESCE(sales.seller_id, customers.seller_id)'), '=', 'users.id')
             ->select(
                 'users.name as seller_name',
                 \Illuminate\Support\Facades\DB::raw('SUM(((sale_details.sale_price / COALESCE(NULLIF(sales.primary_exchange_rate, 0), 1)) - COALESCE(products.cost, 0)) * sale_details.quantity) as total_profit')
@@ -247,7 +259,7 @@ class Welcome extends Component
 
         if (!$user->can('sales.view_all') && $user->can('sales.view_own')) {
              if ($user->can('system.is_seller') || $user->can('system.is_foreign_seller')) {
-                 $topSellersQuery->where('customers.seller_id', $user->id);
+                 $topSellersQuery->where(\Illuminate\Support\Facades\DB::raw('COALESCE(sales.seller_id, customers.seller_id)'), $user->id);
              } else {
                  $topSellersQuery->where('sales.user_id', $user->id);
              }

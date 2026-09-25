@@ -533,6 +533,33 @@ class UpdateService
             Log::warning("Updater: Automatic invoice_number / sequence calibration failed: " . $th->getMessage());
         }
 
+        // Fix: Auto-heal / backfill seller_id for historical sales
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('sales') && \Illuminate\Support\Facades\Schema::hasColumn('sales', 'seller_id')) {
+                if (\Illuminate\Support\Facades\Schema::hasTable('customers') && \Illuminate\Support\Facades\Schema::hasColumn('customers', 'seller_id')) {
+                    \Illuminate\Support\Facades\DB::table('sales')
+                        ->join('customers', 'sales.customer_id', '=', 'customers.id')
+                        ->whereNull('sales.seller_id')
+                        ->whereNotNull('customers.seller_id')
+                        ->update([
+                            'sales.seller_id' => \Illuminate\Support\Facades\DB::raw('customers.seller_id')
+                        ]);
+                }
+
+                $oficinaId = \Illuminate\Support\Facades\DB::table('users')->where('name', 'OFICINA')->value('id');
+                if (!$oficinaId) {
+                    $oficinaId = \Illuminate\Support\Facades\DB::table('users')->orderBy('id', 'asc')->value('id');
+                }
+                if ($oficinaId) {
+                    \Illuminate\Support\Facades\DB::table('sales')
+                        ->whereNull('seller_id')
+                        ->update(['seller_id' => $oficinaId]);
+                }
+            }
+        } catch (\Throwable $th) {
+            Log::warning("Updater: Automatic seller_id backfill failed: " . $th->getMessage());
+        }
+
         // Create the AutoMigrate flag file so AutoMigrate middleware recognizes completion for this version
         $versionFile = base_path('version.txt');
         if (File::exists($versionFile)) {

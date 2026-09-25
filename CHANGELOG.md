@@ -1,3 +1,35 @@
+## [1.10.443] - 2026-09-25
+
+### Fixed & Security (Inmutabilidad Histórica de Ventas y Reportes)
+- **Inmutabilidad Definitiva del Vendedor en Ventas y Reportes (`sales.seller_id`)**:
+  - `Sale.php`: Se agregó `seller_id` a la propiedad `$fillable` (resolviendo la causa raíz donde Eloquent descartaba silenciosamente el vendedor al guardar las ventas) y se definió la relación formal `seller()`.
+  - **Migración y Auto-Sanación de Bases de Datos de Clientes (`UpdateService.php` & `2026_09_25_100000_backfill_seller_id_in_sales_table.php`)**:
+    - Se ejecutó el backfill de todas las ventas históricas asignándoles el vendedor del cliente en el momento de la venta.
+    - Se incorporó la rutina de auto-sanación en `UpdateService::runMigrations()` para que se ejecute automáticamente en los servidores de todos los clientes al actualizar.
+  - **Corrección Exhaustiva en Módulos y Reportes**:
+    - `SalesAnalysisReport.php`: Los filtros y KPIs de análisis de ventas ahora consultan el vendedor congelado en la venta (`COALESCE(sales.seller_id, customers.seller_id)`), asegurando que si un cliente cambia de vendedor en el CRM, el historial no se altere ni mute retrospectivamente.
+    - `SellersPerformanceReport.php`: Rendimiento y comisiones por vendedor calculadas sobre la venta real inmutable.
+    - `SalesReport.php`: Reporte general de ventas, filtros, agrupación por vendedor y cálculo de costos totalizados fijados a la venta.
+    - `DailySalesReport.php`: Consulta principal, agrupación y totales de ventas diarias fijados al vendedor inmutable de la venta.
+    - `AccountsReceivableReport.php`: Cuentas por cobrar y cobranzas filtradas por el vendedor de la factura.
+    - `ReportController.php`: Exportaciones a PDF/Excel sincronizadas (Reporte de Ventas Diarias, Ventas General, Liquidación de Ruta, Despacho, Cuentas por Cobrar y Relación de Pagos).
+    - `Commissions.php` & `CommissionReport.php`: Comisiones calculadas estrictamente con base en el vendedor asociado a la venta.
+    - `PaymentRelationshipReport.php`: Filtrado de cobros y devoluciones por vendedor de la venta.
+    - `ExchangeDiffReport.php`: Reporte de diferencial cambiario unido y filtrado por `COALESCE(sales.seller_id, customers.seller_id)`.
+    - `InvoicesAuditList.php` & Vista Blade: Auditoría de facturas con ordenamiento, filtrado y visualización del vendedor inmutable.
+    - `Welcome.php`: Dashboard (ventas de hoy, mes, cuentas por cobrar, productos top, mejores vendedores y comisiones) blindado contra mutabilidad.
+    - `PartialPayment.php`: Búsqueda, permisos y gestión de abonos referenciando el vendedor de la venta.
+    - `DashboardController.php`: Métricas y metas del aplicativo móvil de vendedores sincronizadas con el vendedor inmutable.
+
+### Tests
+- Creada suite de pruebas de regresión `SaleSellerImmutabilityTest.php` validando empíricamente:
+  - Asignación masiva en `Sale::create(['seller_id' => ...])`.
+  - Inmutabilidad estricta de reportes tras reasignar el cliente a otro vendedor en el CRM.
+  - Preservación histórica en análisis de ventas.
+  - Filtrado correcto en cuentas por cobrar y auditoría.
+  - Compatibilidad regresiva (fallback) para ventas legacy con `seller_id = NULL`.
+- Validación 100% exitosa de suites existentes (`GeneralSalesReportPdfTest`, `AccountsReceivableReportTest`, `InvoicesAuditListTest`).
+
 ## [1.10.442] - 2026-09-24
 
 ### Changed & Improved

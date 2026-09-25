@@ -29,11 +29,15 @@ class CommissionReport extends Component
         $sales = [];
 
         if ($this->seller_id != 0) {
-            $query = Sale::with(['customer', 'payments', 'sellerConfig'])
+            $query = Sale::with(['customer', 'seller', 'payments', 'sellerConfig'])
                 ->where('is_foreign_sale', true)
                 ->where('applied_commission_percent', '>', 0)
-                ->whereHas('customer', function($q) {
-                    $q->where('seller_id', $this->seller_id);
+                ->where(function($q) {
+                    $q->where('sales.seller_id', $this->seller_id)
+                        ->orWhere(function($ss) {
+                            $ss->whereNull('sales.seller_id')
+                               ->whereHas('customer', fn($c) => $c->where('seller_id', $this->seller_id));
+                        });
                 })
                 ->whereBetween('created_at', [$this->dateFrom . ' 00:00:00', $this->dateTo . ' 23:59:59'])
                 ->where('status', 'paid');

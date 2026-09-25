@@ -120,7 +120,7 @@ class AccountsReceivableReport extends Component
         }
 
         try {
-            $query = Sale::with(['customer', 'payments', 'returns', 'paymentDetails'])
+            $query = Sale::with(['customer', 'seller', 'customer.seller', 'payments', 'returns', 'paymentDetails'])
                 ->where('type', 'credit')
                 ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated']) // Full exclusion of inactive invoices
                 ->when($this->status != 0, function ($query) {
@@ -141,8 +141,12 @@ class AccountsReceivableReport extends Component
                     $query->where('customer_id', $this->customer['id']);
                 })
                 ->when($this->seller_id != null, function ($query) {
-                    $query->whereHas('customer', function($q) {
-                        $q->where('seller_id', $this->seller_id);
+                    $query->where(function($q) {
+                        $q->where('sales.seller_id', $this->seller_id)
+                            ->orWhere(function($ss) {
+                                $ss->whereNull('sales.seller_id')
+                                   ->whereHas('customer', fn($c) => $c->where('seller_id', $this->seller_id));
+                            });
                     });
                 })
                 ->when(!empty(trim($this->searchFactura)), function ($query) {
@@ -343,7 +347,8 @@ class AccountsReceivableReport extends Component
         $snapshotUsdDiscount = $parsedSnapshot['usd_payment_discount'];
 
         if (empty($sale->credit_rules_snapshot)) {
-            $creditConfig = \App\Services\CreditConfigService::getCreditConfig($sale->customer, $sale->customer->seller);
+            $seller = $sale->seller ?: $sale->customer?->seller;
+            $creditConfig = \App\Services\CreditConfigService::getCreditConfig($sale->customer, $seller);
             $rules = $creditConfig['discount_rules'];
             $snapshotUsdDiscount = null;
         }
@@ -362,7 +367,8 @@ class AccountsReceivableReport extends Component
                   if ($snapshotUsdDiscount !== null) {
                     $usdPaymentDiscountPercent = $snapshotUsdDiscount;
                 } else {
-                    $config = \App\Services\CreditConfigService::getCreditConfig($sale->customer, $sale->customer->seller);
+                    $seller = $sale->seller ?: $sale->customer?->seller;
+                    $config = \App\Services\CreditConfigService::getCreditConfig($sale->customer, $seller);
                     $usdPaymentDiscountPercent = $config['usd_payment_discount'] ?? 0;
                 }
 
@@ -1123,7 +1129,8 @@ class AccountsReceivableReport extends Component
                 $snapshotUsdDiscount = $parsedSnapshot['usd_payment_discount'];
 
                 if (empty($sale->credit_rules_snapshot)) {
-                    $creditConfig = \App\Services\CreditConfigService::getCreditConfig($sale->customer, $sale->customer->seller);
+                    $seller = $sale->seller ?: $sale->customer?->seller;
+                    $creditConfig = \App\Services\CreditConfigService::getCreditConfig($sale->customer, $seller);
                     $rules = $creditConfig['discount_rules'];
                     $snapshotUsdDiscount = null;
                 }
@@ -1154,7 +1161,8 @@ class AccountsReceivableReport extends Component
                         if ($snapshotUsdDiscount !== null) {
                             $usdPaymentDiscountPercent = $snapshotUsdDiscount;
                         } else {
-                            $config = \App\Services\CreditConfigService::getCreditConfig($sale->customer, $sale->customer->seller);
+                            $seller = $sale->seller ?: $sale->customer?->seller;
+                            $config = \App\Services\CreditConfigService::getCreditConfig($sale->customer, $seller);
                             $usdPaymentDiscountPercent = $config['usd_payment_discount'] ?? 0;
                         }
                         
@@ -1312,7 +1320,8 @@ class AccountsReceivableReport extends Component
 
         $sale = Sale::find($saleId);
         if ($sale) {
-            $creditConfig = \App\Services\CreditConfigService::getCreditConfig($sale->customer, $sale->customer->seller);
+            $seller = $sale->seller ?: $sale->customer?->seller;
+            $creditConfig = \App\Services\CreditConfigService::getCreditConfig($sale->customer, $seller);
             
             $snapshotToSave = [
                 'discount_rules' => $creditConfig['discount_rules']->toArray(),

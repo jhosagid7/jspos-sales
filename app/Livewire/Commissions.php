@@ -67,7 +67,7 @@ class Commissions extends Component
         $canViewAll = $user->can('commissions.view_all');
         
         $query = Sale::query()
-            ->with(['customer', 'user', 'payments', 'returns'])
+            ->with(['customer', 'seller', 'user', 'payments', 'returns'])
             ->where('is_foreign_sale', true)
             ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated'])
             ->where('applied_commission_percent', '>', 0)
@@ -83,14 +83,22 @@ class Commissions extends Component
         // Filter by Visibility
         if ($canViewAll) {
             if ($this->seller_id != 0) {
-                $query->whereHas('customer', function($q) {
-                    $q->where('seller_id', $this->seller_id);
+                $query->where(function($q) {
+                    $q->where('sales.seller_id', $this->seller_id)
+                        ->orWhere(function($ss) {
+                            $ss->whereNull('sales.seller_id')
+                               ->whereHas('customer', fn($c) => $c->where('seller_id', $this->seller_id));
+                        });
                 });
             }
         } elseif ($user->can('commissions.view_own')) {
             // Force filter by current user
-            $query->whereHas('customer', function($q) use ($user) {
-                $q->where('seller_id', $user->id);
+            $query->where(function($q) use ($user) {
+                $q->where('sales.seller_id', $user->id)
+                    ->orWhere(function($ss) use ($user) {
+                        $ss->whereNull('sales.seller_id')
+                           ->whereHas('customer', fn($c) => $c->where('seller_id', $user->id));
+                    });
             });
         } else {
             // No permissions to view anything
@@ -295,7 +303,7 @@ class Commissions extends Component
         $canViewAll = $user->can('commissions.view_all');
 
         $query = Sale::query()
-            ->with(['customer', 'user', 'payments'])
+            ->with(['customer', 'seller', 'user', 'payments'])
             ->where('is_foreign_sale', true)
             ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated'])
             ->where(function($q) {
@@ -314,14 +322,22 @@ class Commissions extends Component
             // Filter by Visibility
             if ($canViewAll) {
                 if ($this->seller_id != 0) {
-                    $query->whereHas('customer', function($q) {
-                        $q->where('seller_id', $this->seller_id);
+                    $query->where(function($q) {
+                        $q->where('sales.seller_id', $this->seller_id)
+                            ->orWhere(function($ss) {
+                                $ss->whereNull('sales.seller_id')
+                                   ->whereHas('customer', fn($c) => $c->where('seller_id', $this->seller_id));
+                            });
                     });
                 }
             } elseif ($user->can('commissions.view_own')) {
                 // Force filter by current user
-                $query->whereHas('customer', function($q) use ($user) {
-                    $q->where('seller_id', $user->id);
+                $query->where(function($q) use ($user) {
+                    $q->where('sales.seller_id', $user->id)
+                        ->orWhere(function($ss) use ($user) {
+                            $ss->whereNull('sales.seller_id')
+                               ->whereHas('customer', fn($c) => $c->where('seller_id', $user->id));
+                        });
                 });
             } else {
                 // No permissions to view anything

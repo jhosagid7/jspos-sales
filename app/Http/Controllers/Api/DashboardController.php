@@ -16,9 +16,15 @@ class DashboardController extends Controller
         $startOfMonth = Carbon::now()->startOfMonth();
         $endOfMonth = Carbon::now()->endOfMonth();
 
+        $sharedSellerIds = $user->getSharedSellerIds();
+
         // 1. Total Sales (Progress towards goal - Matching SalesReport logic)
-        $monthlySales = Sale::whereHas('customer', function($q) use ($user) {
-                $q->whereIn('seller_id', $user->getSharedSellerIds());
+        $monthlySales = Sale::where(function($q) use ($sharedSellerIds) {
+                $q->whereIn('sales.seller_id', $sharedSellerIds)
+                    ->orWhere(function($ss) use ($sharedSellerIds) {
+                        $ss->whereNull('sales.seller_id')
+                           ->whereHas('customer', fn($c) => $c->whereIn('seller_id', $sharedSellerIds));
+                    });
             })
             ->where('is_foreign_sale', true)
             ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
@@ -26,8 +32,14 @@ class DashboardController extends Controller
             ->sum('total_usd');
 
         // 2. Collections of the Month (Strictly approved cash in)
-        $monthlyCollections = \App\Models\Payment::whereHas('sale.customer', function($q) use ($user) {
-                $q->whereIn('seller_id', $user->getSharedSellerIds());
+        $monthlyCollections = \App\Models\Payment::whereHas('sale', function($q) use ($sharedSellerIds) {
+                $q->where(function($sub) use ($sharedSellerIds) {
+                    $sub->whereIn('sales.seller_id', $sharedSellerIds)
+                        ->orWhere(function($ss) use ($sharedSellerIds) {
+                            $ss->whereNull('sales.seller_id')
+                               ->whereHas('customer', fn($c) => $c->whereIn('seller_id', $sharedSellerIds));
+                        });
+                });
             })
             ->whereIn('status', ['approved', 'settled'])
             ->whereBetween('payment_date', [$startOfMonth, $endOfMonth])
@@ -39,8 +51,12 @@ class DashboardController extends Controller
             });
 
         // 3. Total Debt on the Street (Matching AccountsReceivableReport exactly)
-        $activeSales = Sale::whereHas('customer', function($q) use ($user) {
-                $q->whereIn('seller_id', $user->getSharedSellerIds());
+        $activeSales = Sale::where(function($q) use ($sharedSellerIds) {
+                $q->whereIn('sales.seller_id', $sharedSellerIds)
+                    ->orWhere(function($ss) use ($sharedSellerIds) {
+                        $ss->whereNull('sales.seller_id')
+                           ->whereHas('customer', fn($c) => $c->whereIn('seller_id', $sharedSellerIds));
+                    });
             })
             ->where('type', 'credit')
             ->whereNotIn('status', ['paid', 'voided', 'cancelled', 'anulated', 'returned'])
@@ -84,8 +100,12 @@ class DashboardController extends Controller
         $progress = $monthlyGoal > 0 ? ($monthlySales / $monthlyGoal) * 100 : 0;
 
         // Sales count of the month
-        $salesCount = Sale::whereHas('customer', function($q) use ($user) {
-                $q->whereIn('seller_id', $user->getSharedSellerIds());
+        $salesCount = Sale::where(function($q) use ($sharedSellerIds) {
+                $q->whereIn('sales.seller_id', $sharedSellerIds)
+                    ->orWhere(function($ss) use ($sharedSellerIds) {
+                        $ss->whereNull('sales.seller_id')
+                           ->whereHas('customer', fn($c) => $c->whereIn('seller_id', $sharedSellerIds));
+                    });
             })
             ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
             ->whereNotIn('status', ['voided', 'cancelled', 'anulated', 'returned'])
@@ -120,9 +140,14 @@ class DashboardController extends Controller
     {
         $startOfMonth = Carbon::now()->startOfMonth();
         $endOfMonth = Carbon::now()->endOfMonth();
+        $sharedSellerIds = $user->getSharedSellerIds();
 
-        $query = Sale::whereHas('customer', function($q) use ($user) {
-                $q->whereIn('seller_id', $user->getSharedSellerIds());
+        $query = Sale::where(function($q) use ($sharedSellerIds) {
+                $q->whereIn('sales.seller_id', $sharedSellerIds)
+                    ->orWhere(function($ss) use ($sharedSellerIds) {
+                        $ss->whereNull('sales.seller_id')
+                           ->whereHas('customer', fn($c) => $c->whereIn('seller_id', $sharedSellerIds));
+                    });
             })
             ->where('is_foreign_sale', true)
             ->whereNotIn('status', ['returned', 'voided', 'cancelled', 'anulated'])
@@ -194,13 +219,18 @@ class DashboardController extends Controller
     public function debt(Request $request)
     {
         $user = $request->user();
+        $sharedSellerIds = $user->getSharedSellerIds();
 
-        $activeSales = Sale::whereHas('customer', function($q) use ($user) {
-                $q->whereIn('seller_id', $user->getSharedSellerIds());
+        $activeSales = Sale::where(function($q) use ($sharedSellerIds) {
+                $q->whereIn('sales.seller_id', $sharedSellerIds)
+                    ->orWhere(function($ss) use ($sharedSellerIds) {
+                        $ss->whereNull('sales.seller_id')
+                           ->whereHas('customer', fn($c) => $c->whereIn('seller_id', $sharedSellerIds));
+                    });
             })
             ->where('type', 'credit')
             ->whereNotIn('status', ['paid', 'voided', 'cancelled', 'anulated', 'returned'])
-            ->with(['customer', 'payments', 'returns', 'paymentDetails'])
+            ->with(['customer', 'seller', 'payments', 'returns', 'paymentDetails'])
             ->orderBy('created_at', 'asc')
             ->get();
 

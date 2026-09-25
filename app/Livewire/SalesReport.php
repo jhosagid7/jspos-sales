@@ -119,6 +119,7 @@ class SalesReport extends Component
                 'customer.seller', 
                 'details.product', 
                 'user', 
+                'seller',
                 'driver',
                 'paymentDetails' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo]),
                 'changeDetails' => fn($q) => $q->whereBetween('created_at', [$dFrom, $dTo]),
@@ -135,8 +136,12 @@ class SalesReport extends Component
                 $q->where('user_id', $this->user_id);
             })
             ->when($this->seller_id != null, function ($q) {
-                $q->whereHas('customer', function($sub) {
-                    $sub->where('seller_id', $this->seller_id);
+                $q->where(function($sub) {
+                    $sub->where('sales.seller_id', $this->seller_id)
+                        ->orWhere(function($ss) {
+                            $ss->whereNull('sales.seller_id')
+                               ->whereHas('customer', fn($c) => $c->where('seller_id', $this->seller_id));
+                        });
                 });
             })
             ->when($this->customer != null, function ($q) {
@@ -200,8 +205,8 @@ class SalesReport extends Component
                         $key = $sale->user_id ?? 'NA'; 
                         $name = $sale->user?->name ?? 'SIN OPERADOR';
                     } elseif ($this->groupBy == 'seller_id') {
-                        $key = $sale->customer?->seller_id ?? 'NA';
-                        $name = $sale->customer?->seller?->name ?? 'SIN VENDEDOR';
+                        $key = $sale->seller_id ?: ($sale->customer?->seller_id ?? 'NA');
+                        $name = $sale->seller?->name ?: ($sale->customer?->seller?->name ?? 'SIN VENDEDOR');
                     } elseif ($this->groupBy == 'driver_id') {
                         $key = $sale->driver_id ?? 'NA';
                         $name = $sale->driver?->name ?? 'SIN CHOFER';
@@ -265,8 +270,12 @@ class SalesReport extends Component
                         $query->where('user_id', $this->user_id);
                     })
                     ->when($this->seller_id != null, function ($query) {
-                        $query->whereHas('customer', function($q) {
-                            $q->where('seller_id', $this->seller_id);
+                        $query->where(function($q) {
+                            $q->where('sales.seller_id', $this->seller_id)
+                              ->orWhere(function($ss) {
+                                  $ss->whereNull('sales.seller_id')
+                                     ->whereHas('customer', fn($c) => $c->where('seller_id', $this->seller_id));
+                              });
                         });
                     })
                     ->when($this->customer != null, function ($query) {
@@ -289,7 +298,7 @@ class SalesReport extends Component
                 $totalCostQuery = DB::table('sale_details')
                     ->join('sales', 'sale_details.sale_id', '=', 'sales.id')
                     ->join('products', 'sale_details.product_id', '=', 'products.id')
-                    ->join('customers', 'sales.customer_id', '=', 'customers.id') 
+                    ->leftJoin('customers', 'sales.customer_id', '=', 'customers.id') 
                     ->when($dFrom && $dTo, function($q) use ($dFrom, $dTo) {
                         $q->whereBetween('sales.created_at', [$dFrom, $dTo]);
                     })
@@ -300,7 +309,7 @@ class SalesReport extends Component
                         $query->where('sales.user_id', $this->user_id);
                     })
                     ->when($this->seller_id != null, function ($query) {
-                        $query->where('customers.seller_id', $this->seller_id);
+                        $query->whereIn(DB::raw('COALESCE(sales.seller_id, customers.seller_id)'), [$this->seller_id]);
                     })
                     ->when($this->customer != null, function ($query) {
                          $query->where('sales.customer_id', $this->customer['id']);

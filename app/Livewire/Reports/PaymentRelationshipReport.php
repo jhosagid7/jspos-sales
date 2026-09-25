@@ -146,8 +146,12 @@ class PaymentRelationshipReport extends Component
         if ($this->seller_id || $this->batch_name || $this->zone || ($this->invoice_from && $this->invoice_to)) {
             $query->whereHas('sale', function($q) {
                 if ($this->seller_id) {
-                    $q->whereHas('customer', function($c) {
-                        $c->where('seller_id', $this->seller_id);
+                    $q->where(function($sub) {
+                        $sub->where('sales.seller_id', $this->seller_id)
+                            ->orWhere(function($ss) {
+                                $ss->whereNull('sales.seller_id')
+                                   ->whereHas('customer', fn($c) => $c->where('seller_id', $this->seller_id));
+                            });
                     });
                 }
                 if ($this->batch_name) {
@@ -221,8 +225,12 @@ class PaymentRelationshipReport extends Component
         if ($this->seller_id || $this->batch_name || $this->zone || ($this->invoice_from && $this->invoice_to)) {
             $query->whereHas('sale', function($q) {
                 if ($this->seller_id) {
-                    $q->whereHas('customer', function($c) {
-                        $c->where('seller_id', $this->seller_id);
+                    $q->where(function($sub) {
+                        $sub->where('sales.seller_id', $this->seller_id)
+                            ->orWhere(function($ss) {
+                                $ss->whereNull('sales.seller_id')
+                                   ->whereHas('customer', fn($c) => $c->where('seller_id', $this->seller_id));
+                            });
                     });
                 }
                 if ($this->batch_name) {
