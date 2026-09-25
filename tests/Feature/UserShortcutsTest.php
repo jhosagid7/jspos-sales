@@ -110,4 +110,17 @@ class UserShortcutsTest extends TestCase
         $view->assertSee('shortcuts-ribbon');
         $view->assertSee('shortcutsModal');
     }
+
+    /** @test */
+    public function system_bag_factory_index_endpoint_renders_successfully()
+    {
+        $user = User::factory()->create();
+        $user->assignRole('Admin');
+        $this->actingAs($user);
+
+        $response = $this->get(route('system.bag_factory.index'));
+        $response->assertStatus(200);
+        $response->assertSee('JSBolsas - Control de Fábrica y Supervisión');
+    }
 }
+

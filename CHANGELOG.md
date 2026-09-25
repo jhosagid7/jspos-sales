@@ -1,3 +1,17 @@
+## [1.10.446] - 2026-09-25
+
+### Fixed (Acceso Directo JSBolsas en Cinta de Accesos Rápidos)
+- **Implementación del Método `index()` en `BagFactoryWebController.php`**:
+  - Se corrigió el error fatal `BadMethodCallException: Method App\Http\Controllers\BagFactoryWebController::index does not exist` generado al pulsar el acceso directo "JSBolsas" (`system.bag_factory.index`) desde la cinta de cabecera o el menú lateral.
+  - Se implementó formalmente el método `index(Request $request)` enlazado con la vista `bag_factory/index.blade.php`, cargando en tiempo real:
+    - Bultos pendientes de auditar en báscula (`$pendingProductions` y `$totalPendingWeight`).
+    - Métricas consolidadas de stock en Pre-Levantamiento (`$totalApprovedPkgs` y `$totalApprovedWeight`).
+    - Turnos y operarios activos en planta en tiempo real (`$activeShifts`).
+    - Historial paginado de stock aprobado listo para almacén general (`$preStockProductions`).
+
+### Tests
+- Agregada prueba de integración `system_bag_factory_index_endpoint_renders_successfully` en `UserShortcutsTest.php`, validando que la ruta y vista de supervisión de fábrica respondan exitosamente con código HTTP 200 y rendericen los paneles operativos.
+
 ## [1.10.445] - 2026-09-25
 
 ### Fixed (Resiliencia del Actualizador y Limpieza de Caché de Rutas)

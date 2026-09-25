@@ -54,6 +54,45 @@ class BagFactoryWebController extends Controller
         return redirect()->route('login');
     }
 
+    // ==================== SUPERVISIÓN & MONITOR JSBOLSAS ====================
+    public function index(Request $request)
+    {
+        $pendingProductions = BagProduction::with(['user', 'product.formula.currentVersion', 'shift.machine'])
+            ->where('status', 'pending_review')
+            ->orderBy('recorded_at', 'desc')
+            ->get();
+
+        $totalPendingWeight = (float) $pendingProductions->sum('weight');
+
+        $totalApprovedPkgs = (float) BagProduction::where('status', 'approved')
+            ->whereNull('lifted_at')
+            ->sum('quantity');
+
+        $totalApprovedWeight = (float) BagProduction::where('status', 'approved')
+            ->whereNull('lifted_at')
+            ->sum('weight');
+
+        $activeShifts = BagShift::with(['user', 'machine'])
+            ->where('status', 'open')
+            ->orderBy('start_time', 'desc')
+            ->get();
+
+        $preStockProductions = BagProduction::with(['user', 'product.formula.currentVersion', 'reviewer'])
+            ->where('status', 'approved')
+            ->whereNull('lifted_at')
+            ->orderBy('reviewed_at', 'desc')
+            ->paginate(15);
+
+        return view('bag_factory.index', compact(
+            'pendingProductions',
+            'totalPendingWeight',
+            'totalApprovedPkgs',
+            'totalApprovedWeight',
+            'activeShifts',
+            'preStockProductions'
+        ));
+    }
+
     // ==================== DASHBOARD & RENDIMIENTO EN VIVO ====================
     public function dashboard(Request $request)
     {

@@ -36,7 +36,8 @@ class UpdateServiceTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonStructure(['version']);
-        $this->assertEquals('1.10.445', $response->json('version'));
+        $expectedVer = trim(file_get_contents(base_path('version.txt')));
+        $this->assertEquals($expectedVer, $response->json('version'));
     }
 
     public function test_update_system_blade_does_not_contain_unsafe_named_route()
