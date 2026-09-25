@@ -42,19 +42,23 @@
                                 <h4 class="alert-heading text-primary font-weight-bold"><i class="fas fa-cog fa-spin me-2"></i> Procesando...</h4>
                                 <p class="mb-0">Por favor, no cierre esta ventana ni interrumpa el servidor.</p>
                                 <hr class="my-3">
-                                <div class="progress br-30 mb-3 bg-white" style="height: 20px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);">
-                                    <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" role="progressbar" style="width: {{ $progress }}%" aria-valuenow="{{ $progress }}" aria-valuemin="0" aria-valuemax="100">
-                                        <span class="text-dark font-weight-bold">{{ $progress }}%</span>
+                                <div class="progress br-30 mb-3 bg-white" style="height: 22px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);">
+                                    <div id="updater-progress-bar" class="progress-bar bg-warning progress-bar-striped progress-bar-animated" role="progressbar" style="width: {{ $progress }}%" aria-valuenow="{{ $progress }}" aria-valuemin="0" aria-valuemax="100">
+                                        <span id="updater-progress-text" class="text-dark font-weight-bold">{{ $progress }}%</span>
                                     </div>
                                 </div>
-                                <p class="mb-0 text-center font-weight-bold text-dark">
+                                <p id="updater-progress-status" class="mb-0 text-center font-weight-bold text-dark fs-6">
                                     {{ $progressStatus }}
                                 </p>
-                                @if($progress == 30)
-                                    <p class="text-muted small text-center mt-2 mb-0">
-                                        <i class="fas fa-info-circle me-1"></i> Transfiriendo paquete desde GitHub. El tiempo de espera dependerá de la velocidad de su conexión a internet.
-                                    </p>
-                                @endif
+                                <p id="updater-progress-sub" class="text-muted small text-center mt-2 mb-0">
+                                    @if($progress == 30)
+                                        <i class="fas fa-info-circle me-1"></i> Transfiriendo paquete desde GitHub (aprox. 67 MB). El tiempo de espera dependerá de la velocidad de su conexión a internet.
+                                    @elseif($progress == 60)
+                                        <i class="fas fa-cogs fa-spin me-1"></i> Descomprimiendo e instalando archivos en el servidor...
+                                    @elseif($progress == 80)
+                                        <i class="fas fa-database me-1"></i> Actualizando base de datos y secuencias...
+                                    @endif
+                                </p>
                             </div>
                         @elseif($status === 'done')
                             <div class="alert alert-success border-0 shadow-sm p-4">
@@ -214,25 +218,70 @@
                         $('.modal-backdrop').remove();
                         $('body').removeClass('modal-open');
 
+                        function updateBarUI(percent, statusText, subText, colorClass = 'bg-warning') {
+                            const bar = document.getElementById('updater-progress-bar');
+                            const text = document.getElementById('updater-progress-text');
+                            const status = document.getElementById('updater-progress-status');
+                            const sub = document.getElementById('updater-progress-sub');
+                            if (bar) {
+                                bar.style.width = percent + '%';
+                                bar.className = 'progress-bar progress-bar-striped progress-bar-animated ' + colorClass;
+                            }
+                            if (text) text.innerText = percent + '%';
+                            if (status) status.innerText = statusText;
+                            if (sub && subText) sub.innerHTML = subText;
+                        }
+
+                        let watchdogInterval = null;
+                        function startWatchdog(expectedVersion) {
+                            if (watchdogInterval) clearInterval(watchdogInterval);
+                            const cleanExpected = expectedVersion ? expectedVersion.replace('v', '').trim() : '';
+
+                            watchdogInterval = setInterval(() => {
+                                fetch('{{ route("system.current.version") }}?t=' + Date.now(), { credentials: 'same-origin' })
+                                    .then(r => r.json())
+                                    .then(data => {
+                                        const liveVer = data.version ? data.version.replace('v', '').trim() : '';
+                                        if (cleanExpected && liveVer === cleanExpected) {
+                                            clearInterval(watchdogInterval);
+                                            updateBarUI(100, '¡Actualización completada exitosamente!', '<i class="fas fa-check-circle text-success me-1"></i> El sistema se ha instalado correctamente. Recargando...', 'bg-success');
+                                            setTimeout(() => {
+                                                window.location.reload();
+                                            }, 2500);
+                                        }
+                                    })
+                                    .catch(() => {});
+                            }, 5000);
+                        }
+
                         @this.on('run-backup', () => {
+                            updateBarUI(15, 'Creando copia de seguridad de la versión actual...', '<i class="fas fa-shield-alt me-1"></i> Respaldando base de datos y archivos antes de actualizar.');
                             @this.call('runBackup');
                         });
                         @this.on('run-download', () => {
+                            startWatchdog('{{ $newVersion }}');
+                            updateBarUI(30, 'Descargando paquete de actualización desde GitHub...', '<i class="fas fa-cloud-download-alt me-1"></i> Transfiriendo paquete (aprox. 67 MB). El tiempo depende de su conexión a internet. Por favor espere.');
                             @this.call('download');
                         });
                         @this.on('run-install', () => {
+                            startWatchdog('{{ $newVersion }}');
+                            updateBarUI(60, 'Descomprimiendo e instalando archivos en el servidor...', '<i class="fas fa-cogs fa-spin me-1"></i> Reemplazando archivos del sistema. Esto puede tomar un par de minutos mientras el servidor copia los archivos.');
                             @this.call('install');
                         });
                         @this.on('run-migrate', () => {
+                            updateBarUI(80, 'Actualizando base de datos y secuencias...', '<i class="fas fa-database me-1"></i> Ejecutando migraciones automáticas y calibrando correlativos.');
                             @this.call('migrate');
                         });
                         @this.on('run-cleanup', () => {
+                            updateBarUI(90, 'Limpiando archivos temporales...', '<i class="fas fa-broom me-1"></i> Finalizando proceso de actualización.');
                             @this.call('cleanup');
                         });
                         @this.on('run-rollback', () => {
                             @this.call('runRollback');
                         });
                         @this.on('reload-page', () => {
+                            if (watchdogInterval) clearInterval(watchdogInterval);
+                            updateBarUI(100, '¡Actualización completada!', '<i class="fas fa-check-circle text-success me-1"></i> Sistema listo. Recargando...', 'bg-success');
                             setTimeout(() => {
                                 window.location.reload();
                             }, 2000);

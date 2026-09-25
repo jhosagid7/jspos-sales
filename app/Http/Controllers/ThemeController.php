@@ -11,7 +11,7 @@ class ThemeController extends Controller
     {
         $request->validate([
             'key' => 'required|string',
-            'value' => 'required', 
+            'value' => 'present', 
         ]);
 
         $user = Auth::user();

@@ -88,6 +88,12 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::post('/user/theme', [App\Http\Controllers\ThemeController::class, 'update'])->name('user.theme.update');
+    Route::get('/system/current-version', function () {
+        $path = base_path('version.txt');
+        return response()->json([
+            'version' => \Illuminate\Support\Facades\File::exists($path) ? trim(\Illuminate\Support\Facades\File::get($path)) : 'v1.0.0'
+        ]);
+    })->name('system.current.version');
 });
 
 

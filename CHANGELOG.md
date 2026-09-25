@@ -1,3 +1,22 @@
+## [1.10.444] - 2026-09-25
+
+### Added (Cinta de Accesos Directos Frecuentes)
+- **Cinta de Accesos Rápidos Personalizable por Usuario en Cabecera**:
+  - `ShortcutService.php`: Implementado servicio centralizado con catálogo completo de **78 módulos y submenús** del sistema (Gestión Comercial, Logística, Inventario, Finanzas, Maestros, Reportes de Ventas, Reportes de Stock, Fábrica y Administración).
+  - Filtrado estricto por permisos Spatie (`$user->can()`), roles y módulos tenant activos para que cada usuario solo vea los accesos a los que tiene derecho.
+  - Almacenamiento ágil en el perfil del usuario autenticado (`users.theme['shortcuts']`) con **0 consultas adicionales a la base de datos (0.0 ms)**.
+  - `breadcrumb.blade.php`: Cinta horizontal centrada con diseño tipo chips/píldoras, detección automática de la ruta activa (`.active`), soporte nativo para Modo Claro y Modo Oscuro.
+  - `shortcuts-modal.blade.php`: Ventana modal de configuración con buscador interactivo en tiempo real (`🔍`), categorías estructuradas, contador en tiempo real (máximo 6 accesos) y botón de restauración por defecto.
+
+### Fixed & Enhanced (Sistema de Actualizaciones en Producción)
+- **Monitoreo en Tiempo Real y Robustez del Actualizador (`UpdateSystem.blade.php` & `UpdateService.php`)**:
+  - Se agregó actualización inmediata en el cliente (DOM / JavaScript) de los porcentajes y mensajes explicativos (15% respaldo, 30% descarga 67MB, 60% extracción y reemplazo de archivos, 80% migración de BD, 90% limpieza y 100% éxito) para evitar que la interfaz parezca congelada en 30% mientras el servidor procesa archivos pesados.
+  - `UpdateService.php`: Se incorporó `@ignore_user_abort(true)` tanto en `downloadUpdate()` como en `installUpdate()` para garantizar que la descarga e instalación finalicen íntegramente en segundo plano sin cancelarse aunque el navegador se desconecte o cierre.
+  - **Watchdog de Reconexión Automática (`system.current.version`)**: Implementado un vigilante en segundo plano en el navegador que consulta periódicamente la versión del servidor; si el navegador pierde la conexión AJAX mientras se reemplazan los archivos del sistema, el vigilante detecta la nueva versión instalada, avanza automáticamente la barra al 100% en verde y recarga la pantalla.
+
+### Tests
+- Creada suite de pruebas automatizadas `UserShortcutsTest.php` (5 pruebas, 324 aserciones pasando al 100%) validando el catálogo de 78 rutas, permisos por rol, personalización de usuario y renderizado de la cabecera.
+
 ## [1.10.443] - 2026-09-25
 
 ### Fixed & Security (Inmutabilidad Histórica de Ventas y Reportes)

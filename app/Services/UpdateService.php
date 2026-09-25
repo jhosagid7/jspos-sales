@@ -179,6 +179,7 @@ class UpdateService
     {
         @set_time_limit(0);
         @ini_set('max_execution_time', 0);
+        @ignore_user_abort(true);
         $maxAttempts = 5; // Increased from 2 to 5 for production stability
         $lastException = null;
 
@@ -237,6 +238,7 @@ class UpdateService
     {
         @set_time_limit(0);
         @ini_set('max_execution_time', 0);
+        @ignore_user_abort(true);
         $tempPath = session('latest_downloaded_update_zip');
         if (!$tempPath || !File::exists($tempPath)) {
             // Fallback to legacy path
