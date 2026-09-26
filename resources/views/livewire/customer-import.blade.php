@@ -1,6 +1,14 @@
 <div class="card">
-    <div class="card-header">
-        <h3 class="card-title">Importador Inteligente de Clientes (Excel)</h3>
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="card-title mb-0">Importador Inteligente de Clientes (Excel)</h3>
+        <div class="d-flex gap-2">
+            <a href="{{ route('customers.template') }}" class="btn btn-success btn-sm font-weight-bold">
+                <i class="fas fa-file-excel me-1"></i> Descargar Plantilla Excel
+            </a>
+            <a href="{{ route('customers') }}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left me-1"></i> Volver a Clientes
+            </a>
+        </div>
     </div>
     <div class="card-body">
         

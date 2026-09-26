@@ -233,8 +233,8 @@ class InstallController extends Controller
             $alias = strtolower($interfaceMap[$ip] ?? '');
             $fullIp = $ip . $portSuffix;
 
-            if (str_contains($alias, 'tailscale') || str_starts_with($ip, '100.')) {
-                $label = 'Tailscale VPN';
+            if (str_contains($alias, 'jsvpn') || str_contains($alias, 'tailscale') || str_starts_with($ip, '100.')) {
+                $label = 'JSVPN Enterprise';
             } elseif (str_contains($alias, 'zerotier')) {
                 $label = 'ZeroTier VPN';
             } elseif (str_contains($alias, 'wi-fi') || str_contains($alias, 'ethernet') || str_starts_with($ip, '192.168.') || str_starts_with($ip, '10.')) {

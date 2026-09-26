@@ -210,31 +210,56 @@ class ProductImport extends Component
                     }
                 }
 
-                $barcode = $productData['barcode'] ?? null;
-                if (empty($barcode)) {
-                    $barcode = 'GEN-' . time() . '-' . $index;
-                }
+                $rawBarcode = !empty($productData['barcode']) ? trim(strval($productData['barcode'])) : null;
+                $rawName = trim(strval($productData['name']));
 
                 $price = $parseNumber($productData['price'] ?? 0);
                 $cost = $parseNumber($productData['cost'] ?? 0);
                 $stockQty = (int)$parseNumber($productData['stock_qty'] ?? 0);
 
                 try {
-                    $existingProduct = Product::where('sku', $barcode)->first();
+                    $existingProduct = null;
+
+                    // 1. Buscar primero por código de barras / SKU si se especificó en el archivo
+                    if (!empty($rawBarcode)) {
+                        $existingProduct = Product::where('sku', $rawBarcode)->first();
+                    }
+
+                    // 2. Si no se encontró por código o no traía código, buscar por Nombre exacto (insensible a mayúsculas/minúsculas y espacios)
+                    if (!$existingProduct && $rawName !== '') {
+                        $existingProduct = Product::whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($rawName)])->first();
+                    }
+
                     if ($existingProduct) {
-                        $existingProduct->update([
-                            'name' => $productData['name'],
-                            'description' => $productData['description'] ?? $existingProduct->description,
+                        // Producto existente: actualizar datos y evitar crear registros duplicados
+                        $updateData = [
+                            'name' => $rawName,
                             'price' => $price > 0 ? $price : $existingProduct->price,
                             'cost' => $cost > 0 ? $cost : $existingProduct->cost,
-                            'stock_qty' => $stockQty,
-                            'category_id' => $categoryId
-                        ]);
+                            'category_id' => $categoryId ?: $existingProduct->category_id,
+                        ];
+
+                        if (!empty($productData['description'])) {
+                            $updateData['description'] = $productData['description'];
+                        }
+
+                        if (!empty($rawBarcode) && empty($existingProduct->sku)) {
+                            $updateData['sku'] = $rawBarcode;
+                        }
+
+                        if (isset($productData['stock_qty']) && $productData['stock_qty'] !== '') {
+                            $updateData['stock_qty'] = $stockQty;
+                        }
+
+                        $existingProduct->update($updateData);
                         $product = $existingProduct;
                     } else {
+                        // Producto nuevo: crear registro
+                        $finalBarcode = !empty($rawBarcode) ? $rawBarcode : ('GEN-' . date('YmdHis') . '-' . $index);
+
                         $product = Product::create([
-                            'name' => $productData['name'],
-                            'sku' => $barcode,
+                            'name' => $rawName,
+                            'sku' => $finalBarcode,
                             'description' => $productData['description'] ?? '',
                             'price' => $price,
                             'cost' => $cost,
@@ -248,7 +273,7 @@ class ProductImport extends Component
                         ]);
                     }
 
-                    if ($defaultWarehouseId) {
+                    if ($defaultWarehouseId && (isset($productData['stock_qty']) && $productData['stock_qty'] !== '')) {
                         ProductWarehouse::updateOrCreate(
                             ['product_id' => $product->id, 'warehouse_id' => $defaultWarehouseId],
                             ['stock_qty' => $stockQty]
@@ -257,7 +282,7 @@ class ProductImport extends Component
 
                     $this->successCount++;
                 } catch (\Exception $e) {
-                    $this->importErrors[] = "Fila #" . ($index + 1) . " ({$productData['name']}): " . $e->getMessage();
+                    $this->importErrors[] = "Fila #" . ($index + 1) . " ({$rawName}): " . $e->getMessage();
                 }
             }
 

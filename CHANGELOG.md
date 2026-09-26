@@ -10,13 +10,22 @@
 - **Refactorización Limpia del Sidebar (`resources/views/layouts/theme/sidebar.blade.php`)**:
   - Reemplazadas todas las directivas `@can` y `@canany` hardcodeadas por directivas contextuales `@menuAllowed` y `@anyMenuAllowed`.
   - Esto elimina conflictos de doble validación y garantiza que cuando el Super Admin habilita o deshabilita menús para cualquier usuario (Admin, Supervisor, Cajero, etc.), la barra lateral refleje exactamente y sin omisiones los permisos concedidos.
-- **Validación Automatizada y Empírica por Roles (TDD)**:
-  - Suite `UserMenuPermissionsTest.php` ampliada a 13 pruebas unitarias y de integración que comprueban:
-    1. Habilitación y deshabilitación selectiva de menús para usuarios con roles **Admin**, **Supervisor** y **Cajero**.
-    2. Comprobación específica para cuentas con rol Super Admin en BD (como Yuliana) donde ocultar Dashboard y menús se aplica rigurosamente.
-    3. Validación de ocultamiento total de secciones cuando un usuario tiene lista vacía de menús (`allowed_menus = []`).
-    4. Redirección automática fuera del Dashboard al intentar acceder por URL.
-    5. Preservación del panel de configuración de menús para el Super Admin.
+- **Compilación Oficial 1-Click (`Setup_JSPOS_Sales_v1.10.449.exe`) e Integración JSVPN Enterprise**:
+  - Reemplazo completo de ZeroTier y Tailscale por el cliente oficial corporativo **JSVPN Enterprise** (`installer\tools\JSVPN-Setup.exe`).
+  - `installer.iss`: Configuración de tareas, ejecutables y parámetros silenciosos (`/VERYSILENT /NORESTART /SUPPRESSMSGBOXES`) para JSVPN Enterprise.
+  - `setup.ps1`: Inyección automática de credenciales de correo SMTP de Google en `.env` durante la post-instalación para evitar configuraciones manuales.
+  - `setup.ps1`: Configuración automática del VirtualHost de Apache en Laragon priorizando la interfaz y subred de JSVPN (`SITE4`).
+  - `backup_cliente.bat` & `CloudSyncBackupCommand.php`: Implementación de la **Opción A (Respaldos Autónomos en la Nube)**; detección dinámica de la ruta de PHP en Laragon, comando `php artisan backup:cloud-sync` para subir automáticamente respaldos a `licencias.jhonnypirela.dev` y registro en el Programador de Tareas de Windows (`schtasks`) a las 20:00 hrs.
+- **Exportador a Excel y Plantillas Descargables de Productos y Clientes**:
+  - `ProductsExport.php` & `CustomersExport.php`: Nuevos exportadores nativos con formato y encabezados estilizados mediante `Maatwebsite\Excel`.
+  - Botones de **"Exportar"** añadidos en las vistas de Productos (`/products`) y Clientes (`/customers`).
+  - `ProductsTemplateExport.php` & `CustomersTemplateExport.php`: Plantillas descargables con datos de ejemplo y estructura exacta para suministrar a los clientes.
+  - Botones **"Descargar Plantilla Excel"** añadidos directamente en las pantallas de importación (`/products/import` y `/customers/import`).
+- **Algoritmo Anti-Duplicados en Importación de Productos**:
+  - `ProductImport.php`: Resuelto el problema de duplicación de registros al ejecutar la importación múltiples veces.
+  - Implementada búsqueda dual: primero por Código de Barras / SKU y segundo por Nombre del Producto (insensible a mayúsculas/minúsculas y espacios).
+  - Si el producto ya existe en base de datos, el sistema **actualiza** sus precios, costo, stock y categoría sin crear un nuevo registro duplicado.
+  - Suite de pruebas `ProductImportExportTest.php` creada y aprobada con 5 tests y 17 aserciones.
 
 ## [1.10.448] - 2026-09-25
 

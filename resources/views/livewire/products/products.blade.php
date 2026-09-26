@@ -54,6 +54,12 @@
                                     <i class="fa fa-file-excel-o"></i> Importar
                                 </a>
                                 @endcan
+
+                                @can('products.index')
+                                <a href="{{ route('products.export') }}" class="btn btn-outline-success" title="Exportar productos a Excel">
+                                    <i class="fa fa-download"></i> Exportar
+                                </a>
+                                @endcan
                             </div>
                         </div>
 

@@ -4,7 +4,7 @@
 ; =====================================================================
 
 #define MyAppName "JSPOS Sales"
-#define MyAppVersion "1.10.383"
+#define MyAppVersion "1.10.449"
 #define MyAppPublisher "JSPOS Software"
 #define MyAppURL "http://jspos-sales.test"
 #define MyAppExeName "jspos_launcher.bat"
@@ -31,7 +31,7 @@ RestartIfNeededByRun=no
 
 ; Salida del ejecutable compilado
 OutputDir=.\output
-OutputBaseFilename=Setup_JSPOS_Sales_v1.10.388
+OutputBaseFilename=Setup_JSPOS_Sales_v1.10.449
 SetupIconFile=..\public\favicon.ico
 UninstallDisplayIcon={app}\public\favicon.ico
 Compression=lzma2/ultra64
@@ -45,14 +45,12 @@ Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 Name: "laragon"; Description: "Instalar entorno de servidor web Laragon WAMP"; GroupDescription: "Componentes Adicionales de Servidor y Red:"
-Name: "zerotier"; Description: "Instalar cliente de red VPN ZeroTier One"; GroupDescription: "Componentes Adicionales de Servidor y Red:"
-Name: "tailscale"; Description: "Instalar cliente de red VPN Tailscale"; GroupDescription: "Componentes Adicionales de Servidor y Red:"
+Name: "jsvpn"; Description: "Instalar cliente de red segura JSVPN Enterprise"; GroupDescription: "Componentes Adicionales de Servidor y Red:"
 
 [Files]
 ; Herramientas opcionales y scripts de instalacion (copiados a directorio temporal y eliminados tras instalar)
 Source: "tools\laragon-wamp.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall; Tasks: laragon
-Source: "tools\ZeroTierOne.msi"; DestDir: "{tmp}"; Flags: deleteafterinstall; Tasks: zerotier
-Source: "tools\tailscale-setup.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall; Tasks: tailscale
+Source: "tools\JSVPN-Setup.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall; Tasks: jsvpn
 Source: "post_install.bat"; DestDir: "{tmp}"; Flags: deleteafterinstall
 Source: "setup.ps1"; DestDir: "{tmp}"; Flags: deleteafterinstall
 Source: "open_browser.bat"; DestDir: "{tmp}"; Flags: deleteafterinstall
@@ -68,8 +66,7 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "chrome.exe"; Parameters: "--app={
 [Run]
 ; Instalacion silenciosa sin reinicio obligado de herramientas adicionales
 Filename: "{tmp}\laragon-wamp.exe"; Parameters: "/SILENT /NORESTART /SUPPRESSMSGBOXES"; Tasks: laragon; Flags: runhidden waituntilterminated; StatusMsg: "Instalando entorno Laragon WAMP..."
-Filename: "msiexec.exe"; Parameters: "/i ""{tmp}\ZeroTierOne.msi"" /qn REBOOT=ReallySuppress"; Tasks: zerotier; Flags: runhidden waituntilterminated; StatusMsg: "Instalando cliente ZeroTier One..."
-Filename: "{tmp}\tailscale-setup.exe"; Parameters: "/silent /norestart /suppressmsgboxes"; Tasks: tailscale; Flags: runhidden waituntilterminated; StatusMsg: "Instalando cliente Tailscale..."
+Filename: "{tmp}\JSVPN-Setup.exe"; Parameters: "/VERYSILENT /NORESTART /SUPPRESSMSGBOXES"; Tasks: jsvpn; Flags: runhidden waituntilterminated; StatusMsg: "Instalando cliente seguro JSVPN Enterprise..."
 
 ; Ejecutar el script post_install.bat desde la carpeta temporal (configura Apache, MySQL, BD, migraciones y abre el navegador)
 Filename: "{tmp}\post_install.bat"; Parameters: """{app}"""; Flags: runhidden waituntilterminated; StatusMsg: "Configurando base de datos, servidor Apache y servicios en segundo plano..."

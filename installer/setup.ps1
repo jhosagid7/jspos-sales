@@ -81,7 +81,7 @@ if (-not (Test-Path $targetStorage)) { New-Item -ItemType Directory -Path $targe
 cmd /c "if exist `"$publicStorage`" ( rmdir /s /q `"$publicStorage`" )"
 cmd /c "mklink /J `"$publicStorage`" `"$targetStorage`""
 
-# 4. Modificar .env con la URL e identificadores del cliente
+# 4. Modificar .env con la URL e identificadores del cliente, correo SMTP y servidor de licencias
 if (Test-Path $envFile) {
     $content = Get-Content $envFile -Raw
     $content = $content -replace '(?m)^APP_DEBUG=.*', "APP_DEBUG=false"
@@ -91,6 +91,33 @@ if (Test-Path $envFile) {
         $content = $content -replace '(?m)^DEBUGBAR_ENABLED=.*', "DEBUGBAR_ENABLED=false"
     } else {
         $content += "`nDEBUGBAR_ENABLED=false`n"
+    }
+
+    # Inyección de Servidor Central de Licencias
+    if ($content -match '(?m)^LICENSE_SERVER_IP=.*') {
+        $content = $content -replace '(?m)^LICENSE_SERVER_IP=.*', "LICENSE_SERVER_IP=licencias.jhonnypirela.dev"
+    } else {
+        $content += "`nLICENSE_SERVER_IP=licencias.jhonnypirela.dev`n"
+    }
+
+    # Inyección automática de credenciales de correo SMTP para el cliente
+    $mailSettings = [ordered]@{
+        'MAIL_MAILER' => 'smtp'
+        'MAIL_HOST' => 'smtp.gmail.com'
+        'MAIL_PORT' => '587'
+        'MAIL_USERNAME' => 'jhosagid77@gmail.com'
+        'MAIL_PASSWORD' => '"sxoe btfc egja elwg"'
+        'MAIL_ENCRYPTION' => 'tls'
+        'MAIL_FROM_ADDRESS' => 'jhosagid77@gmail.com'
+        'MAIL_FROM_NAME' => '"JSPOS Sales"'
+    }
+    foreach ($mKey in $mailSettings.Keys) {
+        $mVal = $mailSettings[$mKey]
+        if ($content -match "(?m)^$mKey=.*") {
+            $content = $content -replace "(?m)^$mKey=.*", "$mKey=$mVal"
+        } else {
+            $content += "`n$mKey=$mVal`n"
+        }
     }
     
     if ($content -match '(?m)^APP_KEY=\s*$' -or $content -notmatch '(?m)^APP_KEY=') {
@@ -117,10 +144,14 @@ if (Test-Path $hostsFile) {
 $site3 = (Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias 'Wi-Fi*','Ethernet*','Conexión*' -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -notlike '169.254*' -and $_.IPAddress -notlike '127.*' } | Select-Object -ExpandProperty IPAddress -First 1)
 if (-not $site3) { $site3 = '127.0.0.1' }
 
-$site4 = (Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias '*ZeroTier*' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty IPAddress -First 1)
+# Prioridad a JSVPN Enterprise (Adaptador Wintun / Subred 100.x)
+$site4 = (Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias '*JSVPN*','*Tailscale*','*ZeroTier*' -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -like '100.*' -or $_.IPAddress -notlike '169.254*' } | Select-Object -ExpandProperty IPAddress -First 1)
+if (-not $site4) {
+    $site4 = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -like '100.*' } | Select-Object -ExpandProperty IPAddress -First 1)
+}
 if (-not $site4) { $site4 = '127.0.0.1' }
 
-$site5 = (Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias '*Tailscale*' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty IPAddress -First 1)
+$site5 = (Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias '*Tailscale*','*ZeroTier*' -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -ne $site4 -and $_.IPAddress -notlike '169.254*' -and $_.IPAddress -notlike '127.*' } | Select-Object -ExpandProperty IPAddress -First 1)
 if (-not $site5) { $site5 = '127.0.0.1' }
 
 $sitesDir = "$laragonDir\etc\apache2\sites-enabled"
@@ -282,6 +313,27 @@ if (Test-Path $laragonExe) {
     if (-not $laragonProc) {
         Start-Process -FilePath $laragonExe -WindowStyle Minimized
     }
+}
+
+# 10. Configurar Tarea Programada de Windows para Respaldo Diario en la Nube (Opción A)
+try {
+    $batPath = "$ProjectDir\backup_cliente.bat"
+    if (Test-Path $batPath) {
+        $taskName = "JSPOS_AutoBackup"
+        $taskAction = "cmd.exe /c `"$batPath`" --scheduled"
+        
+        # Intentar registrar la tarea programada como SYSTEM (para ejecucion desatendida)
+        $createSystem = "schtasks /create /tn `"$taskName`" /tr `"$taskAction`" /sc daily /st 20:00 /f /ru `"SYSTEM`""
+        $res = cmd /c $createSystem 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            # Fallback a cuenta de usuario local sin contraseña obligatoria
+            $createUser = "schtasks /create /tn `"$taskName`" /tr `"$taskAction`" /sc daily /st 20:00 /f"
+            cmd /c $createUser 2>&1 | Out-Null
+        }
+        Write-Host "Tarea programada de respaldo diario configurada: $taskName (20:00 hrs)"
+    }
+} catch {
+    Write-Host "Aviso: No se pudo registrar la tarea de respaldo en el Programador de Tareas."
 }
 
 Write-Host "Post-instalacion completada exitosamente para $folderName."

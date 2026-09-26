@@ -1,9 +1,27 @@
 <div class="card">
-    <div class="card-header">
-        <h3 class="card-title">Importador Inteligente de Productos (Excel)</h3>
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="card-title mb-0">Importador Inteligente de Productos (Excel)</h3>
+        <div class="d-flex gap-2">
+            <a href="{{ route('products.template') }}" class="btn btn-success btn-sm font-weight-bold">
+                <i class="fas fa-file-excel me-1"></i> Descargar Plantilla Excel
+            </a>
+            <a href="{{ route('products') }}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left me-1"></i> Volver a Productos
+            </a>
+        </div>
     </div>
     <div class="card-body">
         
+        <div class="alert alert-light border mb-4">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-shield-alt text-success fa-2x me-3"></i>
+                <div>
+                    <h6 class="mb-1 text-dark fw-bold">Protección Inteligente Contra Duplicados</h6>
+                    <small class="text-muted">Si importas el mismo archivo dos o más veces, o si un producto ya existe en tu base de datos (por Código de Barras o Nombre), <b>se actualizará automáticamente</b> en lugar de crearse un registro duplicado.</small>
+                </div>
+            </div>
+        </div>
+
         {{-- Success Message --}}
         @if ($step === 3)
             <div class="alert alert-success text-center">

@@ -43,6 +43,12 @@
                                  <a href="{{ route('customers.import') }}" class="btn btn-secondary btn-sm"><i class="fas fa-file-import"></i> Importar</a>
                             </div>
                             @endcan
+
+                            @can('customers.index')
+                            <div class="contact-edit chat-alert mb-0">
+                                 <a href="{{ route('customers.export') }}" class="btn btn-outline-success btn-sm"><i class="fas fa-download"></i> Exportar</a>
+                            </div>
+                            @endcan
                         </div>
                     </div>
                 </div>
