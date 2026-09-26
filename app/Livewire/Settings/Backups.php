@@ -61,7 +61,14 @@ class Backups extends Component
                 return;
             }
 
-            $this->dispatch('noty', msg: 'Copia de seguridad creada exitosamente');
+            // Subida inmediata a la nube (Google Drive / Servidor de Licencias)
+            try {
+                Artisan::call('backup:cloud-sync');
+            } catch (\Throwable $ex) {
+                \Illuminate\Support\Facades\Log::warning('Manual backup cloud-sync warning: ' . $ex->getMessage());
+            }
+
+            $this->dispatch('noty', msg: 'Copia de seguridad creada y sincronizada con la nube exitosamente');
         } catch (\Exception $e) {
             $this->dispatch('noty', msg: 'Error al crear copia: ' . $e->getMessage(), type: 'error');
         }

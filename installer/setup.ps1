@@ -322,7 +322,7 @@ try {
         $taskName = "JSPOS_AutoBackup"
         $taskAction = "cmd.exe /c `"$batPath`" --scheduled"
         
-        # Intentar registrar la tarea programada como SYSTEM (para ejecucion desatendida)
+        # Intentar registrar la tarea programada como SYSTEM (para ejecucion desatendida a las 20:00)
         $createSystem = "schtasks /create /tn `"$taskName`" /tr `"$taskAction`" /sc daily /st 20:00 /f /ru `"SYSTEM`""
         $res = cmd /c $createSystem 2>&1
         if ($LASTEXITCODE -ne 0) {
@@ -330,7 +330,12 @@ try {
             $createUser = "schtasks /create /tn `"$taskName`" /tr `"$taskAction`" /sc daily /st 20:00 /f"
             cmd /c $createUser 2>&1 | Out-Null
         }
-        Write-Host "Tarea programada de respaldo diario configurada: $taskName (20:00 hrs)"
+
+        # Tarea de respaldo al iniciar sesión / encender el equipo (garantiza respaldo si estuvo apagado a las 20:00)
+        $taskStartup = "JSPOS_AutoBackup_Startup"
+        cmd /c "schtasks /create /tn `"$taskStartup`" /tr `"$taskAction`" /sc onlogon /f" 2>&1 | Out-Null
+
+        Write-Host "Tareas programadas de respaldo configuradas: $taskName (20:00 hrs) y $taskStartup (al encender equipo)."
     }
 } catch {
     Write-Host "Aviso: No se pudo registrar la tarea de respaldo en el Programador de Tareas."

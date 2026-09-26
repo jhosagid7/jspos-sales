@@ -334,6 +334,20 @@ class UpdateService
                 Log::error("Updater: Automatic migration during install failed: " . $e->getMessage());
             }
 
+            // Auto-configurar o actualizar tarea programada de Windows para respaldos automáticos en clientes existentes
+            if (PHP_OS_FAMILY === 'Windows') {
+                try {
+                    $batPath = base_path('backup_cliente.bat');
+                    if (File::exists($batPath)) {
+                        $taskAction = "cmd.exe /c \"{$batPath}\" --scheduled";
+                        @shell_exec("schtasks /create /tn \"JSPOS_AutoBackup\" /tr \"{$taskAction}\" /sc daily /st 20:00 /f 2>nul");
+                        @shell_exec("schtasks /create /tn \"JSPOS_AutoBackup_Startup\" /tr \"{$taskAction}\" /sc onlogon /f 2>nul");
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning("Updater: No se pudo registrar la tarea programada de respaldo: " . $e->getMessage());
+                }
+            }
+
             File::deleteDirectory($extractPath);
             File::delete($tempPath);
             

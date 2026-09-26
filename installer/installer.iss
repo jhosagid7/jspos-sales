@@ -4,7 +4,7 @@
 ; =====================================================================
 
 #define MyAppName "JSPOS Sales"
-#define MyAppVersion "1.10.449"
+#define MyAppVersion "1.10.450"
 #define MyAppPublisher "JSPOS Software"
 #define MyAppURL "http://jspos-sales.test"
 #define MyAppExeName "jspos_launcher.bat"
@@ -31,7 +31,7 @@ RestartIfNeededByRun=no
 
 ; Salida del ejecutable compilado
 OutputDir=.\output
-OutputBaseFilename=Setup_JSPOS_Sales_v1.10.449
+OutputBaseFilename=Setup_JSPOS_Sales_v1.10.450
 SetupIconFile=..\public\favicon.ico
 UninstallDisplayIcon={app}\public\favicon.ico
 Compression=lzma2/ultra64

@@ -58,6 +58,19 @@ class Kernel extends ConsoleKernel
             ->between('6:00', '22:00')
             ->runInBackground();
 
+        // Sincronización continua hacia la nube (licencias.jhonnypirela.dev / Google Drive) cada 2 horas
+        $schedule->command('backup:cloud-sync')
+            ->timezone('America/Caracas')
+            ->everyTwoHours()
+            ->between('6:00', '22:00')
+            ->runInBackground();
+
+        // Respaldo nocturno diario a las 20:00 hrs
+        $schedule->command('backup:cloud-sync')
+            ->timezone('America/Caracas')
+            ->dailyAt('20:00')
+            ->runInBackground();
+
         // Cierre diario de bancos (tesorería)
         $treasuryCutoffHour = '17:00';
         try {

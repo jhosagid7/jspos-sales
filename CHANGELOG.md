@@ -1,3 +1,14 @@
+## [1.10.450] - 2026-09-26
+
+### Added & Enhanced (Respaldos Cloud Continuos y Auto-Actualización para Clientes Existentes)
+- **Sincronización Continua de Respaldos en Kernel**:
+  - `Kernel.php`: Programada la sincronización a la nube (`backup:cloud-sync`) cada 2 horas entre las 6:00 y las 22:00, y a las 20:00 hrs. Los respaldos se suben durante la jornada laboral sin depender exclusivamente de que el servidor esté encendido de noche.
+- **Respaldo Automático al Iniciar Sesión / Encender Equipo**:
+  - `setup.ps1` & `UpdateService.php`: Se registra la tarea programada `JSPOS_AutoBackup_Startup` en Windows (`/sc onlogon`). Si el cliente apaga el servidor antes de las 20:00, al encender el equipo por la mañana se dispara de inmediato la verificación y respaldo en la nube.
+- **Auto-Configuración en Clientes Existentes**:
+  - `UpdateService.php`: Al actualizar el sistema desde el panel web, se configuran automáticamente las tareas programadas de Windows y se ejecutan las migraciones de base de datos sin necesidad de soporte técnico presencial.
+  - `Backups.php`: Al crear un respaldo manual desde la interfaz del POS, se despacha inmediatamente la sincronización hacia `licencias.jhonnypirela.dev` y Google Drive.
+
 ## [1.10.449] - 2026-09-26
 
 ### Fixed & Enhanced (Validación Exhaustiva de Visibilidad de Menús por Usuario y Rol)
