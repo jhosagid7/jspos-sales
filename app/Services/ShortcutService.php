@@ -871,6 +871,16 @@ class ShortcutService
                 'category' => 'Administración & Sistema',
                 'color' => '#fd7e14',
             ],
+            'settings.user_menus' => [
+                'key' => 'settings.user_menus',
+                'label' => 'Permisos de Menús por Usuario',
+                'short_label' => 'Permisos Menús',
+                'icon' => 'fas fa-user-lock',
+                'route' => 'settings.user_menus',
+                'role' => 'Super Admin',
+                'category' => 'Administración & Sistema',
+                'color' => '#17a2b8',
+            ],
         ];
     }
 
@@ -980,11 +990,8 @@ class ShortcutService
             return false;
         }
 
-        // Super Admin siempre tiene acceso a todo
-        if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
-            return true;
-        }
-        if (method_exists($user, 'hasRole') && $user->hasRole('Super Admin')) {
+        // El acceso al panel de configuración de menús siempre está garantizado para Super Admin
+        if ($menuKey === 'settings.user_menus' && method_exists($user, 'hasRole') && $user->hasRole('Super Admin')) {
             return true;
         }
 
@@ -1000,7 +1007,7 @@ class ShortcutService
         }
         $theme = is_array($theme) ? $theme : [];
 
-        // Si tiene override de Super Admin configurado (array)
+        // Si tiene override personalizado configurado (array)
         if (isset($theme['allowed_menus']) && is_array($theme['allowed_menus'])) {
             if (!in_array($menuKey, $theme['allowed_menus'])) {
                 return false;
@@ -1020,8 +1027,36 @@ class ShortcutService
             return true;
         }
 
+        // Si no tiene override personalizado:
+        // Super Admin sin restricciones tiene acceso completo por defecto
+        if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
+            return true;
+        }
+        if (method_exists($user, 'hasRole') && $user->hasRole('Super Admin')) {
+            return true;
+        }
+
         // Si no tiene override personalizado, evalúa por rol y permisos estándar
         return self::canAccessShortcut($item, $user);
+    }
+
+    /**
+     * Verifica si al menos uno de los menús indicados está permitido para el usuario.
+     */
+    public static function isAnyMenuAllowedForUser(array $keys, ?User $user = null): bool
+    {
+        $user = $user ?: Auth::user();
+        if (!$user) {
+            return false;
+        }
+
+        foreach ($keys as $key) {
+            if (self::isMenuAllowedForUser($key, $user)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

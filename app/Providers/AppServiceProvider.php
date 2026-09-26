@@ -134,6 +134,10 @@ class AppServiceProvider extends ServiceProvider
             return \App\Services\ShortcutService::isMenuAllowedForUser($menuKey);
         });
 
+        \Illuminate\Support\Facades\Blade::if('anyMenuAllowed', function (array $menuKeys) {
+            return \App\Services\ShortcutService::isAnyMenuAllowedForUser($menuKeys);
+        });
+
         // Registro de directiva Blade para Terminología Regional Personalizable
         \Illuminate\Support\Facades\Blade::directive('term', function ($expression) {
             return "<?php echo term({$expression}); ?>";

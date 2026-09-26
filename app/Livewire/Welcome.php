@@ -27,6 +27,16 @@ class Welcome extends Component
 
     public function mount()
     {
+        // Si el usuario no tiene permitido el Dashboard por override de Super Admin
+        if (!\App\Services\ShortcutService::isMenuAllowedForUser('welcome')) {
+            $available = \App\Services\ShortcutService::getAvailableMenusForUser();
+            if (!empty($available)) {
+                $first = reset($available);
+                return redirect()->route($first['route']);
+            }
+            abort(403, 'No tiene menús autorizados en el sistema.');
+        }
+
         // Only redirect if they have distribution map but NO access to sales reports
         if (auth()->user()->can('distribution.map') && !auth()->user()->can('reports.sales')) {
             return redirect()->route('driver.dashboard');
