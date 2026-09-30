@@ -118,6 +118,7 @@
                     @endif
 
                     {{-- Invoice Currency Selector --}}
+                    @if($isMulticurrency ?? true)
                     <div class="form-group mb-3 border-bottom pb-3">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <label class="font-weight-bold mb-0">Moneda Factura / Ticket:</label>
@@ -135,6 +136,7 @@
                              @endif
                         </select>
                     </div>
+                    @endif
 
                     <div class="form-group">
                         @can('sales.manage_adjustments')
@@ -433,7 +435,7 @@
                     </div>
 
                     {{-- Multi-currency display --}}
-                    @if($currencies && $currencies->count() > 1)
+                    @if(($isMulticurrency ?? true) && $currencies && $currencies->count() > 1)
                         <div class="mt-2 p-2 bg-light rounded">
                             <h6 class="font-weight-bold text-muted small mb-2 border-bottom pb-1">Referencias:</h6>
                             @foreach($currencies as $currency)

@@ -1,25 +1,84 @@
 @echo off
+:: Solicitar permisos de Administrador automaticamente si no los tiene
+net session >nul 2>&1
+if %errorlevel% neq 0 (
+    powershell -Command "Start-Process '%~f0' -Verb RunAs"
+    exit /b
+)
+
 echo ===================================================
 echo   INSTALADOR DE SERVICIOS - JSPOS (NSSM)
 echo ===================================================
 echo.
 
-:: 1. Definir las rutas (¡Cambia estas rutas si en tu cliente Laragon esta en otro lado!)
-set "PROYECTO_DIR=C:\laragon\www\jspos-sales"
+:: 1. Definir las rutas dinamicamente
+set "PROYECTO_DIR=%~dp0"
+if "%PROYECTO_DIR:~-1%"=="\" set "PROYECTO_DIR=%PROYECTO_DIR:~0,-1%"
 set "NSSM_EXE=%PROYECTO_DIR%\nssm\nssm.exe"
 
-set "NODE_EXE=node"
+:: Modo silencioso (para llamadas automaticas desde el instalador)
+set "SILENT_MODE=0"
+if "%1"=="--silent" set "SILENT_MODE=1"
+if "%1"=="/SILENT" set "SILENT_MODE=1"
 
-:: Detectar automaticamente la ruta completa de php.exe (importante cuando Laragon no esta en el PATH global)
-for /f "delims=" %%i in ('where php 2^>nul') do set "PHP_EXE=%%i" & goto :php_found
-echo.
-echo [ERROR] No se encontro php.exe en el PATH del sistema.
-echo Por favor, corre este script desde el Laragon Terminal o agrega PHP al PATH de Windows.
-echo Ruta tipica de Laragon: C:\laragon\bin\php\phpX.X.X\php.exe
-pause
-exit /b 1
+:: Detectar automaticamente la ruta completa de php.exe
+set "PHP_EXE="
+for /f "delims=" %%i in ('where php 2^>nul') do (
+    set "PHP_EXE=%%i"
+    goto :php_found
+)
+
+:: Si no esta en el PATH global, buscar en Laragon C: y otras unidades
+if exist "C:\laragon\bin\php" (
+    for /f "delims=" %%i in ('dir /b /s /a:-d "C:\laragon\bin\php\php.exe" 2^>nul') do (
+        set "PHP_EXE=%%i"
+        goto :php_found
+    )
+)
+for %%d in (D E F) do (
+    if exist "%%d:\laragon\bin\php" (
+        for /f "delims=" %%i in ('dir /b /s /a:-d "%%d:\laragon\bin\php\php.exe" 2^>nul') do (
+            set "PHP_EXE=%%i"
+            goto :php_found
+        )
+    )
+)
+
+if not defined PHP_EXE (
+    echo.
+    echo [ERROR] No se encontro php.exe ni en el PATH del sistema ni en C:\laragon\bin\php.
+    echo Por favor, corre este script desde el Laragon Terminal o agrega PHP al PATH de Windows.
+    if "%SILENT_MODE%"=="0" pause
+    exit /b 1
+)
+
 :php_found
 echo PHP encontrado en: %PHP_EXE%
+
+:: Detectar automaticamente la ruta de node.exe
+set "NODE_EXE="
+for /f "delims=" %%i in ('where node 2^>nul') do (
+    set "NODE_EXE=%%i"
+    goto :node_found
+)
+if exist "C:\Program Files\nodejs\node.exe" (
+    set "NODE_EXE=C:\Program Files\nodejs\node.exe"
+    goto :node_found
+)
+if exist "C:\Program Files (x86)\nodejs\node.exe" (
+    set "NODE_EXE=C:\Program Files (x86)\nodejs\node.exe"
+    goto :node_found
+)
+if exist "C:\laragon\bin\nodejs" (
+    for /f "delims=" %%i in ('dir /b /s /a:-d "C:\laragon\bin\nodejs\node.exe" 2^>nul') do (
+        set "NODE_EXE=%%i"
+        goto :node_found
+    )
+)
+set "NODE_EXE=node"
+
+:node_found
+echo Node.js configurado como: %NODE_EXE%
 
 echo Deteniendo servicios antiguos si existen...
 "%NSSM_EXE%" stop JSPOS_WhatsApp_API >nul 2>&1
@@ -76,7 +135,7 @@ echo Iniciando los servicios...
 
 echo.
 echo ===================================================
-echo ¡INSTALACION COMPLETADA!
+echo ??INSTALACION COMPLETADA!
 echo Los servicios ya estan corriendo invisiblemente.
 echo ===================================================
-pause
+if "%SILENT_MODE%"=="0" pause

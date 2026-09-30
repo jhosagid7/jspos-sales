@@ -107,8 +107,9 @@
                     </div>
 
                     <button wire:click.prevent="storeOrder" class="btn btn-primary btn-block btn-lg shadow mb-4 py-3 border-0 transition-all hover-scale" 
-                        style="border-radius: 12px; background: linear-gradient(135deg, #4361ee, #3f37c9); box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3) !important;">
-                        <i class="fas fa-save mr-2"></i> REGISTRAR COMPRA
+                        style="border-radius: 12px; background: linear-gradient(135deg, #4361ee, #3f37c9); box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3) !important;"
+                        title="Guardar como orden de compra pendiente (no afecta stock)">
+                        <i class="fas fa-clipboard-list mr-2"></i> GUARDAR ORDEN DE COMPRA
                     </button>
 
                     <div class="text-center">

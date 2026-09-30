@@ -102,9 +102,12 @@
                                     </h5>
                                 </div>
                                 <div class="card-body">
+                                    @php
+                                        $topColClassSales = ($isMulticurrency || !empty($salesByCurrency['zelle']) || !empty($salesByCurrency['usdt']) || !empty($salesByCurrency['nequi'])) ? 'col-md-3' : 'col-md-6';
+                                    @endphp
                                     <div class="row">
                                         {{-- Efectivo --}}
-                                        <div class="col-md-4 mb-3">
+                                        <div class="{{ $topColClassSales }} mb-3">
                                             <div class="card h-100 border-primary">
                                                 <div class="card-header bg-light-primary p-2">
                                                     <h6 class="mb-0 text-primary">
@@ -141,7 +144,7 @@
 
 
                                         {{-- Banco --}}
-                                        <div class="col-md-4 mb-3">
+                                        <div class="{{ $topColClassSales }} mb-3">
                                             <div class="card h-100 border-primary">
                                                 <div class="card-header bg-light-primary p-2">
                                                     <h6 class="mb-0 text-primary">
@@ -193,8 +196,37 @@
                                             </div>
                                         </div>
 
+                                        {{-- Nequi --}}
+                                        @if (!empty($salesByCurrency['nequi']))
+                                        <div class="{{ $topColClassSales }} mb-3">
+                                            <div class="card h-100" style="border-color: #ff007a;">
+                                                <div class="card-header p-2" style="background-color: rgba(255, 0, 122, 0.1);">
+                                                    <h6 class="mb-0 fw-bold" style="color: #ff007a;">
+                                                        <i class="icofont icofont-mobile-phone"></i> Nequi
+                                                    </h6>
+                                                </div>
+                                                <div class="card-body p-2">
+                                                    <table class="table table-sm table-borderless mb-0">
+                                                        @foreach ($salesByCurrency['nequi'] as $currencyCode => $amount)
+                                                            @php
+                                                                $curr = collect($currencies)->firstWhere('code', $currencyCode);
+                                                                $currSymbol = $curr ? $curr->symbol : $currencyCode;
+                                                                $label = $curr ? $curr->label . ' (' . $currencyCode . ')' : $currencyCode;
+                                                            @endphp
+                                                            <tr>
+                                                                <td class="text-muted">{{ $label }}:</td>
+                                                                <td class="text-end fw-bold">{{ $currSymbol }}{{ number_format($amount, 2) }}</td>
+                                                            </tr>
+                                                        @endforeach
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        @endif
+
+                                        @if($isMulticurrency || !empty($salesByCurrency['zelle']))
                                         {{-- Zelle --}}
-                                        <div class="col-md-3 mb-3">
+                                        <div class="{{ $topColClassSales }} mb-3">
                                             <div class="card h-100 border-primary">
                                                 <div class="card-header bg-light-primary p-2">
                                                     <h6 class="mb-0 text-primary">
@@ -215,10 +247,12 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        @endif
 
+                                        @if($isMulticurrency || !empty($salesByCurrency['usdt']))
                                         {{-- USDT Binance --}}
                                         @php $usdtLabel = \App\Helpers\CurrencyHelper::getUsdtLabel(); @endphp
-                                        <div class="col-md-3 mb-3">
+                                        <div class="{{ $topColClassSales }} mb-3">
                                             <div class="card h-100 border-success">
                                                 <div class="card-header bg-light-success p-2">
                                                     <h6 class="mb-0 text-success">
@@ -239,6 +273,7 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        @endif
                                     </div>
 
                                     {{-- Sales Totals --}}
@@ -267,9 +302,12 @@
                                     </h5>
                                 </div>
                                 <div class="card-body">
+                                    @php
+                                        $topColClass = ($isMulticurrency || !empty($paymentsByCurrency['zelle']) || !empty($paymentsByCurrency['usdt']) || !empty($paymentsByCurrency['nequi'])) ? 'col-md-3' : 'col-md-6';
+                                    @endphp
                                     <div class="row">
                                         {{-- Efectivo --}}
-                                        <div class="col-md-3 mb-3">
+                                        <div class="{{ $topColClass }} mb-3">
                                             <div class="card h-100 border-warning">
                                                 <div class="card-header bg-light-warning p-2">
                                                     <h6 class="mb-0 text-warning">
@@ -300,7 +338,7 @@
                                         </div>
 
                                         {{-- Banco --}}
-                                        <div class="col-md-3 mb-3">
+                                        <div class="{{ $topColClass }} mb-3">
                                             <div class="card h-100 border-warning">
                                                 <div class="card-header bg-light-warning p-2">
                                                     <h6 class="mb-0 text-warning">
@@ -336,8 +374,39 @@
                                             </div>
                                         </div>
 
+                                        @if (!empty($paymentsByCurrency['nequi']))
+                                        {{-- Nequi --}}
+                                        <div class="{{ $topColClass }} mb-3">
+                                            <div class="card h-100" style="border-color: #ff007a;">
+                                                <div class="card-header p-2" style="background-color: rgba(255, 0, 122, 0.1);">
+                                                    <h6 class="mb-0 fw-bold" style="color: #ff007a;">
+                                                        <i class="icofont icofont-mobile-phone"></i> Nequi
+                                                    </h6>
+                                                </div>
+                                                <div class="card-body p-2">
+                                                    @foreach ($paymentsByCurrency['nequi'] as $currency => $amount)
+                                                        @php
+                                                            $currObj = collect($currencies)->firstWhere('code', $currency);
+                                                            $label = $currObj ? $currObj->label . ' (' . $currency . ')' : $currency;
+                                                            $currSymbol = $currObj ? $currObj->symbol : $currency;
+                                                        @endphp
+                                                        <div class="row">
+                                                            <div class="col-6">
+                                                                <span class="f-12">{{ $label }}</span>
+                                                            </div>
+                                                            <div class="col-6 text-end">
+                                                                <span class="f-12">{{ $currSymbol }}{{ number_format($amount, 2) }}</span>
+                                                            </div>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                        </div>
+                                        @endif
+
+                                        @if($isMulticurrency || !empty($paymentsByCurrency['zelle']))
                                         {{-- Zelle --}}
-                                        <div class="col-md-3 mb-3">
+                                        <div class="{{ $topColClass }} mb-3">
                                             <div class="card h-100 border-warning">
                                                 <div class="card-header bg-light-warning p-2">
                                                     <h6 class="mb-0 text-warning">
@@ -358,9 +427,11 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        @endif
 
+                                        @if($isMulticurrency || !empty($paymentsByCurrency['usdt']))
                                         {{-- USDT Binance --}}
-                                        <div class="col-md-3 mb-3">
+                                        <div class="{{ $topColClass }} mb-3">
                                             <div class="card h-100 border-warning">
                                                 <div class="card-header bg-light-warning p-2">
                                                     <h6 class="mb-0 text-warning">
@@ -381,6 +452,7 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        @endif
                                     </div>
 
 
@@ -404,8 +476,11 @@
                                     </h5>
                                 </div>
                                 <div class="card-body">
+                                    @php
+                                        $sumColClass = ($isMulticurrency || !empty($totalZelleDetails) || !empty($totalUsdtDetails) || !empty($totalNequiDetails)) ? 'col-md-3' : 'col-md-6';
+                                    @endphp
                                     <div class="row">
-                                        <div class="col-md-3">
+                                        <div class="{{ $sumColClass }}">
                                             <div class="text-center p-3 bg-light rounded h-100">
                                                 <h6 class="text-muted mb-2">Total en Efectivo</h6>
                                                 @if (!empty($totalCashDetails))
@@ -428,7 +503,7 @@
                                                 @endif
                                             </div>
                                         </div>
-                                        <div class="col-md-3">
+                                        <div class="{{ $sumColClass }}">
                                             <div class="text-center p-3 bg-light rounded h-100">
                                                 <h6 class="text-muted mb-2">Total en Banco</h6>
                                                 @if (!empty($totalBankDetails))
@@ -452,7 +527,26 @@
                                                 @endif
                                             </div>
                                         </div>
-                                        <div class="col-md-3">
+
+                                        @if(!empty($totalNequiDetails))
+                                        <div class="{{ $sumColClass }} mb-3">
+                                            <div class="text-center p-3 bg-light rounded h-100" style="border-top: 3px solid #ff007a;">
+                                                <h6 class="text-muted mb-2">Total en Nequi</h6>
+                                                @foreach ($totalNequiDetails as $currency => $amount)
+                                                    @php
+                                                        $curr = collect($currencies)->firstWhere('code', $currency);
+                                                        $currSymbol = $curr ? $curr->symbol : $currency;
+                                                        $label = $curr ? $curr->label : $currency;
+                                                    @endphp
+                                                    <h4 class="mb-0" style="color: #ff007a;">{{ $currSymbol }}{{ number_format($amount, 2) }}</h4>
+                                                    <small class="text-muted">{{ $label }}</small><br>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                        @endif
+
+                                        @if($isMulticurrency || !empty($totalZelleDetails))
+                                        <div class="{{ $sumColClass }}">
                                             <div class="text-center p-3 bg-light rounded h-100">
                                                 <h6 class="text-muted mb-2">Total en Zelle</h6>
                                                 @if (!empty($totalZelleDetails))
@@ -470,7 +564,10 @@
                                                 @endif
                                             </div>
                                         </div>
-                                        <div class="col-md-3">
+                                        @endif
+
+                                        @if($isMulticurrency || !empty($totalUsdtDetails))
+                                        <div class="{{ $sumColClass }}">
                                             <div class="text-center p-3 bg-light rounded h-100">
                                                 <h6 class="text-muted mb-2">Total en {{ $usdtLabel }}</h6>
                                                 @if (!empty($totalUsdtDetails))
@@ -488,6 +585,7 @@
                                                 @endif
                                             </div>
                                         </div>
+                                        @endif
                                     </div>
                                 </div>
 

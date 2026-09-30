@@ -159,11 +159,11 @@
                                 <tr class="text-center">
                                     <th>Folio</th>
                                     <th>Cliente</th>
-                                    <th>Total Neto (USD)</th>
+                                    <th>Total Neto ({{ $isMulticurrency ? 'USD' : $primaryCode }})</th>
                                     @foreach($currencies as $currency)
-                                        <th>Pagado {{ $currency->code }}</th>
+                                        <th>{{ $isMulticurrency ? 'Pagado ' . $currency->code : 'Total Pagado (' . $primaryCode . ')' }}</th>
                                     @endforeach
-                                    <th>Crédito (USD)</th>
+                                    <th>Crédito ({{ $isMulticurrency ? 'USD' : $primaryCode }})</th>
                                     <th>Articulos</th>
                                     <th>Estatus</th>
                                     <th>Tipo</th>

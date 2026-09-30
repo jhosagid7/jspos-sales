@@ -498,6 +498,46 @@
                                                             <i class="fa fa-plus-circle me-2"></i>Agregar Pago Detallado
                                                         </button>
                                                     </div>
+                                                @elseif($isNequiSelected)
+                                                    {{-- NEQUI FIELDS --}}
+                                                    <div class="col-12">
+                                                        <div class="alert py-2 mb-0" style="background-color: #fdf0f7; border: 1px solid #ff007a; color: #ff007a;">
+                                                            <small><i class="fa fa-mobile-alt me-1"></i> <strong>Pago con Nequi:</strong> Ingrese el número de celular del cliente o comercio y el código de comprobante.</small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Monto (COP) <span class="text-danger">*</span></label>
+                                                        <input 
+                                                            class="form-control" 
+                                                            oninput="validarInputNumber(this)"
+                                                            wire:model.live="bankAmount" 
+                                                            type="number"
+                                                            placeholder="0.00">
+                                                        @error('bankAmount') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">N° de Celular Nequi</label>
+                                                        <input 
+                                                            class="form-control" 
+                                                            wire:model.live="phoneNumber" 
+                                                            type="text"
+                                                            placeholder="Ej: 3123456789">
+                                                        @error('phoneNumber') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <label class="form-label">Comprobante / Referencia Nequi <span class="text-danger">*</span></label>
+                                                        <input 
+                                                            class="form-control" 
+                                                            wire:model.live="bankDepositNumber" 
+                                                            type="text"
+                                                            placeholder="Ej: M1234567 o N° de Aprobación">
+                                                        @error('bankDepositNumber') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <button class="btn w-100 text-white" style="background-color: #ff007a; border-color: #ff007a;" wire:click="addBankPayment" type="button">
+                                                            <i class="fa fa-plus-circle me-2"></i>Agregar Pago Nequi
+                                                        </button>
+                                                    </div>
                                                 @else
                                                     {{-- STANDARD BANK FIELDS --}}
                                                     <div class="col-md-6">
@@ -576,6 +616,17 @@
                                                                     <br><small class="text-muted">{{ $payment['bank_name'] ?? 'N/A' }}</small>
                                                                     @if(isset($payment['bank_file_url']) && $payment['bank_file_url'])
                                                                         <br><a href="{{ $payment['bank_file_url'] }}" target="_blank"><i class="fa fa-image"></i> Ver</a>
+                                                                    @endif
+                                                                @elseif($payment['method'] === 'nequi')
+                                                                    <span class="badge text-white" style="background-color: #ff007a !important;">
+                                                                        <i class="fa fa-mobile-alt"></i> Nequi
+                                                                    </span>
+                                                                    <br><small class="text-muted">{{ $payment['bank_name'] ?? 'Nequi' }}</small>
+                                                                    @if(!empty($payment['phone_number']))
+                                                                        <br><small class="text-muted"><i class="fa fa-phone"></i> {{ $payment['phone_number'] }}</small>
+                                                                    @endif
+                                                                    @if(!empty($payment['reference']))
+                                                                        <br><small class="text-muted">Ref: {{ $payment['reference'] }}</small>
                                                                     @endif
                                                                 @elseif($payment['method'] === 'zelle')
                                                                     <span class="badge bg-info text-white" style="background-color: #6f42c1 !important;">

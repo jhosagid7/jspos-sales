@@ -230,6 +230,8 @@ trait PrintTrait
                     if ($sale->type == 'cash') {
                         $printer->text("EFECTIVO....... " . $currencySymbol . number_format($sale->cash, 2) . "\n");
                         if (floatval($sale->change) > 0)  $printer->text("\nCAMBIO......... " . $currencySymbol . number_format($sale->change, 2) . "\n");
+                    } elseif ($sale->type == 'nequi') {
+                        $printer->text("FORMA DE PAGO: NEQUI\n");
                     } else {
                         $printer->text($sale->type == 'credit' ? "FORMA DE PAGO: CRÉDITO" :  "FORMA DE PAGO:  DEPÓSITO" .  "\n");
                     }
@@ -344,8 +346,11 @@ trait PrintTrait
                     case 'zelle':
                         $printer->text("ZELLE\n");
                         break;
+                    case 'nequi':
+                        $printer->text("NEQUI\n");
+                        break;
                     default:
-                        $printer->text("EFECTIVO\n");
+                        $printer->text(strtoupper($payment->pay_way) . "\n");
                 }
 
 
@@ -354,6 +359,14 @@ trait PrintTrait
                     $printer->text($payment->bank . "\n");
                     $printer->text("No. Cuenta:" . $payment->account_number . "\n");
                     $printer->text("No. Depósito:" . $payment->deposit_number . "\n");
+                } elseif ($payment->pay_way == 'nequi') {
+                    $printer->text(($payment->bank ?: 'Nequi') . "\n");
+                    if (!empty($payment->phone_number)) {
+                        $printer->text("Celular: " . $payment->phone_number . "\n");
+                    }
+                    if (!empty($payment->deposit_number)) {
+                        $printer->text("Comprobante: " . $payment->deposit_number . "\n");
+                    }
                 } elseif ($payment->pay_way == 'zelle' && $payment->zelleRecord) {
                     $printer->text("Emisor: " . $payment->zelleRecord->sender_name . "\n");
                     $printer->text("Fecha: " . \Carbon\Carbon::parse($payment->zelleRecord->zelle_date)->format('d/m/Y') . "\n");
@@ -592,6 +605,13 @@ trait PrintTrait
                             }
                         }
                     }
+                    // Nequi
+                    if (!empty($salesByCurrency['nequi'])) {
+                        $printer->text("NEQUI:\n");
+                        foreach ($salesByCurrency['nequi'] as $currency => $amount) {
+                             $printer->text("  " . $getCurrencyLabel($currency) . ": " . number_format($amount, 2) . "\n");
+                        }
+                    }
                     // Zelle
                     if (!empty($salesByCurrency['zelle'])) {
                         $printer->text("ZELLE:\n");
@@ -639,6 +659,13 @@ trait PrintTrait
                             } else {
                                  $printer->text("  Otros: " . $getCurrencyLabel($bankName) . ": " . number_format($currencies, 2) . "\n");
                             }
+                        }
+                    }
+                    // Nequi
+                    if (!empty($paymentsByCurrency['nequi'])) {
+                        $printer->text("NEQUI:\n");
+                        foreach ($paymentsByCurrency['nequi'] as $currency => $amount) {
+                             $printer->text("  " . $getCurrencyLabel($currency) . ": " . number_format($amount, 2) . "\n");
                         }
                     }
                     // Zelle
@@ -716,7 +743,15 @@ trait PrintTrait
                 $usdtTotal += array_sum($salesByCurrency['usdt'] ?? []);
                 $usdtTotal += array_sum($paymentsByCurrency['usdt'] ?? []);
                 $usdtLabel = \App\Helpers\CurrencyHelper::getUsdtLabel();
-                $printer->text("TOTAL " . strtoupper($usdtLabel) . ": $" . number_format($usdtTotal, 2) . "\n\n");
+                $printer->text("TOTAL " . strtoupper($usdtLabel) . ": $" . number_format($usdtTotal, 2) . "\n");
+
+                $nequiTotal = 0;
+                $nequiTotal += array_sum($salesByCurrency['nequi'] ?? []);
+                $nequiTotal += array_sum($paymentsByCurrency['nequi'] ?? []);
+                if ($nequiTotal > 0 || !empty($salesByCurrency['nequi']) || !empty($paymentsByCurrency['nequi'])) {
+                    $printer->text("TOTAL NEQUI: " . $currencySymbol . number_format($nequiTotal, 2) . "\n");
+                }
+                $printer->text("\n");
 
                 // --- SECTION 4: BILLETERA / CUSTODIA ---
                 if ($config->getTicketSetting('cash_count', 'show_wallet', true)) {

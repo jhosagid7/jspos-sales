@@ -88,6 +88,17 @@
                 @endforeach
             @endif
 
+            {{-- Nequi --}}
+            @if(!empty($salesByCurrency['nequi']))
+                @foreach($salesByCurrency['nequi'] as $curr => $amt)
+                    <tr>
+                        <td>Nequi ({{ $getLabel($curr) }})</td>
+                        <td class="text-right">{{ number_format($amt, 4) }} {{ $curr }}</td>
+                        <td class="text-right">{{ $symbol }} {{ number_format($convertToPrimary($amt, $curr), 4) }}</td>
+                    </tr>
+                @endforeach
+            @endif
+
             {{-- Zelle --}}
             @if(!empty($salesByCurrency['zelle']))
                 @foreach($salesByCurrency['zelle'] as $sender => $amt)
@@ -167,6 +178,17 @@
                 @endforeach
             @endif
 
+            {{-- Nequi --}}
+            @if(!empty($paymentsByCurrency['nequi']))
+                @foreach($paymentsByCurrency['nequi'] as $curr => $amt)
+                    <tr>
+                        <td>Nequi ({{ $getLabel($curr) }})</td>
+                        <td class="text-right">{{ number_format($amt, 4) }} {{ $curr }}</td>
+                        <td class="text-right">{{ $symbol }} {{ number_format($convertToPrimary($amt, $curr), 4) }}</td>
+                    </tr>
+                @endforeach
+            @endif
+
             @if(!empty($paymentsByCurrency['zelle']))
                 @foreach($paymentsByCurrency['zelle'] as $sender => $amt)
                     <tr>
@@ -187,7 +209,7 @@
                 @endforeach
             @endif
 
-            @if(empty($paymentsByCurrency['cash']) && empty($paymentsByCurrency['deposit']) && empty($paymentsByCurrency['zelle']) && empty($paymentsByCurrency['usdt']))
+            @if(empty($paymentsByCurrency['cash']) && empty($paymentsByCurrency['deposit']) && empty($paymentsByCurrency['zelle']) && empty($paymentsByCurrency['usdt']) && empty($paymentsByCurrency['nequi']))
                 <tr>
                     <td colspan="3" style="text-align: center; color: #999;">Sin movimientos de pagos</td>
                 </tr>
@@ -276,6 +298,24 @@
                 <tr class="total-row" style="background-color: #f1f1f1;">
                     <td colspan="2" class="text-right">SUBTOTAL {{ strtoupper($usdtLabel) }}:</td>
                     <td class="text-right">{{ $symbol }} {{ number_format($totalUsdtFull, 4) }}</td>
+                </tr>
+                @endif
+
+                {{-- Total Nequi --}}
+                @if(isset($totalNequiDetails) && count($totalNequiDetails) > 0)
+                <tr><td colspan="3" style="padding-top: 15px;"></td></tr>
+                @php $totalNequiFull = 0; @endphp
+                @foreach($totalNequiDetails as $curr => $amt)
+                    @php $primaryAmt = $convertToPrimary($amt, $curr); $totalNequiFull += $primaryAmt; @endphp
+                    <tr>
+                        <td>TOTAL Nequi ({{ $curr }})</td>
+                        <td class="text-right">{{ number_format($amt, 4) }} {{ $curr }}</td>
+                        <td class="text-right">{{ $symbol }} {{ number_format($primaryAmt, 4) }}</td>
+                    </tr>
+                @endforeach
+                <tr class="total-row" style="background-color: #f1f1f1;">
+                    <td colspan="2" class="text-right">SUBTOTAL NEQUI:</td>
+                    <td class="text-right">{{ $symbol }} {{ number_format($totalNequiFull, 4) }}</td>
                 </tr>
                 @endif
 

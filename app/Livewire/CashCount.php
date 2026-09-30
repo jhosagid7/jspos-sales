@@ -33,6 +33,7 @@ class CashCount extends Component
     public $totalBankDetails = [];
     public $totalZelleDetails = [];
     public $totalUsdtDetails = [];
+    public $totalNequiDetails = [];
     public $showPdfModal = false;
     public $pdfUrl = '';
     public $showDetailedReport = false;
@@ -45,15 +46,23 @@ class CashCount extends Component
         session(['map' => '', 'child' => 'Arqueo de Caja', 'rest' => '', 'pos' => 'Finanzas y Auditoría']);
 
         $this->users = User::orderBy('name')->get();
-        $this->currencies = Currency::orderBy('is_primary', 'desc')->get();
+        $config = \App\Models\Configuration::first();
+        if ($config && !$config->isMulticurrency()) {
+            $this->currencies = Currency::where('is_primary', 1)->get();
+        } else {
+            $this->currencies = Currency::orderBy('is_primary', 'desc')->get();
+        }
     }
 
 
     public function render()
     {
         $this->user = session('cashcount_user', 0);
+        $config = \App\Models\Configuration::first();
 
-        return view('livewire.cash-count');
+        return view('livewire.cash-count', [
+            'isMulticurrency' => $config ? $config->isMulticurrency() : true,
+        ]);
     }
 
 
@@ -133,6 +142,7 @@ class CashCount extends Component
             
             $totalCashDetails = $paymentDetails->where('payment_method', 'cash')->sum('amount_in_primary_currency');
             $totalDepositDetails = $paymentDetails->where('payment_method', 'bank')->sum('amount_in_primary_currency');
+            $totalNequiDetails = $paymentDetails->where('payment_method', 'nequi')->sum('amount_in_primary_currency');
             
             // 3. Process Legacy sales
             $salesWithDetailsIds = $paymentDetails->pluck('sale_id')->unique();
@@ -153,7 +163,7 @@ class CashCount extends Component
 
             $this->totalCash = $totalCashDetails + $totalCashLegacy;
             $this->totalDeposit = $totalDepositDetails + $totalDepositLegacy;
-            $this->totalNequi = 0; 
+            $this->totalNequi = $totalNequiDetails; 
             
             $this->totalCreditSales = $sales->where('type', 'credit')->sum(function($sale) use ($primaryRate) {
                 $saleRate = $sale->primary_exchange_rate ?? $primaryRate;
@@ -174,6 +184,10 @@ class CashCount extends Component
             });
 
             $this->totalPaymentsDeposit = $payments->where('pay_way', 'deposit')->sum(function($p) use ($primaryRate) {
+                return ($p->amount / ($p->exchange_rate ?: 1)) * ($p->primary_exchange_rate ?: $primaryRate);
+            });
+
+            $this->totalPaymentsNequi = $payments->where('pay_way', 'nequi')->sum(function($p) use ($primaryRate) {
                 return ($p->amount / ($p->exchange_rate ?: 1)) * ($p->primary_exchange_rate ?: $primaryRate);
             });
 
@@ -552,6 +566,25 @@ class CashCount extends Component
                     $this->totalUsdtDetails[$sender] = 0;
                 }
                 $this->totalUsdtDetails[$sender] += $amount;
+            }
+        }
+
+        // 5. Total Nequi Breakdown
+        $this->totalNequiDetails = [];
+        if (isset($this->salesByCurrency['nequi'])) {
+            foreach ($this->salesByCurrency['nequi'] as $currency => $amount) {
+                if (!isset($this->totalNequiDetails[$currency])) {
+                    $this->totalNequiDetails[$currency] = 0;
+                }
+                $this->totalNequiDetails[$currency] += $amount;
+            }
+        }
+        if (isset($this->paymentsByCurrency['nequi'])) {
+            foreach ($this->paymentsByCurrency['nequi'] as $currency => $amount) {
+                if (!isset($this->totalNequiDetails[$currency])) {
+                    $this->totalNequiDetails[$currency] = 0;
+                }
+                $this->totalNequiDetails[$currency] += $amount;
             }
         }
     }

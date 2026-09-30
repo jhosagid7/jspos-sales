@@ -820,12 +820,14 @@
                                   @endmodule
                                   @module('module_differential_audit')
                                   @menuAllowed('reports.exchange.diff')
+                                  @if($config && $config->isMulticurrency())
                                   <li class="nav-item">
                                       <a href="{{ route('reports.exchange.diff') }}" class="nav-link {{ Request::is('reports/exchange-diff*') ? 'active' : '' }}">
                                           <i class="far fa-dot-circle nav-icon"></i>
                                           <p>Auditoría de Diferencial</p>
                                       </a>
                                   </li>
+                                  @endif
                                   @endmenuAllowed
                                   @endmodule
                                   @menuAllowed('reports.audit')

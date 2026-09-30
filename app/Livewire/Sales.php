@@ -110,6 +110,7 @@ class Sales extends Component
     public $bankNote;
     public $bankImage;
     public $isVedBankSelected = false;
+    public $isNequiSelected = false;
 
     // Bank Validation Status (Added for Remaining Balance Logic)
     public $bankGlobalAmount; 
@@ -140,6 +141,7 @@ class Sales extends Component
 
     public $invoiceCurrency_id = null;
     public $invoiceExchangeRate = 1;
+    public $isMulticurrency = true;
 
     public $searchSeller = '';
     public $sellers = [];
@@ -197,6 +199,7 @@ class Sales extends Component
     {
         $this->isZelleSelected = false;
         $this->isVedBankSelected = false;
+        $this->isNequiSelected = false;
         
         if($value) {
             $bank = collect($this->banks)->firstWhere('id', $value);
@@ -204,6 +207,12 @@ class Sales extends Component
                 $bName = strtolower($bank->name);
                 if (str_contains($bName, 'zelle') || str_contains($bName, 'usdt') || str_contains($bName, 'binance') || str_contains($bName, 'cripto')) {
                     $this->isZelleSelected = true;
+                }
+                if (str_contains($bName, 'nequi')) {
+                    $this->isNequiSelected = true;
+                    if (!empty($bank->phone)) {
+                        $this->phoneNumber = $bank->phone;
+                    }
                 }
                 if($bank->currency_code === 'VED' || $bank->currency_code === 'VES') {
                     $this->isVedBankSelected = true;
@@ -999,6 +1008,7 @@ class Sales extends Component
         $this->trends = collect();
         $this->config = ConfigurationService::getConfig();
         $this->decimalPlaces = ConfigurationService::getDecimalPlaces();
+        $this->isMulticurrency = $this->config ? $this->config->isMulticurrency() : true;
         
         // Cache permissions to avoid N+1 in loops
         $this->canManageAdjustments = auth()->user()->can('sales.manage_adjustments');
@@ -1084,28 +1094,38 @@ class Sales extends Component
         $this->calculateTotalInPrimaryCurrency();
     
     // Initialize Invoice Currency
-    // Priority: Session > Primary Currency > First Available
-    $sessionCurrencyId = session('invoiceCurrency_id');
-    if ($sessionCurrencyId) {
-        $currency = collect($this->currencies)->firstWhere('id', $sessionCurrencyId);
-        if ($currency) {
-            $this->invoiceCurrency_id = $currency->id;
-            $this->invoiceExchangeRate = $currency->exchange_rate;
-            $this->displayCurrency = $currency;
-        }
-    } 
-    
-    if (!$this->invoiceCurrency_id) {
-        $primary = collect($this->currencies)->firstWhere('is_primary', true);
+    // Single Currency Mode: Lock strictly to Primary Currency
+    if (!$this->isMulticurrency) {
+        $primary = collect($this->currencies)->firstWhere('is_primary', true) ?? $this->currencies->first();
         if ($primary) {
             $this->invoiceCurrency_id = $primary->id;
             $this->invoiceExchangeRate = $primary->exchange_rate;
             $this->displayCurrency = $primary;
-        } elseif ($this->currencies->isNotEmpty()) {
-             $first = $this->currencies->first();
-             $this->invoiceCurrency_id = $first->id;
-             $this->invoiceExchangeRate = $first->exchange_rate;
-             $this->displayCurrency = $first;
+        }
+    } else {
+        // Priority: Session > Primary Currency > First Available
+        $sessionCurrencyId = session('invoiceCurrency_id');
+        if ($sessionCurrencyId) {
+            $currency = collect($this->currencies)->firstWhere('id', $sessionCurrencyId);
+            if ($currency) {
+                $this->invoiceCurrency_id = $currency->id;
+                $this->invoiceExchangeRate = $currency->exchange_rate;
+                $this->displayCurrency = $currency;
+            }
+        } 
+        
+        if (!$this->invoiceCurrency_id) {
+            $primary = collect($this->currencies)->firstWhere('is_primary', true);
+            if ($primary) {
+                $this->invoiceCurrency_id = $primary->id;
+                $this->invoiceExchangeRate = $primary->exchange_rate;
+                $this->displayCurrency = $primary;
+            } elseif ($this->currencies->isNotEmpty()) {
+                 $first = $this->currencies->first();
+                 $this->invoiceCurrency_id = $first->id;
+                 $this->invoiceExchangeRate = $first->exchange_rate;
+                 $this->displayCurrency = $first;
+            }
         }
     }
 
@@ -1296,21 +1316,42 @@ class Sales extends Component
             }
         }
         $orders = $this->getOrdersWithDetails();
+        $isMulticurrency = $this->isMulticurrency;
         return view(
             'livewire.pos.sales',
-            compact('orders')
+            compact('orders', 'isMulticurrency')
         );
     }
 
     public function loadCurrencies()
     {
-        $this->currencies = Currency::orderBy('is_primary', 'desc')->get();
+        $config = $this->config ?? ConfigurationService::getConfig();
+        $this->isMulticurrency = $config ? $config->isMulticurrency() : true;
+
+        if (!$this->isMulticurrency) {
+            $this->currencies = Currency::where('is_primary', true)->get();
+            if ($this->currencies->isEmpty()) {
+                $this->currencies = Currency::take(1)->get();
+            }
+        } else {
+            $this->currencies = Currency::orderBy('is_primary', 'desc')->get();
+        }
+
         Log::info('Monedas cargadas:', $this->currencies->toArray()); // Depuración
         
-        // Solo establecer la moneda principal si paymentCurrency aún no está definido
-        if (empty($this->paymentCurrency)) {
-            $primaryCurrency = $this->currencies->firstWhere('is_primary', true);
+        // Solo establecer la moneda principal si paymentCurrency aún no está definido o en modo moneda única
+        if (empty($this->paymentCurrency) || !$this->isMulticurrency) {
+            $primaryCurrency = $this->currencies->firstWhere('is_primary', true) ?? $this->currencies->first();
             $this->paymentCurrency = $primaryCurrency ? $primaryCurrency->code : null;
+        }
+
+        if (!$this->isMulticurrency) {
+            $primary = $this->currencies->firstWhere('is_primary', true) ?? $this->currencies->first();
+            if ($primary) {
+                $this->invoiceCurrency_id = $primary->id;
+                $this->invoiceExchangeRate = $primary->exchange_rate;
+                $this->displayCurrency = $primary;
+            }
         }
     }
 
@@ -1606,7 +1647,7 @@ class Sales extends Component
                 'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
                 'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
                 'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies',
-                'isSharedTerminal', 'availableOperators'
+                'isSharedTerminal', 'availableOperators', 'isMulticurrency'
             );
             $this->clear();
             session()->forget('sale_customer');
@@ -1664,7 +1705,7 @@ class Sales extends Component
             'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
             'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
             'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies',
-            'isSharedTerminal', 'availableOperators'
+            'isSharedTerminal', 'availableOperators', 'isMulticurrency'
         );
         $this->clear();
         session()->forget('sale_customer');
@@ -3148,7 +3189,7 @@ class Sales extends Component
             'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
             'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
             'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies',
-            'isSharedTerminal', 'availableOperators'
+            'isSharedTerminal', 'availableOperators', 'isMulticurrency'
         );
         $this->clear();
         session()->forget('sale_customer');
@@ -3594,6 +3635,17 @@ class Sales extends Component
              });
              if ($duplicateInSession) { $this->dispatch('noty', msg: 'Esta referencia ya está agregada en esta lista.'); return; }
         
+        } elseif ($this->isNequiSelected) {
+            $this->validate([
+                'bankId' => 'required',
+                'bankAmount' => 'required|numeric|min:0.01',
+                'bankDepositNumber' => 'required|string|min:3|max:30',
+                'phoneNumber' => 'nullable|string|min:7|max:15'
+            ], [
+                'bankDepositNumber.required' => 'El código de comprobante o referencia de Nequi es obligatorio.',
+                'bankDepositNumber.min' => 'El código de referencia debe tener al menos 3 caracteres.',
+                'bankDepositNumber.max' => 'El código de referencia no puede exceder 30 caracteres.',
+            ]);
         } else {
              $this->validate([
                  'bankId' => 'required', 
@@ -3609,6 +3661,8 @@ class Sales extends Component
         $bank = $this->banks->find($this->bankId);
         $currencyCode = $bank ? $bank->currency_code : 'COP';
         $bankName = $bank ? $bank->name : '';
+        $isNequiBank = $this->isNequiSelected || str_contains(strtolower($bankName), 'nequi');
+        $paymentMethod = $isNequiBank ? 'nequi' : 'bank';
         
         $currency = $this->currencies->firstWhere('code', $currencyCode);
         $exchangeRate = $currency ? $currency->exchange_rate : 1;
@@ -3653,7 +3707,7 @@ class Sales extends Component
         $bankImagePath = ($this->isVedBankSelected && $this->bankImage) ? $this->bankImage->store('bank_receipts', 'public') : null;
 
         $newPayment = [
-            'method' => 'bank',
+            'method' => $paymentMethod,
             'amount' => $this->bankAmount,
             'currency' => $currencyCode,
             'symbol' => $symbol,
@@ -3662,8 +3716,9 @@ class Sales extends Component
             'amount_in_primary_currency' => $amountInPrimary, // Compatibility
             'bank_id' => $this->bankId,
             'bank_name' => $bankName,
-            'account_number' => $this->isVedBankSelected ? null : $this->bankAccountNumber,
+            'account_number' => ($this->isVedBankSelected || $isNequiBank) ? null : $this->bankAccountNumber,
             'reference' => $this->isVedBankSelected ? $this->bankReference : $this->bankDepositNumber,
+            'phone_number' => $this->phoneNumber,
             'bank_reference' => $this->bankReference,
             'bank_date' => $this->bankDate,
             'bank_note' => $this->bankNote,
@@ -3700,6 +3755,8 @@ class Sales extends Component
         $this->bankImage = null;
         $this->bankStatusMessage = '';
         $this->isVedBankSelected = false;
+        $this->isNequiSelected = false;
+        $this->phoneNumber = '';
         $this->bankRemainingBalance = null;
     }
     
@@ -4816,7 +4873,7 @@ class Sales extends Component
                 'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
                 'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
                 'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies',
-                'isSharedTerminal', 'availableOperators'
+                'isSharedTerminal', 'availableOperators', 'isMulticurrency'
             );
             $this->clear();
             session()->forget('sale_customer');
@@ -5123,7 +5180,7 @@ class Sales extends Component
                 'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
                 'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
                 'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies',
-                'isSharedTerminal', 'availableOperators'
+                'isSharedTerminal', 'availableOperators', 'isMulticurrency'
             );
             $this->clear();
             session()->forget('sale_customer');

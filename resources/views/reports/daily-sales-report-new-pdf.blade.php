@@ -142,6 +142,12 @@
     </style>
 </head>
 <body>
+@php
+    $isMulticurrency = isset($isMulticurrency) ? $isMulticurrency : ($config ? $config->isMulticurrency() : true);
+    $primaryCurrency = $primaryCurrency ?? (\App\Models\Currency::where('is_primary', true)->first() ?? \App\Models\Currency::first());
+    $primaryCode = $primaryCurrency ? strtoupper($primaryCurrency->code) : 'COP';
+    $primarySymbol = $primaryCurrency ? $primaryCurrency->symbol : '$';
+@endphp
 
     <table class="header">
         <tr>
@@ -170,7 +176,11 @@
             Fecha : {{ \Carbon\Carbon::now()->format('d/m/Y') }}
         @endif
         <br>
-        Moneda de Referencia : Dólares<br>
+        @if($isMulticurrency)
+            Moneda de Referencia : Dólares<br>
+        @else
+            Moneda : {{ $primaryCurrency->name ?? $primaryCode }} ({{ $primaryCode }})<br>
+        @endif
         Operador : {{ strtoupper($user->name ?? 'N/A') }}
     </div>
 
@@ -199,7 +209,7 @@
                             <td class="summary-value">{{ number_format($summary['total_flete'], 4) }}</td>
                         </tr>
                         <tr>
-                            <td class="summary-label">Total Cobrado (Eq. USD) :</td>
+                            <td class="summary-label">Total Cobrado{{ $isMulticurrency ? ' (Eq. USD)' : '' }} :</td>
                             <td class="summary-value">{{ number_format($summary['total_contado'], 4) }}</td>
                         </tr>
                         <tr>
@@ -215,6 +225,7 @@
                 <td width="50%" style="vertical-align: top; padding-left: 15px;">
                     <div style="height: 15px;"></div> {{-- Spacer --}}
                     <table width="100%">
+                        @if($isMulticurrency)
                         <tr>
                             <td class="summary-label">Total VED Pasado a USD :</td>
                             <td class="summary-value">{{ number_format($summary['total_ved'], 4) }}</td>
@@ -223,6 +234,12 @@
                             <td class="summary-label">Total Efectivo USD :</td>
                             <td class="summary-value">{{ number_format($summary['total_divisa'], 4) }}</td>
                         </tr>
+                        @else
+                        <tr>
+                            <td class="summary-label">Total Efectivo :</td>
+                            <td class="summary-value">{{ number_format($summary['total_contado'], 4) }}</td>
+                        </tr>
+                        @endif
                         <tr style="border-top: 1.5pt solid #000;">
                             <td class="summary-label">Total Ingresos Caja :</td>
                             <td class="summary-value">{{ number_format($summary['total_contado'], 4) }}</td>
@@ -242,10 +259,15 @@
                 <th style="width: auto;">Descripción</th>
                 <th style="width: 65px;" class="text-right">Monto Neto</th>
                 <th style="width: 50px;" class="text-right">Impuestos</th>
-                <th style="width: 65px;" class="text-right">Dólares</th>
-                <th style="width: 65px;" class="text-right">Crédito</th>
-                <th style="width: 65px;" class="text-right">Bolívares</th>
-                <th style="width: 65px;" class="text-right">Pesos</th>
+                @if($isMulticurrency)
+                    <th style="width: 65px;" class="text-right">Dólares</th>
+                    <th style="width: 65px;" class="text-right">Crédito</th>
+                    <th style="width: 65px;" class="text-right">Bolívares</th>
+                    <th style="width: 65px;" class="text-right">Pesos</th>
+                @else
+                    <th style="width: 65px;" class="text-right">Pagado</th>
+                    <th style="width: 65px;" class="text-right">Crédito</th>
+                @endif
             </tr>
         </thead>
         <tbody>
@@ -260,7 +282,7 @@
             @foreach ($data as $key => $groupData)
                 @if($groupBy != 'none')
                     <tr>
-                        <td colspan="8" class="customer-header">
+                        <td colspan="{{ $isMulticurrency ? 8 : 6 }}" class="customer-header">
                             {{ strtoupper($groupData['name']) }}
                         </td>
                     </tr>
@@ -352,10 +374,12 @@
                         <td>
                             {{ $sale->invoice_number ?? $sale->id }}
                             <br>
-                            @if($sale->payment_agreement == 'BCV')
-                                <span style="background-color: #17a2b8; color: white; padding: 1px 4px; border-radius: 3px; font-size: 6pt; font-weight: bold; display: inline-block; margin-top: 2px;">Bs.</span>
-                            @else
-                                <span style="background-color: #28a745; color: white; padding: 1px 4px; border-radius: 3px; font-size: 6pt; font-weight: bold; display: inline-block; margin-top: 2px;">USD</span>
+                            @if($isMulticurrency)
+                                @if($sale->payment_agreement == 'BCV')
+                                    <span style="background-color: #17a2b8; color: white; padding: 1px 4px; border-radius: 3px; font-size: 6pt; font-weight: bold; display: inline-block; margin-top: 2px;">Bs.</span>
+                                @else
+                                    <span style="background-color: #28a745; color: white; padding: 1px 4px; border-radius: 3px; font-size: 6pt; font-weight: bold; display: inline-block; margin-top: 2px;">USD</span>
+                                @endif
                             @endif
                         </td>
                         <td style="white-space: normal;">
@@ -368,7 +392,11 @@
                                         $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
                                         $amtUSD = $payment->amount / $rate;
                                         $cashInRow += $amtUSD;
-                                        $cashBreakdown[] = "(Tasa: " . number_format($rate, 4) . " | (" . number_format($payment->amount, 4) . " {$payment->currency_code}) = $" . number_format($amtUSD, 4) . ")";
+                                        if ($isMulticurrency) {
+                                            $cashBreakdown[] = "(Tasa: " . number_format($rate, 4) . " | (" . number_format($payment->amount, 4) . " {$payment->currency_code}) = $" . number_format($amtUSD, 4) . ")";
+                                        } else {
+                                            $cashBreakdown[] = $primarySymbol . number_format($payment->amount, 4);
+                                        }
                                     }
                                 }
                                 // Fallback for legacy cash sales
@@ -377,7 +405,11 @@
                                     $netAmt = $sale->cash - $sale->change;
                                     $equivUSD = $netAmt / $rate;
                                     $cashInRow = $equivUSD;
-                                    $cashBreakdown[] = "(Tasa: " . number_format($rate, 4) . " | (" . number_format($netAmt, 4) . " " . ($sale->primary_currency_code ?? 'USD') . ") = $" . number_format($equivUSD, 4) . ")";
+                                    if ($isMulticurrency) {
+                                        $cashBreakdown[] = "(Tasa: " . number_format($rate, 4) . " | (" . number_format($netAmt, 4) . " " . ($sale->primary_currency_code ?? 'USD') . ") = $" . number_format($equivUSD, 4) . ")";
+                                    } else {
+                                        $cashBreakdown[] = $primarySymbol . number_format($netAmt, 4);
+                                    }
                                 }
                             @endphp
 
@@ -387,12 +419,16 @@
                                     $cashDate = \Carbon\Carbon::parse($firstCashPay->created_at ?? $sale->created_at)->format('d/m/Y');
                                 @endphp
                                 <div class="pay-info" style="display: block; border-left: 2px solid #28a745; padding-left: 3px; margin-top: 1px;">
-                                    CASH [F. Registro: {{ $cashDate }}] [{{ implode(', ', $cashBreakdown) }}] = <span style="font-weight: bold;">[${{ number_format($cashInRow, 4) }}]</span>
+                                    @if($isMulticurrency)
+                                        CASH [F. Registro: {{ $cashDate }}] [{{ implode(', ', $cashBreakdown) }}] = <span style="font-weight: bold;">[${{ number_format($cashInRow, 4) }}]</span>
+                                    @else
+                                        CASH [F. Registro: {{ $cashDate }}]: <span style="font-weight: bold;">[{{ $primarySymbol }}{{ number_format($cashInRow, 4) }}]</span>
+                                    @endif
                                 </div>
                             @endif
 
                             @foreach($sale->paymentDetails as $payment)
-                                @if(in_array($payment->payment_method, ['bank', 'zelle', 'usdt', 'deposit']))
+                                @if(in_array($payment->payment_method, ['bank', 'zelle', 'usdt', 'deposit', 'nequi']))
                                      @php
                                          $rate = $payment->exchange_rate > 0 ? $payment->exchange_rate : 1;
                                          $usdEquiv = $payment->amount / $rate;
@@ -404,6 +440,10 @@
                                          } elseif ($payment->payment_method == 'usdt') {
                                              $vDate = \Carbon\Carbon::parse($payment->usdtRecord->usdt_date ?? $payment->created_at)->format('d/m/Y');
                                              $methodLabel = 'USDT BINANCE';
+                                         } elseif ($payment->payment_method == 'nequi') {
+                                             $vDate = \Carbon\Carbon::parse($payment->created_at)->format('d/m/Y');
+                                             $phoneStr = $payment->phone_number ? " ({$payment->phone_number})" : "";
+                                             $methodLabel = 'Nequi' . $phoneStr;
                                          } else {
                                              $vDate = \Carbon\Carbon::parse($payment->bankRecord->payment_date ?? $payment->created_at)->format('d/m/Y');
                                              $methodLabel = $payment->bank_name ?? 'Banco';
@@ -411,10 +451,14 @@
                                      @endphp
                                      <div class="pay-info" style="display: block; border-left: 2px solid #ddd; padding-left: 3px; margin-top: 1px;">
                                          {{ $methodLabel }}: {{ $payment->reference_number }} [F. Voucher: {{ $vDate }}]
-                                         <span style="color: #888;">(Tasa: {{ number_format($payment->exchange_rate, 4) }})</span> 
-                                         <span style="font-weight: bold;">[${{ number_format($usdEquiv, 4) }}]</span>
-                                         @if($payment->exchange_rate > 1)
-                                            <span style="font-weight: bold; color: #000;">[Bs. {{ number_format($usdEquiv * $payment->exchange_rate, 2) }}]</span>
+                                         @if($isMulticurrency)
+                                             <span style="color: #888;">(Tasa: {{ number_format($payment->exchange_rate, 4) }})</span> 
+                                             <span style="font-weight: bold;">[${{ number_format($usdEquiv, 4) }}]</span>
+                                             @if($payment->exchange_rate > 1)
+                                                <span style="font-weight: bold; color: #000;">[Bs. {{ number_format($usdEquiv * $payment->exchange_rate, 2) }}]</span>
+                                             @endif
+                                         @else
+                                             <span style="font-weight: bold;">[{{ $primarySymbol }}{{ number_format($payment->amount, 4) }}]</span>
                                          @endif
                                      </div>
                                 @endif
@@ -422,10 +466,15 @@
                         </td>
                         <td class="text-right">{{ number_format($netSaleUSD, 4) }}</td>
                         <td class="text-right">0.0000</td>
-                        <td class="text-right">{{ number_format($divisaPaid, 4) }}</td>
-                        <td class="text-right">{{ $creditUSD > 0.0001 ? number_format($creditUSD, 4) : '0.0000' }}</td>
-                        <td class="text-right">{{ number_format($vedPaid, 4) }}</td>
-                        <td class="text-right">{{ number_format($copPaid, 4) }}</td>
+                        @if($isMulticurrency)
+                            <td class="text-right">{{ number_format($divisaPaid, 4) }}</td>
+                            <td class="text-right">{{ $creditUSD > 0.0001 ? number_format($creditUSD, 4) : '0.0000' }}</td>
+                            <td class="text-right">{{ number_format($vedPaid, 4) }}</td>
+                            <td class="text-right">{{ number_format($copPaid, 4) }}</td>
+                        @else
+                            <td class="text-right">{{ number_format($paidToday, 4) }}</td>
+                            <td class="text-right">{{ $creditUSD > 0.0001 ? number_format($creditUSD, 4) : '0.0000' }}</td>
+                        @endif
                     </tr>
                 @endforeach
             @endforeach
@@ -435,10 +484,15 @@
                 <td colspan="2" class="text-right">TOTALES:</td>
                 <td class="text-right">{{ number_format($grandTotalNeto, 4) }}</td>
                 <td class="text-right">0.0000</td>
-                <td class="text-right">{{ number_format($grandTotalDivisa, 4) }}</td>
-                <td class="text-right">{{ number_format($grandTotalCredit, 4) }}</td>
-                <td class="text-right">{{ number_format($grandRawVed, 4) }}</td>
-                <td class="text-right">{{ number_format($grandRawCop, 4) }}</td>
+                @if($isMulticurrency)
+                    <td class="text-right">{{ number_format($grandTotalDivisa, 4) }}</td>
+                    <td class="text-right">{{ number_format($grandTotalCredit, 4) }}</td>
+                    <td class="text-right">{{ number_format($grandRawVed, 4) }}</td>
+                    <td class="text-right">{{ number_format($grandRawCop, 4) }}</td>
+                @else
+                    <td class="text-right">{{ number_format($grandTotalPaid, 4) }}</td>
+                    <td class="text-right">{{ number_format($grandTotalCredit, 4) }}</td>
+                @endif
             </tr>
         </tfoot>
     </table>
@@ -451,7 +505,7 @@
                 <th>Fecha</th>
                 <th>NC Número</th>
                 <th>Factura Orig.</th>
-                <th>Monto (USD)</th>
+                <th>Monto{{ $isMulticurrency ? ' (USD)' : ' (' . $primaryCode . ')' }}</th>
                 <th>Método</th>
                 <th>Afecta Caja</th>
                 <th>Solicitante</th>
@@ -509,7 +563,7 @@
                 <th>Fecha Elim.</th>
                 <th>Documento</th>
                 <th>Cliente</th>
-                <th>Monto (USD)</th>
+                <th>Monto{{ $isMulticurrency ? ' (USD)' : ' (' . $primaryCode . ')' }}</th>
                 <th>Solicitado por</th>
                 <th>Aprobado por</th>
                 <th>Motivo de Eliminación</th>
@@ -619,11 +673,11 @@
             {{-- Column 2: Details by Currency --}}
             <td style="width: 23%; vertical-align: top; padding-left: 10px; padding-right: 10px;">
                 <div class="currency-header">
-                    Arqueo Físico por Moneda
+                    {{ $isMulticurrency ? 'Arqueo Físico por Moneda' : 'Arqueo Físico' }}
                 </div>
                 <table style="width: 100%; font-size: 8pt;">
                     @foreach($totalsByCurrencyPhys as $currCode => $amount)
-                        @if(abs($amount) > 0.0001)
+                        @if(abs($amount) > 0.0001 && (!$isMulticurrency ? ($currCode == $primaryCode) : true))
                         <tr>
                             <td style="font-weight: bold;">Total {{ $currCode }}:</td>
                             <td class="text-right">{{ number_format($amount, 2) }}</td>

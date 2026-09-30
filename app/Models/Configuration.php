@@ -120,9 +120,11 @@ class Configuration extends Model
         'custom_labels',
         'gemini_api_key',
         'ai_settings',
+        'multicurrency_enabled',
     ];
 
     protected $casts = [
+        'multicurrency_enabled' => 'boolean',
         'ai_settings' => 'array',
         'custom_labels' => 'array',
         'pdf_settings' => 'array',
@@ -464,5 +466,10 @@ class Configuration extends Model
         }
 
         return $default ?? $key;
+    }
+
+    public function isMulticurrency(): bool
+    {
+        return (bool) ($this->multicurrency_enabled ?? true);
     }
 }

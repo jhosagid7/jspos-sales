@@ -219,11 +219,12 @@
                                     {{-- CASH --}}
                                     @if($paymentMethod === 'cash')
                                         <div class="row g-3">
-                                            <div class="col-md-6">
+                                            <div class="{{ $multicurrencyEnabled ? 'col-md-6' : 'col-md-12' }}">
                                                 <label class="form-label">Monto</label>
                                                 <input class="form-control" type="number" wire:model="amount" placeholder="0.00" wire:keydown.enter="addPayment">
                                                 @error('amount') <span class="text-danger small">{{ $message }}</span> @enderror
                                             </div>
+                                            @if($multicurrencyEnabled)
                                             <div class="col-md-6">
                                                 <label class="form-label">Moneda</label>
                                                 <select class="form-control" wire:model.live="paymentCurrency">
@@ -232,6 +233,7 @@
                                                     @endforeach
                                                 </select>
                                             </div>
+                                            @endif
 
                                             <div class="col-md-12">
                                                 <label class="form-label">Fecha de Pago</label>
@@ -836,6 +838,38 @@
                                                         <i class="fa fa-plus-circle me-2"></i>Agregar Pago Detallado
                                                     </button>
                                                 </div>
+                                            @elseif($isNequiSelected)
+                                                {{-- NEQUI FIELDS --}}
+                                                <div class="col-12">
+                                                    <div class="alert py-2 mb-0" style="background-color: #fdf0f7; border: 1px solid #ff007a; color: #ff007a;">
+                                                        <small><i class="fa fa-mobile-alt me-1"></i> <strong>Pago con Nequi:</strong> Ingrese el número de celular del cliente o comercio y el código de comprobante.</small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <label class="form-label">Fecha de Pago</label>
+                                                    <input type="date" class="form-control" wire:model.live="paymentDate">
+                                                    @error('paymentDate') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Monto (COP) <span class="text-danger">*</span></label>
+                                                    <input class="form-control" type="number" wire:model="amount" placeholder="0.00" wire:keydown.enter="addPayment">
+                                                    @error('amount') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">N° de Celular Nequi</label>
+                                                    <input class="form-control" type="text" wire:model="phoneNumber" placeholder="Ej: 3123456789">
+                                                    @error('phoneNumber') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                </div>
+                                                <div class="col-12">
+                                                    <label class="form-label">Comprobante / Referencia Nequi <span class="text-danger">*</span></label>
+                                                    <input class="form-control" type="text" wire:model="depositNumber" placeholder="Ej: M1234567 o N° de Aprobación">
+                                                    @error('depositNumber') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                </div>
+                                                <div class="col-12">
+                                                    <button class="btn w-100 text-white" style="background-color: #ff007a; border-color: #ff007a;" wire:click="addPayment" type="button">
+                                                        <i class="fa fa-plus-circle me-2"></i>Agregar Pago Nequi
+                                                    </button>
+                                                </div>
                                             @else
                                                 {{-- STANDARD BANK FIELDS --}}
                                                 <div class="col-md-12">
@@ -895,11 +929,13 @@
                                             <div class="col-md-6">
                                                 <label class="form-label">Monto del Ajuste</label>
                                                 <div class="input-group">
+                                                    @if($multicurrencyEnabled)
                                                     <select class="form-select" style="max-width: 100px;" wire:model.live="paymentCurrency">
                                                         @foreach($currencies as $curr)
                                                             <option value="{{ $curr->code }}">{{ $curr->code }}</option>
                                                         @endforeach
                                                     </select>
+                                                    @endif
                                                     <input class="form-control" type="number" step="0.01" wire:model="manualCreditAmount" placeholder="0.00" wire:keydown.enter="addCreditNote">
                                                 </div>
                                                 @error('manualCreditAmount') <span class="text-danger small">{{ $message }}</span> @enderror
@@ -926,11 +962,13 @@
                                             <div class="col-md-6">
                                                 <label class="form-label">Monto del Incremento</label>
                                                 <div class="input-group">
+                                                    @if($multicurrencyEnabled)
                                                     <select class="form-select" style="max-width: 100px;" wire:model.live="paymentCurrency">
                                                         @foreach($currencies as $curr)
                                                             <option value="{{ $curr->code }}">{{ $curr->code }}</option>
                                                         @endforeach
                                                     </select>
+                                                    @endif
                                                     <input class="form-control" type="number" step="0.01" wire:model="manualDebitAmount" placeholder="0.00" wire:keydown.enter="addDebitNote">
                                                 </div>
                                                 @error('manualDebitAmount') <span class="text-danger small">{{ $message }}</span> @enderror
@@ -972,10 +1010,15 @@
                                                 @foreach($payments as $index => $p)
                                                     <tr>
                                                         <td>
-                                                            <span class="badge {{ $p['method'] == 'credit_note' ? 'bg-warning text-dark' : ($p['method'] == 'wallet' ? 'bg-warning' : ($p['method'] == 'usdt' ? 'bg-success' : 'bg-secondary')) }}">
-                                                                {{ $p['method'] == 'credit_note' ? 'AJUSTE / NC' : ($p['method'] == 'wallet' ? 'BILLETERA' : ($p['method'] == 'usdt' ? 'USDT ($)' : strtoupper($p['method']))) }}
+                                                            <span class="badge {{ $p['method'] == 'credit_note' ? 'bg-warning text-dark' : ($p['method'] == 'wallet' ? 'bg-warning' : ($p['method'] == 'usdt' ? 'bg-success' : ($p['method'] == 'nequi' ? 'text-white' : 'bg-secondary'))) }}" style="{{ $p['method'] == 'nequi' ? 'background-color: #ff007a !important;' : '' }}">
+                                                                {{ $p['method'] == 'credit_note' ? 'AJUSTE / NC' : ($p['method'] == 'wallet' ? 'BILLETERA' : ($p['method'] == 'usdt' ? 'USDT ($)' : ($p['method'] == 'nequi' ? 'NEQUI' : strtoupper($p['method'])))) }}
                                                             </span>
                                                             @if($p['method'] == 'bank') <br><small>{{ $p['bank_name'] }}</small> @endif
+                                                            @if($p['method'] == 'nequi')
+                                                                <br><small>{{ $p['bank_name'] ?? 'Nequi' }}</small>
+                                                                @if(!empty($p['phone'])) <br><small><i class="fa fa-phone"></i> {{ $p['phone'] }}</small> @endif
+                                                                @if(!empty($p['reference'])) <br><small>Ref: {{ $p['reference'] }}</small> @endif
+                                                            @endif
                                                             @if($p['method'] == 'zelle') 
                                                                 <br><small>Zelle: {{ $p['zelle_sender'] }}</small>
                                                                 @if(isset($p['zelle_file_url']) && $p['zelle_file_url'])
@@ -1049,6 +1092,7 @@
 
                             {{-- Change --}}
                             @if($change > 0)
+                                @if($multicurrencyEnabled)
                                 <div class="card">
                                     <div class="card-header bg-warning bg-opacity-10">
                                         <h6 class="mb-0 text-dark"><i class="fa fa-exchange-alt me-2"></i>Vuelto: {{ $symbol }}{{ number_format($change, 2) }}</h6>
@@ -1081,6 +1125,14 @@
                                         </ul>
                                     </div>
                                 </div>
+                                @else
+                                <div class="card border-warning bg-warning bg-opacity-10 shadow-sm">
+                                    <div class="card-body p-3 text-center">
+                                        <span class="text-muted small text-uppercase font-weight-bold d-block mb-1">Vuelto a Entregar ({{ $currencyCode }})</span>
+                                        <h4 class="mb-0 fw-bold text-dark">{{ $symbol }}{{ number_format($change, 0) }}</h4>
+                                    </div>
+                                </div>
+                                @endif
                             @endif
                         </div>
                     </div>

@@ -39,16 +39,28 @@ class DailySalesReport extends Component
 
         $this->users = User::orderBy('name')->get();
         $this->sellers = User::sellers()->orderBy('name')->get();
-        $this->currencies = \App\Models\Currency::orderBy('id')->get();
+        
+        $config = \App\Models\Configuration::first();
+        if ($config && !$config->isMulticurrency()) {
+            $this->currencies = \App\Models\Currency::where('is_primary', 1)->get();
+        } else {
+            $this->currencies = \App\Models\Currency::orderBy('id')->get();
+        }
     }
 
     public function render()
     {
         $this->customer = session('daily_sale_customer', null);
         $sales = $this->getReport();
+        $config = \App\Models\Configuration::first();
+        $isMulti = $config ? $config->isMulticurrency() : true;
+        $primary = \App\Models\Currency::where('is_primary', 1)->first();
+        $primaryCode = $primary ? $primary->code : 'COP';
 
         return view('livewire.reports.daily-sales-report', [
-            'sales' => $sales ?? []
+            'sales' => $sales ?? [],
+            'isMulticurrency' => $isMulti,
+            'primaryCode' => $primaryCode,
         ]);
     }
 
@@ -308,11 +320,25 @@ class DailySalesReport extends Component
             }
         }
 
+        $config = \App\Models\Configuration::first();
+        $isMulticurrency = $config ? $config->isMulticurrency() : true;
+        $primaryCurrency = \App\Models\Currency::where('is_primary', 1)->first() ?? \App\Models\Currency::first();
+        $primaryCode = $primaryCurrency ? strtoupper($primaryCurrency->code) : 'COP';
+
         $banks = \App\Models\Bank::all();
         $totalsByCategory = [];
-        foreach($this->currencies as $c) { $totalsByCategory["EFECTIVO " . strtoupper($c->code)] = 0; }
-        foreach($banks as $b) { $totalsByCategory[strtoupper($b->name)] = 0; }
-        $totalsByCategory['ZELLE'] = 0;
+        if (!$isMulticurrency) {
+            $totalsByCategory["EFECTIVO {$primaryCode}"] = 0;
+            foreach ($banks as $b) {
+                if ($b->currency_code === $primaryCode) {
+                    $totalsByCategory[strtoupper($b->name)] = 0;
+                }
+            }
+        } else {
+            foreach($this->currencies as $c) { $totalsByCategory["EFECTIVO " . strtoupper($c->code)] = 0; }
+            foreach($banks as $b) { $totalsByCategory[strtoupper($b->name)] = 0; }
+            $totalsByCategory['ZELLE'] = 0;
+        }
         $totalsByCurrency = [];
         foreach($this->currencies as $c) { $totalsByCurrency[$c->code] = 0; }
 
@@ -406,6 +432,9 @@ class DailySalesReport extends Component
                     $salePaidUSD += $amtUSD;
                     if ($payment->payment_method == 'bank' || $payment->payment_method == 'deposit') {
                         $bankName = $payment->bank_name ?? 'BANCO';
+                        $totalsByCategory[$bankName] = ($totalsByCategory[$bankName] ?? 0) + $amtUSD;
+                    } elseif ($payment->payment_method == 'nequi') {
+                        $bankName = $payment->bank_name ?? 'NEQUI';
                         $totalsByCategory[$bankName] = ($totalsByCategory[$bankName] ?? 0) + $amtUSD;
                     } elseif ($payment->payment_method == 'zelle') {
                         $totalsByCategory['ZELLE'] = ($totalsByCategory['ZELLE'] ?? 0) + $amtUSD;
@@ -530,7 +559,9 @@ class DailySalesReport extends Component
             'user' => $user,
             'dateFrom' => $this->dateFrom,
             'dateTo' => $this->dateTo,
-            'groupBy' => $this->groupBy
+            'groupBy' => $this->groupBy,
+            'isMulticurrency' => $isMulticurrency,
+            'primaryCurrency' => $primaryCurrency,
         ])->setPaper('a4', 'landscape');
 
 

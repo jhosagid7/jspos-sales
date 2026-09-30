@@ -606,6 +606,47 @@
                         <div class="tab-pane fade {{ $tab == 3 ? 'active show' : '' }}" id="currencies-settings" role="tabpanel"
                             aria-labelledby="currencies-settings-tab">
                             <div class="sidebar-body">
+
+                                {{-- Super Admin Only: Modo Moneda Única vs Multimoneda --}}
+                                @role('Super Admin')
+                                <div class="card mb-4 border-{{ $multicurrencyEnabled ? 'primary' : 'success' }} shadow-sm">
+                                    <div class="card-header bg-{{ $multicurrencyEnabled ? 'primary' : 'success' }} text-white d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-0 text-white font-weight-bold">
+                                                <i class="fa fa-shield-alt me-2"></i> Configuración de Moneda del Sistema (Exclusivo Super Admin)
+                                            </h6>
+                                            <small class="text-white-50">Define si el sistema opera con moneda única local o multimoneda internacional</small>
+                                        </div>
+                                        <span class="badge bg-white text-{{ $multicurrencyEnabled ? 'primary' : 'success' }} font-weight-bold px-3 py-2">
+                                            {{ $multicurrencyEnabled ? 'MODO MULTIMONEDA' : 'MODO MONEDA ÚNICA' }}
+                                        </span>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                                            <div>
+                                                <h6 class="fw-bold mb-1">
+                                                    {{ $multicurrencyEnabled ? 'Modo Multimoneda (USD, Bolívares, Tasas y Vueltos Mixtos)' : 'Modo Moneda Única (Operación 100% Moneda Local, ej. Colombia COP)' }}
+                                                </h6>
+                                                <p class="text-muted mb-0 small" style="max-width: 650px;">
+                                                    @if($multicurrencyEnabled)
+                                                        El sistema permite recibir múltiples monedas, registrar tasas de cambio del día, conversiones en tiempo real y desgloses cambiarios en reportes y tickets.
+                                                    @else
+                                                        El sistema opera exclusivamente en la <strong>Moneda Principal</strong>. Oculta selectores de moneda foránea, tasas de cambio y conversiones en Cobros, POS, Tickets y Reportes.
+                                                    @endif
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <button type="button" wire:click="toggleMulticurrencyMode" class="btn btn-{{ $multicurrencyEnabled ? 'outline-success' : 'outline-primary' }} fw-bold">
+                                                    <i class="fa fa-exchange-alt me-1"></i>
+                                                    Cambiar a {{ $multicurrencyEnabled ? 'Modo Moneda Única' : 'Modo Multimoneda' }}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                @endrole
+
+                                @if($multicurrencyEnabled)
                                 {{-- Global Rates Section --}}
                                 <div class="card bg-light border-0 mb-4">
                                     <div class="card-body">
@@ -657,6 +698,15 @@
                                         </small>
                                     </div>
                                 </div>
+                                @else
+                                <div class="alert alert-info d-flex align-items-center mb-4">
+                                    <i class="fa fa-info-circle fa-2x me-3"></i>
+                                    <div>
+                                        <strong>Modo Moneda Única Activo:</strong> El sistema está configurado para operar exclusivamente con la moneda principal. Las tasas cambiarias de referencia (BCV/Binance) y conversiones están desactivadas.
+                                    </div>
+                                </div>
+                                @endif
+
                                 <div class="row g-3">
                                     <div class="col-12">
                                         <h6 class="mb-3">Moneda Principal</h6>
@@ -678,6 +728,7 @@
                                         </div>
                                     </div>
 
+                                    @if($multicurrencyEnabled)
                                     <div class="col-12">
                                         <hr>
                                         <h6 class="mb-3">Agregar Moneda Secundaria</h6>
@@ -699,9 +750,13 @@
                                             </div>
                                         </div>
                                     </div>
+                                    @endif
 
                                     <div class="col-12">
                                         <h6 class="mb-3 mt-3">Monedas Configuradas</h6>
+                                        @if(!$multicurrencyEnabled)
+                                            <small class="text-muted d-block mb-2"><i class="fa fa-lock me-1"></i> En Modo Moneda Única solo se procesan transacciones con la moneda principal.</small>
+                                        @endif
                                         <div class="table-responsive">
                                                     <table class="table table-bordered">
                                                 <thead class="bg-light">

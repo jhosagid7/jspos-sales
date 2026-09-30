@@ -1,3 +1,46 @@
+## [1.10.452] - 2026-09-30
+
+### Added & Enhanced (Soporte Nativo Nequi para Colombia en Flujo de Bancos)
+- **Integración de Nequi en Módulo de Bancos**:
+  - `PaymentComponent.php` & `Sales.php`: Detección automática al seleccionar una cuenta bancaria con nombre "Nequi".
+  - Mutación dinámica del formulario a interfaz Nequi con identidad magenta (`#ff007a`), campo de celular pre-llenado desde la configuración del banco y campo para código de comprobante.
+  - Validación flexible del comprobante Nequi (`min:3|max:30`) permitiendo referencias alfanuméricas (ej. `M0849201`) o números variables de comprobante sin la restricción rígida de 5 dígitos de bancos tradicionales.
+  - Registro de pagos con `payment_method = 'nequi'`, guardando número de teléfono y referencia sin modificar esquemas de base de datos.
+  - Badge distintivo `NEQUI` en tablas de pagos agregados tanto en POS como en cobros de crédito.
+- **Arqueo y Corte de Caja (`CashCount.php` & `cash-count.blade.php`)**:
+  - Cálculo de recaudación Nequi en ventas del día y en cobros de crédito recibidos.
+  - Tarjetas personalizadas de Nequi en la vista de Arqueo (Ventas del Día, Pagos de Crédito y Resumen Total).
+  - Ocultamiento de métodos no utilizados (Zelle, USDT) en modo moneda única.
+- **Impresión Térmica ESC/POS (`PrintTrait.php`)**:
+  - `printCashCount`: Incorporado el desglose de Nequi en Ventas del Día, Cobros de Crédito y línea consolidada en Resumen Total.
+  - `printPayment`: Identificación de cobros Nequi con titular, celular y comprobante.
+  - `printSale`: Soporte de `FORMA DE PAGO: NEQUI`.
+- **Reportes PDF (`ReportController.php`, `daily-sales-report-new-pdf.blade.php`, `cash-count-pdf.blade.php`)**:
+  - Inclusión de Nequi en el Reporte Diario de Ventas, Relación de Cobros a Clientes y Corte de Caja Estándar y Detallado.
+
+## [1.10.451] - 2026-09-29
+
+### Added & Enhanced (Modo Moneda Única vs Multimoneda - Exclusivo Super Admin)
+- **Modo Global de Moneda del Sistema**:
+  - `configurations`: Nueva columna `multicurrency_enabled` (boolean, por defecto `true`) para alternar entre Modo Moneda Única (operación local 100% en Pesos COP u otra divisa base) y Modo Multimoneda (operación con múltiples monedas, tasas de cambio y conversiones en tiempo real).
+  - `Configuration.php`: Agregado helper `isMulticurrency()` y casts para consulta en toda la aplicación.
+- **Panel de Ajustes Protegido (`Settings.php` & `settings.blade.php`)**:
+  - Nuevo panel de control en la pestaña de Monedas restringido exclusivamente al rol **`Super Admin`** (`@role('Super Admin')`), impidiendo que cajeros o administradores alteren el modelo de operación.
+  - En **Modo Moneda Única**, se ocultan las secciones de tasas de cambio de referencia (BCV / Binance), márgenes y el formulario de monedas secundarias, manteniendo solo la moneda principal activa.
+- **Componente de Pagos Limpio y Ágil (`PaymentComponent.php` & `payment-component.blade.php`)**:
+  - En **Modo Moneda Única**, se ocultan los dropdowns de selección de moneda en Efectivo, Notas de Crédito y Notas de Débito, asignando automáticamente la moneda principal.
+  - En bancos, se filtran automáticamente las cuentas bancarias para mostrar únicamente las correspondientes a la moneda principal (ej. Bancolombia, Nequi, Daviplata en Colombia).
+  - Vueltos en efectivo: se elimina el distribuidor complejo de divisas y se muestra un recuadro limpio con el vuelto exacto a entregar en la moneda del negocio.
+- **Interfaz de Ventas POS (`Sales.php` & `sales.blade.php`)**:
+  - En **Modo Moneda Única**, se oculta por completo el bloque "Moneda Factura / Ticket:" con su dropdown y la insignia de tasa de cambio (ej. "Tasa: 4,000.0000").
+  - La moneda de facturación queda bloqueada automáticamente en la moneda principal del negocio (COP) con tasa efectiva 1.0, eliminando conversiones visuales innecesarias para clientes de un solo país.
+- **Reporte PDF de Ventas Diarias (`daily-sales-report-new-pdf.blade.php`, `ReportController.php`, `DailySalesReport.php`)**:
+  - Encabezado: sustituido el texto fijo "Moneda de Referencia: Dólares" por la moneda configurada del sistema (ej. "Moneda: Peso (COP)").
+  - Cierre de Operaciones: eliminada la métrica "Total VED Pasado a USD" y renombrado "Total Cobrado (Eq. USD)" a "Total Cobrado" y "Total Efectivo USD" a "Total Efectivo".
+  - Tabla de Transacciones: se eliminan las columnas de monedas extranjeras (`Dólares`, `Bolívares`, `Pesos`), sustituyéndolas por una estructura limpia `Pagado | Crédito`.
+  - Detalles de Pago: se suprimen las fórmulas de conversión de tasa cambiaria (ej. `[(Tasa: 1.0000 | (7.0000 USD) = $7.0000)] = [$7.0000]`), mostrando únicamente el método y el importe directo en la moneda del negocio.
+  - Secciones inferiores de Desglose y Arqueo: filtradas las cuentas y monedas físicas para mostrar únicamente las correspondientes a la moneda principal activa.
+
 ## [1.10.450] - 2026-09-26
 
 ### Added & Enhanced (Respaldos Cloud Continuos y Auto-Actualización para Clientes Existentes)

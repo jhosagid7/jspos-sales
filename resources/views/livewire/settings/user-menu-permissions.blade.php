@@ -118,7 +118,7 @@
                     </div>
                 @else
                     @foreach($groupedCatalog as $category => $items)
-                        <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px; overflow: hidden;">
+                        <div wire:key="user-{{ $selectedUserId }}-cat-{{ \Illuminate\Support\Str::slug($category) }}" class="card shadow-sm border-0 mb-4" style="border-radius: 12px; overflow: hidden;">
                             <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
                                 <div class="d-flex align-items-center gap-2">
                                     <i class="fas fa-folder-open text-primary fs-5"></i>
@@ -144,23 +144,23 @@
                                         @php
                                             $isAllowed = in_array($item['key'], $allowedMenus);
                                         @endphp
-                                        <div class="col-xl-4 col-lg-6 col-md-6 col-12 mb-2">
+                                        <div wire:key="user-{{ $selectedUserId }}-card-{{ $item['key'] }}" class="col-xl-4 col-lg-6 col-md-6 col-12 mb-2">
                                             <div 
                                                 wire:click="toggleMenu('{{ $item['key'] }}')" 
                                                 class="menu-perm-card d-flex align-items-center p-2 rounded border h-100 cursor-pointer transition {{ $isAllowed ? 'border-primary bg-light' : 'bg-white opacity-75' }}"
                                                 style="cursor: pointer; user-select: none; border-width: {{ $isAllowed ? '2px' : '1px' }} !important;"
                                             >
                                                 <!-- Switch / Checkbox visual -->
-                                                <div class="form-check form-switch me-2 ms-1">
+                                                <div class="form-check form-switch me-2 ms-1" style="pointer-events: none;">
                                                     <input 
+                                                        wire:key="user-{{ $selectedUserId }}-switch-{{ $item['key'] }}"
                                                         class="form-check-input" 
                                                         type="checkbox" 
                                                         role="switch" 
-                                                        id="switch_{{ $item['key'] }}" 
+                                                        id="switch_{{ $selectedUserId }}_{{ $item['key'] }}" 
                                                         {{ $isAllowed ? 'checked' : '' }}
                                                         style="cursor: pointer;"
-                                                        onclick="event.stopPropagation();"
-                                                        wire:click="toggleMenu('{{ $item['key'] }}')"
+                                                        readonly
                                                     >
                                                 </div>
 
@@ -177,7 +177,7 @@
                                                     <div class="text-muted small text-truncate d-flex align-items-center gap-1" style="font-size: 0.72rem;">
                                                         <code>{{ $item['route'] }}</code>
                                                         @if(!empty($item['module']))
-                                                            <span class="badge badge-light text-secondary border px-1" style="font-size: 0.65rem;">{{ $item['module'] }}</span>
+                                                             <span class="badge badge-light text-secondary border px-1" style="font-size: 0.65rem;">{{ $item['module'] }}</span>
                                                         @endif
                                                     </div>
                                                 </div>

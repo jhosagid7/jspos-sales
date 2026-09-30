@@ -87,6 +87,7 @@ class User extends Authenticatable
         'work_days_per_week' => 'integer',
         'pay_partial_packages' => 'boolean',
         'is_shared_terminal' => 'boolean',
+        'theme' => 'array',
     ];
 
     public function setNameAttribute($value)

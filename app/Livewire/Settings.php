@@ -46,6 +46,7 @@ class Settings extends Component
     // ... items ...
 
     public $primaryCurrency; // Moneda principal
+    public $multicurrencyEnabled = true; // Modo Moneda Única vs Multimoneda
     public $availableCurrencies = ['USD', 'COP', 'VES']; // Lista de monedas disponibles
     public $currencies = []; // Lista de monedas configuradas
     public $editableRates = []; // Tasas editables
@@ -102,6 +103,7 @@ class Settings extends Component
             $this->taxpayerId = $config->taxpayer_id;
             $this->vat = $config->vat;
             $this->decimals = $config->decimals;
+            $this->multicurrencyEnabled = (bool) ($config->multicurrency_enabled ?? true);
             $this->sequentialCutOffDate = $config->sequential_cut_off_date ? \Carbon\Carbon::parse($config->sequential_cut_off_date)->format('Y-m-d\TH:i') : null;
             $this->printerName = $config->printer_name;
             $this->leyend = $config->leyend;
@@ -424,6 +426,10 @@ class Settings extends Component
                 ],
             ];
 
+            if (auth()->user()?->hasRole('Super Admin')) {
+                $data['multicurrency_enabled'] = $this->multicurrencyEnabled ? 1 : 0;
+            }
+
             // Handle Logo Upload
             if ($this->logo) {
                 $customFileName = uniqid() . '_.' . $this->logo->extension();
@@ -497,6 +503,25 @@ class Settings extends Component
         } catch (\Throwable $th) {
             $this->dispatch('noty', msg: "Error al actualizar sobrescrituras: " . $th->getMessage());
         }
+    }
+
+    public function toggleMulticurrencyMode()
+    {
+        if (!auth()->user()?->hasRole('Super Admin')) {
+            $this->dispatch('noty', msg: 'Acceso no autorizado. Solo Super Admin puede cambiar el modo de moneda.');
+            return;
+        }
+
+        $this->multicurrencyEnabled = !$this->multicurrencyEnabled;
+        
+        $config = Configuration::first();
+        if ($config) {
+            $config->multicurrency_enabled = $this->multicurrencyEnabled;
+            $config->save();
+        }
+
+        $status = $this->multicurrencyEnabled ? 'Modo Multimoneda activado.' : 'Modo Moneda Única activado.';
+        $this->dispatch('noty', msg: $status);
     }
 
     public function loadCurrencies()

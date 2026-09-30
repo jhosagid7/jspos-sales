@@ -27,6 +27,7 @@ class PaymentComponent extends Component
     public $paymentMethod = 'cash'; // cash, bank, zelle
     public $banks = [];
     public $currencies = [];
+    public $multicurrencyEnabled = true;
     
     // Form inputs
     public $amount;
@@ -61,6 +62,7 @@ class PaymentComponent extends Component
     public $allowPartialPayment = false;
     public $isZelleSelected = false;
     public $isVedBankSelected = false;
+    public $isNequiSelected = false;
     
     // VED Bank Details
     public $bankReference;
@@ -124,12 +126,26 @@ class PaymentComponent extends Component
 
     public function mount()
     {
-        $this->banks = Bank::orderBy('sort')->get();
-        $this->currencies = Currency::orderBy('is_primary', 'desc')->get();
-        
-        // Default payment currency to primary
-        $primary = $this->currencies->firstWhere('is_primary', 1);
-        $this->paymentCurrency = $primary ? $primary->code : 'COP';
+        $config = \App\Models\Configuration::first();
+        $this->multicurrencyEnabled = $config ? $config->isMulticurrency() : true;
+
+        if (!$this->multicurrencyEnabled) {
+            $this->currencies = Currency::where('is_primary', 1)->get();
+            $primary = $this->currencies->first();
+            $primaryCode = $primary ? $primary->code : 'COP';
+            $this->paymentCurrency = $primaryCode;
+            $this->currencyCode = $primaryCode;
+            $this->banks = Bank::where(function($q) use ($primaryCode) {
+                $q->where('currency_code', $primaryCode)
+                  ->orWhereNull('currency_code')
+                  ->orWhere('currency_code', '');
+            })->orderBy('sort')->get();
+        } else {
+            $this->banks = Bank::orderBy('sort')->get();
+            $this->currencies = Currency::orderBy('is_primary', 'desc')->get();
+            $primary = $this->currencies->firstWhere('is_primary', 1);
+            $this->paymentCurrency = $primary ? $primary->code : 'COP';
+        }
         
         $this->resetPaymentForm();
     }
@@ -137,6 +153,21 @@ class PaymentComponent extends Component
     #[On('initPayment')]
     public function initPayment($total, $currency = 'COP', $customer = '', $allowPartial = false, $adjustment = null, $allowDiscounts = false, $usdDiscountPercent = 0, $fixedUsdDiscountAmount = 0, $canUpload = false, $canPay = false, $customerId = null, $walletBalance = 0, $metadata = [])
     {
+        $config = \App\Models\Configuration::first();
+        $this->multicurrencyEnabled = $config ? $config->isMulticurrency() : true;
+
+        if (!$this->multicurrencyEnabled) {
+            $primary = Currency::where('is_primary', 1)->first();
+            $currency = $primary ? $primary->code : 'COP';
+            $this->currencies = Currency::where('is_primary', 1)->get();
+            $primaryCode = $currency;
+            $this->banks = Bank::where(function($q) use ($primaryCode) {
+                $q->where('currency_code', $primaryCode)
+                  ->orWhereNull('currency_code')
+                  ->orWhere('currency_code', '');
+            })->orderBy('sort')->get();
+        }
+
         Log::info('PaymentComponent::initPayment Received', [
             'total' => $total,
             'allowDiscounts' => $allowDiscounts,
@@ -261,6 +292,7 @@ class PaymentComponent extends Component
         $this->phoneNumber = '';
         $this->isZelleSelected = false;
         $this->isVedBankSelected = false;
+        $this->isNequiSelected = false;
         
         // Reset Zelle
         $this->zelleSender = '';
@@ -536,6 +568,7 @@ class PaymentComponent extends Component
     { 
         $this->isZelleSelected = false;
         $this->isVedBankSelected = false;
+        $this->isNequiSelected = false;
         
         if($value) {
             $bank = $this->banks->find($value);
@@ -543,6 +576,12 @@ class PaymentComponent extends Component
                 $bName = strtolower($bank->name);
                 if (str_contains($bName, 'zelle') || str_contains($bName, 'usdt') || str_contains($bName, 'binance') || str_contains($bName, 'cripto')) {
                     $this->isZelleSelected = true;
+                }
+                if (str_contains($bName, 'nequi')) {
+                    $this->isNequiSelected = true;
+                    if (!empty($bank->phone)) {
+                        $this->phoneNumber = $bank->phone;
+                    }
                 }
                 if ($bank->currency_code === 'VED' || $bank->currency_code === 'VES') {
                     $this->isVedBankSelected = true;
@@ -673,6 +712,17 @@ class PaymentComponent extends Component
                  $bypassedRef = auth()->user() && auth()->user()->taxpayer_id && trim($this->bankReference) === trim(auth()->user()->taxpayer_id);
                  
                  if ($duplicateInSession && !$bypassedRef) { $this->dispatch('noty', msg: 'Esta referencia ya está agregada en esta lista.'); return; }
+            } elseif ($this->isNequiSelected) {
+                $this->validate([
+                    'bankId' => 'required',
+                    'amount' => 'required|numeric|min:0.01',
+                    'depositNumber' => 'required|string|min:3|max:30',
+                    'phoneNumber' => 'nullable|string|min:7|max:15',
+                ], [
+                    'depositNumber.required' => 'El código de comprobante o referencia de Nequi es obligatorio.',
+                    'depositNumber.min' => 'El código de referencia debe tener al menos 3 caracteres.',
+                    'depositNumber.max' => 'El código de referencia no puede exceder 30 caracteres.',
+                ]);
             } else {
                  $this->validate(['bankId' => 'required', 'accountNumber' => 'required', 'depositNumber' => 'required']);
             }
@@ -730,8 +780,9 @@ class PaymentComponent extends Component
              }
         }
 
+        $isNequiBank = $this->isNequiSelected || str_contains(strtolower($bankName), 'nequi');
         $isUsdtBank = (str_contains(strtolower($bankName), 'usdt') || str_contains(strtolower($bankName), 'binance') || str_contains(strtolower($bankName), 'cripto'));
-        $paymentMethodType = $isUsdtBank ? 'usdt' : ($this->isZelleSelected ? 'zelle' : $this->paymentMethod);
+        $paymentMethodType = $isUsdtBank ? 'usdt' : ($this->isZelleSelected ? 'zelle' : ($isNequiBank ? 'nequi' : $this->paymentMethod));
 
         $newPayment = [
             'method' => $paymentMethodType,
@@ -742,7 +793,7 @@ class PaymentComponent extends Component
             'amount_in_primary' => $amountInPrimary,
             'bank_id' => $this->bankId,
             'bank_name' => $bankName,
-            'account_number' => $this->isVedBankSelected ? null : $this->accountNumber,
+            'account_number' => ($this->isVedBankSelected || $isNequiBank) ? null : $this->accountNumber,
             'reference' => $this->isZelleSelected ? $this->zelleReference : ($this->isVedBankSelected ? $this->bankReference : $this->depositNumber),
             'phone' => $this->phoneNumber,
             'zelle_sender' => $this->zelleSender,
@@ -1091,6 +1142,15 @@ class PaymentComponent extends Component
             'has_zelle' => collect($this->payments)->contains('method', 'zelle'),
             'payments_data' => $this->payments
         ]);
+
+        if (!$this->multicurrencyEnabled && $this->change > 0 && empty($this->changeDistribution)) {
+            $primary = Currency::where('is_primary', 1)->first();
+            $this->changeDistribution[] = [
+                'currency' => $primary ? $primary->code : $this->currencyCode,
+                'amount' => $this->change,
+                'symbol' => $primary ? $primary->symbol : '$'
+            ];
+        }
 
         if ($action === 'upload') {
             $this->dispatch('payment-uploaded', 

@@ -214,7 +214,12 @@ class ReportController extends Controller
             }
         }
 
-        $currencies = \App\Models\Currency::all();
+        $config = \App\Models\Configuration::first();
+        if ($config && !$config->isMulticurrency()) {
+            $currencies = \App\Models\Currency::where('is_primary', 1)->get();
+        } else {
+            $currencies = \App\Models\Currency::all();
+        }
         $banks = \App\Models\Bank::all();
         
         $totalsByCategory = [];
@@ -268,17 +273,34 @@ class ReportController extends Controller
         $grandRawVed         = 0;
         $grandRawCop         = 0;
 
-        // LEFT TABLE: Categories in USD
-        $totalsByCategory = [
-            'EFECTIVO USD'       => 0,
-            'EFECTIVO VED'       => 0,
-            'EFECTIVO COP'       => 0,
-            'BANCOLOMBIA'        => 0,
-            'BANCO DE VENEZUELA' => 0,
-            'ZELLE'              => 0,
-            'BANESCO'            => 0,
-            'PROVINCIAL'         => 0,
-        ];
+        $config = \App\Models\Configuration::first();
+        $isMulticurrency = $config ? $config->isMulticurrency() : true;
+        $primaryCurrency = \App\Models\Currency::where('is_primary', 1)->first() ?? \App\Models\Currency::first();
+        $primaryCode = $primaryCurrency ? strtoupper($primaryCurrency->code) : 'COP';
+
+        // LEFT TABLE: Categories
+        if (!$isMulticurrency) {
+            $totalsByCategory = [
+                "EFECTIVO {$primaryCode}" => 0,
+            ];
+            foreach ($banks as $b) {
+                if ($b->currency_code === $primaryCode || empty($b->currency_code)) {
+                    $totalsByCategory[strtoupper($b->name)] = 0;
+                }
+            }
+        } else {
+            $totalsByCategory = [
+                'EFECTIVO USD'       => 0,
+                'EFECTIVO VED'       => 0,
+                'EFECTIVO COP'       => 0,
+                'BANCOLOMBIA'        => 0,
+                'BANCO DE VENEZUELA' => 0,
+                'ZELLE'              => 0,
+                'BANESCO'            => 0,
+                'PROVINCIAL'         => 0,
+                'NEQUI'              => 0,
+            ];
+        }
 
         // RIGHT TABLE: Totals in Physical Original Currency
         $totalsByCurrencyPhys = [];
@@ -336,6 +358,12 @@ class ReportController extends Controller
                         if ($payment->bankRecord && $payment->bankRecord->bank) {
                             $bankName = strtoupper($payment->bankRecord->bank->name);
                         } elseif ($payment->bank_name) {
+                            $bankName = strtoupper($payment->bank_name);
+                        }
+                        $totalsByCategory[$bankName] = ($totalsByCategory[$bankName] ?? 0) + $amtUSD;
+                    } elseif ($payment->payment_method == 'nequi') {
+                        $bankName = 'NEQUI';
+                        if ($payment->bank_name) {
                             $bankName = strtoupper($payment->bank_name);
                         }
                         $totalsByCategory[$bankName] = ($totalsByCategory[$bankName] ?? 0) + $amtUSD;
@@ -519,6 +547,8 @@ class ReportController extends Controller
             'grandRawCop' => $grandRawCop,
             'grandTotalNeto' => $grandTotalNeto,
             'grandTotalCredit' => $grandTotalCredit,
+            'isMulticurrency' => $isMulticurrency,
+            'primaryCurrency' => $primaryCurrency,
         ])->setPaper('a4', 'landscape');
 
 
@@ -1092,6 +1122,18 @@ class ReportController extends Controller
             }
         }
 
+        $totalNequiDetails = [];
+        if (isset($salesByCurrency['nequi'])) {
+            foreach ($salesByCurrency['nequi'] as $currency => $amount) {
+                $totalNequiDetails[$currency] = ($totalNequiDetails[$currency] ?? 0) + $amount;
+            }
+        }
+        if (isset($paymentsByCurrency['nequi'])) {
+            foreach ($paymentsByCurrency['nequi'] as $currency => $amount) {
+                $totalNequiDetails[$currency] = ($totalNequiDetails[$currency] ?? 0) + $amount;
+            }
+        }
+
         // To keep it simple and consistent with DailySalesReport:
         $totalsByCategory = [];
         foreach($currencies as $c) { $totalsByCategory["EFECTIVO " . strtoupper($c->code)] = 0; }
@@ -1140,8 +1182,10 @@ class ReportController extends Controller
         foreach($totalZelleDetails as $s => $a) $zelleSubtotalUSD += $a;
         $usdtSubtotalUSD = 0;
         foreach($totalUsdtDetails as $s => $a) $usdtSubtotalUSD += $a;
+        $nequiSubtotalUSD = 0;
+        foreach($totalNequiDetails as $curr => $amt) $nequiSubtotalUSD += $this->convertToPrimaryLocal($amt, $curr, $currencies, $primaryRate);
 
-        $salesSubtotal += $bankSubtotalUSD + $zelleSubtotalUSD + $usdtSubtotalUSD;
+        $salesSubtotal += $bankSubtotalUSD + $zelleSubtotalUSD + $usdtSubtotalUSD + $nequiSubtotalUSD;
 
         if ($totalWalletAddedToday > 0.0001) {
             $totalsByCategory['BILLETERA (CUSTODIA HOY)'] = $totalWalletAddedToday;
@@ -1179,6 +1223,7 @@ class ReportController extends Controller
             'totalBankDetails' => $totalBankDetails,
             'totalZelleDetails' => $totalZelleDetails,
             'totalUsdtDetails' => $totalUsdtDetails,
+            'totalNequiDetails' => $totalNequiDetails,
             'totalsByCategory' => $totalsByCategory,
             'totalWalletAddedToday' => $totalWalletAddedToday,
             'totalWalletUsedToday' => $totalWalletUsedUSD,
@@ -1347,7 +1392,7 @@ class ReportController extends Controller
         ];
 
         // Process Sales Digital Payments
-        foreach($salePaymentDetails->whereIn('payment_method', ['bank', 'deposit', 'zelle', 'usdt']) as $pd) {
+        foreach($salePaymentDetails->whereIn('payment_method', ['bank', 'deposit', 'zelle', 'usdt', 'nequi']) as $pd) {
             $method = $pd->payment_method === 'zelle' ? 'zelle' : ($pd->payment_method === 'usdt' ? 'usdt' : 'bank');
             $bankName = $pd->bank_name ?? 'Banco / Otros';
             $curr = $pd->currency_code;
@@ -1384,7 +1429,7 @@ class ReportController extends Controller
         }
 
         // Process Credit Digital Payments
-        foreach($creditPayments->whereIn('pay_way', ['bank', 'deposit', 'zelle', 'usdt']) as $p) {
+        foreach($creditPayments->whereIn('pay_way', ['bank', 'deposit', 'zelle', 'usdt', 'nequi']) as $p) {
             $method = $p->pay_way === 'zelle' ? 'zelle' : ($p->pay_way === 'usdt' ? 'usdt' : 'bank');
             $bankName = $p->bank ?? 'Banco / Otros';
             $curr = $p->currency ?? $primaryCode;
@@ -2651,6 +2696,10 @@ class ReportController extends Controller
                 $methodStr = strtoupper($p->pay_way);
                 if ($p->pay_way == 'zelle' && $p->zelleRecord) {
                     $methodStr .= " (Ref: {$p->zelleRecord->reference})";
+                } elseif ($p->pay_way == 'nequi') {
+                    $phoneStr = $p->phone_number ? " ({$p->phone_number})" : "";
+                    $refStr = $p->deposit_number ? " Ref: {$p->deposit_number}" : "";
+                    $methodStr = "NEQUI{$phoneStr}{$refStr}";
                 } elseif (($p->pay_way == 'bank' || $p->pay_way == 'deposit') && $p->bank) {
                     $methodStr .= ": " . ($p->deposit_number ? "{$p->bank}: {$p->deposit_number}" : "{$p->bank}");
                 }

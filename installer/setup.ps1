@@ -341,4 +341,16 @@ try {
     Write-Host "Aviso: No se pudo registrar la tarea de respaldo en el Programador de Tareas."
 }
 
+# 11. Instalar y arrancar servicios en segundo plano con NSSM (JSPOS_Queue_Worker, JSPOS_Scheduler, JSPOS_WhatsApp_API)
+$serviciosBat = "$ProjectDir\instalar_servicios.bat"
+if (Test-Path $serviciosBat) {
+    try {
+        Write-Host "Instalando y arrancando servicios en segundo plano con NSSM..."
+        Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$serviciosBat`" --silent" -WorkingDirectory $ProjectDir -WindowStyle Hidden -Wait
+        Write-Host "Servicios de segundo plano instalados e iniciados correctamente."
+    } catch {
+        Write-Host "Aviso: No se pudieron instalar los servicios automáticos en segundo plano."
+    }
+}
+
 Write-Host "Post-instalacion completada exitosamente para $folderName."
