@@ -1,3 +1,10 @@
+## [1.10.457] - 2026-10-02
+
+### Fixed (Manejador de Extracción y Copia de Archivos en Actualizaciones de Windows)
+- **Normalización de Rutas y Excepciones del Sistema de Archivos**:
+  - `UpdateService.php`: Corregido `copyDirectoryWithTracking` para normalizar separadores de ruta en Windows (`DIRECTORY_SEPARATOR`) y capturar con `try/catch` cualquier excepción de `FilesystemIterator`, evitando errores de ruta no encontrada (código 3).
+  - Eliminado el directorio obsoleto `app/Services/backups/schtasks/` del repositorio de GitHub.
+
 ## [1.10.456] - 2026-10-02
 
 ### Enhanced (Estabilización del Modal de Actualizaciones y Soporte Resiliente de Rutas)

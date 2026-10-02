@@ -365,33 +365,41 @@ class UpdateService
      */
     protected function copyDirectoryWithTracking($source, $destination, &$failedFiles = [])
     {
-        if (!File::isDirectory($source)) {
+        $source = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $source);
+        $destination = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $destination);
+
+        if (!is_dir($source)) {
             return;
         }
 
-        if (!File::exists($destination)) {
-            File::makeDirectory($destination, 0755, true, true);
+        if (!is_dir($destination)) {
+            @mkdir($destination, 0755, true);
         }
 
-        $items = new \FilesystemIterator($source, \FilesystemIterator::SKIP_DOTS);
+        try {
+            $items = new \FilesystemIterator($source, \FilesystemIterator::SKIP_DOTS);
+        } catch (\Throwable $e) {
+            Log::warning("Updater: Cannot iterate directory {$source}: " . $e->getMessage());
+            return;
+        }
 
         foreach ($items as $item) {
-            $target = $destination . '/' . $item->getFilename();
+            $target = $destination . DIRECTORY_SEPARATOR . $item->getFilename();
 
             if ($item->isDir()) {
                 $this->copyDirectoryWithTracking($item->getPathname(), $target, $failedFiles);
             } else {
                 try {
                     // Intentar quitar atributos de solo lectura si existe
-                    if (File::exists($target)) {
+                    if (file_exists($target)) {
                         @chmod($target, 0777);
                     }
                     // Copiar y registrar si falla
                     if (!@copy($item->getPathname(), $target)) {
-                        $failedFiles[] = str_replace(base_path() . '/', '', $target);
+                        $failedFiles[] = str_replace(base_path() . DIRECTORY_SEPARATOR, '', $target);
                     }
-                } catch (\Exception $e) {
-                    $failedFiles[] = str_replace(base_path() . '/', '', $target) . " (" . $e->getMessage() . ")";
+                } catch (\Throwable $e) {
+                    $failedFiles[] = str_replace(base_path() . DIRECTORY_SEPARATOR, '', $target) . " (" . $e->getMessage() . ")";
                 }
             }
         }
