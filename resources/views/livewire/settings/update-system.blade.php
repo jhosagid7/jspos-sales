@@ -32,7 +32,7 @@
                                 </div>
                                 <hr class="my-3">
                                 <div class="text-center">
-                                    <button type="button" id="btnActualizarAhora" data-version="{{ $newVersion }}" class="btn btn-success btn-lg px-4 font-weight-bold" onclick="if(window.ejecutarActualizacionAJAX){ window.ejecutarActualizacionAJAX('{{ $newVersion }}'); } else { console.error('ejecutarActualizacionAJAX no disponible'); }">
+                                    <button type="button" id="btnActualizarAhora" data-version="{{ $newVersion }}" class="btn btn-success btn-lg px-4 font-weight-bold">
                                         <i class="fas fa-cloud-download-alt me-2"></i> Actualizar Ahora
                                     </button>
                                 </div>
@@ -357,6 +357,7 @@
             }
 
             function mostrarErrorActualizacion(errMsg) {
+                window.actualizacionEnCurso = false;
                 var $ = window.jQuery || window.$;
                 updateProgreso(null, 'Error en el proceso', '✗ ERROR: ' + errMsg, '#f44747', 'bg-danger');
                 $('#badgeEstadoTerminal').removeClass('badge-light text-muted').addClass('badge-danger text-white').text('Fallido');
@@ -377,6 +378,11 @@
                     alert("El sistema aún está cargando librerías, por favor intente en unos segundos...");
                     return;
                 }
+                if (window.actualizacionEnCurso) {
+                    return;
+                }
+                window.actualizacionEnCurso = true;
+
                 abrirModalActualizacion('Iniciando actualización...');
                 agregarLog('Iniciando proceso de actualización del sistema...', '#569cd6');
                 agregarLog('Paso 1/5: Generando respaldo preventivo de base de datos...');
