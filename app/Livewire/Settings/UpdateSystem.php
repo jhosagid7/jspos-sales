@@ -114,12 +114,7 @@ class UpdateSystem extends Component
             File::copy($this->manualZip->getRealPath(), $tempPath);
             session(['latest_downloaded_update_zip' => $tempPath]);
 
-            $this->status = 'updating';
-            $this->progress = 5;
-            $this->progressStatus = 'Iniciando respaldo de seguridad...';
-
-            $this->dispatch('start-update-process', version: 'Manual (ZIP)');
-            $this->dispatch('run-backup');
+            $this->dispatch('start-zip-apply', version: 'Manual (ZIP)');
         } catch (\Exception $e) {
             $this->handleError($e);
         }

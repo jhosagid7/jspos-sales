@@ -32,7 +32,7 @@
                                 </div>
                                 <hr class="my-3">
                                 <div class="text-center">
-                                    <button wire:click="startUpdate" class="btn btn-success btn-lg px-4" wire:loading.attr="disabled">
+                                    <button type="button" class="btn btn-success btn-lg px-4 font-weight-bold" onclick="ejecutarActualizacionAJAX('{{ $newVersion }}')">
                                         <i class="fas fa-cloud-download-alt me-2"></i> Actualizar Ahora
                                     </button>
                                 </div>
@@ -203,7 +203,7 @@
                 </div>
 
                 <!-- Modal de Actualización de Software en Curso (Estilo Villasol) -->
-                <div class="modal fade" id="modalActualizar" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog" aria-hidden="true">
+                <div wire:ignore class="modal fade" id="modalActualizar" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog" aria-hidden="true" style="z-index: 1060;">
                     <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
                         <div class="modal-content border-0 shadow-lg" style="border-radius: 6px; overflow: hidden;">
                             <!-- Header con fondo azul y nube (Imagen 1 y 2) -->
@@ -285,19 +285,19 @@
                 </div>
 
                 <script>
-                    document.addEventListener('livewire:initialized', () => {
-                        $('.modal-backdrop').remove();
-                        $('body').removeClass('modal-open');
-
-                        function abrirModalActualizacion(titulo = 'Iniciando actualización...') {
+                    (function($) {
+                        // Abrir modal y reiniciar componentes visuales
+                        function abrirModalActualizacion(titulo) {
+                            titulo = titulo || 'Iniciando actualización...';
                             $('#modalProgreso').show();
                             $('#modalExito').hide();
                             $('#modalError').hide();
                             $('#consolaPasos').empty();
                             $('#consolaError').empty();
                             $('#badgeEstadoTerminal').removeClass('badge-danger badge-success text-white').addClass('badge-light text-muted').text('En ejecución');
-                            $('#barraProgreso').removeClass('bg-success bg-danger bg-warning').addClass('bg-primary').css({'width': '5%', 'background-color': '#2b78b8'}).text('5%');
+                            $('#barraProgreso').removeClass('bg-success bg-danger bg-warning').css({'width': '10%', 'background-color': '#2b78b8'}).text('10%');
                             $('#textoPasoSpinner').text(titulo);
+                            $('#iconoPasoSpinner').show();
                             $('#modalActualizar').modal({
                                 backdrop: 'static',
                                 keyboard: false,
@@ -305,23 +305,28 @@
                             });
                         }
 
-                        function agregarLog(texto, color = '#a9b7c6') {
+                        // Agregar línea formateada a la consola tipo terminal
+                        function agregarLog(texto, color) {
+                            color = color || '#a9b7c6';
                             var now = new Date();
                             var hora = now.toTimeString().split(' ')[0]; // HH:MM:SS
-                            $('#consolaPasos').append('<div style="color: ' + color + '; margin-bottom: 2px;">[' + hora + '] ' + texto + '</div>');
+                            $('#consolaPasos').append('<div style="color: ' + color + '; margin-bottom: 3px;">[' + hora + '] ' + texto + '</div>');
                             var d = $('#consolaPasos');
                             d.scrollTop(d.prop("scrollHeight"));
                         }
 
-                        function updateProgreso(percent, textoSpinner, logTexto, logColor = '#a9b7c6', colorBarra = null) {
-                            if (percent) {
+                        // Actualizar barra de progreso y estado
+                        function updateProgreso(percent, textoSpinner, logTexto, logColor, colorBarra) {
+                            if (percent !== null && percent !== undefined) {
                                 $('#barraProgreso').css('width', percent + '%').text(percent + '%');
                                 if (colorBarra) {
-                                    $('#barraProgreso').removeClass('bg-primary bg-warning bg-danger bg-success').addClass(colorBarra);
+                                    $('#barraProgreso').removeClass('bg-primary bg-warning bg-danger bg-success');
                                     if (colorBarra === 'bg-success') {
                                         $('#barraProgreso').css('background-color', '#28a745');
                                     } else if (colorBarra === 'bg-danger') {
                                         $('#barraProgreso').css('background-color', '#dc3545');
+                                    } else {
+                                        $('#barraProgreso').css('background-color', '#2b78b8');
                                     }
                                 }
                             }
@@ -333,137 +338,139 @@
                             }
                         }
 
-                        let watchdogInterval = null;
-                        function startWatchdog(expectedVersion) {
-                            if (watchdogInterval) clearInterval(watchdogInterval);
-                            const cleanExpected = expectedVersion ? expectedVersion.replace('v', '').trim() : '';
-
-                            watchdogInterval = setInterval(() => {
-                                fetch('{{ url("/system/current-version") }}?t=' + Date.now(), { credentials: 'same-origin' })
-                                    .then(r => {
-                                        if (!r.ok) return null;
-                                        return r.json();
-                                    })
-                                    .then(data => {
-                                        if (!data) return;
-                                        const liveVer = data.version ? data.version.replace('v', '').trim() : '';
-                                        if (cleanExpected && liveVer === cleanExpected) {
-                                            clearInterval(watchdogInterval);
-                                            updateProgreso(100, '¡Actualización completada!', '✓ Verificación en vivo: Sistema actualizado con éxito a v' + liveVer, '#4ec9b0', 'bg-success');
-                                            $('#badgeEstadoTerminal').removeClass('badge-light text-muted').addClass('badge-success text-white').text('Completado');
-                                            setTimeout(() => {
-                                                $('#modalProgreso').fadeOut(300, function() {
-                                                    $('#txtDetalleExito').html('¡Sistema actualizado con éxito a la versión <strong>v' + liveVer + '</strong>!');
-                                                    $('#modalExito').fadeIn(300);
-                                                });
-                                            }, 1200);
-                                        }
-                                    })
-                                    .catch(() => {});
-                            }, 5000);
-                        }
-
-                        // Eventos de ciclo de actualización
-                        @this.on('start-update-process', (data) => {
-                            let ver = (data && data.version) ? data.version : '{{ $newVersion }}';
-                            abrirModalActualizacion('Iniciando actualización...');
-                            agregarLog('Iniciando proceso de actualización del sistema...', '#569cd6');
-                            startWatchdog(ver);
-                        });
-
-                        @this.on('start-rollback-process', (data) => {
-                            abrirModalActualizacion('Iniciando restauración...');
-                            agregarLog('Iniciando proceso de restauración del sistema...', '#569cd6');
-                        });
-
-                        @this.on('run-backup', () => {
-                            if (!$('#modalActualizar').hasClass('show')) {
-                                abrirModalActualizacion('Iniciando actualización...');
-                                agregarLog('Iniciando proceso de actualización del sistema...', '#569cd6');
-                            }
-                            updateProgreso(15, 'Generando respaldo preventivo...', 'Paso 1/5: Generando respaldo preventivo de base de datos...');
-                            @this.call('runBackup');
-                        });
-
-                        @this.on('run-download', () => {
-                            startWatchdog('{{ $newVersion }}');
-                            updateProgreso(35, 'Descargando paquete desde GitHub...', 'Paso 2/5: Descargando archivos actualizados desde GitHub...');
-                            @this.call('download');
-                        });
-
-                        @this.on('run-install', () => {
-                            startWatchdog('{{ $newVersion }}');
-                            updateProgreso(65, 'Descomprimiendo e instalando...', 'Paso 3/5: Descomprimiendo e instalando archivos en el servidor...');
-                            @this.call('install');
-                        });
-
-                        @this.on('run-migrate', () => {
-                            updateProgreso(85, 'Actualizando base de datos...', 'Paso 4/5: Verificando y aplicando migraciones de base de datos...');
-                            @this.call('migrate');
-                        });
-
-                        @this.on('run-cleanup', () => {
-                            updateProgreso(95, 'Limpiando archivos temporales y cachés...', 'Paso 5/5: Limpiando cachés de Laravel (vistas, rutas, configuración)...');
-                            @this.call('cleanup');
-                        });
-
-                        @this.on('run-rollback', () => {
-                            updateProgreso(50, 'Restaurando código fuente y base de datos...', 'Paso 1/2: Restaurando código fuente y base de datos respaldada...');
-                            @this.call('runRollback');
-                        });
-
-                        @this.on('update-finished', (data) => {
-                            if (watchdogInterval) clearInterval(watchdogInterval);
-                            let ver = (data && data.version) ? data.version : '{{ $newVersion ?? $currentVersion }}';
-                            updateProgreso(100, '¡Actualización completada!', '✓ ¡Sistema actualizado con éxito a la versión ' + ver + '!', '#4ec9b0', 'bg-success');
-                            $('#badgeEstadoTerminal').removeClass('badge-light text-muted').addClass('badge-success text-white').text('Completado');
-
-                            setTimeout(() => {
-                                $('#modalProgreso').fadeOut(300, function() {
-                                    $('#txtDetalleExito').html('¡Sistema actualizado con éxito a la versión <strong>' + ver + '</strong>!');
-                                    $('#modalExito').fadeIn(300);
-                                });
-                            }, 1400);
-                        });
-
-                        @this.on('rollback-finished', () => {
-                            updateProgreso(100, '¡Restauración completada!', '✓ ¡Sistema restaurado correctamente a la versión anterior!', '#4ec9b0', 'bg-success');
-                            $('#badgeEstadoTerminal').removeClass('badge-light text-muted').addClass('badge-success text-white').text('Restaurado');
-
-                            setTimeout(() => {
-                                $('#modalProgreso').fadeOut(300, function() {
-                                    $('#txtDetalleExito').html('¡Sistema restaurado con éxito a la versión anterior!');
-                                    $('#modalExito').fadeIn(300);
-                                });
-                            }, 1400);
-                        });
-
-                        @this.on('update-error', (data) => {
-                            if (watchdogInterval) clearInterval(watchdogInterval);
-                            let err = (data && data.message) ? data.message : 'Error durante el proceso de actualización';
-                            updateProgreso(null, 'Error en el proceso', '✗ ERROR: ' + err, '#f44747', 'bg-danger');
+                        // Visualización amigable de error
+                        function mostrarErrorActualizacion(errMsg) {
+                            updateProgreso(null, 'Error en el proceso', '✗ ERROR: ' + errMsg, '#f44747', 'bg-danger');
                             $('#badgeEstadoTerminal').removeClass('badge-light text-muted').addClass('badge-danger text-white').text('Fallido');
-                            $('#txtDetalleError').text(err);
-                            $('#consolaError').text(err);
+                            $('#iconoPasoSpinner').hide();
+                            $('#txtDetalleError').text(errMsg);
+                            $('#consolaError').text(errMsg);
 
-                            setTimeout(() => {
+                            setTimeout(function() {
                                 $('#modalProgreso').fadeOut(300, function() {
                                     $('#modalError').fadeIn(300);
                                 });
-                            }, 2000);
+                            }, 1500);
+                        }
+
+                        // Ejecutar Actualización vía AJAX (Estilo Villasol)
+                        window.ejecutarActualizacionAJAX = function(version) {
+                            abrirModalActualizacion('Iniciando actualización...');
+                            agregarLog('Iniciando proceso de actualización del sistema...', '#569cd6');
+                            agregarLog('Paso 1/5: Generando respaldo preventivo de base de datos...');
+                            updateProgreso(20, 'Generando respaldo preventivo...');
+
+                            var timer1 = setTimeout(function() {
+                                updateProgreso(45, 'Descargando paquete desde GitHub...', 'Paso 2/5: Descargando archivos actualizados desde GitHub...');
+                            }, 1800);
+
+                            var timer2 = setTimeout(function() {
+                                updateProgreso(70, 'Instalando archivos en el servidor...', 'Paso 3/5: Descomprimiendo e instalando archivos en el servidor...');
+                            }, 3800);
+
+                            $.ajax({
+                                url: "{{ route('system.update.apply') }}",
+                                type: 'POST',
+                                data: {
+                                    _token: "{{ csrf_token() }}",
+                                    version: version
+                                },
+                                dataType: 'json',
+                                timeout: 600000,
+                                success: function(res) {
+                                    clearTimeout(timer1);
+                                    clearTimeout(timer2);
+
+                                    if (res.success) {
+                                        updateProgreso(85, 'Actualizando base de datos...', 'Paso 4/5: Verificando y aplicando migraciones de base de datos...');
+                                        
+                                        setTimeout(function() {
+                                            updateProgreso(95, 'Limpiando cachés...', 'Paso 5/5: Limpiando cachés de Laravel (vistas, rutas, configuración)...');
+                                            
+                                            setTimeout(function() {
+                                                var verFinal = res.new_version || version || '{{ $newVersion }}';
+                                                updateProgreso(100, '¡Actualización completada!', '✓ ' + (res.message || '¡Sistema actualizado con éxito a la versión ' + verFinal + '!'), '#4ec9b0', 'bg-success');
+                                                $('#badgeEstadoTerminal').removeClass('badge-light text-muted').addClass('badge-success text-white').text('Completado');
+                                                
+                                                setTimeout(function() {
+                                                    $('#modalProgreso').fadeOut(300, function() {
+                                                        $('#txtDetalleExito').html('¡Sistema actualizado con éxito a la versión <strong class="text-dark">' + verFinal + '</strong>!');
+                                                        $('#modalExito').fadeIn(300);
+                                                    });
+                                                }, 1200);
+                                            }, 500);
+                                        }, 500);
+                                    } else {
+                                        mostrarErrorActualizacion(res.message || 'Error desconocido durante la actualización');
+                                    }
+                                },
+                                error: function(xhr, status, error) {
+                                    clearTimeout(timer1);
+                                    clearTimeout(timer2);
+                                    var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : (error || 'Error de conexión con el servidor');
+                                    mostrarErrorActualizacion(msg);
+                                }
+                            });
+                        };
+
+                        // Ejecutar Rollback vía AJAX
+                        window.ejecutarRollbackAJAX = function(folder, version) {
+                            abrirModalActualizacion('Iniciando restauración a v' + version + '...');
+                            agregarLog('Iniciando proceso de restauración del sistema...', '#569cd6');
+                            agregarLog('Paso 1/2: Restaurando código fuente y base de datos respaldada...');
+                            updateProgreso(35, 'Restaurando código y base de datos...');
+
+                            var timer = setTimeout(function() {
+                                updateProgreso(65, 'Extrayendo archivos y aplicando base de datos...');
+                            }, 1800);
+
+                            $.ajax({
+                                url: "{{ route('system.update.rollback') }}",
+                                type: 'POST',
+                                data: {
+                                    _token: "{{ csrf_token() }}",
+                                    folder: folder,
+                                    version: version
+                                },
+                                dataType: 'json',
+                                timeout: 600000,
+                                success: function(res) {
+                                    clearTimeout(timer);
+                                    if (res.success) {
+                                        updateProgreso(90, 'Limpiando cachés...', 'Paso 2/2: Limpiando cachés del sistema...');
+                                        setTimeout(function() {
+                                            updateProgreso(100, '¡Restauración completada!', '✓ ' + (res.message || '¡Sistema restaurado correctamente a la versión anterior!'), '#4ec9b0', 'bg-success');
+                                            $('#badgeEstadoTerminal').removeClass('badge-light text-muted').addClass('badge-success text-white').text('Restaurado');
+
+                                            setTimeout(function() {
+                                                $('#modalProgreso').fadeOut(300, function() {
+                                                    $('#txtDetalleExito').html('¡Sistema restaurado con éxito a la versión <strong class="text-dark">v' + version + '</strong>!');
+                                                    $('#modalExito').fadeIn(300);
+                                                });
+                                            }, 1200);
+                                        }, 500);
+                                    } else {
+                                        mostrarErrorActualizacion(res.message || 'Error durante la restauración');
+                                    }
+                                },
+                                error: function(xhr, status, error) {
+                                    clearTimeout(timer);
+                                    var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : (error || 'Error de conexión con el servidor');
+                                    mostrarErrorActualizacion(msg);
+                                }
+                            });
+                        };
+
+                        // Escucha evento cuando se sube un ZIP manual
+                        document.addEventListener('livewire:init', function() {
+                            Livewire.on('start-zip-apply', function(event) {
+                                var ver = (event && event.version) ? event.version : 'Manual (ZIP)';
+                                window.ejecutarActualizacionAJAX(ver);
+                            });
                         });
+                    })(window.jQuery);
 
-                        $('#btnRecargar').on('click', function() {
-                            window.location.reload();
-                        });
-
-                        @if($status === 'updating')
-                            abrirModalActualizacion('{{ $progressStatus ?: "Actualización en curso..." }}');
-                            updateProgreso({{ $progress ?: 10 }}, '{{ $progressStatus ?: "Actualización en curso..." }}', 'Reanudando vista de actualización en curso...');
-                        @endif
-                    });
-
-                    // Confirmation Dialogs using SweetAlert (v1 - the version loaded in this project)
+                    // Diálogos de Confirmación SweetAlert v1
                     function confirmRollback(folder, version) {
                         swal({
                             title: '¿Restaurar sistema?',
@@ -484,7 +491,7 @@
                             dangerMode: true,
                         }).then(function(value) {
                             if (value) {
-                                @this.call('rollbackToVersion', folder);
+                                window.ejecutarRollbackAJAX(folder, version);
                             }
                         });
                     }
@@ -538,13 +545,6 @@
                             }
                         });
                     }
-
-                    document.addEventListener('DOMContentLoaded', () => {
-                        setTimeout(() => {
-                            $('.modal-backdrop').remove();
-                            $('body').removeClass('modal-open');
-                        }, 500);
-                    });
                 </script>
             </div>
         </div>

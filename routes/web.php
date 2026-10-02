@@ -352,6 +352,87 @@ Route::prefix('system')->name('system.')->group(function () {
             return redirect('/dashboard')->with('error', 'La migración finalizó con advertencias: ' . $e->getMessage());
         }
     })->name('upgrade-db');
+
+    Route::post('/update/apply', function (\Illuminate\Http\Request $request, \App\Services\UpdateService $updater) {
+        if (!auth()->check()) {
+            return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
+        }
+
+        try {
+            $currentVersion = $updater->getCurrentVersion();
+            
+            // Paso 1: Respaldo preventivo
+            $updater->createRollbackBackup($currentVersion);
+            
+            // Paso 2: Descarga o verificar ZIP
+            $check = $updater->checkUpdate();
+            $targetUrl = $check['url'] ?? null;
+            $newVersion = $request->input('version') ?: ($check['new_version'] ?? null);
+            
+            if (session()->has('latest_downloaded_update_zip') && \Illuminate\Support\Facades\File::exists(session('latest_downloaded_update_zip'))) {
+                // Ya se encuentra el archivo zip local preparado
+            } else {
+                if (empty($targetUrl) && $newVersion) {
+                    $cleanTag = 'v' . ltrim($newVersion, 'v');
+                    $targetUrl = "https://github.com/jhosagid7/jspos-sales/archive/refs/tags/{$cleanTag}.zip";
+                }
+                if ($targetUrl) {
+                    $updater->downloadUpdate($targetUrl);
+                }
+            }
+            
+            // Paso 3: Instalar archivos
+            $updater->installUpdate($newVersion);
+            
+            // Paso 4: Migraciones automáticas
+            $updater->runMigrations();
+            
+            // Paso 5: Limpieza y optimización
+            $updater->cleanup();
+            session()->forget('latest_downloaded_update_zip');
+            if ($newVersion) {
+                $updater->sendUpdateNotificationEmail($newVersion, $currentVersion);
+            }
+            
+            $finalVersion = $newVersion ?: $updater->getCurrentVersion();
+            return response()->json([
+                'success' => true,
+                'new_version' => $finalVersion,
+                'message' => '¡Sistema actualizado con éxito a la versión ' . $finalVersion . '!'
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Update apply via AJAX failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error durante la actualización: ' . $e->getMessage()
+            ], 500);
+        }
+    })->name('update.apply');
+
+    Route::post('/update/rollback', function (\Illuminate\Http\Request $request, \App\Services\UpdateService $updater) {
+        if (!auth()->check()) {
+            return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
+        }
+
+        $folder = $request->input('folder');
+        if (empty($folder)) {
+            return response()->json(['success' => false, 'message' => 'Carpeta de respaldo no especificada.'], 400);
+        }
+
+        try {
+            $updater->restoreFromBackup($folder);
+            return response()->json([
+                'success' => true,
+                'message' => '¡Sistema restaurado correctamente a la versión anterior!'
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Rollback via AJAX failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error durante la restauración: ' . $e->getMessage()
+            ], 500);
+        }
+    })->name('update.rollback');
 });
 
 require __DIR__ . '/auth.php';

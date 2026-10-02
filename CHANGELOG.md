@@ -1,3 +1,13 @@
+## [1.10.455] - 2026-10-02
+
+### Fixed & Enhanced (Motor de Actualización y Restauración Asíncrono estilo Villasol)
+- **Eliminación de Recargas Livewire**:
+  - `update-system.blade.php`: Migrada la orquestación del modal de actualización de llamadas por pasos Livewire a una ejecución AJAX asíncrona unificada (`POST /system/update/apply` y `POST /system/update/rollback`).
+  - Previene que el ciclo de vida y DOM morphing de Livewire destruyan el modal de Bootstrap a mitad del proceso, eliminando el fallo donde la pantalla se quedaba congelada en gris.
+  - Eliminado script prematuro que forzaba la remoción de `.modal-backdrop`.
+- **Rutas de Aplicación y Rollback del Sistema**:
+  - `routes/web.php`: Agregados y optimizados los endpoints `/system/update/apply` y `/system/update/rollback` con respaldo preventivo, descarga segura, instalación, migración automática y limpieza de cachés en un solo ciclo protegido con fallback directo a GitHub tags.
+
 ## [1.10.454] - 2026-10-02
 
 ### Enhanced (Verificación del Nuevo Motor Interactivo de Actualizaciones)
