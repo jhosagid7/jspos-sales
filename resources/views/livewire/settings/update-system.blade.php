@@ -5,7 +5,7 @@
                 <div class="widget-header">
                     <div class="row">
                         <div class="col-xl-12 col-md-12 col-sm-12 col-12">
-                            <h4>Sistema de Actualizaciones</h4>
+                            <h4>Sistema de Actualizaciones <small class="text-muted" style="font-size: 13px; font-weight: normal;">(Motor interactivo v2)</small></h4>
                         </div>
                     </div>
                 </div>

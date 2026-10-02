@@ -1,3 +1,10 @@
+## [1.10.454] - 2026-10-02
+
+### Enhanced (Verificación del Nuevo Motor Interactivo de Actualizaciones)
+- **Ajustes y Pruebas Visuales**:
+  - Incorporado indicador de "Motor interactivo v2" en el encabezado del panel de actualizaciones.
+  - Verificación del ciclo completo de actualización con modal bloqueante, barra dinámica con porcentaje en tiempo real y terminal de operaciones en vivo.
+
 ## [1.10.453] - 2026-10-02
 
 ### Added & Enhanced (Modal Interactivo de Actualización en Vivo estilo Villasol)
