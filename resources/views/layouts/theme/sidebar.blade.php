@@ -870,9 +870,9 @@
                         </li>
                         @endanyMenuAllowed
 
-                        @anyMenuAllowed(['reports.inventory', 'reports.movements', 'reports.audit', 'reports.best.sellers', 'reports.rotation'])
-                        <li class="nav-item {{ Route::is('reports.inventory*') || Route::is('reports.movements*') || Route::is('reports.audit*') || Route::is('reports.best.sellers*') || Route::is('reports.rotation*') ? 'menu-open' : '' }}">
-                            <a href="#" class="nav-link {{ Route::is('reports.inventory*') || Route::is('reports.movements*') || Route::is('reports.audit*') || Route::is('reports.best.sellers*') || Route::is('reports.rotation*') ? 'active' : '' }}">
+                        @anyMenuAllowed(['reports.inventory', 'reports.movements', 'reports.product.monthly.profit', 'reports.audit', 'reports.best.sellers', 'reports.rotation'])
+                        <li class="nav-item {{ Route::is('reports.inventory*') || Route::is('reports.movements*') || Route::is('reports.product.monthly.profit*') || Route::is('reports.audit*') || Route::is('reports.best.sellers*') || Route::is('reports.rotation*') ? 'menu-open' : '' }}">
+                            <a href="#" class="nav-link {{ Route::is('reports.inventory*') || Route::is('reports.movements*') || Route::is('reports.product.monthly.profit*') || Route::is('reports.audit*') || Route::is('reports.best.sellers*') || Route::is('reports.rotation*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>
                                     Stock y Desempeño
@@ -893,6 +893,14 @@
                                     <a href="{{ route('reports.movements') }}" class="nav-link {{ Route::is('reports.movements*') ? 'active' : '' }}">
                                         <i class="far fa-dot-circle nav-icon"></i>
                                         <p>Kardex (Movimientos)</p>
+                                    </a>
+                                </li>
+                                @endmenuAllowed
+                                @menuAllowed('reports.product.monthly.profit')
+                                <li class="nav-item">
+                                    <a href="{{ route('reports.product.monthly.profit') }}" class="nav-link {{ Route::is('reports.product.monthly.profit*') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon"></i>
+                                        <p>Rentabilidad x Producto</p>
                                     </a>
                                 </li>
                                 @endmenuAllowed

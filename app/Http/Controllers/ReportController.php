@@ -2461,6 +2461,185 @@ class ReportController extends Controller
 
     }
 
+    public function productMonthlyProfitPdf(Request $request)
+    {
+        $product_id = $request->get('product_id');
+        $dateFrom = $request->get('dateFrom') ?: \Carbon\Carbon::now()->startOfYear()->format('Y-m-d');
+        $dateTo = $request->get('dateTo') ?: \Carbon\Carbon::now()->format('Y-m-d');
+        $selected_warehouse_id = $request->get('warehouse_id', 'all');
+
+        $product = \App\Models\Product::with(['category', 'supplier'])->findOrFail($product_id);
+        $config = \App\Models\Configuration::first();
+        $user = auth()->user();
+        $warehouseName = $selected_warehouse_id !== 'all' 
+            ? (\App\Models\Warehouse::find($selected_warehouse_id)->name ?? 'Almacén') 
+            : 'TODOS LOS ALMACENES';
+
+        $start = \Carbon\Carbon::parse($dateFrom)->startOfMonth();
+        $end = \Carbon\Carbon::parse($dateTo)->endOfMonth();
+        $period = \Carbon\CarbonPeriod::create($start, '1 month', $end);
+
+        $monthlyData = [];
+        $totalQty = 0;
+        $totalSold = 0;
+        $totalCost = 0;
+
+        foreach ($period as $dt) {
+            $mStart = $dt->copy()->startOfMonth()->startOfDay();
+            $mEnd = $dt->copy()->endOfMonth()->endOfDay();
+            $monthKey = $dt->format('Y-m');
+            $monthName = ucfirst($dt->locale('es')->monthName) . ' ' . $dt->year;
+
+            $salesQuery = \Illuminate\Support\Facades\DB::table('sale_details')
+                ->join('sales', 'sale_details.sale_id', '=', 'sales.id')
+                ->where('sale_details.product_id', $product_id)
+                ->where('sales.status', '<>', 'returned')
+                ->whereNull('sales.deletion_approved_at')
+                ->whereBetween('sales.created_at', [$mStart, $mEnd]);
+
+            if ($selected_warehouse_id !== 'all') {
+                $salesQuery->where('sale_details.warehouse_id', $selected_warehouse_id);
+            }
+
+            $pricesRows = (clone $salesQuery)
+                ->select([
+                    'sale_details.sale_price',
+                    \Illuminate\Support\Facades\DB::raw('SUM(sale_details.quantity) as qty'),
+                    \Illuminate\Support\Facades\DB::raw('SUM(sale_details.quantity * sale_details.sale_price) as subtotal')
+                ])
+                ->groupBy('sale_details.sale_price')
+                ->orderBy('sale_details.sale_price')
+                ->get();
+
+            $soldQty = floatval($pricesRows->sum('qty'));
+            $soldAmount = floatval($pricesRows->sum('subtotal'));
+            $hasPriceChanges = count($pricesRows) > 1;
+
+            $priceBreakdown = [];
+            foreach ($pricesRows as $pr) {
+                $priceBreakdown[] = [
+                    'price' => floatval($pr->sale_price),
+                    'qty' => floatval($pr->qty),
+                    'subtotal' => floatval($pr->subtotal),
+                ];
+            }
+
+            // Compras
+            $purchasesInMonth = \Illuminate\Support\Facades\DB::table('purchase_details')
+                ->join('purchases', 'purchase_details.purchase_id', '=', 'purchases.id')
+                ->where('purchase_details.product_id', $product_id)
+                ->whereBetween('purchases.created_at', [$mStart, $mEnd])
+                ->select([
+                    'purchase_details.cost',
+                    \Illuminate\Support\Facades\DB::raw('SUM(purchase_details.quantity) as qty')
+                ])
+                ->groupBy('purchase_details.cost')
+                ->get();
+
+            $costBreakdown = [];
+            $sumCostQty = 0;
+            $sumCostAmount = 0;
+
+            foreach ($purchasesInMonth as $pur) {
+                $c = floatval($pur->cost);
+                $q = floatval($pur->qty);
+                $costBreakdown[] = [
+                    'cost' => $c,
+                    'qty' => $q,
+                    'source' => 'Compra',
+                ];
+                $sumCostQty += $q;
+                $sumCostAmount += ($c * $q);
+            }
+
+            // Cargos
+            $cargosInMonth = \Illuminate\Support\Facades\DB::table('cargo_details')
+                ->join('cargos', 'cargo_details.cargo_id', '=', 'cargos.id')
+                ->where('cargo_details.product_id', $product_id)
+                ->where('cargos.status', 'approved')
+                ->whereBetween('cargos.date', [$mStart, $mEnd])
+                ->select([
+                    'cargo_details.cost',
+                    \Illuminate\Support\Facades\DB::raw('SUM(cargo_details.quantity) as qty')
+                ])
+                ->groupBy('cargo_details.cost')
+                ->get();
+
+            foreach ($cargosInMonth as $crg) {
+                $c = floatval($crg->cost);
+                $q = floatval($crg->qty);
+                $costBreakdown[] = [
+                    'cost' => $c,
+                    'qty' => $q,
+                    'source' => 'Cargo/Producción',
+                ];
+                $sumCostQty += $q;
+                $sumCostAmount += ($c * $q);
+            }
+
+            if ($sumCostQty > 0) {
+                $effectiveCost = $sumCostAmount / $sumCostQty;
+            } else {
+                $lastPurchase = \Illuminate\Support\Facades\DB::table('purchase_details')
+                    ->join('purchases', 'purchase_details.purchase_id', '=', 'purchases.id')
+                    ->where('purchase_details.product_id', $product_id)
+                    ->where('purchases.created_at', '<=', $mEnd)
+                    ->orderBy('purchases.created_at', 'desc')
+                    ->value('purchase_details.cost');
+
+                $effectiveCost = $lastPurchase !== null ? floatval($lastPurchase) : floatval($product->cost ?? 0);
+            }
+
+            $hasCostChanges = count($costBreakdown) > 1;
+            $costAmount = $soldQty * $effectiveCost;
+            $profitAmount = $soldAmount - $costAmount;
+            $marginPercent = $soldAmount > 0 ? ($profitAmount / $soldAmount) * 100 : 0.0;
+
+            $monthlyData[] = [
+                'period' => $monthName,
+                'raw_period' => $monthKey,
+                'sold_qty' => $soldQty,
+                'sold_amount' => $soldAmount,
+                'cost_unit' => $effectiveCost,
+                'cost_amount' => $costAmount,
+                'profit_amount' => $profitAmount,
+                'margin_percent' => $marginPercent,
+                'has_price_changes' => $hasPriceChanges,
+                'price_breakdown' => $priceBreakdown,
+                'has_cost_changes' => $hasCostChanges,
+                'cost_breakdown' => $costBreakdown,
+            ];
+
+            $totalQty += $soldQty;
+            $totalSold += $soldAmount;
+            $totalCost += $costAmount;
+        }
+
+        $totalProfit = $totalSold - $totalCost;
+        $totalMargin = $totalSold > 0 ? ($totalProfit / $totalSold) * 100 : 0.0;
+
+        $totals = [
+            'total_qty' => $totalQty,
+            'total_sold' => $totalSold,
+            'total_cost' => $totalCost,
+            'total_profit' => $totalProfit,
+            'margin_percent' => $totalMargin,
+        ];
+
+        $pdf = Pdf::loadView('reports.product-monthly-profit-pdf', compact(
+            'product',
+            'config',
+            'user',
+            'warehouseName',
+            'dateFrom',
+            'dateTo',
+            'monthlyData',
+            'totals'
+        ))->setPaper('a4', 'landscape');
+
+        return $pdf->stream('Rentabilidad_Mensual_' . ($product->sku ?: 'PROD') . '.pdf');
+    }
+
     public function customerStatementPdf(Request $request)
     {
         $customerId = $request->get('customer_id');

@@ -618,6 +618,16 @@ class ShortcutService
                 'category' => 'Reportes - Stock y Métricas',
                 'color' => '#fd7e14',
             ],
+            'reports.product.monthly.profit' => [
+                'key' => 'reports.product.monthly.profit',
+                'label' => 'Rentabilidad x Producto',
+                'short_label' => 'Rentab. Producto',
+                'icon' => 'fas fa-chart-line',
+                'route' => 'reports.product.monthly.profit',
+                'permission' => 'reports.sales',
+                'category' => 'Reportes - Stock y Métricas',
+                'color' => '#28a745',
+            ],
             'reports.audit' => [
                 'key' => 'reports.audit',
                 'label' => 'Auditoría de Stock / Actividad',

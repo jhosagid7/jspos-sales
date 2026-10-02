@@ -1,3 +1,15 @@
+## [1.10.459] - 2026-10-02
+
+### Added & Enhanced (Nuevo Reporte de Rentabilidad y Precios Mensuales por Producto)
+- **Reporte Especializado de Rentabilidad Mensual por Producto**:
+  - `ProductMonthlyProfitReport.php` & `product-monthly-profit-report.blade.php`: Análisis mes a mes de cantidad vendida, costo unitario efectivo, precio unitario de venta, desgloses detallados en caso de múltiples variaciones de precio en un mismo mes, total venta, total costo, ganancia neta ($) y margen porcentual (%).
+  - Filtro por rangos de fecha libres, presets rápidos (Año Actual, Desde Mayo, Últimos 6 Meses, Últimos 3 Meses) y opción para ocultar meses sin ventas.
+  - Filtro por almacén específico o consolidado de todas las sucursales.
+  - Tarjetas de resumen KPI superiores y fila de totales generales acumulados en el pie de tabla.
+  - Exportación de reporte imprimible y descargable en PDF apaisado (`ReportController::productMonthlyProfitPdf`).
+  - Registro de acceso directo y validación de permisos en `ShortcutService` y menú lateral del sistema.
+  - Pruebas unitarias y de integración en `ProductMonthlyProfitReportTest.php` (4 pruebas, 29 aserciones).
+
 ## [1.10.458] - 2026-10-02
 
 ### Added & Enhanced (Selector de Depósito en Importación de Productos para Socios y Trazabilidad FIFO)

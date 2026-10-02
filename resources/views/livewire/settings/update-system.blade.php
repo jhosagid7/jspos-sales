@@ -1,68 +1,171 @@
 <div>
+    <style>
+        .update-hero-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #ffffff;
+            transition: box-shadow 0.2s ease;
+        }
+        .update-hero-card:hover {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+        }
+        .markdown-body {
+            color: #334155;
+            font-size: 13.5px;
+            line-height: 1.65;
+        }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 {
+            color: #1e293b;
+            font-weight: 700;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            font-size: 1.05rem;
+        }
+        .markdown-body h1:first-child, .markdown-body h2:first-child, .markdown-body h3:first-child {
+            margin-top: 0;
+        }
+        .markdown-body ul {
+            padding-left: 1.4rem;
+            margin-bottom: 0.75rem;
+        }
+        .markdown-body li {
+            margin-bottom: 0.35rem;
+        }
+        .markdown-body code {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 88%;
+            border: 1px solid #e2e8f0;
+        }
+        .markdown-body strong {
+            color: #0f172a;
+        }
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+
     <div class="row layout-top-spacing">
         <div class="col-xl-12 col-lg-12 col-md-12 col-12 layout-spacing">
-            <div class="widget-content-area br-4">
-                <div class="widget-header">
-                    <div class="row">
-                        <div class="col-xl-12 col-md-12 col-sm-12 col-12">
-                            <h4>Sistema de Actualizaciones <small class="text-muted" style="font-size: 13px; font-weight: normal;">(Motor interactivo v2)</small></h4>
-                        </div>
+            <div class="widget-content-area br-4 border-0 shadow-sm" style="border-radius: 12px; background: #ffffff;">
+                <div class="widget-header border-bottom py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <h4 class="mb-0 font-weight-bold text-dark d-flex align-items-center">
+                            <i class="fas fa-cloud-upload-alt text-primary me-2" style="font-size: 1.35rem; color: #2b78b8 !important;"></i>
+                            Sistema de Actualizaciones
+                        </h4>
+                        <small class="text-muted">Mantén tu sistema al día con las últimas funciones, seguridad y mejoras de rendimiento.</small>
+                    </div>
+                    <div>
+                        <span class="badge shadow-sm" style="background: #f8fafc; color: #334155; border: 1px solid #e2e8f0; padding: 7px 14px; border-radius: 8px; font-weight: 600; font-size: 13px;">
+                            Versión Instalada: <strong class="ms-1" style="color: #2b78b8;">v{{ ltrim($currentVersion, 'v') }}</strong>
+                        </span>
                     </div>
                 </div>
 
-                <div class="widget-content widget-content-area">
-                    <div class="text-center mt-4 mb-4">
-                        <h5 class="mb-3">Versión Actual: <span class="badge badge-info">{{ $currentVersion }}</span></h5>
-
+                <div class="widget-content p-4">
+                    <div class="text-center mt-2 mb-4">
                         @if($status === 'checking')
-                            <div class="alert alert-info border-0 shadow-sm">
-                                <i class="fas fa-spinner fa-spin me-2 text-info"></i> Buscando actualizaciones...
+                            <div class="p-4 rounded-3 text-center my-3 shadow-sm" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                                <div class="spinner-border mb-2" role="status" style="width: 2.2rem; height: 2.2rem; color: #2b78b8;"></div>
+                                <div class="text-dark font-weight-bold">Buscando actualizaciones en la nube...</div>
+                                <small class="text-muted">Conectando de forma segura con los servidores de versiones.</small>
                             </div>
                         @elseif($status === 'up_to_date')
-                            <div class="alert alert-success border-0 shadow-sm">
-                                <i class="fas fa-check-circle me-2 text-success"></i> El sistema está actualizado a la última versión.
+                            <div class="p-4 rounded-3 text-center my-3 shadow-sm" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
+                                <div class="d-inline-flex align-items-center justify-content-center mb-2" style="width: 50px; height: 50px; border-radius: 50%; background: #dcfce7; color: #16a34a; font-size: 24px;">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <h5 class="text-dark font-weight-bold mb-1">¡Tu sistema está completamente actualizado!</h5>
+                                <p class="text-muted mb-0 small">Estás disfrutando de la versión más reciente (v{{ ltrim($currentVersion, 'v') }}).</p>
                             </div>
                         @elseif($status === 'available')
-                            <div class="alert alert-warning border-0 shadow-sm text-start p-4">
-                                <h4 class="alert-heading text-warning font-weight-bold"><i class="fas fa-gift me-2"></i> ¡Nueva Versión Disponible!</h4>
-                                <p class="mt-2">Versión: <strong class="text-dark">{{ $newVersion }}</strong></p>
-                                <hr>
-                                <div class="bg-light p-3 rounded" style="max-height: 200px; overflow-y: auto; border: 1px solid #e0e0e0;">
-                                    {!! nl2br(e($releaseBody)) !!}
+                            <!-- Tarjeta Moderna de Actualización Disponible (Estilo SaaS Hero) -->
+                            <div class="update-hero-card mb-4 text-start shadow-sm">
+                                <div class="p-4" style="background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%); border-bottom: 1px solid #e2e8f0;">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 54px; height: 54px; border-radius: 12px; background: #ffffff; color: #2b78b8; font-size: 24px; border: 1px solid #e2e8f0;">
+                                                <i class="fas fa-rocket"></i>
+                                            </div>
+                                            <div>
+                                                <div class="d-flex align-items-center gap-2 mb-1">
+                                                    <span class="badge" style="background-color: #2b78b8; color: #ffffff; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; padding: 4px 10px; border-radius: 20px;">
+                                                        <i class="fas fa-sparkles me-1"></i> Nueva Versión
+                                                    </span>
+                                                    <span class="text-muted small">Lista para instalar</span>
+                                                </div>
+                                                <h3 class="mb-0 font-weight-bold" style="color: #1e293b; font-size: 1.45rem;">
+                                                    Versión <span style="color: #2b78b8;">v{{ ltrim($newVersion, 'v') }}</span>
+                                                </h3>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <button type="button" id="btnActualizarAhora" data-version="{{ $newVersion }}" class="btn btn-lg px-4 py-2 font-weight-bold shadow-sm" style="background: linear-gradient(135deg, #2b78b8 0%, #1e5c8e 100%); color: #ffffff; border: none; border-radius: 8px; font-size: 0.95rem;">
+                                                <i class="fas fa-cloud-download-alt me-2"></i> Actualizar Ahora
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
-                                <hr class="my-3">
-                                <div class="text-center">
-                                    <button type="button" id="btnActualizarAhora" data-version="{{ $newVersion }}" class="btn btn-success btn-lg px-4 font-weight-bold">
-                                        <i class="fas fa-cloud-download-alt me-2"></i> Actualizar Ahora
-                                    </button>
+
+                                <div class="card-body p-4 text-start">
+                                    <h6 class="font-weight-bold text-muted text-uppercase mb-3" style="font-size: 12px; letter-spacing: 0.5px;">
+                                        <i class="fas fa-clipboard-list me-1" style="color: #2b78b8;"></i> Cambios y Novedades de esta Versión:
+                                    </h6>
+                                    <div class="p-3 rounded-3 custom-scroll" style="max-height: 250px; overflow-y: auto; background-color: #f8fafc; border: 1px solid #e2e8f0;">
+                                        <div class="markdown-body">
+                                            {!! \Illuminate\Support\Str::markdown($releaseBody) !!}
+                                        </div>
+                                    </div>
+                                    <div class="d-flex flex-wrap align-items-center justify-content-between mt-3 pt-3 text-muted small border-top gap-2">
+                                        <span><i class="fas fa-shield-alt text-success me-1"></i> Respaldo preventivo automático incluido antes de instalar.</span>
+                                        <span><i class="fas fa-history text-primary me-1"></i> Restauración rápida disponible en caso de rollback.</span>
+                                    </div>
                                 </div>
                             </div>
                         @elseif($status === 'updating')
-                            <div class="alert alert-primary border-0 shadow-sm p-4 text-center">
-                                <h4 class="alert-heading text-primary font-weight-bold mb-2">
-                                    <i class="fas fa-cog fa-spin me-2"></i> Actualización en Curso...
-                                </h4>
-                                <p class="text-muted mb-0">Por favor, no cierre esta ventana ni interrumpa el servidor. La consola detallada de operaciones está activa en el modal emergente.</p>
+                            <div class="p-4 rounded-3 text-center my-3 shadow-sm" style="background: #f0f9ff; border: 1px solid #bae6fd;">
+                                <div class="spinner-border mb-2" role="status" style="width: 2.2rem; height: 2.2rem; color: #2b78b8;"></div>
+                                <h5 class="font-weight-bold mb-1" style="color: #0369a1;">Actualización en curso...</h5>
+                                <p class="text-muted mb-0 small">Por favor, no cierres esta ventana ni interrumpas el servidor. La consola de operaciones en vivo está activa en el modal emergente.</p>
                             </div>
                         @elseif($status === 'done')
-                            <div class="alert alert-success border-0 shadow-sm p-4 text-center">
-                                <h4 class="alert-heading text-success font-weight-bold mb-2">
-                                    <i class="fas fa-check-circle me-2"></i> ¡Acción Completada!
-                                </h4>
-                                <p class="mb-3 text-muted">La operación se completó exitosamente.</p>
-                                <button type="button" class="btn btn-primary px-4 font-weight-bold" onclick="window.location.reload()">
+                            <div class="p-4 rounded-3 text-center my-3 shadow-sm" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
+                                <div class="d-inline-flex align-items-center justify-content-center mb-2" style="width: 50px; height: 50px; border-radius: 50%; background: #dcfce7; color: #16a34a; font-size: 24px;">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <h5 class="text-dark font-weight-bold mb-1">¡Actualización Completada!</h5>
+                                <p class="mb-3 text-muted small">El sistema se actualizó exitosamente.</p>
+                                <button type="button" class="btn px-4 font-weight-bold text-white shadow-sm" style="background-color: #2b78b8; border-radius: 8px;" onclick="window.location.reload()">
                                     <i class="fas fa-sync-alt me-2"></i> Recargar Sistema
                                 </button>
                             </div>
                         @elseif($status === 'error')
-                            <div class="alert alert-danger border-0 shadow-sm p-4">
-                                <h4 class="alert-heading text-danger font-weight-bold"><i class="fas fa-exclamation-triangle me-2"></i> Error</h4>
-                                <p class="mb-0">{{ $errors->first('update') }}</p>
+                            <div class="p-4 rounded-3 text-start my-3 shadow-sm" style="background: #fef2f2; border: 1px solid #fecaca;">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-exclamation-circle text-danger me-2" style="font-size: 1.4rem;"></i>
+                                    <h5 class="text-danger font-weight-bold mb-0">No se pudo completar la comprobación</h5>
+                                </div>
+                                <p class="text-muted mb-0 small">{{ $errors->first('update') ?: 'Ocurrió un error al contactar el servidor de actualizaciones.' }}</p>
                             </div>
                         @endif
 
                         @if(!in_array($status, ['backing_up', 'downloading', 'updating', 'available']))
-                            <button wire:click="checkUpdate" class="btn btn-primary px-4" wire:loading.attr="disabled">
+                            <button wire:click="checkUpdate" class="btn px-4 py-2 font-weight-bold text-white shadow-sm" style="background-color: #2b78b8; border-radius: 8px;" wire:loading.attr="disabled">
                                 <i class="fas fa-sync-alt me-2"></i> Buscar Actualizaciones
                             </button>
                         @endif
@@ -70,13 +173,13 @@
 
                     <!-- Manual ZIP Upload Section -->
                     @if(!in_array($status, ['updating']))
-                    <div class="card mt-3 shadow-sm border-0">
-                        <div class="card-header bg-light border-0 py-3">
-                            <h5 class="card-title m-0 text-dark font-weight-bold">
+                    <div class="card mt-4 shadow-sm border-0" style="border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
+                        <div class="card-header bg-light border-bottom py-3 px-4">
+                            <h5 class="card-title m-0 text-dark font-weight-bold d-flex align-items-center">
                                 <i class="fas fa-file-archive me-2 text-secondary"></i> Actualización Manual mediante Archivo (.ZIP)
                             </h5>
                         </div>
-                        <div class="card-body text-start">
+                        <div class="card-body p-4 text-start">
                             <p class="text-muted small mb-3">
                                 Útil cuando el internet del cliente es muy lento o no puede conectar a GitHub: Selecciona el archivo de actualización <strong>.zip</strong> (desde USB o disco local) para instalarlo de forma instantánea.
                             </p>
@@ -101,11 +204,13 @@
                     @endif
 
                     @if($currentReleaseNotes && !in_array($status, ['updating']))
-                    <div class="card mt-4 shadow-sm border-0">
-                        <div class="card-header bg-light border-0 py-3">
-                            <h5 class="card-title m-0 text-dark font-weight-bold"><i class="fas fa-list-alt me-2 text-primary"></i> Novedades de la Versión v{{ $currentVersion }}</h5>
+                    <div class="card mt-4 shadow-sm border-0" style="border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
+                        <div class="card-header bg-light border-bottom py-3 px-4">
+                            <h5 class="card-title m-0 text-dark font-weight-bold d-flex align-items-center">
+                                <i class="fas fa-list-alt me-2" style="color: #2b78b8;"></i> Novedades de la Versión v{{ ltrim($currentVersion, 'v') }}
+                            </h5>
                         </div>
-                        <div class="card-body text-start" style="max-height: 300px; overflow-y: auto; background-color: #f8f9fa;">
+                        <div class="card-body text-start p-4 custom-scroll" style="max-height: 300px; overflow-y: auto; background-color: #f8fafc;">
                             <div class="markdown-body">
                                 {!! \Illuminate\Support\Str::markdown($currentReleaseNotes) !!}
                             </div>
@@ -114,12 +219,14 @@
                     @endif
 
                     @if(is_array($rollbacks) && count($rollbacks) > 0 && !in_array($status, ['updating']))
-                    <div class="card mt-4 shadow-sm border-0">
-                        <div class="card-header bg-light border-0 py-3 d-flex justify-content-between align-items-center">
-                            <h5 class="card-title m-0 text-dark font-weight-bold">
-                                <i class="fas fa-history me-2 text-warning"></i> Puntos de Restauración (Rollback)
+                    <div class="card mt-4 shadow-sm border-0" style="border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
+                        <div class="card-header bg-light border-bottom py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <h5 class="card-title m-0 text-dark font-weight-bold d-flex align-items-center">
+                                <i class="fas fa-history me-2" style="color: #2b78b8;"></i> Puntos de Restauración (Rollback)
                             </h5>
-                            <span class="badge badge-warning font-weight-bold">Máx. 3 copias</span>
+                            <span class="badge" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-weight: 600; padding: 5px 12px; border-radius: 20px;">
+                                Máx. 3 copias
+                            </span>
                         </div>
                         <div class="card-body p-0">
                             <div class="table-responsive">
@@ -147,7 +254,8 @@
                                             <td class="px-4 py-3 text-end">
                                                 <button 
                                                     onclick="confirmRollback('{{ $rollback['folder'] }}', '{{ $rollback['version'] }}')"
-                                                    class="btn btn-warning btn-sm me-2" 
+                                                    class="btn btn-sm me-2 font-weight-bold" 
+                                                    style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; border-radius: 6px;"
                                                     wire:loading.attr="disabled"
                                                     title="Restaurar a esta versión"
                                                 >
@@ -158,6 +266,7 @@
                                                     class="btn btn-danger btn-sm" 
                                                     wire:loading.attr="disabled"
                                                     title="Eliminar punto de restauración"
+                                                    style="border-radius: 6px;"
                                                 >
                                                     <i class="far fa-trash-alt"></i>
                                                 </button>
@@ -172,9 +281,9 @@
                     @endif
 
                     @if(!in_array($status, ['updating']))
-                    <div class="card mt-4 shadow-sm border-0">
-                        <div class="card-header bg-light border-0 py-3 d-flex justify-content-between align-items-center">
-                            <h5 class="card-title m-0 text-dark font-weight-bold">
+                    <div class="card mt-4 shadow-sm border-0" style="border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
+                        <div class="card-header bg-light border-bottom py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <h5 class="card-title m-0 text-dark font-weight-bold d-flex align-items-center">
                                 <i class="fas fa-terminal me-2 text-danger"></i> Bitácora de Errores (Logs)
                             </h5>
                             <div>
