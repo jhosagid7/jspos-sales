@@ -391,7 +391,7 @@
                 }, 3800);
 
                 $.ajax({
-                    url: "{{ route('system.update.apply') }}",
+                    url: "{{ url('/system/update/apply') }}",
                     type: 'POST',
                     data: {
                         _token: "{{ csrf_token() }}",
@@ -447,7 +447,7 @@
                 }, 1800);
 
                 $.ajax({
-                    url: "{{ route('system.update.rollback') }}",
+                    url: "{{ url('/system/update/rollback') }}",
                     type: 'POST',
                     data: {
                         _token: "{{ csrf_token() }}",
