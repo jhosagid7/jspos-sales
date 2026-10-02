@@ -1,3 +1,12 @@
+## [1.10.458] - 2026-10-02
+
+### Added & Enhanced (Selector de Depósito en Importación de Productos para Socios y Trazabilidad FIFO)
+- **Selección de Almacén Destino en Importador de Productos**:
+  - `ProductImport.php` & `product-import.blade.php`: Incorporado selector dinámico de depósito en el paso de mapeo inteligente del importador de productos Excel/CSV.
+  - Permite cargar inventario inicial directamente en bodegas/depósitos de socios (`is_partner_warehouse`) para que al transferirse hacia el almacén principal se generen de inmediato las capas FIFO (`TransferStockLayer`) y la liquidación automática de ventas por socio.
+  - Preselección automática del Almacén Principal (`default_warehouse_id`) garantizando 100% de compatibilidad con clientes de un solo depósito.
+  - Asignación inteligente de stock: cuando se importa a un depósito de socio, el stock se registra en `product_warehouse` para ese socio y el stock general de tienda (`products.stock_qty`) permanece en 0 (nuevos) o intacto (existentes) hasta que se registre la transferencia hacia la tienda.
+
 ## [1.10.457] - 2026-10-02
 
 ### Fixed (Manejador de Extracción y Copia de Archivos en Actualizaciones de Windows)

@@ -81,6 +81,49 @@
         @if ($step === 2)
             <div class="row">
                 <div class="col-md-12 mb-3">
+                    <div class="card border shadow-sm">
+                        <div class="card-body bg-light py-3">
+                            <div class="row align-items-center">
+                                <div class="col-md-5 mb-2 mb-md-0">
+                                    <label class="form-label font-weight-bold mb-1 d-flex align-items-center">
+                                        <i class="fas fa-warehouse text-primary me-2"></i>
+                                        Depósito / Almacén de Destino <span class="text-danger ms-1">*</span>
+                                    </label>
+                                    <small class="text-muted d-block">
+                                        El stock importado ingresará directamente al depósito seleccionado.
+                                    </small>
+                                </div>
+                                <div class="col-md-7">
+                                    <select wire:model.live="warehouse_id" class="form-control form-select @error('warehouse_id') is-invalid @enderror">
+                                        @foreach($warehouses as $wh)
+                                            <option value="{{ $wh->id }}">
+                                                {{ $wh->name }}
+                                                @if($wh->is_partner_warehouse)
+                                                    (Depósito de Socio: {{ $wh->partner_name ?: 'Socio' }})
+                                                @elseif($wh->id == ($config->default_warehouse_id ?? 0))
+                                                    (Almacén Principal / Tienda)
+                                                @endif
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('warehouse_id')
+                                        <span class="text-danger small mt-1 d-block">{{ $message }}</span>
+                                    @enderror
+                                    @php
+                                        $selectedWh = $warehouses->firstWhere('id', $warehouse_id);
+                                    @endphp
+                                    @if($selectedWh && $selectedWh->is_partner_warehouse)
+                                        <div class="mt-2 text-primary small">
+                                            <i class="fas fa-info-circle me-1"></i> <b>Modo Socio / Consignación:</b> La mercancía se registrará en el depósito del socio ({{ $selectedWh->partner_name ?: $selectedWh->name }}). Luego, al transferirla al almacén principal, se generará la trazabilidad FIFO y liquidación.
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-12 mb-3">
                     <div class="alert alert-info">
                         <i class="fas fa-magic"></i> <b>Mapeo Inteligente:</b> Hemos intentado conectar tus columnas automáticamente. Por favor verifica que los campos sean correctos.
                     </div>

@@ -25,6 +25,7 @@ class ProductImport extends Component
     public $importing = false;
     public $importErrors = [];
     public $successCount = 0;
+    public $warehouse_id = null;
 
     // System Fields available for mapping
     public $systemFields = [
@@ -39,11 +40,18 @@ class ProductImport extends Component
 
     protected $rules = [
         'file' => 'required|file|mimes:xlsx,xls,csv,txt',
+        'warehouse_id' => 'required|exists:warehouses,id',
     ];
+
+    public function mount()
+    {
+        $config = Configuration::first();
+        $this->warehouse_id = $config->default_warehouse_id ?? Warehouse::first()?->id;
+    }
 
     public function updatedFile()
     {
-        $this->validate();
+        $this->validateOnly('file');
         $this->readHeaders();
     }
 
@@ -144,6 +152,28 @@ class ProductImport extends Component
 
             $mappedNameIdx = (int)$mappedNameIdx;
 
+            $config = Configuration::first();
+            $defaultWarehouseId = $config?->default_warehouse_id;
+            
+            if (!$defaultWarehouseId) {
+                $firstWh = Warehouse::first();
+                if (!$firstWh) {
+                    $firstWh = Warehouse::create([
+                        'name' => 'ALMACÉN PRINCIPAL',
+                        'is_active' => true,
+                        'is_partner_warehouse' => false,
+                    ]);
+                }
+                $defaultWarehouseId = $firstWh->id;
+            }
+
+            if (empty($this->warehouse_id)) {
+                $this->warehouse_id = $defaultWarehouseId;
+            }
+
+            $targetWarehouseId = (int)$this->warehouse_id;
+            $isDefaultWarehouse = ($targetWarehouseId === (int)$defaultWarehouseId);
+
             DB::beginTransaction();
 
             $defaultSupplier = Supplier::first();
@@ -156,9 +186,6 @@ class ProductImport extends Component
                 ]);
             }
             $supplierId = $defaultSupplier->id;
-
-            $config = Configuration::first();
-            $defaultWarehouseId = $config->default_warehouse_id ?? Warehouse::first()?->id;
 
             $parseNumber = function($val) {
                 if ($val === null || $val === '') return 0.0;
@@ -247,7 +274,8 @@ class ProductImport extends Component
                             $updateData['sku'] = $rawBarcode;
                         }
 
-                        if (isset($productData['stock_qty']) && $productData['stock_qty'] !== '') {
+                        // Solo actualizar el stock_qty de tienda si se está importando al almacén principal
+                        if ($isDefaultWarehouse && isset($productData['stock_qty']) && $productData['stock_qty'] !== '') {
                             $updateData['stock_qty'] = $stockQty;
                         }
 
@@ -263,7 +291,7 @@ class ProductImport extends Component
                             'description' => $productData['description'] ?? '',
                             'price' => $price,
                             'cost' => $cost,
-                            'stock_qty' => $stockQty,
+                            'stock_qty' => $isDefaultWarehouse ? $stockQty : 0,
                             'category_id' => $categoryId,
                             'supplier_id' => $supplierId,
                             'type' => 'physical',
@@ -273,9 +301,9 @@ class ProductImport extends Component
                         ]);
                     }
 
-                    if ($defaultWarehouseId && (isset($productData['stock_qty']) && $productData['stock_qty'] !== '')) {
+                    if ($targetWarehouseId && (isset($productData['stock_qty']) && $productData['stock_qty'] !== '')) {
                         ProductWarehouse::updateOrCreate(
-                            ['product_id' => $product->id, 'warehouse_id' => $defaultWarehouseId],
+                            ['product_id' => $product->id, 'warehouse_id' => $targetWarehouseId],
                             ['stock_qty' => $stockQty]
                         );
                     }
@@ -301,6 +329,8 @@ class ProductImport extends Component
 
     public function render()
     {
-        return view('livewire.product-import');
+        $warehouses = Warehouse::where('is_active', true)->orderBy('name')->get();
+        $config = Configuration::first();
+        return view('livewire.product-import', compact('warehouses', 'config'));
     }
 }
