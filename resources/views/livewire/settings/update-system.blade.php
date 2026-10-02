@@ -32,7 +32,7 @@
                                 </div>
                                 <hr class="my-3">
                                 <div class="text-center">
-                                    <button type="button" class="btn btn-success btn-lg px-4 font-weight-bold" onclick="ejecutarActualizacionAJAX('{{ $newVersion }}')">
+                                    <button type="button" id="btnActualizarAhora" data-version="{{ $newVersion }}" class="btn btn-success btn-lg px-4 font-weight-bold" onclick="if(window.ejecutarActualizacionAJAX){ window.ejecutarActualizacionAJAX('{{ $newVersion }}'); } else { console.error('ejecutarActualizacionAJAX no disponible'); }">
                                         <i class="fas fa-cloud-download-alt me-2"></i> Actualizar Ahora
                                     </button>
                                 </div>
@@ -284,269 +284,304 @@
                     </div>
                 </div>
 
-                <script>
-                    (function($) {
-                        // Abrir modal y reiniciar componentes visuales
-                        function abrirModalActualizacion(titulo) {
-                            titulo = titulo || 'Iniciando actualización...';
-                            $('#modalProgreso').show();
-                            $('#modalExito').hide();
-                            $('#modalError').hide();
-                            $('#consolaPasos').empty();
-                            $('#consolaError').empty();
-                            $('#badgeEstadoTerminal').removeClass('badge-danger badge-success text-white').addClass('badge-light text-muted').text('En ejecución');
-                            $('#barraProgreso').removeClass('bg-success bg-danger bg-warning').css({'width': '10%', 'background-color': '#2b78b8'}).text('10%');
-                            $('#textoPasoSpinner').text(titulo);
-                            $('#iconoPasoSpinner').show();
-                            $('#modalActualizar').modal({
-                                backdrop: 'static',
-                                keyboard: false,
-                                show: true
-                            });
-                        }
-
-                        // Agregar línea formateada a la consola tipo terminal
-                        function agregarLog(texto, color) {
-                            color = color || '#a9b7c6';
-                            var now = new Date();
-                            var hora = now.toTimeString().split(' ')[0]; // HH:MM:SS
-                            $('#consolaPasos').append('<div style="color: ' + color + '; margin-bottom: 3px;">[' + hora + '] ' + texto + '</div>');
-                            var d = $('#consolaPasos');
-                            d.scrollTop(d.prop("scrollHeight"));
-                        }
-
-                        // Actualizar barra de progreso y estado
-                        function updateProgreso(percent, textoSpinner, logTexto, logColor, colorBarra) {
-                            if (percent !== null && percent !== undefined) {
-                                $('#barraProgreso').css('width', percent + '%').text(percent + '%');
-                                if (colorBarra) {
-                                    $('#barraProgreso').removeClass('bg-primary bg-warning bg-danger bg-success');
-                                    if (colorBarra === 'bg-success') {
-                                        $('#barraProgreso').css('background-color', '#28a745');
-                                    } else if (colorBarra === 'bg-danger') {
-                                        $('#barraProgreso').css('background-color', '#dc3545');
-                                    } else {
-                                        $('#barraProgreso').css('background-color', '#2b78b8');
-                                    }
-                                }
-                            }
-                            if (textoSpinner) {
-                                $('#textoPasoSpinner').text(textoSpinner);
-                            }
-                            if (logTexto) {
-                                agregarLog(logTexto, logColor);
-                            }
-                        }
-
-                        // Visualización amigable de error
-                        function mostrarErrorActualizacion(errMsg) {
-                            updateProgreso(null, 'Error en el proceso', '✗ ERROR: ' + errMsg, '#f44747', 'bg-danger');
-                            $('#badgeEstadoTerminal').removeClass('badge-light text-muted').addClass('badge-danger text-white').text('Fallido');
-                            $('#iconoPasoSpinner').hide();
-                            $('#txtDetalleError').text(errMsg);
-                            $('#consolaError').text(errMsg);
-
-                            setTimeout(function() {
-                                $('#modalProgreso').fadeOut(300, function() {
-                                    $('#modalError').fadeIn(300);
-                                });
-                            }, 1500);
-                        }
-
-                        // Ejecutar Actualización vía AJAX (Estilo Villasol)
-                        window.ejecutarActualizacionAJAX = function(version) {
-                            abrirModalActualizacion('Iniciando actualización...');
-                            agregarLog('Iniciando proceso de actualización del sistema...', '#569cd6');
-                            agregarLog('Paso 1/5: Generando respaldo preventivo de base de datos...');
-                            updateProgreso(20, 'Generando respaldo preventivo...');
-
-                            var timer1 = setTimeout(function() {
-                                updateProgreso(45, 'Descargando paquete desde GitHub...', 'Paso 2/5: Descargando archivos actualizados desde GitHub...');
-                            }, 1800);
-
-                            var timer2 = setTimeout(function() {
-                                updateProgreso(70, 'Instalando archivos en el servidor...', 'Paso 3/5: Descomprimiendo e instalando archivos en el servidor...');
-                            }, 3800);
-
-                            $.ajax({
-                                url: "{{ route('system.update.apply') }}",
-                                type: 'POST',
-                                data: {
-                                    _token: "{{ csrf_token() }}",
-                                    version: version
-                                },
-                                dataType: 'json',
-                                timeout: 600000,
-                                success: function(res) {
-                                    clearTimeout(timer1);
-                                    clearTimeout(timer2);
-
-                                    if (res.success) {
-                                        updateProgreso(85, 'Actualizando base de datos...', 'Paso 4/5: Verificando y aplicando migraciones de base de datos...');
-                                        
-                                        setTimeout(function() {
-                                            updateProgreso(95, 'Limpiando cachés...', 'Paso 5/5: Limpiando cachés de Laravel (vistas, rutas, configuración)...');
-                                            
-                                            setTimeout(function() {
-                                                var verFinal = res.new_version || version || '{{ $newVersion }}';
-                                                updateProgreso(100, '¡Actualización completada!', '✓ ' + (res.message || '¡Sistema actualizado con éxito a la versión ' + verFinal + '!'), '#4ec9b0', 'bg-success');
-                                                $('#badgeEstadoTerminal').removeClass('badge-light text-muted').addClass('badge-success text-white').text('Completado');
-                                                
-                                                setTimeout(function() {
-                                                    $('#modalProgreso').fadeOut(300, function() {
-                                                        $('#txtDetalleExito').html('¡Sistema actualizado con éxito a la versión <strong class="text-dark">' + verFinal + '</strong>!');
-                                                        $('#modalExito').fadeIn(300);
-                                                    });
-                                                }, 1200);
-                                            }, 500);
-                                        }, 500);
-                                    } else {
-                                        mostrarErrorActualizacion(res.message || 'Error desconocido durante la actualización');
-                                    }
-                                },
-                                error: function(xhr, status, error) {
-                                    clearTimeout(timer1);
-                                    clearTimeout(timer2);
-                                    var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : (error || 'Error de conexión con el servidor');
-                                    mostrarErrorActualizacion(msg);
-                                }
-                            });
-                        };
-
-                        // Ejecutar Rollback vía AJAX
-                        window.ejecutarRollbackAJAX = function(folder, version) {
-                            abrirModalActualizacion('Iniciando restauración a v' + version + '...');
-                            agregarLog('Iniciando proceso de restauración del sistema...', '#569cd6');
-                            agregarLog('Paso 1/2: Restaurando código fuente y base de datos respaldada...');
-                            updateProgreso(35, 'Restaurando código y base de datos...');
-
-                            var timer = setTimeout(function() {
-                                updateProgreso(65, 'Extrayendo archivos y aplicando base de datos...');
-                            }, 1800);
-
-                            $.ajax({
-                                url: "{{ route('system.update.rollback') }}",
-                                type: 'POST',
-                                data: {
-                                    _token: "{{ csrf_token() }}",
-                                    folder: folder,
-                                    version: version
-                                },
-                                dataType: 'json',
-                                timeout: 600000,
-                                success: function(res) {
-                                    clearTimeout(timer);
-                                    if (res.success) {
-                                        updateProgreso(90, 'Limpiando cachés...', 'Paso 2/2: Limpiando cachés del sistema...');
-                                        setTimeout(function() {
-                                            updateProgreso(100, '¡Restauración completada!', '✓ ' + (res.message || '¡Sistema restaurado correctamente a la versión anterior!'), '#4ec9b0', 'bg-success');
-                                            $('#badgeEstadoTerminal').removeClass('badge-light text-muted').addClass('badge-success text-white').text('Restaurado');
-
-                                            setTimeout(function() {
-                                                $('#modalProgreso').fadeOut(300, function() {
-                                                    $('#txtDetalleExito').html('¡Sistema restaurado con éxito a la versión <strong class="text-dark">v' + version + '</strong>!');
-                                                    $('#modalExito').fadeIn(300);
-                                                });
-                                            }, 1200);
-                                        }, 500);
-                                    } else {
-                                        mostrarErrorActualizacion(res.message || 'Error durante la restauración');
-                                    }
-                                },
-                                error: function(xhr, status, error) {
-                                    clearTimeout(timer);
-                                    var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : (error || 'Error de conexión con el servidor');
-                                    mostrarErrorActualizacion(msg);
-                                }
-                            });
-                        };
-
-                        // Escucha evento cuando se sube un ZIP manual
-                        document.addEventListener('livewire:init', function() {
-                            Livewire.on('start-zip-apply', function(event) {
-                                var ver = (event && event.version) ? event.version : 'Manual (ZIP)';
-                                window.ejecutarActualizacionAJAX(ver);
-                            });
-                        });
-                    })(window.jQuery);
-
-                    // Diálogos de Confirmación SweetAlert v1
-                    function confirmRollback(folder, version) {
-                        swal({
-                            title: '¿Restaurar sistema?',
-                            text: 'El sistema revertirá el código y la base de datos a la versión v' + version + '. Se perderán las transacciones generadas después de este respaldo. Esta acción es IRREVERSIBLE.',
-                            icon: 'warning',
-                            buttons: {
-                                cancel: {
-                                    text: 'Cancelar',
-                                    value: null,
-                                    visible: true,
-                                },
-                                confirm: {
-                                    text: 'Sí, restaurar',
-                                    value: true,
-                                    className: 'swal-button--danger',
-                                }
-                            },
-                            dangerMode: true,
-                        }).then(function(value) {
-                            if (value) {
-                                window.ejecutarRollbackAJAX(folder, version);
-                            }
-                        });
-                    }
-
-                    function confirmDeleteRollback(folder, version) {
-                        swal({
-                            title: '¿Eliminar punto de restauración?',
-                            text: 'Se eliminarán permanentemente los archivos y base de datos respaldados para la versión v' + version + '.',
-                            icon: 'warning',
-                            buttons: {
-                                cancel: {
-                                    text: 'Cancelar',
-                                    value: null,
-                                    visible: true,
-                                },
-                                confirm: {
-                                    text: 'Sí, eliminar',
-                                    value: true,
-                                    className: 'swal-button--danger',
-                                }
-                            },
-                            dangerMode: true,
-                        }).then(function(value) {
-                            if (value) {
-                                @this.call('deleteRollback', folder);
-                            }
-                        });
-                    }
-
-                    function confirmClearLogs() {
-                        swal({
-                            title: '¿Limpiar historial de errores?',
-                            text: 'Se vaciará por completo el archivo laravel.log de este servidor. Esta acción liberará espacio en disco y no se puede deshacer.',
-                            icon: 'warning',
-                            buttons: {
-                                cancel: {
-                                    text: 'Cancelar',
-                                    value: null,
-                                    visible: true,
-                                },
-                                confirm: {
-                                    text: 'Sí, limpiar',
-                                    value: true,
-                                    className: 'swal-button--danger',
-                                }
-                            },
-                            dangerMode: true,
-                        }).then(function(value) {
-                            if (value) {
-                                @this.call('clearLogs');
-                            }
-                        });
-                    }
-                </script>
             </div>
         </div>
     </div>
 </div>
+
+@push('my-scripts')
+<script>
+    (function() {
+        function initUpdateSystem() {
+            var $ = window.jQuery || window.$;
+            if (!$) {
+                setTimeout(initUpdateSystem, 50);
+                return;
+            }
+
+            // Move modal to body to guarantee clean Bootstrap backdrop behavior
+            if ($('#modalActualizar').length && $('#modalActualizar').parent().get(0) !== document.body) {
+                $('#modalActualizar').appendTo('body');
+            }
+
+            function abrirModalActualizacion(titulo) {
+                var $ = window.jQuery || window.$;
+                titulo = titulo || 'Iniciando actualización...';
+                $('#modalProgreso').show();
+                $('#modalExito').hide();
+                $('#modalError').hide();
+                $('#consolaPasos').empty();
+                $('#consolaError').empty();
+                $('#badgeEstadoTerminal').removeClass('badge-danger badge-success text-white').addClass('badge-light text-muted').text('En ejecución');
+                $('#barraProgreso').removeClass('bg-success bg-danger bg-warning').css({'width': '10%', 'background-color': '#2b78b8'}).text('10%');
+                $('#textoPasoSpinner').text(titulo);
+                $('#iconoPasoSpinner').show();
+                $('#modalActualizar').modal({
+                    backdrop: 'static',
+                    keyboard: false,
+                    show: true
+                });
+            }
+
+            function agregarLog(texto, color) {
+                var $ = window.jQuery || window.$;
+                color = color || '#a9b7c6';
+                var now = new Date();
+                var hora = now.toTimeString().split(' ')[0]; // HH:MM:SS
+                $('#consolaPasos').append('<div style="color: ' + color + '; margin-bottom: 3px;">[' + hora + '] ' + texto + '</div>');
+                var d = $('#consolaPasos');
+                d.scrollTop(d.prop("scrollHeight"));
+            }
+
+            function updateProgreso(percent, textoSpinner, logTexto, logColor, colorBarra) {
+                var $ = window.jQuery || window.$;
+                if (percent !== null && percent !== undefined) {
+                    $('#barraProgreso').css('width', percent + '%').text(percent + '%');
+                    if (colorBarra) {
+                        $('#barraProgreso').removeClass('bg-primary bg-warning bg-danger bg-success');
+                        if (colorBarra === 'bg-success') {
+                            $('#barraProgreso').css('background-color', '#28a745');
+                        } else if (colorBarra === 'bg-danger') {
+                            $('#barraProgreso').css('background-color', '#dc3545');
+                        } else {
+                            $('#barraProgreso').css('background-color', '#2b78b8');
+                        }
+                    }
+                }
+                if (textoSpinner) {
+                    $('#textoPasoSpinner').text(textoSpinner);
+                }
+                if (logTexto) {
+                    agregarLog(logTexto, logColor);
+                }
+            }
+
+            function mostrarErrorActualizacion(errMsg) {
+                var $ = window.jQuery || window.$;
+                updateProgreso(null, 'Error en el proceso', '✗ ERROR: ' + errMsg, '#f44747', 'bg-danger');
+                $('#badgeEstadoTerminal').removeClass('badge-light text-muted').addClass('badge-danger text-white').text('Fallido');
+                $('#iconoPasoSpinner').hide();
+                $('#txtDetalleError').text(errMsg);
+                $('#consolaError').text(errMsg);
+
+                setTimeout(function() {
+                    $('#modalProgreso').fadeOut(300, function() {
+                        $('#modalError').fadeIn(300);
+                    });
+                }, 1500);
+            }
+
+            window.ejecutarActualizacionAJAX = function(version) {
+                var $ = window.jQuery || window.$;
+                if (!$) {
+                    alert("El sistema aún está cargando librerías, por favor intente en unos segundos...");
+                    return;
+                }
+                abrirModalActualizacion('Iniciando actualización...');
+                agregarLog('Iniciando proceso de actualización del sistema...', '#569cd6');
+                agregarLog('Paso 1/5: Generando respaldo preventivo de base de datos...');
+                updateProgreso(20, 'Generando respaldo preventivo...');
+
+                var timer1 = setTimeout(function() {
+                    updateProgreso(45, 'Descargando paquete desde GitHub...', 'Paso 2/5: Descargando archivos actualizados desde GitHub...');
+                }, 1800);
+
+                var timer2 = setTimeout(function() {
+                    updateProgreso(70, 'Instalando archivos en el servidor...', 'Paso 3/5: Descomprimiendo e instalando archivos en el servidor...');
+                }, 3800);
+
+                $.ajax({
+                    url: "{{ route('system.update.apply') }}",
+                    type: 'POST',
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        version: version
+                    },
+                    dataType: 'json',
+                    timeout: 600000,
+                    success: function(res) {
+                        clearTimeout(timer1);
+                        clearTimeout(timer2);
+
+                        if (res.success) {
+                            updateProgreso(85, 'Actualizando base de datos...', 'Paso 4/5: Verificando y aplicando migraciones de base de datos...');
+                            
+                            setTimeout(function() {
+                                updateProgreso(95, 'Limpiando cachés...', 'Paso 5/5: Limpiando cachés de Laravel (vistas, rutas, configuración)...');
+                                
+                                setTimeout(function() {
+                                    var verFinal = res.new_version || version || '{{ $newVersion }}';
+                                    updateProgreso(100, '¡Actualización completada!', '✓ ' + (res.message || '¡Sistema actualizado con éxito a la versión ' + verFinal + '!'), '#4ec9b0', 'bg-success');
+                                    $('#badgeEstadoTerminal').removeClass('badge-light text-muted').addClass('badge-success text-white').text('Completado');
+                                    
+                                    setTimeout(function() {
+                                        $('#modalProgreso').fadeOut(300, function() {
+                                            $('#txtDetalleExito').html('¡Sistema actualizado con éxito a la versión <strong class="text-dark">' + verFinal + '</strong>!');
+                                            $('#modalExito').fadeIn(300);
+                                        });
+                                    }, 1200);
+                                }, 500);
+                            }, 500);
+                        } else {
+                            mostrarErrorActualizacion(res.message || 'Error desconocido durante la actualización');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        clearTimeout(timer1);
+                        clearTimeout(timer2);
+                        var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : (error || 'Error de conexión con el servidor');
+                        mostrarErrorActualizacion(msg);
+                    }
+                });
+            };
+
+            window.ejecutarRollbackAJAX = function(folder, version) {
+                var $ = window.jQuery || window.$;
+                abrirModalActualizacion('Iniciando restauración a v' + version + '...');
+                agregarLog('Iniciando proceso de restauración del sistema...', '#569cd6');
+                agregarLog('Paso 1/2: Restaurando código fuente y base de datos respaldada...');
+                updateProgreso(35, 'Restaurando código y base de datos...');
+
+                var timer = setTimeout(function() {
+                    updateProgreso(65, 'Extrayendo archivos y aplicando base de datos...');
+                }, 1800);
+
+                $.ajax({
+                    url: "{{ route('system.update.rollback') }}",
+                    type: 'POST',
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        folder: folder,
+                        version: version
+                    },
+                    dataType: 'json',
+                    timeout: 600000,
+                    success: function(res) {
+                        clearTimeout(timer);
+                        if (res.success) {
+                            updateProgreso(90, 'Limpiando cachés...', 'Paso 2/2: Limpiando cachés del sistema...');
+                            setTimeout(function() {
+                                updateProgreso(100, '¡Restauración completada!', '✓ ' + (res.message || '¡Sistema restaurado correctamente a la versión anterior!'), '#4ec9b0', 'bg-success');
+                                $('#badgeEstadoTerminal').removeClass('badge-light text-muted').addClass('badge-success text-white').text('Restaurado');
+
+                                setTimeout(function() {
+                                    $('#modalProgreso').fadeOut(300, function() {
+                                        $('#txtDetalleExito').html('¡Sistema restaurado con éxito a la versión <strong class="text-dark">v' + version + '</strong>!');
+                                        $('#modalExito').fadeIn(300);
+                                    });
+                                }, 1200);
+                            }, 500);
+                        } else {
+                            mostrarErrorActualizacion(res.message || 'Error durante la restauración');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        clearTimeout(timer);
+                        var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : (error || 'Error de conexión con el servidor');
+                        mostrarErrorActualizacion(msg);
+                    }
+                });
+            };
+
+            // Escuchar clics directos sobre el botón
+            $(document).off('click', '#btnActualizarAhora').on('click', '#btnActualizarAhora', function(e) {
+                e.preventDefault();
+                var ver = $(this).attr('data-version') || '{{ $newVersion }}';
+                window.ejecutarActualizacionAJAX(ver);
+            });
+
+            // Escucha evento cuando se sube un ZIP manual
+            if (window.Livewire) {
+                Livewire.on('start-zip-apply', function(event) {
+                    var ver = (event && event.version) ? event.version : 'Manual (ZIP)';
+                    window.ejecutarActualizacionAJAX(ver);
+                });
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initUpdateSystem);
+        } else {
+            initUpdateSystem();
+        }
+        document.addEventListener('livewire:init', initUpdateSystem);
+        document.addEventListener('livewire:navigated', initUpdateSystem);
+    })();
+
+    // Diálogos de Confirmación SweetAlert v1
+    function confirmRollback(folder, version) {
+        swal({
+            title: '¿Restaurar sistema?',
+            text: 'El sistema revertirá el código y la base de datos a la versión v' + version + '. Se perderán las transacciones generadas después de este respaldo. Esta acción es IRREVERSIBLE.',
+            icon: 'warning',
+            buttons: {
+                cancel: {
+                    text: 'Cancelar',
+                    value: null,
+                    visible: true,
+                },
+                confirm: {
+                    text: 'Sí, restaurar',
+                    value: true,
+                    className: 'swal-button--danger',
+                }
+            },
+            dangerMode: true,
+        }).then(function(value) {
+            if (value) {
+                window.ejecutarRollbackAJAX(folder, version);
+            }
+        });
+    }
+
+    function confirmDeleteRollback(folder, version) {
+        swal({
+            title: '¿Eliminar punto de restauración?',
+            text: 'Se eliminarán permanentemente los archivos y base de datos respaldados para la versión v' + version + '.',
+            icon: 'warning',
+            buttons: {
+                cancel: {
+                    text: 'Cancelar',
+                    value: null,
+                    visible: true,
+                },
+                confirm: {
+                    text: 'Sí, eliminar',
+                    value: true,
+                    className: 'swal-button--danger',
+                }
+            },
+            dangerMode: true,
+        }).then(function(value) {
+            if (value) {
+                @this.call('deleteRollback', folder);
+            }
+        });
+    }
+
+    function confirmClearLogs() {
+        swal({
+            title: '¿Limpiar historial de errores?',
+            text: 'Se vaciará por completo el archivo laravel.log de este servidor. Esta acción liberará espacio en disco y no se puede deshacer.',
+            icon: 'warning',
+            buttons: {
+                cancel: {
+                    text: 'Cancelar',
+                    value: null,
+                    visible: true,
+                },
+                confirm: {
+                    text: 'Sí, limpiar',
+                    value: true,
+                    className: 'swal-button--danger',
+                }
+            },
+            dangerMode: true,
+        }).then(function(value) {
+            if (value) {
+                @this.call('clearLogs');
+            }
+        });
+    }
+</script>
+@endpush
