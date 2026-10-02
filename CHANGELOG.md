@@ -1,3 +1,11 @@
+## [1.10.456] - 2026-10-02
+
+### Enhanced (Estabilización del Modal de Actualizaciones y Soporte Resiliente de Rutas)
+- **Carga de Scripts en Stack**:
+  - `update-system.blade.php`: Scripts del modal alojados en `@push('my-scripts')` con inicialización diferida (`initUpdateSystem`) garantizando la disponibilidad inmediata de jQuery y Bootstrap.
+  - Reemplazadas llamadas nombradas `route()` por `url()` para evitar excepciones `RouteNotFoundException` en entornos con caché de rutas previo.
+  - Vinculación directa por eventos jQuery delegados y soporte de respaldo para actualizar con un solo clic.
+
 ## [1.10.455] - 2026-10-02
 
 ### Fixed & Enhanced (Motor de Actualización y Restauración Asíncrono estilo Villasol)
